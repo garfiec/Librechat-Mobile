@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.data.di
 
+import com.garfiec.librechat.core.brand.di.brandModule // TCHAT
 import com.garfiec.librechat.core.common.di.KoinQualifiers
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
@@ -109,7 +110,7 @@ expect val dataPlatformModule: Module
 
 val dataModule = module {
 
-    includes(dataPlatformModule)
+    includes(dataPlatformModule, brandModule) // TCHAT: brandModule for ServerPinning
 
     // --- DAOs ---
 
@@ -216,6 +217,7 @@ val dataModule = module {
             appScope = get<CoroutineScope>(KoinQualifiers.ApplicationScope),
             ioDispatcher = get(KoinQualifiers.IO),
             keychainFallback = getOrNull(),
+            pinning = get(), // TCHAT
         )
     } bind ServerUrlProvider::class
     single {

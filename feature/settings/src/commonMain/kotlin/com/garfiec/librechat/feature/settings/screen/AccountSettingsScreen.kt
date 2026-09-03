@@ -48,6 +48,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.garfiec.librechat.core.brand.TchatBrand
 import com.garfiec.librechat.core.data.repository.HeaderWriteFailure
 import com.garfiec.librechat.core.ui.components.OtpVerificationDialog
 import com.garfiec.librechat.core.ui.resources.server_headers_no_server
@@ -222,19 +223,24 @@ fun AccountSettingsContent(
             item(key = "security_header") {
                 SectionHeader(stringResource(Res.string.section_security))
             }
-            item(key = "server_connection_row") {
-                AccountSettingsRow(
-                    icon = Icons.Default.Dns,
-                    title = stringResource(Res.string.section_server_connection),
-                    subtitle = stringResource(Res.string.server_connection_subtitle),
-                    onClick = {
-                        showServerHeadersDialog = true
-                        // The ViewModel loads once per server, so a read that failed would keep this
-                        // editor warning about a store that has since recovered — with no way to get
-                        // it to look again short of restarting the app.
-                        serverHeadersViewModel.reload()
-                    },
-                )
+            // TCHAT: every model call is routed through the broker with a fixed, server-side
+            // credential (see TchatBrand.EXPOSE_PROVIDER_BACKEND_SETTINGS's kdoc) — there is no
+            // access gateway in front of Tchat needing custom per-request headers.
+            if (TchatBrand.EXPOSE_PROVIDER_BACKEND_SETTINGS) {
+                item(key = "server_connection_row") {
+                    AccountSettingsRow(
+                        icon = Icons.Default.Dns,
+                        title = stringResource(Res.string.section_server_connection),
+                        subtitle = stringResource(Res.string.server_connection_subtitle),
+                        onClick = {
+                            showServerHeadersDialog = true
+                            // The ViewModel loads once per server, so a read that failed would keep this
+                            // editor warning about a store that has since recovered — with no way to get
+                            // it to look again short of restarting the app.
+                            serverHeadersViewModel.reload()
+                        },
+                    )
+                }
             }
             item(key = "security_settings") {
                 SecuritySection(
@@ -244,21 +250,26 @@ fun AccountSettingsContent(
                     onViewBackupCodes = viewModel::viewBackupCodes,
                 )
             }
-            item(key = "api_keys_row") {
-                AccountSettingsRow(
-                    icon = Icons.Default.Key,
-                    title = stringResource(Res.string.api_keys),
-                    subtitle = stringResource(Res.string.api_keys_subtitle),
-                    onClick = onNavigateToApiKeys,
-                )
-            }
-            item(key = "provider_keys_row") {
-                AccountSettingsRow(
-                    icon = Icons.Default.Key,
-                    title = stringResource(Res.string.provider_keys_title),
-                    subtitle = stringResource(Res.string.provider_keys_subtitle),
-                    onClick = onNavigateToProviderKeys,
-                )
+            // TCHAT: LibreChat's own programmatic API keys (REMOTE_AGENTS) and per-endpoint
+            // user-provided provider keys — Tchat has neither a use for the former nor any
+            // endpoint that accepts the latter. See TchatBrand.EXPOSE_PROVIDER_BACKEND_SETTINGS.
+            if (TchatBrand.EXPOSE_PROVIDER_BACKEND_SETTINGS) {
+                item(key = "api_keys_row") {
+                    AccountSettingsRow(
+                        icon = Icons.Default.Key,
+                        title = stringResource(Res.string.api_keys),
+                        subtitle = stringResource(Res.string.api_keys_subtitle),
+                        onClick = onNavigateToApiKeys,
+                    )
+                }
+                item(key = "provider_keys_row") {
+                    AccountSettingsRow(
+                        icon = Icons.Default.Key,
+                        title = stringResource(Res.string.provider_keys_title),
+                        subtitle = stringResource(Res.string.provider_keys_subtitle),
+                        onClick = onNavigateToProviderKeys,
+                    )
+                }
             }
             item(key = "favorites_row") {
                 AccountSettingsRow(

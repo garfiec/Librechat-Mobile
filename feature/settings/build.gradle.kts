@@ -11,6 +11,7 @@ kotlin {
         commonMain.dependencies {
             implementation(project(":core:network"))
             implementation(project(":core:logging"))
+            implementation(project(":core:brand")) // TCHAT: gates the provider/backend settings rows
             implementation(libs.coil3.compose)
             implementation(libs.coil3.network.ktor)
             implementation(libs.kermit)

@@ -16,9 +16,22 @@
 - `TwoFactor(val tempToken: String)` data class carries the nav argument directly
 
 ## OAuth Flow
-- `OAuthManager` opens Chrome Custom Tabs to `{serverUrl}/api/oauth/{provider}`
-- On return (Activity.onResume), `CookieManager.getCookie()` extracts `refreshToken=` cookie
-- Cookie is cleared after extraction to prevent stale reads
+- **TCHAT**: runs in an app-owned `OAuthWebView` (`WebView`/`WKWebView`), not an external browser.
+  The old design (a Chrome Custom Tab / `ASWebAuthenticationSession`) could never work — those
+  present pages in the *browser's* cookie jar (Chrome's own profile / Safari's), never the store
+  `OAuthLauncher.extractTokenFromCookies` reads from (`CookieManager` / `NSHTTPCookieStorage`). See
+  the kdoc on `OAuthWebView` (`feature/auth/oauth/OAuthWebView.kt`) for the full explanation.
+- Entry point is `{serverUrl}/oauth/{provider}` (not `/api/oauth/{provider}` — a genuine upstream
+  bug fixed alongside the WebView rewrite; LibreChat mounts OAuth at `/oauth`).
+- `LoginViewModel.launchOAuth` sets `LoginUiState.oAuthWebView`, which `LoginScreen` renders as a
+  full-screen overlay. The overlay's own `onComplete` (fired when the WebView navigates back to an
+  ordinary page on `serverUrl` — see `isOAuthReturnUrl`) calls `onOAuthWebViewComplete`, which hides
+  it and calls `checkOAuthResult()`. `LifecycleEventEffect(ON_RESUME)` still calls
+  `checkOAuthResult()` too, as a belt-and-braces fallback — the in-app WebView never leaves the app
+  the way the old design did, so this fires far less often now, but process death mid-flow is still
+  possible.
+- `checkOAuthResult()` reads `refreshToken=` via `OAuthLauncher.extractTokenFromCookies()` and
+  clears it after extraction to prevent stale reads.
 - Supported providers configured by server: Google, GitHub, Discord, Facebook, Apple, OpenID
 
 ## Token Storage
@@ -33,7 +46,8 @@
 
 ## Key Implementation Notes
 - If server URL is already stored, skip ServerUrl screen on launch
-- Social logins must use Custom Tabs, not WebView (cookie sharing requirement)
+- Social logins run in an in-app WebView (see OAuth Flow above) — this reverses an older assumption
+  in this doc that Custom Tabs were required for cookie sharing; they were actually the opposite.
 - `openidAutoRedirect` from server config triggers automatic redirect instead of showing login form
 - LDAP mode: show "Username" field instead of "Email" (check server config)
 

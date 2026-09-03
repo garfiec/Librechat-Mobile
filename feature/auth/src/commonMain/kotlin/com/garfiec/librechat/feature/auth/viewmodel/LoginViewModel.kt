@@ -11,10 +11,19 @@ import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.model.LoginOutcome
 import com.garfiec.librechat.feature.auth.oauth.OAuthLauncher
+import com.garfiec.librechat.feature.auth.oauth.oauthStartUrl
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+
+/**
+ * TCHAT: the two things [com.garfiec.librechat.feature.auth.oauth.OAuthWebView] needs, bundled so
+ * "showing" and "not showing" is one nullable value rather than two independently-nullable fields
+ * that could disagree (e.g. a URL set with no server, or vice versa).
+ */
+@Immutable
+data class OAuthWebViewState(val startUrl: String, val serverUrl: String)
 
 @Immutable
 data class LoginUiState(
@@ -31,6 +40,17 @@ data class LoginUiState(
     // enforces it with a 403 on POST /api/auth/login. Fail-open to true so the form shows until
     // config confirms otherwise. Drives hiding the email/password form.
     val emailLoginEnabled: Boolean = true,
+    // TCHAT: server-supplied OIDC button label/auto-redirect (StartupConfig.openidLabel /
+    // .openidAutoRedirect) — parsed upstream but never surfaced until now. Null label falls back
+    // to TchatBrand.OIDC_FALLBACK_LABEL in the screen.
+    val openidLabel: String? = null,
+    val openidAutoRedirect: Boolean = false,
+    /**
+     * TCHAT: non-null while the in-app OAuth WebView overlay should be showing. Set by
+     * [launchOAuth], cleared by [onOAuthWebViewComplete] and [dismissOAuthWebView]. Replaces the
+     * old external-browser launch — see [OAuthLauncher]'s kdoc.
+     */
+    val oAuthWebView: OAuthWebViewState? = null,
 )
 
 class LoginViewModel(
@@ -58,6 +78,8 @@ class LoginViewModel(
                         socialLoginEnabled = config.socialLoginEnabled,
                         socialLogins = config.socialLogins.orEmpty(),
                         emailLoginEnabled = config.emailLoginEnabled,
+                        openidLabel = config.openidLabel, // TCHAT
+                        openidAutoRedirect = config.openidAutoRedirect, // TCHAT
                     )
                 }
             }
@@ -135,6 +157,11 @@ class LoginViewModel(
     /** Set once this screen launches its own OAuth round-trip; gates add-mode cookie consumption. */
     private var oAuthLaunched = false
 
+    /**
+     * TCHAT: shows the in-app OAuth WebView overlay (see [OAuthWebView][com.garfiec.librechat.feature.auth.oauth.OAuthWebView])
+     * instead of launching an external browser. The overlay itself only detects completion; the
+     * screen wires that back to [onOAuthWebViewComplete].
+     */
     fun launchOAuth(provider: String) {
         oAuthLaunched = true
         val serverUrl = signInServerUrl()
@@ -144,17 +171,36 @@ class LoginViewModel(
         // wrong user (the oAuthLaunched guard only blocks the never-launched case). Clearing here means
         // only a cookie minted by THIS round-trip can be present on return.
         oAuthLauncher.clearOAuthCookie(serverUrl)
-        oAuthLauncher.launchOAuth(provider, serverUrl)
+        _uiState.value = _uiState.value.copy(
+            oAuthWebView = OAuthWebViewState(startUrl = oauthStartUrl(serverUrl, provider), serverUrl = serverUrl),
+        )
     }
 
+    /** The WebView overlay detected the flow reached an ordinary page on this server — check now. */
+    fun onOAuthWebViewComplete() {
+        _uiState.value = _uiState.value.copy(oAuthWebView = null)
+        checkOAuthResult()
+    }
+
+    /** The user closed the WebView overlay before the flow completed. Nothing to extract. */
+    fun dismissOAuthWebView() {
+        _uiState.value = _uiState.value.copy(oAuthWebView = null)
+    }
+
+    // TCHAT: called from two places now — onOAuthWebViewComplete() (the WebView overlay's own
+    // completion signal, the primary path) and LoginScreen's LifecycleEventEffect(ON_RESUME) (a
+    // belt-and-braces fallback: the in-app WebView no longer leaves the app the way the old
+    // external-browser design did, so a killed process mid-flow is far less likely — but not
+    // impossible, e.g. under memory pressure while backgrounded). Both call this same function so
+    // there is exactly one extraction path to keep correct.
     fun checkOAuthResult() {
         // In add mode, only consume a cookie minted by THIS screen's own launchOAuth round-trip:
         // the cookie jar is process-global and nothing clears it on add-flow entry, so a stale
         // refreshToken cookie for this host would otherwise be auto-consumed on first ON_RESUME
         // and silently complete the add as the wrong user. The normal login screen keeps the
-        // unconditional consume — it must survive process death during the Custom Tab round-trip,
-        // which an add flow never does (its pending session is memory-only, so a killed add flow
-        // is stripped by the NavHost, not resumed).
+        // unconditional consume — it must survive process death mid-flow, which an add flow never
+        // does (its pending session is memory-only, so a killed add flow is stripped by the
+        // NavHost, not resumed).
         if (accountSwitcher.pendingAdd != null && !oAuthLaunched) return
 
         val serverUrl = signInServerUrl()

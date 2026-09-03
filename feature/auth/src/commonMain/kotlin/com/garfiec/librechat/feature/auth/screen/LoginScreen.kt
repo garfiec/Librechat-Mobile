@@ -4,27 +4,37 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -36,9 +46,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.garfiec.librechat.core.brand.TchatBrand
+import com.garfiec.librechat.core.ui.components.PlatformBackHandler
+import com.garfiec.librechat.feature.auth.oauth.OAuthWebView
 import com.garfiec.librechat.feature.auth.resources.*
 import com.garfiec.librechat.feature.auth.resources.Res
 import com.garfiec.librechat.feature.auth.viewmodel.LoginViewModel
+import com.garfiec.librechat.feature.auth.viewmodel.OAuthWebViewState
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -56,7 +70,8 @@ fun LoginScreen(
     val currentOnLoginSuccess by rememberUpdatedState(onLoginSuccess)
     val currentOnNavigateToTwoFactor by rememberUpdatedState(onNavigateToTwoFactor)
 
-    // Check for OAuth result when returning from Chrome Custom Tab
+    // Belt-and-braces fallback — see the comment on LoginViewModel.checkOAuthResult(). The primary
+    // path is the OAuth WebView overlay's own onComplete below.
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.checkOAuthResult()
     }
@@ -75,6 +90,40 @@ fun LoginScreen(
             // re-triggering this effect against the retained ViewModel's stale token.
             viewModel.consumeTwoFactorNavigation()
         }
+    }
+
+    // TCHAT: honour the server's OPENID_AUTO_REDIRECT — fires once per screen instance (the
+    // rememberSaveable latch, not just a LaunchedEffect key, because config fields don't change
+    // mid-visit but the user backing out of the browser must land on a *usable* screen rather than
+    // being thrown straight back into it). Only when there is genuinely nothing else to do: email
+    // login is off, OIDC is on, and no error is already showing (an error means the last attempt —
+    // possibly this very auto-redirect — didn't work, and relaunching over it would loop).
+    var autoRedirectFired by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(uiState.openidAutoRedirect, uiState.emailLoginEnabled, uiState.socialLogins, uiState.error) {
+        if (!autoRedirectFired &&
+            uiState.openidAutoRedirect &&
+            !uiState.emailLoginEnabled &&
+            TchatBrand.OIDC_PROVIDER in uiState.socialLogins &&
+            uiState.error == null
+        ) {
+            autoRedirectFired = true
+            viewModel.launchOAuth(TchatBrand.OIDC_PROVIDER)
+        }
+    }
+
+    // TCHAT: the in-app OAuth WebView, full-screen over everything else on this screen while a
+    // flow is in progress. Rendered as an early return (not a sibling overlay) so the login form
+    // underneath is never composed on top of / interactable behind it — same shape as
+    // ServerUrlScreen's autoConnecting branch.
+    val oAuthWebView = uiState.oAuthWebView
+    if (oAuthWebView != null) {
+        OAuthWebViewOverlay(
+            state = oAuthWebView,
+            onComplete = viewModel::onOAuthWebViewComplete,
+            onDismiss = viewModel::dismissOAuthWebView,
+            modifier = modifier,
+        )
+        return
     }
 
     Box(
@@ -202,7 +251,7 @@ fun LoginScreen(
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !uiState.isLoading,
                     ) {
-                        Text(oAuthProviderLabel(provider))
+                        Text(oAuthProviderLabel(provider, uiState.openidLabel))
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                 }
@@ -213,12 +262,57 @@ fun LoginScreen(
     }
 }
 
-private fun oAuthProviderLabel(provider: String): String = when (provider.lowercase()) {
+/**
+ * TCHAT: full-screen host for the in-app OAuth WebView. A slim top bar carries just a close
+ * button — system back dismisses on Android via [PlatformBackHandler]; the explicit close covers
+ * iOS (which has no system back). Mirrors feature/chat's `PdfPreviewOverlay` shape.
+ */
+@Composable
+private fun OAuthWebViewOverlay(
+    state: OAuthWebViewState,
+    onComplete: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    PlatformBackHandler(enabled = true, onBack = onDismiss)
+
+    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+        Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = stringResource(Res.string.oauth_webview_close),
+                        tint = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
+
+            OAuthWebView(
+                startUrl = state.startUrl,
+                serverUrl = state.serverUrl,
+                onComplete = onComplete,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+    }
+}
+
+/**
+ * TCHAT: `openidLabel` is the server's own `OPENID_BUTTON_LABEL` (StartupConfig.openidLabel,
+ * surfaced via LoginUiState) — deploy/tchat/env.example already sets it to "Continue with
+ * TensorGrid", so that's what renders. [TchatBrand.OIDC_FALLBACK_LABEL] only covers a server that
+ * enables OIDC without setting a label.
+ */
+private fun oAuthProviderLabel(provider: String, openidLabel: String?): String = when (provider.lowercase()) {
     "google" -> "Continue with Google"
     "github" -> "Continue with GitHub"
     "discord" -> "Continue with Discord"
     "facebook" -> "Continue with Facebook"
     "apple" -> "Continue with Apple"
-    "openid" -> "Continue with OpenID"
+    "openid" -> openidLabel?.takeIf { it.isNotBlank() } ?: TchatBrand.OIDC_FALLBACK_LABEL
     else -> "Continue with ${provider.replaceFirstChar { it.uppercase() }}"
 }

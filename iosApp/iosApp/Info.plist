@@ -5,17 +5,18 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Switchboard</string>
+	<string>Tchat</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
+	<!-- TCHAT: was com.garfiec.librechat.ios. Must match PRODUCT_BUNDLE_IDENTIFIER in project.pbxproj. -->
 	<key>CFBundleIdentifier</key>
-	<string>com.garfiec.librechat.ios</string>
+	<string>space.tensorgrid.tchat</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<!-- Literal, not $(PRODUCT_NAME) — that resolves to the Xcode target name "iosApp".
 	     Renaming the target instead would break release.yml's -scheme/-archivePath. -->
 	<key>CFBundleName</key>
-	<string>Switchboard</string>
+	<string>Tchat</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<!-- Overwritten at build time by the "Stamp Version from version.properties"
@@ -77,18 +78,18 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Switchboard needs microphone access for voice input to transcribe speech to text.</string>
+	<string>Tchat needs microphone access for voice input to transcribe speech to text.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Switchboard uses speech recognition to convert your voice into text messages.</string>
+	<string>Tchat uses speech recognition to convert your voice into text messages.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Switchboard needs camera access to take photos for sharing in conversations.</string>
+	<string>Tchat needs camera access to take photos for sharing in conversations.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Switchboard needs photo library access to share images in conversations.</string>
+	<string>Tchat needs photo library access to share images in conversations.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>com.garfiec.librechat.ios</string>
+			<string>space.tensorgrid.tchat</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>librechat</string>

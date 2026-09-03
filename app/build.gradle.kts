@@ -9,7 +9,10 @@ android {
     namespace = "com.garfiec.librechat"
 
     defaultConfig {
-        applicationId = "com.garfiec.librechat"
+        // TCHAT: applicationId only — namespace stays com.garfiec.librechat (AndroidManifest.xml
+        // uses relative class names like ".MainActivity", which resolve against namespace, and
+        // all Kotlin sources stay in the com.garfiec.librechat package tree per TCHAT.md).
+        applicationId = "space.tensorgrid.tchat"
     }
 
     buildTypes {

@@ -21,4 +21,5 @@ const val NEW_CHAT_DRAFT_KEY: String = "__new_chat__"
  * chroma and tone are inert there, so judge a replacement by the roles it generates, never by
  * how the hex reads as a swatch.
  */
-const val DEFAULT_ACCENT_SEED_ARGB: Long = 0xFF3B82F6
+// TCHAT: #4f8cff is TensorGrid's accent (deploy/tchat/branding/tchat-mark.svg gradient start).
+const val DEFAULT_ACCENT_SEED_ARGB: Long = 0xFF4F8CFF

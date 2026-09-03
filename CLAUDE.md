@@ -2,6 +2,8 @@
 
 Native mobile client for LibreChat (Android & iOS). Connects to existing LibreChat backend servers (no backend changes). Users specify server URL during onboarding.
 
+> This checkout is also built and shipped as **Tchat**, pinned to our self-hosted LibreChat deployment. See [TCHAT.md](TCHAT.md) for everything that fork adds — do not duplicate that detail here.
+
 ## Tech Stack
 
 - **UI**: Jetpack Compose + Navigation Compose 3 (Nav 3)

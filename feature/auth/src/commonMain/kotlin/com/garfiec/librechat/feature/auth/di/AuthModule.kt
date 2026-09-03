@@ -27,6 +27,7 @@ val authModule = module {
             configRepository = get(),
             accountSwitcher = get(),
             addAccount = params.getOrNull() ?: false,
+            pinning = get(), // TCHAT
         )
     }
     viewModelOf(::LoginViewModel)

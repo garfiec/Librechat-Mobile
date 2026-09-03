@@ -13,6 +13,7 @@ import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -261,5 +262,76 @@ class LoginViewModelTest {
 
         // After login completes, loading should be false again
         assertThat(viewModel.uiState.value.isLoading).isFalse()
+    }
+
+    // TCHAT: the in-app OAuth WebView replaced the external-browser launch — see OAuthLauncher's kdoc.
+
+    @Test
+    fun `launchOAuth shows the webview at the oauth path and clears any stale cookie first`() = runTest {
+        every { serverDataStore.getBaseUrl() } returns "https://chat.tensorgrid.space"
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.launchOAuth("openid")
+
+        val webView = viewModel.uiState.value.oAuthWebView
+        assertThat(webView).isNotNull()
+        assertThat(webView!!.serverUrl).isEqualTo("https://chat.tensorgrid.space")
+        assertThat(webView.startUrl).isEqualTo("https://chat.tensorgrid.space/oauth/openid")
+        verify { oAuthLauncher.clearOAuthCookie("https://chat.tensorgrid.space") }
+    }
+
+    @Test
+    fun `dismissOAuthWebView hides the webview without checking for a token`() = runTest {
+        every { serverDataStore.getBaseUrl() } returns "https://chat.tensorgrid.space"
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.launchOAuth("openid")
+        assertThat(viewModel.uiState.value.oAuthWebView).isNotNull()
+
+        viewModel.dismissOAuthWebView()
+
+        assertThat(viewModel.uiState.value.oAuthWebView).isNull()
+        assertThat(viewModel.uiState.value.isLoggedIn).isFalse()
+    }
+
+    @Test
+    fun `onOAuthWebViewComplete hides the webview and completes login from the extracted token`() = runTest {
+        every { serverDataStore.getBaseUrl() } returns "https://chat.tensorgrid.space"
+        every { oAuthLauncher.extractTokenFromCookies("https://chat.tensorgrid.space") } returns "a-refresh-token"
+        coEvery { authRepository.loginWithOAuthToken("a-refresh-token") } returns
+            Result.Success(User(email = "user@example.com"))
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.launchOAuth("openid")
+        viewModel.onOAuthWebViewComplete()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.oAuthWebView).isNull()
+        assertThat(viewModel.uiState.value.isLoggedIn).isTrue()
+        // Once from launchOAuth (drop any stale cookie before showing the WebView), once from
+        // checkOAuthResult (drop the just-consumed one so a later ON_RESUME can't re-read it).
+        verify(exactly = 2) { oAuthLauncher.clearOAuthCookie("https://chat.tensorgrid.space") }
+    }
+
+    @Test
+    fun `onOAuthWebViewComplete with no cookie present leaves the user logged out`() = runTest {
+        every { serverDataStore.getBaseUrl() } returns "https://chat.tensorgrid.space"
+        every { oAuthLauncher.extractTokenFromCookies(any()) } returns null
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.launchOAuth("openid")
+        viewModel.onOAuthWebViewComplete()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.oAuthWebView).isNull()
+        assertThat(viewModel.uiState.value.isLoggedIn).isFalse()
     }
 }

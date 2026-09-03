@@ -19,6 +19,7 @@ dependencyResolutionManagement {
 rootProject.name = "Switchboard"
 
 include(":app")
+include(":core:brand") // TCHAT: Tchat-specific constants (server URL, name, OIDC label) — see TCHAT.md
 include(":core:common")
 include(":core:logging")
 include(":core:model")

@@ -10,9 +10,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(project(":core:network"))
-        }
-        androidMain.dependencies {
-            implementation(libs.browser)
+            implementation(project(":core:brand")) // TCHAT: ServerPinning for ServerUrlViewModel
         }
         named("androidUnitTest").dependencies {
             implementation(libs.kotlinx.serialization.json)

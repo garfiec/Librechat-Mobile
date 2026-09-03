@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.garfiec.librechat.core.brand.ServerPinning
 import com.garfiec.librechat.core.network.client.ServerUrlProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -34,6 +35,8 @@ class ServerDataStore(
     appScope: CoroutineScope,
     private val ioDispatcher: CoroutineDispatcher,
     private val keychainFallback: ServerUrlKeychainFallback? = null,
+    // TCHAT: blank url == unpinned, the exact upstream default. See ServerPinning's kdoc.
+    private val pinning: ServerPinning = ServerPinning(url = "", allowOverride = true),
 ) : ServerUrlProvider {
 
     private val _currentUrl = MutableStateFlow("")
@@ -71,14 +74,32 @@ class ServerDataStore(
                         restoredFromKeychain = true
                     }
                 }
+                // TCHAT: apply the pin, if any, before publishing. A force-pin (allowOverride ==
+                // false) always wins over whatever was persisted — a stale value from an earlier
+                // debug install must never survive into a release build. An override-allowed pin
+                // only fills in a genuinely blank URL, so it behaves as a prefill/default and never
+                // clobbers a value the user (or a prior debug session) already set.
+                var persist = restoredFromKeychain
+                if (pinning.url.isNotBlank()) {
+                    if (!pinning.allowOverride) {
+                        if (url != pinning.url) {
+                            url = pinning.url
+                            persist = true
+                        }
+                    } else if (url.isBlank()) {
+                        url = pinning.url
+                        persist = true
+                    }
+                }
                 // Don't overwrite (or re-persist) a URL a caller set/cleared while the warm-up
                 // was in flight. The keychain re-persist must also sit under the lock + flag,
                 // otherwise a clearServerUrl() that raced the read could be resurrected on disk.
                 urlMutex.withLock {
                     if (!urlExplicitlySet) {
                         _currentUrl.value = url
-                        // Re-persist the keychain-restored URL so subsequent reads skip the fallback.
-                        if (restoredFromKeychain) {
+                        // Re-persist a keychain-restored or pin-derived URL so subsequent reads
+                        // don't need to redo this resolution.
+                        if (persist) {
                             dataStore.edit { prefs -> prefs[KEY_SERVER_URL] = url }
                         }
                     }
@@ -120,14 +141,24 @@ class ServerDataStore(
 
     /**
      * Clear the server URL from both DataStore and Keychain fallback.
+     *
+     * TCHAT: when the server is force-pinned (a non-blank [ServerPinning.url] with
+     * `allowOverride == false`), "cleared" means "back to the pin", not blank — there is no
+     * onboarding screen left to prompt for a new one in that build.
      */
     suspend fun clearServerUrl() {
+        val resetTo = if (pinning.url.isNotBlank() && !pinning.allowOverride) pinning.url else ""
         urlMutex.withLock {
             urlExplicitlySet = true
-            _currentUrl.value = ""
+            _currentUrl.value = resetTo
         }
-        dataStore.edit { prefs -> prefs.remove(KEY_SERVER_URL) }
-        keychainFallback?.removeServerUrl()
+        if (resetTo.isEmpty()) {
+            dataStore.edit { prefs -> prefs.remove(KEY_SERVER_URL) }
+            keychainFallback?.removeServerUrl()
+        } else {
+            dataStore.edit { prefs -> prefs[KEY_SERVER_URL] = resetTo }
+            keychainFallback?.writeServerUrl(resetTo)
+        }
     }
 
     companion object {

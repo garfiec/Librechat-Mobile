@@ -17,6 +17,10 @@ See [Why use this instead of the web app?](README.md#why-use-this-instead-of-the
 
 ## Can I use a self-signed TLS certificate?
 
+> This only matters if you've built a debug variant and pointed it at your own server instead of
+> Tchat — see [TCHAT.md](TCHAT.md). `chat.tensorgrid.space` itself uses a publicly-trusted
+> certificate, so none of this applies to the app as shipped.
+
 Yes on iOS (with caveats). Not effectively on Android with the current release build — see below for workarounds.
 
 Both platforms enforce TLS certificate requirements that ordinary browsers do not. A certificate that works in Chrome or Safari may still be rejected by the mobile app.

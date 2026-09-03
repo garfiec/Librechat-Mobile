@@ -33,8 +33,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.garfiec.librechat.core.brand.TchatBrand
 import com.garfiec.librechat.core.data.repository.HeaderWriteFailure
 import com.garfiec.librechat.core.network.client.HeaderRejection
 import com.garfiec.librechat.core.ui.components.CustomHeaderRow
@@ -84,6 +86,20 @@ fun ServerUrlScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
     ) {
+        if (uiState.autoConnecting) {
+            // TCHAT: force-pinned build — there is no URL to enter, so this replaces the form
+            // entirely rather than merely disabling it. `error` still comes from the same
+            // doValidateAndConnect() path as the normal flow; only the affordance to fix it
+            // differs (Retry instead of editing a field).
+            AutoConnectingContent(
+                error = uiState.error,
+                onRetry = viewModel::validateAndConnect,
+                modifier = Modifier.align(Alignment.Center),
+            )
+            BackAffordanceOverlay(onBack)
+            return@Box
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -124,35 +140,43 @@ fun ServerUrlScreen(
                 enabled = !uiState.isLoading,
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            // TCHAT: Tchat's nginx has no access gateway (Cloudflare Access or equivalent) in
+            // front of it, so there is no server that would ever need a custom per-request
+            // header — see TchatBrand.EXPOSE_PROVIDER_BACKEND_SETTINGS's kdoc. In practice this
+            // whole screen never renders for Tchat anyway (ServerPinning.allowOverride is false in
+            // every build; auto-connect skips straight past it), but the guard stays in case a
+            // future non-Tchat build of this fork ever sets allowOverride true.
+            if (TchatBrand.EXPOSE_PROVIDER_BACKEND_SETTINGS) {
+                Spacer(modifier = Modifier.height(8.dp))
 
-            CustomHeadersSection(
-                expanded = uiState.showAdvanced,
-                headers = uiState.customHeaders,
-                headerError = uiState.headerError,
-                // A save failure supersedes the load warning: it is the more recent, more actionable
-                // of the two, and the load warning is what the refused save was reacting to.
-                // Each case gets the same wording as its Settings counterpart: the two editors write
-                // to one store, so one failure must not be described two different ways.
-                storeWarning = when (uiState.headersSaveFailure) {
-                    HeaderWriteFailure.UnverifiedDelete ->
-                        stringResource(UiRes.string.server_headers_unverified_delete)
-                    HeaderWriteFailure.NoServer ->
-                        stringResource(UiRes.string.server_headers_no_server)
-                    // NothingUsable is unreachable from here — Connect validates every row first —
-                    // so it shares the generic message rather than getting a string of its own.
-                    HeaderWriteFailure.StorageUnavailable, HeaderWriteFailure.NothingUsable ->
-                        stringResource(UiRes.string.server_headers_save_error)
-                    null -> stringResource(UiRes.string.server_headers_load_error)
-                        .takeIf { uiState.headersLoadFailed }
-                },
-                enabled = !uiState.isLoading,
-                onToggle = viewModel::toggleAdvanced,
-                onNameChange = viewModel::onHeaderNameChanged,
-                onValueChange = viewModel::onHeaderValueChanged,
-                onAdd = viewModel::addHeaderRow,
-                onRemove = viewModel::removeHeaderRow,
-            )
+                CustomHeadersSection(
+                    expanded = uiState.showAdvanced,
+                    headers = uiState.customHeaders,
+                    headerError = uiState.headerError,
+                    // A save failure supersedes the load warning: it is the more recent, more actionable
+                    // of the two, and the load warning is what the refused save was reacting to.
+                    // Each case gets the same wording as its Settings counterpart: the two editors write
+                    // to one store, so one failure must not be described two different ways.
+                    storeWarning = when (uiState.headersSaveFailure) {
+                        HeaderWriteFailure.UnverifiedDelete ->
+                            stringResource(UiRes.string.server_headers_unverified_delete)
+                        HeaderWriteFailure.NoServer ->
+                            stringResource(UiRes.string.server_headers_no_server)
+                        // NothingUsable is unreachable from here — Connect validates every row first —
+                        // so it shares the generic message rather than getting a string of its own.
+                        HeaderWriteFailure.StorageUnavailable, HeaderWriteFailure.NothingUsable ->
+                            stringResource(UiRes.string.server_headers_save_error)
+                        null -> stringResource(UiRes.string.server_headers_load_error)
+                            .takeIf { uiState.headersLoadFailed }
+                    },
+                    enabled = !uiState.isLoading,
+                    onToggle = viewModel::toggleAdvanced,
+                    onNameChange = viewModel::onHeaderNameChanged,
+                    onValueChange = viewModel::onHeaderValueChanged,
+                    onAdd = viewModel::addHeaderRow,
+                    onRemove = viewModel::removeHeaderRow,
+                )
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -174,6 +198,48 @@ fun ServerUrlScreen(
         }
 
         BackAffordanceOverlay(onBack)
+    }
+}
+
+/**
+ * TCHAT: shown instead of the URL form on a force-pinned build. `error == null` is the ordinary
+ * cold-start path (a brief branded spinner while the pinned connect resolves); non-null is an
+ * offline/unreachable cold start, which needs an explicit way forward since there is no field for
+ * the user to edit and no other affordance on this screen.
+ */
+@Composable
+private fun AutoConnectingContent(
+    error: String?,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = TchatBrand.APP_NAME,
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.semantics { heading() },
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        if (error == null) {
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+        } else {
+            Text(
+                text = error,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.error,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = onRetry) {
+                Text(stringResource(Res.string.retry))
+            }
+        }
     }
 }
 

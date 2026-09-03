@@ -20,6 +20,7 @@ kotlin {
             implementation(project(":core:model"))
             implementation(project(":core:common"))
             implementation(project(":core:logging"))
+            implementation(project(":core:brand")) // TCHAT: ServerPinning for ServerDataStore
             implementation(libs.datastore.preferences)
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.content.negotiation)

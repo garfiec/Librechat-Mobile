@@ -39,6 +39,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.garfiec.librechat.core.brand.TchatBrand
 import com.garfiec.librechat.feature.settings.platform.LogFileSaver
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
@@ -420,16 +421,19 @@ private fun DataExtraActions(
                 )
             }
 
-            // Revoke API keys
-            OutlinedButton(
-                onClick = onRevokeKeysClick,
-                enabled = !isKeyRevoking,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error,
-                ),
-            ) {
-                Text(stringResource(if (isKeyRevoking) Res.string.revoking else Res.string.revoke_all_api_keys))
+            // TCHAT: nothing to revoke — no Tchat endpoint accepts a user-provided key, so this
+            // store is always empty. See TchatBrand.EXPOSE_PROVIDER_BACKEND_SETTINGS's kdoc.
+            if (TchatBrand.EXPOSE_PROVIDER_BACKEND_SETTINGS) {
+                OutlinedButton(
+                    onClick = onRevokeKeysClick,
+                    enabled = !isKeyRevoking,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error,
+                    ),
+                ) {
+                    Text(stringResource(if (isKeyRevoking) Res.string.revoking else Res.string.revoke_all_api_keys))
+                }
             }
         }
         HorizontalDivider(modifier = Modifier.padding(top = 8.dp))

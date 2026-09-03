@@ -1,10 +1,17 @@
-# Switchboard: LibreChat Mobile Client
+# Tchat: Native Mobile Client
 
 [![LibreChat](https://img.shields.io/badge/LibreChat-v0.8.4_–_v0.8.8--rc1-blue)](https://github.com/danny-avila/LibreChat/releases/tag/v0.8.8-rc1)
 
-A third-party native mobile client for [LibreChat](https://www.librechat.ai/) (Android & iOS). Not affiliated with the official LibreChat project — this is an independent app that connects to any self-hosted LibreChat server, no backend modifications required.
+The native Android/iOS client for **Tchat**, TensorGrid's self-hosted deployment of
+[LibreChat](https://www.librechat.ai/) at `chat.tensorgrid.space`. There is no server field to
+fill in — the app is pinned to Tchat and opens straight to sign-in.
 
-> **Backend compatibility:** Tested against LibreChat **v0.8.4 – v0.8.8-rc1**. Older releases may work but are not guaranteed; newer releases are supported on a best-effort basis until the next sync.
+This is a rebrand of [Switchboard](https://github.com/garfiec/Librechat-Mobile), a third-party
+native LibreChat client, kept as a fork so it can keep pulling in Switchboard's fixes and
+features. See [TCHAT.md](TCHAT.md) for exactly what this fork changes and why.
+
+> **Backend compatibility:** Tested against LibreChat **v0.8.4 – v0.8.8-rc1** — Tchat itself
+> currently runs v0.8.8-rc1.
 
 ## Why use this instead of the web app?
 
@@ -12,12 +19,12 @@ A third-party native mobile client for [LibreChat](https://www.librechat.ai/) (A
 - **Feels like a mobile app, not a shrunk-down website** — familiar gestures like swipe to switch accounts and swipe back, comfortable tap targets, and a layout that adapts to tablets and foldables.
 - **Plays nicely with your phone** — share text, images, and files into the app from anywhere *(Android)*, pin your favorite models or generated content to your home screen, open chat links straight into the right screen, and save or share images through your phone's normal menus.
 - **Works without a connection** — your chat list and any conversations you've opened are saved on your phone, so you can keep reading with spotty or no signal.
-- **Multiple accounts, one app** — sign in to different accounts on different LibreChat servers and switch between them instantly, no re-entering passwords.
+- **Multiple accounts, one app** — sign in to more than one Tchat account and switch between them instantly, no re-entering passwords.
 - **Dictation stays on your phone** — voice typing runs on-device instead of through a server.
 
 ## Features
 
-- **Multi-Account & Multi-Server** — Sign in to multiple accounts across different LibreChat servers and switch between them instantly, no re-login. Swipe the account chip to switch; storage is fully scoped per account.
+- **Multi-Account** — Sign in to more than one Tchat account and switch between them instantly, no re-login. Swipe the account chip to switch; storage is fully scoped per account. All accounts are Tchat accounts — the server is fixed and there is no in-app way to point at a different one, in any build (see [TCHAT.md](TCHAT.md)).
 - **Pin Artifacts to Home Screen** — Turn any generated artifact (HTML, React, SVG, Mermaid, Markdown) into a home-screen launcher icon that opens straight into a full-screen viewer — works on cold start, while logged out, and even after the source chat is deleted. *(Android)*
 - **Quick Actions** — Your most-used models become home-screen shortcuts (Android) and long-press quick actions (iOS) that deep-link into a new chat with that model preselected.
 - **Rich Media Viewer** — Full-screen, Google-Photos-style viewer with pinch-to-zoom and swipe between images across a branch or grid, shared by chat and files.
@@ -37,7 +44,6 @@ A third-party native mobile client for [LibreChat](https://www.librechat.ai/) (A
 
 | Feature | Phone | Tablet / Foldable |
 |---|---|---|
-| **Server Connect** — Point the app at any self-hosted LibreChat server | <img src="docs/screenshots/server-url-phone.png" width="280"> | <img src="docs/screenshots/server-url-tablet.png" width="380"> |
 | **Home Screen** — Clean welcome screen with voice input and quick access | <img src="docs/screenshots/home-phone.png" width="280"> | <img src="docs/screenshots/home-tablet.png" width="380"> |
 | **Conversations Sidebar** — Swipe to open your chat history with search, tags, and date grouping | <img src="docs/screenshots/sidebar-phone.gif" width="280"> | <img src="docs/screenshots/sidebar-tablet.gif" width="380"> |
 | **Predictive Back** — Native Android back gesture with peek animation | <img src="docs/screenshots/predictive-back-phone.gif" width="280"> | <img src="docs/screenshots/predictive-back-tablet.gif" width="380"> |
@@ -51,73 +57,12 @@ A third-party native mobile client for [LibreChat](https://www.librechat.ai/) (A
 | **Model Selection** — Searchable bottom sheet with models grouped by provider | <img src="docs/screenshots/model-selection-phone.png" width="280"> | <img src="docs/screenshots/model-selection-tablet.png" width="380"> |
 | **Settings** — Theme, language, layout, and personalization options | <img src="docs/screenshots/settings-phone.png" width="280"> | <img src="docs/screenshots/settings-tablet.png" width="380"> |
 
-## Install (Android)
+## Install
 
-Pre-built, signed APKs are published on the [Releases](https://github.com/garfiec/Librechat-Mobile/releases) page. No need to build from source.
-
-### Obtainium (recommended)
-
-[Obtainium](https://github.com/ImranR98/Obtainium) installs the app straight from GitHub Releases and keeps it updated automatically.
-
-[![Add to Obtainium](https://img.shields.io/badge/Add%20to-Obtainium-1e88e5?logo=android&logoColor=white)](https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/garfiec/Librechat-Mobile)
-
-1. Install Obtainium from its [releases](https://github.com/ImranR98/Obtainium/releases).
-2. Tap the **Add to Obtainium** badge above (or, in Obtainium, *Add App* → paste `https://github.com/garfiec/Librechat-Mobile`).
-3. Obtainium tracks new releases and prompts you to update when one ships.
-
-Release-candidate builds (versions like `2026.07.1-rc1`) are published as GitHub *pre-releases* and are ignored unless you enable **Include prereleases** for the app in Obtainium.
-
-### Manual install
-
-Download the latest `switchboard-vYYYY.MM.P.apk` from [Releases](https://github.com/garfiec/Librechat-Mobile/releases) and open it on your device (you may need to allow installs from your browser/file manager).
-
-### Verifying the signing key
-
-All releases are signed with the same key, so updates install in place. Verify a downloaded APK matches the published certificate:
-
-```bash
-apksigner verify --print-certs switchboard-vYYYY.MM.P.apk
-# or check the .sha256 checksum attached to each release:
-sha256sum -c switchboard-vYYYY.MM.P.apk.sha256
-```
-
-> Signing certificate SHA-256: `66:8A:71:96:6A:07:06:14:D1:44:95:5D:83:E7:23:6A:3C:ED:77:F8:64:08:57:C3:FA:84:B0:3C:CD:E4:0E:59`
-
-If the signing key ever changed, Android would refuse the update — so this key is permanent. Never install a build signed with a different certificate over an existing install.
-
-### Verifying build provenance (optional, strongest)
-
-Every release APK carries a [SLSA build-provenance attestation](https://github.com/garfiec/Librechat-Mobile/attestations), signed by GitHub Actions via Sigstore. Unlike the `.sha256` — which whoever attaches a release could regenerate — the attestation proves the binary was produced by this repo's release workflow at a specific commit, and **cannot be forged outside GitHub's CI**. With the [GitHub CLI](https://cli.github.com):
-
-```bash
-gh attestation verify switchboard-vYYYY.MM.P.apk \
-  --repo garfiec/Librechat-Mobile \
-  --signer-workflow garfiec/Librechat-Mobile/.github/workflows/release.yml
-```
-
-A pass confirms the exact bytes you downloaded came from that workflow. The run and attestation are also linked from each release's notes — but those links are convenience, not proof; only the command above verifies the bytes in your hand.
-
-## Server Setup
-
-The app works with any standard LibreChat server. During onboarding, you'll enter your server URL (e.g., `https://chat.example.com` or `http://192.168.1.100:3080`).
-
-### Required Configuration
-
-Add the following to your LibreChat server's `.env` file:
-
-```env
-# Safety net for native app clients.
-# The app sends a browser User-Agent to pass the uaParser middleware,
-# but if it ever fails to parse, this prevents ban point accumulation.
-NON_BROWSER_VIOLATION_SCORE=0
-```
-
-Without this setting, the server's violation system may accumulate ban points against the mobile client if the User-Agent check fails, eventually locking the account out.
-
-### Notes
-
-- **Registration** — The app respects your server's registration settings. If registration is disabled server-side, only the login form is shown.
-- **Self-signed TLS certificates** — Both platforms enforce certificate requirements stricter than browsers, and Android additionally does not trust user-installed CAs by default. See [FAQ.md](FAQ.md#can-i-use-a-self-signed-tls-certificate) for details and workarounds.
+Tchat-Mobile is currently built and distributed as internal/debug builds only — there is no
+public release channel (Obtainium, Play Store, App Store) yet. See
+[TCHAT.md](TCHAT.md#deferred-internaldebug-builds-only-for-now) for what each of those needs when
+that changes, and `TCHAT.md`'s top section for how to build a debug APK yourself in the meantime.
 
 ## Requirements
 

@@ -11,7 +11,8 @@
 set -euo pipefail
 
 # run-as only works on a debuggable build, so these checks target the .debug install.
-PKG="${DEVCHECK_PKG:-com.garfiec.librechat.debug}"
+# TCHAT: was com.garfiec.librechat.debug — applicationId changed, see app/build.gradle.kts.
+PKG="${DEVCHECK_PKG:-space.tensorgrid.tchat.debug}"
 # Spelled out in full: the applicationId is suffixed but the code namespace is not, so a relative
 # `$PKG/.MainActivity` resolves to a class that does not exist.
 ACTIVITY=com.garfiec.librechat.MainActivity
@@ -89,8 +90,15 @@ cmd_run() {
   echo "tokens after:  $(cmd_tokens)"
 }
 
-# Launch, then tap Connect as soon as the ServerUrl screen paints — this races the tail of the 401
-# storm, which is what used to yank the user off Login back to ServerUrl.
+# TCHAT: no longer usable. Written for the ServerUrl screen's manual Connect button, which no
+# Tchat build (debug included — see TCHAT.md) ever shows: the server is force-pinned with no
+# in-app override, so ServerUrlScreen auto-connects on cold start instead of presenting a form. The
+# "Connect button never appeared" fallback below means this degrades to a no-op warning rather than
+# hanging or crashing, so it's left as-is rather than deleted; if this whole session-expiry replay
+# flow is still needed, it needs to be re-driven off auto-connect instead of a button tap.
+#
+# Original comment: launch, then tap Connect as soon as the ServerUrl screen paints — this races
+# the tail of the 401 storm, which is what used to yank the user off Login back to ServerUrl.
 cmd_tap_connect() {
   local label="${1:?usage: tap-connect <label> [seconds]}" secs="${2:-20}"
   echo "tokens before: $(cmd_tokens)"

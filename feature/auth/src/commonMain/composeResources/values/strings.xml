@@ -4,7 +4,7 @@
     <string name="server_url_label">Server URL</string>
     <string name="server_url_placeholder">https://your-server.com</string>
     <string name="server_url_connect">Connect</string>
-    <string name="connect_to_librechat">Connect to LibreChat</string>
+    <string name="connect_to_librechat">Connect to Tchat</string>
     <string name="enter_server_url_hint">Enter your server URL to get started</string>
     <string name="insecure_connection_title">Insecure connection</string>
     <string name="insecure_connection_message">You are connecting over HTTP. Your login credentials and messages will be sent unencrypted and could be intercepted by others on the network.\n\nOnly use HTTP for local development servers.</string>
@@ -19,6 +19,8 @@
     <string name="forgot_password">Forgot password?</string>
     <string name="no_account_sign_up">Don't have an account? Sign up</string>
     <string name="or_continue_with">Or continue with</string>
+    <!-- Content description for the close button on the in-app OAuth sign-in WebView. -->
+    <string name="oauth_webview_close">Close</string>
 
     <!-- Register -->
     <string name="register_title">Create account</string>

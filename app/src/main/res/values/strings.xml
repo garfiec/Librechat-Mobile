@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Switchboard</string>
+    <string name="app_name">Tchat</string>
 
     <!-- Connectivity -->
     <string name="no_connection">No internet connection</string>

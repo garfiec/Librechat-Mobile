@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regenerate the Android launcher icon assets from SwitchboardLogo.png.
+"""Regenerate the Android launcher icon assets from TchatLogo.png.
 
     python3 design/generate-android-icons.py        # run from the repo root
 
@@ -24,7 +24,12 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = Path(__file__).resolve().parent.parent
-SRC = ROOT / 'design' / 'SwitchboardLogo.png'
+# TCHAT: was SwitchboardLogo.png. TchatLogo.png is glyph-only on transparency, same as
+# SwitchboardLogo.png's own contract (see design/README.md) -- generated from TchatLogo.svg via
+# `rsvg-convert -w 1606 -h 1606 design/TchatLogo.svg -o design/TchatLogo.png`. Unlike Switchboard's
+# mark it has no soft glow/bleed, so the FEATHER/near_solid logic below is inert on it (alpha is
+# either ~0 or ~255 everywhere outside normal antialiasing) rather than actively needed.
+SRC = ROOT / 'design' / 'TchatLogo.png'
 RES = ROOT / 'app' / 'src' / 'main' / 'res'
 BG_XML = RES / 'values' / 'ic_launcher_background.xml'
 

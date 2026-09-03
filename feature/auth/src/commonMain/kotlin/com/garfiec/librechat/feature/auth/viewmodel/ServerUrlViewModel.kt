@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.auth.viewmodel
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.garfiec.librechat.core.brand.ServerPinning
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
@@ -49,6 +50,13 @@ data class ServerUrlUiState(
      * sends the user to fix a URL that was never the problem.
      */
     val headersSaveFailure: HeaderWriteFailure? = null,
+    /**
+     * TCHAT: true for the lifetime of this screen when the server is force-pinned
+     * ([ServerPinning.allowOverride] false — every Tchat build, with no exceptions). The screen
+     * renders a brand splash instead of the URL field/Advanced section while this is true, using
+     * [error] (still populated normally) to decide between a spinner and a Retry affordance.
+     */
+    val autoConnecting: Boolean = false,
 )
 
 /**
@@ -69,6 +77,9 @@ class ServerUrlViewModel(
     private val configRepository: ConfigRepository,
     private val accountSwitcher: AccountSwitcher,
     private val addAccount: Boolean = false,
+    // TCHAT: blank url == unpinned, the exact upstream default — every existing caller/test that
+    // doesn't pass this keeps today's onboarding behaviour verbatim.
+    private val pinning: ServerPinning = ServerPinning(url = "", allowOverride = true),
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ServerUrlUiState())
@@ -83,6 +94,22 @@ class ServerUrlViewModel(
 
     /** Whether the user has interacted at all, which makes the async prefill stale rather than late. */
     private var userEdited = false
+
+    init {
+        // TCHAT: force-pinned builds (every Tchat build) skip the URL/headers form entirely and
+        // connect to the pin immediately — doValidateAndConnect already branches on `addAccount`
+        // internally (validateLiveServer vs validatePendingServer), so this reaches the right path
+        // in both the normal and add-account flows with no other change to either. Deliberately
+        // not gated on the async prefill below: setServerUrl() inside doValidateAndConnect always
+        // wins the race against ServerDataStore's own warm-up (see its urlExplicitlySet guard), so
+        // there is nothing to await first. No custom headers are attached on this very first
+        // attempt — a non-issue for Tchat's own deployment (no gateway in front of it; the header
+        // editor is hidden entirely anyway, see TchatBrand.EXPOSE_PROVIDER_BACKEND_SETTINGS).
+        if (pinning.url.isNotBlank() && !pinning.allowOverride) {
+            _uiState.value = _uiState.value.copy(url = pinning.url, autoConnecting = true)
+            doValidateAndConnect(pinning.url)
+        }
+    }
 
     init {
         viewModelScope.launch {

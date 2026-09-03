@@ -1,5 +1,10 @@
 # Contributing to Switchboard
 
+> This checkout is built and shipped as **Tchat**, a rebrand of Switchboard pinned to our
+> self-hosted LibreChat deployment. Everything below still applies as-is — the fork's changes are
+> confined to a small, documented set of files (see [TCHAT.md](TCHAT.md)) precisely so the normal
+> Switchboard contribution workflow keeps working unmodified.
+
 ## Prerequisites
 
 | Tool | Version | Notes |
