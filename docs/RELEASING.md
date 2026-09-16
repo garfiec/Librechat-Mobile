@@ -297,16 +297,25 @@ To confirm an APK really was built at its own tag — the property the tag-befor
 to guarantee — read `GIT_SHA` out of the shipped dex and compare it to the tagged commit:
 
 ```sh
-unzip -p <apk> 'classes*.dex' | strings -n 8 | grep -Ex '[0-9a-f]{8}'
-git rev-parse --short=8 'v<version>^{commit}'
+expected=$(git rev-parse --short=8 'v<version>^{commit}')
+unzip -p <apk> 'classes*.dex' | strings -n 8 | grep -Fx "$expected"
 ```
 
-The `classes*.dex` glob matters: the app is single-dex today, but it is R8-minified across
-~15 modules and `GIT_SHA` is inlined from `:core:common`, so the first build to cross 64K
-methods puts it in `classes2.dex` — and a `classes.dex`-only check would then find nothing and
-make a good release look unreproducible. The `strings` pass also turns up BOM artifacts
-(`0000feff`, `fffe0000`); the commit SHA is the remaining candidate, and it should match
-exactly.
+It prints the SHA if the dex carries it and nothing (exit 1) if it does not.
+
+Ask for the expected string rather than listing every hex-looking one: the dex also contains
+`0123456789abcdef`, `9223372036854775807` and a couple of BOM artifacts, so an enumerating
+pattern leaves you eyeballing a candidate list that grows silently with the codebase. Matching
+one fixed string also sidesteps abbreviation length — `--short=8` is a *minimum*, and git
+lengthens it when 8 characters are ambiguous (and honours `core.abbrev`), so a hardcoded
+`{8}` would miss a 9-character SHA outright.
+
+Two traps in that one line. The `classes*.dex` glob: the app is single-dex today, but it is
+R8-minified across ~15 modules and `GIT_SHA` is inlined from `:core:common`, so the first
+build to cross 64K methods puts it in `classes2.dex`, and a `classes.dex`-only check would
+find nothing and make a good release look unreproducible. And **do not add `-q`**: the system
+`grep` may be ugrep (7.5.0 here), whose `-q` exits 1 despite a match when reading from a pipe
+— the check would report every release as unreproducible.
 
 **`^{commit}` is required.** Release tags are *annotated*, so a bare `git rev-parse v<version>`
 returns the tag-object SHA, which never matches anything in the dex — the check would appear to
