@@ -1,0 +1,98 @@
+# Proposed fdroiddata recipe for Switchboard (com.garfiec.librechat).
+#
+# Kept in this repo so it stays with the release process it describes: several lines below
+# are load-bearing for reasons that are not visible from the outside, and are annotated.
+#
+# NOTE: the Builds/CurrentVersion block must be pinned to a release that has actually been
+# verified reproducible. Every release before the workflow fix described under
+# "Reproducibility" in RFP.md is permanently unreproducible and must never be listed here.
+#
+# The four version pins below (versionName, versionCode, commit, CurrentVersion/Code) are
+# placeholders for a cut that has not happened yet. They assume a September 2026 bump.
+# scripts/bump-version.sh derives the version from the UTC date AT DISPATCH TIME, so if the
+# cut slips a month `patch` yields 2026.10.0 / 20261000 and every pin here is silently wrong
+# — as is fastlane/metadata/android/en-US/changelogs/20260900.txt, which would be orphaned
+# under a filename no release ever uses. Re-derive all five from the actual bump before
+# filing, and check that the changelog file is named for the versionCode being cut.
+
+Categories:
+  - AI Chat
+License: MIT
+AuthorName: garfiec
+SourceCode: https://github.com/garfiec/Librechat-Mobile
+IssueTracker: https://github.com/garfiec/Librechat-Mobile/issues
+Changelog: https://github.com/garfiec/Librechat-Mobile/releases
+
+# Summary and Description are intentionally omitted: the repo carries
+# fastlane/metadata/android/en-US/, which fdroidserver reads directly. Keeping the copy
+# in-tree means it changes with the app instead of via a separate merge request.
+
+RepoType: git
+Repo: https://github.com/garfiec/Librechat-Mobile.git
+
+# Developer-signed (reproducible-build verification), NOT F-Droid-signed.
+# Rationale: Android refuses in-place upgrades across signing keys. The app already ships
+# via GitHub Releases + Obtainium under this key, so an F-Droid-signed build would strand
+# those users on a parallel install they could never migrate off without uninstalling and
+# losing their local chat database.
+Binaries: https://github.com/garfiec/Librechat-Mobile/releases/download/v%v/switchboard-v%v.apk
+AllowedAPKSigningKeys: 668a71966a070614d144955d83e7236a3ced77f8640857c3fa84b03ccde40e59
+
+Builds:
+  - versionName: 2026.09.0
+    versionCode: 20260900
+    commit: v2026.09.0
+    subdir: app
+    gradle:
+      - yes
+    # Drops the release signing config so AGP emits app-release-unsigned.apk.
+    # Passed bare (no value); the build tests presence, not truthiness.
+    gradleprops:
+      - unsignedRelease
+    # REQUIRED — verified by running `fdroid build` in the buildserver image; without
+    # it the scan aborts with 63 errors and the build never starts.
+    # build-logic/ is an included build holding this project's Gradle convention
+    # plugins. fdroidserver runs `gradle clean` BEFORE scanning (build.py: clean at
+    # :539, scan_source at :609), and any Gradle invocation compiles those plugins to
+    # build-logic/convention/build/ — .class files plus convention.jar. The scanner
+    # then flags every one of them as a compiled binary. None of it is in git (the
+    # checkout is `git clean -dffx`); it is created by fdroidserver's own clean step.
+    # scandelete rather than scanignore because it is generated output, and scandelete
+    # is applied inside scan_source (scanner.py:753) — i.e. after the clean regenerates
+    # it, so the ordering works out. Note an unused scandelete path is itself an error.
+    scandelete:
+      - build-logic/convention/build
+
+# No `submodules: true` on purpose. The repo has an upstream/ submodule pinning the
+# LibreChat server for API reference, but nothing in the build reads it: the single task
+# that walks it is not wired into compilation and its generated output is committed.
+# A plain clone builds, and omitting it keeps the server tree out of the scanner's walk.
+
+# The versionCode/versionName literals live in the ROOT version.properties, which
+# fdroidserver's default scan never reads — common.manifest_paths only looks at
+# AndroidManifest.xml and build.gradle(.kts) *under the app module*. Without the
+# UpdateCheckData line below this app would build and publish fine and then never be
+# offered as an update. The paths are resolved against the repo root by
+# checkupdates.check_tags.
+AutoUpdateMode: Version
+UpdateCheckMode: Tags ^v[0-9]{4}\.[0-9]{2}\.[0-9]+$
+UpdateCheckData: version.properties|versionCode=(\d+)|version.properties|versionName=(.+)
+CurrentVersion: 2026.09.0
+CurrentVersionCode: 20260900
+
+# The tag regex is not decoration. Release candidates are tagged vYYYY.MM.P-rcN, and the
+# version scheme strips the -rcN suffix when packing versionCode — so v2026.09.1-rc1 and
+# v2026.09.1 share versionCode 20260901.
+#
+# The damage is done by whichever scan runs FIRST, not by tag ordering. Within a single scan
+# the finalized tag actually wins: latesttags() sorts by commit date descending and finalize
+# adds a newer bump commit, so the final sorts ahead of its own rc. But a nightly checkupdates
+# that runs while only the rc exists sets CurrentVersionCode=20260901, and every later run
+# then sees the final's EQUAL code and logs "up to date" — the comparison is a strict `>`.
+# The finalized release is never offered.
+#
+# Worse, that first scan is not passive. With AutoUpdateMode: Version, checkupdates writes a
+# Build with `commit: v2026.09.1-rc1` and `versionName: 2026.09.1-rc1`, so Binaries: resolves
+# to .../download/v2026.09.1-rc1/switchboard-v2026.09.1-rc1.apk — an asset that really exists,
+# because candidates are published as GitHub pre-releases. F-Droid would ship a release
+# candidate to every stable user.
