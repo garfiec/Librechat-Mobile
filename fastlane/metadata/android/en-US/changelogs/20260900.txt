@@ -1,0 +1,6 @@
+The code, diagram, math and React renderers now run entirely from files bundled in the app
+instead of fetching their JavaScript from a CDN, so inline artifacts render offline and no
+longer reach out to a third-party host to display a message.
+
+One trade-off comes with that: React artifacts importing third-party packages such as
+recharts or lucide-react now report the missing package instead of loading it.
