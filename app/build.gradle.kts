@@ -32,6 +32,26 @@ android {
     buildFeatures {
         buildConfig = true
     }
+
+    packaging {
+        jniLibs {
+            // Ship the .so files exactly as their AARs publish them, symbols and all.
+            //
+            // We compile no native code — every .so here comes prebuilt from Maven
+            // (androidx sqlite-bundled, datastore, graphics-path). Stripping them needs an
+            // NDK, and AGP silently skips it when none is installed: GitHub's runners have
+            // one, F-Droid's buildserver image does not, so the same tag produced different
+            // bytes depending on where it was built. That breaks reproducible-build
+            // verification, which is how our developer-signed APK gets published.
+            //
+            // Not stripping removes the toolchain from the path entirely: the packaged file
+            // is byte-for-byte the artifact Maven serves, so every environment agrees. The
+            // alternative — pinning one NDK in CI and in the fdroiddata recipe — keeps the
+            // APK ~577 KB smaller but makes reproducibility depend on two pins never
+            // drifting, and strip output can itself vary by NDK version.
+            keepDebugSymbols += setOf("**/*.so")
+        }
+    }
 }
 
 dependencies {

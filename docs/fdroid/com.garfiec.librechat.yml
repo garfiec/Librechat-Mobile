@@ -16,7 +16,7 @@
 # filing, and check that the changelog file is named for the versionCode being cut.
 
 Categories:
-  - Internet
+  - AI Chat
 License: MIT
 AuthorName: garfiec
 SourceCode: https://github.com/garfiec/Librechat-Mobile
@@ -49,6 +49,19 @@ Builds:
     # Passed bare (no value); the build tests presence, not truthiness.
     gradleprops:
       - unsignedRelease
+    # REQUIRED — verified by running `fdroid build` in the buildserver image; without
+    # it the scan aborts with 63 errors and the build never starts.
+    # build-logic/ is an included build holding this project's Gradle convention
+    # plugins. fdroidserver runs `gradle clean` BEFORE scanning (build.py: clean at
+    # :539, scan_source at :609), and any Gradle invocation compiles those plugins to
+    # build-logic/convention/build/ — .class files plus convention.jar. The scanner
+    # then flags every one of them as a compiled binary. None of it is in git (the
+    # checkout is `git clean -dffx`); it is created by fdroidserver's own clean step.
+    # scandelete rather than scanignore because it is generated output, and scandelete
+    # is applied inside scan_source (scanner.py:753) — i.e. after the clean regenerates
+    # it, so the ordering works out. Note an unused scandelete path is itself an error.
+    scandelete:
+      - build-logic/convention/build
 
 # No `submodules: true` on purpose. The repo has an upstream/ submodule pinning the
 # LibreChat server for API reference, but nothing in the build reads it: the single task

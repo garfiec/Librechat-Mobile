@@ -53,6 +53,14 @@ Two things were fixed specifically to make this work, both already merged:
 - `versionCode` is now spelled out as a literal in `version.properties` rather than only
   being computed, so update detection can find it. The Gradle plugin re-derives it and
   fails the build on a mismatch, so the literal cannot silently drift.
+- Native libraries are no longer stripped. The project compiles no native code — every
+  `.so` arrives prebuilt from Maven — but stripping them requires an NDK, and AGP silently
+  skips it when none is present (`Unable to strip the following libraries, packaging them
+  as they are`). Our CI runners have an NDK and your buildserver image does not, so the
+  same tag yielded different `.so` bytes in the two places. The app now sets
+  `jniLibs.keepDebugSymbols`, so the packaged file is byte-for-byte what Maven serves and
+  no toolchain sits in the path. This was found by running `fdroid build` against your
+  image before submitting, and it is why the reproducible version is one we cut after it.
 
 Releases before that fix are permanently unreproducible and are not offered for inclusion.
 
@@ -76,6 +84,15 @@ Releases before that fix are permanently unreproducible and are not offered for 
   builds, and omitting the submodule keeps the server's whole tree out of the scanner.
 - **`gradleprops: [unsignedRelease]`** drops the release signing config so AGP emits
   `app-release-unsigned.apk`. Passed bare — the build tests for presence, not a value.
+- **`scandelete` is required.** `build-logic/` is an included build holding the project's
+  Gradle convention plugins. Because the scan runs after `gradle clean`, and any Gradle
+  invocation compiles those plugins, `build-logic/convention/build/` contains ~60 `.class`
+  files and a jar by the time the scanner looks — enough to abort the build. None of it is
+  in git. The one `scandelete` entry in the recipe removes it.
+- `app/debug.keystore` is committed and the scanner warns about it (a warning, not an
+  error). It is Android's standard debug keystore, used only so debug builds have a stable
+  signature across machines; it plays no part in a release build, which is what
+  `gradleprops: [unsignedRelease]` leaves unsigned. Happy to remove it if preferred.
 - `network_security_config.xml` permits cleartext, because users commonly run LibreChat on
   a LAN address or a `.local` hostname. There is no hardcoded server.
 - All dependencies are Apache-2.0 or MIT except `desugar_jdk_libs`, which is
@@ -86,9 +103,22 @@ Releases before that fix are permanently unreproducible and are not offered for 
 
 ### Toolchain
 
-<!-- FILL IN from the container probe: Gradle / JDK / SDK platform availability. -->
-
 The project builds with Gradle 9.5.1, AGP 9.2.1, Kotlin 2.4.10, JDK 21, compileSdk 36.
+We ran `fdroid build` against `registry.gitlab.com/fdroid/fdroidserver:buildserver` to check
+these in advance rather than leaving them for a first failed build:
+
+- **JDK 21** is the image default — no action needed.
+- **compileSdk 36 / build-tools 36.0.0** are not preinstalled (the image's provisioning list
+  stops at android-33) but install automatically during the build; the licences in
+  `/opt/android-sdk/licenses` are already accepted.
+- **Gradle 9.5.1** resolves correctly from `gradle-wrapper.properties` and is present in the
+  gradle-transparency-log, **but only the Python `gradle` shim in the image can use it.** The
+  `gradlew-fdroid` shipped by the Debian `fdroidserver` package (2.4.2, trixie) is an older
+  bash script with a static hash table ending at 8.14.2, and it aborts with
+  `No hash for gradle version 9.5.1!`. Since `common.py` defaults `gradle` to the packaged
+  script, a builder using the distro package needs `gradle: /usr/local/bin/gradle` in its
+  config — or a newer fdroidserver. Please let us know if this is a problem on your
+  infrastructure; we can discuss the Gradle pin.
 
 ### Proposed metadata
 
