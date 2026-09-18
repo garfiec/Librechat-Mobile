@@ -19,6 +19,7 @@ import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.delay
@@ -195,6 +196,29 @@ abstract class CommonTokenDataStore(
     @Volatile
     private var proactiveSuppressedUntil: Map<String, Long> = emptyMap()
 
+    /**
+     * Why the slot should not POST again yet, per slot, with the deadline after which it may.
+     * Written and read **under the slot's flight lock** — see [recordProactiveOutcome] for why
+     * [proactiveSuppressedUntil] cannot serve this purpose.
+     *
+     * Two modes, because the two stand-downs have different scopes and one map is easier to reason
+     * about than two:
+     *
+     * - **[RejectedRefresh.refreshToken] set** — a proactive renewal had *that token* rejected.
+     *   Keyed on the token's own bytes, not the slot alone: once the slot rotates, the record
+     *   describes a token nobody will send again and stops matching by itself, so a fresh token is
+     *   never suppressed by an older one's failure. Proactive callers only.
+     * - **[RejectedRefresh.refreshToken] null** — the endpoint itself is blocked by something that is
+     *   not LibreChat, so *no* token will get through and every caller stands down, reactive
+     *   included. This one has to be slot-wide: the bytes are irrelevant when a bouncer is answering
+     *   before the server sees the request.
+     */
+    @Volatile
+    private var rejectedRefreshes: Map<String, RejectedRefresh> = emptyMap()
+
+    /** A null [refreshToken] means the whole slot stands down, not just this credential. */
+    private class RejectedRefresh(val refreshToken: String?, val retryAfterEpochMillis: Long)
+
     // Platform implementations provide a plain synchronously-readable key/value secure store.
     protected abstract fun readValue(key: String): String?
     protected abstract fun writeValue(key: String, value: String)
@@ -272,6 +296,10 @@ abstract class CommonTokenDataStore(
         // The bare staging slot is purged below too (when the active slot is keyed) — bump it so an
         // in-flight bare refresh can't resurrect the staged pair.
         if (activeAccountKey != null) bumpEpoch(null)
+        // Both slots' refresh tokens are removed below, so any rejection marker for them now
+        // describes a deleted credential; don't retain it.
+        clearRejectedRefresh(slotKey(activeAccountKey))
+        clearRejectedRefresh(slotKey(null))
         removeValue(accessKey(activeAccountKey))
         removeValue(refreshKey(activeAccountKey))
         if (activeAccountKey != null) {
@@ -327,6 +355,8 @@ abstract class CommonTokenDataStore(
         // account. Safe: removeAccount bumps the epoch, so any in-flight refresh of this account
         // discards its result on commit regardless.
         flightMutex.withLock { flights.remove(accountId) }
+        // Same reason, and it also drops the removed account's refresh token from memory.
+        clearRejectedRefresh(slotKey(accountId))
         if (activeAccountKey == accountId) {
             removeValue(KEY_ACTIVE_ACCOUNT)
             activeAccountKey = null
@@ -431,6 +461,105 @@ abstract class CommonTokenDataStore(
         proactiveSuppressedUntil = proactiveSuppressedUntil + (slot to untilEpochMillis)
     }
 
+    /** The [flights] / [rejectedRefreshes] / [proactiveSuppressedUntil] key for an account slot. */
+    private fun slotKey(account: String?): String = account ?: BARE_FLIGHT_KEY
+
+    /**
+     * Retire [slot]'s rejected-token marker.
+     *
+     * Called from the flight lock on a success, and from [stateMutex] on a teardown — where the
+     * marker's token has just been deleted, so leaving it behind retains a dead credential in memory
+     * for the life of the process for nothing. A lost update between the two locks can only restore a
+     * record keyed on bytes no request will send again, which [isRecentlyRejected] never matches.
+     */
+    private fun clearRejectedRefresh(slot: String) {
+        rejectedRefreshes = rejectedRefreshes - slot
+    }
+
+    /**
+     * True when [slot] is standing down and its deadline has not passed: either the endpoint is
+     * blocked for everyone (a null recorded token), or [refreshToken] is the exact credential a
+     * proactive renewal just had rejected.
+     *
+     * A reactive caller passes null and so is damped **only** by the endpoint-wide record. A
+     * token-specific rejection must never suppress it, because a settled reactive ladder is what
+     * drops the slot and routes the user to re-auth.
+     */
+    private fun isRecentlyRejected(slot: String, refreshToken: String?): Boolean {
+        val rejected = rejectedRefreshes[slot] ?: return false
+        if (Clock.System.now().toEpochMilliseconds() >= rejected.retryAfterEpochMillis) return false
+        return rejected.refreshToken == null || rejected.refreshToken == refreshToken
+    }
+
+    /**
+     * Stand the whole slot down for [INTERMEDIARY_BLOCK_COOLDOWN_MS] after a 403 that LibreChat did
+     * not author.
+     *
+     * This is the burst that classifying such a 403 as [RefreshResult.Transient] would otherwise
+     * reintroduce, and it is worth being explicit about because it is the same defect as #376 wearing
+     * a different hat. Keeping the slot is right — a network-layer block is not a dead credential —
+     * but it removes the accident that used to bound the *reactive* burst: a terminal rejection
+     * dropped the slot, so waiters 2..N found nothing to send and returned without POSTing. Keep the
+     * slot and every 401 in the fan-out POSTs again, on every fan-out, for as long as the block
+     * lasts. Measured at 8 POSTs for a 7-wide fan-out before this existed
+     * (`RefreshBurstThroughClientTest`), repeating indefinitely — aimed at the auth endpoint of a
+     * deployment that has already decided it does not like this client.
+     *
+     * Deliberately narrow: only the `ForbiddenByIntermediary` arm records this. A 5xx ladder has the
+     * same shape (N callers x 3 attempts per fan-out, slot kept) but that behaviour is older than
+     * this change and retrying a 5xx is legitimate, so it is left alone rather than quietly altered
+     * here.
+     */
+    private fun recordIntermediaryBlock(slot: String) {
+        rejectedRefreshes = rejectedRefreshes + (
+            slot to RejectedRefresh(
+                refreshToken = null,
+                retryAfterEpochMillis = Clock.System.now().toEpochMilliseconds() +
+                    INTERMEDIARY_BLOCK_COOLDOWN_MS,
+            )
+            )
+    }
+
+    /**
+     * Record — or on success clear — [slot]'s rejected-token marker for [sentToken].
+     *
+     * This exists because [ensureFreshAccessToken]'s own cooldown cannot damp the burst that triggers
+     * it: that gate is read at the top of the function, *before* [performRefresh] takes the flight
+     * lock, and written at the bottom, *after* it is released. A request fan-out therefore passes the
+     * gate N times before the first failure has landed, and every waiter then POSTs — the coalescing
+     * check keys on the access token having *changed*, which is exactly what a failed refresh does
+     * not do. Recording here, inside the lock, is what lets waiters 2..N of the SAME burst see it.
+     *
+     * Proactive callers only. A reactive caller must keep spending its full ladder, because a settled
+     * ladder is what drops the slot and routes the user to re-auth; reading a cached failure there
+     * would keep a dead session alive forever. Reactive waiters already coalesce for free — the first
+     * ladder's `invalidateRefresh` empties the slot and the rest return without a POST.
+     *
+     * Copy-on-write behind one [Volatile] write, like [proactiveSuppressedUntil]: one slot's reads and
+     * writes are serialized by that slot's flight lock, and a lost update across slots can only cost a
+     * redundant POST.
+     */
+    private fun recordProactiveOutcome(slot: String, sentToken: String?, result: RefreshResult) {
+        if (result == RefreshResult.Refreshed || sentToken == null) {
+            clearRejectedRefresh(slot)
+            return
+        }
+        // Never narrow an endpoint-wide stand-down into a token-keyed one while it is still in force.
+        // A proactive caller is the one most likely to meet a bouncer first, and downgrading its
+        // record here would un-damp every reactive waiter behind it — the whole point of
+        // [recordIntermediaryBlock]. Once that deadline passes this falls through and replaces the
+        // stale record, which is what should happen: the block is over, this token's rejection is the
+        // current news.
+        if (isRecentlyRejected(slot, null)) return
+        rejectedRefreshes = rejectedRefreshes + (
+            slot to RejectedRefresh(
+                refreshToken = sentToken,
+                retryAfterEpochMillis = Clock.System.now().toEpochMilliseconds() +
+                    PROACTIVE_RETRY_COOLDOWN_MS,
+            )
+            )
+    }
+
     /**
      * True when [token] carries a deadline at or inside [PROACTIVE_RENEWAL_SKEW_MS]. An unreadable or
      * absent `exp` is false — unknown means leave it to the reactive path.
@@ -501,14 +630,22 @@ abstract class CommonTokenDataStore(
         bestEffort: Boolean = false,
     ): RefreshResult =
         flightFor(accountKey).withLock {
-            // Coalesce: another caller rotated this slot while we waited for the flight lock, so its
-            // POST already did our work. Only a *changed* value counts — an absent one means a teardown
-            // or a hard-expiry dropped the slot, which must still fall through to the loop below and
-            // settle as HardExpired rather than reporting a refresh that never happened.
+            val slot = slotKey(accountKey)
+            // Coalesce FIRST, ahead of the suppression gate below. Another caller rotated this slot
+            // while we waited for the flight lock, so its POST already did our work. Only a
+            // *changed* value counts — an absent one means a teardown or a hard-expiry dropped the
+            // slot, which must still fall through to the ladder and settle as HardExpired rather
+            // than reporting a refresh that never happened.
             //
-            // Read outside [stateMutex], like the stored-refresh-token read below: the failure mode is
-            // one-directional. A stale read can only miss a rotation, which costs a redundant POST —
-            // never the reverse.
+            // The order is load-bearing: the refresh token is NOT rotated on a 2xx that took the
+            // server's reuse path, so a slot can hold a rejection marker for the very token it is
+            // still storing while its access token has already been renewed by someone else.
+            // Checking suppression first would answer Transient there and send the caller back out
+            // on a bearer that is known to be stale.
+            //
+            // Read outside [stateMutex], like the stored-refresh-token read in the ladder: the
+            // failure mode is one-directional. A stale read can only miss a rotation, which costs a
+            // redundant POST — never the reverse.
             if (usedAccessToken != null) {
                 val current = readValue(accessKey(accountKey)).nonBlankOrNull()
                 if (current != null && current != usedAccessToken) {
@@ -517,107 +654,168 @@ abstract class CommonTokenDataStore(
                         origin = LogOrigin.CLIENT,
                         attrs = mapOf("event" to "refresh_coalesced"),
                     ) { "Token already rotated by a concurrent refresh; skipping this POST" }
+                    // No marker handling here: the flight that rotated the slot cleared it in
+                    // [commitRefresh] on its way out, whichever path that flight came in on.
                     return@withLock RefreshResult.Refreshed
                 }
             }
-            // Any auth rejection ⇒ a genuinely dead session ⇒ route to re-auth, even if a later attempt
-            // hit a transient blip; a purely transient run (5xx / rate-limit / transport) keeps the
-            // session. This fold is the terminal classification for every non-Success exit of the loop.
-            var sawHardRejection = false
-            // The epoch the most recent attempt captured. [settle] drops the slot against it, so a
-            // teardown that landed while the last POST was in flight still wins.
-            var lastEpoch = NO_EPOCH
-            suspend fun settle(): RefreshResult =
-                if (sawHardRejection && !bestEffort) {
-                    // The session is dead, so drop the slot. `isLoggedIn()` is a token-PRESENCE check:
-                    // a retained dead pair is replayed on every later cold start.
-                    invalidateRefresh(accountKey, lastEpoch)
+            // The exact bytes this flight would POST, read before the attempt so a rejection is
+            // recorded against the token that was actually rejected. Only the proactive path needs
+            // it, so the reactive path keeps its original single storage read.
+            val tokenToSend = if (bestEffort) readValue(refreshKey(accountKey)).nonBlankOrNull() else null
+            // Evaluated for reactive callers too (they pass a null token), because an endpoint-wide
+            // block damps everyone — see [recordIntermediaryBlock].
+            if (isRecentlyRejected(slot, tokenToSend)) {
+                Diag.d(
+                    "Auth",
+                    origin = LogOrigin.CLIENT,
+                    attrs = mapOf("event" to "refresh_suppressed"),
+                ) { "This refresh was rejected moments ago; skipping the POST" }
+                return@withLock RefreshResult.Transient
+            }
+            val result = refreshUnderFlightLock(
+                accountKey = accountKey,
+                absoluteRefreshUrl = absoluteRefreshUrl,
+                pinnedBaseUrl = pinnedBaseUrl,
+                bestEffort = bestEffort,
+            )
+            if (bestEffort) recordProactiveOutcome(slot, tokenToSend, result)
+            result
+        }
+
+    /**
+     * The refresh itself: the bounded attempt ladder and the terminal classification. Split out of
+     * [performRefresh] so that function can hold the flight lock across its pre-checks and its
+     * post-record — see [recordProactiveOutcome] for why that has to be inside it.
+     *
+     * Caller owns the flight lock, and owns the coalescing check. Never takes the lock (the mutex is
+     * not reentrant).
+     */
+    private suspend fun refreshUnderFlightLock(
+        accountKey: String?,
+        absoluteRefreshUrl: String?,
+        pinnedBaseUrl: String?,
+        bestEffort: Boolean,
+    ): RefreshResult {
+        // Any auth rejection ⇒ a genuinely dead session ⇒ route to re-auth, even if a later attempt
+        // hit a transient blip; a purely transient run (5xx / rate-limit / transport) keeps the
+        // session. This fold is the terminal classification for every non-Success exit of the loop.
+        var sawHardRejection = false
+        // The epoch the most recent attempt captured. [settle] drops the slot against it, so a
+        // teardown that landed while the last POST was in flight still wins.
+        var lastEpoch = NO_EPOCH
+        suspend fun settle(): RefreshResult =
+            if (sawHardRejection && !bestEffort) {
+                // The session is dead, so drop the slot. `isLoggedIn()` is a token-PRESENCE check:
+                // a retained dead pair is replayed on every later cold start.
+                invalidateRefresh(accountKey, lastEpoch)
+                Diag.w(
+                    "Auth",
+                    origin = LogOrigin.CLIENT,
+                    attrs = mapOf("event" to "session_torn_down", "reason" to "refresh_rejected"),
+                ) { "Session expired - cleared the account's tokens" }
+                RefreshResult.HardExpired
+            } else {
+                RefreshResult.Transient
+            }
+        // Hoisted so the inter-attempt sleep at the bottom of the loop can be guarded on the ladder's
+        // own length. Guarding it on MAX_REFRESH_ATTEMPTS instead made a best-effort renewal — whose
+        // ladder is one attempt long — sleep after its *only* attempt, holding the flight lock for
+        // 150-300 ms on the way out and putting that on the critical path of every request behind it.
+        val attempts = if (bestEffort) 1 else MAX_REFRESH_ATTEMPTS
+        repeat(attempts) { attempt ->
+            // Capture the slot's epoch BEFORE the stored-token read, so any teardown of THIS slot
+            // that races the POST below is detected (and its result discarded) with no lock held
+            // across the network call. Re-read each attempt: a teardown or a sibling that landed
+            // between retries must be seen.
+            val epochAtStart = stateMutex.withLock { epochOf(accountKey) }
+            lastEpoch = epochAtStart
+            val storedRefreshToken = readValue(refreshKey(accountKey))
+            if (storedRefreshToken.isNullOrBlank()) {
+                // Attempt 0 with no token = no session at all → hard. A LATER attempt losing the
+                // token means a teardown (logout/removal) landed mid-loop and already owns the
+                // routing → Transient, so we don't double-emit session-expired over it. A
+                // best-effort renewal never makes that call at all — see [bestEffort].
+                return if (attempt == 0 && !bestEffort) {
                     Diag.w(
                         "Auth",
                         origin = LogOrigin.CLIENT,
-                        attrs = mapOf("event" to "session_torn_down", "reason" to "refresh_rejected"),
-                    ) { "Session expired - cleared the account's tokens" }
+                        attrs = mapOf("event" to "session_expired", "reason" to "no_refresh_token"),
+                    ) { "No refresh token available" }
+                    // Drop the slot here too, not just in [settle]. A torn pair (refresh gone,
+                    // access retained) would otherwise keep `isLoggedIn()` true forever, which is
+                    // the same replay this path exists to end. A no-op when the slot is empty.
+                    invalidateRefresh(accountKey, epochAtStart)
                     RefreshResult.HardExpired
                 } else {
+                    // A best-effort renewal against an empty slot, or a teardown that landed
+                    // between retries. Logged so every renewal reconciles to an outcome: this is
+                    // the one arm that can return without a POST, and untraced it makes
+                    // `refresh_proactive` read as a POST counter when it isn't.
+                    Diag.d(
+                        "Auth",
+                        origin = LogOrigin.CLIENT,
+                        attrs = mapOf("event" to "refresh_skipped", "reason" to "no_refresh_token"),
+                    ) { "No refresh token in this slot; skipping the refresh without a POST" }
                     RefreshResult.Transient
                 }
-            repeat(if (bestEffort) 1 else MAX_REFRESH_ATTEMPTS) { attempt ->
-                // Capture the slot's epoch BEFORE the stored-token read, so any teardown of THIS slot
-                // that races the POST below is detected (and its result discarded) with no lock held
-                // across the network call. Re-read each attempt: a teardown or a sibling that landed
-                // between retries must be seen.
-                val epochAtStart = stateMutex.withLock { epochOf(accountKey) }
-                lastEpoch = epochAtStart
-                val storedRefreshToken = readValue(refreshKey(accountKey))
-                if (storedRefreshToken.isNullOrBlank()) {
-                    // Attempt 0 with no token = no session at all → hard. A LATER attempt losing the
-                    // token means a teardown (logout/removal) landed mid-loop and already owns the
-                    // routing → Transient, so we don't double-emit session-expired over it. A
-                    // best-effort renewal never makes that call at all — see [bestEffort].
-                    return@withLock if (attempt == 0 && !bestEffort) {
-                        Diag.w(
-                            "Auth",
-                            origin = LogOrigin.CLIENT,
-                            attrs = mapOf("event" to "session_expired", "reason" to "no_refresh_token"),
-                        ) { "No refresh token available" }
-                        // Drop the slot here too, not just in [settle]. A torn pair (refresh gone,
-                        // access retained) would otherwise keep `isLoggedIn()` true forever, which is
-                        // the same replay this path exists to end. A no-op when the slot is empty.
-                        invalidateRefresh(accountKey, epochAtStart)
-                        RefreshResult.HardExpired
-                    } else {
-                        // A best-effort renewal against an empty slot, or a teardown that landed
-                        // between retries. Logged so every renewal reconciles to an outcome: this is
-                        // the one arm that can return without a POST, and untraced it makes
-                        // `refresh_proactive` read as a POST counter when it isn't.
-                        Diag.d(
-                            "Auth",
-                            origin = LogOrigin.CLIENT,
-                            attrs = mapOf("event" to "refresh_skipped", "reason" to "no_refresh_token"),
-                        ) { "No refresh token in this slot; skipping the refresh without a POST" }
-                        RefreshResult.Transient
+            }
+
+            val delayMillis: Long =
+                when (
+                    val outcome =
+                        attemptRefresh(accountKey, epochAtStart, storedRefreshToken, absoluteRefreshUrl, pinnedBaseUrl)
+                ) {
+                    RefreshAttempt.Success -> return RefreshResult.Refreshed
+                    // A teardown/re-authentication owns the routing for this slot; never double-emit
+                    // a session-expired from here and never re-persist over it.
+                    RefreshAttempt.Discarded -> return RefreshResult.Transient
+                    RefreshAttempt.KeystoreCleared -> return RefreshResult.HardExpired
+                    // Server unreachable: retrying now only holds the flight lock across another full
+                    // request timeout; stop. A session already confirmed dead by a prior 401 still
+                    // routes to re-auth; otherwise keep the session (a later request/relaunch recovers).
+                    RefreshAttempt.TransportError -> return settle()
+                    // Never `settle()`: a gateway rejection says nothing about whether the session
+                    // is alive, so it must not promote a prior 401 into a logout. See GatewayBlocked.
+                    RefreshAttempt.GatewayBlocked -> return RefreshResult.Transient
+                    RefreshAttempt.AuthRejected -> {
+                        sawHardRejection = true
+                        retryBackoffMillis(attempt)
+                    }
+                    // Unlike a 401, this one is not ambiguous — settle on the first answer instead of
+                    // re-POSTing a token the server has already refused to verify. `settle()` still
+                    // honours bestEffort, so a proactive renewal keeps the slot and reports Transient.
+                    RefreshAttempt.AuthRejectedTerminal -> {
+                        sawHardRejection = true
+                        return settle()
+                    }
+                    // Never `settle()`: like GatewayBlocked, this says nothing about the session, so it
+                    // must not promote an earlier 401 in the same ladder into a logout.
+                    RefreshAttempt.ForbiddenByIntermediary -> {
+                        // Stand the slot down before returning, so the reactive waiters behind this
+                        // one in the same fan-out do not each spend their own POST on a bouncer that
+                        // will answer all of them identically.
+                        recordIntermediaryBlock(slotKey(accountKey))
+                        return RefreshResult.Transient
+                    }
+                    RefreshAttempt.Retryable -> retryBackoffMillis(attempt)
+                    is RefreshAttempt.RateLimited -> {
+                        val wait = outcome.retryAfterMillis
+                        // Honor the server's Retry-After when we can wait it out under the flight
+                        // lock; if it exceeds our cap, stop retrying (keep the session) rather than
+                        // re-POSTing while still rate-limited.
+                        if (wait != null && wait > REFRESH_RETRY_MAX_DELAY_MS) {
+                            return RefreshResult.Transient
+                        }
+                        wait ?: retryBackoffMillis(attempt)
                     }
                 }
 
-                val delayMillis: Long =
-                    when (
-                        val outcome =
-                            attemptRefresh(accountKey, epochAtStart, storedRefreshToken, absoluteRefreshUrl, pinnedBaseUrl)
-                    ) {
-                        RefreshAttempt.Success -> return@withLock RefreshResult.Refreshed
-                        // A teardown/re-authentication owns the routing for this slot; never double-emit
-                        // a session-expired from here and never re-persist over it.
-                        RefreshAttempt.Discarded -> return@withLock RefreshResult.Transient
-                        RefreshAttempt.KeystoreCleared -> return@withLock RefreshResult.HardExpired
-                        // Server unreachable: retrying now only holds the flight lock across another full
-                        // request timeout; stop. A session already confirmed dead by a prior 401 still
-                        // routes to re-auth; otherwise keep the session (a later request/relaunch recovers).
-                        RefreshAttempt.TransportError -> return@withLock settle()
-                        // Never `settle()`: a gateway rejection says nothing about whether the session
-                        // is alive, so it must not promote a prior 401 into a logout. See GatewayBlocked.
-                        RefreshAttempt.GatewayBlocked -> return@withLock RefreshResult.Transient
-                        RefreshAttempt.AuthRejected -> {
-                            sawHardRejection = true
-                            retryBackoffMillis(attempt)
-                        }
-                        RefreshAttempt.Retryable -> retryBackoffMillis(attempt)
-                        is RefreshAttempt.RateLimited -> {
-                            val wait = outcome.retryAfterMillis
-                            // Honor the server's Retry-After when we can wait it out under the flight
-                            // lock; if it exceeds our cap, stop retrying (keep the session) rather than
-                            // re-POSTing while still rate-limited.
-                            if (wait != null && wait > REFRESH_RETRY_MAX_DELAY_MS) {
-                                return@withLock RefreshResult.Transient
-                            }
-                            wait ?: retryBackoffMillis(attempt)
-                        }
-                    }
-
-                if (attempt < MAX_REFRESH_ATTEMPTS - 1) delay(delayMillis)
-            }
-            // Budget exhausted with no terminal outcome; classify by whether any attempt was rejected.
-            settle()
+            if (attempt < attempts - 1) delay(delayMillis)
         }
+        // Budget exhausted with no terminal outcome; classify by whether any attempt was rejected.
+        return settle()
+    }
 
     /** One refresh POST + classification. Caller owns the flight lock and the retry/backoff loop. */
     private suspend fun attemptRefresh(
@@ -642,14 +840,17 @@ abstract class CommonTokenDataStore(
             val status = httpResponse.status.value
             when {
                 status in 200..299 -> handleSuccess(accountKey, epochAtStart, httpResponse, storedRefreshToken)
-                status == 401 || status == 403 -> {
+                // 401 is the ambiguous one the ladder exists for: the backend answers it identically
+                // for a dead session and a transiently-missed session lookup. Retried.
+                status == 401 -> {
                     Diag.w(
                         "Auth",
                         origin = LogOrigin.SERVER,
-                        attrs = mapOf("event" to "refresh_rejected", "status" to status.toString()),
+                        attrs = mapOf("event" to "refresh_rejected", "status" to "401"),
                     ) { "Auth rejected during token refresh" }
                     RefreshAttempt.AuthRejected
                 }
+                status == 403 -> classifyForbidden(httpResponse)
                 status == 429 -> {
                     val retryAfter = parseRetryAfterMillis(httpResponse)
                     Diag.w(
@@ -702,6 +903,71 @@ abstract class CommonTokenDataStore(
                 RefreshAttempt.TransportError
             }
         }
+
+    /**
+     * Classify a `403` from the refresh endpoint by who produced it.
+     *
+     * LibreChat's own refresh rejections are **terminal**: every 403 arm of `refreshController` is a
+     * dead credential — `jwt.verify` threw, the payload's `exp` is past, or a `?retry` found no
+     * session — never the transient lookup miss that its *401* can mean. So these settle immediately
+     * instead of spending the ladder. Three more POSTs cannot rescue a token the server has already
+     * refused to verify, and the burst they make is what trips a reverse proxy's brute-force
+     * detection (#376).
+     *
+     * A 403 that carries none of those bodies **did not come from LibreChat**. A proxy bouncer, a WAF
+     * or an IP ban answers 403 too, and that says nothing about whether the session is alive — so it
+     * must not drop the user's tokens. Reading one as a dead session is how a network-layer block
+     * becomes a logout the user cannot undo until the block lifts.
+     *
+     * Unrecognised therefore means [Transient][RefreshAttempt.ForbiddenByIntermediary], which fails
+     * safe in the direction that matters: an unexpected LibreChat 403 costs a kept-alive session the
+     * next 401 re-examines, while the opposite mistake costs a forced logout.
+     */
+    private suspend fun classifyForbidden(httpResponse: HttpResponse): RefreshAttempt {
+        val body = try {
+            httpResponse.bodyAsText()
+        } catch (_: Exception) {
+            ""
+        }
+        val serverAuthored = LIBRECHAT_REFRESH_REJECTIONS.any { body.contains(it, ignoreCase = true) } ||
+            // `res.status(403).redirect('/login')` sends an empty body for a JSON `Accept`, so the
+            // status line alone is not the tell — the Location is.
+            isLoginRedirect(httpResponse.headers[HttpHeaders.Location])
+        return if (serverAuthored) {
+            Diag.w(
+                "Auth",
+                origin = LogOrigin.SERVER,
+                attrs = mapOf("event" to "refresh_rejected", "status" to "403"),
+            ) { "Auth rejected during token refresh" }
+            RefreshAttempt.AuthRejectedTerminal
+        } else {
+            Diag.w(
+                "Auth",
+                origin = LogOrigin.NETWORK,
+                attrs = mapOf("event" to "refresh_forbidden_unattributed", "status" to "403"),
+            ) { "A 403 not attributable to LibreChat blocked the refresh; keeping the session" }
+            RefreshAttempt.ForbiddenByIntermediary
+        }
+    }
+
+    /**
+     * True for the `Location` of upstream's `res.status(403).redirect('/login')` — and only that.
+     *
+     * **Relative only, deliberately.** A forward-auth proxy (Authelia, oauth2-proxy, a Cloudflare
+     * Access rule) also answers 403 and also points at a login page, but at an *absolute* URL on its
+     * own portal — `https://auth.example.com/login?rd=…`. A substring test for `/login` accepts that
+     * and reads a network-layer block as a dead LibreChat credential, which is the exact mistake
+     * [classifyForbidden] exists to prevent: it would drop the user's tokens over a block they cannot
+     * clear. Express's `res.redirect('/login')` emits the path verbatim, so requiring a
+     * server-rooted path costs nothing and excludes every off-authority portal.
+     */
+    private fun isLoginRedirect(location: String?): Boolean {
+        val target = location?.trim() ?: return false
+        // `//host/login` is protocol-relative and therefore off-authority, despite the leading slash.
+        if (!target.startsWith("/") || target.startsWith("//")) return false
+        val path = target.substringBefore('?').substringBefore('#').trimEnd('/')
+        return path == "/login"
+    }
 
     /** Parse a `Retry-After` header (delta-seconds form only) into millis; null when absent/unparseable. */
     private fun parseRetryAfterMillis(httpResponse: HttpResponse): Long? =
@@ -763,6 +1029,12 @@ abstract class CommonTokenDataStore(
         }
         writeValues(mapOf(accessKey(accountKey) to access, refreshKey(accountKey) to refresh))
         if (accountKey == activeAccountKey) cachedAccessToken = access
+        // A commit retires this slot's rejected-token marker on EVERY path, not just the proactive
+        // one that records them. A reactive refresh's success is the same proof of life, and the
+        // server's reuse path answers 2xx *without* rotating the refresh token — so a marker recorded
+        // for those exact bytes would otherwise go on suppressing proactive renewal for the rest of
+        // its cooldown against a token that has just demonstrably worked.
+        clearRejectedRefresh(slotKey(accountKey))
         Logger.d { "Token refreshed successfully" }
         true
     }
@@ -860,8 +1132,20 @@ abstract class CommonTokenDataStore(
         /** Keystore corruption cleared the slot. Terminal → HardExpired. */
         data object KeystoreCleared : RefreshAttempt
 
-        /** 401/403 — the session was rejected. Retried (may be a transient server false-negative). */
+        /** 401 — the session was rejected. Retried (may be a transient server false-negative). */
         data object AuthRejected : RefreshAttempt
+
+        /**
+         * A 403 carrying one of LibreChat's own refresh rejections. Terminal → the session really is
+         * dead, so settle now rather than spending the ladder on it. See [classifyForbidden].
+         */
+        data object AuthRejectedTerminal : RefreshAttempt
+
+        /**
+         * A 403 that is not attributable to LibreChat — a proxy bouncer, a WAF, an IP ban.
+         * Terminal → Transient: it is no evidence about the session, so it must never drop the slot.
+         */
+        data object ForbiddenByIntermediary : RefreshAttempt
 
         /** A received 5xx / malformed-2xx response. Retried with local backoff. */
         data object Retryable : RefreshAttempt
@@ -921,6 +1205,36 @@ abstract class CommonTokenDataStore(
          * full reactive ladder immediately.
          */
         private const val PROACTIVE_RETRY_COOLDOWN_MS = 60_000L
+
+        /**
+         * How long a slot stops POSTing at all after a 403 something other than LibreChat minted.
+         *
+         * Applies to reactive callers as well as proactive ones, which is the difference from
+         * [PROACTIVE_RETRY_COOLDOWN_MS] and the reason the two are not one constant. Erring long is
+         * the safe direction here: the session is deliberately kept, so the cost of waiting is that
+         * requests run on an expired bearer until the block lifts, while the cost of erring short is
+         * hammering the auth endpoint of a deployment whose bouncer is already blocking this client.
+         *
+         * The price, stated plainly because it is the one place the provenance design's two halves
+         * interact: while this is in force the gate is in front of *every* caller, so a credential
+         * that is genuinely dead is not recognised as dead — and the user not routed to re-auth —
+         * until it lapses. That is a delay of at most this long, never indefinite, and
+         * `a recorded block delays but does not prevent recognising a dead credential` pins it.
+         */
+        private const val INTERMEDIARY_BLOCK_COOLDOWN_MS = 60_000L
+
+        /**
+         * The bodies LibreChat's `refreshController` sends with its own `403`s. Matching one is what
+         * distinguishes a dead credential from a 403 minted by something in front of the server —
+         * see [classifyForbidden]. Registered in `scripts/mirrors.json`, because nothing fails to
+         * decode when upstream rewords one of these: the client just silently stops recognising a
+         * dead session and keeps it alive instead.
+         */
+        private val LIBRECHAT_REFRESH_REJECTIONS = listOf(
+            "Invalid refresh token",
+            "Invalid OpenID refresh token",
+            "No session found",
+        )
 
         /** Total refresh attempts (initial + retries) before a persistent failure is classified. */
         private const val MAX_REFRESH_ATTEMPTS = 3
