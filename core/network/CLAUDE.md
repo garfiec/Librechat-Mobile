@@ -121,6 +121,14 @@ is long-lived and never rotates, so an `http://` downgrade or an unknown base UR
   `ClosedByteChannelException` — which form arrives depends on whether the parse side or the pump job
   loses the race to fail the scope. A type-exact `catch` therefore works most of the time, which is
   the worst failure rate to debug: use `accessGatewayCause()`.
+- **Nor is a 403 you cannot attribute to LibreChat** (issue #376) — the same principle, one layer out.
+  The validator's ban check requires LibreChat's own `banResponse` shape (`403` + JSON whose `message`
+  carries the ban wording, registered as `ban-response-message` in `scripts/mirrors.json`). It used to
+  be `bodyText.contains("ban")` against the raw body, which is true of any 403 block page containing
+  those three letters, so a CrowdSec or WAF interstitial emitted `SessionEndReason.BANNED` and tore
+  down a live session — leaving the user logged out *and* unable to sign back in until the network
+  block lifted. An unrecognised 403 now fails the request without ending the session. The refresh
+  client's half of this rule lives in `core/data/CLAUDE.md`.
 - **A gateway block is not an expired session.** The refresh path maps it to
   `RefreshAttempt.GatewayBlocked` → `Transient`, and deliberately not through `settle()`: the request
   never reached LibreChat, so it is no evidence the session is dead, and logging out over it costs the

@@ -109,10 +109,17 @@ class LoginViewModel(
                     // provider instead of retrying credentials that will never be accepted.
                     // checkBan runs BEFORE validateEmailLogin on this route and also answers 403,
                     // so a banned account (or the non-browser-UA soft ban) must keep the server's
-                    // own message and leave the form visible — isBanned is the discriminator.
+                    // own message and leave the form visible — isBanned is that discriminator.
+                    //
+                    // [ApiException.serverAuthored] is a second, independent one, and it is required:
+                    // a bouncer or WAF in front of the deployment answers this route with a 403 HTML
+                    // interstitial too, and asserting "this server has email login disabled" over a
+                    // transient network block would hide the form for a condition the user can simply
+                    // wait out. Only LibreChat's own JSON envelope sets that flag.
                     val apiException = result.exception as? ApiException
-                    val isEmailLoginDisabled =
-                        apiException?.statusCode == 403 && !apiException.isBanned
+                    val isEmailLoginDisabled = apiException?.statusCode == 403 &&
+                        apiException.serverAuthored &&
+                        !apiException.isBanned
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         error = if (isEmailLoginDisabled) {

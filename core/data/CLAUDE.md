@@ -36,7 +36,7 @@ All impls take constructor parameters (api, dao, mapper, dispatcher) wired via K
 ### Account-keyed token store (`CommonTokenDataStore`)
 
 Tokens are namespaced by account (`acct:<accountId>:access_token`) and several accounts' tokens are
-retained at rest at once (multi-account, issue #179). Concurrency uses three cooperating pieces, not a
+retained at rest at once (multi-account, issue #179). Concurrency uses four cooperating pieces, not a
 single refresh mutex:
 
 - **`stateMutex`** — guards the in-memory identity + cached bearer and short storage reads/writes of
@@ -48,6 +48,26 @@ single refresh mutex:
   authentication, an identity re-home). A refresh captures it before its POST and discards its result
   if it changed, so a refresh racing a teardown can't resurrect a cleared session even with no lock
   held across the POST.
+- **`rejectedRefreshes`** — per-slot stand-down markers, **read and written inside the flight lock**
+  (#376). The older `proactiveSuppressedUntil` cooldown is read before the lock and written after it,
+  so a request fan-out passes it N times before the first failure lands, and the coalescing check keys
+  on the access token having *changed*, which a failed refresh does not do — hence one POST per
+  request. A marker has two modes: a **token-keyed** one (a proactive renewal had *these bytes*
+  rejected; damps proactive callers only, since a reactive ladder must settle to drop the slot and
+  route to re-auth) and a **null-token** one (a 403 LibreChat did not author blocked the endpoint;
+  damps everyone, and a proactive outcome must never narrow it back to token-keyed). Two orderings
+  are load-bearing: the coalescing check runs **before** the suppression gate, and **every** successful
+  commit clears the marker — because a 2xx on the server's reuse path does not rotate the refresh
+  token, so a slot can hold a marker for the exact bytes it still stores.
+
+**A refresh `403` is classified by provenance.** LibreChat's own bodies (`Invalid refresh token`,
+`Invalid OpenID refresh token`, `No session found`; registered in `scripts/mirrors.json`) are terminal
+and settle without the ladder; any other 403 is a bouncer/WAF and keeps the slot, since reading it as
+a dead session logs the user out over a block they cannot clear. The 401 keeps its ladder. Upstream's
+`res.status(4xx).redirect('/login')` arms arrive as a **302** — Express's `redirect()` overwrites the
+chained status — so a server-rooted `/login` Location is classified terminal in the 3xx arm; an
+absolute portal URL is a gateway's and is not. The 5xx ladder deliberately keeps its older,
+undamped shape.
 
 Interactive sign-in (`setTokens`) **stages** the pair under the bare keys and drops the active binding;
 `onAccountResolved` re-homes it into the account's keyed slot. This makes a re-login while another
