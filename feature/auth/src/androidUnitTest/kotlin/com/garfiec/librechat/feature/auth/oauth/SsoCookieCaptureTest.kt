@@ -83,4 +83,29 @@ class SsoCookieCaptureTest {
             extractQueryParameter("https://x.com/login?oauth_error=NO", "error"),
         ).isNull()
     }
+
+    @Test
+    fun `host-only cookie matches its exact host`() {
+        assertThat(cookieAppliesTo("chat.example.com", "chat.example.com")).isTrue()
+    }
+
+    @Test
+    fun `parent-domain cookie matches a subdomain`() {
+        assertThat(cookieAppliesTo(".example.com", "chat.example.com")).isTrue()
+    }
+
+    @Test
+    fun `sibling domain does not match`() {
+        assertThat(cookieAppliesTo("evil-chat.example.com", "chat.example.com")).isFalse()
+    }
+
+    @Test
+    fun `suffix without a dot boundary does not match`() {
+        assertThat(cookieAppliesTo("ample.com", "example.com")).isFalse()
+    }
+
+    @Test
+    fun `matching is case-insensitive`() {
+        assertThat(cookieAppliesTo(".EXAMPLE.com", "Chat.Example.Com")).isTrue()
+    }
 }

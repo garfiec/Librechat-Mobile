@@ -108,7 +108,6 @@ fun EntryProviderScope<NavKey>.authEntries(
             provider = key.provider,
             onLoginSuccess = onAuthComplete,
             onBack = onBack,
-            viewModel = koinViewModel(parameters = { parametersOf(key.provider) }),
         )
     }
     entry<Register> {

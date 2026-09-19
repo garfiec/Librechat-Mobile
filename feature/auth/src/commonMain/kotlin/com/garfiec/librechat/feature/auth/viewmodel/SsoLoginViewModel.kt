@@ -7,81 +7,75 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.AuthRepository
-import com.garfiec.librechat.feature.auth.oauth.OAuthCookieStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+/**
+ * Why a type and not a message: the server's `?error=` value is a machine code (`AUTH_FAILED`), and
+ * since upstream dropped `failureMessage` a rejected callback is a bare redirect to `/oauth/error`
+ * carrying nothing at all. Neither is renderable prose, so the screen owns the wording.
+ */
+@Immutable
+sealed interface SsoLoginError {
+    /** The provider or the server's callback rejected the sign-in. [code] is diagnostic only. */
+    data class Provider(val code: String?) : SsoLoginError
+
+    /** The round-trip finished but no `refreshToken` cookie appeared. The primary failure signal. */
+    data object CaptureFailed : SsoLoginError
+
+    /** Token-exchange failure. [message] is already screened by `Throwable.toSafeError`. */
+    data class Exchange(val message: String?) : SsoLoginError
+}
 
 @Immutable
 data class SsoLoginUiState(
     val isLoading: Boolean = false,
-    val error: String? = null,
+    val error: SsoLoginError? = null,
     val isLoggedIn: Boolean = false,
 )
 
 class SsoLoginViewModel(
     private val authRepository: AuthRepository,
-    private val oAuthCookieStore: OAuthCookieStore,
     serverDataStore: ServerDataStore,
-    private val accountSwitcher: AccountSwitcher,
-    private val provider: String,
+    accountSwitcher: AccountSwitcher,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SsoLoginUiState())
     val uiState: StateFlow<SsoLoginUiState> = _uiState.asStateFlow()
 
-    /** The server this screen is signing into: the pending add target when set, else the live one. */
-    val serverUrl: String =
-        accountSwitcher.pendingAdd?.serverUrl ?: serverDataStore.getBaseUrl()
+    /** The server this screen signs into: the pending add target when set, else the live one. */
+    val serverUrl: String = accountSwitcher.pendingAdd?.serverUrl ?: serverDataStore.getBaseUrl()
 
     private var tokenConsumed = false
 
-    init {
-        // The cookie jar is process-global (carries cookies from any prior identity/session), so
-        // wipe the server's stale refreshToken cookie before the round-trip — only a cookie minted
-        // by THIS round-trip may be captured.
-        oAuthCookieStore.clearRefreshTokenCookie(serverUrl)
-    }
-
-    fun onTokenCaptured(refreshToken: String) {
+    fun onTokenCapture(refreshToken: String) {
         if (tokenConsumed) return
         tokenConsumed = true
 
-        // Clear immediately to avoid re-capture on subsequent page events.
-        oAuthCookieStore.clearRefreshTokenCookie(serverUrl)
-
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            _uiState.update { it.copy(isLoading = true, error = null) }
 
             when (val result = authRepository.loginWithOAuthToken(refreshToken)) {
-                is Result.Success -> {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        isLoggedIn = true,
-                    )
-                }
-                is Result.Error -> {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = result.message ?: "SSO sign-in failed",
-                    )
-                }
-                is Result.Loading -> { /* no-op */ }
+                is Result.Success ->
+                    _uiState.update { it.copy(isLoading = false, isLoggedIn = true) }
+                is Result.Error ->
+                    _uiState.update {
+                        it.copy(isLoading = false, error = SsoLoginError.Exchange(result.message))
+                    }
+                is Result.Loading -> Unit
             }
         }
     }
 
-    fun onOAuthError(message: String?) {
-        if (tokenConsumed) return
-        _uiState.value = _uiState.value.copy(
-            isLoading = false,
-            error = message ?: "Sign-in with ${providerLabel()} failed",
-        )
-    }
+    fun onOAuthError(code: String?) = fail(SsoLoginError.Provider(code))
 
-    private fun providerLabel(): String = when (provider) {
-        "openid" -> "OpenID"
-        else -> provider.replaceFirstChar { it.uppercase() }
+    fun onCaptureFailed() = fail(SsoLoginError.CaptureFailed)
+
+    private fun fail(error: SsoLoginError) {
+        if (tokenConsumed) return
+        _uiState.update { it.copy(isLoading = false, error = error) }
     }
 }

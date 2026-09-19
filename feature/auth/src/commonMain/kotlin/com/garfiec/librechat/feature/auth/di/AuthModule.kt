@@ -32,16 +32,7 @@ val authModule = module {
     }
     viewModelOf(::LoginViewModel)
     viewModelOf(::RegisterViewModel)
-    @Suppress("DeprecatedKoinApi")
-    viewModel { params ->
-        SsoLoginViewModel(
-            authRepository = get(),
-            oAuthCookieStore = get(),
-            serverDataStore = get(),
-            accountSwitcher = get(),
-            provider = params.getOrNull() ?: "",
-        )
-    }
+    viewModelOf(::SsoLoginViewModel)
     // Koin's constructor-DSL (`viewModelOf`) wires every argument via `get()` and cannot read
     // values passed through `parametersOf`. The VMs below receive initial seeds (email, user
     // id, token, temp token) from the navigation layer via `parametersOf`, so the lambda-form

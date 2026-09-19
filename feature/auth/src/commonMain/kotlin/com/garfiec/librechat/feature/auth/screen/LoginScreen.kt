@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -54,6 +55,14 @@ fun LoginScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val currentOnLoginSuccess by rememberUpdatedState(onLoginSuccess)
     val currentOnNavigateToTwoFactor by rememberUpdatedState(onNavigateToTwoFactor)
+
+    val currentOnNavigateToSso by rememberUpdatedState(onNavigateToSso)
+    LaunchedEffect(uiState.ssoProvider) {
+        uiState.ssoProvider?.let { provider ->
+            viewModel.consumeSsoNavigation()
+            currentOnNavigateToSso(provider)
+        }
+    }
 
     LaunchedEffect(uiState.isLoggedIn) {
         if (uiState.isLoggedIn) {
@@ -192,7 +201,7 @@ fun LoginScreen(
 
                 socialLogins.forEach { provider ->
                     OutlinedButton(
-                        onClick = { onNavigateToSso(provider) },
+                        onClick = { viewModel.onSsoProviderSelected(provider) },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !uiState.isLoading,
                     ) {
@@ -201,6 +210,24 @@ fun LoginScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                 }
             }
+        }
+
+        uiState.pendingSsoProvider?.let {
+            AlertDialog(
+                onDismissRequest = viewModel::onSsoRiskDismissed,
+                title = { Text(stringResource(Res.string.sso_risk_title)) },
+                text = { Text(stringResource(Res.string.sso_risk_body)) },
+                confirmButton = {
+                    TextButton(onClick = viewModel::onSsoRiskAccepted) {
+                        Text(stringResource(Res.string.continue_button))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = viewModel::onSsoRiskDismissed) {
+                        Text(stringResource(Res.string.cancel))
+                    }
+                },
+            )
         }
 
         BackAffordanceOverlay(onBack)

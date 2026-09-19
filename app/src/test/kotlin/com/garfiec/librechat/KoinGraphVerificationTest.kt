@@ -15,6 +15,7 @@ import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.datastore.ConfigCacheDataStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.data.datastore.SsoRiskDataStore
 import com.garfiec.librechat.core.data.datastore.ThemeDataStore
 import com.garfiec.librechat.core.data.prefetch.AttachmentWarmer
 import com.garfiec.librechat.core.data.prefetch.PrefetchController
@@ -87,7 +88,6 @@ import com.garfiec.librechat.core.network.client.ServerUrlProvider
 import com.garfiec.librechat.core.network.client.SwitchGate
 import com.garfiec.librechat.core.network.client.TokenManager
 import com.garfiec.librechat.core.network.sse.SseClient
-import com.garfiec.librechat.feature.auth.oauth.OAuthLauncher
 import com.garfiec.librechat.feature.conversations.export.ConversationExporter
 import com.garfiec.librechat.feature.files.platform.FileReader
 import com.garfiec.librechat.shared.di.sharedKoinModules
@@ -176,6 +176,7 @@ class KoinGraphVerificationTest {
             AccountRoster::class,
             AccountSwitcher::class,
             SettingsDataStore::class,
+            SsoRiskDataStore::class,
             ThemeDataStore::class,
             AgentRepository::class,
             AgentToolsRepository::class,
@@ -213,8 +214,6 @@ class KoinGraphVerificationTest {
             PrefetchStatusReporter::class,
             PrefetchController::class,
             SessionTaskRunner::class,
-            // feature:auth platform provides
-            OAuthLauncher::class,
             // feature:files platform provides
             FileReader::class,
             // feature:conversations provides (consumed cross-module by shared NavHostViewModel)
