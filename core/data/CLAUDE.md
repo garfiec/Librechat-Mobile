@@ -48,52 +48,26 @@ single refresh mutex:
   authentication, an identity re-home). A refresh captures it before its POST and discards its result
   if it changed, so a refresh racing a teardown can't resurrect a cleared session even with no lock
   held across the POST.
-- **`rejectedRefreshes`** — the refresh token a *proactive* renewal last had rejected, per slot, keyed
-  on the token's own bytes. **Read and written inside the flight lock, and that placement is the whole
-  point** (issue #376). `ensureFreshAccessToken`'s own `proactiveSuppressedUntil` cooldown is read
-  before the lock and written after it, so a request fan-out passes its gate N times before the first
-  failure has landed; the single-flight coalescing check then keys on the access token having
-  *changed*, which is exactly what a failed refresh does not do. The result was one POST per request —
-  a 7-wide fan-out sent 7, and 10 counted end to end through the real client. Recording inside the
-  lock is what lets waiters 2..N of the **same** burst stand down. Proactive callers only: a reactive
-  caller must keep spending its full ladder, because a settled ladder is what drops the slot and
-  routes the user to re-auth, and reading a cached failure there would keep a dead session alive
-  forever. Reactive waiters already coalesce for free — the first ladder's `invalidateRefresh` empties
-  the slot and the rest return without a POST. Two orderings inside the lock are load-bearing: the
-  **coalescing check runs before the suppression gate**, and **any successful commit clears the
-  marker, on either path**. Both exist because a 2xx that took the server's reuse path does *not*
-  rotate the refresh token, so a slot can hold a marker for the very bytes it still stores while its
-  access token has already been renewed — checked the other way round, a caller would be told
-  `Transient` and sent back out on a bearer already known to be stale.
+- **`rejectedRefreshes`** — per-slot stand-down markers, **read and written inside the flight lock**
+  (#376). The older `proactiveSuppressedUntil` cooldown is read before the lock and written after it,
+  so a request fan-out passes it N times before the first failure lands, and the coalescing check keys
+  on the access token having *changed*, which a failed refresh does not do — hence one POST per
+  request. A marker has two modes: a **token-keyed** one (a proactive renewal had *these bytes*
+  rejected; damps proactive callers only, since a reactive ladder must settle to drop the slot and
+  route to re-auth) and a **null-token** one (a 403 LibreChat did not author blocked the endpoint;
+  damps everyone, and a proactive outcome must never narrow it back to token-keyed). Two orderings
+  are load-bearing: the coalescing check runs **before** the suppression gate, and **every** successful
+  commit clears the marker — because a 2xx on the server's reuse path does not rotate the refresh
+  token, so a slot can hold a marker for the exact bytes it still stores.
 
-**A refresh `403` is classified by provenance, not treated as one thing.** Every 403 body upstream's
-`refreshController` sends is a dead credential (`jwt.verify` threw — which is also where an expired
-`exp` lands — the OpenID grant was refused, `?retry` found no session), so `AuthRejectedTerminal`
-settles on the first answer instead of spending the ladder — its 401 is the ambiguous one the ladder
-exists for, and that ladder must stay. The controller's `res.status(4xx).redirect('/login')` arms are
-**not 403s on the wire**: Express's `redirect()` overwrites the chained status, so they arrive as a
-302, which the refresh client does not follow on a POST. A 302 whose `Location` is a server-rooted
-`/login` is therefore classified terminal in `attemptRefresh`'s 3xx arm; an absolute portal URL there
-is a gateway's and is not.
-
-A 403 carrying none of those bodies did not come from LibreChat: a proxy bouncer, a WAF or an IP ban
-answers 403 too, and it is no evidence the session is dead, so `ForbiddenByIntermediary` keeps the slot. Reading one as a dead
-session is how a temporary IP ban became a logout the user could not undo until the ban lapsed.
-Unrecognised therefore means Transient, which fails safe in the direction that matters. The bodies are
-registered in `scripts/mirrors.json` (`refresh-403-rejection-bodies`) because upstream rewording one is
-silent here — nothing fails to decode, the client just stops recognising a dead session.
-
-**Keeping the slot on that 403 means the reactive path has to be damped explicitly**, and this is the
-subtle half. A terminal rejection used to bound the reactive burst by accident: it dropped the slot, so
-waiters 2..N found nothing to send and returned without POSTing. Keep the slot and that free coalescing
-is gone — every 401 in a fan-out spends its own POST, on every fan-out, for as long as the block lasts
-(measured: 8 POSTs for a 7-wide fan-out, repeating indefinitely). So `ForbiddenByIntermediary` records
-an **endpoint-wide** stand-down in the same `rejectedRefreshes` map, with a null token meaning "no
-credential will get through, so everyone waits" — the one case a *reactive* caller is damped, and it is
-sound precisely because that outcome is not terminal: the session is being kept, not dropped. A
-proactive outcome must never narrow that record back into a token-keyed one, or the waiters behind it
-un-damp. Deliberately not extended to the 5xx ladder, which has the same N-callers-times-3-attempts
-shape but predates this and where retrying is legitimate.
+**A refresh `403` is classified by provenance.** LibreChat's own bodies (`Invalid refresh token`,
+`Invalid OpenID refresh token`, `No session found`; registered in `scripts/mirrors.json`) are terminal
+and settle without the ladder; any other 403 is a bouncer/WAF and keeps the slot, since reading it as
+a dead session logs the user out over a block they cannot clear. The 401 keeps its ladder. Upstream's
+`res.status(4xx).redirect('/login')` arms arrive as a **302** — Express's `redirect()` overwrites the
+chained status — so a server-rooted `/login` Location is classified terminal in the 3xx arm; an
+absolute portal URL is a gateway's and is not. The 5xx ladder deliberately keeps its older,
+undamped shape.
 
 Interactive sign-in (`setTokens`) **stages** the pair under the bare keys and drops the active binding;
 `onAccountResolved` re-homes it into the account's keyed slot. This makes a re-login while another
