@@ -5,6 +5,7 @@ import com.garfiec.librechat.feature.auth.viewmodel.LoginViewModel
 import com.garfiec.librechat.feature.auth.viewmodel.RegisterViewModel
 import com.garfiec.librechat.feature.auth.viewmodel.ResetPasswordViewModel
 import com.garfiec.librechat.feature.auth.viewmodel.ServerUrlViewModel
+import com.garfiec.librechat.feature.auth.viewmodel.SsoLoginViewModel
 import com.garfiec.librechat.feature.auth.viewmodel.TermsViewModel
 import com.garfiec.librechat.feature.auth.viewmodel.TwoFactorViewModel
 import com.garfiec.librechat.feature.auth.viewmodel.VerifyEmailViewModel
@@ -31,6 +32,7 @@ val authModule = module {
     }
     viewModelOf(::LoginViewModel)
     viewModelOf(::RegisterViewModel)
+    viewModelOf(::SsoLoginViewModel)
     // Koin's constructor-DSL (`viewModelOf`) wires every argument via `get()` and cannot read
     // values passed through `parametersOf`. The VMs below receive initial seeds (email, user
     // id, token, temp token) from the navigation layer via `parametersOf`, so the lambda-form

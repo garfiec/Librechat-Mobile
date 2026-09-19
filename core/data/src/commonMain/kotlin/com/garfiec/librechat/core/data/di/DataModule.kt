@@ -11,6 +11,7 @@ import com.garfiec.librechat.core.data.datastore.ConfigCacheDataStore
 import com.garfiec.librechat.core.data.datastore.RoleCacheDataStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.data.datastore.SsoRiskDataStore
 import com.garfiec.librechat.core.data.datastore.ThemeDataStore
 import com.garfiec.librechat.core.data.datastore.TokenCacheWarmer
 import com.garfiec.librechat.core.data.db.LibreChatDatabase
@@ -218,6 +219,7 @@ val dataModule = module {
             keychainFallback = getOrNull(),
         )
     } bind ServerUrlProvider::class
+    single { SsoRiskDataStore(dataStore = get()) }
     single {
         ThemeDataStore(
             dataStore = get(),

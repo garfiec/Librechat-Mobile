@@ -76,4 +76,8 @@
 
     <!-- Custom server headers (issue #287) -->
     <string name="server_headers_advanced">Erweitert</string>
+    <!-- SSO (in-app WebView) -->
+    <string name="sso_risk_title">Im In-App-Browser anmelden?</string>
+    <string name="sso_risk_body">Manche Anbieter, darunter Google, unterstützen das nicht offiziell und können es jederzeit blockieren. Nutzung auf eigene Gefahr.</string>
+    <string name="sso_sign_in_failed">Anmeldung fehlgeschlagen. Bitte versuche es erneut.</string>
 </resources>

@@ -76,4 +76,8 @@
 
     <!-- Custom server headers (issue #287) -->
     <string name="server_headers_advanced">Дополнительно</string>
+    <!-- SSO (in-app WebView) -->
+    <string name="sso_risk_title">Войти во встроенном браузере?</string>
+    <string name="sso_risk_body">Некоторые провайдеры, включая Google, официально этого не поддерживают и могут заблокировать вход в любой момент. Используйте на свой страх и риск.</string>
+    <string name="sso_sign_in_failed">Не удалось войти. Попробуйте ещё раз.</string>
 </resources>

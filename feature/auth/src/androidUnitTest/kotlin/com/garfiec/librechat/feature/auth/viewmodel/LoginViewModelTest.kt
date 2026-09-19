@@ -2,26 +2,29 @@ package com.garfiec.librechat.feature.auth.viewmodel
 
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
-import com.garfiec.librechat.core.data.datastore.ServerDataStore
+import com.garfiec.librechat.core.data.datastore.SsoRiskDataStore
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.model.LoginOutcome
 import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.config.StartupConfig
-import com.garfiec.librechat.feature.auth.oauth.OAuthLauncher
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import java.io.IOException
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -33,9 +36,8 @@ class LoginViewModelTest {
 
     private val authRepository = mockk<AuthRepository>(relaxed = true)
     private val configRepository = mockk<ConfigRepository>(relaxed = true)
-    private val oAuthLauncher = mockk<OAuthLauncher>(relaxed = true)
-    private val serverDataStore = mockk<ServerDataStore>(relaxed = true)
     private val accountSwitcher = mockk<AccountSwitcher>(relaxed = true)
+    private val ssoRiskDataStore = mockk<SsoRiskDataStore>(relaxed = true)
 
     private val configFlow = MutableStateFlow<StartupConfig?>(null)
 
@@ -47,6 +49,7 @@ class LoginViewModelTest {
         every { configRepository.startupConfig } returns configFlow
         // No add-account flow pending: the VM reads the global config + live server URL.
         every { accountSwitcher.pendingAdd } returns null
+        every { ssoRiskDataStore.acknowledged } returns flowOf(false)
     }
 
     @After
@@ -57,9 +60,8 @@ class LoginViewModelTest {
     private fun createViewModel() = LoginViewModel(
         authRepository = authRepository,
         configRepository = configRepository,
-        oAuthLauncher = oAuthLauncher,
-        serverDataStore = serverDataStore,
         accountSwitcher = accountSwitcher,
+        ssoRiskDataStore = ssoRiskDataStore,
     )
 
     @Test
@@ -332,5 +334,141 @@ class LoginViewModelTest {
 
         // After login completes, loading should be false again
         assertThat(viewModel.uiState.value.isLoading).isFalse()
+    }
+
+    @Test
+    fun `first social tap raises the risk dialog`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onSsoProviderSelected("google")
+        advanceUntilIdle()
+
+        with(viewModel.uiState.value) {
+            assertThat(pendingSsoProvider).isEqualTo("google")
+            assertThat(ssoProvider).isNull()
+        }
+        coVerify(exactly = 0) { ssoRiskDataStore.acknowledge() }
+    }
+
+    @Test
+    fun `accepting the risk persists it and navigates`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onSsoProviderSelected("google")
+        advanceUntilIdle()
+        viewModel.onSsoRiskAccepted()
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { ssoRiskDataStore.acknowledge() }
+        with(viewModel.uiState.value) {
+            assertThat(pendingSsoProvider).isNull()
+            assertThat(ssoProvider).isEqualTo("google")
+        }
+    }
+
+    @Test
+    fun `an acknowledged risk navigates straight to sso`() = runTest {
+        every { ssoRiskDataStore.acknowledged } returns flowOf(true)
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onSsoProviderSelected("openid")
+        advanceUntilIdle()
+
+        with(viewModel.uiState.value) {
+            assertThat(pendingSsoProvider).isNull()
+            assertThat(ssoProvider).isEqualTo("openid")
+        }
+    }
+
+    @Test
+    fun `a second tap does not queue a second navigation`() = runTest {
+        every { ssoRiskDataStore.acknowledged } returns flowOf(true)
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onSsoProviderSelected("google")
+        viewModel.onSsoProviderSelected("google")
+        advanceUntilIdle()
+        // The screen navigates and consumes; a queued second selection would re-arm it here.
+        viewModel.consumeSsoNavigation()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.ssoProvider).isNull()
+    }
+
+    @Test
+    fun `a second tap on a different provider does not win`() = runTest {
+        every { ssoRiskDataStore.acknowledged } returns flowOf(true)
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onSsoProviderSelected("google")
+        viewModel.onSsoProviderSelected("github")
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.ssoProvider).isEqualTo("google")
+    }
+
+    @Test
+    fun `accepting the risk twice persists and navigates once`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onSsoProviderSelected("google")
+        advanceUntilIdle()
+        viewModel.onSsoRiskAccepted()
+        viewModel.onSsoRiskAccepted()
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { ssoRiskDataStore.acknowledge() }
+        assertThat(viewModel.uiState.value.ssoProvider).isEqualTo("google")
+    }
+
+    @Test
+    fun `an unreadable risk store still warns instead of stranding the button`() = runTest {
+        every { ssoRiskDataStore.acknowledged } returns flow { throw IOException("datastore") }
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onSsoProviderSelected("google")
+        advanceUntilIdle()
+
+        with(viewModel.uiState.value) {
+            assertThat(pendingSsoProvider).isEqualTo("google")
+            assertThat(ssoProvider).isNull()
+        }
+    }
+
+    @Test
+    fun `a failed acknowledgement still navigates`() = runTest {
+        coEvery { ssoRiskDataStore.acknowledge() } throws IOException("datastore")
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onSsoProviderSelected("google")
+        advanceUntilIdle()
+        viewModel.onSsoRiskAccepted()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.ssoProvider).isEqualTo("google")
+    }
+
+    @Test
+    fun `dismissing the risk dialog navigates nowhere`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onSsoProviderSelected("google")
+        advanceUntilIdle()
+        viewModel.onSsoRiskDismissed()
+
+        with(viewModel.uiState.value) {
+            assertThat(pendingSsoProvider).isNull()
+            assertThat(ssoProvider).isNull()
+        }
+        coVerify(exactly = 0) { ssoRiskDataStore.acknowledge() }
     }
 }
