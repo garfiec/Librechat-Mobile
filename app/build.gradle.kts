@@ -32,6 +32,18 @@ android {
     buildFeatures {
         buildConfig = true
     }
+
+    packaging {
+        jniLibs {
+            // Do not strip: stripping needs an NDK and AGP silently skips it when none is
+            // installed, so CI (has one) and F-Droid's buildserver image (has none) would
+            // package different .so bytes for the same tag and fail reproducible-build
+            // verification. We compile no native code; every .so comes prebuilt from Maven.
+            // Costs ~577 KB — do not reclaim it by pinning an NDK instead: two pins that
+            // must never drift, and strip output can itself vary by NDK version.
+            keepDebugSymbols += setOf("**/*.so")
+        }
+    }
 }
 
 dependencies {

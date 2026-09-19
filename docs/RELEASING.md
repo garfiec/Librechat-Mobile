@@ -32,12 +32,25 @@ backendTargetVersion=0.8.6 # LibreChat backend this build targets (best-tested)
   Reaching it requires the fdroiddata recipe to say so explicitly:
 
   ```yaml
-  UpdateCheckMode: Tags
+  UpdateCheckMode: Tags ^v[0-9]{4}\.[0-9]{2}\.[0-9]+$
   UpdateCheckData: version.properties|versionCode=(\d+)|version.properties|versionName=(.+)
   ```
 
   Without that field the app builds and publishes fine but is never offered as an update, so
   it belongs in the RFP alongside `Binaries` and `AllowedAPKSigningKeys`.
+
+  The regex on `UpdateCheckMode` is load-bearing, not decoration. `Tags` takes an optional
+  pattern, and candidates are tagged `vYYYY.MM.P-rcN` while the packing above **strips the
+  `-rcN` suffix** — so `v2026.09.1-rc1` and `v2026.09.1` share versionCode `20260901`. The
+  harm lands on whichever scan runs while only the candidate exists: it sets
+  `CurrentVersionCode` from the rc, and every later scan sees the finalized release's *equal*
+  code and treats the app as up to date, so the final is never offered. That first scan also
+  writes a build pinned to the rc tag, and `Binaries:` then resolves to the rc's own APK —
+  which exists, since candidates ship as GitHub pre-releases — so F-Droid would hand a release
+  candidate to every stable user. The pattern is matched with `re.match`, which anchors only
+  at the start, hence the explicit `$`.
+
+  The full proposed recipe and RFP text live in [`fdroid/`](fdroid/).
 - The About screen reads the *installed* version via `AppInfo` (package metadata), so it can never drift.
 - This is the **app's** version and is intentionally independent of `backendTargetVersion`.
 - `backendTargetVersion` is the **single source of truth** for the LibreChat backend the app
@@ -190,6 +203,12 @@ second full shrink on every pull request.
 > reachable from the tag and never appears. The filename is the versionCode
 > (`2026.08.4` → `20260804`), which `scripts/bump-version.sh` computes as
 > `YEAR*10000 + MONTH*100 + PATCH` from today's UTC date; see `fastlane/README.md`.
+>
+> Because the date is read **at dispatch time**, a changelog written in advance goes stale if
+> the cut slips into the next month: `patch` would yield `2026.10.0`/`20261000` where the file
+> says `20260900`, and the release ships with no changelog at all. Nothing fails — re-check the
+> filename against the bump you are about to run. The same applies to the version pins in
+> [`fdroid/com.garfiec.librechat.yml`](fdroid/com.garfiec.librechat.yml).
 
 1. Actions → **Release** → *Run workflow* → choose the bump (`patch` for a stable
    release, or `prepatch`/`rc`/`finalize` for the candidate flow). Year/month are
@@ -274,10 +293,50 @@ Three checks are available to anyone who downloads an APK (or IPA), in descendin
 3. **Checksum** — `sha256sum -c <apk>.sha256`. Catches accidental corruption or a download MITM
    only; it does *not* defend against a malicious release (the attacker would control both files).
 
+To confirm an APK really was built at its own tag — the property the tag-before-build fix exists
+to guarantee — read `GIT_SHA` out of the shipped dex and compare it to the tagged commit:
+
+```sh
+expected=$(git rev-parse --short=8 'v<version>^{commit}')
+unzip -p <apk> 'classes*.dex' | strings -n 8 | grep -Fx "$expected"
+```
+
+It prints the SHA if the dex carries it and nothing (exit 1) if it does not.
+
+Ask for the expected string rather than listing every hex-looking one: the dex also contains
+`0123456789abcdef`, `9223372036854775807` and a couple of BOM artifacts, so an enumerating
+pattern leaves you eyeballing a candidate list that grows silently with the codebase. Matching
+one fixed string also sidesteps abbreviation length — `--short=8` is a *minimum*, and git
+lengthens it when 8 characters are ambiguous (and honours `core.abbrev`), so a hardcoded
+`{8}` would miss a 9-character SHA outright.
+
+Two traps in that one line. The `classes*.dex` glob: the app is single-dex today, but it is
+R8-minified across ~15 modules and `GIT_SHA` is inlined from `:core:common`, so the first
+build to cross 64K methods puts it in `classes2.dex`, and a `classes.dex`-only check would
+find nothing and make a good release look unreproducible. And **do not add `-q`**: the system
+`grep` may be ugrep (7.5.0 here), whose `-q` exits 1 despite a match when reading from a pipe
+— the check would report every release as unreproducible.
+
+**`^{commit}` is required.** Release tags are *annotated*, so a bare `git rev-parse v<version>`
+returns the tag-object SHA, which never matches anything in the dex — the check would appear to
+fail on a perfectly good release. Read the SHA from the downloaded asset rather than a local
+rebuild, or the comparison is circular.
+
 ## Distribution channels
 
 - **Obtainium** — tracks GitHub Releases directly (see the README install section). Stable
   releases are full releases; `-rcN` candidate tags are marked pre-release.
+- **F-Droid** (future) — developer-signed, verified by reproducible build (`Binaries:` +
+  `AllowedAPKSigningKeys`) rather than re-signed with F-Droid's key, because Android refuses
+  in-place upgrades across a signing-key change. The proposed recipe and the RFP text are in
+  [`fdroid/`](fdroid/). Note `Binaries:` has **no fallback**: a release that fails to reproduce
+  is simply never published, so only versions cut after the tag-before-build fix can be listed.
+
+  **Publish the draft promptly once F-Droid is live.** The workflow pushes the tag before it
+  creates the release, and the release starts as a draft whose assets 404 anonymously. A scan
+  landing in that window sees the new tag, bumps its version, and then fails to fetch the
+  reference binary — which surfaces as a `Binaries` download failure and reads like a
+  reproducibility problem when it is only an unpublished draft.
 - **IzzyOnDroid** (future) — ingests the developer-signed APK and pins the signing key via
   `AllowedAPKSigningKeys`. Use the *same* key. Reproducible builds earn a verification badge.
 - **iOS sideloading** — the unsigned `.ipa` is attached to every GitHub Release for

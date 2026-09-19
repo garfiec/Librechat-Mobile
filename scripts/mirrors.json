@@ -298,6 +298,34 @@
       "failure_mode": "A renamed code makes the re-entry prompt unreachable: the save reports a plain 'could not save' and the user has no way to learn the stored secret is the thing that must be re-supplied, so the write keeps failing forever."
     },
     {
+      "id": "refresh-403-rejection-bodies",
+      "upstream": {
+        "file": "api/server/controllers/AuthController.js",
+        "symbol": "refreshController",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/datastore/CommonTokenDataStore.kt",
+        "symbol": "LIBRECHAT_REFRESH_REJECTIONS"
+      },
+      "why": "The response bodies that distinguish LibreChat's own terminal 403 on /api/auth/refresh ('Invalid refresh token', 'Invalid OpenID refresh token', 'No session found') from a 403 minted by a reverse proxy, WAF or IP bouncer. Only the former means the session is dead and the tokens should be dropped. NOTE: this watch is deliberately COARSE — the three literals are inline in a ~150-line controller that also carries the OpenID reuse path, the session lookup and its logging, and upstream does not hoist them into a constant to anchor on. So expect it to report on edits that do not touch the literals, and diff the send() arms specifically rather than skimming the block. 'Invalid refresh token' has been confirmed byte-for-byte against a live v0.8.7 (403, text/html, 21 bytes); the other two arms are code-read only.",
+      "failure_mode": "Upstream rewords an arm and the client stops recognising a dead session: it classifies a real expiry as an intermediary block, keeps the dead tokens and never routes to re-auth. Nothing fails to decode, so a sync's ordinary diff sweep reads it as an inert string edit."
+    },
+    {
+      "id": "ban-response-message",
+      "upstream": {
+        "file": "api/server/middleware/checkBan.js",
+        "symbol": "message",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/network/src/commonMain/kotlin/com/garfiec/librechat/core/network/client/LibreChatHttpClient.kt",
+        "symbol": "BAN_MESSAGE_MARKERS"
+      },
+      "why": "banResponse answers 403 with {\"message\": \"Your account has been temporarily banned...\"}. The client matches on that wording to tell a genuine account ban from any other 403, because a 403 from a proxy must not end the session.",
+      "failure_mode": "Upstream rewords the ban sentence and a real ban stops being recognised: the request fails without the session ever being torn down, so the user sits in a broken shell instead of being told they are banned."
+    },
+    {
       "id": "oauth-browser-flow-routes",
       "upstream": {
         "file": "api/server/routes/oauth.js",

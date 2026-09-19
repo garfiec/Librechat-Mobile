@@ -1,0 +1,58 @@
+# Proposed fdroiddata recipe for Switchboard (com.garfiec.librechat), kept in this repo so it
+# stays with the release process it describes.
+#
+# The version pins are placeholders for a cut that has not happened yet. Re-derive them before
+# filing, and only ever list a release that has been verified reproducible — see RFP.md.
+
+Categories:
+  - AI Chat
+License: MIT
+AuthorName: garfiec
+SourceCode: https://github.com/garfiec/Librechat-Mobile
+IssueTracker: https://github.com/garfiec/Librechat-Mobile/issues
+Changelog: https://github.com/garfiec/Librechat-Mobile/releases
+
+# Summary/Description are omitted: fdroidserver reads fastlane/metadata/android/en-US/ in-repo.
+
+RepoType: git
+Repo: https://github.com/garfiec/Librechat-Mobile.git
+
+# Developer-signed with reproducible-build verification, not F-Droid-signed: Android refuses
+# in-place upgrades across a signing-key change and the app already ships under this key.
+Binaries: https://github.com/garfiec/Librechat-Mobile/releases/download/v%v/switchboard-v%v.apk
+AllowedAPKSigningKeys: 668a71966a070614d144955d83e7236a3ced77f8640857c3fa84b03ccde40e59
+
+Builds:
+  - versionName: 2026.09.0
+    versionCode: 20260900
+    commit: v2026.09.0
+    subdir: app
+    gradle:
+      - yes
+    # Drops the release signing config so AGP emits app-release-unsigned.apk.
+    # Passed bare (no value); the build tests presence, not truthiness.
+    gradleprops:
+      - unsignedRelease
+    # Required: fdroidserver runs `gradle clean` before scanning, and any Gradle invocation
+    # compiles build-logic/'s convention plugins into build-logic/convention/build/ — class
+    # files the scan then rejects. None of it is in git; the clean step itself creates it.
+    scandelete:
+      - build-logic/convention/build
+
+# No `submodules: true` on purpose: the upstream/ submodule is API reference only, nothing in
+# the build reads it, and omitting it keeps the LibreChat server tree out of the scanner.
+
+# UpdateCheckData is required: the version literals live in the ROOT version.properties, which
+# fdroidserver's default scan never reads — without it the app publishes and is then never
+# offered as an update.
+#
+# The tag filter on UpdateCheckMode is load-bearing: candidates are tagged vYYYY.MM.P-rcN and
+# the scheme strips -rcN when packing, so v2026.09.1-rc1 and v2026.09.1 share versionCode
+# 20260901. A scan running while only the candidate exists pins the rc — the finalized
+# release's equal code then never registers as an update, and with AutoUpdateMode: Version
+# Binaries: resolves to the rc's own APK and ships a candidate to stable users.
+AutoUpdateMode: Version
+UpdateCheckMode: Tags ^v[0-9]{4}\.[0-9]{2}\.[0-9]+$
+UpdateCheckData: version.properties|versionCode=(\d+)|version.properties|versionName=(.+)
+CurrentVersion: 2026.09.0
+CurrentVersionCode: 20260900

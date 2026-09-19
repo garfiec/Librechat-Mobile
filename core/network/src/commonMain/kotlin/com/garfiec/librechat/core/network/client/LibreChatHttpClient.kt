@@ -131,7 +131,7 @@ object LibreChatHttpClient {
                     val statusCode = response.status.value
                     val bodyText = try { response.bodyAsText() } catch (_: Exception) { "" }
                     val extracted = extractErrorMessage(json, bodyText, statusCode)
-                    val isBanned = statusCode == 403 && bodyText.contains("ban", ignoreCase = true)
+                    val isBanned = isLibreChatBan(statusCode, extracted)
 
                     Diag.w(
                         "HTTP",
@@ -187,6 +187,37 @@ object LibreChatHttpClient {
      * wording below is shown as-is.
      */
     private data class ExtractedError(val message: String, val serverAuthored: Boolean)
+
+    /**
+     * True only for LibreChat's **own** ban response: `checkBan`'s `banResponse` answers
+     * `403` with `{"message": "<the ban sentence>"}` — JSON, with the wording in a `message` field.
+     *
+     * Decided off [extractErrorMessage]'s result rather than re-parsing the body: that parse has
+     * already run for this response, and its [ExtractedError.serverAuthored] flag *is* the "this
+     * came out of a LibreChat JSON envelope" test — a proxy interstitial or an HTML error page
+     * cannot set it, and neither can an empty body. (Extraction also reads the `error` /
+     * `error_message` fallback keys, so the ban wording would be honoured there too; upstream's ban
+     * answer uses `message`, which makes that inert breadth rather than a second shape to match.)
+     *
+     * This used to be `bodyText.contains("ban")` against the raw body, which matches any 403 whose
+     * body happens to contain those three letters — including a reverse proxy's or WAF's block page.
+     * Emitting [SessionEndReason.BANNED] for one of those tears down a perfectly live session over a
+     * network-layer block, and the user cannot re-authenticate until the block lifts, which is how a
+     * temporary IP ban became a hard logout in #376. Requiring LibreChat's own JSON shape means an
+     * unrecognised 403 now fails the request without ending the session.
+     */
+    private fun isLibreChatBan(statusCode: Int, extracted: ExtractedError): Boolean {
+        if (statusCode != 403 || !extracted.serverAuthored) return false
+        return BAN_MESSAGE_MARKERS.all { extracted.message.contains(it, ignoreCase = true) }
+    }
+
+    /**
+     * Both halves of `checkBan`'s message ("Your account has been temporarily banned due to
+     * violations of our service.") must be present, so an unrelated server message that merely says
+     * "banned" does not qualify. Registered in `scripts/mirrors.json`: upstream rewording this is
+     * silent here — nothing fails to decode, the app just stops recognising a ban.
+     */
+    private val BAN_MESSAGE_MARKERS = listOf("banned", "account")
 
     private fun extractErrorMessage(json: Json, body: String, statusCode: Int): ExtractedError {
         if (body.isNotBlank()) {
