@@ -66,12 +66,18 @@ single refresh mutex:
   access token has already been renewed — checked the other way round, a caller would be told
   `Transient` and sent back out on a bearer already known to be stale.
 
-**A refresh `403` is classified by provenance, not treated as one thing.** Every 403 arm of upstream's
-`refreshController` is a dead credential (`jwt.verify` threw, `exp` is past, `?retry` found no
-session), so `AuthRejectedTerminal` settles on the first answer instead of spending the ladder — its
-401 is the ambiguous one the ladder exists for, and that ladder must stay. A 403 carrying none of those
-bodies did not come from LibreChat: a proxy bouncer, a WAF or an IP ban answers 403 too, and it is no
-evidence the session is dead, so `ForbiddenByIntermediary` keeps the slot. Reading one as a dead
+**A refresh `403` is classified by provenance, not treated as one thing.** Every 403 body upstream's
+`refreshController` sends is a dead credential (`jwt.verify` threw — which is also where an expired
+`exp` lands — the OpenID grant was refused, `?retry` found no session), so `AuthRejectedTerminal`
+settles on the first answer instead of spending the ladder — its 401 is the ambiguous one the ladder
+exists for, and that ladder must stay. The controller's `res.status(4xx).redirect('/login')` arms are
+**not 403s on the wire**: Express's `redirect()` overwrites the chained status, so they arrive as a
+302, which the refresh client does not follow on a POST. A 302 whose `Location` is a server-rooted
+`/login` is therefore classified terminal in `attemptRefresh`'s 3xx arm; an absolute portal URL there
+is a gateway's and is not.
+
+A 403 carrying none of those bodies did not come from LibreChat: a proxy bouncer, a WAF or an IP ban
+answers 403 too, and it is no evidence the session is dead, so `ForbiddenByIntermediary` keeps the slot. Reading one as a dead
 session is how a temporary IP ban became a logout the user could not undo until the ban lapsed.
 Unrecognised therefore means Transient, which fails safe in the direction that matters. The bodies are
 registered in `scripts/mirrors.json` (`refresh-403-rejection-bodies`) because upstream rewording one is

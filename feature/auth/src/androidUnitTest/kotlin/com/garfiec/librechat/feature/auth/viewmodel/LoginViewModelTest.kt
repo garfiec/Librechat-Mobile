@@ -1,5 +1,6 @@
 package com.garfiec.librechat.feature.auth.viewmodel
 
+import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
@@ -195,6 +196,76 @@ class LoginViewModelTest {
         assertThat(state.error).isEqualTo("Invalid credentials")
         assertThat(state.isLoading).isFalse()
         assertThat(state.isLoggedIn).isFalse()
+    }
+
+    /**
+     * Upstream's `validateEmailLogin` answers `403 {"message": "Email login is not allowed."}` — a
+     * LibreChat JSON envelope, so the client flags it server-authored. That is the one 403 that may
+     * hide the form.
+     */
+    @Test
+    fun `a server-authored 403 hides the email form`() = runTest {
+        coEvery { authRepository.login("user@example.com", "pw") } returns Result.Error(
+            exception = ApiException(403, "Email login is not allowed.", serverAuthored = true),
+            message = "Email login is not allowed.",
+        )
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onEmailChanged("user@example.com")
+        viewModel.onPasswordChanged("pw")
+        viewModel.login()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.emailLoginEnabled).isFalse()
+        assertThat(state.error).isEqualTo("Email and password sign-in is disabled on this server.")
+    }
+
+    /**
+     * A bouncer or WAF in front of the deployment answers the same route with a 403 too, and that is
+     * a condition the user can wait out — it must not be read as "this server has email login off".
+     */
+    @Test
+    fun `a 403 that is not LibreChat's keeps the email form`() = runTest {
+        coEvery { authRepository.login("user@example.com", "pw") } returns Result.Error(
+            exception = ApiException(403, "Access denied", serverAuthored = false),
+            message = "Access denied",
+        )
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onEmailChanged("user@example.com")
+        viewModel.onPasswordChanged("pw")
+        viewModel.login()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.emailLoginEnabled).isTrue()
+        assertThat(state.error).isEqualTo("Access denied")
+    }
+
+    /** A ban is also a server-authored 403 and must keep the form; `isBanned` is that discriminator. */
+    @Test
+    fun `a ban keeps the email form and the server's own message`() = runTest {
+        coEvery { authRepository.login("user@example.com", "pw") } returns Result.Error(
+            exception = ApiException(403, "Your account has been temporarily banned", isBanned = true, serverAuthored = true),
+            message = "Your account has been temporarily banned",
+        )
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onEmailChanged("user@example.com")
+        viewModel.onPasswordChanged("pw")
+        viewModel.login()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.emailLoginEnabled).isTrue()
+        assertThat(state.error).isEqualTo("Your account has been temporarily banned")
     }
 
     @Test

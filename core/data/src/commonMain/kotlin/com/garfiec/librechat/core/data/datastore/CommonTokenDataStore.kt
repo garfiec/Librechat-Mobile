@@ -219,6 +219,13 @@ abstract class CommonTokenDataStore(
     /** A null [refreshToken] means the whole slot stands down, not just this credential. */
     private class RejectedRefresh(val refreshToken: String?, val retryAfterEpochMillis: Long)
 
+    /**
+     * The wall clock every cooldown deadline and the bearer's `exp` are judged against. Open so a
+     * test can move it past a cooldown, which is the only way to show a stand-down *lapses* rather
+     * than merely holds; production reads the system clock.
+     */
+    protected open fun nowEpochMillis(): Long = Clock.System.now().toEpochMilliseconds()
+
     // Platform implementations provide a plain synchronously-readable key/value secure store.
     protected abstract fun readValue(key: String): String?
     protected abstract fun writeValue(key: String, value: String)
@@ -243,6 +250,10 @@ abstract class CommonTokenDataStore(
         // Only the bare (staging) slot's truth changes; keyed slots (and their in-flight refreshes,
         // which write their own slot) stay valid.
         bumpEpoch(null)
+        // A fresh sign-in is new truth for the bare slot: any stand-down recorded against the pair
+        // being replaced must not outlive it. (Teardown clears too, but it runs under [stateMutex]
+        // while a flight can still be recording, so this is the write that can't be lost.)
+        clearRejectedRefresh(slotKey(null))
         resetSessionExpiryLatch()
         cachedAccessToken = accessToken
         activeAccountKey = null
@@ -270,6 +281,8 @@ abstract class CommonTokenDataStore(
             // consumed) change; a no-staging mirror re-home changes neither, so nothing is bumped.
             bumpEpoch(accountId)
             bumpEpoch(null)
+            // Same as [setTokens]: the keyed slot is being overwritten with a freshly-issued pair.
+            clearRejectedRefresh(slotKey(accountId))
             writeValues(mapOf(accessKey(accountId) to stagedAccess, refreshKey(accountId) to stagedRefresh))
         }
         writeValue(KEY_ACTIVE_ACCOUNT, accountId)
@@ -404,7 +417,7 @@ abstract class CommonTokenDataStore(
         // same key the refresh actually targets rather than a bare-key approximation of it.
         val accountKey = accountId ?: activeAccountKey
         val slot = accountKey ?: BARE_FLIGHT_KEY
-        if (Clock.System.now().toEpochMilliseconds() < (proactiveSuppressedUntil[slot] ?: 0L)) {
+        if (nowEpochMillis() < (proactiveSuppressedUntil[slot] ?: 0L)) {
             return currentAccessToken
         }
         Diag.d(
@@ -432,7 +445,7 @@ abstract class CommonTokenDataStore(
             // spends its own connect timeout BEFORE being sent, serially. Suppressed per slot; the
             // request still goes out on its old bearer and a real 401 still gets the full reactive
             // ladder.
-            suppressProactiveRenewal(slot, Clock.System.now().toEpochMilliseconds() + PROACTIVE_RETRY_COOLDOWN_MS)
+            suppressProactiveRenewal(slot, nowEpochMillis() + PROACTIVE_RETRY_COOLDOWN_MS)
             return currentAccessToken
         }
         val renewed = (if (accountId != null) getAccessTokenFor(accountId) else getAccessToken())
@@ -467,10 +480,16 @@ abstract class CommonTokenDataStore(
     /**
      * Retire [slot]'s rejected-token marker.
      *
-     * Called from the flight lock on a success, and from [stateMutex] on a teardown — where the
-     * marker's token has just been deleted, so leaving it behind retains a dead credential in memory
-     * for the life of the process for nothing. A lost update between the two locks can only restore a
-     * record keyed on bytes no request will send again, which [isRecentlyRejected] never matches.
+     * Called from the flight lock on a success, from [stateMutex] on a teardown — where the marker's
+     * token has just been deleted, so leaving it behind retains a dead credential in memory for the
+     * life of the process for nothing — and from [stateMutex] when a sign-in writes a new pair.
+     *
+     * A lost update between the two locks can restore a record. For a token-keyed one that is inert:
+     * it names bytes no request will send again, which [isRecentlyRejected] never matches. A
+     * slot-wide one (null token) *would* still match, which is why the sign-in path clears as well:
+     * a teardown's clear that loses the race is followed by a login's clear that cannot, because no
+     * flight records against a slot whose pair is being replaced under [stateMutex]. Between the two,
+     * the slot holds no refresh token and nothing POSTs anyway.
      */
     private fun clearRejectedRefresh(slot: String) {
         rejectedRefreshes = rejectedRefreshes - slot
@@ -487,7 +506,7 @@ abstract class CommonTokenDataStore(
      */
     private fun isRecentlyRejected(slot: String, refreshToken: String?): Boolean {
         val rejected = rejectedRefreshes[slot] ?: return false
-        if (Clock.System.now().toEpochMilliseconds() >= rejected.retryAfterEpochMillis) return false
+        if (nowEpochMillis() >= rejected.retryAfterEpochMillis) return false
         return rejected.refreshToken == null || rejected.refreshToken == refreshToken
     }
 
@@ -514,7 +533,7 @@ abstract class CommonTokenDataStore(
         rejectedRefreshes = rejectedRefreshes + (
             slot to RejectedRefresh(
                 refreshToken = null,
-                retryAfterEpochMillis = Clock.System.now().toEpochMilliseconds() +
+                retryAfterEpochMillis = nowEpochMillis() +
                     INTERMEDIARY_BLOCK_COOLDOWN_MS,
             )
             )
@@ -554,7 +573,7 @@ abstract class CommonTokenDataStore(
         rejectedRefreshes = rejectedRefreshes + (
             slot to RejectedRefresh(
                 refreshToken = sentToken,
-                retryAfterEpochMillis = Clock.System.now().toEpochMilliseconds() +
+                retryAfterEpochMillis = nowEpochMillis() +
                     PROACTIVE_RETRY_COOLDOWN_MS,
             )
             )
@@ -566,7 +585,7 @@ abstract class CommonTokenDataStore(
      */
     private fun isNearingExpiry(token: String): Boolean {
         val expiresAt = memoizedExpiryOf(token) ?: return false
-        return expiresAt - Clock.System.now().toEpochMilliseconds() <= PROACTIVE_RENEWAL_SKEW_MS
+        return expiresAt - nowEpochMillis() <= PROACTIVE_RENEWAL_SKEW_MS
     }
 
     /**
@@ -851,6 +870,20 @@ abstract class CommonTokenDataStore(
                     RefreshAttempt.AuthRejected
                 }
                 status == 403 -> classifyForbidden(httpResponse)
+                // Upstream's `res.status(4xx).redirect('/login')` arms reach the wire as a **302**:
+                // Express's `redirect()` overwrites the status it was chained onto. This client does
+                // not follow a POST's redirect, so the 302 is what arrives here, and a server-rooted
+                // `/login` Location is LibreChat reporting that the credential's user no longer
+                // exists — terminal. A gateway's 302 points at an absolute portal URL and never
+                // matches; see [isLoginRedirect].
+                status in 300..399 && isLoginRedirect(httpResponse.headers[HttpHeaders.Location]) -> {
+                    Diag.w(
+                        "Auth",
+                        origin = LogOrigin.SERVER,
+                        attrs = mapOf("event" to "refresh_rejected", "status" to status.toString()),
+                    ) { "Auth rejected during token refresh" }
+                    RefreshAttempt.AuthRejectedTerminal
+                }
                 status == 429 -> {
                     val retryAfter = parseRetryAfterMillis(httpResponse)
                     Diag.w(
@@ -907,12 +940,14 @@ abstract class CommonTokenDataStore(
     /**
      * Classify a `403` from the refresh endpoint by who produced it.
      *
-     * LibreChat's own refresh rejections are **terminal**: every 403 arm of `refreshController` is a
-     * dead credential — `jwt.verify` threw, the payload's `exp` is past, or a `?retry` found no
-     * session — never the transient lookup miss that its *401* can mean. So these settle immediately
-     * instead of spending the ladder. Three more POSTs cannot rescue a token the server has already
-     * refused to verify, and the burst they make is what trips a reverse proxy's brute-force
-     * detection (#376).
+     * LibreChat's own refresh rejections are **terminal**: every 403 body `refreshController` sends
+     * is a dead credential — `jwt.verify` threw (which is also where an expired `exp` lands), the
+     * OpenID grant was refused, or a `?retry` found no session — never the transient lookup miss
+     * that its *401* can mean. So these settle immediately instead of spending the ladder. Three
+     * more POSTs cannot rescue a token the server has already refused to verify, and the burst they
+     * make is what trips a reverse proxy's brute-force detection (#376). The controller's
+     * `redirect('/login')` arms are not 403s on the wire and are classified where they arrive, in
+     * [attemptRefresh]'s 3xx arm.
      *
      * A 403 that carries none of those bodies **did not come from LibreChat**. A proxy bouncer, a WAF
      * or an IP ban answers 403 too, and that says nothing about whether the session is alive — so it
@@ -929,10 +964,7 @@ abstract class CommonTokenDataStore(
         } catch (_: Exception) {
             ""
         }
-        val serverAuthored = LIBRECHAT_REFRESH_REJECTIONS.any { body.contains(it, ignoreCase = true) } ||
-            // `res.status(403).redirect('/login')` sends an empty body for a JSON `Accept`, so the
-            // status line alone is not the tell — the Location is.
-            isLoginRedirect(httpResponse.headers[HttpHeaders.Location])
+        val serverAuthored = LIBRECHAT_REFRESH_REJECTIONS.any { body.contains(it, ignoreCase = true) }
         return if (serverAuthored) {
             Diag.w(
                 "Auth",
@@ -951,15 +983,15 @@ abstract class CommonTokenDataStore(
     }
 
     /**
-     * True for the `Location` of upstream's `res.status(403).redirect('/login')` — and only that.
+     * True for the `Location` of upstream's `redirect('/login')` — and only that.
      *
      * **Relative only, deliberately.** A forward-auth proxy (Authelia, oauth2-proxy, a Cloudflare
-     * Access rule) also answers 403 and also points at a login page, but at an *absolute* URL on its
-     * own portal — `https://auth.example.com/login?rd=…`. A substring test for `/login` accepts that
-     * and reads a network-layer block as a dead LibreChat credential, which is the exact mistake
-     * [classifyForbidden] exists to prevent: it would drop the user's tokens over a block they cannot
-     * clear. Express's `res.redirect('/login')` emits the path verbatim, so requiring a
-     * server-rooted path costs nothing and excludes every off-authority portal.
+     * Access rule) also answers a 302 pointing at a login page, but at an *absolute* URL on its own
+     * portal — `https://auth.example.com/login?rd=…`. A substring test for `/login` accepts that and
+     * reads a network-layer block as a dead LibreChat credential, which is the exact mistake the
+     * provenance split exists to prevent: it would drop the user's tokens over a block they cannot
+     * clear. Express's `res.redirect('/login')` emits the path verbatim, so requiring a server-rooted
+     * path costs nothing and excludes every off-authority portal.
      */
     private fun isLoginRedirect(location: String?): Boolean {
         val target = location?.trim() ?: return false
@@ -1136,8 +1168,9 @@ abstract class CommonTokenDataStore(
         data object AuthRejected : RefreshAttempt
 
         /**
-         * A 403 carrying one of LibreChat's own refresh rejections. Terminal → the session really is
-         * dead, so settle now rather than spending the ladder on it. See [classifyForbidden].
+         * A 403 carrying one of LibreChat's own refresh rejections, or its 302 to `/login`. Terminal →
+         * the session really is dead, so settle now rather than spending the ladder on it. See
+         * [classifyForbidden] and [isLoginRedirect].
          */
         data object AuthRejectedTerminal : RefreshAttempt
 

@@ -47,6 +47,9 @@ class CommonTokenDataStoreRefreshBurstTest {
 
         /** [CommonTokenDataStore.MAX_REFRESH_ATTEMPTS], which this suite must not depend on privately. */
         const val LADDER = 3
+
+        /** [CommonTokenDataStore.INTERMEDIARY_BLOCK_COOLDOWN_MS], likewise. */
+        const val BLOCK_COOLDOWN_MS = 60_000L
     }
 
     /** A JWT whose `exp` is [secondsFromNow] away. Only the payload is real; nothing verifies it. */
@@ -264,9 +267,9 @@ class CommonTokenDataStoreRefreshBurstTest {
      *
      * Once an unattributed 403 has stood the slot down, the gate is in front of *every* caller — so a
      * credential that is genuinely dead is not recognised as dead until the cooldown lapses. This
-     * pins how long that lasts: the reactive caller behind the block gets `Transient` and does not
-     * POST, so re-auth is delayed by at most [INTERMEDIARY_BLOCK_COOLDOWN_MS] rather than blocked
-     * indefinitely.
+     * pins both halves: inside the window the reactive caller gets `Transient` without a POST, and
+     * once the window lapses the next caller POSTs, meets the terminal answer and tears down. Re-auth
+     * is delayed by at most [BLOCK_COOLDOWN_MS], not blocked indefinitely.
      *
      * That is the deliberate trade — the alternative is hammering a bouncer that is already blocking
      * this client — but it is the one place the provenance design's two halves interact, so it should
@@ -297,20 +300,55 @@ class CommonTokenDataStoreRefreshBurstTest {
             assertThat(posts[0]).isEqualTo(1)
             // Still signed in: the session outlives the block rather than being torn down by it.
             assertThat(store.store[refreshKeyOf(ACCOUNT)]).isEqualTo("R0")
+
+            // Past the cooldown the gate opens: one more POST, LibreChat's own terminal 403, and the
+            // dead credential is finally recognised — delayed, not prevented.
+            store.clockOffsetMillis = BLOCK_COOLDOWN_MS + 1
+            assertThat(store.refreshAccessToken()).isEqualTo(RefreshResult.HardExpired)
+            assertThat(posts[0]).isEqualTo(2)
+            assertThat(store.store[refreshKeyOf(ACCOUNT)]).isNull()
         }
 
-    /** A 403 whose body is LibreChat's `redirect('/login')` stub is identified by its Location. */
+    /**
+     * Upstream's `res.status(4xx).redirect('/login')` arms — the credential's user no longer exists —
+     * reach the wire as a **302**, because Express's `redirect()` overwrites the chained status. The
+     * refresh client does not follow a POST's redirect, so the 302 itself is what must read as
+     * terminal. Read as anything else it spends the ladder and keeps a slot that can never recover.
+     */
     @Test
-    fun `a 403 redirect to login is read as LibreChat's own rejection`() =
+    fun `a 302 to login is read as LibreChat's own rejection`() =
         runTest(UnconfinedTestDispatcher()) {
             val posts = intArrayOf(0)
             val engine = unconfinedMockEngine {
                 posts[0]++
-                respond("Found. Redirecting to /login", HttpStatusCode.Forbidden, headersOf("Location", "/login"))
+                respond("Found. Redirecting to /login", HttpStatusCode.Found, headersOf("Location", "/login"))
             }
             val store = seeded(engine, access = jwt(900))
 
             assertThat(store.refreshAccessToken()).isEqualTo(RefreshResult.HardExpired)
             assertThat(posts[0]).isEqualTo(1)
+            assertThat(store.store[refreshKeyOf(ACCOUNT)]).isNull()
+        }
+
+    /**
+     * The control for the arm above: a forward-auth portal's 302 points at an *absolute* URL on its
+     * own authority, and that is a network-layer block, not a dead credential. It must keep the slot.
+     */
+    @Test
+    fun `a 302 to an off-authority portal keeps the session`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val posts = intArrayOf(0)
+            val engine = unconfinedMockEngine {
+                posts[0]++
+                respond(
+                    "",
+                    HttpStatusCode.Found,
+                    headersOf("Location", "https://auth.example.com/login?rd=https://chat.example.com"),
+                )
+            }
+            val store = seeded(engine, access = jwt(900))
+
+            assertThat(store.refreshAccessToken()).isEqualTo(RefreshResult.Transient)
+            assertThat(store.store[refreshKeyOf(ACCOUNT)]).isEqualTo("R0")
         }
 }
