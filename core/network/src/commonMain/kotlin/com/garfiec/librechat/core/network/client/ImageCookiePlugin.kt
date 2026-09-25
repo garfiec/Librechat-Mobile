@@ -72,7 +72,7 @@ private val ImageCookieRetriedKey = AttributeKey<String>("ImageCookieRetriedFor"
  *
  * ### The rotation race
  *
- * rc3's middleware no longer merely verifies the JWT: it looks the token up via
+ * From rc2 the middleware does not merely verify the JWT (as rc1 did): it looks the token up via
  * `findSession({ userId, refreshToken })` against `session.refreshTokenHash`, which every refresh
  * overwrites. So a token read even slightly before a concurrent refresh is already invalid, and it
  * comes back **403**, not 401. Hence the token is read at attach time and never cached, plus a

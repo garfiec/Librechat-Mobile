@@ -41,8 +41,8 @@ fun AvatarImage(
     contentDescription: String? = "$fallbackText avatar",
 ) {
     // A load that fails has to fall through to the fallbacks below. Branching on `imageUrl != null`
-    // alone keeps drawing an AsyncImage that renders nothing, so an unreachable avatar became an
-    // invisible hole where the letter or icon should be — and took the diagnosis with it.
+    // alone keeps drawing an AsyncImage that renders nothing, so an unreachable avatar is an
+    // invisible hole where the letter or icon should be — and takes the diagnosis with it.
     // Keyed on the URL so a changed avatar retries rather than inheriting the previous failure.
     var loadFailed by remember(imageUrl) { mutableStateOf(false) }
     if (imageUrl != null && !loadFailed) {

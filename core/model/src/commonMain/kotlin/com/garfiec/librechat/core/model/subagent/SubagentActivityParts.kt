@@ -67,11 +67,11 @@ private fun SubagentActivityItem.toPart(): MessageContentPart? = when (type) {
             output = output,
             inputValidationError = inputValidationError.takeIf { it == true },
             // The projection's own verdict, in the field every card reads it from. Without it a
-            // FAILED or CANCELLED child tool call renders here exactly like one that succeeded —
-            // the same gap the live path closed by stamping `runStepStatus`, left open on the
-            // REST path that rebuilds the identical card. [SubagentToolStatus] spells its terminal
-            // values the way `RunStepStatus` does; `running` maps to null and degrades to the
-            // heuristic, which is what it should do.
+            // FAILED or CANCELLED child tool call renders here exactly like one that succeeded.
+            // The live path stamps `runStepStatus` for the same reason; this REST path rebuilds
+            // the identical card, so it has to stamp it too. [SubagentToolStatus] spells its
+            // terminal values the way `RunStepStatus` does; `running` maps to null and degrades
+            // to the heuristic, which is what it should do.
             runStepStatus = RunStepStatus.fromWire(status),
         ),
     )

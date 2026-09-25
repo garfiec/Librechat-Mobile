@@ -371,8 +371,8 @@ class ImageCookiePluginTest {
     }
 
     /**
-     * rc3 matches the cookie against `session.refreshTokenHash`, which every refresh overwrites — so a
-     * token read microseconds before a concurrent rotation comes back 403, not 401.
+     * From rc2 the mount matches the cookie against `session.refreshTokenHash`, which every refresh
+     * overwrites — so a token read microseconds before a concurrent rotation comes back 403, not 401.
      */
     @Test
     fun `retries a 403 once with the rotated token`() = runTest {

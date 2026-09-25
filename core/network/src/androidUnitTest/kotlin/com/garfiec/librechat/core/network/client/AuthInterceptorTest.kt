@@ -502,8 +502,8 @@ class AuthInterceptorTest {
     }
 
     /**
-     * The regression that made the 0.8.8-rc3 image mount a logout button: upstream secures it by
-     * default and authenticates on a cookie only, so the refreshed bearer 401s again, `alreadyRetried`
+     * The image mount must never reach the expiry path: from 0.8.8-rc2 upstream secures it by
+     * default and authenticates on a cookie only, so a refreshed bearer 401s again, `alreadyRetried`
      * fires, and a live session is torn down by every conversation holding a generated image.
      */
     @Test

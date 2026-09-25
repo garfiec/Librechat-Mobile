@@ -89,8 +89,9 @@ class FileRepositoryImpl(
      * `DELETE /api/files` drops each entry with a falsy `filepath` before it looks at anything
      * else, and answers 204 with no body when that leaves nothing — so an unnameable entry is
      * never listed in `failedFileIds` and a caller diffing "asked minus failed" reads it as
-     * deleted. Enforced here rather than at each caller because the rule belongs to the route:
-     * three call sites already exist and the one that was added last shipped without the check.
+     * deleted. Enforced here rather than at each caller because the rule belongs to the route —
+     * every caller that diffs its own request against `failedFileIds` needs it, and none of them
+     * can see that the route dropped the entry.
      */
     override suspend fun deleteFiles(
         files: List<DeleteFileEntry>,

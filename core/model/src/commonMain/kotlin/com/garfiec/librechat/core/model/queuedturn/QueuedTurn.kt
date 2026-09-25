@@ -123,10 +123,10 @@ data class AgentQueuedTurnReceipt(
  * turns. The union is modelled flat rather than as a discriminated one because a `false` carries no
  * durability and a flat shape decodes both arms without a custom serializer.
  *
- * **[durability] is decode surface only.** Every v0.8.8-rc3 response hardcodes `"durable"`
- * (`packages/api/src/agents/queuedTurnHttp.ts:31`, used at all six sites), so `process_local` is
- * unreachable today — nothing may branch on it. Note the `process_local` in upstream's
- * `IJobStore.ts` belongs to a different union for a different subsystem.
+ * **[durability] is decode surface only.** Every v0.8.8-rc3 response spreads the same `as const`
+ * `CAPABILITY` constant (`packages/api/src/agents/queuedTurnHttp.ts`), which hardcodes `"durable"`,
+ * so `process_local` is unreachable today — nothing may branch on it. Note the `process_local` in
+ * upstream's `IJobStore.ts` belongs to a different union for a different subsystem.
  */
 @Serializable
 data class AgentQueuedTurnCapability(

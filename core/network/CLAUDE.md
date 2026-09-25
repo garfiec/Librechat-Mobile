@@ -183,7 +183,7 @@ Four rules that are load-bearing and easy to undo by accident:
   headers' does: `HttpRedirect` copies every header to the redirect target and strips only
   `Authorization`, and `stripCustomHeaders` deliberately unpicks only the *user's* cookie segments.
   A `/images/` 302 off-domain would otherwise hand the refresh token to a foreign host.
-- **Never cache the token.** rc3's middleware matches it against `session.refreshTokenHash`, which
+- **Never cache the token.** From rc2 the middleware matches it against `session.refreshTokenHash`, which
   every refresh overwrites, so a value snapshotted before a rotation is already rejected — with a
   **403**, not a 401. Read it at attach time, keyed to the snapshot's `accountId`, and let the
   one-shot 403 retry (re-read, resend only if it *changed*) absorb the race. It is deliberately not

@@ -263,11 +263,14 @@ class UploadRoutingTest {
         assertEquals(UploadRoute.PROVIDER, route(pdf, "openai", serverVersion = "0.8.8-rc2"))
         assertEquals(UploadRoute.PROVIDER, route(pdf, "Anthropic", serverVersion = "0.8.8-rc3"))
         // The `google` and `bedrock` capability comparisons stay case-SENSITIVE, mirroring
-        // `isProviderAttachType`, which rc2 did NOT change. Openrouter is not in that set: upstream
-        // canonicalises it before comparing (`files.ts:551-553`), as `canonicalProvider` does here,
-        // so its comparison never sees non-canonical input. Routing does not read any of them — it
-        // keys on document support alone — so the divergence is only visible through the capability
-        // probe the manual picker uses.
+        // `isProviderAttachType` in `client/src/utils/files.ts`, which rc2 did NOT change.
+        // Openrouter is not in that set: that function opens by rewriting a case-insensitive
+        // `openrouter` match back to the canonical spelling, as `canonicalProvider` does here, so
+        // its comparison never sees non-canonical input. Only the document-support predicate is
+        // watched (scripts/mirrors.json, `document-supported-provider-predicate`) — this
+        // canonicalisation is not, so a change to it will not be reported. Routing does not read
+        // any of them — it keys on document support alone — so the divergence is only visible
+        // through the capability probe the manual picker uses.
         assertTrue(isProviderCapable(mp4, "google"))
         assertFalse(isProviderCapable(mp4, "Google"))
     }

@@ -15,9 +15,9 @@ import kotlin.test.assertNotNull
  * The seam is the point: on the `agents` endpoint `selectedModel` is the AGENT ID, and the
  * registry's per-model rules (the Anthropic prompt-cache filter, Bedrock's variant dispatch,
  * Google's thinking-budget bounds) resolve against whatever `model` they are handed. The options
- * sheet passes the agent's real model while this builder used to pass the id, so both halves could
- * pass their own tests while disagreeing about which controls exist — the sheet rendering a switch
- * whose value the payload then dropped.
+ * sheet passes the agent's real model, so this builder has to pass it too. Hand it the id and the
+ * two halves disagree about which controls exist while each still passes its own tests — the sheet
+ * renders a switch whose value the payload then drops.
  */
 class ChatRequestBuilderModelParamsTest {
 

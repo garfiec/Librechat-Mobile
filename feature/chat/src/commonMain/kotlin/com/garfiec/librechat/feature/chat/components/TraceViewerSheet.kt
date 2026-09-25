@@ -293,7 +293,7 @@ private fun TurnHeader(turn: TraceTurn, modifier: Modifier = Modifier) {
         // chronological — not a display value. Shown raw it reads
         // "2026-09-19T14:32:11.523Z", in UTC, directly above bubbles the same screen
         // renders with the formatted stamp this helper produces. An unparseable value
-        // formats to "", which falls back to the message id as before.
+        // formats to "", which falls back to the message id.
         val heading = remember(turn.startTime, turn.messageId) {
             turn.startTime.takeIf { it.isNotEmpty() }
                 ?.let(::formatAbsoluteTimestamp)

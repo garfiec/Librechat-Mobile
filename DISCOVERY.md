@@ -1169,18 +1169,22 @@ run leaves its tool cards spinning.
 Upstream PR #15252 ("Require Credentials for Local Image Access by Default") landed in rc2. The
 static mount serving generated images, tool-call image outputs and stored `/images/…` avatars is now
 behind `validateImageRequest`, and the default flipped: `secureImageLinks` is
-`z.boolean().optional()` with no schema default at both rc1 and rc3, but the app-config service went
-from passing `undefined` through (rc1) to computing `config.secureImageLinks !== false` (rc3). **An
-unset setting now means secured**, which is every deployment that never opted out.
+`z.boolean().optional()` with no schema default at both rc1 and rc3, but the image-authorization
+service went from passing `undefined` through (rc1) to computing `config.secureImageLinks !== false`
+(rc2, in `packages/api/src/images/authorization.ts`, a file that does not exist at rc1). **An unset
+setting now means secured**, which is every deployment that never opted out.
 
 - The middleware authenticates on `req.headers.cookie` alone — it extracts `refreshToken`, and there
   is **no `Authorization` branch, no query token and no signed URL**. A bearer-token client cannot
   satisfy it. Browsers are unaffected (`res.cookie('refreshToken', …)` sets no `path`, so it defaults
   to `path=/` and rides every same-origin `<img>` request), which is why upstream would not notice.
-- rc3 rewrote it again: it no longer merely `jwt.verify`s but calls `findSession({userId,
-  refreshToken})` against `session.refreshTokenHash`, which `generateRefreshToken` overwrites on
-  every refresh. **Rotation hard-invalidates the previous refresh token server-side immediately, and
-  a stale copy is a 403, not a 401.**
+- The same rc2 change also rewrote how the cookie is checked: it no longer merely `jwt.verify`s (as
+  rc1 did) but calls `findSession({userId, refreshToken})` against `session.refreshTokenHash`, which
+  `generateRefreshToken` overwrites on every refresh. **Rotation hard-invalidates the previous
+  refresh token server-side immediately, and a stale copy is a 403, not a 401.** rc3 leaves the
+  credential model untouched: its only change to `authorization.ts` is retyping the
+  assistant-avatar lookup (`FilterQuery<IAssistant>` → `AssistantQuery`). Everything else in this
+  section is an rc1→rc2 delta — do not go looking for it in an rc2→rc3 diff.
 - Rejections are `res.status(401).send('Unauthorized')` — `.send`, not `.json`, so there is no
   `{message}` envelope and this does not decode into the server-authored-message error pipeline.
   403 `'Access Denied'` means a present-but-invalid cookie.
@@ -1202,7 +1206,7 @@ to any iOS Ktor client would **silently restore the jar** and create a real leak
 `core/`, `shared/` or `app/` today. The `NWConnection` SSE transport is unaffected either way — it
 hand-writes its headers over a raw socket and never constructs an `NSURLSession`.
 
-**Second guardrail — `no-store` is inert only by accident.** rc3 serves secured images with
+**Second guardrail — `no-store` is inert only by accident.** From rc2 the server serves secured images with
 `Cache-Control: private, no-store` and `Vary: Cookie` (`staticCache.js`). Neither reaches Coil: Coil 3
 ignores `Cache-Control` unless the opt-in `coil-network-cache-control` module is present, and it is
 absent from `libs.versions.toml`. So image caching works today *because* a dependency is missing.

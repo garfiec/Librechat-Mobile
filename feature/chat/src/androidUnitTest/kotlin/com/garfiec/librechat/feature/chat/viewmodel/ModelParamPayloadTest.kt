@@ -64,7 +64,7 @@ class ModelParamPayloadTest {
 
     @Test
     fun `an anthropic agent sends prompt caching for a model that supports it`() {
-        // The registry now filters per model, so the payload has to be built with the AGENT'S
+        // The registry filters per model, so the payload has to be built with the AGENT'S
         // model. Built with the agent id (which is what `selectedModel` holds on this endpoint)
         // no cache-capable model matches, and the two controls are dropped from the definitions —
         // which silently removes them from the body a user explicitly set.
