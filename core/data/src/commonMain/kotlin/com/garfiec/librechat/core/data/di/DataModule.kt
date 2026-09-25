@@ -74,6 +74,8 @@ import com.garfiec.librechat.core.data.repository.QueuedTurnRepositoryImpl
 import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.RoleRepositoryImpl
+import com.garfiec.librechat.core.data.repository.ScheduleRepository
+import com.garfiec.librechat.core.data.repository.ScheduleRepositoryImpl
 import com.garfiec.librechat.core.data.repository.SearchRepository
 import com.garfiec.librechat.core.data.repository.SearchRepositoryImpl
 import com.garfiec.librechat.core.data.repository.ServerRepository
@@ -444,6 +446,7 @@ val dataModule = module {
     singleOf(::ProjectRepositoryImpl) bind ProjectRepository::class
     singleOf(::PromptRepositoryImpl) bind PromptRepository::class
     singleOf(::QueuedTurnRepositoryImpl) bind QueuedTurnRepository::class
+    singleOf(::ScheduleRepositoryImpl) bind ScheduleRepository::class
     singleOf(::ShareRepositoryImpl) bind ShareRepository::class
     singleOf(::SkillsRepositoryImpl) bind SkillsRepository::class
     singleOf(::SpeechRepositoryImpl) bind SpeechRepository::class

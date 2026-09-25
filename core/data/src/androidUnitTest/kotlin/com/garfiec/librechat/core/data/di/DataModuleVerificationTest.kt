@@ -33,6 +33,7 @@ import com.garfiec.librechat.core.network.api.ProjectsApi
 import com.garfiec.librechat.core.network.api.PromptsApi
 import com.garfiec.librechat.core.network.api.QueuedTurnsApi
 import com.garfiec.librechat.core.network.api.RolesApi
+import com.garfiec.librechat.core.network.api.SchedulesApi
 import com.garfiec.librechat.core.network.api.ShareApi
 import com.garfiec.librechat.core.network.api.SkillsApi
 import com.garfiec.librechat.core.network.api.SpeechApi
@@ -86,6 +87,7 @@ class DataModuleVerificationTest {
                 QueuedTurnsApi::class,
                 RolesApi::class,
                 TagsApi::class,
+                SchedulesApi::class,
                 ShareApi::class,
                 ConfigApi::class,
                 BalanceApi::class,
