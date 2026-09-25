@@ -5,7 +5,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertSame
 
 /**
- * Folding tool discovery's `reauth_required` into the connection status (v0.8.8-rc2).
+ * Folding tool discovery's `reauth_required` into the connection status (v0.8.8-rc3).
  *
  * The skip rules are the substance: discovery is the OLDER of the two observations, so it must not
  * overwrite a connection that has since authorized — which would tell the user to re-authorize a

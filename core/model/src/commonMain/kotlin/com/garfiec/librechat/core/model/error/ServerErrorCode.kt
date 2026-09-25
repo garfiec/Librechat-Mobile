@@ -55,7 +55,7 @@ object ServerErrorCode {
     const val OAUTH_SECRET_REENTRY_REQUIRED = "MCP_OAUTH_SECRET_REENTRY_REQUIRED"
 
     /**
-     * 403 — an MCP server rejected the bearer credential for a tool invocation (v0.8.8-rc2).
+     * 403 — an MCP server rejected the bearer credential for a tool invocation (v0.8.8-rc3).
      *
      * Unlike the codes above it does not come from the `/api/mcp` routes: `handleMCPError` has no
      * branch for it. It is raised inside a run and reaches the client as a run failure, and the
@@ -66,7 +66,7 @@ object ServerErrorCode {
     const val MCP_AUTHENTICATION_REJECTED = "MCP_AUTHENTICATION_REJECTED"
 
     /**
-     * 503 — the OpenID session could not refresh an MCP bearer credential (v0.8.8-rc2). Transient
+     * 503 — the OpenID session could not refresh an MCP bearer credential (v0.8.8-rc3). Transient
      * and retryable, which is what separates it from [MCP_AUTHENTICATION_REJECTED]. Same delivery
      * path: raised inside a run, not answered by the MCP routes.
      */

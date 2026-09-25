@@ -320,10 +320,15 @@ private fun isDocumentSupported(name: String?, serverVersion: String? = null): B
  * Whether the provider can take [mimeType] natively, mirroring `isProviderDocSupported` in
  * upstream's `client/src/components/Chat/Input/Files/DragDropModal.tsx`.
  *
- * Note `supportsImageDocVideoAudio` upstream is `google || openrouter` only — vertexai is excluded
- * there even though the server's encoders do handle its video and audio. Under this router video
- * and audio never route to text anyway (see [TEXTUAL_APPLICATION_MIME_TYPES]), so the discrepancy
- * changes no outcome; it is mirrored rather than "fixed" so a sync diff stays clean.
+ * The `supportsImageDocVideoAudio` test below is this file's own, and is `google || openrouter`.
+ * rc3 introduced upstream's equivalent — `isMediaSupportedProvider`, over a `mediaSupportedProviders`
+ * set of google, vertexai and openrouter, matched case-insensitively — which ADDS vertexai, so from
+ * rc3 this no longer mirrors upstream.
+ *
+ * Deliberately not ported. Video and audio never route to text under this router anyway (see
+ * [TEXTUAL_APPLICATION_MIME_TYPES]), so routing is unaffected; the one surface that can see the
+ * difference is the manual picker's capability probe, which withholds a native video/audio attach
+ * for vertexai that an rc3 server would accept.
  */
 fun isProviderCapable(
     mimeType: String?,
