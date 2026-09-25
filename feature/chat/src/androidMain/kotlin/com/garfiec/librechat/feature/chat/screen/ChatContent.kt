@@ -193,6 +193,7 @@ private fun ChatMessageListPane(
         onRegenerateMessage = viewModel::regenerateMessage,
         onCopyMessage = { messageId -> copyMessageToClipboard(viewModel, clipboardManager, messageId) },
         onFeedback = viewModel::submitFeedback,
+        feedbackEnabled = uiState.gates.feedbackEnabled,
         onContinue = { viewModel.continueGeneration() },
         onReadAloud = viewModel::readAloud,
         onFork = viewModel::showForkOptions,

@@ -615,6 +615,7 @@ private fun IosChatBody(
                     copyToClipboard(viewModel.getMessageClipboardText(messageId), "Message")
                 },
                 onFeedback = viewModel::submitFeedback,
+                feedbackEnabled = uiState.gates.feedbackEnabled,
                 onContinue = { viewModel.continueGeneration() },
                 onReadAloud = viewModel::readAloud,
                 onFork = viewModel::showForkOptions,

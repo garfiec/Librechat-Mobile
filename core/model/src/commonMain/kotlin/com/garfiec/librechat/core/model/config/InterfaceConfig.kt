@@ -53,4 +53,8 @@ data class InterfaceConfig(
     val sharedLinks: JsonElement? = null,
     /** Maximum number of skills shown in the catalog. Parse-surface only (no mobile skills UI). */
     val maxCatalogSkills: Int? = null,
+    // --- v0.8.8-rc2 ---
+    /** Whether message feedback (thumbs up/down + reason tags) is offered. Server default is
+     *  `true`; a deployment that sets it false wants the affordance gone, not disabled. */
+    val feedback: Boolean = true,
 )

@@ -1796,6 +1796,7 @@ class ChatViewModel(
                             parametersEnabled = iface?.parameters ?: true,
                             // Web gates the presets menu on `presets && modelSelect` (Header.tsx).
                             presetsEnabled = (iface?.presets ?: true) && (iface?.modelSelect ?: true),
+                            feedbackEnabled = iface?.feedback ?: true,
                             // Context-usage gauge (v0.8.7): interface flag AND backend support.
                             contextUsageEnabled = contextGaugeSupported && (iface?.contextUsage ?: true),
                             // The inline memory tools WRITE, so the composer toggle needs the full

@@ -29,6 +29,11 @@ data class FeatureGatesState(
     val presetsEnabled: Boolean = true,
     val modelSelectEnabled: Boolean = true,
     val parametersEnabled: Boolean = true,
+    /** `interface.feedback` (v0.8.8-rc2). False withholds the thumbs handler entirely, mirroring
+     *  web's `useMessageActions`, rather than rendering the buttons disabled — that state means
+     *  "not while streaming", and reusing it would tell the user to wait for something that is
+     *  never coming. */
+    val feedbackEnabled: Boolean = true,
     /** `interface.defaultPinnedTools` (v0.8.7): tool keys the server pins to the prompt bar.
      *  Raw, as sent; mapped/filtered to renderable chips by [ChatUiState.pinnedToolChips]. */
     val pinnedTools: List<String> = emptyList(),
