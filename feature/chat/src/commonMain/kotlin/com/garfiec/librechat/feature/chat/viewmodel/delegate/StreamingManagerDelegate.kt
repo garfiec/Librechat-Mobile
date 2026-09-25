@@ -820,6 +820,9 @@ class StreamingManagerDelegate(
         // whatever the user had typed into it, and attemptNetworkRecovery re-attaches moments
         // later to find the same pause waiting.
         val keepPause = reason is StreamEndReason.StreamError && reason.isNetwork
+        // Captured before the clear below wipes it: the drain needs the ENDING run's epoch to
+        // tell whether a server admission already claimed this boundary.
+        val endedGenerationCreatedAt = pendingActionDelegate.generationEpoch
         if (!keepPause) pendingActionDelegate.clear()
         // Steers the ended run never injected. A `Finalized` frame reports them authoritatively
         // and handleFinal has already re-homed them; every other ending carries no report at all,
@@ -848,7 +851,7 @@ class StreamingManagerDelegate(
                     // Reply finished cleanly: fire the next queued follow-up (if any, and not
                     // paused). isStreaming is already false here, so the next send respects the
                     // no-Room-write-while-streaming invariant.
-                    queueDelegate.drainNext()
+                    queueDelegate.drainNext(endedGenerationCreatedAt = endedGenerationCreatedAt)
                 }
             }
             is StreamEndReason.StreamError -> {

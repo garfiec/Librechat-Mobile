@@ -4,6 +4,7 @@ import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.feature.chat.viewmodel.QueueHandle
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
+import com.garfiec.librechat.feature.chat.viewmodel.SettledQueuedTurn
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -217,7 +218,7 @@ class MessageQueueDelegate(
      * the load-bearing "no Room write while streaming" invariant). [awaitSettle] defers the send
      * until the just-finished reply has landed in the tree (see [sendWithSpec]).
      */
-    fun drainNext(awaitSettle: Boolean = true) {
+    fun drainNext(awaitSettle: Boolean = true, endedGenerationCreatedAt: Long? = null) {
         // Freeze the queue while a queued item is being edited: draining now would fire an item
         // out from under the user and shift the slots the edit session's originalIndex points at.
         // The edit's commit/cancel re-kicks draining once it completes.
@@ -244,6 +245,13 @@ class MessageQueueDelegate(
                 onQueuedDropped(foreign)
             }
         }
+        // An admission that consumed THIS run's boundary already owns the successor, even though
+        // its row has left the queue — the reconcile poll drops an admitted row as soon as it
+        // sees one, and the run's own Final arrives moments later. Without this, that Final finds
+        // no server-owned row, drains the legacy follow-up behind it, and the conversation gets
+        // two turns. The evidence is consumed here so one admission fences one boundary, not
+        // every later run end as well.
+        if (consumeAdmittedBoundary(endedGenerationCreatedAt)) return
         // A server-owned row means the BACKEND owns the next fresh-turn admission, and there is no
         // server-side guard against this client also sending it — the admission check is gated on
         // a flag an ordinary send never sets. This refusal is the only thing standing between an
@@ -256,6 +264,31 @@ class MessageQueueDelegate(
         val head = handle.state.messageQueue.firstOrNull() ?: return
         handle.update { queue = queue.copy(messageQueue = queue.messageQueue.drop(1)) }
         sendWithSpec(head, awaitSettle)
+    }
+
+    /**
+     * Marks the admission that consumed [endedGenerationCreatedAt] and reports whether one did.
+     *
+     * Matched on the boundary rather than on "is there any admitted turn": a queue can hold
+     * several, and each admission fences exactly the one run end whose epoch it consumed. A root
+     * admission consumed no boundary at all, so it can never match.
+     */
+    private fun consumeAdmittedBoundary(endedGenerationCreatedAt: Long?): Boolean {
+        if (endedGenerationCreatedAt == null) return false
+        val settled = handle.state.settledQueuedTurns
+        val index = settled.indexOfFirst {
+            it.evidence == SettledQueuedTurn.Evidence.Admitted &&
+                !it.boundaryConsumed &&
+                it.effectivePredecessorCreatedAt == endedGenerationCreatedAt
+        }
+        if (index < 0) return false
+        handle.update {
+            queue = queue.copy(
+                settledQueuedTurns = settled.toMutableList()
+                    .apply { this[index] = this[index].copy(boundaryConsumed = true) },
+            )
+        }
+        return true
     }
 
     private companion object {

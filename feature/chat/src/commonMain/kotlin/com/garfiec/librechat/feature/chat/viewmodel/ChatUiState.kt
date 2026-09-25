@@ -73,6 +73,8 @@ data class ChatUiState(
     //    Each delegates to its owning slice; writes go through the slice, not these. ──
     val messageQueue: List<QueuedMessage> get() = queue.messageQueue
     val isQueuePaused: Boolean get() = queue.isQueuePaused
+    val settledQueuedTurns: List<SettledQueuedTurn> get() = queue.settledQueuedTurns
+    val pendingQueuedTurnEnqueueIds: List<String> get() = queue.pendingQueuedTurnEnqueueIds
     val pendingSteers: List<PendingSteerChip> get() = steer.pendingSteers
     val isSearchOpen: Boolean get() = search.isSearchOpen
     val searchQuery: String get() = search.searchQuery

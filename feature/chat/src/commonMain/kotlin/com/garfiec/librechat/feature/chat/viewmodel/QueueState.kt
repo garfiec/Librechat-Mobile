@@ -21,6 +21,21 @@ data class QueueState(
     /** True after Stop/stream-error with a non-empty queue: draining is held until the user
      *  explicitly taps "Send queued". A successful Final drains automatically instead. */
     val isQueuePaused: Boolean = false,
+    /**
+     * What the server has told this client about queued turns that have LEFT [messageQueue].
+     *
+     * Deliberately outlives the rows: an admitted turn is removed from the queue the moment the
+     * reconcile poll sees it, but the boundary it consumed still has to fence the local drain —
+     * otherwise the run's own `Final` arrives moments later, finds no server-owned row, and
+     * drains a legacy follow-up into a turn the server has already started.
+     */
+    val settledQueuedTurns: List<SettledQueuedTurn> = emptyList(),
+    /**
+     * `clientRequestId`s whose enqueue POST has not settled. Keeps the reconcile poll alive
+     * across the window where a snapshot can legitimately come back empty because the row is
+     * still committing.
+     */
+    val pendingQueuedTurnEnqueueIds: List<String> = emptyList(),
 )
 
 /**

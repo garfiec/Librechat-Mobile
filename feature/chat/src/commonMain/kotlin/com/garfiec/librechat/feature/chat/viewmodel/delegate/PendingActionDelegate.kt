@@ -92,6 +92,15 @@ class PendingActionDelegate(
     private var generationCreatedAt: Long? = null
 
     /**
+     * The live run's generation epoch, for callers outside the resume path.
+     *
+     * A queued turn captures it as the boundary it follows, and the drain matches an admission's
+     * reported boundary against it. Read it BEFORE [clear] on any teardown path — the epoch is
+     * gone by the time the run's own end has finished unwinding.
+     */
+    val generationEpoch: Long? get() = generationCreatedAt
+
+    /**
      * The action id whose resume POST is in flight.
      *
      * The POST outlives the run: it can return after the pause it resolves is gone and a NEWER

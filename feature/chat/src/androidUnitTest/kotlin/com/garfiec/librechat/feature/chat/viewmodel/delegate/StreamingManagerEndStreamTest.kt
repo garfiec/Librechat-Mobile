@@ -245,7 +245,7 @@ class StreamingManagerEndStreamTest {
         assertThat(flow.value.streamingContent).isEqualTo("half an answer")
         assertThat(flow.value.error).isEqualTo("boom")
         verify(atLeast = 1) { queueDelegate.pause() }
-        verify(exactly = 0) { queueDelegate.drainNext(any()) }
+        verify(exactly = 0) { queueDelegate.drainNext(any(), any()) }
         verify(exactly = 1) { reloadConversation("conv-1") }
         events.close()
         advanceUntilIdle()
@@ -399,7 +399,7 @@ class StreamingManagerEndStreamTest {
         assertThat(flow.value.error).isNotEmpty()
         assertThat(flow.value.error).doesNotContain("boom")
         verify(atLeast = 1) { queueDelegate.pause() }
-        verify(exactly = 0) { queueDelegate.drainNext(any()) }
+        verify(exactly = 0) { queueDelegate.drainNext(any(), any()) }
         verify(exactly = 1) { reloadConversation("conv-1") }
     }
 }
