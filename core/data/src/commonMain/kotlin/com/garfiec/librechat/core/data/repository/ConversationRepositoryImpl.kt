@@ -178,7 +178,7 @@ class ConversationRepositoryImpl(
             val accountId = activeAccountProvider.currentAccountId()?.value
             val updated = conversationsApi.archive(id, isArchived)
             if (accountId != null) {
-                conversationDao.updateArchived(id, isArchived, Clock.System.now().toEpochMilliseconds(), accountId)
+                conversationDao.updateArchived(id, isArchived, accountId)
             }
             updated
         }
@@ -288,7 +288,7 @@ class ConversationRepositoryImpl(
         return safeApiCall {
             val response = conversationsApi.archiveAll()
             if (accountId != null) {
-                conversationDao.archiveAllForAccount(accountId, Clock.System.now().toEpochMilliseconds())
+                conversationDao.archiveAllForAccount(accountId)
             }
             response.archivedCount
         }
