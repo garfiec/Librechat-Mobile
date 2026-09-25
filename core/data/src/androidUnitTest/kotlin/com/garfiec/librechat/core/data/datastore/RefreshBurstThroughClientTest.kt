@@ -122,6 +122,7 @@ class RefreshBurstThroughClientTest {
             tokenManager = store,
             serverUrlProvider = FixedUrlProvider(),
             redactor = LogRedactor(),
+            imageCookieCredentials = { null },
             switchGate = gate,
         )
         return Harness(client, store)
