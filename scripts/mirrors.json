@@ -629,7 +629,7 @@
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/response/UploadRouting.kt",
         "symbol": "isDocumentSupported"
       },
-      "why": "The comparison itself, registered apart from the `document-supported-providers` Set because the two drift independently: rc2 changed only the predicate (to lower-case both sides) and the Set-only entry stayed `ok` throughout. The sibling literal comparisons in `isProviderCapable` are deliberately still case-SENSITIVE, mirroring `isProviderAttachType` in `client/src/utils/files.ts`, so a blanket normalisation here would be a divergence rather than a fix.",
+      "why": "The comparison itself, registered apart from the `document-supported-providers` Set because the two drift independently: rc2 changed only the predicate (to lower-case both sides) and the Set-only entry stayed `ok` throughout. The sibling literal comparisons in `isProviderCapable` are deliberately still case-SENSITIVE, mirroring `isProviderAttachType` in `client/src/utils/files.ts`, so a blanket normalisation here would be a divergence rather than a fix. The Kotlin side is VERSION-GATED at `0.8.8-rc2` and falls back to the case-sensitive match below it, because the server runs this predicate too (`packages/api/src/files/encode/document.ts` returns an empty document list when it is false) -- so if the threshold ever moves, move `CASE_INSENSITIVE_PROVIDER_MIN_VERSION` with it.",
       "failure_mode": "A provider differing only in case (`Anthropic`, `Google`) misses the set, so its documents are routed to server-side text extraction instead of being sent natively -- worse quality, no citations, no error."
     },
     {
