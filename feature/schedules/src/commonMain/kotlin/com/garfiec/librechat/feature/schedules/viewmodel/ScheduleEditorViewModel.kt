@@ -106,7 +106,8 @@ class ScheduleEditorViewModel(
             val schedule = (existing as? Result.Success)?.data
             original = schedule
 
-            val agents = agentsAsync.await()
+            val agentsResult = agentsAsync.await()
+            val agents = (agentsResult as? Result.Success)?.data.orEmpty()
             // Sequenced deliberately: a pinned deployment picks its own destination, so there is
             // nothing to choose and the request is not worth making.
             val projects = if (limits.projectId == null) loadProjects() else emptyList()
@@ -122,18 +123,32 @@ class ScheduleEditorViewModel(
                 projects = projects,
                 isLoading = false,
                 error = (existing as? Result.Error)?.message
-                    ?: (listing as? Result.Error)?.message,
+                    ?: (listing as? Result.Error)?.message
+                    ?: (agentsResult as? Result.Error)?.message,
                 // Survives the keystroke that clears `error`, because the draft on screen is still
                 // a blank form rather than the user's schedule.
-                loadFailed = scheduleId != null && schedule == null,
+                //
+                // A failed AGENTS read counts too: every draft needs an agent, so without one Save
+                // is dead either way — and reported here the user gets the message and the Reload
+                // button instead of a silently disabled button over their real schedule.
+                loadFailed = (scheduleId != null && schedule == null) || agentsResult is Result.Error,
             )
         }
     }
 
-    private suspend fun loadAgents(): List<AgentChoice> =
+    /**
+     * The agent list, or the error that stopped it arriving.
+     *
+     * Reported rather than swallowed: an empty list is also what a deployment with no agents
+     * looks like, and the two need different words. Swallowed, a failed read renders as
+     * [ScheduleDraftProblem.NO_AGENTS] — Save disabled, no message, and no Reload, because the
+     * two notices are gated on `hasConflict` / `loadFailed` and neither was set.
+     */
+    private suspend fun loadAgents(): Result<List<AgentChoice>> =
         when (val result = agentRepository.getAgents()) {
-            is Result.Success -> result.data.map { AgentChoice(it.id, it.name ?: it.id) }
-            else -> emptyList()
+            is Result.Success -> Result.Success(result.data.map { AgentChoice(it.id, it.name ?: it.id) })
+            is Result.Error -> result
+            is Result.Loading -> Result.Success(emptyList())
         }
 
     private suspend fun loadProjects(): List<ChatProject> =
@@ -175,7 +190,14 @@ class ScheduleEditorViewModel(
                     // A concurrent edit elsewhere. Retrying would send the same stale revision
                     // again, and the payload carries a whole cadence — so the form is frozen
                     // until it is reloaded rather than offering a Save that cannot succeed.
-                    hasConflict = result.isConcurrentEdit(),
+                    //
+                    // Edit mode ONLY. A create's 409 is the replay guard — `clientRequestId` was
+                    // already used — so the row exists and nothing was concurrently edited. The
+                    // recovery offered here is wrong for it twice over: the copy names a conflict
+                    // that did not happen, and `reload()` blanks the draft while `clientRequestId`
+                    // is minted once per ViewModel, so every later Save re-sends the same spent
+                    // key and 409s again over a form the user can no longer see.
+                    hasConflict = existing != null && result.isConcurrentEdit(),
                 )
                 is Result.Loading -> Unit
             }

@@ -183,7 +183,10 @@ private fun EditorBody(
     modifier: Modifier = Modifier,
 ) {
     val draft = uiState.draft
-    val enabled = !uiState.hasConflict
+    // Both frozen states, matching `canSave`. With only `hasConflict` here, a failed read leaves
+    // every field live over a blank draft and the user fills in the whole form before discovering
+    // Save was never going to enable.
+    val enabled = !uiState.hasConflict && !uiState.loadFailed
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
     OutlinedTextField(

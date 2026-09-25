@@ -221,7 +221,10 @@ private fun ScheduleCard(
     onDelete: () -> Unit,
     onOpenConversation: (String) -> Unit,
 ) {
-    OutlinedCard(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+    // Gated on the same permission as the Switch, Run now and Delete: every write route requires
+    // USE **and** CREATE, and the editor itself carries no permission gate — so a USE-only user
+    // who can open it gets a fully armed Save that can only ever 403.
+    OutlinedCard(onClick = onClick, enabled = canManage, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
