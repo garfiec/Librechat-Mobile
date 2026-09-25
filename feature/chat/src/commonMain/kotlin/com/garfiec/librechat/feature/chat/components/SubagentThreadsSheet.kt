@@ -239,7 +239,7 @@ private fun ThreadBody(
     // Keyed on the SOURCE list, not on the converted one: the sheet recomposes on every state
     // change while it is open, and converting first would rebuild a part per activity item on each
     // pass only for `remember` to deep-compare the fresh list away.
-    val keyedParts = remember(view.activity) { view.activity.toContentParts().withStableKeys() }
+    val keyedParts = remember(view) { view.renderedActivity.toContentParts().withStableKeys() }
     LazyColumn(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (olderUnavailable) {
             item(key = "older-unavailable", contentType = "notice") {

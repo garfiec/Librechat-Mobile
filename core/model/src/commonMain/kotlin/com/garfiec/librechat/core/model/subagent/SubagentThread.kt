@@ -212,4 +212,13 @@ data class SubagentThreadView(
     /** See [SubagentThreadTurn.controlReceipts]. */
     val controlReceipts: JsonElement? = null,
     val controlReceiptsTruncated: Boolean? = null,
-)
+) {
+    /**
+     * The activity to draw, in reading order. Upstream fills top-level [activity] only for a
+     * `?taskId=` read. The plain read and every cursor page answer it EMPTY and carry each
+     * execution in [turns] instead, so reading [activity] alone drew a blank thread on every
+     * server — including after "load older".
+     */
+    val renderedActivity: List<SubagentActivityItem>
+        get() = turns?.takeIf { it.isNotEmpty() }?.flatMap { it.activity } ?: activity
+}

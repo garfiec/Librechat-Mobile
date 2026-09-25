@@ -107,6 +107,43 @@ class SubagentThreadWireTest {
         assertEquals("task-0:assistant", view.nextCursor)
     }
 
+    /**
+     * What upstream actually sends for a plain read and for every cursor page: `view.ts` answers
+     * top-level `activity` with `[]` unless the request carries `?taskId=`, and puts each
+     * execution's activity on its turn. Drawing top-level `activity` alone rendered this blank.
+     */
+    @Test
+    fun an_unscoped_read_draws_its_turns_not_the_empty_top_level_activity() {
+        val view = json.decodeFromString<SubagentThreadView>(
+            """
+            {"threadId": "c", "activity": [], "activityTruncated": false,
+             "turns": [
+               {"taskId": "task-1", "activity": [{"type": "writing", "text": "first"}],
+                "activityTruncated": false, "messages": []},
+               {"taskId": "task-2", "activity": [{"type": "writing", "text": "second"}],
+                "activityTruncated": false, "messages": []}
+             ],
+             "messages": [], "historyTruncated": false}
+            """.trimIndent(),
+        )
+
+        assertTrue(view.activity.isEmpty())
+        assertEquals(listOf("first", "second"), view.renderedActivity.map { it.text })
+    }
+
+    /** A `?taskId=` read fills top-level `activity`, and one with no turns must still draw it. */
+    @Test
+    fun a_task_scoped_read_without_turns_draws_its_own_activity() {
+        val view = json.decodeFromString<SubagentThreadView>(
+            """
+            {"threadId": "c", "activity": [{"type": "writing", "text": "scoped"}],
+             "activityTruncated": false, "messages": [], "historyTruncated": false}
+            """.trimIndent(),
+        )
+
+        assertEquals(listOf("scoped"), view.renderedActivity.map { it.text })
+    }
+
     @Test
     fun an_unknown_activity_type_degrades_one_row_instead_of_failing_the_view() {
         // The union's arms share nothing but `type`, so a future arm carries fields nothing here
