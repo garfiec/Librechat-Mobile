@@ -69,7 +69,39 @@ data class InterfaceConfig(
      * function's KDoc.
      */
     val schedules: JsonElement? = null,
+    // --- v0.8.8-rc3 ---
+    /**
+     * Conversation trace viewer. An OBJECT — `{ enabled, showInputOutput, maxRecords, … }` — and
+     * **not** a boolean-or-object union like [schedules], despite looking like one.
+     *
+     * Read it through [isTraceViewerEnabled], never through [isSchedulesEnabled]: the two
+     * absent-cases differ, and so does `{}`.
+     */
+    val traceViewer: JsonElement? = null,
 )
+
+/**
+ * Whether the conversation trace viewer is enabled on this server.
+ *
+ * **`{}` is OFF here**, which is where this differs from [isSchedulesEnabled] — the shapes look
+ * alike and the rules are not. Upstream's `resolveTraceViewerConfig` reads `config?.enabled ===
+ * true`, so only an explicit `enabled: true` turns it on:
+ * absent → off · `{}` → **off** · `{ enabled: false }` → off · `{ enabled: true }` → on.
+ *
+ * A bare `traceViewer: true` is off as well. It is not schema-valid (the section is
+ * `z.object({…}).optional()` with no boolean arm), and upstream reading `.enabled` off a boolean
+ * gets `undefined` — so the two agree, and a deployment that wrote the boolean form by analogy
+ * with `schedules` gets the same nothing from both clients.
+ *
+ * The other fields — `showInputOutput` and the four numeric budgets — are enforced entirely
+ * server-side: content is withheld by `contentAvailable` on the record detail, and the budgets
+ * bound what the server reads and how often it may be asked. Nothing here needs them, so nothing
+ * here mirrors them.
+ */
+fun isTraceViewerEnabled(traceViewer: JsonElement?): Boolean {
+    val obj = traceViewer as? JsonObject ?: return false
+    return (obj["enabled"] as? JsonPrimitive)?.booleanOrNull == true
+}
 
 /**
  * Whether scheduled chats are enabled on this server.
