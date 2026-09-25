@@ -16,9 +16,11 @@ Two problems this solves, and only one of them is about policy:
      a user's device. Both known instances (marked deleting the `highlight` option in v5,
      @babel/standalone rolling onto a new major) went unnoticed for exactly that reason.
 
-Every download is verified against scripts/web-assets.lock.json, which records the sha256
-of each vendored file. --check re-verifies the working tree without touching the network,
-so CI can prove nobody hand-edited a vendored blob.
+scripts/web-assets.lock.json records the sha256 of every vendored file. --sync and --bump
+WRITE that lock from what they downloaded -- they are the trust boundary, not a check of
+one, so read the diff they produce. --check then re-verifies the working tree against the
+lock without touching the network, which is what proves nobody hand-edited a vendored blob
+afterwards. Transport integrity is HTTPS to the registry; nothing here pins a publisher.
 
     scripts/vendor-web-assets.py --check       verify tree vs lock, no network
     scripts/vendor-web-assets.py --sync        re-download every pin, rewrite the lock
@@ -259,6 +261,22 @@ def cmd_sync(reg, only=None):
         total += size
         print("  %s%-16s%s v%-10s %2d files %7.1f KB" %
               (BOLD, asset["id"], OFF, asset["version"], len(files), size / 1024))
+
+    if only is None:
+        # Retire whatever the registry no longer names. --check reports a lock entry with no
+        # registry entry, and a vendored directory with no registry entry ships executable code
+        # nothing declares -- and it names --sync as the remedy, so --sync has to be one.
+        # Only on a full sync: --bump touched a single asset and knows nothing about the rest.
+        for stale in set(lock["assets"]) - {a["id"] for a in reg["assets"]}:
+            del lock["assets"][stale]
+            print("  %sretired%s %s" % (BOLD, OFF, stale))
+        root = os.path.join(REPO, reg["dest"])
+        keep = {a["dir"] for a in reg["assets"]}
+        for name in sorted(os.listdir(root)) if os.path.isdir(root) else []:
+            path = os.path.join(root, name)
+            if os.path.isdir(path) and name not in keep:
+                shutil.rmtree(path)
+                print("  %sremoved%s %s/" % (BOLD, OFF, name))
 
     with open(LOCK, "w") as f:
         json.dump(lock, f, indent=2, sort_keys=True)
