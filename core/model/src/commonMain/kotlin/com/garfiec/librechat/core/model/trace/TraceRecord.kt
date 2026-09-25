@@ -152,8 +152,3 @@ data class TraceErrorResponse(
     val error: String = "",
     val errorCode: String = "",
 )
-
-/** Server caps, mirrored only so a request is not built past what the route accepts. */
-const val TRACE_CURSOR_MAX_LENGTH = 4096
-const val TRACE_SOURCE_ID_MAX_LENGTH = 128
-const val TRACE_RECORD_ID_MAX_LENGTH = 256

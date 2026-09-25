@@ -338,6 +338,61 @@
       },
       "why": "The deployment's minIntervalMinutes floor is served with the schedule list SO THAT the editor can refuse a too-frequent cadence before submit. Doing that needs upstream's own gap arithmetic, including the two-hour DST compression allowance and the weekly wrap-around. The cron arm is deliberately NOT mirrored -- upstream measures it by walking occurrences with croner -- and returns null so the caller submits and surfaces the 400.",
       "failure_mode": "Upstream retunes the allowance or a formula, and the editor either refuses a cadence the server would accept (a feature the user cannot reach) or accepts one it rejects (a 400 after submit, with the form already cleared)."
+    },
+    {
+      "id": "trace-record-kinds",
+      "upstream": {
+        "file": "packages/data-provider/src/types/traces.ts",
+        "symbol": "TTraceRecordKind",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/trace/TraceRecord.kt",
+        "symbol": "TraceRecordKind"
+      },
+      "why": "A trace record's kind decides the summary arithmetic: only a `generation` contributes tokens, only an unpriced `generation` suppresses the turn's cost total, and only a `tool` counts as a tool call. Kotlin holds `kind` as a raw String rather than an enum ON PURPOSE -- an unrecognized value has to degrade one row instead of failing the page -- which is exactly what stops a rename from ever surfacing. That is what takes this out of the self-correcting type-shape category and puts it here.",
+      "failure_mode": "A renamed kind stops matching, so a model call silently leaves the token totals and, worse, stops counting as an unpriced generation -- which re-enables a cost figure that is now missing that call's spend. The page renders, the row is there, and every number beside it is quietly wrong."
+    },
+    {
+      "id": "trace-statuses",
+      "upstream": {
+        "file": "packages/data-provider/src/types/traces.ts",
+        "symbol": "TTraceStatus",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/trace/TraceRecord.kt",
+        "symbol": "TraceStatus"
+      },
+      "why": "`running` is what withholds a duration for a record that has a start and no end, and `error` is what marks a turn as failed. Same String-not-enum reasoning as trace-record-kinds: nothing decodes wrong when a value is renamed.",
+      "failure_mode": "A renamed `error` empties the error count, so a turn that failed reads as a turn that did not -- on the one surface whose entire purpose is finding the failure."
+    },
+    {
+      "id": "trace-error-codes",
+      "upstream": {
+        "file": "packages/data-provider/src/types/traces.ts",
+        "symbol": "TTraceErrorCode",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/trace/TraceRecord.kt",
+        "symbol": "TraceErrorCode"
+      },
+      "why": "The client branches on these to tell apart what a user can act on: waiting out a rate limit, retrying a timeout, or telling an operator the tracing credentials are rejected. The accompanying `error` string is written to be shown and is rendered as sent, but it cannot be branched on. Same precedent as stream-error-types.",
+      "failure_mode": "A renamed code degrades to the generic failure, so a user who only had to wait a minute is told the trace could not be read. Nothing fails to decode."
+    },
+    {
+      "id": "trace-summary-and-tree-rules",
+      "upstream": {
+        "file": "client/src/components/Chat/Trace/model.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/trace/TraceGrouping.kt",
+        "symbol": "summarizeTrace / buildRows"
+      },
+      "why": "Two display rules that exist only in the web client and are never served. (1) The cost total is withheld unless something was priced AND every generation was -- a total that silently skips an unpriced model call would under-report spend and looks identical to a real one. (2) A `parentId` counts only when it names a loaded record in the SAME turn, and parent cycles are cut, so a partial page's dangling parent becomes a root rather than vanishing. Watched file-level rather than by block: both rules live inside buildTraceModel/resolveParents bodies with no smaller exported symbol around them, and the flatten/filter half of the file is deliberately not ported. Consequence: unrelated churn in the timeline or filter code reports DRIFT -- check the two rules, not the file, before investigating.",
+      "failure_mode": "The cost rule going stale is the dangerous one and it is invisible: a number still renders, it is just smaller than what was spent. The tree rule going stale drops or duplicates rows on a paged trace, which at least looks wrong."
     }
   ]
 }
