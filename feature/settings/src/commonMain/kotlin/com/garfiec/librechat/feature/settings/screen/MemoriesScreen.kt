@@ -184,6 +184,8 @@ fun MemoriesScreen(
 
     if (uiState.showDialog) {
         MemoryEditDialog(
+            memories = uiState.memories,
+            enforceKeyPattern = uiState.keyPatternEnforced,
             editingMemory = uiState.editingMemory,
             onDismiss = viewModel::dismissDialog,
             onSave = viewModel::saveMemory,

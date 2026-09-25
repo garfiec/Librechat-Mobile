@@ -30,6 +30,7 @@ import com.garfiec.librechat.core.data.repository.ShareRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.logging.DiagnosticLogRepository
+import com.garfiec.librechat.core.model.MEMORY_KEY_PATTERN_MIN_VERSION
 import com.garfiec.librechat.core.model.Memory
 import com.garfiec.librechat.core.model.mcp.McpApiKeyConfig
 import com.garfiec.librechat.core.model.mcp.McpOAuthConfig
@@ -210,7 +211,7 @@ class SettingsViewModel(
                         // Fail-OPEN, unlike the flags above: this one refuses input rather than
                         // hiding an affordance, and only rc3+ validates the key server-side.
                         memoryKeyPatternEnforced = version != null &&
-                            BackendVersion.isCompatibleOrNewer(version, "0.8.8-rc3"),
+                            BackendVersion.isCompatibleOrNewer(version, MEMORY_KEY_PATTERN_MIN_VERSION),
                     )
                 }
             }

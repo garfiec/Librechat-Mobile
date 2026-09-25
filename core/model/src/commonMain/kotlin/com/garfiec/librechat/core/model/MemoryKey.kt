@@ -7,6 +7,14 @@ package com.garfiec.librechat.core.model
  */
 val MEMORY_KEY_PATTERN: Regex = Regex("^[a-z_]+\$")
 
+/**
+ * The first server version whose CREATE route enforces [MEMORY_KEY_PATTERN].
+ *
+ * Named rather than repeated at each gate: two screens offer the same dialog, and a threshold
+ * spelled out in both is one the next move leaves disagreeing about what the server accepts.
+ */
+const val MEMORY_KEY_PATTERN_MIN_VERSION: String = "0.8.8-rc3"
+
 /** Why a memory key would be refused. Null means it is usable. */
 enum class MemoryKeyProblem {
     REQUIRED,

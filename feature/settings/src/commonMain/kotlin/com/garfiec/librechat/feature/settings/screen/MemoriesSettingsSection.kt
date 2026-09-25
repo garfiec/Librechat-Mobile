@@ -249,10 +249,12 @@ private fun MemoryDialog(
     var value by remember { mutableStateOf(editingMemory?.value ?: "") }
     // Only CREATE carries a key: the update path sends a value alone, so the server's rename arm
     // never fires and there is nothing here to validate.
-    val keyProblem = if (isEditing) {
-        null
-    } else {
-        memoryKeyProblem(key = key, memories = memories, enforcePattern = enforceKeyPattern)
+    val keyProblem = remember(key, memories, enforceKeyPattern, isEditing) {
+        if (isEditing) {
+            null
+        } else {
+            memoryKeyProblem(key = key, memories = memories, enforcePattern = enforceKeyPattern)
+        }
     }
     // A blank key is already what disables the button; surfacing it as an error would put one
     // under the field the moment the dialog opens.
@@ -277,8 +279,6 @@ private fun MemoryDialog(
                     singleLine = true,
                     enabled = !isEditing,
                     isError = keyError != null,
-                    // The hint rides on every server — it costs nothing where the shape is not
-                    // enforced, and it is the only thing that explains the refusal where it is.
                     supportingText = if (isEditing) {
                         null
                     } else {
