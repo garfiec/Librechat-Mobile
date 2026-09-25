@@ -120,9 +120,10 @@ data class Agent(
     /** Subagent spawning configuration — isolated-context child agents. Forward-compat (v0.8.6). */
     val subagents: AgentSubagentsConfig? = null,
     /**
-     * Commit author identity the sandbox's tooling uses (v0.8.8-rc2). Round-tripped, not edited:
-     * the standing policy for new agent fields is preserve-don't-surface, so a save from mobile
-     * cannot drop an identity an admin set on the web.
+     * Commit author identity the sandbox's tooling uses (v0.8.8-rc2). Read, never written: the
+     * editor leaves it out of every save, and the update route applies `git_identity` only when
+     * the key is present, so an identity an admin set on the web survives a mobile save. Keep it
+     * absent rather than null — an explicit `null` UNSETS it.
      */
     @SerialName("git_identity") val gitIdentity: AgentGitIdentity? = null,
     /** The persistent code workspace this agent's sandbox attaches to (v0.8.8-rc2). Round-tripped. */

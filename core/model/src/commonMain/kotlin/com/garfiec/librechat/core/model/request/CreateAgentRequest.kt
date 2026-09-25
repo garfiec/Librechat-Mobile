@@ -40,7 +40,7 @@ data class CreateAgentRequest(
     val skills: List<String>? = null,
     @SerialName("skills_enabled") val skillsEnabled: Boolean? = null,
     val subagents: AgentSubagentsConfig? = null,
-    /** Round-tripped, never surfaced — see [com.garfiec.librechat.core.model.Agent.gitIdentity]. */
+    /** Never set by the editor, so it is omitted — see [com.garfiec.librechat.core.model.Agent.gitIdentity]. */
     @SerialName("git_identity") val gitIdentity: AgentGitIdentity? = null,
     @SerialName("code_workspace_id") val codeWorkspaceId: String? = null,
     @SerialName("skills_scope") val skillsScope: String? = null,
