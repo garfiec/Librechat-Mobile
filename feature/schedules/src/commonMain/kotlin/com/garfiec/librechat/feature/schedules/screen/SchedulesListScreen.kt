@@ -46,6 +46,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.schedule.Schedule
 import com.garfiec.librechat.core.model.schedule.cadenceToCron
+import com.garfiec.librechat.core.ui.components.LoadingIndicator
 import com.garfiec.librechat.feature.schedules.components.disabledReasonLabel
 import com.garfiec.librechat.feature.schedules.resources.Res
 import com.garfiec.librechat.feature.schedules.resources.schedule_cancel
@@ -119,7 +120,7 @@ fun SchedulesListScreen(
                 uiState.isDisabledOnServer -> CenteredMessage(
                     stringResource(Res.string.schedules_disabled_on_server),
                 )
-                uiState.isLoading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
+                uiState.isLoading -> LoadingIndicator()
                 uiState.schedules.isEmpty() -> EmptyState()
                 else -> LazyColumn(
                     modifier = Modifier.fillMaxSize(),

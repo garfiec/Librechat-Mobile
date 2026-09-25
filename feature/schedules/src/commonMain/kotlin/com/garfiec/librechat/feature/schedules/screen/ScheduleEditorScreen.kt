@@ -16,7 +16,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -44,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.schedule.ScheduleFrequency
+import com.garfiec.librechat.core.ui.components.LoadingIndicator
 import com.garfiec.librechat.feature.schedules.components.frequencyLabel
 import com.garfiec.librechat.feature.schedules.components.problemLabel
 import com.garfiec.librechat.feature.schedules.resources.Res
@@ -133,9 +133,7 @@ fun ScheduleEditorScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         if (uiState.isLoading) {
-            Box(Modifier.fillMaxSize().padding(padding)) {
-                CircularProgressIndicator(Modifier.align(Alignment.Center))
-            }
+            LoadingIndicator(Modifier.fillMaxSize().padding(padding))
             return@Scaffold
         }
         Column(

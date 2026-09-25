@@ -3,7 +3,6 @@ package com.garfiec.librechat.feature.chat.components
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -21,7 +20,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -51,6 +49,8 @@ import com.garfiec.librechat.core.model.trace.TraceStatus
 import com.garfiec.librechat.core.model.trace.TraceSummary
 import com.garfiec.librechat.core.model.trace.TraceTurn
 import com.garfiec.librechat.core.model.trace.durationMillis
+import com.garfiec.librechat.core.ui.components.LoadingIndicator
+import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.trace_back
 import com.garfiec.librechat.feature.chat.resources.trace_content_unavailable
@@ -117,7 +117,12 @@ internal fun TraceViewerSheet(
         if (settled) viewModel.refresh()
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, modifier = modifier) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        modifier = modifier,
+        dragHandle = { LowProfileDragHandle() },
+    ) {
         Column(Modifier.fillMaxWidth().heightIn(max = 620.dp).padding(horizontal = 16.dp)) {
             val selected = uiState.selectedRecord
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -191,9 +196,7 @@ private fun RecordList(
 ) {
     Column(modifier) {
         if (isLoading) {
-            Box(Modifier.fillMaxWidth().height(120.dp)) {
-                CircularProgressIndicator(Modifier.align(Alignment.Center))
-            }
+            LoadingIndicator(Modifier.fillMaxWidth().height(120.dp))
             return@Column
         }
 
@@ -405,9 +408,7 @@ private fun RecordDetail(
         }
 
         when {
-            isLoading -> Box(Modifier.fillMaxWidth().height(96.dp)) {
-                CircularProgressIndicator(Modifier.align(Alignment.Center))
-            }
+            isLoading -> LoadingIndicator(Modifier.fillMaxWidth().height(96.dp))
 
             errorMessage != null -> TraceError(errorCode = errorCode, fallback = errorMessage, onRetry = null)
 

@@ -1,7 +1,6 @@
 package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,7 +14,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountTree
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -29,16 +27,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.ContentType
+import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.core.model.subagent.SubagentOrigin
 import com.garfiec.librechat.core.model.subagent.SubagentSummary
 import com.garfiec.librechat.core.model.subagent.SubagentThreadView
 import com.garfiec.librechat.core.model.subagent.hasTruncatedContent
 import com.garfiec.librechat.core.model.subagent.toContentParts
+import com.garfiec.librechat.core.ui.components.LoadingIndicator
+import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.subagent_threads_empty
 import com.garfiec.librechat.feature.chat.resources.subagent_threads_event_origin
@@ -78,7 +80,12 @@ internal fun SubagentThreadsSheet(
         viewModel.openFor(parentConversationId, focusParentToolCallId)
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, modifier = modifier) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        modifier = modifier,
+        dragHandle = { LowProfileDragHandle() },
+    ) {
         Column(Modifier.fillMaxWidth().heightIn(max = 560.dp).padding(horizontal = 16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (uiState.isShowingThread) {
@@ -98,9 +105,7 @@ internal fun SubagentThreadsSheet(
 
             when {
                 uiState.isLoadingIndex || uiState.isLoadingThread ->
-                    Box(Modifier.fillMaxWidth().height(120.dp)) {
-                        CircularProgressIndicator(Modifier.align(Alignment.Center))
-                    }
+                    LoadingIndicator(Modifier.fillMaxWidth().height(120.dp))
 
                 // One 404 covers "no children", "not yours" and "this IS a child thread". None is
                 // a verdict about the server, so it says nothing about other conversations.
@@ -215,9 +220,13 @@ private fun ThreadBody(
     // mean running that transform here too; a read-only trace does not need it, and a label that
     // silently vanished would be worse than one shown as the line it is.
     val parts = view.activity.toContentParts()
+    // `loadOlder` REPLACES the thread rather than appending, so every position shifts when an
+    // older page lands. Keyed by position, a tool-call card would inherit the expansion state of
+    // whatever unrelated part now sits at its index.
+    val keyedParts = remember(parts) { parts.withStableKeys() }
     LazyColumn(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (olderUnavailable) {
-            item {
+            item(key = "older-unavailable", contentType = "notice") {
                 // The retained chain vanished between requests, so no cursor brings it back. A
                 // load-more here would spin on nothing for ever.
                 Text(
@@ -227,20 +236,23 @@ private fun ThreadBody(
                 )
             }
         } else if (canLoadOlder) {
-            item {
+            item(key = "load-older", contentType = "action") {
                 TextButton(onClick = onLoadOlder, enabled = !isLoadingOlder) {
                     Text(stringResource(Res.string.subagent_threads_load_older))
                 }
             }
         }
-        items(parts.size) { index ->
-            val part = parts[index]
+        items(
+            items = keyedParts,
+            key = { it.key },
+            contentType = { it.part.type },
+        ) { (key, part) ->
             if (part.type == ContentType.ACTIVITY_LABEL) {
                 OrphanActivityLabel(part.activityLabel.orEmpty())
             } else {
                 ContentPartDispatcher(
                     part = part,
-                    stateKey = "subagent-thread:$index",
+                    stateKey = "subagent-thread:$key",
                     // A child never renders another child's card; depth is bounded to one upstream.
                     allowSubagentCard = false,
                     // The projection carries no attachments of its own, so nothing is hoisted here.
@@ -249,7 +261,7 @@ private fun ThreadBody(
             }
         }
         if (view.activityTruncated || view.activity.hasTruncatedContent) {
-            item {
+            item(key = "truncated", contentType = "notice") {
                 Text(
                     text = stringResource(Res.string.subagent_threads_truncated),
                     style = MaterialTheme.typography.bodySmall,
@@ -257,5 +269,30 @@ private fun ThreadBody(
                 )
             }
         }
+    }
+}
+
+/** One rendered part plus the key that follows it across a thread replacement. */
+private data class KeyedThreadPart(val key: String, val part: MessageContentPart)
+
+/**
+ * Stable keys for a thread's parts.
+ *
+ * A tool call carries a real id. Nothing else does, so the rest are identified by what they
+ * render — stable for the same logical part, and identical only between parts that draw
+ * identically. Duplicate-key crashes are not acceptable either way, so a repeat is suffixed with
+ * its occurrence: two identical rows can still swap state, which is invisible precisely because
+ * they render the same.
+ */
+private fun List<MessageContentPart>.withStableKeys(): List<KeyedThreadPart> {
+    val seen = mutableMapOf<String, Int>()
+    return map { part ->
+        val identity = part.toolCall?.id?.takeIf { it.isNotEmpty() }
+            ?: part.activityLabel?.takeIf { it.isNotEmpty() }
+            ?: part.text?.takeIf { it.isNotEmpty() }
+            ?: ""
+        val base = "${part.type}:${identity.hashCode()}"
+        val occurrence = seen.merge(base, 1, Int::plus) ?: 1
+        KeyedThreadPart(if (occurrence == 1) base else "$base#$occurrence", part)
     }
 }
