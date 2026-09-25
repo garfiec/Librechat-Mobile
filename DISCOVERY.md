@@ -458,6 +458,38 @@ POST   /api/agents/chat/steer/cancel      { conversationId, steerId } → { remo
                                             yet). `removed: false` is a 200, not a failure: the cancel lost its
                                             race (already injected, or the run ended) and the client defers to
                                             the events it will receive. (#14220, landedDate 2026-07-14) (BUILT)
+POST   /api/agents/chat/queued-turns      { conversationId, parentMessageId, clientRequestId, text, files?,
+                                            quotes?, manualSkills?, priority?, expectedPredecessorCreatedAt? }
+                                            → 202 { receipt, capability } (200 on a replay of a settled row).
+                                            Hands the SERVER a follow-up it will admit and RUN itself when the
+                                            current turn finishes — unlike steering, which injects into a run
+                                            already generating. Shares the steer limiters and the PII filter.
+                                            `clientRequestId` (≤128 chars) is the idempotency key: a UNIQUE
+                                            index on (tenantId, user, conversationId, clientRequestId) resolves
+                                            a re-POST to the existing row, so a retry after a lost response is
+                                            free — **but only while the id is stable across retries**. Reusing
+                                            one for different text is 409 QUEUED_TURN_IDEMPOTENCY_CONFLICT.
+                                            Other codes: 501 QUEUED_TURNS_UNSUPPORTED /
+                                            QUEUED_TURN_PRIORITY_UNSUPPORTED, 429 QUEUED_TURN_QUEUE_FULL,
+                                            503 QUEUED_TURN_SCHEDULING_PENDING (transient), 400 EMPTY_TEXT /
+                                            QUEUED_TURN_TOO_LONG / INVALID_QUEUED_TURN, 404
+                                            CONVERSATION_NOT_FOUND.
+                                            **There is no server guard against enqueueing a turn and then also
+                                            sending it the ordinary way** — the admission check is gated on
+                                            `req._isAgentTrigger === true`, which an ordinary send never sets.
+                                            The client refusing to drain a server-owned row is the only thing
+                                            preventing a double send, which is why an ambiguous failure must
+                                            reconcile by id rather than fall back. (#14512, v0.8.8-rc2) (BUILT)
+GET    /api/agents/chat/queued-turns      ?conversationId=&clientRequestIds=a&clientRequestIds=b →
+                                            { queuedTurns, capability, revision }. Read-only; no admission
+                                            budget, so it is the safe way to resolve an ambiguous enqueue.
+                                            Repeat the parameter per id — the server accepts a bare string for
+                                            one and an array for several. Max 100 ids, each ≤128 chars, or the
+                                            whole call is 400 INVALID_CLIENT_REQUEST_IDS. Passing the ids is
+                                            what makes the answer exact proof about them. `position` is 1-based
+                                            and numbers only the rows still queued/claimed. (BUILT)
+DELETE /api/agents/chat/queued-turns/:id  → { receipt }. Withdraws a queued turn; only wins while the row is
+                                            still `queued` or `claimed`. (BUILT)
 
 # Removed
 POST   /api/endpoints/context-projection  REMOVED (#13953, landing commit 376370d6, 2026-06-25). The gauge is
