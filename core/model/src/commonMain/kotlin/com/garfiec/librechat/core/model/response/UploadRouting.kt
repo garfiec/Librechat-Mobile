@@ -243,9 +243,11 @@ private fun normalizeMimeType(mimeType: String?, serverVersion: String? = null):
 }
 
 /**
- * Upstream lower-cases exactly one provider name before comparing (`DragDropModal.tsx`), with a
- * comment that comparisons should become case-insensitive some day. Copy that narrowly: a blanket
- * `lowercase()` would drop `openAI` out of [DOCUMENT_SUPPORTED_PROVIDERS].
+ * Upstream lower-cases exactly one provider name before comparing
+ * (`isProviderAttachType`, `client/src/utils/files.ts`). Copied narrowly rather than blanket-lowered:
+ * the literal comparisons downstream ([isProviderCapable]) are still case-SENSITIVE upstream, so
+ * normalising here would diverge from them. Only the document-support test is case-insensitive —
+ * see [isDocumentSupported].
  */
 private fun canonicalProvider(name: String?): String? {
     val trimmed = name?.trim()?.takeIf { it.isNotEmpty() } ?: return null
@@ -283,8 +285,15 @@ fun isProviderUnknown(
 ): Boolean = effectiveProvider(endpoint, agentProvider) == null &&
     canonicalProvider(endpointType) == null
 
-private fun isDocumentSupported(name: String?): Boolean =
-    name != null && name in DOCUMENT_SUPPORTED_PROVIDERS
+/**
+ * Mirrors `isDocumentSupportedProvider`, which upstream made case-insensitive in v0.8.8-rc2 — it
+ * lower-cases BOTH sides, which is why the set keeps its `openAI` spelling rather than being
+ * normalised at rest.
+ */
+private fun isDocumentSupported(name: String?): Boolean {
+    val normalized = name?.lowercase() ?: return false
+    return DOCUMENT_SUPPORTED_PROVIDERS.any { it.lowercase() == normalized }
+}
 
 /**
  * Whether the provider can take [mimeType] natively, mirroring `isValidProviderFile` in upstream's

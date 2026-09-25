@@ -249,14 +249,22 @@ class UploadRoutingTest {
     }
 
     @Test
-    fun openRouterIsMatchedCaseInsensitively() {
-        // The one provider upstream lower-cases before comparing. A blanket lowercase() would
-        // instead drop `openAI` out of the document-supported set, so this must stay narrow.
+    fun providerNamesAreMatchedCaseInsensitively() {
+        // openrouter is the one name upstream normalises before comparing, so its video path holds
+        // whatever the casing.
         assertEquals(UploadRoute.PROVIDER, route(mp4, "OpenRouter"))
         assertEquals(UploadRoute.PROVIDER, route(pdf, "OPENROUTER"))
+        // Document support itself became case-insensitive on BOTH sides in v0.8.8-rc2, so the
+        // set's own `openAI` spelling and a lower-cased `openai` now agree. Before that they did
+        // not, and a provider reported in another casing silently routed to text extraction.
         assertEquals(UploadRoute.PROVIDER, route(pdf, "openAI"))
-        // Casing is not forgiven elsewhere — `openai` is not the upstream key.
-        assertEquals(UploadRoute.TEXT, route(pdf, "openai"))
+        assertEquals(UploadRoute.PROVIDER, route(pdf, "openai"))
+        assertEquals(UploadRoute.PROVIDER, route(pdf, "Anthropic"))
+        // The per-MIME capability comparisons stay case-SENSITIVE, mirroring `isProviderAttachType`,
+        // which rc2 did NOT change. Routing does not read them — it keys on document support alone —
+        // so the divergence is only visible through the capability probe the manual picker uses.
+        assertTrue(isProviderCapable(mp4, "google"))
+        assertFalse(isProviderCapable(mp4, "Google"))
     }
 
     // ------------------------------------------------------- capability probe
