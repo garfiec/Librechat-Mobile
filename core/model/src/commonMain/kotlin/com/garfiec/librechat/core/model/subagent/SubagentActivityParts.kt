@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.model.subagent
 
 import com.garfiec.librechat.core.model.ContentType
+import com.garfiec.librechat.core.model.RunStepStatus
 import com.garfiec.librechat.core.model.ToolCallType
 import com.garfiec.librechat.core.model.content.AgentToolCall
 import com.garfiec.librechat.core.model.content.FunctionCall
@@ -65,6 +66,13 @@ private fun SubagentActivityItem.toPart(): MessageContentPart? = when (type) {
             function = FunctionCall(name = name, arguments = input, output = output),
             output = output,
             inputValidationError = inputValidationError.takeIf { it == true },
+            // The projection's own verdict, in the field every card reads it from. Without it a
+            // FAILED or CANCELLED child tool call renders here exactly like one that succeeded —
+            // the same gap the live path closed by stamping `runStepStatus`, left open on the
+            // REST path that rebuilds the identical card. [SubagentToolStatus] spells its terminal
+            // values the way `RunStepStatus` does; `running` maps to null and degrades to the
+            // heuristic, which is what it should do.
+            runStepStatus = RunStepStatus.fromWire(status),
         ),
     )
 

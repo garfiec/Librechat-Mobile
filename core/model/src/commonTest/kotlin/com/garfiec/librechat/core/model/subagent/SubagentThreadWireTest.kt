@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.model.subagent
 
 import com.garfiec.librechat.core.model.ContentType
+import com.garfiec.librechat.core.model.RunStepStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -159,6 +160,30 @@ class SubagentThreadWireTest {
         assertEquals(ContentType.TOOL_CALL, parts[3].type)
         assertEquals("web_search", parts[3].toolCall?.name)
         assertEquals("three results", parts[3].toolCall?.output)
+    }
+
+    /**
+     * A child's tool call carries the same terminal verdict the live path stamps as
+     * `runStepStatus`. Without it a FAILED call renders exactly like one that succeeded, which is
+     * the only difference a reader of the trace is looking for.
+     */
+    @Test
+    fun a_projected_tool_call_carries_its_terminal_verdict() {
+        fun verdictFor(status: String?) = listOf(
+            SubagentActivityItem(
+                type = SubagentActivityType.TOOL,
+                toolCallId = "call_1",
+                name = "t",
+                status = status,
+            ),
+        ).toContentParts().single().toolCall?.runStepStatus
+
+        assertEquals(RunStepStatus.FAILED, verdictFor(SubagentToolStatus.FAILED))
+        assertEquals(RunStepStatus.CANCELLED, verdictFor(SubagentToolStatus.CANCELLED))
+        assertEquals(RunStepStatus.COMPLETED, verdictFor(SubagentToolStatus.COMPLETED))
+        // `running` is not terminal and has no counterpart; the card falls back to its heuristic.
+        assertNull(verdictFor(SubagentToolStatus.RUNNING))
+        assertNull(verdictFor(null))
     }
 
     @Test
