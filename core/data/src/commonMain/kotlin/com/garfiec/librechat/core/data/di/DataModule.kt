@@ -92,6 +92,8 @@ import com.garfiec.librechat.core.data.repository.TagRepository
 import com.garfiec.librechat.core.data.repository.TagRepositoryImpl
 import com.garfiec.librechat.core.data.repository.ToolFavoritesRepository
 import com.garfiec.librechat.core.data.repository.ToolFavoritesRepositoryImpl
+import com.garfiec.librechat.core.data.repository.TraceRepository
+import com.garfiec.librechat.core.data.repository.TraceRepositoryImpl
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.repository.UserRepositoryImpl
 import com.garfiec.librechat.core.data.util.AccountLabelBackfillSessionTask
@@ -457,5 +459,6 @@ val dataModule = module {
     singleOf(::BannerRepositoryImpl) bind BannerRepository::class
     singleOf(::FavoritesRepositoryImpl) bind FavoritesRepository::class
     singleOf(::ToolFavoritesRepositoryImpl) bind ToolFavoritesRepository::class
+    singleOf(::TraceRepositoryImpl) bind TraceRepository::class
     singleOf(::ResumePinStore)
 }

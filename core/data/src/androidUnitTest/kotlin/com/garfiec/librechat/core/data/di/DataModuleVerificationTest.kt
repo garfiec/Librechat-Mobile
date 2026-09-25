@@ -39,6 +39,7 @@ import com.garfiec.librechat.core.network.api.SkillsApi
 import com.garfiec.librechat.core.network.api.SpeechApi
 import com.garfiec.librechat.core.network.api.SubagentsApi
 import com.garfiec.librechat.core.network.api.TagsApi
+import com.garfiec.librechat.core.network.api.TracesApi
 import com.garfiec.librechat.core.network.api.UserApi
 import com.garfiec.librechat.core.network.client.SwitchGate
 import com.garfiec.librechat.core.network.sse.SseClient
@@ -89,6 +90,7 @@ class DataModuleVerificationTest {
                 RolesApi::class,
                 SubagentsApi::class,
                 TagsApi::class,
+                TracesApi::class,
                 SchedulesApi::class,
                 ShareApi::class,
                 ConfigApi::class,

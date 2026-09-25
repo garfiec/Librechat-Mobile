@@ -53,6 +53,7 @@ import com.garfiec.librechat.core.data.repository.SpeechRepository
 import com.garfiec.librechat.core.data.repository.SubagentRepository
 import com.garfiec.librechat.core.data.repository.TagRepository
 import com.garfiec.librechat.core.data.repository.ToolFavoritesRepository
+import com.garfiec.librechat.core.data.repository.TraceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.data.util.SessionTask
@@ -86,6 +87,7 @@ import com.garfiec.librechat.core.network.api.SkillsApi
 import com.garfiec.librechat.core.network.api.SpeechApi
 import com.garfiec.librechat.core.network.api.SubagentsApi
 import com.garfiec.librechat.core.network.api.TagsApi
+import com.garfiec.librechat.core.network.api.TracesApi
 import com.garfiec.librechat.core.network.api.UserApi
 import com.garfiec.librechat.core.network.client.AccountReadyGate
 import com.garfiec.librechat.core.network.client.SecureTokenStorage
@@ -177,6 +179,7 @@ class KoinGraphVerificationTest {
             SpeechApi::class,
             SubagentsApi::class,
             TagsApi::class,
+            TracesApi::class,
             UserApi::class,
             // core:data provides
             ConfigCacheDataStore::class,
@@ -218,6 +221,7 @@ class KoinGraphVerificationTest {
             SpeechRepository::class,
             TagRepository::class,
             ToolFavoritesRepository::class,
+            TraceRepository::class,
             UserRepository::class,
             PermissionGate::class,
             SessionTask::class,
