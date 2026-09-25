@@ -58,10 +58,31 @@ class StreamErrorTypeTest {
 
     @Test
     fun the_url_pattern_does_not_fire_on_a_neighbouring_langchain_error_code() {
-        // MODEL_NOT_FOUND is matched by URL because it is not one of upstream's ErrorTypes, which
-        // makes over-matching the risk: every LangChain troubleshooting link shares the prefix.
+        // The rc1 fallback is matched by URL, which makes over-matching the risk: every LangChain
+        // troubleshooting link shares the prefix.
         val other = "Troubleshooting URL: https://js.langchain.com/docs/troubleshooting/errors/INVALID_TOOL_RESULTS/"
         assertNull(StreamErrorType.parse(other))
+    }
+
+    @Test
+    fun the_v088_rc2_codes_classify_off_the_typed_payload() {
+        // Wire values copied from upstream `ErrorTypes` (packages/data-provider/src/config.ts),
+        // except SHARE_LIMIT, which is a `ViolationTypes` member upstream's error registry keys
+        // off the same `type` field.
+        val expected = mapOf(
+            "model_rate_limit" to StreamErrorType.MODEL_RATE_LIMIT,
+            "final_context_overflow" to StreamErrorType.FINAL_CONTEXT_OVERFLOW,
+            "compaction_skipped" to StreamErrorType.COMPACTION_SKIPPED,
+            "compaction_failed" to StreamErrorType.COMPACTION_FAILED,
+            "auth_rate_limited" to StreamErrorType.AUTH_RATE_LIMITED,
+            "auth_banned" to StreamErrorType.AUTH_BANNED,
+            "auth_cross_origin" to StreamErrorType.AUTH_CROSS_ORIGIN,
+            "share_limit" to StreamErrorType.SHARE_LIMIT,
+        )
+        expected.forEach { (wire, type) ->
+            assertEquals(type, StreamErrorType.parse("""{"type":"$wire","message":"server text"}"""))
+            assertEquals(type.marker, StreamErrorType.markerOrText("""{"type":"$wire"}"""))
+        }
     }
 
     @Test

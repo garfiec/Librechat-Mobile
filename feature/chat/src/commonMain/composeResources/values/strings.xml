@@ -476,6 +476,14 @@
     <string name="error_input_length">This message is longer than the model accepts. Shorten it and try again.</string>
     <string name="error_moderation">This message was flagged by the server\'s moderation. Edit it, or start a new conversation.</string>
     <string name="error_stream_expired">This reply finished or expired before it could be shown. Reopen the conversation to load it.</string>
+    <string name="error_model_rate_limit">The provider is rate-limiting this model. Wait a moment and try again, or pick a different model.</string>
+    <string name="error_final_context_overflow">This conversation no longer fits the model\'s context window. Start a new conversation, or switch to a model with a larger window.</string>
+    <string name="error_compaction_skipped">There was nothing to compact yet. Keep chatting and try again later.</string>
+    <string name="error_compaction_failed">The summary couldn\'t be generated, so the conversation is unchanged. Try again.</string>
+    <string name="error_auth_rate_limited">Too many sign-in attempts. Wait a moment and try again.</string>
+    <string name="error_auth_banned">This account or network is blocked from signing in. Contact an administrator.</string>
+    <string name="error_auth_cross_origin">The server rejected the sign-in as coming from another site. Report this — it is an app bug, not a password problem.</string>
+    <string name="error_share_limit">Too many shared link requests. Wait a moment and try again.</string>
     <!-- Durable record of a resolved ask_user_question, shown in place of its tool card -->
     <string name="ask_user_question_record_asked">Asked</string>
     <string name="ask_user_question_record_asking">Asking</string>

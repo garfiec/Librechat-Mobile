@@ -35,11 +35,16 @@ enum class StreamErrorType(val wire: String) {
     MISSING_MODEL("missing_model"),
 
     /**
-     * The provider rejected the model as unknown. Not one of upstream's `ErrorTypes` — it arrives
-     * as a LangChain documentation URL embedded in provider prose, which upstream matches with a
-     * regex and replaces wholesale. See [Companion.MODEL_NOT_FOUND_PATTERN].
+     * The provider rejected the model as unknown.
+     *
+     * A typed `ErrorTypes` member from v0.8.8-rc2 onward. Servers at or below rc1 have no code for
+     * it and instead embed a LangChain documentation URL in provider prose, which
+     * [Companion.MODEL_NOT_FOUND_PATTERN] still matches.
      */
     MODEL_NOT_FOUND("model_not_found"),
+
+    /** The provider throttled the request for exceeding a rate or spend allowance. */
+    MODEL_RATE_LIMIT("model_rate_limit"),
 
     /** The models configuration has not loaded, so no model can be resolved yet. */
     MODELS_NOT_LOADED("models_not_loaded"),
@@ -56,8 +61,41 @@ enum class StreamErrorType(val wire: String) {
     /** The prompt is longer than the model accepts. */
     INPUT_LENGTH("INPUT_LENGTH"),
 
+    /**
+     * The formatted provider payload still exceeded the context budget after pruning. Distinct
+     * from [INPUT_LENGTH], which is the request the user can shorten: this one means the
+     * conversation itself no longer fits.
+     */
+    FINAL_CONTEXT_OVERFLOW("final_context_overflow"),
+
+    /** A manual compaction the graph declined to attempt; the history is untouched. */
+    COMPACTION_SKIPPED("compaction_skipped"),
+
+    /** A manual compaction whose summarizer produced nothing; the history is untouched. */
+    COMPACTION_FAILED("compaction_failed"),
+
     /** The request tripped the deployment's moderation. */
     MODERATION("moderation"),
+
+    /** Sign-in was refused by a rate limiter rather than by bad credentials. */
+    AUTH_RATE_LIMITED("auth_rate_limited"),
+
+    /** Sign-in was refused because the account or the IP is banned. */
+    AUTH_BANNED("auth_banned"),
+
+    /**
+     * The server's `requireSameOrigin` guard rejected an auth request as cross-site.
+     *
+     * The client's own diagnostic for breaking the header invariant recorded in `DISCOVERY.md`:
+     * it is produced by sending `Origin` or `Sec-Fetch-Site`, which this app must never do.
+     */
+    AUTH_CROSS_ORIGIN("auth_cross_origin"),
+
+    /**
+     * Shared-link retrieval was rate-limited. Upstream's `ViolationTypes.SHARE_LIMIT`, which its
+     * error registry keys off the same `type` field as the entries above.
+     */
+    SHARE_LIMIT("share_limit"),
 
     /**
      * The SSE job 404'd — it completed, expired, or was deleted before this client subscribed.
@@ -108,12 +146,13 @@ enum class StreamErrorType(val wire: String) {
         fun markerOrText(rawMessage: String): String = parse(rawMessage)?.marker ?: rawMessage
 
         /**
-         * MIRRORED from upstream `client/src/components/Messages/Content/Error.tsx`:
-         * `/langchain\.com\/.*\/MODEL_NOT_FOUND(?:\/|\b)/i`. Registered in `scripts/mirrors.json`
-         * as `model-not-found-url-pattern`.
+         * LEGACY fallback for servers at or below v0.8.8-rc1, which have no typed code for
+         * [MODEL_NOT_FOUND] and instead surface a LangChain documentation URL embedded in provider
+         * prose. rc2 deleted upstream's own copy of this regex (`langChainModelNotFoundUrl`) when
+         * `model_not_found` became a typed `ErrorTypes` member, so there is no longer an upstream
+         * symbol to mirror and the `scripts/mirrors.json` entry that watched one was retired.
          *
-         * A provider embeds this documentation link in an otherwise unhelpful sentence, so it is
-         * matched anywhere in the text rather than parsed. `\b` is spelled out as a lookahead on a
+         * Matched anywhere in the text rather than parsed. `\b` is spelled out as a lookahead on a
          * non-word character or end-of-input, because Kotlin's `Regex` on Android is ICU and its
          * `\b` handling around a URL is not worth relying on.
          *

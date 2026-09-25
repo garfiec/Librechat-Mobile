@@ -31,13 +31,21 @@ internal fun localizedStreamError(raw: String): String {
     return when (type) {
         StreamErrorType.RESOURCE_RECOVERY_REQUIRED -> stringResource(Res.string.error_resource_recovery_required)
         StreamErrorType.MODEL_NOT_FOUND -> stringResource(Res.string.error_model_not_found)
+        StreamErrorType.MODEL_RATE_LIMIT -> stringResource(Res.string.error_model_rate_limit)
         StreamErrorType.MISSING_MODEL -> stringResource(Res.string.error_missing_model)
         StreamErrorType.MODELS_NOT_LOADED -> stringResource(Res.string.error_models_not_loaded)
         StreamErrorType.ENDPOINT_MODELS_NOT_LOADED -> stringResource(Res.string.error_endpoint_models_not_loaded)
         StreamErrorType.INVALID_AGENT_PROVIDER -> stringResource(Res.string.error_invalid_agent_provider)
         StreamErrorType.REFUSAL -> stringResource(Res.string.error_refusal)
         StreamErrorType.INPUT_LENGTH -> stringResource(Res.string.error_input_length)
+        StreamErrorType.FINAL_CONTEXT_OVERFLOW -> stringResource(Res.string.error_final_context_overflow)
+        StreamErrorType.COMPACTION_SKIPPED -> stringResource(Res.string.error_compaction_skipped)
+        StreamErrorType.COMPACTION_FAILED -> stringResource(Res.string.error_compaction_failed)
         StreamErrorType.MODERATION -> stringResource(Res.string.error_moderation)
+        StreamErrorType.AUTH_RATE_LIMITED -> stringResource(Res.string.error_auth_rate_limited)
+        StreamErrorType.AUTH_BANNED -> stringResource(Res.string.error_auth_banned)
+        StreamErrorType.AUTH_CROSS_ORIGIN -> stringResource(Res.string.error_auth_cross_origin)
+        StreamErrorType.SHARE_LIMIT -> stringResource(Res.string.error_share_limit)
         StreamErrorType.STREAM_EXPIRED -> stringResource(Res.string.error_stream_expired)
     }
 }
