@@ -1434,6 +1434,11 @@ class ChatViewModel(
         // Ignore ghost ×/reorder while an edit is in flight, so the queue can't shift under the
         // session's captured originalIndex.
         if (_uiState.value.isEditingQueued) return
+        // …and while an edit's withdrawal is still in flight, which is the same window with
+        // `isEditingQueued` not yet set: the row is still on screen, so a second tap here starts a
+        // SECOND withdrawal of it, and whichever lands first leaves the other holding a row the
+        // server no longer has.
+        if (withdrawingForEdit != null) return
         val item = _uiState.value.messageQueue.firstOrNull { it.localId == localId }
         if (item?.server == null) {
             queueDelegate.cancel(localId)
@@ -1443,12 +1448,27 @@ class ChatViewModel(
         // confirmed cancel — removing it locally on a refused one would hide a turn the server
         // still intends to run.
         viewModelScope.launch {
-            if (queuedTurnDelegate.cancel(item)) queueDelegate.cancel(localId)
+            if (!queuedTurnDelegate.cancel(item)) {
+                // Reported, not swallowed. A refusal is either "the server is past withdrawing
+                // this" or "this row has no id to withdraw" — and the latter is reachable and
+                // sticky: an `Uncertain` row whose reconciliation window has expired will never
+                // be handed one, so its × is a permanent no-op while the row itself refuses every
+                // drain. Silence made that read as a dead button on a row the UI has already
+                // labelled as needing attention.
+                _uiState.update { it.copy(error = "Could not withdraw this message from the server.") }
+                return@launch
+            }
+            // Re-checked after the round trip, not only before it: an edit session opened while
+            // the DELETE was out, and dropping a row into it now shifts the slots its captured
+            // originalIndex points at — the exact thing the guard above exists to prevent.
+            if (_uiState.value.isEditingQueued) return@launch
+            queueDelegate.cancel(localId)
         }
     }
 
     fun reorderQueue(fromIndex: Int, toIndex: Int) {
         if (_uiState.value.isEditingQueued) return
+        if (withdrawingForEdit != null) return
         // Server-owned rows run in the server's sequence; dragging one would show an order the
         // backend will not honour.
         val queue = _uiState.value.messageQueue

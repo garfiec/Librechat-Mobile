@@ -292,6 +292,22 @@ class MessageQueueDelegate(
      * server only starts one when the previous turn has finished. Strictly `<`: an admission
      * anchored to the run now streaming is owed a successor AFTER it, and retiring that one would
      * unfence the very boundary it exists for.
+     *
+     * **Known gap — this does not cover a successor that finished while the client was away.**
+     * Every caller sits inside `if (status.active)`, so a run that ended before the app came back
+     * reports `active = false`, takes the `ResumeExpired` / reload arm, and retires nothing; the
+     * matching-epoch path cannot fire either, because the `Final` that carried the epoch never
+     * reached this client. The evidence then survives every `applyReceipts` (its retention filter
+     * keeps exactly `Admitted && effectivePredecessorCreatedAt != null && !boundaryConsumed`) and
+     * the fence stays armed for the ViewModel's life: "Send queued" clears `isQueuePaused`,
+     * destroying its own affordance, and returns at the blanket refusal in [drainNext].
+     *
+     * Retiring on an INACTIVE status is not the fix as it stands — the server can hold an admitted
+     * turn it has not started yet, and retiring then is how the same words get sent twice. The fix
+     * is to bound the evidence the way [QueuedTurnDelegate.expireStaleUncertainty] already bounds
+     * its sibling `Uncertain` state, or to retire against the reloaded tree (a message descending
+     * from the boundary is the same proof `status.active` stands in for, and the reload always
+     * lands).
      */
     fun retireAdmissionsBefore(runCreatedAt: Long) {
         fun SettledQueuedTurn.isOvertaken(): Boolean =

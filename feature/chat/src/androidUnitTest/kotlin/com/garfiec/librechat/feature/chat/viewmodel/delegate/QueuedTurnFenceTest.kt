@@ -48,7 +48,7 @@ class QueuedTurnFenceTest {
     private val queuedTurnDelegate = QueuedTurnDelegate(
         handle = QueueHandle(stateHandle),
         repository = mockk<QueuedTurnRepository>(relaxed = true),
-        onSuccessorOwed = { successorOwedCount++ },
+        onSuccessorOwed = { successorOwedCount++; true },
         projectOrphan = { null },
         nowMillis = { NOW },
     )

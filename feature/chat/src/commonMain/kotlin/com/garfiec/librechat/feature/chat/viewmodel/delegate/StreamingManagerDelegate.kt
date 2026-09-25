@@ -1006,6 +1006,11 @@ class StreamingManagerDelegate(
                 // A Stop landed during the check: hand off to the abort machinery as above.
                 if (abortRequested) return@launch
                 if (status.active) {
+                    // Same evidence as in resumeActiveStreamIfNeeded, and needed on every attach
+                    // path rather than one: a live server run proves each boundary before it is
+                    // closed, and this path is one of the two that recover a run which ended with
+                    // NO `Final` — exactly the ending the admission fence cannot retire itself.
+                    status.createdAt?.let(queueDelegate::retireAdmissionsBefore)
                     handle.update { content = content.copy(isStreaming = true) }
                     resumeStream(conversationId)
                     applyStatusPendingAction(status)
@@ -1081,11 +1086,17 @@ class StreamingManagerDelegate(
      * [onResume] cannot serve this: it is gated on `wasStreaming`, and by definition this client
      * was not. Queued turns have no push channel either, so without this the user's follow-up runs
      * to completion with nothing on screen until the conversation is reopened.
+     *
+     * Returns whether the attach was taken up. A refusal has to be reported, not swallowed: the
+     * caller announces each owed turn exactly once and the admitted row leaves the queue as soon
+     * as the poll sees it, so an announcement made into a refusal is the last one that turn will
+     * ever get.
      */
-    fun attachToServerStartedRun() {
-        if (handle.state.isStreaming) return
-        val conversationId = handle.state.conversationId ?: return
+    fun attachToServerStartedRun(): Boolean {
+        if (handle.state.isStreaming) return false
+        val conversationId = handle.state.conversationId ?: return false
         resumeActiveStreamIfNeeded(conversationId)
+        return true
     }
 
     fun resumeActiveStreamIfNeeded(conversationId: String) {
@@ -1164,6 +1175,10 @@ class StreamingManagerDelegate(
             try {
                 val status = chatRepository.checkStreamStatus(conversationId, steeringDelegate::reclaimParked)
                 if (status.active) {
+                    // See resumeActiveStreamIfNeeded: a live server run is the fence's only
+                    // evidence that the boundaries before it are closed, and a network drop is
+                    // precisely how a run ends without the `Final` that would have retired it.
+                    status.createdAt?.let(queueDelegate::retireAdmissionsBefore)
                     handle.update {
                         content = content.copy(
                             isStreaming = true,

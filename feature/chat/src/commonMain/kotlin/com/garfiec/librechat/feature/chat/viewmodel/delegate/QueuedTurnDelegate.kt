@@ -42,8 +42,11 @@ class QueuedTurnDelegate(
     /**
      * Called when the projection proves the server owes this conversation a run it will start
      * itself. The client is not attached to that run, so something has to go and look.
+     *
+     * Returns whether it took the announcement up. A refusal — the client believes it is still
+     * streaming — must not count as delivered: see [applyReceipts].
      */
-    private val onSuccessorOwed: () -> Unit,
+    private val onSuccessorOwed: () -> Boolean,
     /**
      * Builds a display row for a receipt this client has never seen — queued on another device,
      * or by a process that has since been killed. Its send config is a placeholder and is never
@@ -172,12 +175,23 @@ class QueuedTurnDelegate(
             .map { it.clientRequestId to it.status }
             .toSet()
         val fresh = owed - announcedOwed
+        // Recorded only once the callback has taken it, and only for the announcement that was
+        // actually made. A refused attach — the client still believes it is streaming, because the
+        // SSE socket died or a Stop is inside its watchdog window — must not burn the memory: the
+        // admitted row leaves `messageQueue` the moment the poll sees it, so `knownRequestIds`
+        // stops naming it and the list route never mentions it again. One swallowed refusal is a
+        // follow-up that runs to completion server-side against an idle screen.
+        val delivered = fresh.isEmpty() || onSuccessorOwed()
+        val announced = if (delivered) owed else owed - fresh
         // Only a SNAPSHOT speaks for every live row, so only a snapshot may retire ids from the
         // memory. A single-receipt enqueue/cancel answer that replaced it wholesale would forget
         // the turns already announced, and the very next poll would re-announce them — spending
         // the `/chat/status` GET this dedupe exists to avoid.
-        announcedOwed = if (source == QueuedTurnReceiptSource.Snapshot) owed else announcedOwed + owed
-        if (fresh.isNotEmpty()) onSuccessorOwed()
+        announcedOwed = if (source == QueuedTurnReceiptSource.Snapshot) {
+            announced
+        } else {
+            announcedOwed + announced
+        }
     }
 
     /**

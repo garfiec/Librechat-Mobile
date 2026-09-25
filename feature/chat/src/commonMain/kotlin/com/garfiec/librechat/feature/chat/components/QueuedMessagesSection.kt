@@ -93,7 +93,12 @@ fun QueuedMessagesSection(
             .pointerInput(Unit) {
                 detectDragGesturesAfterLongPress(
                     onDragStart = { offset ->
+                        // The gesture lives on the container, so hiding a server-owned row's
+                        // handle does not make it ungrabbable — the same check the reorder is
+                        // refused by has to be made here, or the row is picked up and then lurches
+                        // (see onDrag) against a reorder that silently never happens.
                         draggingId = currentQueue.firstOrNull { item ->
+                            if (item.server != null) return@firstOrNull false
                             val top = rowTops[item.localId] ?: return@firstOrNull false
                             val height = rowHeights[item.localId] ?: 0f
                             offset.y >= top && offset.y < top + height
@@ -116,13 +121,17 @@ fun QueuedMessagesSection(
                         if (from < 0) return@detectDragGesturesAfterLongPress
                         dragOffsetY += dragAmount.y
                         // Swap with a neighbour once the finger crosses that neighbour's midpoint.
-                        if (dragAmount.y > 0 && from < list.lastIndex) {
+                        // A server-owned neighbour is not swappable either — the reorder is
+                        // refused for BOTH endpoints — and settling the offset against a swap that
+                        // did not happen is what makes the row jump a full row height back under a
+                        // stationary finger.
+                        if (dragAmount.y > 0 && from < list.lastIndex && list[from + 1].server == null) {
                             val nextHeight = rowHeights[list[from + 1].localId] ?: 0f
                             if (dragOffsetY > nextHeight / 2f) {
                                 onReorder(from, from + 1)
                                 dragOffsetY -= nextHeight
                             }
-                        } else if (dragAmount.y < 0 && from > 0) {
+                        } else if (dragAmount.y < 0 && from > 0 && list[from - 1].server == null) {
                             val prevHeight = rowHeights[list[from - 1].localId] ?: 0f
                             if (dragOffsetY < -prevHeight / 2f) {
                                 onReorder(from, from - 1)
