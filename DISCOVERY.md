@@ -675,10 +675,50 @@ it is unreachable against the pinned server and fixes nothing that was broken. I
 observed not rendering, the fault is in the tool-call attachment path, not here.
 
 Deliberately NOT ported from the same upstream window, each because it needs a mobile surface that
-does not exist or is pointer-specific web polish: upstream's OrchestrationHub and StatefulSessions
-panels (agent-to-agent orchestration and sandbox session reuse), the `on_sandbox_starting` cold-boot
-indicator, the MessageNav rework (a pinned scroll-to-bottom rib and hover chevrons; mobile already has
-a scroll-to-bottom FAB), and the web touch select/drag fixes. None affects wire compatibility.
+does not exist or is pointer-specific web polish: upstream's **StatefulSessions** panel (sandbox
+session reuse), the `on_sandbox_starting` cold-boot indicator, the MessageNav rework (a pinned
+scroll-to-bottom rib and hover chevrons; mobile already has a scroll-to-bottom FAB), and the web
+touch select/drag fixes. None affects wire compatibility.
+
+**OrchestrationHub was on that list and is now split** — the read-only half is ported. The entry
+above previously read "OrchestrationHub and StatefulSessions panels … not ported"; that was true
+when written and is no longer, so it is corrected here rather than left to contradict the code.
+
+PORTED (v0.8.8-rc2 read-only child-thread viewing):
+- `GET /api/convos/:parentConversationId/subagents` — the parent's child index.
+- `GET /api/convos/:parentConversationId/subagents/:threadId` — one child's view, with `?taskId=`
+  for a single execution boundary and `?cursor=` for the next older page. **The two are mutually
+  exclusive: sending both is a 404**, which is why the client exposes them as two methods.
+- A sheet off the existing subagent trace card, opening on the child LIST and then one child.
+
+NOT ported, and deliberately:
+- **Every control.** `POST …/:threadId/control` and its `SubagentControlAction` — `steer`, `queue`,
+  `interrupt`, `cancel`, `cancel_message`. The receipt types (`SubagentControlReceipt`,
+  `SubagentControlRequest`) are not modelled either; `controlReceipts` decodes as raw JSON so the
+  view still parses, because giving the receipt a type is the first step toward wiring the route
+  that produces one.
+- **The per-task activity SSE stream** (`GET …/:threadId/tasks/:taskId/activity`). Live progress for
+  the run in front of the user already arrives on `on_subagent_update`; this is a second live
+  channel for a child the parent is not running, and read-only viewing does not need it.
+- **Fork-to-chat and saved teams.** `subagents.graphs` round-trips on the agent (see the
+  additive-fields policy below) and is not surfaced.
+
+Why the views are worth having when mobile already renders a subagent trace: `on_subagent_update`
+and the persisted `AgentToolCall.subagentContent` both hang off the parent's `subagent` tool call,
+so between them they cover exactly the children a TOOL spawned, for the run in front of you. The
+views add the three things that cannot arrive that way — a child spawned by an event binding
+(`origin: "event"`, whose `parentToolCallId` is an `event-binding:…` sentinel and which therefore
+renders nowhere today), a child's history ACROSS turns (`turns[]`), and the child's own messages.
+`threadId` likewise appears on neither the SSE envelope nor the persisted trace, so the index is
+the only place one exists.
+
+Two shapes worth knowing before touching this:
+- `GET /api/convos/:conversationId` **404s when the conversation is itself a subagent thread**
+  (`convo.subagentThread != null`). A child is unreachable through the ordinary conversation route
+  by design; the thread view is how it is read.
+- The index's own `404` covers three unrelated conditions behind one body — parent missing, not the
+  caller's, or itself a child. **None of them says the route is absent**, so nothing latches off it;
+  see VERSION_GATES.md.
 
 Revised message / SSE shapes:
 - Message content parts add a `steer` type (`type == "steer"`, #14220) — mid-run steering. `ContentType`
@@ -697,6 +737,15 @@ Revised message / SSE shapes:
   ordering fix on resume/reconnect; no wire-shape change, transparent to the client.
 
 Additive response fields (parse-layer only unless a row says BUILT):
+- **Agent** (v0.8.8-rc2) — `git_identity` (`{name, email}`, the sandbox's commit author),
+  `code_workspace_id` (the persistent workspace its sandbox attaches to), `skills_scope`
+  (catalog exposure while skills are enabled; kept a raw String because a missing value has
+  legacy meaning server-side and an unrecognized one would throw at decode and fail the whole
+  agent), and `subagents.graphs` + `subagents.shareFiles`. **Round-trip only, per the standing
+  policy for new agent fields** — decoded, carried on create/update, never surfaced — so an
+  edit made on mobile cannot silently drop what an admin configured on the web. `graphs` stays
+  raw JSON: the shape is a whole agent team (members, edges, entry and result nodes) and
+  modelling it would imply an editor that is not being built.
 - `GET /api/agents/chat/status/:conversationId` — adds `status` (`running` | `requires_action` | terminal),
   `pendingAction` (client-safe projection of a run paused for tool approval / `ask_user_question`;
   `requestFingerprint` and `resumeContext` are stripped server-side, so it must never be echoed back), and
