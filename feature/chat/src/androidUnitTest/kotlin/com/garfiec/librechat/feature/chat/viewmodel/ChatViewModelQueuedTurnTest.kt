@@ -569,6 +569,77 @@ class ChatViewModelQueuedTurnTest {
         assertThat(accountedFor).containsExactly("first follow-up", "second follow-up")
     }
 
+    /**
+     * The run end refused to drain because a server row was in the queue. Withdrawing that row is
+     * the only thing left that can release the local row behind it, and "Send queued" is not on
+     * screen to do it by hand: it renders only for a paused queue.
+     */
+    @Test
+    fun `withdrawing the last server row sends the local row behind it`() = queuedTurnTest(
+        arrange = {
+            coEvery { queuedTurnRepository.enqueue(match { it.text == "refused" }) } returns
+                QueuedTurnOutcome.Rejected(statusCode = 429, code = "QUEUED_TURN_QUEUE_FULL", message = "full")
+            coEvery { queuedTurnRepository.enqueue(match { it.text == "local" }) } returns
+                QueuedTurnOutcome.Unsupported
+        },
+    ) { vm ->
+        val sent = captureSentTexts()
+        vm.onInputChanged("refused")
+        vm.queueMessage()
+        runCurrent()
+        vm.onInputChanged("local")
+        vm.queueMessage()
+        runCurrent()
+        assertThat(vm.uiState.value.messageQueue.map { it.server == null }).containsExactly(false, true)
+
+        resumedStream.emit(StreamEvent.Final())
+        runCurrent()
+        assertThat(sent).isEmpty()
+
+        vm.cancelQueued(vm.uiState.value.messageQueue.first().localId)
+        runCurrent()
+
+        assertThat(sent).containsExactly("local")
+    }
+
+    /** The same stall reached without a tap: the enqueue's answer lands after the run end. */
+    @Test
+    fun `a late answer that hands the row back to the local drain sends it`() = queuedTurnTest(
+        arrange = {
+            coEvery { queuedTurnRepository.enqueue(any()) } coAnswers {
+                enqueueGate.await()
+                QueuedTurnOutcome.Unsupported
+            }
+        },
+    ) { vm ->
+        val sent = captureSentTexts()
+        vm.onInputChanged(TEXT)
+        vm.queueMessage()
+        runCurrent()
+
+        resumedStream.emit(StreamEvent.Final())
+        runCurrent()
+        assertThat(sent).isEmpty()
+
+        enqueueGate.complete(Unit)
+        runCurrent()
+
+        assertThat(sent).containsExactly(TEXT)
+    }
+
+    /** Records the text of every turn the ViewModel sends. */
+    private fun captureSentTexts(): MutableList<String> {
+        val sent = mutableListOf<String>()
+        every {
+            chatRepository.startChat(
+                capture(sent), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                any(), any(),
+            )
+        } returns MutableSharedFlow()
+        return sent
+    }
+
     private fun receiptFor(request: EnqueueQueuedTurnRequest) = AgentQueuedTurnReceipt(
         queuedTurnId = "qt-1",
         clientRequestId = request.clientRequestId,

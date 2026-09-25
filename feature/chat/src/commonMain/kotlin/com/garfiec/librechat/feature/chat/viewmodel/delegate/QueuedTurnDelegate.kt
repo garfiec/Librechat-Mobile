@@ -53,6 +53,11 @@ class QueuedTurnDelegate(
      * read: the server runs the turn, and the drain refuses server-owned rows.
      */
     private val projectOrphan: (AgentQueuedTurnReceipt) -> QueuedMessage?,
+    /**
+     * Called when the last server-owned row leaves the queue. A run end that found one refused
+     * to drain, and nothing else re-kicks the drain for the local rows behind it.
+     */
+    private val onServerRowsCleared: () -> Unit = {},
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
 
@@ -137,6 +142,7 @@ class QueuedTurnDelegate(
      * write — the queue and the evidence that fences the drain must never be observable apart.
      */
     fun applyReceipts(receipts: List<AgentQueuedTurnReceipt>, source: QueuedTurnReceiptSource) {
+        val hadServerRows = hasServerRows()
         handle.update {
             val bySettled = queue.settledQueuedTurns.associateBy { it.clientRequestId }.toMutableMap()
             for (receipt in receipts) {
@@ -192,7 +198,10 @@ class QueuedTurnDelegate(
         } else {
             announcedOwed + announced
         }
+        if (hadServerRows && !hasServerRows()) onServerRowsCleared()
     }
+
+    private fun hasServerRows(): Boolean = handle.state.messageQueue.any { it.server != null }
 
     /**
      * Withdraws a queued turn. Returns false when it could not be, leaving the row in place.
@@ -360,6 +369,7 @@ class QueuedTurnDelegate(
     }
 
     private fun releaseToLegacy(clientRequestId: String) {
+        val hadServerRows = hasServerRows()
         handle.update {
             queue = queue.copy(
                 messageQueue = queue.messageQueue.map { item ->
@@ -376,6 +386,7 @@ class QueuedTurnDelegate(
                 },
             )
         }
+        if (hadServerRows && !hasServerRows()) onServerRowsCleared()
     }
 
     private fun markServer(

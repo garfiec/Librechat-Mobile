@@ -280,6 +280,7 @@ class ChatViewModel(
         // that was already streaming.
         onSuccessorOwed = { streamingManager.attachToServerStartedRun() },
         projectOrphan = ::projectOrphanQueuedTurn,
+        onServerRowsCleared = ::tryResumeDrain,
     )
 
     // --- Delegate-owned flows exposed to the UI ---
@@ -1530,6 +1531,9 @@ class ChatViewModel(
                 // originalIndex points at — the exact thing the guard above exists to prevent.
                 if (_uiState.value.isEditingQueued) return@launch
                 queueDelegate.cancel(localId)
+                // The run end that found this row refused to drain; if it was the last server
+                // row, the local ones behind it have no other trigger.
+                tryResumeDrain()
             } finally {
                 withdrawingForEdit = null
             }
