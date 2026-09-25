@@ -515,10 +515,80 @@
       },
       "kotlin": {
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/McpConnectionStatus.kt",
-        "symbol": "applyMCPDiscoveryAuthorizationState"
+        "symbol": "applyDiscoveryAuthorizationState"
       },
       "why": "Folds the per-server verdicts from GET /api/mcp/tools onto the connection-status map, so a lapsed OAuth authorization noticed by discovery is reflected before the status route catches up. A web-client rule; the server sends the two halves and never the combination.",
       "failure_mode": "The fold diverges and a server whose authorization has lapsed keeps rendering as connected until the status route notices independently -- the user's tool calls fail against a server the settings screen says is fine."
+    },
+    {
+      "id": "queued-turn-unsupported-classification",
+      "upstream": {
+        "file": "client/src/data-provider/SSE/queuedTurns.ts",
+        "symbol": "isDefiniteQueuedTurnsUnsupported",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/queuedturn/QueuedTurnPolicy.kt",
+        "symbol": "isDefiniteQueuedTurnsUnsupported"
+      },
+      "why": "Decides that a deployment has no queued-turn routes at all, from the 404/501 arms and the QUEUED_TURNS_UNSUPPORTED literal. The server never says so directly -- it is inferred from the refusal, and the inference latches the feature off.",
+      "failure_mode": "An arm upstream narrows is still treated as 'unsupported', so the client latches the whole feature off against a server that has it -- every follow-up silently falls back to the local queue. Nothing errors."
+    },
+    {
+      "id": "queued-turn-rejection-classification",
+      "upstream": {
+        "file": "client/src/data-provider/SSE/queuedTurns.ts",
+        "symbol": "isDefiniteQueuedTurnRejection",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/queuedturn/QueuedTurnPolicy.kt",
+        "symbol": "isDefiniteQueuedTurnRejection"
+      },
+      "why": "The boundary between 'the server definitely did NOT commit this turn' and 'unknown', including the deliberate 408/425 exclusions and the QUEUED_TURN_PRIORITY_UNSUPPORTED literal. There is no server-side guard against a turn being run twice, so this line is the only thing standing between a lost ack and a duplicate submission.",
+      "failure_mode": "**The one mirror here whose drift double-sends.** A status upstream moves out of the definite set is still read as 'not committed', so the row goes back to the local drain and the same words run twice in one conversation -- once by the server, once by this client."
+    },
+    {
+      "id": "queued-turn-poll-policy",
+      "upstream": {
+        "file": "client/src/data-provider/SSE/queuedTurns.ts",
+        "symbol": "shouldPollAgentQueuedTurns",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/queuedturn/QueuedTurnPolicy.kt",
+        "symbol": "shouldPollQueuedTurns"
+      },
+      "why": "Which projection states keep the reconcile poll alive. Note the Kotlin name drops the `Agent` infix, so a rename upstream does not show up as a rename on this side.",
+      "failure_mode": "The poll stops one state too early and a row never reconciles -- it sits server-owned on screen forever -- or one state too late and an idle client polls the route indefinitely."
+    },
+    {
+      "id": "queued-turn-successor-owed",
+      "upstream": {
+        "file": "client/src/data-provider/SSE/queuedTurns.ts",
+        "symbol": "isQueuedTurnSuccessorOwed",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/queuedturn/QueuedTurnPolicy.kt",
+        "symbol": "isQueuedTurnSuccessorOwed"
+      },
+      "why": "Whether the server owes this conversation a run it will start itself -- wider than the poll predicate by exactly `admitted`. It is what sends the client looking for a run it is not attached to.",
+      "failure_mode": "The predicate narrows and the client never goes looking, so a queued follow-up runs to completion server-side against a blank idle screen."
+    },
+    {
+      "id": "queued-turn-list-id-cap",
+      "upstream": {
+        "file": "packages/data-provider/src/api-endpoints.ts",
+        "symbol": "agentQueuedTurnsByConversation",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/queuedturn/QueuedTurnWire.kt",
+        "symbol": "MAX_QUEUED_TURN_LIST_IDS"
+      },
+      "why": "The cap on `clientRequestIds` per list request, which upstream expresses as a bare `.slice(0, 100)` inside the URL builder rather than as a named constant -- so there is no symbol on that side for a diff to anchor to except the builder itself.",
+      "failure_mode": "The cap drops and requests over it 400, so reconciliation stops for a conversation with a long queue and every row in it stays server-owned on screen."
     }
   ]
 }
