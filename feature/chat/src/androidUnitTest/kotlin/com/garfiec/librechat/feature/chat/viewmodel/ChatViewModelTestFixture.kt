@@ -30,6 +30,7 @@ import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
 import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
+import com.garfiec.librechat.core.data.repository.TraceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnOutcome
@@ -75,6 +76,7 @@ internal class ChatViewModelTestFixture {
     val promptRepository = mockk<PromptRepository>(relaxed = true)
     val queuedTurnRepository = mockk<QueuedTurnRepository>(relaxed = true)
     val shareRepository = mockk<ShareRepository>(relaxed = true)
+    val traceRepository = mockk<TraceRepository>(relaxed = true)
     val mcpRepository = mockk<McpRepository>(relaxed = true)
     val userRepository = mockk<UserRepository>(relaxed = true)
     val roleRepository = mockk<RoleRepository>(relaxed = true)
@@ -150,6 +152,7 @@ internal class ChatViewModelTestFixture {
         promptRepository = promptRepository,
         queuedTurnRepository = queuedTurnRepository,
         shareRepository = shareRepository,
+        traceRepository = traceRepository,
         mcpRepository = mcpRepository,
         userRepository = userRepository,
         roleRepository = roleRepository,

@@ -25,11 +25,22 @@ import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
 import com.garfiec.librechat.core.data.repository.SpeechRepository
 import com.garfiec.librechat.core.data.repository.SubagentRepository
+import com.garfiec.librechat.core.data.repository.TraceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
+import com.garfiec.librechat.feature.chat.prompts.PromptsViewModel
+import com.garfiec.librechat.feature.chat.viewmodel.SubagentThreadsViewModel
+import com.garfiec.librechat.feature.chat.viewmodel.TraceViewerViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.serialization.json.Json
+import io.mockk.mockk
+import kotlin.test.assertTrue
 import org.junit.Test
+import org.koin.core.Koin
+import org.koin.core.error.InstanceCreationException
+import org.koin.core.error.NoDefinitionFoundException
+import org.koin.dsl.koinApplication
+import org.koin.dsl.module
 import org.koin.test.verify.verify
 
 class ChatModuleVerificationTest {
@@ -57,6 +68,7 @@ class ChatModuleVerificationTest {
                 PermissionGate::class,
                 ShareRepository::class,
                 SubagentRepository::class,
+                TraceRepository::class,
                 SpeechRepository::class,
                 McpRepository::class,
                 UserRepository::class,
@@ -72,4 +84,44 @@ class ChatModuleVerificationTest {
             ),
         )
     }
+
+    @Test
+    fun everyViewModelTheScreensResolveByTypeIsRegistered() {
+        // `verify()` above checks that REGISTERED definitions have satisfiable dependencies. It
+        // cannot walk `koinViewModel<T>()` call sites, so a ViewModel nobody registered is
+        // invisible to it — mis-wired is caught, unregistered is not, and the latter throws
+        // NoDefinitionFoundException on the first tap with every gate green.
+        val koin = koinApplication {
+            modules(
+                chatModule,
+                module {
+                    single<PromptRepository> { mockk(relaxed = true) }
+                    single<SubagentRepository> { mockk(relaxed = true) }
+                    single<TraceRepository> { mockk(relaxed = true) }
+                },
+            )
+        }.koin
+
+        assertTrue(koin.hasDefinitionFor { koin.get<PromptsViewModel>() }, "PromptsViewModel")
+        assertTrue(koin.hasDefinitionFor { koin.get<SubagentThreadsViewModel>() }, "SubagentThreadsViewModel")
+        assertTrue(koin.hasDefinitionFor { koin.get<TraceViewerViewModel>() }, "TraceViewerViewModel")
+    }
+
+    /**
+     * Whether a definition exists, as opposed to whether it can be BUILT here.
+     *
+     * A ViewModel that reaches its own constructor has a definition; failing afterwards is a
+     * JVM-test problem (no Main dispatcher, no Android framework) and not what this asks about.
+     * Only the missing definition is the bug this test exists for, and that one is named
+     * precisely.
+     */
+    private fun Koin.hasDefinitionFor(resolve: () -> Any?): Boolean =
+        try {
+            resolve()
+            true
+        } catch (_: NoDefinitionFoundException) {
+            false
+        } catch (_: InstanceCreationException) {
+            true
+        }
 }

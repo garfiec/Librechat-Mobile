@@ -43,6 +43,7 @@ actual val chatPlatformModule: Module = module {
             promptRepository = get(),
             queuedTurnRepository = get(),
             shareRepository = get(),
+            traceRepository = get(),
             mcpRepository = get(),
             userRepository = get(),
             roleRepository = get(),

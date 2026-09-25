@@ -87,6 +87,15 @@ data class FeatureGatesState(
      */
     val subagentThreadsSupported: Boolean = false,
     /**
+     * The conversation whose trace `/availability` confirmed readable (v0.8.8-rc3).
+     *
+     * Held as the id rather than a Boolean so the entry point cannot survive a conversation
+     * switch: the resolve is a network round trip, and a plain flag stays true across the gap
+     * between leaving a traced conversation and the next answer arriving. Read through
+     * [ChatUiState.traceViewerAvailable], which compares it to the conversation on screen.
+     */
+    val traceViewerConversationId: String? = null,
+    /**
      * The detected backend version string (null while unresolved), for the handful of version
      * gates that live in pure state helpers rather than in a collector — currently the
      * shell-script MIME aliasing inside [ChatUiState.uploadRouteFor] and the .potx picker offer.

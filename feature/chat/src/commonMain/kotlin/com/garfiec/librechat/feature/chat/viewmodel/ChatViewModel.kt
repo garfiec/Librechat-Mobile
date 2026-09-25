@@ -33,6 +33,7 @@ import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
 import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
+import com.garfiec.librechat.core.data.repository.TraceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.logging.Diag
@@ -43,6 +44,7 @@ import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.MinimalFeedback
 import com.garfiec.librechat.core.model.Preset
 import com.garfiec.librechat.core.model.config.InterfaceConfig
+import com.garfiec.librechat.core.model.config.isTraceViewerEnabled
 import com.garfiec.librechat.core.model.error.UserKeyError
 import com.garfiec.librechat.core.model.media.resolveFileReferenceUrl
 import com.garfiec.librechat.core.model.permissions.Permission
@@ -102,6 +104,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -146,6 +149,7 @@ class ChatViewModel(
     private val promptRepository: PromptRepository,
     queuedTurnRepository: QueuedTurnRepository,
     shareRepository: ShareRepository,
+    private val traceRepository: TraceRepository,
     mcpRepository: McpRepository,
     private val userRepository: UserRepository,
     private val roleRepository: RoleRepository,
@@ -288,6 +292,12 @@ class ChatViewModel(
         val version: String?,
         val dropParamsMap: Map<String, JsonElement>?,
         val compactionEnabled: Boolean?,
+    )
+
+    private data class TraceGateInputs(
+        val conversationId: String?,
+        val isStreaming: Boolean,
+        val enabled: Boolean,
     )
 
     private data class BaseChatPrefs(
@@ -723,6 +733,7 @@ class ChatViewModel(
         favoritesDelegate.load()
         loadUserProfile()
         loadFlags()
+        observeTraceAvailability()
         loadFileConfig()
         voiceDelegate.loadSpeechConfig()
 
@@ -1917,6 +1928,56 @@ class ChatViewModel(
             messageRepository.refreshMessages(conversationId, originAccount = null)
             loadConversation(conversationId)
             _uiState.update { it.copy(content = it.content.copy(isRefreshingMessages = false)) }
+        }
+    }
+
+    /**
+     * Resolves whether the trace entry point may render for the conversation on screen.
+     *
+     * Three eligibility inputs and then one network round trip, mirroring upstream's
+     * `useTraceControl`: a persisted conversation, `interface.traceViewer` on, and a server not
+     * known to predate the routes. There is no permission to check — unlike schedules, this is
+     * interface config and conversation state only.
+     *
+     * `collectLatest` is doing real work here: the resolve suspends across the backend's
+     * "ask again" waits, and leaving a conversation or starting a run has to cancel it rather
+     * than let a late answer land against a conversation that is no longer on screen.
+     *
+     * Nothing is asked while a run is in flight, and the previous answer is KEPT rather than
+     * cleared — the entry point must not blink out for the duration of every reply. The
+     * re-emission when streaming ends is the re-read a settled run needs: the turn it just
+     * added is what can make a trace readable for the first time.
+     */
+    private fun observeTraceAvailability() {
+        viewModelScope.launch {
+            combine(
+                _uiState.map { it.conversationId }.distinctUntilChanged(),
+                _uiState.map { it.isStreaming }.distinctUntilChanged(),
+                configRepository.startupConfig
+                    .map { isTraceViewerEnabled(it?.interfaceConfig?.traceViewer) }
+                    .distinctUntilChanged(),
+            ) { conversationId, isStreaming, enabled ->
+                TraceGateInputs(conversationId, isStreaming, enabled)
+            }.collectLatest { (conversationId, isStreaming, enabled) ->
+                if (conversationId == null || !enabled || traceRepository.isRuledOutForServer()) {
+                    setTraceViewerConversation(null)
+                    return@collectLatest
+                }
+                if (isStreaming) return@collectLatest
+                val result = traceRepository.resolveAvailability(conversationId)
+                val available = result is Result.Success && result.data.available
+                setTraceViewerConversation(conversationId.takeIf { available })
+            }
+        }
+    }
+
+    private fun setTraceViewerConversation(conversationId: String?) {
+        _uiState.update {
+            if (it.gates.traceViewerConversationId == conversationId) {
+                it
+            } else {
+                it.copy(gates = it.gates.copy(traceViewerConversationId = conversationId))
+            }
         }
     }
 

@@ -219,6 +219,10 @@ data class ChatUiState(
     val askAnswerDrafts: Map<String, AskAnswerDraft> get() = content.askAnswerDrafts
     val memoryEnabled: Boolean get() = gates.memoryEnabled
     val conversationId: String? get() = conversation.conversationId
+
+    /** Whether the trace entry point should render — see [FeatureGatesState.traceViewerConversationId]. */
+    val traceViewerAvailable: Boolean
+        get() = conversationId != null && gates.traceViewerConversationId == conversationId
     val conversationTitle: String? get() = conversation.conversationTitle
     val isTemporaryChat: Boolean get() = conversation.isTemporaryChat
     val sharedLinksEnabled: Boolean get() = conversation.sharedLinksEnabled
