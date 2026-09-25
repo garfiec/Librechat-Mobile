@@ -219,11 +219,11 @@ class SteeringDelegate(
     private fun acknowledge(
         conversationId: String,
         localId: String,
-        record: SteerRecord,
+        staged: SteerRecord,
         ack: SteerResponse,
     ) {
         val serverId = ack.steerId
-        val wasCancelled = record.status == SteerRecord.Status.CANCELLED
+        val wasCancelled = staged.status == SteerRecord.Status.CANCELLED
         // A 202 without `quotesAccepted` means a pre-quotes server took the words and dropped the
         // excerpts — but NOT that they are lost yet, and this is deliberately not where they are
         // re-staged. The steer is still queued and will still inject; re-staging now would deliver
@@ -231,10 +231,14 @@ class SteeringDelegate(
         // receipt replayed for a steer that has ALREADY left the queue: no future event will name
         // it, so this is its only chance. `leftover` is excluded because that branch re-homes the
         // whole spec, and a normal send carries quotes on any server.
-        val quotesDropped = ack.quotesAccepted != true && record.spec?.quotes?.isNotEmpty() == true
+        val quotesDropped = ack.quotesAccepted != true && staged.spec?.quotes?.isNotEmpty() == true
         if (quotesDropped && ack.settled == true && ack.leftover != true) {
-            restageDroppedQuotes(record)
+            restageDroppedQuotes(staged)
         }
+        // Re-read after the restage: it strips the excerpts by REPLACING the map entry, so the
+        // record this call was handed still carries them, and every re-home below would deliver
+        // them a second time — the exact thing the strip exists to prevent.
+        val record = records[localId] ?: staged
         // A 202 with no id is unusable: it can be neither cancelled nor matched to an applied
         // event, so treat it as un-steered rather than showing a chip that can never resolve.
         if (serverId.isNullOrBlank()) {

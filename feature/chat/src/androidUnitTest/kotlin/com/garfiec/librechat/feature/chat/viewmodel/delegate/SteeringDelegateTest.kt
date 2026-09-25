@@ -468,6 +468,26 @@ class SteeringDelegateTest {
         }
 
     /**
+     * A settled receipt for a steer that never injected recovers the excerpts onto the composer
+     * AND re-homes the words as a follow-up. Both happen inside one call, so the strip that keeps
+     * them from being delivered twice has to be visible to the re-home that follows it.
+     */
+    @Test
+    fun `a settled receipt re-homes without the excerpts it just put back on the composer`() =
+        runTest(UnconfinedTestDispatcher()) {
+            // A pre-quotes server: 202 with no `quotesAccepted`, and the item has already left its
+            // durable queue without injecting, so this receipt is the last word on it.
+            coEvery { chatRepository.steerChat(any()) } returns
+                Result.Success(SteerResponse(steerId = "st-1", settled = true))
+            val (delegate, _) = delegateWith(this, isStreaming = false)
+
+            delegate.steer("conv-1", spec("be brief").copy(quotes = listOf("excerpt a", "excerpt b")))
+
+            assertThat(restaged).containsExactly("excerpt a", "excerpt b").inOrder()
+            assertThat(enqueued.single().quotes).isEmpty()
+        }
+
+    /**
      * A cancel is optimistic and the server's next sync can still list the steer. Re-seeding it
      * would let the run's end re-home text the user explicitly withdrew.
      */
