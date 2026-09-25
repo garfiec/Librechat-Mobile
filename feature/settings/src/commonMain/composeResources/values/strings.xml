@@ -38,6 +38,8 @@
     <string name="cd_delete_shared_link">Delete shared link</string>
     <string name="cd_edit">Edit</string>
     <string name="cd_edit_memory">Edit memory</string>
+    <string name="memory_redacted_key">Hidden entry</string>
+    <string name="memory_redacted_value">This server\'s content policy hides what\'s stored here. You can still delete it.</string>
     <string name="cd_edit_server">Edit server</string>
     <string name="cd_expand_tools">Expand tools</string>
     <string name="cd_loading_profile">Loading profile</string>

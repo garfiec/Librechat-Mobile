@@ -352,8 +352,32 @@ DELETE /api/memories/:key                   unique only *within* a partition, an
                                             `Memory.agentId` from the list row through repository → API. (BUILT)
 POST   /api/memories                      + optional `agentId` in the body, partitioning the new entry to an
                                             agent. Mobile always omits it (shared pool) — no agent picker.
+GET    /api/memories                      (v0.8.8-rc3) rows can now carry `contentFilterBlocked: true`, meaning
+                                            the deployment's `filters.memories.pii` policy matched the entry and
+                                            the server **BLANKED** `key`/`value`/`summary` to empty strings —
+                                            they are not omitted. So an empty `value` is "withheld", not "the
+                                            user stored nothing", and an empty `key` stops being a usable
+                                            address. Reachable on a route mobile already calls, with no version
+                                            gate. Two consequences mobile had to handle: two redacted rows in
+                                            one partition used to collapse to the same Compose list key and
+                                            CRASH the screen, and editing one would PATCH the blank back over
+                                            the real content. `_id` is on every row and always has been (the
+                                            query is an unprojected `.lean()` find), so its presence is NOT a
+                                            version signal. The same projection runs on the PATCH response, so
+                                            an edit can come back redacted. (BUILT)
 
 # Added
+PATCH  /api/memories/id/:id               (v0.8.8-rc2) `{ value, key? }` + optional `?agentId=` →
+DELETE /api/memories/id/:id                 `{updated, memory}` / `{deleted}`. Addresses a row by its stable
+                                            `_id` instead of by key. **There is no GET by id** — only these
+                                            two. They exist because the key-addressed routes cannot reach a
+                                            row whose key the content filter blanked, and are ambiguous by
+                                            construction (keys are unique only *within* a partition). PATCH
+                                            answers 409 on a key collision inside the partition and 404 on an
+                                            unresolved id; its returned memory is content-filter projected.
+                                            Mobile prefers these and falls back to the key-addressed routes on
+                                            404 — except for a redacted entry, where no fallback can address
+                                            anything. (BUILT)
 POST   /api/convos/archive/all            (v0.8.8-rc2) no body — unlike every other convo mutation it reads
                                             nothing off `arg` — → `{ archivedCount }`. Archives every
                                             conversation the caller can currently see. Mobile surfaces it in

@@ -159,9 +159,13 @@ fun MemoriesScreen(
                     } else {
                         items(
                             items = uiState.memories,
-                            // Keys are unique only within a partition, so an agent-scoped entry can
-                            // share a key with a shared-pool one — qualify to keep item keys unique.
-                            key = { "${it.agentId.orEmpty()}/${it.key}" },
+                            // The server id first: a content-filtered entry comes back with its
+                            // key BLANKED, so two redacted rows in one partition collapse to the
+                            // same qualified key and Compose throws on the duplicate. The
+                            // qualified key remains the fallback — keys are unique only within a
+                            // partition, so an agent-scoped entry can share one with a
+                            // shared-pool entry.
+                            key = { it.id ?: "${it.agentId.orEmpty()}/${it.key}" },
                             contentType = { "memory" },
                         ) { memory ->
                             MemoryListItem(
@@ -231,11 +235,16 @@ private fun MemoryListItem(
     modifier: Modifier = Modifier,
 ) {
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    // Editing a redacted entry would PATCH the BLANK the dialog was seeded with over whatever is
+    // really stored, addressed by a key the server has also blanked — so the write either destroys
+    // the content or lands on a different row. Deleting stays available; it is the only recourse
+    // the user has over an entry they cannot read.
+    val editable = memory.contentFilterBlocked != true
 
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onEdit),
+            .then(if (editable) Modifier.clickable(onClick = onEdit) else Modifier),
     ) {
         Row(
             modifier = Modifier
@@ -244,15 +253,29 @@ private fun MemoryListItem(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
+                // A redacted entry arrives with its fields blanked rather than omitted, so
+                // without this it renders as a row of empty lines that reads as an empty memory.
+                val redacted = memory.contentFilterBlocked == true
                 Text(
-                    text = memory.key,
+                    text = memory.key.ifBlank {
+                        if (redacted) stringResource(Res.string.memory_redacted_key) else ""
+                    },
                     style = MaterialTheme.typography.bodyLarge,
+                    color = if (memory.key.isBlank()) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = memory.value,
+                    text = if (redacted) {
+                        stringResource(Res.string.memory_redacted_value)
+                    } else {
+                        memory.value
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
@@ -281,13 +304,15 @@ private fun MemoryListItem(
                     )
                 }
             }
-            IconButton(onClick = onEdit, modifier = Modifier.size(40.dp)) {
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = stringResource(Res.string.cd_edit_memory),
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            if (editable) {
+                IconButton(onClick = onEdit, modifier = Modifier.size(40.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = stringResource(Res.string.cd_edit_memory),
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
             IconButton(
                 onClick = { showDeleteConfirm = true },
