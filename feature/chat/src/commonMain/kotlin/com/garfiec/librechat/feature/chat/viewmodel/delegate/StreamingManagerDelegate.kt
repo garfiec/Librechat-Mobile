@@ -1099,11 +1099,13 @@ class StreamingManagerDelegate(
     fun attachToServerStartedRun(): Boolean {
         if (handle.state.isStreaming) return false
         val conversationId = handle.state.conversationId ?: return false
-        resumeActiveStreamIfNeeded(conversationId)
+        // A turn the server admitted can finish inside one poll interval, and then there is no run
+        // left to attach to. Its messages are on the server either way, so load them.
+        resumeActiveStreamIfNeeded(conversationId, onInactive = { reloadConversation(conversationId) })
         return true
     }
 
-    fun resumeActiveStreamIfNeeded(conversationId: String) {
+    fun resumeActiveStreamIfNeeded(conversationId: String, onInactive: () -> Unit = {}) {
         // Sibling of onResume (runs on conversation open); apply the same hardening so the two
         // can't race into two resumes, and a pending Stop is never overridden by a restart.
         if (abortRequested) return
@@ -1127,6 +1129,8 @@ class StreamingManagerDelegate(
                     }
                     resumeStream(conversationId)
                     applyStatusPendingAction(status)
+                } else {
+                    onInactive()
                 }
             } catch (e: CancellationException) {
                 throw e

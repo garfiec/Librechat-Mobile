@@ -397,6 +397,38 @@ class StreamingManagerLifecycleTest {
             advanceUntilIdle()
         }
 
+    /**
+     * The admitted turn finished inside one poll interval: no run is left to attach to, and the
+     * announcement is spent, so this is the only chance to show it and its reply.
+     */
+    @Test
+    fun `attaching after the server-started run already finished loads it`() =
+        runTest(StandardTestDispatcher()) {
+            coEvery { chatRepository.checkStreamStatus("conv-1", any()) } coAnswers {
+                claimingStatusAnswer(ChatStatusResponse(active = false))
+            }
+            val (delegate, _) = delegateWith(this, state = idleState())
+
+            delegate.attachToServerStartedRun()
+            advanceUntilIdle()
+
+            verify(exactly = 1) { reloadConversation("conv-1") }
+        }
+
+    /** Every conversation open runs this check; an idle conversation must not fetch twice. */
+    @Test
+    fun `an open that finds no run does not reload`() = runTest(StandardTestDispatcher()) {
+        coEvery { chatRepository.checkStreamStatus("conv-1", any()) } coAnswers {
+            claimingStatusAnswer(ChatStatusResponse(active = false))
+        }
+        val (delegate, _) = delegateWith(this, state = idleState())
+
+        delegate.resumeActiveStreamIfNeeded("conv-1")
+        advanceUntilIdle()
+
+        verify(exactly = 0) { reloadConversation(any()) }
+    }
+
     /** Nothing to retire against: a status with no epoch leaves the evidence exactly as it was. */
     @Test
     fun `an epochless status retires nothing`() = runTest(StandardTestDispatcher()) {
