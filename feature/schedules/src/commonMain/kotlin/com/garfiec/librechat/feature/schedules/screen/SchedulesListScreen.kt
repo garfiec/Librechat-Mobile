@@ -260,12 +260,17 @@ private fun ScheduleCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            // A paused schedule always says WHY. Several of these name a different repair, and
-            // one that stopped with no reason leaves the user nothing to act on.
-            if (!schedule.enabled) {
+            // A schedule the SERVER paused always says why: several of these name a different
+            // repair, and one that stopped with no reason leaves the user nothing to act on.
+            //
+            // Keyed on the reason, not on `enabled`. `disabledReason` is "why the server turned
+            // this off" and is null for a schedule the user paused with the Switch right above —
+            // for which the unrecognized-reason fallback ("Paused by the server.") is both wrong
+            // and in error red, blaming the server for the user's own tap.
+            schedule.disabledReason?.takeIf { !schedule.enabled }?.let { reason ->
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = disabledReasonLabel(schedule.disabledReason),
+                    text = disabledReasonLabel(reason),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                 )
