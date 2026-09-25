@@ -136,7 +136,6 @@ actual fun ChatScreen(
     val initialChrome = remember(viewModel) { viewModel.uiState.value.neutralizeStreamingChurn() }
     val uiState by chromeFlow.collectAsStateWithLifecycle(initialChrome)
     val attachedFiles by viewModel.attachedFiles.collectAsStateWithLifecycle()
-    val shareLinkUrl by viewModel.shareLinkUrl.collectAsStateWithLifecycle()
     val prefs by viewModel.chatPreferences.collectAsStateWithLifecycle()
     val promptLibraryRevision by viewModel.promptLibraryRevision.collectAsStateWithLifecycle()
     val showImageDescriptions = prefs.showImageDescriptions
@@ -220,14 +219,20 @@ actual fun ChatScreen(
 
     ChatScreenEffects(
         uiState = uiState,
-        shareLinkUrl = shareLinkUrl,
         viewModel = viewModel,
         snackbarHostState = snackbarHostState,
-        clipboardManager = clipboardManager,
         onConversationStart = onConversationStart,
         onNavigateToConversation = onNavigateToConversation,
         onNavigateBack = onNavigateBack,
         onNavigateToProviderKeys = onNavigateToProviderKeys,
+    )
+
+    ChatScreenOutcomes(
+        uiState = uiState,
+        viewModel = viewModel,
+        snackbarHostState = snackbarHostState,
+        onConversationStart = onConversationStart,
+        onNavigateToConversation = onNavigateToConversation,
     )
 
     val sendBlockMessage = uiState.sendBlockReason?.asString()

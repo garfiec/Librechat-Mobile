@@ -17,7 +17,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.garfiec.librechat.feature.chat.components.ForkOptionsBottomSheet
 import com.garfiec.librechat.feature.chat.components.PresetPicker
 import com.garfiec.librechat.feature.chat.components.SavePresetDialog
 import com.garfiec.librechat.feature.chat.resources.*
@@ -77,19 +76,6 @@ internal fun ChatScreenDialogs(
                 onSetShowSavePresetDialog(false)
             },
             onDismiss = { onSetShowSavePresetDialog(false) },
-        )
-    }
-
-    if (uiState.showForkOptionsForMessageId != null) {
-        ForkOptionsBottomSheet(
-            onDismiss = viewModel::dismissForkOptions,
-            onFork = { option, splitAtTarget ->
-                viewModel.forkFromMessage(
-                    messageId = uiState.showForkOptionsForMessageId!!,
-                    option = option,
-                    splitAtTarget = splitAtTarget,
-                )
-            },
         )
     }
 

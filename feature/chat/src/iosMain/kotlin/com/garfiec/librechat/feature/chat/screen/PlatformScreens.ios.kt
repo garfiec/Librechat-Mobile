@@ -203,6 +203,14 @@ actual fun ChatScreen(
         snackbarHostState = snackbarHostState,
     )
 
+    ChatScreenOutcomes(
+        uiState = uiState,
+        viewModel = viewModel,
+        snackbarHostState = snackbarHostState,
+        onConversationStart = onConversationStart,
+        onNavigateToConversation = onNavigateToConversation,
+    )
+
     val sendBlockMessage = uiState.sendBlockReason?.asString()
 
     ChatRoot(
