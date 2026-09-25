@@ -316,8 +316,8 @@ private fun isDocumentSupported(name: String?, serverVersion: String? = null): B
 }
 
 /**
- * Whether the provider can take [mimeType] natively, mirroring `isValidProviderFile` in upstream's
- * `DragDropModal.tsx`.
+ * Whether the provider can take [mimeType] natively, mirroring `isProviderDocSupported` in
+ * upstream's `client/src/components/Chat/Input/Files/DragDropModal.tsx`.
  *
  * Note `supportsImageDocVideoAudio` upstream is `google || openrouter` only — vertexai is excluded
  * there even though the server's encoders do handle its video and audio. Under this router video

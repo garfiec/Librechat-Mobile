@@ -25,8 +25,12 @@ interface ScheduleRepository {
     suspend fun createSchedule(request: CreateScheduleRequest): Result<Schedule>
 
     /**
-     * Applies only what [request] carries. An empty request is refused locally rather than sent:
-     * the server answers `400` for an update that changes nothing.
+     * Applies only what [request] carries.
+     *
+     * An empty request is answered locally with a read of the unchanged row — success, not a
+     * refusal — because the server 400s an update that changes nothing and a Save on an untouched
+     * form would then report a failure the user cannot act on. The caller therefore cannot tell an
+     * empty edit from an applied one, which is deliberate: both leave the server as it was.
      */
     suspend fun updateSchedule(id: String, request: UpdateScheduleRequest): Result<Schedule>
 

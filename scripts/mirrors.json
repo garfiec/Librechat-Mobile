@@ -59,7 +59,7 @@
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/response/UploadRouting.kt",
         "symbol": "DOCUMENT_SUPPORTED_PROVIDERS"
       },
-      "why": "Which providers can take a document natively. The router sends a file to server-side text extraction only when the provider is absent from this set, so membership decides the delivery mode. Note the commented-out azureOpenAI entry is load-bearing -- it records a deliberate exclusion, so a comment-only change here is still a real change. **Watch the predicate, not only the literal**: rc2 made `isDocumentSupportedProvider` lower-case BOTH sides, and a Set-only entry reported `ok` straight through that behavioural change, which is how mobile kept a case-sensitive match for a release.",
+      "why": "Which providers can take a document natively. The router sends a file to server-side text extraction only when the provider is absent from this set, so membership decides the delivery mode. Note the commented-out azureOpenAI entry is load-bearing -- it records a deliberate exclusion, so a comment-only change here is still a real change. That exclusion is CONDITIONAL upstream, not absolute: `isProviderAttachType` re-admits azureOpenAI when `useResponsesApi === true`, an arm mobile does not port (see the KDoc above the Kotlin set), so this entry going `ok` says nothing about whether that condition still holds. **Watch the predicate, not only the literal**: rc2 made `isDocumentSupportedProvider` lower-case BOTH sides, and a Set-only entry reported `ok` straight through that behavioural change, which is how mobile kept a case-sensitive match for a release.",
       "failure_mode": "A provider upstream ADDED keeps having its documents extracted to text instead of sent natively -- worse quality, no citations, no error. A provider upstream REMOVED gets documents sent natively that it cannot read, which is the silent drop this feature exists to fix. This set changed four times in the 4.6 months after it was introduced, at gaps of 8, 4, 6 and 3 weeks."
     },
     {
@@ -659,6 +659,34 @@
       },
       "why": "What the DELETE route's refusals MEAN, which the shared `isDefiniteQueuedTurnRejection` cannot say: that predicate answers 'the row was never committed', which is the enqueue's question. For a withdrawal the two bounded refusals point opposite ways -- `404 QUEUED_TURN_NOT_FOUND` is the goal already met (the server does not have the turn) and `409 QUEUED_TURN_ALREADY_ADMITTING` means it still intends to run it. The client hardcodes that split; nothing on the wire states it, and neither code appears in `QueuedTurnErrorCode`.",
       "failure_mode": "Upstream re-codes or re-statuses either arm and the split inverts. Reading a 404 as a refusal is the expensive direction: the row stays, its x becomes a permanent no-op, and a server-owned row refuses every drain -- the queue never sends again, with nothing on screen that can clear it. Reading a 409 as success drops a row the server still runs."
+    },
+    {
+      "id": "compaction-endpoint-support",
+      "upstream": {
+        "file": "client/src/hooks/Chat/useCompactConversation.ts",
+        "symbol": "supportsCompaction",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/content/Compaction.kt",
+        "symbol": "supportsCompaction"
+      },
+      "why": "Which endpoints the Compact action may be offered on. Upstream expresses it as `!isAssistantsEndpoint(endpoint)`; the Kotlin copy spells both Assistants endpoints out, so an endpoint upstream ADDS to that helper is not picked up here. `GET /api/config` says nothing about it. Its sibling `isCompactedLeaf` in the same file is registered; this one was not.",
+      "failure_mode": "A newly-excluded endpoint keeps being offered Compact and the turn fails against the provider, or a newly-included one has the affordance withheld. Neither decodes wrong and neither errors -- the button is simply present or absent when it should not be."
+    },
+    {
+      "id": "queued-turn-wire-values",
+      "upstream": {
+        "file": "packages/data-provider/src/types/queuedTurns.ts",
+        "symbol": "agentQueuedTurnStatuses",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/queuedturn/QueuedTurn.kt",
+        "symbol": "QueuedTurnStatus"
+      },
+      "why": "The five projection statuses the client branches on, hand-copied as string constants because the routes serve them as bare strings and never enumerate them for a client. Every queued-turn policy predicate keys off these literals, so a renamed or added status reads as 'none of the above' rather than as an unknown.",
+      "failure_mode": "A renamed status makes every predicate false for that row: the poll stops, the drain stops refusing, and the same words can be submitted twice. An ADDED status is silently treated as terminal. The decode does not fail -- these are plain strings, not an enum."
     }
   ]
 }

@@ -142,7 +142,10 @@ class MessageEditingDelegate(
     /**
      * Manual context compaction (v0.8.8-rc3): summarize the branch up to its leaf and end WITHOUT a
      * reply. Regenerate-shaped — no user message is created — which is why it goes down this path
-     * and not the new-message one, and why upstream sends `isRegenerate` alongside `compact`.
+     * and not the new-message one.
+     *
+     * The shape is borrowed for the CLIENT's benefit only: `isRegenerate` is set here and stripped
+     * again by `ChatPayloadBuilder`, because rc3 400s it arriving beside `compact`.
      */
     fun compactConversation() {
         val state = handle.state

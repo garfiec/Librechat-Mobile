@@ -191,12 +191,16 @@ class ScheduleEditorViewModel(
                     // again, and the payload carries a whole cadence — so the form is frozen
                     // until it is reloaded rather than offering a Save that cannot succeed.
                     //
-                    // Edit mode ONLY. A create's 409 is the replay guard — `clientRequestId` was
-                    // already used — so the row exists and nothing was concurrently edited. The
-                    // recovery offered here is wrong for it twice over: the copy names a conflict
-                    // that did not happen, and `reload()` blanks the draft while `clientRequestId`
-                    // is minted once per ViewModel, so every later Save re-sends the same spent
-                    // key and 409s again over a form the user can no longer see.
+                    // Edit mode ONLY. A create's 409 is a different event: the route resolves a
+                    // replay of the SAME key with the SAME content to the original row and
+                    // answers 200, so a 409 means `clientRequestId` was reused for content that
+                    // has since CHANGED — the earlier version committed, and the one on screen
+                    // never will while it carries that key. Reload is the wrong recovery for it
+                    // twice over: the copy names a conflict that did not happen, and it blanks
+                    // the draft. But nothing else is offered either, and `clientRequestId` is
+                    // minted once per ViewModel, so Save stays enabled and every retry re-sends
+                    // the same spent key. Re-minting on this arm is the fix; it is deferred
+                    // because it makes the next Save a second schedule, which is a product call.
                     hasConflict = existing != null && result.isConcurrentEdit(),
                 )
                 is Result.Loading -> Unit

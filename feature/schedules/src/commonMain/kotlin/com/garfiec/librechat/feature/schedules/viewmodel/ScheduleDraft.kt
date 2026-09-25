@@ -67,8 +67,9 @@ data class ScheduleDraft(
                 prompt = schedule.prompt,
                 agentId = schedule.agentId,
                 frequency = cadence.frequency,
-                // Blank for a cron row: it carries no time, and inventing one here is what
-                // `withFrequency` exists to avoid.
+                // Blank for a cron row: the cadence carries no hour or minute, so a default here
+                // would show a time the schedule does not run at — and would be sent back as one
+                // if the user then switched the form to a structured frequency.
                 hourText = cadence.hour?.toString().orEmpty(),
                 minuteText = cadence.minute?.toString().orEmpty(),
                 daysOfWeek = cadence.daysOfWeek?.toSet()?.takeIf { it.isNotEmpty() }
