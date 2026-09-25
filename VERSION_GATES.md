@@ -149,16 +149,27 @@ from `backendTargetVersion` in the root `version.properties` by core/common's
   so a plain version compare can't distinguish a pre- from a post-removal 0.8.7 dev server — the build
   commit's date does. The gate is declared at **2026-06-26**, one day past the landing, because three
   commits (`5c5ef37e3` #13940, `03ecac8ac` #13947, `e26ce4713` #13954) merged earlier on 2026-06-25 and a
-  day-granular gate cannot exclude them; erring the other way costs at most one 404. Drop the
-  `landedDate` and switch to plain `isCompatibleOrNewer(version, "0.8.8-rc1")`
-  once the **v0.8.8-rc1** tag ships.
+  day-granular gate cannot exclude them; erring the other way costs at most one 404. **Done** — the
+  tag shipped and all four were simplified to plain version compares at the rc1 sync (bullet below);
+  this entry is kept for the reasoning, not as an outstanding action.
 - **v0.8.8-rc3 sync:** three ANNOUNCED-capability gates were added and deliberately given **no catalog
   row and no version check**, per the rule above that a version gate must not stack on a capability the
   server announces: `interface.feedback` (the affordance is withheld when the flag is false, fail-open
   when absent), `endpointsDropParamsMap` (presence-based per endpoint/model), and `compactionEnabled`
   (withheld when ABSENT rather than defaulted true — a server that does not know `compact` answers the
-  send as an ordinary empty turn, so absence has to mean off). The two gates that ARE version-keyed this
-  sync — archive-all and memory by-id — have rows above; both are `0.8.8-rc2`, never `0.8.8`.
+  send as an ordinary empty turn, so absence has to mean off).
+
+  Version-keyed this sync, all with rows above and all declared at the rc that carries the feature —
+  `0.8.8-rc2` or `0.8.8-rc3`, **never `0.8.8`**, which would exclude every rc server: archive-all
+  (rc2), memory by-id (rc2), read-only subagent child threads (rc2), and the conversation trace viewer
+  (rc3). Two further features landed with **no version gate at all**, each for a reason worth keeping
+  straight from the three above: server-side queued turns is capability echo only (every response
+  carries `capability.supported`, and failures are classified by what they prove), and scheduled chats
+  is two capability checks — `SCHEDULES`/`USE` and an absent-means-OFF `interface.schedules`. The trace
+  viewer is the one case where a version check sits on top of an interface flag, and its row says why
+  that is belt rather than braces: a pre-rc3 server's config schema strips `traceViewer` before serving
+  it, so the flag already fails closed and the version half covers only a build reporting a tag it
+  predates.
 - **v0.8.8-line partial sync (untagged dev commit `db431210`, 2026-08-12): ZERO new gates.** Every item in
   that sync is self-proving, permission-driven, or an extra request field older servers ignore, so none of
   them meets the bar in the rule above ("gate only when the client would otherwise call a route the server
