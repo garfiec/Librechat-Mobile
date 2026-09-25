@@ -133,6 +133,8 @@
     <string name="cd_collapse_tool_call">Collapse tool call %1$s</string>
     <string name="cd_expand_tool_call">Expand tool call %1$s</string>
     <string name="cd_tool_complete">Complete</string>
+    <string name="cd_tool_cancelled">Stopped</string>
+    <string name="cd_tool_failed">Failed</string>
     <string name="video_not_supported">Video content not supported</string>
 
     <!-- Tools bottom sheet -->

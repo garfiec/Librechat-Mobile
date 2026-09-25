@@ -755,11 +755,26 @@ Deliberate divergences (a future sync must not "fix" these):
 wire verified UNCHANGED. Evidence (github.com/danny-avila/agents/compare/v3.4.5...v3.4.6): the diff
 adds an `ON_RUN_STEP_CLOSED` library event, RunStep terminal timestamps
 (`created_at`/`completed_at`/`cancelled_at`/`failed_at`), `ToolCompleteEvent.completed_at`, a
-Langfuse tracing refinement, and an Anthropic citation-accumulation fix. None reaches this client:
-the rc1 SERVER registers no handler for `ON_RUN_STEP_CLOSED` (grep of `api/` + `packages/api/src`
-at eaef87fa finds no reference), so the event is never relayed onto the SSE stream, and the new
-step/tool fields are additive keys the mobile decode ignores (`ignoreUnknownKeys`). The citation
-fix corrects content the server aggregates, not a shape. No mobile action.
+Langfuse tracing refinement, and an Anthropic citation-accumulation fix. At **rc1** none of it
+reached this client: the rc1 SERVER registered no handler for `ON_RUN_STEP_CLOSED` (grep of `api/` +
+`packages/api/src` at eaef87fa found no reference), so the event was never relayed onto the SSE
+stream, and the new step/tool fields are additive keys the mobile decode ignores
+(`ignoreUnknownKeys`). The citation fix corrects content the server aggregates, not a shape.
+
+**CORRECTED at v0.8.8-rc2 — `ON_RUN_STEP_CLOSED` went from inert to live.** The server now relays
+it (`packages/api/src/stream/GenerationJobManager.ts`, `RedisJobStore.ts`) and persists its verdict
+onto the tool-call part as `runStepStatus` / `runStepDurationMs`. Mobile maps it in
+`SseEventMapper` (`on_run_step_closed` → `StreamEvent.ToolCallClosed`) and decodes the two
+persisted fields on `AgentToolCall`.
+
+Two things about the payload decided the mapping's shape. Its `id` is the **step** id, while every
+tool-call event on this side is keyed by the tool_call id and the closure carries no tool_call of
+its own — the announcing `on_run_step` is the only frame where both appear, so the mapper records
+the pairing there. And it is **not** a replacement for `on_run_step_completed`: upstream keeps its
+own progress heuristic for parts saved before the event existed and for endpoints that never emit
+it. What it adds is the only signal separating a STOPPED step from one still in flight — steps
+swept at end-of-run because the caller aborted close with `cancelled`, and without it an aborted
+run leaves its tool cards spinning.
 
 ### v0.8.8-rc2+ — `/images/*` requires credentials BY DEFAULT (breaking, silent)
 

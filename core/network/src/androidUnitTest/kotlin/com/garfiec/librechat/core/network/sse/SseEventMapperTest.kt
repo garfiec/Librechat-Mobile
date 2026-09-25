@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.network.sse
 
+import com.garfiec.librechat.core.model.RunStepStatus
 import com.garfiec.librechat.core.model.StreamEvent
 import com.google.common.truth.Truth.assertThat
 import kotlinx.serialization.json.Json
@@ -96,6 +97,77 @@ class SseEventMapperTest {
         val tc = result as StreamEvent.ToolCallComplete
         assertThat(tc.toolCallId).isEqualTo("call_1")
         assertThat(tc.output).isEqualTo("Results here")
+    }
+
+    // --- on_run_step_closed (v0.8.8-rc2) ---
+
+    private fun runStep(stepId: String, callId: String) = SseEvent(
+        event = "",
+        data = """{"event":"on_run_step","data":{"id":"$stepId","stepDetails":{"type":"tool_calls",""" +
+            """"tool_calls":[{"id":"$callId","name":"search","args":""}]},"agentId":"agent_1","groupId":1}}""",
+    )
+
+    private fun runStepClosed(stepId: String, status: String, stamps: String = "") = SseEvent(
+        event = "",
+        data = """{"event":"on_run_step_closed","data":{"id":"$stepId","index":0,"type":"tool_calls",""" +
+            """"status":"$status"$stamps}}""",
+    )
+
+    @Test
+    fun `maps on_run_step_closed onto the tool call its step announced`() {
+        // The closure names the STEP; every tool-call event on this side is keyed by the tool_call
+        // id, and only the announcing on_run_step carries both.
+        mapper.map(runStep("step_1", "call_1"))
+
+        val closed = mapper.map(runStepClosed("step_1", "cancelled")) as StreamEvent.ToolCallClosed
+        assertThat(closed.toolCallId).isEqualTo("call_1")
+        assertThat(closed.status).isEqualTo(RunStepStatus.CANCELLED)
+        assertThat(closed.agentId).isEqualTo("agent_1")
+        assertThat(closed.groupId).isEqualTo(1)
+    }
+
+    @Test
+    fun `a closure for a step this connection never saw is dropped`() {
+        // A reconnect can replay from after the step was created, and message_creation steps have
+        // no tool call at all. Neither is an error worth surfacing.
+        assertThat(mapper.map(runStepClosed("step_never_seen", "completed"))).isNull()
+    }
+
+    @Test
+    fun `an unrecognized terminal status degrades to no event`() {
+        mapper.map(runStep("step_1", "call_1"))
+        assertThat(mapper.map(runStepClosed("step_1", "some_future_state"))).isNull()
+    }
+
+    @Test
+    fun `duration is derived only when both stamps are present and ordered`() {
+        mapper.map(runStep("step_a", "call_a"))
+        val timed = mapper.map(
+            runStepClosed("step_a", "completed", ""","created_at":1000,"closed_at":3500"""),
+        ) as StreamEvent.ToolCallClosed
+        assertThat(timed.durationMs).isEqualTo(2500)
+
+        // created_at is optional upstream, so its absence means "not derivable", not "instant".
+        mapper.map(runStep("step_b", "call_b"))
+        val untimed = mapper.map(
+            runStepClosed("step_b", "completed", ""","closed_at":3500"""),
+        ) as StreamEvent.ToolCallClosed
+        assertThat(untimed.durationMs).isNull()
+
+        // A step opened in one process and closed in another after a checkpoint resume can carry
+        // stamps from clocks that disagree; a wrong duration is worse than an absent one.
+        mapper.map(runStep("step_c", "call_c"))
+        val skewed = mapper.map(
+            runStepClosed("step_c", "completed", ""","created_at":5000,"closed_at":1000"""),
+        ) as StreamEvent.ToolCallClosed
+        assertThat(skewed.durationMs).isNull()
+    }
+
+    @Test
+    fun `resetState forgets the step to tool call mapping`() {
+        mapper.map(runStep("step_1", "call_1"))
+        mapper.resetState()
+        assertThat(mapper.map(runStepClosed("step_1", "completed"))).isNull()
     }
 
     @Test

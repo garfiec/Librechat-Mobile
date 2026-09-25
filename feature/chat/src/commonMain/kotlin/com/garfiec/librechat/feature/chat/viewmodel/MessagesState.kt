@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.PendingAction
+import com.garfiec.librechat.core.model.RunStepStatus
 import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.model.usage.TokenUsage
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
@@ -117,4 +118,10 @@ data class ActiveToolCall(
     /** Raw tool-call arguments JSON from [StreamEvent.ToolCallStart]. Holds the
      *  image prompt/quality for image-gen tools so a placeholder can render mid-stream. */
     val input: String? = null,
+    /**
+     * The run's own terminal verdict from `on_run_step_closed` (v0.8.8-rc2), or null on a server
+     * or endpoint that does not emit it — where [isComplete] alone decides, as it always did.
+     * A closed step is never running, whatever else the stream did or did not send.
+     */
+    val closedStatus: RunStepStatus? = null,
 )

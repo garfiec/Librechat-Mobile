@@ -402,6 +402,21 @@ class StreamingManagerDelegate(
                 // the child run is done; stop accumulating for that key.
                 subagentTraceDelegate.onParentToolCallResolved(event.toolCallId)
             }
+            is StreamEvent.ToolCallClosed -> {
+                handle.update {
+                    val updated = content.activeToolCalls.map { tc ->
+                        if (tc.id == event.toolCallId) {
+                            tc.copy(isComplete = true, closedStatus = event.status)
+                        } else {
+                            tc
+                        }
+                    }
+                    content = content.copy(activeToolCalls = updated)
+                }
+                // An aborted run closes its steps without ever completing them, so this is also
+                // where a subagent trace stops accumulating on that path.
+                subagentTraceDelegate.onParentToolCallResolved(event.toolCallId)
+            }
             is StreamEvent.AttachmentCreated -> {
                 val attachment = Attachment(
                     fileId = event.fileId,

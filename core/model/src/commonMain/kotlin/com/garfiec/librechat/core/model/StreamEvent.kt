@@ -28,6 +28,26 @@ sealed interface StreamEvent {
         val groupId: Int? = null,
     ) : StreamEvent
 
+    /**
+     * A run step reached a terminal state (`on_run_step_closed`, v0.8.8-rc2).
+     *
+     * **Not a replacement for [ToolCallComplete]** — upstream keeps its own progress heuristic for
+     * parts saved before the event existed and for endpoints that never emit it. What it adds is
+     * the only signal that separates a STOPPED step from one still in flight: steps swept at
+     * end-of-run because the caller aborted close with `cancelled`, and without that an aborted
+     * run leaves its tool cards spinning forever.
+     *
+     * [durationMs] is present only when the event carried both timestamps and they agree in order,
+     * so its absence means "not derivable", never "instant".
+     */
+    data class ToolCallClosed(
+        val toolCallId: String,
+        val status: RunStepStatus,
+        val durationMs: Long? = null,
+        val agentId: String? = null,
+        val groupId: Int? = null,
+    ) : StreamEvent
+
     data class ThinkingDelta(
         val chunk: String,
         val agentId: String? = null,
