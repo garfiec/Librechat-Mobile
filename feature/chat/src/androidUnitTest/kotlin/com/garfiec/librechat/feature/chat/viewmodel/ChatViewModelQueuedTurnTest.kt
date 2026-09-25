@@ -18,6 +18,7 @@ import com.garfiec.librechat.core.model.queuedturn.AgentQueuedTurnReceipt
 import com.garfiec.librechat.core.model.queuedturn.EnqueueQueuedTurnRequest
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnFailure
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnFileRef
+import com.garfiec.librechat.core.model.queuedturn.QUEUED_TURN_RECONCILIATION_MS
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnOutcome
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnStatus
 import com.garfiec.librechat.core.model.response.ChatAbortResponse
@@ -29,7 +30,9 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkObject
 import io.mockk.slot
+import io.mockk.unmockkObject
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -47,6 +50,8 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Where the local queue and the server queue meet.
@@ -757,33 +762,86 @@ class ChatViewModelQueuedTurnTest {
         arrange = {
             coEvery { chatRepository.abortChat(CONVERSATION_ID, any(), any()) } returns
                 Result.Success(ChatAbortResponse())
+            coEvery { queuedTurnRepository.cancel(any()) } answers {
+                val cancelled = serverRows.single().copy(status = QueuedTurnStatus.CANCELLED)
+                serverRows.clear()
+                QueuedTurnOutcome.Committed(cancelled)
+            }
         },
     ) { vm ->
         val sent = captureSentTexts()
-        vm.onInputChanged(TEXT)
-        vm.queueMessage()
-        runCurrent()
-
-        vm.stopGeneration()
-        runCurrent()
-        resumedStream.emit(StreamEvent.Final(aborted = true))
-        runCurrent()
-        serverRows.replaceAll {
-            it.copy(
-                status = QueuedTurnStatus.DEAD,
-                failure = QueuedTurnFailure(code = "PREDECESSOR_ABORTED", message = "aborted"),
-            )
-        }
-        advanceTimeBy(3_000)
-        runCurrent()
-        assertThat(vm.uiState.value.messageQueue.single().server?.status)
-            .isEqualTo(QueuedTurnServerState.Status.Rejected)
-        assertThat(vm.uiState.value.pausedQueueCount).isEqualTo(1)
+        deadClaimAfterStop(vm)
 
         vm.sendQueuedNow()
         runCurrent()
 
         assertThat(sent).containsExactly(TEXT)
+        // The list route returns dead rows until they are cancelled; one left there comes back
+        // as an orphan on the next read, and the next "Send queued" sends it again.
+        coVerify(exactly = 1) { queuedTurnRepository.cancel("qt-1") }
+        assertThat(serverRows).isEmpty()
+    }
+
+    /** A dead row the server would not withdraw stays refused, so it cannot be sent twice. */
+    @Test
+    fun `Send queued holds a dead-claimed turn the server would not withdraw`() = queuedTurnTest(
+        arrange = {
+            coEvery { chatRepository.abortChat(CONVERSATION_ID, any(), any()) } returns
+                Result.Success(ChatAbortResponse())
+            coEvery { queuedTurnRepository.cancel(any()) } returns
+                QueuedTurnOutcome.Indeterminate(statusCode = 503, code = null, message = "unavailable")
+        },
+    ) { vm ->
+        val sent = captureSentTexts()
+        deadClaimAfterStop(vm)
+
+        vm.sendQueuedNow()
+        runCurrent()
+
+        assertThat(sent).isEmpty()
+        assertThat(vm.uiState.value.messageQueue.single().server?.status)
+            .isEqualTo(QueuedTurnServerState.Status.Rejected)
+        assertThat(vm.uiState.value.pausedQueueCount).isEqualTo(1)
+    }
+
+    /**
+     * An unanswered enqueue whose reconciliation window ran out never gets an id, and refuses
+     * every drain. Upstream's × dismisses it; the edit stays refused, since it would resend words
+     * the server may already hold.
+     */
+    @Test
+    fun `an unconfirmed delivery can be dismissed but not edited`() = queuedTurnTest(
+        arrange = {
+            coEvery { queuedTurnRepository.enqueue(any()) } returns
+                QueuedTurnOutcome.Indeterminate(statusCode = null, code = null, message = "dropped")
+        },
+    ) { vm ->
+        // The expiry reads the wall clock; tie it to virtual time so the window can run out.
+        val start = Clock.System.now()
+        mockkObject(Clock.System)
+        every { Clock.System.now() } answers {
+            start + testScheduler.currentTime.milliseconds
+        }
+        try {
+            vm.onInputChanged(TEXT)
+            vm.queueMessage()
+            runCurrent()
+            advanceTimeBy(QUEUED_TURN_RECONCILIATION_MS + 3_000)
+            runCurrent()
+            val row = vm.uiState.value.messageQueue.single()
+            assertThat(row.server?.reconciliationExpired).isTrue()
+
+            vm.editQueued(row.localId)
+            runCurrent()
+            assertThat(vm.uiState.value.messageQueue).hasSize(1)
+            assertThat(vm.uiState.value.isEditingQueued).isFalse()
+
+            vm.cancelQueued(row.localId)
+            runCurrent()
+            assertThat(vm.uiState.value.messageQueue).isEmpty()
+        } finally {
+            unmockkObject(Clock.System)
+        }
     }
 
     /** Tapped before the dead claim is seen, the control must stay on screen for a second try. */
@@ -809,6 +867,29 @@ class ChatViewModelQueuedTurnTest {
         assertThat(sent).isEmpty()
         assertThat(vm.uiState.value.pausedQueueCount).isEqualTo(1)
         assertThat(vm.uiState.value.error).isEqualTo("The server still holds a queued message. Try again in a moment.")
+    }
+
+    /** Queues a server-owned follow-up, stops the run, and has the server dead-claim the row. */
+    private suspend fun TestScope.deadClaimAfterStop(vm: ChatViewModel) {
+        vm.onInputChanged(TEXT)
+        vm.queueMessage()
+        runCurrent()
+
+        vm.stopGeneration()
+        runCurrent()
+        resumedStream.emit(StreamEvent.Final(aborted = true))
+        runCurrent()
+        serverRows.replaceAll {
+            it.copy(
+                status = QueuedTurnStatus.DEAD,
+                failure = QueuedTurnFailure(code = "PREDECESSOR_ABORTED", message = "aborted"),
+            )
+        }
+        advanceTimeBy(3_000)
+        runCurrent()
+        assertThat(vm.uiState.value.messageQueue.single().server?.status)
+            .isEqualTo(QueuedTurnServerState.Status.Rejected)
+        assertThat(vm.uiState.value.pausedQueueCount).isEqualTo(1)
     }
 
     private fun stubAcceptedSteer() {

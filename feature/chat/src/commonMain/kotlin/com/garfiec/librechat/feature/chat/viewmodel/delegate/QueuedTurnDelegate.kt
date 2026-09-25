@@ -8,6 +8,7 @@ import com.garfiec.librechat.core.model.queuedturn.QUEUED_TURN_RECONCILIATION_MS
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnFileRef
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnOutcome
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnReceiptSource
+import com.garfiec.librechat.core.model.queuedturn.QueuedTurnStatus
 import com.garfiec.librechat.core.model.queuedturn.isQueuedTurnSuccessorOwed
 import com.garfiec.librechat.core.model.queuedturn.shouldPollQueuedTurns
 import com.garfiec.librechat.feature.chat.util.reconcileServerQueuedTurns
@@ -241,6 +242,50 @@ class QueuedTurnDelegate(
             // the refusal arm exists for, and it stays false.
             is QueuedTurnOutcome.Rejected -> outcome.statusCode == HTTP_NOT_FOUND
             is QueuedTurnOutcome.Indeterminate -> false
+        }
+    }
+
+    /**
+     * Withdraws every refused row the server still lists, releasing each to the local drain as
+     * its withdrawal lands. One that could not be withdrawn stays refused.
+     *
+     * A `dead` row projects as [QueuedTurnServerState.Status.Rejected] but keeps its id, and the
+     * list route returns dead rows until they are cancelled. Released without this, it comes back
+     * on the next read as an orphan, and the next "Send queued" sends the same words again.
+     */
+    suspend fun withdrawRefused() {
+        handle.state.messageQueue.forEachIndexed { index, item ->
+            val server = item.server ?: return@forEachIndexed
+            val queuedTurnId = server.id ?: return@forEachIndexed
+            if (server.status != QueuedTurnServerState.Status.Rejected) return@forEachIndexed
+            val landed = when (val outcome = repository.cancel(queuedTurnId)) {
+                // Not applied as a receipt: `cancelled` evidence drops the row, and the point of
+                // this withdrawal is to keep the words and send them locally.
+                is QueuedTurnOutcome.Committed -> outcome.value.status == QueuedTurnStatus.CANCELLED
+                QueuedTurnOutcome.Unsupported -> true
+                is QueuedTurnOutcome.Rejected -> outcome.statusCode == HTTP_NOT_FOUND
+                is QueuedTurnOutcome.Indeterminate -> false
+            }
+            if (landed) releaseWithdrawn(item, index)
+        }
+    }
+
+    /**
+     * Downgrades [item] in place, or puts it back at [index] when a poll that read the
+     * cancellation first has already dropped it.
+     */
+    private fun releaseWithdrawn(item: QueuedMessage, index: Int) {
+        val released = item.copy(
+            server = null,
+            clientRequestId = null,
+            parentMessageId = null,
+            expectedPredecessorCreatedAt = null,
+        )
+        handle.update {
+            val rows = queue.messageQueue.toMutableList()
+            val at = rows.indexOfFirst { it.localId == item.localId }
+            if (at >= 0) rows[at] = released else rows.add(index.coerceAtMost(rows.size), released)
+            queue = queue.copy(messageQueue = rows)
         }
     }
 

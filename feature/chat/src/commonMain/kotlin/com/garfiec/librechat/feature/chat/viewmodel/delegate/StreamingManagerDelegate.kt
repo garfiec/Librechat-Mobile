@@ -1099,13 +1099,38 @@ class StreamingManagerDelegate(
     fun attachToServerStartedRun(): Boolean {
         if (handle.state.isStreaming) return false
         val conversationId = handle.state.conversationId ?: return false
-        // A turn the server admitted can finish inside one poll interval, and then there is no run
-        // left to attach to. Its messages are on the server either way, so load them.
-        resumeActiveStreamIfNeeded(conversationId, onInactive = { reloadConversation(conversationId) })
+        attachToServerStartedRun(conversationId, ATTACH_ATTEMPTS)
         return true
     }
 
-    fun resumeActiveStreamIfNeeded(conversationId: String, onInactive: () -> Unit = {}) {
+    /**
+     * The attach is announced once, so a status check that fails is retried here rather than
+     * dropped; after the last attempt the conversation is reloaded as if the run had finished.
+     */
+    private fun attachToServerStartedRun(conversationId: String, attemptsLeft: Int) {
+        // A turn the server admitted can finish inside one poll interval, and then there is no run
+        // left to attach to. Its messages are on the server either way, so load them.
+        val reload = { reloadConversation(conversationId) }
+        resumeActiveStreamIfNeeded(
+            conversationId,
+            onInactive = reload,
+            onFailed = {
+                scope.launch {
+                    if (attemptsLeft > 1) delay(ATTACH_RETRY_DELAY_MS)
+                    if (handle.state.isStreaming || handle.state.conversationId != conversationId) {
+                        return@launch
+                    }
+                    if (attemptsLeft > 1) attachToServerStartedRun(conversationId, attemptsLeft - 1) else reload()
+                }
+            },
+        )
+    }
+
+    fun resumeActiveStreamIfNeeded(
+        conversationId: String,
+        onInactive: () -> Unit = {},
+        onFailed: () -> Unit = {},
+    ) {
         // Sibling of onResume (runs on conversation open); apply the same hardening so the two
         // can't race into two resumes, and a pending Stop is never overridden by a restart.
         if (abortRequested) return
@@ -1136,6 +1161,7 @@ class StreamingManagerDelegate(
                 throw e
             } catch (e: Exception) {
                 Logger.d(e) { "No active stream to resume for $conversationId" }
+                onFailed()
             }
         }
     }
@@ -1220,5 +1246,9 @@ class StreamingManagerDelegate(
          * SSE stall timeout that is otherwise the only recovery.
          */
         const val ABORT_FINAL_TIMEOUT_MS = 15_000L
+
+        /** Status checks spent attaching to a run the server started, and the gap between them. */
+        const val ATTACH_ATTEMPTS = 3
+        const val ATTACH_RETRY_DELAY_MS = 2_000L
     }
 }

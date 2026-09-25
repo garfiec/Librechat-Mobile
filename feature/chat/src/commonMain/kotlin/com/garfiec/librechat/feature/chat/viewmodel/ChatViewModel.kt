@@ -1540,6 +1540,16 @@ class ChatViewModel(
             queueDelegate.cancel(localId)
             return
         }
+        // An unconfirmed delivery: its window expired with no id, so nothing can withdraw it and
+        // it refuses every drain. Upstream's × dismisses it locally, leaving the server to run it
+        // if it did land. Only the × — an edit would resend words the server may already hold.
+        if (item.server.status == QueuedTurnServerState.Status.Uncertain &&
+            item.server.reconciliationExpired
+        ) {
+            queueDelegate.cancel(localId)
+            tryResumeDrain()
+            return
+        }
         // A withdrawal is already in flight, which is the same window with `isEditingQueued` not
         // yet set: the rows are still on screen, so a tap here would start a second concurrent
         // DELETE, and whichever lands first leaves the other holding a row the server no longer
@@ -1601,8 +1611,36 @@ class ChatViewModel(
         queueDelegate.reorder(fromIndex, toIndex)
     }
 
-    /** "Send queued" control after a Stop/error pause: lift the pause and resume draining. */
-    fun sendQueuedNow() = queueDelegate.resume()
+    /**
+     * "Send queued" control after a Stop/error pause: lift the pause and resume draining.
+     *
+     * A refused row the server still lists is withdrawn there first, under the same fence as the
+     * × — see [QueuedTurnDelegate.withdrawRefused].
+     */
+    fun sendQueuedNow() {
+        val refused = _uiState.value.messageQueue.firstOrNull {
+            it.server?.status == QueuedTurnServerState.Status.Rejected && it.server.id != null
+        }
+        if (refused == null) {
+            queueDelegate.resume()
+            return
+        }
+        if (withdrawingForEdit != null) {
+            reportQueueBusy()
+            return
+        }
+        withdrawingForEdit = refused.localId
+        viewModelScope.launch {
+            try {
+                // A row that could not be withdrawn stays refused, and resume() says the server
+                // still holds one.
+                queuedTurnDelegate.withdrawRefused()
+                queueDelegate.resume()
+            } finally {
+                withdrawingForEdit = null
+            }
+        }
+    }
 
     /** Snapshots the editable composer surface (the new-message draft) for stashing during an edit. */
     private fun captureComposer(): ComposerSnapshot {

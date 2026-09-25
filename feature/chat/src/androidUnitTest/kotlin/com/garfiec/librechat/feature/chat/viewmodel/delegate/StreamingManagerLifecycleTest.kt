@@ -415,6 +415,39 @@ class StreamingManagerLifecycleTest {
             verify(exactly = 1) { reloadConversation("conv-1") }
         }
 
+    /** The attach is announced once, so a failed status check is retried rather than dropped. */
+    @Test
+    fun `a failed status check on attach is retried`() = runTest(StandardTestDispatcher()) {
+        var calls = 0
+        coEvery { chatRepository.checkStreamStatus("conv-1", any()) } coAnswers {
+            if (++calls == 1) throw IllegalStateException("timeout")
+            claimingStatusAnswer(ChatStatusResponse(active = true, createdAt = SUCCESSOR_EPOCH))
+        }
+        val (delegate, _) = delegateWith(this, state = idleState())
+
+        delegate.attachToServerStartedRun()
+        advanceUntilIdle()
+
+        verify { queueDelegate.retireAdmissionsBefore(SUCCESSOR_EPOCH) }
+        delegate.reset()
+        advanceUntilIdle()
+    }
+
+    /** With every check failing, the turn is loaded as if it had already finished. */
+    @Test
+    fun `an attach whose status never answers falls back to a reload`() =
+        runTest(StandardTestDispatcher()) {
+            coEvery { chatRepository.checkStreamStatus("conv-1", any()) } throws
+                IllegalStateException("timeout")
+            val (delegate, _) = delegateWith(this, state = idleState())
+
+            delegate.attachToServerStartedRun()
+            advanceUntilIdle()
+
+            coVerify(exactly = 3) { chatRepository.checkStreamStatus("conv-1", any()) }
+            verify(exactly = 1) { reloadConversation("conv-1") }
+        }
+
     /** Every conversation open runs this check; an idle conversation must not fetch twice. */
     @Test
     fun `an open that finds no run does not reload`() = runTest(StandardTestDispatcher()) {

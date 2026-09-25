@@ -26,6 +26,16 @@ class QueuedTurnRepositoryImpl(
 
     override suspend fun enqueue(
         request: EnqueueQueuedTurnRequest,
+    ): QueuedTurnOutcome<AgentQueuedTurnReceipt> = if (isUnsupported()) {
+        // The route is already known to be absent; another POST would only buy another 404
+        // before the turn falls back to the local drain.
+        QueuedTurnOutcome.Unsupported
+    } else {
+        enqueueLive(request)
+    }
+
+    private suspend fun enqueueLive(
+        request: EnqueueQueuedTurnRequest,
     ): QueuedTurnOutcome<AgentQueuedTurnReceipt> = call {
         val response = queuedTurnsApi.enqueueQueuedTurn(request)
         // A 2xx with `supported:false` is the announced capability saying no. It reads as an

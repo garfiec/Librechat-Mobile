@@ -14,6 +14,7 @@ import com.garfiec.librechat.core.model.queuedturn.QueuedTurnOutcome
 import com.garfiec.librechat.core.network.api.QueuedTurnsApi
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
@@ -163,6 +164,15 @@ class QueuedTurnRepositoryClassificationTest {
         repository.enqueue(request)
 
         assertThat(repository.isUnsupported()).isTrue()
+    }
+
+    @Test
+    fun `a latched route is not asked again`() = runTest {
+        failing(404, """{"message":"Endpoint not found"}""")
+        repository.enqueue(request)
+
+        assertThat(repository.enqueue(request)).isEqualTo(QueuedTurnOutcome.Unsupported)
+        coVerify(exactly = 1) { api.enqueueQueuedTurn(any()) }
     }
 
     @Test

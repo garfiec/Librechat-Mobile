@@ -212,7 +212,8 @@ class MessageQueueDelegate(
      *
      * A row the server refused is released to the local drain first. The server will never run
      * it — a stopped run dead-claims every turn queued behind it, asking the user to review it —
-     * and this tap is that review; left server-owned it would block the drain for good.
+     * and this tap is that review; left server-owned it would block the drain for good. Only a row
+     * with no id: one the server still lists must be withdrawn there first, which the caller does.
      *
      * A row the server still holds keeps the queue paused rather than dropping the control: the
      * drain refuses to send around it, and once the pause is lifted nothing else offers the user a
@@ -221,7 +222,7 @@ class MessageQueueDelegate(
     fun resume() {
         handle.update {
             val released = queue.messageQueue.map { item ->
-                if (item.server?.status != QueuedTurnServerState.Status.Rejected) {
+                if (item.server?.status != QueuedTurnServerState.Status.Rejected || item.server.id != null) {
                     item
                 } else {
                     item.copy(
