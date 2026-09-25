@@ -34,6 +34,7 @@ import com.garfiec.librechat.feature.auth.navigation.AddAccountServerUrl
 import com.garfiec.librechat.feature.chat.navigation.NewChat
 import com.garfiec.librechat.feature.conversations.navigation.Projects
 import com.garfiec.librechat.feature.files.navigation.Files
+import com.garfiec.librechat.feature.schedules.navigation.SchedulesList
 import com.garfiec.librechat.feature.settings.navigation.SettingsTabbed
 import com.garfiec.librechat.feature.skills.navigation.SkillsList
 import com.garfiec.librechat.shared.navigation.MainNavDisplay
@@ -192,6 +193,9 @@ fun TabletLayout(
                         },
                         onSkillsClick = {
                             navigator.navigate(SkillsList)
+                        },
+                        onSchedulesClick = {
+                            navigator.navigate(SchedulesList)
                         },
                         onOpenProjectsIndex = {
                             navigator.navigate(Projects)

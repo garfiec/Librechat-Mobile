@@ -19,6 +19,7 @@ import com.garfiec.librechat.core.model.ChatProject
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.ConversationTag
 import com.garfiec.librechat.core.model.SAVED_TAG
+import com.garfiec.librechat.core.model.config.isSchedulesEnabled
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.canCreateSharedLinks
@@ -92,7 +93,12 @@ class DrawerViewModel(
             val pinSupported = version != null && BackendVersion.isCompatibleOrNewer(version, "0.8.7")
             val projectsSupported = version != null && BackendVersion.isCompatibleOrNewer(version, "0.8.7-rc1")
             val canShare = permissions.canCreateSharedLinks(config?.sharedLinksEnabled ?: false)
-            DrawerActionMenuState(tags, canShare, pinSupported, projectsSupported)
+            // Scheduled chats are NOT version-gated. The server announces them on `interface`, and
+            // ABSENT means OFF there — the opposite of every other flag — so a version compare on
+            // top would only add a second way to get it wrong. `isSchedulesEnabled` is the one
+            // reader; do not fold it into a generic interface-flag helper.
+            val schedulesEnabled = isSchedulesEnabled(config?.interfaceConfig?.schedules)
+            DrawerActionMenuState(tags, canShare, pinSupported, projectsSupported, schedulesEnabled)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DrawerActionMenuState())
 
     // Chat Projects (v0.8.7). Loaded lazily for the move-to-project picker and the drawer's Projects
@@ -179,6 +185,8 @@ class DrawerViewModel(
                     // USE gate is fail-OPEN (read/list visibility); mutation gating
                     // lives fail-CLOSED inside feature/skills.
                     skillsEnabled = role.hasAccessOrPermissive(PermissionType.SKILLS, Permission.USE),
+                    schedulesPermitted =
+                        role.hasAccessOrPermissive(PermissionType.SCHEDULES, Permission.USE),
                 )
             }
             .stateIn(viewModelScope, SharingStarted.Eagerly, DrawerPermissionFlags())
@@ -233,6 +241,8 @@ class DrawerViewModel(
             agentsEnabled = perms.agentsEnabled,
             bookmarksEnabled = perms.bookmarksEnabled,
             skillsEnabled = perms.skillsEnabled,
+            // BOTH halves, in upstream's order: the permission, then the server flag.
+            schedulesEnabled = perms.schedulesPermitted && actionMenu.schedulesEnabled,
             availableTags = actionMenu.availableTags,
             sharedLinksEnabled = actionMenu.sharedLinksEnabled,
             pinEnabled = actionMenu.pinEnabled,
@@ -244,6 +254,8 @@ class DrawerViewModel(
         val agentsEnabled: Boolean = true,
         val bookmarksEnabled: Boolean = true,
         val skillsEnabled: Boolean = true,
+        /** The permission half only. Scheduled chats need the server flag too — see the combine. */
+        val schedulesPermitted: Boolean = true,
     )
 
     private data class DrawerActionMenuState(
@@ -251,6 +263,7 @@ class DrawerViewModel(
         val sharedLinksEnabled: Boolean = false,
         val pinEnabled: Boolean = false,
         val projectsEnabled: Boolean = false,
+        val schedulesEnabled: Boolean = false,
     )
 
     init {
