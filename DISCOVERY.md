@@ -895,6 +895,50 @@ Three parts of the rc2 steer surface are deliberately NOT ported:
   provider (`AddToChatSelectionMenu.kt`), and CMP's iOS text-context-menu API surface differs and
   needs its own investigation. Android-only until then; do not re-flag as a gap.
 
+Server-side queued turns (v0.8.8-rc2) reverse a mobile invariant, deliberately:
+
+**#167 stated that a queued item's lineage is recomputed LIVE at drain, so each send chains onto the
+freshly finalized turn.** That is still true for every legacy row, and it has to be: the
+second-and-later item in a queue has no parent at the moment it is composed — its parent is the
+reply to the item ahead of it, which does not exist yet. A row the SERVER owns cannot work that way,
+because the server does the admitting and must be told what to admit behind. So `parentMessageId`
+and `expectedPredecessorCreatedAt` are captured at ENQUEUE for those rows only, and the
+`QueuedMessage` KDoc now says so rather than asserting the old rule over code that no longer honours
+it.
+
+The two are reconciled by the SERVER, not by the client. `parentMessageId` is an **anchor**, not a
+literal parent: `latestAssistantDescendant` (`packages/api/src/agents/queuedTurns.ts:357`) walks
+forward from it to the newest assistant message that descends from it, and uses THAT as the new
+turn's parent — so a queue of several chains correctly from one captured anchor. The anchor upstream
+sends is the running turn's **user** message (`clientQueueParentMessageId`, set to `intermediateId`
+in `useChatFunctions.ts:661`), because the reply's own id is a synthesized `"${userMessageId}_"`
+placeholder the server never persists. Mobile sends the same thing: while a run streams,
+`displayMessages` is truncated at that leaf, so its tail IS the anchor. The enqueue route does not
+validate it — a stale anchor surfaces at admission as `PARENT_NOT_FOUND` and kills that turn only.
+
+Two fields on the rc3 surface are decode-only and nothing may branch on them:
+- **`capability.durability`** — `packages/api/src/agents/queuedTurnHttp.ts:31` hardcodes
+  `{ supported: true, durability: 'durable' }` and all six response sites use that one constant, so
+  `process_local` is unreachable. The `process_local` in `IJobStore.ts` is a different union for a
+  different subsystem; do not treat the two as related.
+- **`revision`** — an immutable queue sequence, not a version counter. It is what server-owned rows
+  are ordered by; `position` renumbers as predecessors settle, so two rows read in different polls
+  can claim the same one.
+
+Not ported, and why:
+- **The reveal placeholder.** Upstream shows an admitted turn as the next user message while the
+  server's run starts (`useQueuedTurnReveal.ts`). Mobile discovers and ATTACHES to that run (the
+  existing `/chat/status` + resume path), so the reply streams — but the user's own words are not on
+  screen until the turn finalizes. Seeding them would mean writing `messages`/`displayMessages`
+  mid-run, which is the streaming-anchor invariant's exact failure mode, and the seed's id can never
+  match the one the server mints, so it cannot reconcile away by id the way the handoff seed does.
+  Display-only: no invariant depends on it and it cannot cause a double send.
+- **`priority` / interrupt-and-send.** The route answers 501 `QUEUED_TURN_PRIORITY_UNSUPPORTED`
+  unconditionally in rc3, so there is nothing to send.
+- **Upstream's queue ordering.** `compareQueuedMessages` sorts the whole list by `createdAt`; mobile
+  has a manual reorder to preserve, so server-owned rows sort first by `revision` and the legacy
+  rows keep the order the user put them in.
+
 Agent editor:
 - The unified tool picker now mirrors web `buildCatalog` gating (catalog.ts): generic plugins only
   under the `tools` capability, and `ask_user_question` as a builtin-style row only when its OWN

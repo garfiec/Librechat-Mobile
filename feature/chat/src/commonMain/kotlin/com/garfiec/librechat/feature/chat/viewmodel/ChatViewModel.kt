@@ -1314,15 +1314,42 @@ class ChatViewModel(
             Logger.d { "editQueued: refusing — picked files are not settled yet" }
             return
         }
+        val index = _uiState.value.messageQueue.indexOfFirst { it.localId == localId }
+        val serverOwned = _uiState.value.messageQueue.getOrNull(index)?.takeIf { it.server != null }
+        if (serverOwned != null) {
+            // The server holds these words and will run them, so editing in place would leave the
+            // original queued behind the edit. Withdraw it first, and only edit if that succeeded.
+            viewModelScope.launch {
+                if (queuedTurnDelegate.cancel(serverOwned)) {
+                    // The cancel's own receipt already retired the row, so there is nothing left
+                    // to take out of the queue. It comes back as an ordinary local item —
+                    // re-offering it to the server under the same id would be a 409.
+                    beginQueuedEdit(serverOwned.asLegacyRow(), index)
+                }
+            }
+            return
+        }
         val taken = queueDelegate.takeForEdit(localId) ?: return
+        beginQueuedEdit(taken.value, taken.index)
+    }
+
+    /** Drops every trace of server ownership, leaving a row the local drain may send. */
+    private fun QueuedMessage.asLegacyRow(): QueuedMessage = copy(
+        server = null,
+        clientRequestId = null,
+        parentMessageId = null,
+        expectedPredecessorCreatedAt = null,
+    )
+
+    private fun beginQueuedEdit(item: QueuedMessage, index: Int) {
         val stashed = captureComposer()
-        applyComposer(taken.value.toComposerSnapshot())
+        applyComposer(item.toComposerSnapshot())
         _uiState.update {
             it.copy(
                 composer = it.composer.copy(
                     editingQueuedItem = QueuedEditSession(
-                        original = taken.value,
-                        originalIndex = taken.index,
+                        original = item,
+                        originalIndex = index,
                         stashed = stashed,
                     ),
                 ),
