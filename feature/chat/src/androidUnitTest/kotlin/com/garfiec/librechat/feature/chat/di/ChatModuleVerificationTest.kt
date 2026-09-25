@@ -20,6 +20,7 @@ import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.data.repository.PromptRepository
+import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
 import com.garfiec.librechat.core.data.repository.SpeechRepository
@@ -50,6 +51,7 @@ class ChatModuleVerificationTest {
                 PresetRepository::class,
                 ResumePinStore::class,
                 PromptRepository::class,
+                QueuedTurnRepository::class,
                 RoleRepository::class,
                 PermissionGate::class,
                 ShareRepository::class,

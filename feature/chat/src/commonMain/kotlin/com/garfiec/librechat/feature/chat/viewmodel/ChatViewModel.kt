@@ -29,6 +29,7 @@ import com.garfiec.librechat.core.data.repository.McpRepository
 import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.PromptRepository
+import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
 import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
@@ -49,6 +50,7 @@ import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.core.model.permissions.canCreateSharedLinks
 import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
+import com.garfiec.librechat.core.model.queuedturn.AgentQueuedTurnReceipt
 import com.garfiec.librechat.core.model.request.ToolApprovalResolution
 import com.garfiec.librechat.core.model.response.UploadRoute
 import com.garfiec.librechat.core.model.steer.mergeRestagedQuotes
@@ -84,6 +86,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.delegate.PendingActionDelega
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PickedFile
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformDelegateFactory
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PresetPromptDelegate
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.QueuedTurnDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.RoutedFile
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.SendCompletionDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ShareData
@@ -141,6 +144,7 @@ class ChatViewModel(
     private val keyRepository: KeyRepository,
     presetRepository: PresetRepository,
     private val promptRepository: PromptRepository,
+    queuedTurnRepository: QueuedTurnRepository,
     shareRepository: ShareRepository,
     mcpRepository: McpRepository,
     private val userRepository: UserRepository,
@@ -261,6 +265,16 @@ class ChatViewModel(
         onQueuedDropped = { count -> _queuedMessagesDropped.trySend(count) },
         markFilesUsed = { fileIds -> fileRepository.markFilesUsed(fileIds) },
         holdRenewalSupported = { fileRepository.supportsUsageHold() },
+    )
+
+    private val queuedTurnDelegate = QueuedTurnDelegate(
+        handle = QueueHandle(stateHandle),
+        repository = queuedTurnRepository,
+        // The server started a run this client never asked for. Nothing else would notice it:
+        // queued turns have no push channel, and the ordinary resume path only fires for a client
+        // that was already streaming.
+        onSuccessorOwed = { streamingManager.attachToServerStartedRun() },
+        projectOrphan = ::projectOrphanQueuedTurn,
     )
 
     // --- Delegate-owned flows exposed to the UI ---
@@ -567,6 +581,16 @@ class ChatViewModel(
 
         // Seed/refresh the context-usage gauge for a loaded or snapshot-less branch (v0.8.7).
         contextProjectionDelegate.start()
+
+        // Queued turns are reconciled by polling, so the poll has to be (re)aimed whenever the
+        // conversation it is about changes — including the moment a new chat's id resolves, which
+        // is the first point a follow-up can become server-owned.
+        viewModelScope.launch {
+            _uiState
+                .map { it.conversationId to it.selectedEndpoint }
+                .distinctUntilChanged()
+                .collect { refreshQueuedTurns() }
+        }
 
         // Single authority for a new chat's initial model selection. Continuous so
         // the retained NewChat landing VM re-syncs to last-used when it changes
@@ -1197,9 +1221,73 @@ class ChatViewModel(
      * again there would wipe whatever the user has typed in the meantime.
      */
     private fun enqueueSpec(spec: QueuedMessage) {
-        queueDelegate.enqueue(spec)
+        val conversationId = _uiState.value.conversationId
+        val owned = if (conversationId == null) spec else serverOwnedSpec(spec)
+        queueDelegate.enqueue(owned)
+        // Strictly after the row is in the queue: everything the enqueue answer does — marking it
+        // rejected, handing it back to the legacy drain — addresses a row that has to exist.
+        if (owned.server != null && conversationId != null) {
+            queuedTurnDelegate.enqueue(owned, conversationId)
+        }
         // If the in-flight reply already finished, no Final will arrive to drain this — kick it now.
         tryResumeDrain()
+    }
+
+    /**
+     * Marks [spec] as one the SERVER will admit and run, or returns it unchanged for the legacy
+     * local drain.
+     *
+     * Three things have to be true, and all three are properties of a live agent run:
+     * the endpoint takes queued turns at all, there is a visible branch leaf to anchor to, and
+     * the run's generation epoch is known. Without an authoritative pair the follow-up stays
+     * local — a guess here would have the server admit behind the wrong boundary.
+     *
+     * The anchor is the *user* message of the running turn, not the reply: the reply has no
+     * server id until it is persisted. That is what upstream sends too, and the server treats it
+     * as a branch anchor rather than a literal parent — it walks forward to the newest assistant
+     * message descending from it, which is how a queue of several chains correctly.
+     * `displayMessages` is truncated at that leaf for the duration of a stream, so its tail IS
+     * the anchor (the same identity the completion-render keying relies on).
+     *
+     * `clientRequestId` is minted here and not taken from [QueuedMessage.localId]: localId
+     * survives an edit, and reusing an id for different text is a 409.
+     */
+    private fun serverOwnedSpec(spec: QueuedMessage): QueuedMessage {
+        val state = _uiState.value
+        if (state.selectedEndpoint != EndpointConstants.AGENTS) return spec
+        if (!state.isStreaming) return spec
+        val parentMessageId = state.displayMessages.lastOrNull()?.message?.messageId ?: return spec
+        val predecessorCreatedAt = pendingActionDelegate.generationEpoch ?: return spec
+        return spec.copy(
+            server = QueuedTurnServerState(status = QueuedTurnServerState.Status.Sending),
+            clientRequestId = Uuid.random().toString(),
+            parentMessageId = parentMessageId,
+            expectedPredecessorCreatedAt = predecessorCreatedAt,
+        )
+    }
+
+    /**
+     * A display row for a queued turn this client has no record of — one queued on another
+     * device, or by a process that has since been killed (the queue is memory-only, the server's
+     * is not).
+     *
+     * The send config is a placeholder and is never read: the server runs the turn with the
+     * conversation's own config, and the drain refuses server-owned rows outright. It is filled
+     * in only because [QueuedMessage] requires it for the rows that DO drain locally.
+     */
+    private fun projectOrphanQueuedTurn(receipt: AgentQueuedTurnReceipt): QueuedMessage {
+        val state = _uiState.value
+        return QueuedMessage(
+            localId = receipt.clientRequestId,
+            text = receipt.text,
+            endpoint = state.selectedEndpoint,
+            model = state.selectedModel,
+            agentId = state.selectedModel.takeIf {
+                state.selectedEndpoint == EndpointConstants.AGENTS
+            },
+            dispatch = requestBuilder.currentDispatch(),
+            accountId = activeAccountProvider.currentAccountId()?.value,
+        )
     }
 
     /** Resumes FIFO draining when the queue is idle (not mid-stream, not paused). No-op otherwise;
@@ -1283,11 +1371,27 @@ class ChatViewModel(
         // Ignore ghost ×/reorder while an edit is in flight, so the queue can't shift under the
         // session's captured originalIndex.
         if (_uiState.value.isEditingQueued) return
-        queueDelegate.cancel(localId)
+        val item = _uiState.value.messageQueue.firstOrNull { it.localId == localId }
+        if (item?.server == null) {
+            queueDelegate.cancel(localId)
+            return
+        }
+        // The server holds this one. Withdraw it there FIRST and drop the local row only on a
+        // confirmed cancel — removing it locally on a refused one would hide a turn the server
+        // still intends to run.
+        viewModelScope.launch {
+            if (queuedTurnDelegate.cancel(item)) queueDelegate.cancel(localId)
+        }
     }
 
     fun reorderQueue(fromIndex: Int, toIndex: Int) {
         if (_uiState.value.isEditingQueued) return
+        // Server-owned rows run in the server's sequence; dragging one would show an order the
+        // backend will not honour.
+        val queue = _uiState.value.messageQueue
+        if (queue.getOrNull(fromIndex)?.server != null || queue.getOrNull(toIndex)?.server != null) {
+            return
+        }
         queueDelegate.reorder(fromIndex, toIndex)
     }
 
@@ -1663,9 +1767,30 @@ class ChatViewModel(
         presetPromptDelegate.refreshAvailablePromptsIfStale()
     }
 
-    fun onPause() = streamingManager.onPause()
+    fun onPause() {
+        streamingManager.onPause()
+        queuedTurnDelegate.stopPolling()
+    }
 
-    fun onResume() = streamingManager.onResume()
+    fun onResume() {
+        streamingManager.onResume()
+        // A foreground is a reconciliation point, not just a stream resume: the server may have
+        // admitted, dropped or added a queued turn while the app was away, and there is nothing
+        // to hear it from.
+        refreshQueuedTurns()
+    }
+
+    /**
+     * Restarts the queued-turn reconcile poll, whose first read is unconditional.
+     *
+     * Deliberately not gated on the local queue being non-empty: the rows this exists to
+     * rediscover are exactly the ones this process does not have.
+     */
+    private fun refreshQueuedTurns() {
+        val state = _uiState.value
+        val eligible = state.selectedEndpoint == EndpointConstants.AGENTS
+        queuedTurnDelegate.ensurePolling(state.conversationId.takeIf { eligible })
+    }
 
     /**
      * Submits [feedback] for a message, or clears it when null.

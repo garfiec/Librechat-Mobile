@@ -1075,6 +1075,19 @@ class StreamingManagerDelegate(
         }
     }
 
+    /**
+     * Attaches to a run the SERVER started — it admitted a queued turn while this client sat idle.
+     *
+     * [onResume] cannot serve this: it is gated on `wasStreaming`, and by definition this client
+     * was not. Queued turns have no push channel either, so without this the user's follow-up runs
+     * to completion with nothing on screen until the conversation is reopened.
+     */
+    fun attachToServerStartedRun() {
+        if (handle.state.isStreaming) return
+        val conversationId = handle.state.conversationId ?: return
+        resumeActiveStreamIfNeeded(conversationId)
+    }
+
     fun resumeActiveStreamIfNeeded(conversationId: String) {
         // Sibling of onResume (runs on conversation open); apply the same hardening so the two
         // can't race into two resumes, and a pending Stop is never overridden by a restart.
