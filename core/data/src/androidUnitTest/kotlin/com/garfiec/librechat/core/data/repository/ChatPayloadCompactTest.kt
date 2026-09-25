@@ -8,8 +8,14 @@ import org.junit.Test
  *
  * Every field here is load-bearing and none of them is obvious from the call site: the turn is
  * regenerate-shaped with no user message, so `messageId` and `parentMessageId` are BOTH the branch
- * leaf — the summary's parent and the anchor the server compacts up to — and `isRegenerate` rides
- * alongside `compact` because upstream's `ask` derives it as `isRegenerate || compact`.
+ * leaf — the summary's parent and the anchor the server compacts up to.
+ *
+ * `isRegenerate` is where the shape stops. It is a CLIENT-side value — it is what routes the send
+ * down the regenerate path and keeps the leaf out of the early-abort un-send — and it must not
+ * reach the wire beside `compact`: `getCompactionRejection` answers 400
+ * `INVALID_COMPACTION_REQUEST` ("Compaction cannot be combined with an edit, regenerate, or
+ * continue") for exactly that pair, so a compaction carrying it can never succeed against any
+ * server. Upstream drops it in the same place, `createPayload`.
  */
 class ChatPayloadCompactTest {
 
@@ -33,14 +39,32 @@ class ChatPayloadCompactTest {
     }
 
     @Test
-    fun `a compaction is regenerate-shaped on the wire`() {
+    fun `a compaction drops every flag the rejection checks, even one the caller asked for`() {
         val request = compactRequest()
         assertThat(request.compact).isTrue()
-        assertThat(request.isRegenerate).isTrue()
+        // The caller passes isRegenerate = true — the local shape — and the builder drops it,
+        // because `compact` plus ANY of isRegenerate / isContinued / editedContent /
+        // responseMessageId is a 400 the user sees as a Compact button that does nothing.
+        assertThat(request.isRegenerate).isFalse()
+        assertThat(request.isContinued).isFalse()
+        assertThat(request.responseMessageId).isNull()
         // Upstream sets overrideParentMessageId only for a REAL regenerate; a compaction leaves it
         // null, so the summary parents onto the leaf rather than replacing a sibling.
         assertThat(request.overrideParentMessageId).isNull()
-        assertThat(request.isContinued).isFalse()
+    }
+
+    @Test
+    fun `an ordinary regenerate still carries the flag`() {
+        val regenerate = ChatPayloadBuilder.build(
+            text = "",
+            conversationId = "conv-1",
+            endpoint = "openAI",
+            model = "gpt-4o",
+            parentMessageId = "leaf-9",
+            isRegenerate = true,
+        )
+        assertThat(regenerate.isRegenerate).isTrue()
+        assertThat(regenerate.compact).isNull()
     }
 
     @Test

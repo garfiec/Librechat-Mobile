@@ -56,7 +56,13 @@ object ChatPayloadBuilder {
             overrideParentMessageId = overrideParentMessageId,
             responseMessageId = responseMessageId,
             isEdited = isEdited,
-            isRegenerate = isRegenerate,
+            // A compaction borrows the regenerate SHAPE client-side — no user message is minted —
+            // but the server must see it as a compaction and nothing else: rc3's
+            // `getCompactionRejection` 400s `INVALID_COMPACTION_REQUEST` on `isRegenerate` (or
+            // `isContinued`/`editedContent`/`responseMessageId`) arriving alongside `compact`.
+            // Upstream drops it the same way — `isRegenerate: compact === true ? undefined :
+            // isRegenerate` in packages/data-provider/src/createPayload.ts.
+            isRegenerate = if (compact == true) false else isRegenerate,
             compact = compact,
             isContinued = isContinued,
             webSearch = if (webSearch) true else null,

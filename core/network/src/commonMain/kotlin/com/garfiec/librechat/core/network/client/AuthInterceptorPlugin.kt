@@ -16,6 +16,21 @@ class AuthInterceptorPlugin private constructor(
     private val tokenManager: TokenManager,
     private val serverUrlProvider: ServerUrlProvider?,
 ) {
+    /**
+     * The server base URL to scope this request against, EMPTY treated as absent.
+     *
+     * A `?:` alone catches only null, and a `RequestIdentity` captured before the URL resolved
+     * carries `""`. That empty string then reads as a host-root deployment: `isSameHostAsServer`
+     * fails open on it, and `isSecuredImagePath` derives an empty base path — so on a deployment
+     * served under a base path the `${basePath}/images/…` skip misses, the image 401 takes the
+     * refresh-and-retry leg, 401s again against a mount that never reads `Authorization`, and
+     * `emitSessionExpired` signs the user out of a live session. [ImageCookiePlugin] and
+     * [ServerHeadersPlugin] both normalize here; this seam has to agree with them or the cookie is
+     * attached by one rule and the logout suppressed by another.
+     */
+    private fun resolveBaseUrl(snapshot: RequestIdentity?): String? =
+        snapshot?.baseUrl?.takeIf { it.isNotEmpty() } ?: serverUrlProvider?.getBaseUrl()
+
     class Config {
         lateinit var tokenManager: TokenManager
 
@@ -63,7 +78,7 @@ class AuthInterceptorPlugin private constructor(
             // live active account, preserving legacy behavior.
             scope.requestPipeline.intercept(HttpRequestPipeline.State) {
                 val snapshot = context.attributes.getOrNull(RequestIdentityKey)
-                val serverBaseUrl = snapshot?.baseUrl ?: plugin.serverUrlProvider?.getBaseUrl()
+                val serverBaseUrl = plugin.resolveBaseUrl(snapshot)
                 if (!isSkipPath(context.url) && isSameHostAsServer(context.url.host, serverBaseUrl)) {
                     // Explicit branch (not `?:`): a snapshot whose bearer is null must attach
                     // nothing — a pending add-account probe before sign-in has no token yet, and
@@ -93,7 +108,7 @@ class AuthInterceptorPlugin private constructor(
                 // (e.g. a presigned CDN URL). For a non-base host, pass the
                 // original 401 straight through with no token on the retry.
                 val snapshot = request.attributes.getOrNull(RequestIdentityKey)
-                val serverBaseUrl = snapshot?.baseUrl ?: plugin.serverUrlProvider?.getBaseUrl()
+                val serverBaseUrl = plugin.resolveBaseUrl(snapshot)
                 if (!isSameHostAsServer(request.url.host, serverBaseUrl)) {
                     return@intercept originalCall
                 }
