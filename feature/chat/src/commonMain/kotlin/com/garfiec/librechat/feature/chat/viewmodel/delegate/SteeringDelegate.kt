@@ -358,6 +358,7 @@ class SteeringDelegate(
      * end re-home text the user withdrew.
      */
     fun onPendingSteersSynced(steers: List<PendingSteer>) {
+        steers.forEach { adoptLocalRecord(it) }
         val reported = steers.mapNotNull { it.toRecordEntry() }
         val reportedIds = reported.map { it.first }.toSet()
         // Drop PENDING records the server no longer lists — they were injected or dropped while
@@ -395,6 +396,7 @@ class SteeringDelegate(
 
     private fun reclaimInto(steers: List<PendingSteer>, enqueue: (QueuedMessage) -> Unit): Int {
         if (steers.isEmpty()) return 0
+        steers.forEach { adoptLocalRecord(it) }
         val reported = steers.mapNotNull { it.toRecordEntry() }
         if (reported.isEmpty()) return 0
         val queued = reported.sortedBy { it.second.createdAt }
@@ -420,6 +422,29 @@ class SteeringDelegate(
             .forEach { (id, record) -> rehome(id, record, enqueueParked) }
         evictSettled()
         publishChips()
+    }
+
+    /**
+     * Files a server report under the record this client already holds for the same steer.
+     *
+     * A report is keyed by the server's id, but a steer whose 202 never arrived is recorded here
+     * under its local placeholder, and the report names that placeholder only as `clientSteerId`.
+     * Missed, the two read as different steers: the POST's error path has already re-homed the
+     * words, and the report would re-home them a second time. A settled record leaves a tombstone
+     * under the server id; a live one moves to it, taking its spec, so the POST's own continuation
+     * finds nothing left to re-home.
+     */
+    private fun adoptLocalRecord(steer: PendingSteer) {
+        val id = steer.steerId?.takeIf { it.isNotBlank() } ?: return
+        val localId = steer.clientSteerId?.takeIf { it.isNotBlank() && it != id } ?: return
+        if (records.containsKey(id)) return
+        val local = records[localId] ?: return
+        if (local.isLive) {
+            records.remove(localId)
+            records[id] = local.copy(status = SteerRecord.Status.PENDING)
+        } else {
+            records[id] = local
+        }
     }
 
     /** Re-homes one steer's text into the follow-up queue, exactly once. Returns true if queued. */

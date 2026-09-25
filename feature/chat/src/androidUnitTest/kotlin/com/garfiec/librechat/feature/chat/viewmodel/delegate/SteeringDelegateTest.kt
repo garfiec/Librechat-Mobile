@@ -19,8 +19,8 @@ import com.garfiec.librechat.feature.chat.viewmodel.SteeringHandle
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.slot
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -330,6 +330,62 @@ class SteeringDelegateTest {
 
             assertThat(enqueued.map { it.text }).containsExactly("be brief")
         }
+
+    /**
+     * The server took the steer but its 202 was lost, so the error path re-homed the words under
+     * the local id. The run's report names the steer by the server's id and carries the local one
+     * as `clientSteerId`; read by the server id alone, it is a second steer and a second turn.
+     */
+    @Test
+    fun `a steer whose ack was lost is not re-homed again by the run's report`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val sent = slot<SteerRequest>()
+            coEvery { chatRepository.steerChat(capture(sent)) } returns
+                Result.Error(ApiException(statusCode = 502, message = "Bad Gateway", body = ""))
+            val (delegate, _) = delegateWith(this)
+            delegate.steer("conv-1", spec("be brief"))
+            assertThat(enqueued.map { it.text }).containsExactly("be brief")
+
+            delegate.reclaim(
+                listOf(PendingSteer(steerId = "st-1", text = "be brief", clientSteerId = sent.captured.clientSteerId)),
+            )
+
+            assertThat(enqueued.map { it.text }).containsExactly("be brief")
+        }
+
+    /** The same steer seen first on a reconnect's sync frame must not come back as a live chip. */
+    @Test
+    fun `a sync frame naming a re-homed steer does not revive it`() = runTest(UnconfinedTestDispatcher()) {
+        val sent = slot<SteerRequest>()
+        coEvery { chatRepository.steerChat(capture(sent)) } returns
+            Result.Error(ApiException(statusCode = 502, message = "Bad Gateway", body = ""))
+        val (delegate, flow) = delegateWith(this)
+        delegate.steer("conv-1", spec("be brief"))
+        val report = listOf(PendingSteer(steerId = "st-1", text = "be brief", clientSteerId = sent.captured.clientSteerId))
+
+        delegate.onPendingSteersSynced(report)
+        delegate.reclaim(report)
+
+        assertThat(flow.value.pendingSteers).isEmpty()
+        assertThat(enqueued.map { it.text }).containsExactly("be brief")
+    }
+
+    /** A report can outrun the steer's own POST; whichever lands first re-homes, the other not. */
+    @Test
+    fun `a report that names a steer still in flight re-homes it once`() = runTest(UnconfinedTestDispatcher()) {
+        val sent = slot<SteerRequest>()
+        val answer = CompletableDeferred<Result<SteerResponse>>()
+        coEvery { chatRepository.steerChat(capture(sent)) } coAnswers { answer.await() }
+        val (delegate, _) = delegateWith(this)
+        delegate.steer("conv-1", spec("be brief"))
+
+        delegate.reclaim(
+            listOf(PendingSteer(steerId = "st-1", text = "be brief", clientSteerId = sent.captured.clientSteerId)),
+        )
+        answer.complete(Result.Error(ApiException(statusCode = 502, message = "Bad Gateway", body = "")))
+
+        assertThat(enqueued.map { it.text }).containsExactly("be brief")
+    }
 
     @Test
     fun `a stream that dies with no report converts its accepted chips locally`() =
