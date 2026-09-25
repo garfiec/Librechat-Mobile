@@ -10,8 +10,9 @@ import kotlinx.serialization.json.JsonElement
  * to itself (when [allowSelf] is true) and/or the agents listed in [agentIds].
  *
  * Mirrors upstream `AgentSubagentsConfig`
- * (`packages/data-provider/src/types/assistants.ts`). Forward-compat only: mobile has
- * no subagent editor yet, so this round-trips the server's value without surfacing it.
+ * (`packages/data-provider/src/types/assistants.ts`). The agent editor edits [enabled],
+ * [allowSelf] and [agentIds]; [shareFiles] and [graphs] have no control and are carried through
+ * a save unchanged.
  */
 @Serializable
 data class AgentSubagentsConfig(

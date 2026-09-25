@@ -182,6 +182,13 @@ data class AgentEditorUiState(
     val subagentAllowSelf: Boolean = true,
     /** `subagents.agent_ids` — other agents that may be spawned (cap 10, self excluded). */
     val selectedSubagentIds: List<String> = emptyList(),
+    /**
+     * `subagents.shareFiles` and `subagents.graphs`, carried from the loaded agent untouched. No
+     * control edits them, but the server `$set`s `subagents` whole, so a save that omitted them
+     * would erase file sharing and any team configured on the web.
+     */
+    val subagentShareFiles: Boolean? = null,
+    val subagentGraphs: JsonElement? = null,
     // Sharing
     val sharingState: AgentSharingState = AgentSharingState(),
     /**
