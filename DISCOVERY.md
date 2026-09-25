@@ -1202,6 +1202,14 @@ to any iOS Ktor client would **silently restore the jar** and create a real leak
 `core/`, `shared/` or `app/` today. The `NWConnection` SSE transport is unaffected either way — it
 hand-writes its headers over a raw socket and never constructs an `NSURLSession`.
 
+**Second guardrail — `no-store` is inert only by accident.** rc3 serves secured images with
+`Cache-Control: private, no-store` and `Vary: Cookie` (`staticCache.js`). Neither reaches Coil: Coil 3
+ignores `Cache-Control` unless the opt-in `coil-network-cache-control` module is present, and it is
+absent from `libs.versions.toml`. So image caching works today *because* a dependency is missing.
+Adding that module would start honouring both headers at once — turning every secured image into an
+uncacheable fetch, and `Vary: Cookie` into a per-token cache partition. Verify the caching story
+before adopting it, rather than reading an inert header as a settled one.
+
 **Historical note on re-checking this:** while the `upstream/` submodule was pinned at rc1 it did not
 contain PR #15252, so reading `upstream/api/server/middleware/validateImageRequest.js` showed the old
 default-OFF behaviour and led straight to "there is no problem here". The submodule now points at

@@ -26,9 +26,10 @@ class MemoryRepositoryImpl(
         safeApiCall { memoriesApi.updatePreferences(request) }
 
     override suspend fun updateMemory(memory: Memory, request: UpdateMemoryRequest): Result<Memory> {
-        // A redacted row comes back with `value` BLANKED, so an edit dialog seeds an empty field
-        // and a PATCH writes that blank over content the user was never shown — irreversibly, and
-        // reported as a success.
+        // Redaction blanks what the user is SHOWN, not what is stored. Both PATCH routes reject a
+        // blank value with 400, so the empty field an edit dialog seeds from a filtered row cannot
+        // itself be saved — but anything the user TYPES over it is non-blank, succeeds with 200,
+        // and replaces content they were never allowed to read.
         //
         // Refused here rather than at the screens. `_id` is the one handle redaction does not
         // blank, so `updateMemoryById` addresses a filtered row perfectly well, and the only thing
