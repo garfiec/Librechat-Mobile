@@ -490,6 +490,72 @@ GET    /api/agents/chat/queued-turns      ?conversationId=&clientRequestIds=a&cl
                                             and numbers only the rows still queued/claimed. (BUILT)
 DELETE /api/agents/chat/queued-turns/:id  → { receipt }. Withdraws a queued turn; only wins while the row is
                                             still `queued` or `claimed`. (BUILT)
+GET    /api/schedules                 → { schedules[], limits }. Scheduled chats (v0.8.8-rc2): a prompt the
+                                            SERVER sends to an agent on a cadence, filing each run's
+                                            conversation under a chat project. **This is the ONLY route that
+                                            wraps** — every other one answers a bare schedule.
+                                            `limits` is served here on purpose: `minIntervalMinutes` lets a
+                                            form refuse a too-frequent cadence instead of surfacing a 400
+                                            after submit, `maxPerUser` caps the list, `requireProject` forces
+                                            a destination, and `projectId` PINS one (the client must not then
+                                            offer a picker — the server ignores any choice sent).
+                                            Each row carries `inFlight[]`, the runs generating right now with
+                                            the conversation each is producing. Read from the run rows, not
+                                            from `lastRun`, which is projected only once a run settles; a run
+                                            parked on an approval is deliberately absent. (BUILT)
+GET    /api/schedules/:id             → a bare schedule. (BUILT)
+POST   /api/schedules                 → 201 bare schedule. `clientRequestId` is REQUIRED and is an
+                                            idempotency key: creation commits the row and arms it in two
+                                            writes, so a failure between them leaves the client unable to tell
+                                            whether anything persisted — a blind retry makes a SECOND
+                                            recurring schedule. Must be stable across retries of one creation.
+                                            `cadence` is a discriminated union on `frequency`: the structured
+                                            arms (`hourly`/`daily`/`weekdays`/`weekly`) carry `hour` + `minute`
+                                            (+ `daysOfWeek`), and `cron` carries `expression` instead. Sending
+                                            a structured cadence WITHOUT `frequency`, or a cron one carrying
+                                            `hour`, is a 400 — see the mobile note below. (BUILT)
+PATCH  /api/schedules/:id             → a bare schedule. Every field optional; **omitting one leaves it
+                                            alone**, which is what makes editing a cron schedule safe from a
+                                            client whose controls cannot represent one. `expectedConfigRevision`
+                                            is the revision the edit was computed from — the server fences on
+                                            it and answers 409 rather than letting a concurrent edit be
+                                            overwritten, which a fresh-read fence cannot catch because
+                                            `cadence` is sent whole. A no-op update is a 400.
+                                            `chatProjectId: null` CLEARS the scope. (BUILT)
+DELETE /api/schedules/:id             → { id }. 200 erased, **202 still draining a live run**. (BUILT)
+POST   /api/schedules/:id/run         → { scheduleId, conversationId, status:'started' }. 409 when a run is
+                                            already in progress, 429 when the caller's own message limiter
+                                            refuses, 400/503 with a `code` when the unattended MCP preflight
+                                            fails. (BUILT)
+
+Scheduled chats: three things that are easy to get backwards.
+
+- **`interface.schedules` is ABSENT-means-OFF**, the opposite of every other `interface.*` flag.
+  The feature is experimental and an admin opts in explicitly. Truth table, from
+  `useSideNavLinks.ts:148-159` and `getLimits`: absent/`null` → off, `false` → off, `true` → on,
+  `{}` → **on**, `{use:false}` → off. Upstream's own comment: *"Any mismatch would show an entry
+  whose create/run operations the backend rejects."* The boolean form is a RUNTIME FEATURE DISABLE,
+  not a permission denial (`RUNTIME_CONFIG_INTERFACE_FIELDS = {'schedules'}`), so a disabled server
+  must not be reported as "you lack permission". Mobile reads it through one dedicated resolver,
+  `isSchedulesEnabled`; do not fold it into a generic interface-flag helper.
+- **Mounted is not enabled.** `app.use('/api/schedules', …)` is unconditional, so a 404 proves only
+  that the server predates the feature. **Never derive enablement from a probe.**
+- **Two different 503s, discriminated by `code`.** `SCHEDULES_NOT_READY` carries `Retry-After` and
+  is the genuinely transient window while the engine arms; `SCHEDULES_UNAVAILABLE` is terminal for
+  the life of the server process — arming is attempted exactly once at boot, so a client obeying a
+  backoff would poll a condition that cannot change without operator action. Reads and DELETE never
+  touch the engine, so a server whose engine failed to arm still lists and deletes.
+
+Not ported, and why:
+- **Attachments on a schedule** (`file_ids`, max 10, with a renewable bounded upload hold). Safe to
+  omit only because PATCH is `.partial()`: an update that never sends the field leaves existing
+  attachments alone. **Never send `file_ids: []`** — that detaches them.
+- **The MCP recovery flow.** Upstream's card links to the agent so the user can reconnect a server
+  in an interactive chat. Mobile shows the reason and the failed server names; the one-tap recovery
+  is not built. `mcp_reauth_required` / `mcp_configuration_missing` / `mcp_permission_denied` stop a
+  schedule immediately, so the reason has to render — a schedule that says only "paused" leaves the
+  user with nothing to act on.
+- **`target`.** Only `'new'` exists, so there is nothing to choose.
 
 # Removed
 POST   /api/endpoints/context-projection  REMOVED (#13953, landing commit 376370d6, 2026-06-25). The gauge is
