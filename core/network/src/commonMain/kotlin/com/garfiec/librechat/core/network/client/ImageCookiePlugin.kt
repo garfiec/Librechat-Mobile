@@ -20,8 +20,16 @@ private val ImageCookieAccountKey = AttributeKey<String>("ImageCookieAccount")
 /** The token currently on the wire for this request; absent means no cookie is attached right now. */
 private val ImageCookieAttachedKey = AttributeKey<String>("ImageCookieAttached")
 
-/** One-shot guard for the rotation-race retry below. */
-private val ImageCookieRetriedKey = AttributeKey<Boolean>("ImageCookieRetried")
+/**
+ * The cookie value a rotation-race retry was already spent on.
+ *
+ * Keyed by the token rather than a boolean because Ktor copies request attributes onto every
+ * redirect hop and every retry replay, and `HttpRedirect` sits outside this plugin — so a plain
+ * flag burns the budget for the whole call chain instead of for one send, and a cookie that has
+ * rotated a second time mid-chain never gets its retry. The storm guard is the unchanged-token
+ * check below, not this: a server refusing on the merits re-reads the same value and stops.
+ */
+private val ImageCookieRetriedKey = AttributeKey<String>("ImageCookieRetriedFor")
 
 /**
  * Authenticates requests to the server's local image mount (`${basePath}/images/…`) with the account's
@@ -116,14 +124,14 @@ class ImageCookiePlugin private constructor(
                 // CDN we stripped for, or from an image that simply isn't this user's, is terminal.
                 val sent = request.attributes.getOrNull(ImageCookieAttachedKey) ?: return@intercept call
                 val accountId = request.attributes.getOrNull(ImageCookieAccountKey) ?: return@intercept call
-                if (request.attributes.getOrNull(ImageCookieRetriedKey) == true) return@intercept call
+                if (request.attributes.getOrNull(ImageCookieRetriedKey) == sent) return@intercept call
 
                 val rotated = plugin.credentials.refreshTokenFor(accountId)
                 // An unchanged token means the server rejected this exact value on its merits; resending
                 // it would only turn one broken image into two round trips.
                 if (rotated == null || rotated == sent) return@intercept call
 
-                request.attributes.put(ImageCookieRetriedKey, true)
+                request.attributes.put(ImageCookieRetriedKey, sent)
                 request.headers.putRefreshCookie(rotated)
                 request.attributes.put(ImageCookieAttachedKey, rotated)
                 execute(request)

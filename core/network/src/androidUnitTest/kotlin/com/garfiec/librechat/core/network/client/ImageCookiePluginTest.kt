@@ -448,6 +448,79 @@ class ImageCookiePluginTest {
         assertThat(credentials.calls).isEqualTo(0)
     }
 
+    /**
+     * The one-shot retry has to be one shot per SEND, not per call chain.
+     *
+     * Ktor copies request attributes onto every redirect hop (`takeFromWithExecutionContext` ends
+     * in `putAll`, and only `Authorization` is stripped), and `HttpRedirect` is installed outside
+     * this plugin — so each hop re-enters here carrying the previous hop's flag. A boolean burns
+     * the budget for the whole chain; keyed by the token it was burned for, a genuinely different
+     * cookie on the wire re-arms exactly one more.
+     *
+     * This needs the redirect plugin actually in the chain: a client without it proves nothing
+     * about hop behaviour.
+     */
+    @Test
+    fun `a second rotation after a redirect hop still gets its one retry`() = runTest {
+        val seen = mutableListOf<HttpRequestData>()
+        val engine = MockEngine { request ->
+            seen += request
+            when (seen.size) {
+                // The token the call attached is already superseded.
+                1 -> respondError(HttpStatusCode.Forbidden)
+                // The retry carries the rotated one, and the mount redirects it onward.
+                2 -> respond(
+                    content = "",
+                    status = HttpStatusCode.Found,
+                    headers = headersOf(HttpHeaders.Location, "$SERVER/images/user-1/resized.png"),
+                )
+                // Rotated again in the meantime.
+                3 -> respondError(HttpStatusCode.Forbidden)
+                else -> respond("png", HttpStatusCode.OK)
+            }
+        }
+        val credentials = FakeCredentials(TOKEN, ROTATED, "refresh-token-3")
+
+        val response = createClient(engine, credentials).get("$SERVER/images/user-1/img.png") {
+            attributes.put(RequestIdentityKey, identity())
+        }
+
+        assertThat(response.status).isEqualTo(HttpStatusCode.OK)
+        assertThat(seen).hasSize(4)
+        assertThat(seen[0].cookieLines()).containsExactly("refreshToken=$TOKEN")
+        assertThat(seen[1].cookieLines()).containsExactly("refreshToken=$ROTATED")
+        assertThat(seen[2].cookieLines()).containsExactly("refreshToken=$ROTATED")
+        assertThat(seen[3].cookieLines()).containsExactly("refreshToken=refresh-token-3")
+    }
+
+    /**
+     * …and the storm guard is the unchanged-token check, not the flag: a server refusing on the
+     * merits answers the same token on every re-read, so it never gets a second send however many
+     * hops the chain has.
+     */
+    @Test
+    fun `a redirect chain cannot multiply retries when the token never rotates`() = runTest {
+        val seen = mutableListOf<HttpRequestData>()
+        val engine = MockEngine { request ->
+            seen += request
+            if (seen.size == 1) {
+                respond(
+                    content = "",
+                    status = HttpStatusCode.Found,
+                    headers = headersOf(HttpHeaders.Location, "$SERVER/images/user-1/resized.png"),
+                )
+            } else {
+                respondError(HttpStatusCode.Forbidden)
+            }
+        }
+
+        createClient(engine, FakeCredentials(TOKEN)).get("$SERVER/images/user-1/img.png") {
+            attributes.put(RequestIdentityKey, identity())
+        }
+
+        assertThat(seen).hasSize(2)
+    }
+
     /** Read at attach time, never cached: a second image picks up a token rotated since the first. */
     @Test
     fun `reads the token afresh on every request`() = runTest {
