@@ -11,6 +11,7 @@ import com.garfiec.librechat.core.model.request.ConvoUpdateArg
 import com.garfiec.librechat.core.model.request.ConvoUpdateBody
 import com.garfiec.librechat.core.model.request.DuplicateConversationRequest
 import com.garfiec.librechat.core.model.request.ForkConversationRequest
+import com.garfiec.librechat.core.model.response.ArchiveAllConversationsResponse
 import com.garfiec.librechat.core.model.response.ConversationListResponse
 import com.garfiec.librechat.core.model.response.ForkConversationResponse
 import com.garfiec.librechat.core.model.response.GenerateTitleResponse
@@ -84,6 +85,15 @@ class ConversationsApi constructor(
                     ),
                 ),
             )
+        }.body()
+
+    /**
+     * `POST /api/convos/archive/all` (v0.8.8-rc2) — archives every conversation the caller can
+     * currently see. Takes no body: unlike the other convo mutations it reads nothing off `arg`.
+     */
+    suspend fun archiveAll(): ArchiveAllConversationsResponse =
+        client.post {
+            url { path("api/convos/archive/all") }
         }.body()
 
     suspend fun pin(conversationId: String, pinned: Boolean): Conversation =

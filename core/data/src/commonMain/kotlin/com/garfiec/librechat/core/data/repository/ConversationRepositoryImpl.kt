@@ -281,6 +281,19 @@ class ConversationRepositoryImpl(
         }
     }
 
+    override suspend fun archiveAll(): Result<Int> {
+        // Scoped like deleteAll: an unscoped local update would also archive a coexisting
+        // account's cached rows, which the server call never touched.
+        val accountId = activeAccountProvider.currentAccountId()?.value
+        return safeApiCall {
+            val response = conversationsApi.archiveAll()
+            if (accountId != null) {
+                conversationDao.archiveAllForAccount(accountId, Clock.System.now().toEpochMilliseconds())
+            }
+            response.archivedCount
+        }
+    }
+
     override suspend fun saveConversation(conversation: Conversation, originAccount: AccountId?) {
         val id = conversation.conversationId ?: return
         if (id.isBlank()) return

@@ -329,6 +329,12 @@ POST   /api/memories                      + optional `agentId` in the body, part
                                             agent. Mobile always omits it (shared pool) — no agent picker.
 
 # Added
+POST   /api/convos/archive/all            (v0.8.8-rc2) no body — unlike every other convo mutation it reads
+                                            nothing off `arg` — → `{ archivedCount }`. Archives every
+                                            conversation the caller can currently see. Mobile surfaces it in
+                                            Settings → Data beside Clear All; the local cache is bulk-updated
+                                            rather than refetched. 404-probeable and gated on
+                                            `featureSupport(…, "0.8.8-rc2")` — see VERSION_GATES.md. (BUILT)
 POST   /api/agents/chat/resume            { conversationId, actionId, + the paused turn's endpoint/model/agent
                                             config, plus `decisions[]` (tool approval) or `answer`
                                             (ask_user_question) }. Resumes a run paused for human-in-the-loop

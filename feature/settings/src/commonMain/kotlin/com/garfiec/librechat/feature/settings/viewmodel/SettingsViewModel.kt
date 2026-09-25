@@ -197,6 +197,13 @@ class SettingsViewModel(
                         // a re-publish, so an unresolved version warns instead of promising it.
                         sharedLinkUpdateKeepsUrl = version != null &&
                             BackendVersion.isCompatibleOrNewer(version, "0.8.8-rc1"),
+                        // Offered unless the server is KNOWN to predate the route: a dev build
+                        // reporting the previous release, or one built past the commit-map pin,
+                        // is the population most likely to HAVE it. See VERSION_GATES.md.
+                        archiveAllSupported = !BackendVersion.featureSupport(
+                            configRepository.detectedBackend.value,
+                            minVersion = "0.8.8-rc2",
+                        ).isRuledOut,
                     )
                 }
             }
@@ -441,6 +448,8 @@ class SettingsViewModel(
 
     // Data management
     fun clearAllChats() = dataDelegate.clearAllChats()
+    fun archiveAllChats() = dataDelegate.archiveAllChats()
+    fun consumeArchivedAllCount() = dataDelegate.consumeArchivedAllCount()
     fun exportAllData() = dataDelegate.exportAllData()
     fun dismissExportComingSoon() = dataDelegate.dismissExportComingSoon()
     fun loadSharedLinks() = dataDelegate.loadSharedLinks()

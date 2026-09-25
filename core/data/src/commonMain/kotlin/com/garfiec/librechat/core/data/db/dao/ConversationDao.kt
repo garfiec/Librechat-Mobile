@@ -124,6 +124,12 @@ interface ConversationDao {
     )
     suspend fun updateArchived(id: String, isArchived: Boolean, updatedAt: Long, accountId: String)
 
+    @Query(
+        "UPDATE conversations SET isArchived = 1, updatedAt = :updatedAt " +
+            "WHERE accountId = :accountId AND isArchived = 0",
+    )
+    suspend fun archiveAllForAccount(accountId: String, updatedAt: Long)
+
     @Query("UPDATE conversations SET pinned = :pinned WHERE conversationId = :id AND accountId = :accountId")
     suspend fun updatePinned(id: String, pinned: Boolean, accountId: String)
 

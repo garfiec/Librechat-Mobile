@@ -109,6 +109,11 @@ data class SettingsUiState(
     // Data management
     val archivedCount: Int = 0,
     val isClearing: Boolean = false,
+    val isArchivingAll: Boolean = false,
+    /** `POST /api/convos/archive/all` (v0.8.8-rc2). See VERSION_GATES.md. */
+    val archiveAllSupported: Boolean = false,
+    /** One-shot count from the last successful archive-all, for the confirmation snackbar. */
+    val archivedAllCount: Int? = null,
     val showExportComingSoon: Boolean = false,
     // Diagnostic logs (issue #96)
     val isLogsExporting: Boolean = false,
