@@ -40,6 +40,13 @@ fun ChatRoot(
     subagentProgress: Map<String, SubagentTrace>,
     /** The conversation the child-thread viewer reads from. Null on the landing screen. */
     conversationId: String?,
+    /**
+     * Whether this server can serve child threads at all. Required, not defaulted, so neither
+     * platform's `ChatScreen` can quietly drop it and offer a row that only ever says "unavailable"
+     * — `on_subagent_update` predates these routes by two releases, so a 0.8.6/0.8.7 server draws
+     * the trace cards the row would hang off.
+     */
+    subagentThreadsSupported: Boolean,
     mediaPreview: MediaPreviewState?,
     onOpenMedia: (url: String) -> Unit,
     onCloseMedia: () -> Unit,
@@ -84,9 +91,10 @@ fun ChatRoot(
         LocalAttachmentDownloader provides onDownloadAttachment,
         LocalOpenPdf provides openPdf,
         LocalSubagentThreads provides openSubagentThreads,
-        // The affordance is offered only where there is a conversation to read children from.
-        // The server check is the repository's, made lazily when the sheet actually opens.
-        LocalSubagentThreadsAvailable provides (conversationId != null),
+        // Both halves: a conversation to read children from, and a server that can serve them.
+        // The repository asks the version question again before it issues a request — this one
+        // decides whether the affordance is drawn at all.
+        LocalSubagentThreadsAvailable provides (conversationId != null && subagentThreadsSupported),
     ) {
         content()
 

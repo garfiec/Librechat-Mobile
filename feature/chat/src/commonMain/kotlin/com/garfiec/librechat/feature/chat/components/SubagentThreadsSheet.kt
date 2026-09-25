@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.subagent.SubagentOrigin
 import com.garfiec.librechat.core.model.subagent.SubagentSummary
 import com.garfiec.librechat.core.model.subagent.SubagentThreadView
@@ -205,8 +206,14 @@ private fun ThreadBody(
     onLoadOlder: () -> Unit,
 ) {
     // The view's own activity shape converts to the content parts the app already draws, so the
-    // shared dispatcher renders the child's reasoning, tools and text — including activity-label
-    // grouping — instead of a second renderer built for this screen.
+    // shared dispatcher renders the child's reasoning, tools and text instead of a second set of
+    // renderers built for this sheet.
+    //
+    // Activity LABELS are the exception and render flat. Grouping is a separate pure transform
+    // applied at `MessageContentAndActions`, not something the dispatcher does — a bare label
+    // through it draws nothing at all. Folding the child's tools under collapsible headers would
+    // mean running that transform here too; a read-only trace does not need it, and a label that
+    // silently vanished would be worse than one shown as the line it is.
     val parts = view.activity.toContentParts()
     LazyColumn(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (olderUnavailable) {
@@ -227,14 +234,19 @@ private fun ThreadBody(
             }
         }
         items(parts.size) { index ->
-            ContentPartDispatcher(
-                part = parts[index],
-                stateKey = "subagent-thread:$index",
-                // A child never renders another child's card; depth is bounded to one upstream.
-                allowSubagentCard = false,
-                // The projection carries no attachments of its own, so nothing is hoisted here.
-                hideAttachments = true,
-            )
+            val part = parts[index]
+            if (part.type == ContentType.ACTIVITY_LABEL) {
+                OrphanActivityLabel(part.activityLabel.orEmpty())
+            } else {
+                ContentPartDispatcher(
+                    part = part,
+                    stateKey = "subagent-thread:$index",
+                    // A child never renders another child's card; depth is bounded to one upstream.
+                    allowSubagentCard = false,
+                    // The projection carries no attachments of its own, so nothing is hoisted here.
+                    hideAttachments = true,
+                )
+            }
         }
         if (view.activityTruncated || view.activity.hasTruncatedContent) {
             item {

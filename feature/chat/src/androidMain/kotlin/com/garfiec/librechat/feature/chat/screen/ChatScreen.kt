@@ -238,6 +238,7 @@ actual fun ChatScreen(
         parsedMarkdownCache = viewModel.parsedMarkdownCache,
         subagentProgress = uiState.subagentProgress,
         conversationId = uiState.conversationId,
+        subagentThreadsSupported = uiState.gates.subagentThreadsSupported,
         mediaPreview = uiState.mediaPreview,
         onOpenMedia = viewModel::openMedia,
         onCloseMedia = viewModel::closeMedia,

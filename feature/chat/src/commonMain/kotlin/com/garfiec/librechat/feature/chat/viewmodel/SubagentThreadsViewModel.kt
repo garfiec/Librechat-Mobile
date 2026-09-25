@@ -73,6 +73,9 @@ class SubagentThreadsViewModel(
             return
         }
         if (loadedFor == parentConversationId) {
+            // Reopened on a conversation already read. Back to the list first, so dismissing while
+            // a child was open does not reopen onto a stale thread the user did not ask for.
+            backToList()
             focusChild(parentConversationId, focusParentToolCallId)
             return
         }
@@ -88,14 +91,19 @@ class SubagentThreadsViewModel(
                     )
                     focusChild(parentConversationId, focusParentToolCallId)
                 }
-                is Result.Error -> _uiState.value = _uiState.value.copy(
-                    isLoadingIndex = false,
-                    // A 404 here is per-conversation, never per-server. It is reported as "no
-                    // child view", and `loadedFor` is cleared so reopening asks again rather than
-                    // caching a verdict the next conversation would inherit.
-                    hasNoChildView = result.isNotFound().also { if (it) loadedFor = null },
-                    error = result.message.takeUnless { _ -> result.isNotFound() },
-                )
+                is Result.Error -> {
+                    // NOTHING here is remembered. A 404 is per-conversation — missing, not yours,
+                    // or itself a child thread — and never a verdict about the server, so caching
+                    // it would let one conversation's answer suppress every other. A transient
+                    // failure is not remembered either: pinning it would leave the sheet broken
+                    // for this conversation until the nav entry is recreated.
+                    loadedFor = null
+                    _uiState.value = _uiState.value.copy(
+                        isLoadingIndex = false,
+                        hasNoChildView = result.isNotFound(),
+                        error = result.message.takeUnless { _ -> result.isNotFound() },
+                    )
+                }
                 is Result.Loading -> Unit
             }
         }

@@ -73,6 +73,20 @@ data class FeatureGatesState(
      */
     val steeringSupported: Boolean = false,
     /**
+     * Whether the read-only subagent child-thread routes are worth offering (v0.8.8-rc2).
+     *
+     * **Fail-SAFE, not fail-closed**: true unless the server is KNOWN to predate them, because the
+     * affordance has to be decided before anything is requested and an unplaceable server is the
+     * population most likely to have the routes. It gates the affordance only — the repository
+     * asks the same question again before it issues a request, and a 404 from the route is never
+     * a verdict about the server (see VERSION_GATES.md).
+     *
+     * Needed at all because `on_subagent_update` is v0.8.6: a 0.8.6/0.8.7 server renders subagent
+     * trace cards, so without this the "View thread" row would appear on exactly the servers that
+     * cannot serve it.
+     */
+    val subagentThreadsSupported: Boolean = false,
+    /**
      * The detected backend version string (null while unresolved), for the handful of version
      * gates that live in pure state helpers rather than in a collector — currently the
      * shell-script MIME aliasing inside [ChatUiState.uploadRouteFor] and the .potx picker offer.

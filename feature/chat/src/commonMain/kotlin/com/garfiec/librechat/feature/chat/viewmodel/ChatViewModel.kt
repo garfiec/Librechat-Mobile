@@ -634,10 +634,19 @@ class ChatViewModel(
                     detected = detected,
                     minVersion = "0.8.8-rc1",
                 )
+                // Fail-SAFE rather than fail-closed, unlike steering above: suppressed only on a
+                // build that resolved to a tag below the routes. A 0.8.6/0.8.7 server renders
+                // subagent trace cards, so this is what keeps the "View thread" row off exactly
+                // the servers that cannot serve it, without hiding it from an unplaceable one.
+                val subagentThreads = !BackendVersion.featureSupport(
+                    detected = detected,
+                    minVersion = "0.8.8-rc2",
+                ).isRuledOut
                 _uiState.update {
                     it.copy(
                         gates = it.gates.copy(
                             steeringSupported = supported,
+                            subagentThreadsSupported = subagentThreads,
                             backendVersion = detected?.version,
                         ),
                     )
