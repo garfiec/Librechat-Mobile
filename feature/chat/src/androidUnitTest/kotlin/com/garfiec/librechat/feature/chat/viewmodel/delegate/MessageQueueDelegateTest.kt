@@ -10,6 +10,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ComposerSnapshot
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedEditSession
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
+import com.garfiec.librechat.feature.chat.viewmodel.QueuedTurnServerState
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -49,6 +50,15 @@ class MessageQueueDelegateTest {
         model = model,
         agentId = null,
         dispatch = EndpointDispatch(endpointType = null, key = null, modelDisplayLabel = null),
+    )
+
+    private fun serverOwned(
+        id: String,
+        status: QueuedTurnServerState.Status = QueuedTurnServerState.Status.Queued,
+    ) = spec(id).copy(
+        server = QueuedTurnServerState(status = status, id = "qt-$id"),
+        clientRequestId = "req-$id",
+        parentMessageId = "msg-0",
     )
 
     private val queue get() = stateFlow.value.messageQueue
@@ -220,6 +230,55 @@ class MessageQueueDelegateTest {
         delegate.drainNext()
 
         assertThat(sent).isEmpty()
+    }
+
+    @Test
+    fun `drainNext refuses to send a row the server owns`() {
+        // The server has no guard against a turn being enqueued and then also sent the ordinary
+        // way, so this refusal is the whole double-send protection.
+        delegate.enqueue(serverOwned("a"))
+
+        delegate.drainNext()
+
+        assertThat(sent).isEmpty()
+        assertThat(queue.map { it.localId }).containsExactly("a")
+    }
+
+    @Test
+    fun `a server-owned row anywhere in the queue blocks the whole drain`() {
+        // The server admits behind the boundary this run just closed, so a local row firing now
+        // races it wherever it sits — the head is not the only thing that matters.
+        delegate.enqueue(spec("a"))
+        delegate.enqueue(serverOwned("b"))
+
+        delegate.drainNext()
+
+        assertThat(sent).isEmpty()
+        assertThat(queue.map { it.localId }).containsExactly("a", "b").inOrder()
+    }
+
+    @Test
+    fun `a rejected row still blocks the drain`() {
+        // A definite rejection proves nothing was committed, but recovery is the user's call —
+        // upstream keeps the row server-owned rather than quietly resending it.
+        delegate.enqueue(
+            serverOwned("a", QueuedTurnServerState.Status.Rejected).let {
+                it.copy(server = it.server?.copy(errorCode = "QUEUED_TURN_QUEUE_FULL"))
+            },
+        )
+
+        delegate.drainNext()
+
+        assertThat(sent).isEmpty()
+    }
+
+    @Test
+    fun `a legacy queue still drains`() {
+        delegate.enqueue(spec("a"))
+
+        delegate.drainNext()
+
+        assertThat(sent.map { it.localId }).containsExactly("a")
     }
 
     @Test

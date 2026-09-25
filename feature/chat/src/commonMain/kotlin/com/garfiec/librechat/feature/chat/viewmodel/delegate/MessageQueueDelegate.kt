@@ -244,6 +244,15 @@ class MessageQueueDelegate(
                 onQueuedDropped(foreign)
             }
         }
+        // A server-owned row means the BACKEND owns the next fresh-turn admission, and there is no
+        // server-side guard against this client also sending it — the admission check is gated on
+        // a flag an ordinary send never sets. This refusal is the only thing standing between an
+        // enqueued turn and the same words being submitted twice.
+        //
+        // Any row, not just the head: the server admits behind the boundary this run just closed,
+        // so anything local firing now races it regardless of where it sits in the list. That
+        // includes a `Rejected` row, which is never auto-recovered — it is held for the user.
+        if (handle.state.messageQueue.any { it.server != null }) return
         val head = handle.state.messageQueue.firstOrNull() ?: return
         handle.update { queue = queue.copy(messageQueue = queue.messageQueue.drop(1)) }
         sendWithSpec(head, awaitSettle)
