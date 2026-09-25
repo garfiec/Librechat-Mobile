@@ -11,10 +11,12 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -50,6 +52,14 @@ class SubagentThreadsViewModelTest {
         title = "Inbox watcher",
         origin = "event",
         status = "running",
+    )
+
+    private val otherChild = SubagentSummary(
+        threadId = "child-9",
+        subagentType = "auditor",
+        title = "Another conversation's child",
+        origin = "tool",
+        status = "completed",
     )
 
     private fun view(threadId: String, nextCursor: String? = null) = SubagentThreadView(
@@ -196,6 +206,56 @@ class SubagentThreadsViewModelTest {
 
         assertThat(vm.uiState.value.canLoadOlder).isFalse()
         assertThat(vm.uiState.value.olderHistoryUnavailable).isTrue()
+    }
+
+    /**
+     * `openThread` and `loadOlder` both re-check what the user is looking at before they write;
+     * the index read was the one async landing that did not. A slow `getChildren` for A that
+     * returns after the sheet moved to B writes A's children — and A's threadIds — into B's
+     * state, and `focusChild` then fetches against A under B's header.
+     */
+    @Test
+    fun a_slow_index_does_not_land_on_another_conversation() = runTest(dispatcher) {
+        val gate = CompletableDeferred<Unit>()
+        coEvery { repository.getChildren("convo-1") } coAnswers {
+            gate.await()
+            Result.Success(SubagentIndex(children = listOf(toolChild, eventChild)))
+        }
+        coEvery { repository.getChildren("convo-2") } returns
+            Result.Success(SubagentIndex(children = listOf(otherChild)))
+        val vm = SubagentThreadsViewModel(repository)
+
+        vm.openFor("convo-1", null)
+        // The user backs out and opens a different conversation's sheet before A answers.
+        vm.openFor("convo-2", null)
+        gate.complete(Unit)
+        runCurrent()
+
+        assertThat(vm.uiState.value.children.map { it.threadId }).containsExactly("child-9")
+    }
+
+    /** The same guard on the failure arm: A's error must not clear the state B is loading under. */
+    @Test
+    fun a_slow_index_failure_does_not_land_on_another_conversation() = runTest(dispatcher) {
+        val gate = CompletableDeferred<Unit>()
+        coEvery { repository.getChildren("convo-1") } coAnswers {
+            gate.await()
+            Result.Error(ApiException(statusCode = 404, message = "not found"))
+        }
+        coEvery { repository.getChildren("convo-2") } returns
+            Result.Success(SubagentIndex(children = listOf(otherChild)))
+        val vm = SubagentThreadsViewModel(repository)
+
+        vm.openFor("convo-1", null)
+        vm.openFor("convo-2", null)
+        gate.complete(Unit)
+        runCurrent()
+
+        assertThat(vm.uiState.value.hasNoChildView).isFalse()
+        assertThat(vm.uiState.value.children.map { it.threadId }).containsExactly("child-9")
+        // B stays loaded: a stale failure must not re-arm the once-per-conversation read either.
+        vm.openFor("convo-2", null)
+        coVerify(exactly = 1) { repository.getChildren("convo-2") }
     }
 
     @Test

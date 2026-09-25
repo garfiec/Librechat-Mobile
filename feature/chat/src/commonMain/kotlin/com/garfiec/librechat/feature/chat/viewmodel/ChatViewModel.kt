@@ -1324,8 +1324,16 @@ class ChatViewModel(
      * the composer for editing. Commit ([commitQueuedEdit]) or cancel ([cancelQueuedEdit]) puts the
      * item back in its slot and restores the stashed draft. Ignored if already editing one.
      */
+    private var withdrawingForEdit: String? = null
+
     fun editQueued(localId: String) {
         if (_uiState.value.isEditingQueued) return
+        // A server-owned edit opens its session only after the withdrawal DELETE returns, so
+        // `isEditingQueued` is still false for the whole round trip. Any second tap in that window
+        // — including a legacy one, which opens its session synchronously and would then be
+        // overwritten by the withdrawal landing on top of it — leaves a row out of the queue with
+        // nothing that will put it back.
+        if (withdrawingForEdit != null) return
         // A pick that has not settled yet belongs to the new-message draft. Swapping the composer
         // out from under it re-homes it onto the queued item instead — attaching it to a message
         // the user did not pick it for, and losing it from the one they did, since `captureComposer`
@@ -1337,17 +1345,23 @@ class ChatViewModel(
         val index = _uiState.value.messageQueue.indexOfFirst { it.localId == localId }
         val serverOwned = _uiState.value.messageQueue.getOrNull(index)?.takeIf { it.server != null }
         if (serverOwned != null) {
+            withdrawingForEdit = localId
             // The server holds these words and will run them, so editing in place would leave the
             // original queued behind the edit. Withdraw it first, and only edit if that succeeded.
             viewModelScope.launch {
-                if (!queuedTurnDelegate.cancel(serverOwned)) return@launch
-                // A real DELETE's receipt already retired the row; a refused one never had an id
-                // to delete and is still sitting there. Take it out either way — leaving it would
-                // put the edit BESIDE the original and block the drain on a row nothing retires.
-                // It comes back as an ordinary local item: re-offering it to the server under the
-                // same clientRequestId with different text would be a 409.
-                queueDelegate.takeForEdit(localId)
-                beginQueuedEdit(serverOwned.asLegacyRow(), index)
+                try {
+                    if (!queuedTurnDelegate.cancel(serverOwned)) return@launch
+                    // A real DELETE's receipt already retired the row; a refused one never had an
+                    // id to delete and is still sitting there. Take it out either way — leaving it
+                    // would put the edit BESIDE the original and block the drain on a row nothing
+                    // retires. It comes back as an ordinary local item: re-offering it to the
+                    // server under the same clientRequestId with different text would be a 409.
+                    // Its slot is re-read here because a drain may have shifted it meanwhile.
+                    val taken = queueDelegate.takeForEdit(localId)
+                    beginQueuedEdit(serverOwned.asLegacyRow(), taken?.index ?: index)
+                } finally {
+                    withdrawingForEdit = null
+                }
             }
             return
         }

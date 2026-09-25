@@ -395,6 +395,101 @@ class ChatViewModelQueuedTurnTest {
         assertThat(edited.server).isNull()
     }
 
+    /**
+     * Editing a server-owned row withdraws it first, and that DELETE is a round trip. The guard on
+     * [ChatViewModel.editQueued] runs before it, so a second tap in that window opens a competing
+     * session — and whichever row loses the race has already been pulled out of the queue with
+     * nothing left that will put it back.
+     */
+    @Test
+    fun `a second edit tap during a withdrawal cannot strand the first row`() = queuedTurnTest { vm ->
+        vm.onInputChanged("first follow-up")
+        vm.queueMessage()
+        runCurrent()
+        vm.onInputChanged("second follow-up")
+        vm.queueMessage()
+        runCurrent()
+        val (first, second) = vm.uiState.value.messageQueue
+        assertThat(vm.uiState.value.messageQueue).hasSize(2)
+
+        // Both withdrawals are held open, so the two taps overlap the way real taps do.
+        val cancelGate = CompletableDeferred<Unit>()
+        coEvery { queuedTurnRepository.cancel(any()) } coAnswers {
+            cancelGate.await()
+            val id = firstArg<String>()
+            val row = listOf(first, second).first { it.server?.id == id }
+            serverRows.removeAll { it.clientRequestId == row.clientRequestId }
+            QueuedTurnOutcome.Committed(
+                AgentQueuedTurnReceipt(
+                    queuedTurnId = id,
+                    clientRequestId = row.clientRequestId!!,
+                    text = row.text,
+                    status = QueuedTurnStatus.CANCELLED,
+                ),
+            )
+        }
+
+        vm.editQueued(first.localId)
+        runCurrent()
+        vm.editQueued(second.localId)
+        runCurrent()
+        cancelGate.complete(Unit)
+        runCurrent()
+
+        // Exactly one session, and every row is either in that session or still in the queue.
+        val session = vm.uiState.value.editingQueuedItem
+        assertThat(session).isNotNull()
+        val accountedFor = vm.uiState.value.messageQueue.map { it.text } + session!!.original.text
+        assertThat(accountedFor).containsExactly("first follow-up", "second follow-up")
+    }
+
+    /**
+     * The same window, entered from a LEGACY row. A legacy edit opens its session synchronously, so
+     * it never reaches the server-owned branch — and the withdrawal that is still in flight lands
+     * on top of it, leaving the legacy row out of the queue with no session to put it back.
+     */
+    @Test
+    fun `a legacy edit tap during a withdrawal cannot strand either row`() = queuedTurnTest { vm ->
+        vm.onInputChanged("first follow-up")
+        vm.queueMessage()
+        runCurrent()
+        // A server that takes the first turn but not the second leaves one row of each kind.
+        coEvery { queuedTurnRepository.enqueue(match { it.text == "second follow-up" }) } returns
+            QueuedTurnOutcome.Unsupported
+        vm.onInputChanged("second follow-up")
+        vm.queueMessage()
+        runCurrent()
+        val (first, second) = vm.uiState.value.messageQueue
+        assertThat(first.server).isNotNull()
+        assertThat(second.server).isNull()
+
+        val cancelGate = CompletableDeferred<Unit>()
+        coEvery { queuedTurnRepository.cancel(any()) } coAnswers {
+            cancelGate.await()
+            serverRows.removeAll { it.clientRequestId == first.clientRequestId }
+            QueuedTurnOutcome.Committed(
+                AgentQueuedTurnReceipt(
+                    queuedTurnId = firstArg(),
+                    clientRequestId = first.clientRequestId!!,
+                    text = first.text,
+                    status = QueuedTurnStatus.CANCELLED,
+                ),
+            )
+        }
+
+        vm.editQueued(first.localId)
+        runCurrent()
+        vm.editQueued(second.localId)
+        runCurrent()
+        cancelGate.complete(Unit)
+        runCurrent()
+
+        val session = vm.uiState.value.editingQueuedItem
+        assertThat(session).isNotNull()
+        val accountedFor = vm.uiState.value.messageQueue.map { it.text } + session!!.original.text
+        assertThat(accountedFor).containsExactly("first follow-up", "second follow-up")
+    }
+
     private fun receiptFor(request: EnqueueQueuedTurnRequest) = AgentQueuedTurnReceipt(
         queuedTurnId = "qt-1",
         clientRequestId = request.clientRequestId,

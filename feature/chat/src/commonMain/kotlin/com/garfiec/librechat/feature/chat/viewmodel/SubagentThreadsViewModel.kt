@@ -82,7 +82,12 @@ class SubagentThreadsViewModel(
         loadedFor = parentConversationId
         _uiState.value = SubagentThreadsUiState(isLoadingIndex = true)
         viewModelScope.launch {
-            when (val result = subagentRepository.getChildren(parentConversationId)) {
+            val result = subagentRepository.getChildren(parentConversationId)
+            // The sheet moved to another conversation while this was in flight. Landing A's
+            // children under B's header would leave focusChild fetching A's threadIds against B —
+            // and on the failure arm, A's 404 would clear the state B is loading under.
+            if (loadedFor != parentConversationId) return@launch
+            when (result) {
                 is Result.Success -> {
                     _uiState.value = _uiState.value.copy(
                         children = result.data.children,
