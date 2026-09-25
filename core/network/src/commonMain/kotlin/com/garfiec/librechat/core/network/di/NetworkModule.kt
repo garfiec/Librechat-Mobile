@@ -29,6 +29,7 @@ import com.garfiec.librechat.core.network.api.SchedulesApi
 import com.garfiec.librechat.core.network.api.ShareApi
 import com.garfiec.librechat.core.network.api.SkillsApi
 import com.garfiec.librechat.core.network.api.SpeechApi
+import com.garfiec.librechat.core.network.api.SubagentsApi
 import com.garfiec.librechat.core.network.api.TagsApi
 import com.garfiec.librechat.core.network.api.UserApi
 import com.garfiec.librechat.core.network.client.AuthInterceptorPlugin
@@ -216,6 +217,7 @@ val networkModule = module {
     singleOf(::ShareApi)
     singleOf(::SkillsApi)
     singleOf(::SpeechApi)
+    singleOf(::SubagentsApi)
     singleOf(::TagsApi)
     singleOf(::UserApi)
 }

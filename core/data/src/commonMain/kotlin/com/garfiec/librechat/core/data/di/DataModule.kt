@@ -86,6 +86,8 @@ import com.garfiec.librechat.core.data.repository.SkillsRepository
 import com.garfiec.librechat.core.data.repository.SkillsRepositoryImpl
 import com.garfiec.librechat.core.data.repository.SpeechRepository
 import com.garfiec.librechat.core.data.repository.SpeechRepositoryImpl
+import com.garfiec.librechat.core.data.repository.SubagentRepository
+import com.garfiec.librechat.core.data.repository.SubagentRepositoryImpl
 import com.garfiec.librechat.core.data.repository.TagRepository
 import com.garfiec.librechat.core.data.repository.TagRepositoryImpl
 import com.garfiec.librechat.core.data.repository.ToolFavoritesRepository
@@ -449,6 +451,7 @@ val dataModule = module {
     singleOf(::ScheduleRepositoryImpl) bind ScheduleRepository::class
     singleOf(::ShareRepositoryImpl) bind ShareRepository::class
     singleOf(::SkillsRepositoryImpl) bind SkillsRepository::class
+    singleOf(::SubagentRepositoryImpl) bind SubagentRepository::class
     singleOf(::SpeechRepositoryImpl) bind SpeechRepository::class
     singleOf(::UserRepositoryImpl) bind UserRepository::class
     singleOf(::BannerRepositoryImpl) bind BannerRepository::class
