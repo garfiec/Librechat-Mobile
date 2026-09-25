@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.runtime.Composable
+import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.error.StreamErrorType
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -54,4 +55,17 @@ internal fun localizedStreamError(raw: String): String {
         StreamErrorType.STATEFUL_CODE_ENVIRONMENT_NOT_ALLOWED ->
             stringResource(Res.string.error_stateful_code_environment_not_allowed)
     }
+}
+
+/**
+ * The failure a turn was saved with, ready for [localizedStreamError], or null for any other
+ * message.
+ *
+ * From v0.8.8-rc2 the server persists a failed turn as `error: true` with no content parts and
+ * the failure itself as `text` — for an initialization failure, the JSON of its typed payload.
+ * Rendered as ordinary text that JSON is what the thread showed, where the web shows the error.
+ */
+internal fun persistedTurnError(message: Message): String? {
+    if (!message.error || !message.content.isNullOrEmpty()) return null
+    return message.text.takeIf { it.isNotBlank() }?.let(StreamErrorType::markerOrText)
 }
