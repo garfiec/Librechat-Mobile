@@ -41,6 +41,7 @@
     <string name="schedule_save">Save</string>
     <string name="schedule_conflict">This schedule was changed somewhere else. Reload to see the current version — your edits here were not saved.</string>
     <string name="schedule_reload">Reload</string>
+    <string name="schedule_load_failed">This schedule could not be loaded, so there is nothing here to save yet. Reload to try again.</string>
     <string name="schedule_cancel">Cancel</string>
 
     <string name="schedule_problem_name">Give the schedule a name.</string>

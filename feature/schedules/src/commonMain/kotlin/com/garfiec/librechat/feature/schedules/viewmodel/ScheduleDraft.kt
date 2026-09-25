@@ -111,7 +111,12 @@ fun ScheduleDraft.firstProblem(
     hasNoAgents -> ScheduleDraftProblem.NO_AGENTS
     agentId.isBlank() -> ScheduleDraftProblem.AGENT_REQUIRED
     isCron && !isPlausibleCronShape(cronExpression) -> ScheduleDraftProblem.CRON_SHAPE
-    !isCron && (hour == null || minute == null) -> ScheduleDraftProblem.TIME_REQUIRED
+    // An hourly cadence compiles to `<minute> * * * *` — the hour is never read, which is why the
+    // editor disables that field for it. Requiring one anyway made the only field that could
+    // satisfy the rule the one field the user could not reach.
+    !isCron && minute == null -> ScheduleDraftProblem.TIME_REQUIRED
+    !isCron && frequency != ScheduleFrequency.HOURLY && hour == null ->
+        ScheduleDraftProblem.TIME_REQUIRED
     frequency == ScheduleFrequency.WEEKLY && daysOfWeek.isEmpty() ->
         ScheduleDraftProblem.WEEKDAY_REQUIRED
     // A pinned project is supplied by the server, so only an unpinned requirement can be unmet.

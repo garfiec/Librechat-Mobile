@@ -3,6 +3,8 @@ package com.garfiec.librechat.feature.schedules.screen
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -54,6 +56,7 @@ import com.garfiec.librechat.feature.schedules.resources.schedule_days
 import com.garfiec.librechat.feature.schedules.resources.schedule_editor_edit_title
 import com.garfiec.librechat.feature.schedules.resources.schedule_editor_new_title
 import com.garfiec.librechat.feature.schedules.resources.schedule_enable
+import com.garfiec.librechat.feature.schedules.resources.schedule_load_failed
 import com.garfiec.librechat.feature.schedules.resources.schedule_minute
 import com.garfiec.librechat.feature.schedules.resources.schedule_name
 import com.garfiec.librechat.feature.schedules.resources.schedule_project
@@ -68,6 +71,7 @@ import com.garfiec.librechat.feature.schedules.resources.schedule_timezone
 import com.garfiec.librechat.feature.schedules.viewmodel.ScheduleDraft
 import com.garfiec.librechat.feature.schedules.viewmodel.ScheduleEditorUiState
 import com.garfiec.librechat.feature.schedules.viewmodel.ScheduleEditorViewModel
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -142,8 +146,12 @@ fun ScheduleEditorScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            // Both states freeze Save and both are recovered the same way — by re-reading the
+            // server's copy, never by re-sending what is on screen.
             if (uiState.hasConflict) {
-                ConflictNotice(onReload = viewModel::reloadAfterConflict)
+                BlockedNotice(Res.string.schedule_conflict, onReload = viewModel::reload)
+            } else if (uiState.loadFailed) {
+                BlockedNotice(Res.string.schedule_load_failed, onReload = viewModel::reload)
             }
             EditorBody(uiState = uiState, onChange = viewModel::update)
             uiState.problem?.let {
@@ -158,10 +166,10 @@ fun ScheduleEditorScreen(
 }
 
 @Composable
-private fun ConflictNotice(onReload: () -> Unit) {
+private fun BlockedNotice(message: StringResource, onReload: () -> Unit) {
     Column {
         Text(
-            text = stringResource(Res.string.schedule_conflict),
+            text = stringResource(message),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.error,
         )
@@ -169,7 +177,7 @@ private fun ConflictNotice(onReload: () -> Unit) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun EditorBody(
     uiState: ScheduleEditorUiState,
@@ -206,7 +214,14 @@ private fun EditorBody(
     )
 
     Text(stringResource(Res.string.schedule_repeats), style = MaterialTheme.typography.labelLarge)
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+    // FlowRow, not Row: the five labels need roughly 450dp and a Row measures the overflow — here
+    // the last chip, "Custom (cron)" — at zero width, which took the whole cron cadence off every
+    // phone-sized screen without rendering anything to notice.
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
         (ScheduleFrequency.STRUCTURED + ScheduleFrequency.CRON).forEach { frequency ->
             FilterChip(
                 selected = draft.frequency == frequency,
@@ -250,7 +265,11 @@ private fun EditorBody(
         }
         if (draft.frequency == ScheduleFrequency.WEEKLY) {
             Text(stringResource(Res.string.schedule_days), style = MaterialTheme.typography.labelLarge)
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 WEEKDAY_LABELS.forEachIndexed { index, label ->
                     FilterChip(
                         selected = index in draft.daysOfWeek,

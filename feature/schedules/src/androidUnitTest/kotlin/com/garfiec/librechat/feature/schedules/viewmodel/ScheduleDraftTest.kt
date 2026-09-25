@@ -218,5 +218,50 @@ class ScheduleDraftTest {
         assertThat(request.cadence.daysOfWeek).containsExactly(1, 3).inOrder()
         assertThat(request.cadence.expression).isNull()
     }
-}
 
+    @Test
+    fun `an hourly cadence does not require the hour its editor greys out`() {
+        // `cadenceToCron` compiles hourly to `<minute> * * * *`, so the hour is never read — which
+        // is why the editor disables that field. Requiring one anyway made the only field that
+        // could satisfy TIME_REQUIRED the one field the user could not reach: a cron schedule
+        // opened for edit (no hour on the row at all) and switched to Every hour could never save.
+        val draft = ScheduleDraft(
+            name = "n",
+            prompt = "p",
+            agentId = "a",
+            frequency = ScheduleFrequency.HOURLY,
+            hourText = "",
+            minuteText = "30",
+        )
+
+        assertThat(draft.firstProblem(ScheduleLimits())).isNull()
+    }
+
+    @Test
+    fun `an hourly cadence still requires the minute it does read`() {
+        val draft = ScheduleDraft(
+            name = "n",
+            prompt = "p",
+            agentId = "a",
+            frequency = ScheduleFrequency.HOURLY,
+            hourText = "",
+            minuteText = "",
+        )
+
+        assertThat(draft.firstProblem(ScheduleLimits())).isEqualTo(ScheduleDraftProblem.TIME_REQUIRED)
+    }
+
+    @Test
+    fun `every other structured frequency still requires an hour`() {
+        val draft = ScheduleDraft(
+            name = "n",
+            prompt = "p",
+            agentId = "a",
+            frequency = ScheduleFrequency.DAILY,
+            hourText = "",
+            minuteText = "30",
+        )
+
+        assertThat(draft.firstProblem(ScheduleLimits())).isEqualTo(ScheduleDraftProblem.TIME_REQUIRED)
+    }
+}

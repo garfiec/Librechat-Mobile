@@ -37,6 +37,15 @@ data class ScheduleEditorUiState(
     /** Set when the server reports a concurrent edit; the form must be reloaded, never retried. */
     val hasConflict: Boolean = false,
     val isEditing: Boolean = false,
+    /**
+     * The row being edited could not be read.
+     *
+     * Load-bearing rather than cosmetic: without it a failed read leaves the editor in Edit mode
+     * over a BLANK draft, and Save takes the create branch — a second recurring schedule firing
+     * alongside the one the user meant to change. The 409 path is the worse door, since a conflict
+     * proves the row exists.
+     */
+    val loadFailed: Boolean = false,
 ) {
     /** The cron line the engine would fire from, for the structured picker's preview. */
     val cadencePreview: String get() = cadenceToCron(draft.cadence)
@@ -51,7 +60,7 @@ data class ScheduleEditorUiState(
     val needsAProjectToExist: Boolean
         get() = limits.requireProject && !isProjectPinned && projects.isEmpty()
 
-    val canSave: Boolean get() = !isSaving && !hasConflict && problem == null
+    val canSave: Boolean get() = !isSaving && !hasConflict && !loadFailed && problem == null
 }
 
 class ScheduleEditorViewModel(
@@ -114,6 +123,9 @@ class ScheduleEditorViewModel(
                 isLoading = false,
                 error = (existing as? Result.Error)?.message
                     ?: (listing as? Result.Error)?.message,
+                // Survives the keystroke that clears `error`, because the draft on screen is still
+                // a blank form rather than the user's schedule.
+                loadFailed = scheduleId != null && schedule == null,
             )
         }
     }
@@ -137,6 +149,13 @@ class ScheduleEditorViewModel(
     fun save() {
         val state = _uiState.value
         if (!state.canSave) return
+        // Sink guard as well as the affordance one. `canSave` already covers this, but a create
+        // fired from an editor that is supposed to be editing leaves a SECOND recurring automation
+        // on the server, which is the one outcome here a user cannot undo from this screen.
+        if (state.isEditing && original == null) {
+            _uiState.value = state.copy(loadFailed = true)
+            return
+        }
         _uiState.value = state.copy(isSaving = true, error = null)
         viewModelScope.launch {
             val existing = original
@@ -163,9 +182,20 @@ class ScheduleEditorViewModel(
         }
     }
 
-    /** Discards the local edit and re-reads the server's copy after a 409. */
-    fun reloadAfterConflict() {
-        _uiState.value = _uiState.value.copy(hasConflict = false, isLoading = true, error = null)
+    /**
+     * Discards the local edit and re-reads the server's copy.
+     *
+     * The recovery for both states that freeze Save — a 409 that must not be retried with a stale
+     * revision, and a read that never landed. Both need the server's copy, not another attempt at
+     * sending what is on screen.
+     */
+    fun reload() {
+        _uiState.value = _uiState.value.copy(
+            hasConflict = false,
+            loadFailed = false,
+            isLoading = true,
+            error = null,
+        )
         load()
     }
 
