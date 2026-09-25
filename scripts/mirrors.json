@@ -169,7 +169,7 @@
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/artifact/ArtifactDetector.kt",
         "symbol": "ArtifactDetector"
       },
-      "why": "Ported in shape from findArtifactClose/getOpeningCodeFence. The real contract is 'whatever micromark parses', so this is a behavioural port, not a table. Three divergences are deliberate and pinned by ArtifactDetectorCorpusTest.",
+      "why": "Ported in shape from findArtifactClose/getOpeningCodeFence. The real contract is 'whatever micromark parses', so this is a behavioural port, not a table. Three divergences are deliberate and pinned by ArtifactDetectorCorpusTest. Only the DETECTION half of update.ts is mirrored: replaceArtifactContent and the normalizeBeforeClosingArtifactFence it calls run server-side when an artifact-edit tool rewrites a message, so their text reaches the client already normalised and they have no Kotlin counterpart. A diff confined to those is out of scope here -- verified at v0.8.8-rc3, where normalizeBeforeClosingArtifactFence was rewritten.",
       "failure_mode": "An artifact renders as raw source, or swallows the rest of the reply. The corpus test pins current agreement at 22/25 with a known-divergent set, so a genuine drift shows up there -- but only if someone re-runs the corpus against the new upstream."
     },
     {
@@ -240,20 +240,6 @@
       },
       "why": "The per-answer character cap the resume route enforces on both the bare and the batched path. Mirrored because the answer boxes budget against it, so a user cannot compose an answer the route will refuse.",
       "failure_mode": "Upstream LOWERING it makes a long answer 400 at submit with the run already paused; raising it costs the user characters they were entitled to type. Both are silent -- a stale copy still compiles and still submits."
-    },
-    {
-      "id": "model-not-found-url-pattern",
-      "upstream": {
-        "file": "client/src/components/Messages/Content/Error.tsx",
-        "symbol": "langChainModelNotFoundUrl",
-        "mode": "block"
-      },
-      "kotlin": {
-        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/error/StreamErrorType.kt",
-        "symbol": "StreamErrorType.MODEL_NOT_FOUND_PATTERN"
-      },
-      "why": "MODEL_NOT_FOUND is not one of upstream's typed ErrorTypes -- it arrives as a documentation URL embedded in provider prose, and this regex is the whole of the detection. Nothing on the wire distinguishes it from any other provider sentence. The Kotlin copy spells `\\b` out as a character-class lookahead because Android's Regex is ICU; that divergence is deliberate and is not drift.",
-      "failure_mode": "A reworded upstream link stops matching, so the provider's raw unhelpful sentence reaches the user instead of the 'that model is not available' message -- exactly where a model picker would have fixed it. A widened pattern retitles unrelated provider errors as a missing model."
     },
     {
       "id": "generation-reconcile-message",
