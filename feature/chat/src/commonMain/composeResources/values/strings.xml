@@ -123,6 +123,7 @@
     <string name="label_subagent">Subagent</string>
     <string name="subagent_threads_title">Subagent thread</string>
     <string name="subagent_threads_open">View thread</string>
+    <string name="subagent_threads_back">Back to threads</string>
     <string name="subagent_threads_empty">This conversation has no subagent threads.</string>
     <string name="subagent_threads_unavailable">No subagent threads are available here.</string>
     <string name="subagent_threads_event_origin">Started by an event</string>
@@ -533,6 +534,10 @@
     <string name="error_final_context_overflow">This conversation no longer fits the model\'s context window. Start a new conversation, or switch to a model with a larger window.</string>
     <string name="error_compaction_skipped">There was nothing to compact yet. Keep chatting and try again later.</string>
     <string name="error_compaction_failed">The summary couldn\'t be generated, so the conversation is unchanged. Try again.</string>
+    <string name="error_upstream_model_error">The model provider couldn\'t complete this request. Try again, or pick a different model.</string>
+    <string name="error_empty_messages">There was nothing left to send after this conversation was trimmed to fit the model\'s context. Start a new conversation, or switch to a model with a larger window.</string>
+    <string name="error_code_workspace_unavailable">The code workspace for this conversation isn\'t available. Try again, or pick a different workspace.</string>
+    <string name="error_stateful_code_environment_not_allowed">This server doesn\'t allow a persistent code environment. Turn it off in the code interpreter options and try again.</string>
     <string name="error_auth_rate_limited">Too many sign-in attempts. Wait a moment and try again.</string>
     <string name="error_auth_banned">This account or network is blocked from signing in. Contact an administrator.</string>
     <string name="error_auth_cross_origin">The server rejected the sign-in as coming from another site. Report this — it is an app bug, not a password problem.</string>

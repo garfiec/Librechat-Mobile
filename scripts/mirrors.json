@@ -278,10 +278,10 @@
       },
       "kotlin": {
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/error/ServerErrorCode.kt",
-        "symbol": "ServerErrorCode.OAUTH_SECRET_REENTRY_REQUIRED"
+        "symbol": "ServerErrorCode.OAUTH_SECRET_REENTRY_REQUIRED, .MCP_AUTHENTICATION_REJECTED, .MCP_AUTHENTICATION_REFRESH_FAILED"
       },
-      "why": "The MCP save path branches on the literal `MCP_OAUTH_SECRET_REENTRY_REQUIRED` to turn a 400 into a re-enter-your-secret prompt rather than a generic failure. The wire value carries an `MCP_` prefix that upstream's TypeScript member name drops, so the copy cannot be derived from the member name and has to be transcribed.",
-      "failure_mode": "A renamed code makes the re-entry prompt unreachable: the save reports a plain 'could not save' and the user has no way to learn the stored secret is the thing that must be re-supplied, so the write keeps failing forever."
+      "why": "Three literals transcribed out of one upstream block, so the block is what is watched. `MCP_OAUTH_SECRET_REENTRY_REQUIRED` turns a 400 on the save path into a re-enter-your-secret prompt rather than a generic failure; the wire value carries an `MCP_` prefix that upstream's TypeScript member name drops, so it cannot be derived from the member name. `MCP_AUTHENTICATION_REJECTED` and `MCP_AUTHENTICATION_REFRESH_FAILED` (v0.8.8-rc2) are what tell a lapsed OAuth authorization apart from a server that is simply down, which is what decides whether the user is offered re-authorization or an error.",
+      "failure_mode": "A renamed re-entry code makes that prompt unreachable: the save reports a plain 'could not save' and the user never learns the stored secret is what must be re-supplied, so the write keeps failing forever. A renamed authentication code degrades to the generic failure, so a server whose authorization merely lapsed is reported as broken and the one action that would fix it is never offered. Reconcile all three when this entry reports drift -- they arrive together and only one of them names itself in the Kotlin file's own comments."
     },
     {
       "id": "refresh-403-rejection-bodies",
@@ -477,6 +477,34 @@
       },
       "why": "How a closed run step's elapsed time is computed from created_at/closed_at, including the rule that a negative result is withheld rather than shown -- a step can be opened in one process and closed in another after a checkpoint resume, so disagreeing clocks are not hypothetical.",
       "failure_mode": "Upstream changes the units or the guard and the tool-call card reports a wrong duration. A wrong number renders exactly like a right one."
+    },
+    {
+      "id": "stream-error-identifier-extraction",
+      "upstream": {
+        "file": "client/src/utils/json.ts",
+        "symbol": "extractJson",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/error/StreamErrorType.kt",
+        "symbol": "StreamErrorType.parse / balancedObjectAt / identify"
+      },
+      "why": "How the typed identifier is found in a stream-error message, which is NOT simply 'parse the message': rc2's terminal-run handler composes prose followed by the payload, so the payload is embedded, and the identifier arrives under `code` or `type`, at the top level or inside an `error` envelope (client/src/components/Messages/Content/Error/index.tsx reads `readString(json,'code') ?? readString(json,'type')` then unwraps `error`). The Kotlin side deliberately WIDENS upstream twice -- it walks every balanced run rather than only the first, and it skips quoted braces -- so prose braces and a `{` inside a string value cannot lose a well-formed payload. Neither divergence can classify a code `byWire` does not already name.",
+      "failure_mode": "Upstream changes where the identifier lives, or stops prefixing prose, and a mapped error type stops classifying -- the raw JSON payload is rendered into the assistant message body and the end-of-run snackbar instead of the actionable sentence. Nothing throws: `parse` returning null IS the documented degrade path, so the regression is indistinguishable from an unrecognized code."
+    },
+    {
+      "id": "run-step-closed-statuses",
+      "upstream": {
+        "file": "packages/data-provider/src/types/agents.ts",
+        "symbol": "RunStepStatus",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/RunStepStatus.kt",
+        "symbol": "RunStepStatus.byWire"
+      },
+      "why": "The literals a run step can close with, carried by on_run_step_closed and persisted as `runStepStatus`. Watched on RunStepStatus rather than on RunStepClosedStatus, which is an Exclude<> over it and holds no literal of its own. The Kotlin side decodes through a byWire map that returns NULL for anything unrecognized -- deliberately, so a newer terminal state degrades one card instead of failing the frame -- which is also what stops a rename ever surfacing. Same reasoning as trace-record-kinds and trace-statuses.",
+      "failure_mode": "A renamed member makes fromWire return null, SseEventMapper's `?: return null` drops the whole on_run_step_closed frame, and toolCallVerdict falls back to the completion heuristic -- so a step the user cancelled, or one that failed, renders with a green completed check on both the live and the reloaded card. Nothing throws and nothing fails to decode."
     },
     {
       "id": "normalize-endpoint-name",

@@ -963,7 +963,10 @@ gaining a `toolNames` field in its return type; the two literals the entry guard
 (`errorType: 'already_exceeded'` and `'would_exceed'`) are byte-identical at both revisions, so
 nothing was owed on the Kotlin side. A file-mode entry reports any churn in its file by design, so
 expect this one to fire again on the next unrelated edit and re-verify the two literals rather than
-the file. Further mirrors were registered as the sync went on — the schedules cadence pair with C14 and four trace-viewer entries with C13 — leaving **25** in the registry at the rc3 pin. Count from `scripts/mirrors.json` rather than from this sentence, which has been stale twice already.
+the file. Further mirrors were registered as the sync went on — the schedules cadence pair with C14, four
+trace-viewer entries with C13, the queued-turn classifiers, and the run-step close statuses. The
+count is whatever `python3 scripts/check-mirrors.py --list` prints; this sentence has now carried a
+wrong one three times, so it no longer carries one at all.
 
 ### v0.8.8-rc1 sync (tag v0.8.8-rc1, commit eaef87fa, 2026-08-14) — shape changes and divergences
 

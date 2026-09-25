@@ -85,6 +85,54 @@ class StreamErrorTypeTest {
         }
     }
 
+    /**
+     * The shape rc2's terminal-run handler actually composes: prose, a newline, then the payload
+     * (`packages/api/src/agents/failures/terminal.ts`). A case built from a bare JSON object
+     * passes whether or not `parse` can find an EMBEDDED payload, which is how a mapped type can
+     * still reach the user as raw JSON in the assistant message body.
+     */
+    @Test
+    fun a_payload_prefixed_with_prose_still_classifies() {
+        val raw = "The model provider could not complete this request.\n" +
+            """{"type":"upstream_model_error","status":503}"""
+
+        assertEquals(StreamErrorType.UPSTREAM_MODEL_ERROR, StreamErrorType.parse(raw))
+        assertEquals(StreamErrorType.UPSTREAM_MODEL_ERROR.marker, StreamErrorType.markerOrText(raw))
+    }
+
+    /** Braces in the prose must not swallow the payload: the span is BALANCED, not outermost-pair. */
+    @Test
+    fun braces_in_the_prose_do_not_break_the_extraction() {
+        val raw = """Template {placeholder} failed. {"type":"empty_messages"}"""
+
+        assertEquals(StreamErrorType.EMPTY_MESSAGES, StreamErrorType.parse(raw))
+    }
+
+    /**
+     * Upstream reads `code ?? type` and then unwraps an `error` envelope.
+     * `CodeWorkspaceSelectionError` names itself under `code` and never under `type`.
+     */
+    @Test
+    fun the_identifier_is_read_from_code_and_from_an_error_envelope() {
+        assertEquals(
+            StreamErrorType.CODE_WORKSPACE_UNAVAILABLE,
+            StreamErrorType.parse("""{"code":"code_workspace_unavailable","status":409}"""),
+        )
+        assertEquals(
+            StreamErrorType.MODERATION,
+            StreamErrorType.parse("""{"error":{"type":"moderation"}}"""),
+        )
+    }
+
+    /** A message with no payload at all still degrades to the server's own text. */
+    @Test
+    fun prose_with_no_payload_is_left_alone() {
+        val raw = "Something went wrong."
+
+        assertNull(StreamErrorType.parse(raw))
+        assertEquals(raw, StreamErrorType.markerOrText(raw))
+    }
+
     @Test
     fun markers_round_trip_through_the_wire_value() {
         // `localizedStreamError` resolves a marker by matching the enum on `wire`, so a marker

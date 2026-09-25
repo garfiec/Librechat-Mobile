@@ -47,5 +47,11 @@ internal fun localizedStreamError(raw: String): String {
         StreamErrorType.AUTH_CROSS_ORIGIN -> stringResource(Res.string.error_auth_cross_origin)
         StreamErrorType.SHARE_LIMIT -> stringResource(Res.string.error_share_limit)
         StreamErrorType.STREAM_EXPIRED -> stringResource(Res.string.error_stream_expired)
+        StreamErrorType.UPSTREAM_MODEL_ERROR -> stringResource(Res.string.error_upstream_model_error)
+        StreamErrorType.EMPTY_MESSAGES -> stringResource(Res.string.error_empty_messages)
+        StreamErrorType.CODE_WORKSPACE_UNAVAILABLE ->
+            stringResource(Res.string.error_code_workspace_unavailable)
+        StreamErrorType.STATEFUL_CODE_ENVIRONMENT_NOT_ALLOWED ->
+            stringResource(Res.string.error_stateful_code_environment_not_allowed)
     }
 }

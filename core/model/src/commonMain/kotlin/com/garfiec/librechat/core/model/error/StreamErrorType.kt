@@ -102,6 +102,28 @@ enum class StreamErrorType(val wire: String) {
      * Reconnecting or reopening the conversation is the resolution, not retrying the send.
      */
     STREAM_EXPIRED("stream_expired"),
+
+    /**
+     * The model provider itself failed the request — a 5xx, a timeout, a refusal to answer.
+     *
+     * Ordinary, not exotic: rc2's terminal-run handler raises it for every unattributed provider
+     * failure, and composes its message as prose FOLLOWED by the JSON payload — which is why
+     * [Companion.parse] extracts the JSON rather than requiring the whole string to be one.
+     */
+    UPSTREAM_MODEL_ERROR("upstream_model_error"),
+
+    /**
+     * Context pruning removed every message, so there was nothing left to send.
+     *
+     * Reached by an ordinary long conversation on a small window, not by a malformed request.
+     */
+    EMPTY_MESSAGES("empty_messages"),
+
+    /** The code-interpreter workspace the turn selected could not be reached. */
+    CODE_WORKSPACE_UNAVAILABLE("code_workspace_unavailable"),
+
+    /** A stateful code environment was asked for on a deployment that does not permit one. */
+    STATEFUL_CODE_ENVIRONMENT_NOT_ALLOWED("stateful_code_environment_not_allowed"),
     ;
 
     companion object {
@@ -110,9 +132,21 @@ enum class StreamErrorType(val wire: String) {
         /**
          * The typed error in a raw stream-error message, or null.
          *
-         * Null covers every degrade-to-generic case: the message is not JSON, is not an object,
-         * carries no `type`, or carries one this client does not recognize. A newer server's code
-         * must never crash a client or reach the user as a bare identifier.
+         * Null covers every degrade-to-generic case: the message carries no JSON payload at all,
+         * or names a code this client does not recognize. A newer server's code must never crash
+         * a client or reach the user as a bare identifier.
+         *
+         * **The payload is EMBEDDED, not the whole string.** rc2's terminal-run handler composes
+         * `"<prose>\n<json>"` — `packages/api/src/agents/failures/terminal.ts` literally returns
+         * `` `${UPSTREAM_MODEL_ERROR_FALLBACK}\n${JSON.stringify({ type, status })}` `` — so
+         * requiring the message to parse whole is not a malformed-input guard, it rejects a shape
+         * the server actively produces. Upstream's client runs `extractJson` (a brace-balanced
+         * substring, `client/src/utils/json.ts`) first for the same reason.
+         *
+         * **The identifier can arrive under `code` or `type`, at the top level or inside an
+         * `error` envelope.** `CodeWorkspaceSelectionError` carries `code`, never `type`, and an
+         * OpenAI-compatible provider body is shaped `{"error":{"type":…}}`. Upstream reads
+         * `readString(json,'code') ?? readString(json,'type')` and then unwraps `error`.
          *
          * Checked BEFORE the JSON parse, because [MODEL_NOT_FOUND] arrives as provider prose
          * rather than as a typed payload and would otherwise fall straight through to generic.
@@ -120,12 +154,57 @@ enum class StreamErrorType(val wire: String) {
         fun parse(rawMessage: String): StreamErrorType? {
             if (rawMessage.isBlank()) return null
             if (MODEL_NOT_FOUND_PATTERN.containsMatchIn(rawMessage)) return MODEL_NOT_FOUND
-            val element = runCatching { parser.parseToJsonElement(rawMessage) }.getOrNull() ?: return null
-            val obj = element as? JsonObject ?: return null
+            var from = rawMessage.indexOf('{')
+            while (from >= 0) {
+                val span = balancedObjectAt(rawMessage, from)
+                val identified = span
+                    ?.let { runCatching { parser.parseToJsonElement(it) }.getOrNull() }
+                    ?.let { it as? JsonObject }
+                    ?.let { it.identify() ?: (it["error"] as? JsonObject)?.identify() }
+                if (identified != null) return identified
+                from = rawMessage.indexOf('{', from + 1)
+            }
+            return null
+        }
+
+        /** `code` first, then `type`, matching upstream's `readString(json,'code') ?? …`. */
+        private fun JsonObject.identify(): StreamErrorType? {
             // Safe-cast, not `.jsonPrimitive`: that extension throws on an object or array value,
             // and this runs inside the SSE mapping coroutine.
-            val type = (obj["type"] as? JsonPrimitive)?.contentOrNull ?: return null
-            return byWire[type]
+            val code = (this["code"] as? JsonPrimitive)?.contentOrNull?.let { byWire[it] }
+            return code ?: (this["type"] as? JsonPrimitive)?.contentOrNull?.let { byWire[it] }
+        }
+
+        /**
+         * The brace-balanced `{…}` run starting at [start], or null if it never closes.
+         *
+         * **Two deliberate divergences from upstream's `extractJson`**, both widening and neither
+         * able to classify anything `byWire` does not already name:
+         * - upstream returns only the FIRST balanced run and gives up; [parse] walks every `{`
+         *   until one identifies, because prose around the payload can carry braces of its own
+         *   (`Template {placeholder} failed. {"type":…}`) and upstream would stop at the first;
+         * - quoted braces are skipped here, so a `{` inside a string value cannot end the run
+         *   early — upstream's counter has no string state and truncates such a payload.
+         */
+        private fun balancedObjectAt(raw: String, start: Int): String? {
+            var depth = 0
+            var inString = false
+            var escaped = false
+            for (i in start until raw.length) {
+                val c = raw[i]
+                when {
+                    escaped -> escaped = false
+                    c == '\\' && inString -> escaped = true
+                    c == '"' -> inString = !inString
+                    inString -> Unit
+                    c == '{' -> depth++
+                    c == '}' -> {
+                        depth--
+                        if (depth == 0) return raw.substring(start, i + 1)
+                    }
+                }
+            }
+            return null
         }
 
         /**
