@@ -187,7 +187,10 @@ class SettingsViewModel(
             combine(
                 configRepository.startupConfig,
                 configRepository.detectedBackendVersion,
-            ) { config, version -> config to version }.collect { (config, version) ->
+                configRepository.detectedBackend,
+            ) { config, version, backend ->
+                Triple(config, version, backend)
+            }.collect { (config, version, backend) ->
                 _uiState.update {
                     it.copy(
                         allowAccountDeletion = config?.allowAccountDeletion ?: true,
@@ -201,7 +204,7 @@ class SettingsViewModel(
                         // reporting the previous release, or one built past the commit-map pin,
                         // is the population most likely to HAVE it. See VERSION_GATES.md.
                         archiveAllSupported = !BackendVersion.featureSupport(
-                            configRepository.detectedBackend.value,
+                            backend,
                             minVersion = "0.8.8-rc2",
                         ).isRuledOut,
                     )

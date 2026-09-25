@@ -1012,7 +1012,10 @@ states both.
   `isCrossSiteRequest` passes a request carrying *neither* header — upstream's own comment: *"A
   request carrying neither header did not come from a browser page and passes."* A real mobile
   `Origin` can never match `DOMAIN_CLIENT`, so adding either header fails login and 2FA with
-  `403 { code: 'auth_cross_origin' }` (mapped as `StreamErrorType.AUTH_CROSS_ORIGIN`).
+  `403 { message: 'Cross-site request rejected', code: 'auth_cross_origin' }`. Note the value is
+  under **`code`**, which is `ServerErrorCode`'s key — `StreamErrorType.AUTH_CROSS_ORIGIN` models
+  the same string as an error-payload `type`, which is a different channel and not the one this
+  route uses. What a user would see is the server's own `message`, via `extractErrorMessage`.
 
 Both directions are locked by `core/network/src/androidUnitTest/.../client/UserAgentGuardTest.kt`,
 which asserts through the real client factory. The iOS SSE transport's hand-written header block

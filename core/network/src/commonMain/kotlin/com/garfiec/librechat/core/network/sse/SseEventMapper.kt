@@ -501,6 +501,7 @@ class SseEventMapper(private val json: Json) {
                 SubagentPhase.REASONING_DELTA -> mapReasoningDelta(payload, agentId, groupId)
                 SubagentPhase.RUN_STEP -> mapRunStep(payload, agentId, groupId)
                 SubagentPhase.RUN_STEP_COMPLETED -> mapRunStepCompleted(payload, agentId, groupId)
+                SubagentPhase.RUN_STEP_CLOSED -> mapRunStepClosed(payload, agentId, groupId)
                 else -> null // start / stop / error / run_step_delta carry no foldable content
             }
         }
