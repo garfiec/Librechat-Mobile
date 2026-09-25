@@ -1,7 +1,6 @@
 package com.garfiec.librechat.core.data.repository
 
 import com.garfiec.librechat.core.common.BackendVersion
-import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.safeApiCall
 import com.garfiec.librechat.core.model.trace.TraceAvailability
@@ -22,7 +21,6 @@ class TraceRepositoryImpl(
         ).isRuledOut
 
     override suspend fun resolveAvailability(conversationId: String): Result<TraceAvailability> {
-        var errorRetries = 0
         var waits = 0
         while (true) {
             val result = safeApiCall { tracesApi.getAvailability(conversationId) }
@@ -41,15 +39,11 @@ class TraceRepositoryImpl(
                     delay(retryAfterMs)
                 }
 
-                is Result.Error -> {
-                    // A hidden control has nothing to report, so a transient fault retries quietly
-                    // and anything the server decided is taken at its word.
-                    val status = (result.exception as? ApiException)?.statusCode
-                    val transient = status == null || status >= HTTP_SERVER_ERROR
-                    if (!transient || errorRetries >= MAX_ERROR_RETRIES) return result
-                    errorRetries++
-                    delay(RETRY_BASE_MS shl (errorRetries - 1))
-                }
+                // The transport already retried this. `configureRetryPolicy` replays retry-safe
+                // methods twice on a 5xx or a transport fault, so a ladder here multiplied rather
+                // than added — four attempts over three is twelve requests to a route with no
+                // rate limiter, and seconds of sleeping the caller cannot see.
+                is Result.Error -> return result
 
                 is Result.Loading -> return result
             }
@@ -70,8 +64,5 @@ class TraceRepositoryImpl(
     private companion object {
         const val MIN_VERSION = "0.8.8-rc3"
         const val MAX_WAITS = 10
-        const val MAX_ERROR_RETRIES = 3
-        const val RETRY_BASE_MS = 1_000L
-        const val HTTP_SERVER_ERROR = 500
     }
 }

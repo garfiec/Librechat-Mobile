@@ -8,6 +8,7 @@ import com.garfiec.librechat.core.data.repository.TraceRepository
 import com.garfiec.librechat.core.model.trace.TraceErrorCode
 import com.garfiec.librechat.core.model.trace.TraceRecord
 import com.garfiec.librechat.core.model.trace.TraceRecordDetail
+import com.garfiec.librechat.core.model.trace.TraceStatus
 import com.garfiec.librechat.core.model.trace.TraceSummary
 import com.garfiec.librechat.core.model.trace.TraceTurn
 import com.garfiec.librechat.core.model.trace.groupTraceRecords
@@ -67,6 +68,11 @@ class TraceViewerViewModel(
 
     /** Which page served each record, so its detail reads the same backend project. */
     private var sourceByRecordId = emptyMap<String, String>()
+
+    /** One record's detail request, which is what identifies the answer it produced. */
+    private data class DetailKey(val recordId: String, val messageId: String, val sourceId: String?)
+
+    private var detailCache = emptyMap<DetailKey, TraceRecordDetail>()
 
     private var nextCursor: String? = null
 
@@ -133,6 +139,24 @@ class TraceViewerViewModel(
 
     fun select(record: TraceRecord) {
         val conversationId = conversationId ?: return
+        val sourceId = sourceByRecordId[record.id]
+        val key = DetailKey(record.id, record.messageId, sourceId)
+        // A finished record's detail cannot change, and this route is rate limited — so tapping
+        // back and forth between two records must not spend the budget re-reading answers already
+        // held. Keyed on the whole request, because the same record id read against a different
+        // source is a different answer.
+        detailCache[key]?.let { cached ->
+            _uiState.update {
+                it.copy(
+                    selectedRecord = record,
+                    selectedDetail = cached,
+                    isLoadingDetail = false,
+                    detailErrorCode = null,
+                    detailErrorMessage = null,
+                )
+            }
+            return
+        }
         _uiState.update {
             it.copy(
                 selectedRecord = record,
@@ -147,8 +171,13 @@ class TraceViewerViewModel(
                 conversationId = conversationId,
                 recordId = record.id,
                 messageId = record.messageId,
-                sourceId = sourceByRecordId[record.id],
+                sourceId = sourceId,
             )
+            // Cached before the selection guard below: the answer is just as valid if the user has
+            // since tapped elsewhere, and a running record still has more to say.
+            if (result is Result.Success && record.status != TraceStatus.RUNNING) {
+                detailCache = detailCache + (key to result.data)
+            }
             _uiState.update { state ->
                 // A second tap while this was in flight already moved the selection on.
                 if (state.selectedRecord?.id != record.id) {
@@ -233,6 +262,7 @@ class TraceViewerViewModel(
         readEpoch++
         records = emptyList()
         sourceByRecordId = emptyMap()
+        detailCache = emptyMap()
         nextCursor = null
         _uiState.value = TraceViewerUiState()
     }

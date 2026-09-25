@@ -93,26 +93,21 @@ class TraceRepositoryAvailabilityTest {
         coVerify(exactly = 1) { api.getAvailability("c1") }
     }
 
+    /**
+     * A 5xx GET is already retried by the transport — `configureRetryPolicy` replays retry-safe
+     * methods twice with exponential backoff — so a second ladder here multiplied rather than
+     * added: four repository attempts over three transport attempts is twelve requests to a route
+     * with no rate limiter, plus seconds of sleeping the caller cannot see. The fault is reported
+     * once; the retrying already happened underneath.
+     */
     @Test
-    fun `a server fault is retried`() = runTest {
-        coEvery { api.getAvailability("c1") } throws ApiException(503, "Bad gateway") andThenAnswer {
-            TraceAvailability(available = true)
-        }
-
-        val result = repository().resolveAvailability("c1")
-
-        assertThat((result as Result.Success).data.available).isTrue()
-        coVerify(exactly = 2) { api.getAvailability("c1") }
-    }
-
-    @Test
-    fun `server faults are bounded`() = runTest {
+    fun `a server fault is reported rather than retried a second time`() = runTest {
         coEvery { api.getAvailability("c1") } throws ApiException(500, "Server error")
 
         val result = repository().resolveAvailability("c1")
 
         assertThat(result).isInstanceOf(Result.Error::class.java)
-        coVerify(exactly = 4) { api.getAvailability("c1") }
+        coVerify(exactly = 1) { api.getAvailability("c1") }
     }
 
     @Test

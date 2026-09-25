@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.model.trace.TraceErrorCode
 import com.garfiec.librechat.core.model.trace.TracePage
 import com.garfiec.librechat.core.model.trace.TraceRecord
 import com.garfiec.librechat.core.model.trace.TraceRecordDetail
+import com.garfiec.librechat.core.model.trace.TraceStatus
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -92,6 +93,64 @@ class TraceViewerViewModelTest {
         coVerify(exactly = 1) {
             repository.getRecord("c1", "r1", "m1", "project-b")
         }
+    }
+
+    /**
+     * The detail route is rate limited and a finished record's detail cannot change, so re-reading
+     * it every time the user taps back and forth spends the budget on an answer already held.
+     */
+    @Test
+    fun `a settled record's detail is read once however often it is reopened`() = runTest {
+        val settled = record("r1", "m1", "2026-09-18T09:00:00Z").copy(status = TraceStatus.OK)
+        coEvery { repository.getRecords("c1", null) } returns
+            Result.Success(TracePage(records = listOf(settled)))
+        coEvery { repository.getRecord(any(), any(), any(), any()) } returns
+            Result.Success(TraceRecordDetail(record = settled))
+
+        val viewModel = viewModel()
+        viewModel.openFor("c1")
+        viewModel.select(settled)
+        viewModel.closeDetail()
+        viewModel.select(settled)
+
+        assertThat(viewModel.uiState.value.selectedDetail).isNotNull()
+        coVerify(exactly = 1) { repository.getRecord("c1", "r1", "m1", any()) }
+    }
+
+    /** A record still running has more to say, so its detail is never served from the cache. */
+    @Test
+    fun `a running record's detail is re-read every time`() = runTest {
+        val running = record("r1", "m1", "2026-09-18T09:00:00Z").copy(status = TraceStatus.RUNNING)
+        coEvery { repository.getRecords("c1", null) } returns
+            Result.Success(TracePage(records = listOf(running)))
+        coEvery { repository.getRecord(any(), any(), any(), any()) } returns
+            Result.Success(TraceRecordDetail(record = running))
+
+        val viewModel = viewModel()
+        viewModel.openFor("c1")
+        viewModel.select(running)
+        viewModel.closeDetail()
+        viewModel.select(running)
+
+        coVerify(exactly = 2) { repository.getRecord("c1", "r1", "m1", any()) }
+    }
+
+    /** A refresh drops the pages; the details read against them go with it. */
+    @Test
+    fun `a refresh clears the cached details`() = runTest {
+        val settled = record("r1", "m1", "2026-09-18T09:00:00Z").copy(status = TraceStatus.OK)
+        coEvery { repository.getRecords("c1", null) } returns
+            Result.Success(TracePage(records = listOf(settled)))
+        coEvery { repository.getRecord(any(), any(), any(), any()) } returns
+            Result.Success(TraceRecordDetail(record = settled))
+
+        val viewModel = viewModel()
+        viewModel.openFor("c1")
+        viewModel.select(settled)
+        viewModel.refresh()
+        viewModel.select(settled)
+
+        coVerify(exactly = 2) { repository.getRecord("c1", "r1", "m1", any()) }
     }
 
     @Test

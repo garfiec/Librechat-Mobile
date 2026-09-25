@@ -1973,11 +1973,19 @@ class ChatViewModel(
             ) { conversationId, isStreaming, enabled ->
                 TraceGateInputs(conversationId, isStreaming, enabled)
             }.collectLatest { (conversationId, isStreaming, enabled) ->
-                if (conversationId == null || !enabled || traceRepository.isRuledOutForServer()) {
+                val isRuledOut = traceRepository.isRuledOutForServer()
+                if (conversationId == null || !enabled || isRuledOut) {
                     setTraceViewerConversation(null)
                     return@collectLatest
                 }
-                if (isStreaming) return@collectLatest
+                val shouldResolve = shouldResolveTraceAvailability(
+                    conversationId = conversationId,
+                    enabled = true,
+                    isRuledOut = false,
+                    isStreaming = isStreaming,
+                    alreadyShownFor = _uiState.value.gates.traceViewerConversationId,
+                )
+                if (!shouldResolve) return@collectLatest
                 val result = traceRepository.resolveAvailability(conversationId)
                 val available = result is Result.Success && result.data.available
                 setTraceViewerConversation(conversationId.takeIf { available })
