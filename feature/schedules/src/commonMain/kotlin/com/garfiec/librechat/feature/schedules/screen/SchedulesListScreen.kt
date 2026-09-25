@@ -44,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.common.extensions.formatAbsoluteTimestamp
 import com.garfiec.librechat.core.model.schedule.Schedule
 import com.garfiec.librechat.core.model.schedule.cadenceToCron
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
@@ -248,14 +249,14 @@ private fun ScheduleCard(
             )
             schedule.nextRunAt?.takeIf { schedule.enabled }?.let {
                 Text(
-                    text = stringResource(Res.string.schedule_next_run, it),
+                    text = stringResource(Res.string.schedule_next_run, it.asScheduleTimestamp()),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             schedule.lastRun?.firedAt?.let {
                 Text(
-                    text = stringResource(Res.string.schedule_last_run, it),
+                    text = stringResource(Res.string.schedule_last_run, it.asScheduleTimestamp()),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -299,3 +300,14 @@ private fun ScheduleCard(
         }
     }
 }
+
+/**
+ * `nextRunAt` and `firedAt` are wire values — ISO-8601 in UTC — not display ones. Rendered raw a
+ * card reads "Next run 2026-09-22T14:00:23.681Z" directly under a cadence the same card states in
+ * the schedule's own timezone.
+ *
+ * A value that will not parse falls back to itself rather than to [formatAbsoluteTimestamp]'s empty
+ * result, which would leave "Next run " with nothing after it — worse than the raw stamp, and
+ * undiagnosable.
+ */
+internal fun String.asScheduleTimestamp(): String = formatAbsoluteTimestamp(this).ifEmpty { this }

@@ -41,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.common.extensions.formatAbsoluteTimestamp
 import com.garfiec.librechat.core.model.trace.TraceContent
 import com.garfiec.librechat.core.model.trace.TraceErrorCode
 import com.garfiec.librechat.core.model.trace.TraceRecord
@@ -79,7 +80,6 @@ import com.garfiec.librechat.feature.chat.resources.trace_stat_turns
 import com.garfiec.librechat.feature.chat.resources.trace_title
 import com.garfiec.librechat.feature.chat.resources.trace_tokens_detail
 import com.garfiec.librechat.feature.chat.resources.trace_truncated
-import com.garfiec.librechat.feature.chat.util.formatAbsoluteTimestamp
 import com.garfiec.librechat.feature.chat.viewmodel.TraceViewerViewModel
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
