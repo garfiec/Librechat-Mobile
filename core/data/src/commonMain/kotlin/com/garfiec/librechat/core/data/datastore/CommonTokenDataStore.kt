@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.logging.Diag
 import com.garfiec.librechat.core.logging.LogOrigin
 import com.garfiec.librechat.core.model.response.RefreshResponse
 import com.garfiec.librechat.core.network.client.CookieHelper
+import com.garfiec.librechat.core.network.client.ImageCookieCredentials
 import com.garfiec.librechat.core.network.client.PinnedServerBaseUrlKey
 import com.garfiec.librechat.core.network.client.RefreshResult
 import com.garfiec.librechat.core.network.client.SecureTokenStorage
@@ -71,7 +72,7 @@ import kotlin.time.Clock
 abstract class CommonTokenDataStore(
     private val refreshClient: Lazy<HttpClient>,
     private val ioDispatcher: CoroutineDispatcher,
-) : TokenManager, SecureTokenStorage {
+) : TokenManager, SecureTokenStorage, ImageCookieCredentials {
 
     @Volatile
     private var cachedAccessToken: String? = null
@@ -1142,6 +1143,23 @@ abstract class CommonTokenDataStore(
     // --- SecureTokenStorage ---
 
     override suspend fun getRefreshToken(): String? = readValue(refreshKey(activeAccountKey))
+
+    // --- ImageCookieCredentials ---
+
+    /**
+     * Read directly off the account's own slot, unlocked, exactly like [getRefreshToken].
+     *
+     * No [stateMutex]: this reads a keyed slot rather than the active-account binding the mutex
+     * guards, and taking it would put a per-image keystore decrypt behind the same lock an account
+     * switch flips under. The value can therefore be read either side of a concurrent rotation — which
+     * is the race [ImageCookieCredentials] documents and its caller's one-shot 403 retry resolves.
+     *
+     * A null [accountId] returns null rather than falling back to the bare key: that slot holds a
+     * *staged* sign-in's token mid add-account flow, and the caller's gate is the only other thing
+     * standing between it and a server the user has not finished authenticating to.
+     */
+    override suspend fun refreshTokenFor(accountId: String?): String? =
+        accountId?.let { readValue(refreshKey(it)).nonBlankOrNull() }
 
     override suspend fun storeTokens(accessToken: String, refreshToken: String) {
         setTokens(accessToken, refreshToken)

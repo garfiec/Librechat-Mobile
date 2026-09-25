@@ -32,6 +32,20 @@ class LogRedactorTest {
         assertTrue(out.contains("path=/"), "surrounding content should remain: $out")
     }
 
+    /**
+     * The image cookie (see ImageCookiePlugin) puts the refresh token on an ordinary request header,
+     * which Ktor's HEADERS-level logging prints verbatim. `sanitizeHeader` cannot cover it — that
+     * predicate only matches the gateway header names the user configured — so this redactor is the
+     * only thing between a debug build and a session credential in Logcat.
+     */
+    @Test
+    fun image_cookie_header_line_is_redacted() {
+        val jwt = "eyJhbGc.eyJzdWIiOiJ1LTEifQ.SflKxwRJSMeKKF2QT4"
+        val out = redactor.redact("-> Cookie: cf_authorization=gw-value; refreshToken=$jwt")
+        assertFalse(out.contains(jwt), "refresh token leaked: $out")
+        assertTrue(out.contains("cf_authorization=gw-value"), "surrounding content should remain: $out")
+    }
+
     @Test
     fun email_is_redacted_in_free_text() {
         val out = redactor.redact("login failed for alice@example.com after retry")

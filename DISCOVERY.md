@@ -755,6 +755,49 @@ at eaef87fa finds no reference), so the event is never relayed onto the SSE stre
 step/tool fields are additive keys the mobile decode ignores (`ignoreUnknownKeys`). The citation
 fix corrects content the server aggregates, not a shape. No mobile action.
 
+### v0.8.8-rc2+ — `/images/*` requires credentials BY DEFAULT (breaking, silent)
+
+Upstream PR #15252 ("Require Credentials for Local Image Access by Default") landed in rc2. The
+static mount serving generated images, tool-call image outputs and stored `/images/…` avatars is now
+behind `validateImageRequest`, and the default flipped: `secureImageLinks` is
+`z.boolean().optional()` with no schema default at both rc1 and rc3, but the app-config service went
+from passing `undefined` through (rc1) to computing `config.secureImageLinks !== false` (rc3). **An
+unset setting now means secured**, which is every deployment that never opted out.
+
+- The middleware authenticates on `req.headers.cookie` alone — it extracts `refreshToken`, and there
+  is **no `Authorization` branch, no query token and no signed URL**. A bearer-token client cannot
+  satisfy it. Browsers are unaffected (`res.cookie('refreshToken', …)` sets no `path`, so it defaults
+  to `path=/` and rides every same-origin `<img>` request), which is why upstream would not notice.
+- rc3 rewrote it again: it no longer merely `jwt.verify`s but calls `findSession({userId,
+  refreshToken})` against `session.refreshTokenHash`, which `generateRefreshToken` overwrites on
+  every refresh. **Rotation hard-invalidates the previous refresh token server-side immediately, and
+  a stale copy is a 403, not a 401.**
+- Rejections are `res.status(401).send('Unauthorized')` — `.send`, not `.json`, so there is no
+  `{message}` envelope and this does not decode into the server-authored-message error pipeline.
+  403 `'Access Denied'` means a present-but-invalid cookie.
+- **Not announced on `/api/config`**, so no version gate can detect it; a 401 on `/images/*` is the
+  only signal.
+
+Mobile consequence before the fix was worse than missing images: Coil resolves the app's
+**authenticated** Ktor client, so an image 401 entered `AuthInterceptorPlugin`'s refresh-and-retry
+leg, 401'd again, and emitted session-expired — **opening any conversation containing a generated
+image signed the user out**. Fixed by `isSecuredImagePath` (keeps the mount out of that leg) plus
+`ImageCookiePlugin` (attaches the account's refresh-token cookie, authority- and path-gated, stripped
+across cross-authority redirects, with a one-shot 403 retry for the rotation race).
+
+**Guardrail — do not undo this on iOS.** The cookie is safe to send because nothing persists it:
+Ktor's Darwin engine calls `setHTTPCookieStorage(null)` unconditionally, so there is no jar to merge
+from or write into and nothing reaches `Cookies.binarycookies`. That call runs **before** the user's
+`config.sessionConfig(this)` block, so adding a `configureSession { }` or `usePreconfiguredSession`
+to any iOS Ktor client would **silently restore the jar** and create a real leak. None exist in
+`core/`, `shared/` or `app/` today. The `NWConnection` SSE transport is unaffected either way — it
+hand-writes its headers over a raw socket and never constructs an `NSURLSession`.
+
+**Trap for anyone re-checking this:** the `upstream/` submodule pinned at rc1 does **not** contain
+PR #15252. Reading `upstream/api/server/middleware/validateImageRequest.js` shows the old default-OFF
+behaviour and leads straight to "there is no problem here". Verify against the rc3 tag
+(`git show v0.8.8-rc3:<path>` inside the submodule, or the GitHub API), not the checkout.
+
 ### Other
 ```
 GET/POST/DELETE /api/presets

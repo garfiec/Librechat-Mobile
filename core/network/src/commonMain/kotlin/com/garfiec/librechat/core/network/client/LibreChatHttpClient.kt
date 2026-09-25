@@ -38,6 +38,7 @@ object LibreChatHttpClient {
         tokenManager: TokenManager,
         serverUrlProvider: ServerUrlProvider,
         redactor: LogRedactor,
+        imageCookieCredentials: ImageCookieCredentials,
         accountReadyGate: AccountReadyGate? = null,
         switchGate: SwitchGate? = null,
         serverHeadersProvider: ServerHeadersProvider = EmptyServerHeadersProvider,
@@ -96,6 +97,15 @@ object LibreChatHttpClient {
             // Host-scope the bearer token so a presigned absolute-URL fetch to a
             // third-party CDN (S3/CloudFront file download-url) never leaks the
             // LibreChat session token to that host.
+            this.serverUrlProvider = serverUrlProvider
+        }
+
+        // BETWEEN the auth plugin and the header plugin, and nowhere else. Same-phase `State`
+        // interceptors run in install order, so the app's `Cookie: refreshToken=` is on the request
+        // before applyCustomHeaders folds the user's gateway cookie into the same line — which is what
+        // keeps it to one Cookie header and lets the app's segment win a name collision.
+        install(ImageCookiePlugin) {
+            this.credentials = imageCookieCredentials
             this.serverUrlProvider = serverUrlProvider
         }
 

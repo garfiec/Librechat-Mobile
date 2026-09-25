@@ -98,6 +98,19 @@ class AuthInterceptorPlugin private constructor(
                     return@intercept originalCall
                 }
 
+                // The local image mount authenticates on a cookie and never reads Authorization
+                // (see [isSecuredImagePath]), so a refreshed bearer cannot change its verdict: the
+                // retry 401s again, `alreadyRetried` fires, and the user is signed out of a live
+                // session by every conversation that contains a generated image. Pass it through
+                // instead — [ImageCookiePlugin] is what actually authenticates these.
+                //
+                // Checked HERE rather than added to AUTH_SKIP_PATHS: the bearer stays attached at the
+                // State phase (harmless, and correct the day upstream grows a bearer path), and the
+                // skip set additionally suppresses proactive renewal, which images have no reason to.
+                if (isSecuredImagePath(request.url, serverBaseUrl)) {
+                    return@intercept originalCall
+                }
+
                 // A pending-identity request (add-account flow) has no keyed account to refresh, and
                 // its auth failures belong to the add flow's UI: pass the 401 through without a
                 // refresh and without the global session-expired signal, which would tear down the
