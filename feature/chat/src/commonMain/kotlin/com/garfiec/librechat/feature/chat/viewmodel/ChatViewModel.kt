@@ -613,7 +613,7 @@ class ChatViewModel(
         // is the first point a follow-up can become server-owned.
         viewModelScope.launch {
             _uiState
-                .map { it.conversationId to it.selectedEndpoint }
+                .map { Triple(it.conversationId, it.selectedEndpoint, it.gates.serverQueueSupported) }
                 .distinctUntilChanged()
                 .collect { refreshQueuedTurns() }
         }
@@ -668,11 +668,17 @@ class ChatViewModel(
                     detected = detected,
                     minVersion = "0.8.8-rc2",
                 ).isRuledOut
+                val serverQueue = BackendVersion.supportsFeature(
+                    detected = detected,
+                    minVersion = "0.8.8-rc2",
+                    landedDate = "2026-08-31",
+                )
                 _uiState.update {
                     it.copy(
                         gates = it.gates.copy(
                             steeringSupported = supported,
                             subagentThreadsSupported = subagentThreads,
+                            serverQueueSupported = serverQueue,
                             backendVersion = detected?.version,
                         ),
                     )
@@ -1290,6 +1296,7 @@ class ChatViewModel(
      */
     private fun serverOwnedSpec(spec: QueuedMessage): QueuedMessage {
         val state = _uiState.value
+        if (!state.gates.serverQueueSupported) return spec
         if (state.selectedEndpoint != EndpointConstants.AGENTS) return spec
         if (!state.isStreaming) return spec
         val parentMessageId = state.displayMessages.lastOrNull()?.message?.messageId ?: return spec
@@ -1939,7 +1946,8 @@ class ChatViewModel(
      */
     private fun refreshQueuedTurns() {
         val state = _uiState.value
-        val eligible = state.selectedEndpoint == EndpointConstants.AGENTS
+        val eligible = state.selectedEndpoint == EndpointConstants.AGENTS &&
+            state.gates.serverQueueSupported
         queuedTurnDelegate.ensurePolling(state.conversationId.takeIf { eligible })
     }
 

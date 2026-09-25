@@ -22,11 +22,13 @@ enum class QueuedTurnReceiptSource {
  * Whether this deployment definitively has no queued turns, so the client should fall back to the
  * legacy local drain permanently.
  *
- * The `404 && code == null` arm is what an older server answers: `/api/agents/chat/queued-turns`
- * falls through the agents router to `apiNotFound`, which sends `{"message":"Endpoint not found"}`
- * — a body with no `code` — **before** the SPA fallback, so this is a real JSON 404 rather than
- * `index.html`. A 404 that *does* carry a code came from the feature itself and means something
- * narrower, so it must not latch the fallback.
+ * **This does not detect an older server, and must not be relied on to.** rc1 never reaches it:
+ * its agents chat router takes the enqueue POST as `/:endpoint` and fails it without a 404, so
+ * whether to use the server's queue at all is decided by version first
+ * (`FeatureGatesState.serverQueueSupported`). This is the backstop behind that gate: an uncoded
+ * 404 — `apiNotFound`'s `{"message":"Endpoint not found"}` shape — or a 501 from a server that
+ * passed it still latches the local drain. A 404 that *does* carry a code came from the feature
+ * itself and means something narrower, so it must not latch the fallback.
  *
  * [code] must be read from the body's `code` key only, never through
  * `ServerErrorCode.from`'s `error` fallback — upstream reads `response.data.code`, and the `error`

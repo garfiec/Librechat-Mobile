@@ -87,6 +87,18 @@ data class FeatureGatesState(
      */
     val subagentThreadsSupported: Boolean = false,
     /**
+     * Whether follow-ups queued during an agents run go to the server's queue (v0.8.8-rc2) rather
+     * than the local drain.
+     *
+     * **Fail-closed, and decided by version rather than by probing.** rc1 already stamps
+     * `generationCreatedAt` on the run, so every other precondition holds there, but it has no
+     * queued-turns route: its chat router takes the POST as `/:endpoint` and fails it without a
+     * 404, so no capability fallback can ever latch and each follow-up becomes a row that never
+     * sends and blocks the queue behind it. Closed means the local drain, which every supported
+     * server handles.
+     */
+    val serverQueueSupported: Boolean = false,
+    /**
      * The conversation whose trace `/availability` confirmed readable (v0.8.8-rc3).
      *
      * Held as the id rather than a Boolean so the entry point cannot survive a conversation

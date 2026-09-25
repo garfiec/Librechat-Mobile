@@ -45,8 +45,9 @@ class QueuedTurnRepositoryClassificationTest {
 
     @Test
     fun `an old server's uncoded 404 is definitive`() = runTest {
-        // `apiNotFound` answers `{"message":"Endpoint not found"}` — no `code` — and it runs
-        // before the SPA fallback, so this really is the shape an rc1 server sends.
+        // `apiNotFound`'s shape: `{"message":"Endpoint not found"}`, no `code`. Not what an rc1
+        // server sends — that one is kept off the route by version — but a server that passed the
+        // version gate and still answers this has no queue, and must latch the local drain.
         failing(404, """{"message":"Endpoint not found"}""")
 
         assertThat(repository.enqueue(request)).isEqualTo(QueuedTurnOutcome.Unsupported)

@@ -225,6 +225,31 @@ class ChatViewModelQueuedTurnTest {
         assertThat(queued.parentMessageId).isNull()
     }
 
+    /**
+     * rc1 stamps `generationCreatedAt`, so every other precondition for server ownership holds
+     * there, but it has no queued-turns route: its chat router takes the POST as `/:endpoint` and
+     * fails it without a 404, so the fallback above never sees that server. Nothing may reach it —
+     * not the enqueue, and not the reconcile poll that starts on opening the conversation.
+     */
+    @Test
+    fun `an rc1 server is never sent a queued-turn request`() = queuedTurnTest(
+        arrange = {
+            every { configRepository.detectedBackend } returns
+                MutableStateFlow(DetectedBackend("0.8.8-rc1", BackendBuildClass.RC))
+            every { configRepository.detectedBackendVersion } returns MutableStateFlow("0.8.8-rc1")
+        },
+    ) { vm ->
+        assertThat(vm.uiState.value.isStreaming).isTrue()
+
+        vm.onInputChanged(TEXT)
+        vm.queueMessage()
+        runCurrent()
+
+        assertThat(vm.uiState.value.messageQueue.single().server).isNull()
+        coVerify(exactly = 0) { queuedTurnRepository.enqueue(any()) }
+        coVerify(exactly = 0) { queuedTurnRepository.list(any(), any()) }
+    }
+
     @Test
     fun `an unanswered enqueue is held, never handed back`() = queuedTurnTest(
         arrange = {
