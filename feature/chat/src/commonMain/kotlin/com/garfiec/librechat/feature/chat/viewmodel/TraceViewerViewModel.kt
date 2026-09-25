@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.TraceRepository
+import com.garfiec.librechat.core.model.trace.TraceErrorCode
 import com.garfiec.librechat.core.model.trace.TraceRecord
 import com.garfiec.librechat.core.model.trace.TraceRecordDetail
 import com.garfiec.librechat.core.model.trace.TraceSummary
@@ -78,6 +79,9 @@ class TraceViewerViewModel(
      */
     private var readEpoch = 0
 
+    /** Which read failed, so a retry resumes rather than starting over. See [retry]. */
+    private var lastReadWasOlder = false
+
     fun openFor(conversationId: String) {
         if (this.conversationId == conversationId && (records.isNotEmpty() || _uiState.value.isReading)) {
             // Reopened on a conversation already read. Back to the list, so dismissing with a
@@ -100,6 +104,25 @@ class TraceViewerViewModel(
         if (conversationId == null) return
         clearPages()
         read(cursor = null)
+    }
+
+    /**
+     * Re-attempts whichever read failed.
+     *
+     * An older page is re-asked from the same cursor, so a transient failure costs one request
+     * rather than everything loaded so far. The one exception is `invalid_request`: that means the
+     * trace no longer matches the continuation, and there is nothing to resume from — only the
+     * newest page can be read again.
+     */
+    fun retry() {
+        val cursor = nextCursor
+        if (lastReadWasOlder && cursor != null &&
+            _uiState.value.errorCode != TraceErrorCode.INVALID_REQUEST
+        ) {
+            read(cursor)
+        } else {
+            refresh()
+        }
     }
 
     fun loadOlder() {
@@ -159,6 +182,7 @@ class TraceViewerViewModel(
     private fun read(cursor: String?) {
         val conversationId = conversationId ?: return
         val epoch = readEpoch
+        lastReadWasOlder = cursor != null
         _uiState.update {
             it.copy(
                 isReading = true,

@@ -166,7 +166,7 @@ internal fun TraceViewerSheet(
                     errorMessage = uiState.errorMessage,
                     onSelect = viewModel::select,
                     onLoadOlder = viewModel::loadOlder,
-                    onRetry = viewModel::refresh,
+                    onRetry = viewModel::retry,
                 )
             }
             Spacer(Modifier.height(16.dp))
@@ -491,8 +491,6 @@ private fun TraceError(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.error,
         )
-        // A changed trace cannot be continued from the cursor it was read with, so the only way
-        // back is the newest page — which is what refresh does.
         if (onRetry != null) {
             TextButton(onClick = onRetry) { Text(stringResource(Res.string.trace_retry)) }
         }
