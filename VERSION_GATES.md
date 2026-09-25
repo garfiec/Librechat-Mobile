@@ -148,6 +148,13 @@ from `backendTargetVersion` in the root `version.properties` by core/common's
   day-granular gate cannot exclude them; erring the other way costs at most one 404. Drop the
   `landedDate` and switch to plain `isCompatibleOrNewer(version, "0.8.8-rc1")`
   once the **v0.8.8-rc1** tag ships.
+- **v0.8.8-rc3 sync:** three ANNOUNCED-capability gates were added and deliberately given **no catalog
+  row and no version check**, per the rule above that a version gate must not stack on a capability the
+  server announces: `interface.feedback` (the affordance is withheld when the flag is false, fail-open
+  when absent), `endpointsDropParamsMap` (presence-based per endpoint/model), and `compactionEnabled`
+  (withheld when ABSENT rather than defaulted true — a server that does not know `compact` answers the
+  send as an ordinary empty turn, so absence has to mean off). The two gates that ARE version-keyed this
+  sync — archive-all and memory by-id — have rows above; both are `0.8.8-rc2`, never `0.8.8`.
 - **v0.8.8-line partial sync (untagged dev commit `db431210`, 2026-08-12): ZERO new gates.** Every item in
   that sync is self-proving, permission-driven, or an extra request field older servers ignore, so none of
   them meets the bar in the rule above ("gate only when the client would otherwise call a route the server

@@ -21,6 +21,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,6 +39,9 @@ import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.model.usage.TokenUsage
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.resources.context_compact
+import com.garfiec.librechat.feature.chat.resources.context_compact_info
+import com.garfiec.librechat.feature.chat.resources.context_compacting
 import com.garfiec.librechat.feature.chat.resources.context_usage_free
 import com.garfiec.librechat.feature.chat.resources.context_usage_input
 import com.garfiec.librechat.feature.chat.resources.context_usage_label
@@ -60,6 +64,8 @@ fun ContextUsageGauge(
     usage: ContextUsage,
     modifier: Modifier = Modifier,
     tokenUsage: TokenUsage? = null,
+    isCompacting: Boolean = false,
+    onCompact: (() -> Unit)? = null,
 ) {
     var showSheet by remember { mutableStateOf(false) }
     val percent = (usage.usedFraction * 100).toInt()
@@ -74,7 +80,13 @@ fun ContextUsageGauge(
     }
 
     if (showSheet) {
-        ContextUsageSheet(usage = usage, tokenUsage = tokenUsage, onDismiss = { showSheet = false })
+        ContextUsageSheet(
+            usage = usage,
+            tokenUsage = tokenUsage,
+            onDismiss = { showSheet = false },
+            isCompacting = isCompacting,
+            onCompact = onCompact,
+        )
     }
 }
 
@@ -135,6 +147,8 @@ fun ContextUsageExpandableGauge(
     onExpandedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     tokenUsage: TokenUsage? = null,
+    isCompacting: Boolean = false,
+    onCompact: (() -> Unit)? = null,
 ) {
     val percent = (usage.usedFraction * 100).toInt()
     val chevronRotation by animateFloatAsState(if (expanded) 180f else 0f, label = "ctx_chevron")
@@ -163,6 +177,8 @@ fun ContextUsageExpandableGauge(
                 ContextUsageBreakdown(
                     usage = usage,
                     tokenUsage = tokenUsage,
+                    isCompacting = isCompacting,
+                    onCompact = onCompact,
                     // The header pill above already shows the progress bar, so suppress the
                     // breakdown's own bar here to avoid two identical bars stacked.
                     showProgressBar = false,
@@ -225,6 +241,8 @@ internal fun ContextUsageSheet(
     usage: ContextUsage,
     tokenUsage: TokenUsage?,
     onDismiss: () -> Unit,
+    isCompacting: Boolean = false,
+    onCompact: (() -> Unit)? = null,
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -233,6 +251,8 @@ internal fun ContextUsageSheet(
         ContextUsageBreakdown(
             usage = usage,
             tokenUsage = tokenUsage,
+            isCompacting = isCompacting,
+            onCompact = onCompact,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
@@ -253,6 +273,8 @@ private fun ContextUsageBreakdown(
     tokenUsage: TokenUsage?,
     modifier: Modifier = Modifier,
     showProgressBar: Boolean = true,
+    isCompacting: Boolean = false,
+    onCompact: (() -> Unit)? = null,
 ) {
     val maxTokens = usage.maxContextTokens
     val used = usage.usedTokens
@@ -316,6 +338,30 @@ private fun ContextUsageBreakdown(
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 UsageRow(stringResource(Res.string.context_usage_input), input ?: 0, max = 0)
                 UsageRow(stringResource(Res.string.context_usage_output), output ?: 0, max = 0)
+            }
+        }
+
+        // Where the context usage is already being read, matching upstream's placement. Withheld
+        // entirely rather than disabled when the server does not offer compaction.
+        if (onCompact != null) {
+            HorizontalDivider()
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                OutlinedButton(
+                    onClick = onCompact,
+                    enabled = !isCompacting,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        stringResource(
+                            if (isCompacting) Res.string.context_compacting else Res.string.context_compact,
+                        ),
+                    )
+                }
+                Text(
+                    text = stringResource(Res.string.context_compact_info),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }

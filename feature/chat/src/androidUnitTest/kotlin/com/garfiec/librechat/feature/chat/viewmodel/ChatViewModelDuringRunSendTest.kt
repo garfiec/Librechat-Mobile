@@ -583,6 +583,7 @@ class ChatViewModelDuringRunSendTest {
             chatRepository.startChat(
                 any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
                 any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                any(),
                 captureNullable(captured),
             )
         } returns MutableSharedFlow()

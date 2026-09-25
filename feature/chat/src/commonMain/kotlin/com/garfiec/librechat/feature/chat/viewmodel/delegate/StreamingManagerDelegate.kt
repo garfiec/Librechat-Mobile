@@ -827,6 +827,13 @@ class StreamingManagerDelegate(
         // would double-send any steer whose applied event this client happened to miss.
         if (reason !is StreamEndReason.Finalized) steeringDelegate.reclaimLocalChips()
         steeringDelegate.clear()
+        // Before the branch, so every ending retires it: a compaction that errors, is stopped or
+        // has its resume expire would otherwise leave the action labelled "Compacting…" forever.
+        // The Finalized path also clears it inside finalizeChatDisplay's atomic update, which is
+        // what keeps the label and the settled message appearing in one emission.
+        if (handle.state.isCompacting) {
+            handle.update { content = content.copy(isCompacting = false) }
+        }
         when (reason) {
             is StreamEndReason.Finalized -> {
                 stopStreamingUpdater()

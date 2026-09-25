@@ -27,6 +27,15 @@ data class ChatRequest(
     val isContinued: Boolean = false,
     val isEdited: Boolean = false,
     val isRegenerate: Boolean = false,
+    /**
+     * Manual context compaction (v0.8.8-rc3): summarize the branch up to [parentMessageId] and end
+     * WITHOUT a reply. No user message is created — the turn is regenerate-shaped, and upstream
+     * sends `isRegenerate: true` alongside this for exactly that reason.
+     *
+     * Omitted rather than sent as `false`: a server that does not know the flag would answer an
+     * ordinary empty-text turn.
+     */
+    val compact: Boolean? = null,
     val overrideParentMessageId: String? = null,
     val responseMessageId: String? = null,
     val temperature: Double? = null,

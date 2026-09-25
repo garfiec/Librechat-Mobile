@@ -83,6 +83,9 @@ data class ChatToolsPageParams(
     val contextUsage: ContextUsage? = null,
     val tokenUsage: TokenUsage? = null,
     val contextUsageEnabled: Boolean = false,
+    val isCompacting: Boolean = false,
+    /** Null when compaction is unavailable — see [ChatUiState.canCompactNow]. */
+    val onCompact: (() -> Unit)? = null,
     val contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
     val contextGaugeExpanded: Boolean = false,
     val onContextGaugeExpandedChange: (Boolean) -> Unit = {},
@@ -240,6 +243,8 @@ fun ChatOptionsBottomSheet(
                         contextUsage = tools.contextUsage,
                         tokenUsage = tools.tokenUsage,
                         contextUsageEnabled = tools.contextUsageEnabled,
+                        isCompacting = tools.isCompacting,
+                        onCompact = tools.onCompact,
                         contextBarPlacement = tools.contextBarPlacement,
                         contextGaugeExpanded = tools.contextGaugeExpanded,
                         onContextGaugeExpandedChange = tools.onContextGaugeExpandedChange,

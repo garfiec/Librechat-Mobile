@@ -316,6 +316,8 @@ actual fun ChatScreen(
                 contextUsage = uiState.contextUsage,
                 tokenUsage = uiState.tokenUsage,
                 contextUsageEnabled = uiState.contextUsageEnabled,
+                isCompacting = uiState.isCompacting,
+                onCompact = viewModel::compactConversation.takeIf { uiState.canCompactNow },
                 contextBarPlacement = uiState.contextBarPlacement,
                 queuedPausedCount = uiState.pausedQueueCount,
                 isEditingQueued = uiState.isEditingQueued,

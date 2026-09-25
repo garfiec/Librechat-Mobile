@@ -554,6 +554,8 @@ actual fun ChatScreen(
                 contextUsage = uiState.contextUsage,
                 tokenUsage = uiState.tokenUsage,
                 contextUsageEnabled = uiState.contextUsageEnabled,
+                isCompacting = uiState.isCompacting,
+                onCompact = viewModel::compactConversation.takeIf { uiState.canCompactNow },
                 contextBarPlacement = uiState.contextBarPlacement,
                 // After a Stop/error pause, the queue waits for an explicit nudge.
                 queuedPausedCount = uiState.pausedQueueCount,
@@ -706,6 +708,8 @@ actual fun ChatScreen(
                         contextUsage = uiState.contextUsage,
                         tokenUsage = uiState.tokenUsage,
                         contextUsageEnabled = uiState.contextUsageEnabled,
+                        isCompacting = uiState.isCompacting,
+                        onCompact = viewModel::compactConversation.takeIf { uiState.canCompactNow },
                         contextBarPlacement = uiState.contextBarPlacement,
                         contextGaugeExpanded = uiState.contextGaugeExpanded,
                         onContextGaugeExpandedChange = viewModel::setContextGaugeExpanded,

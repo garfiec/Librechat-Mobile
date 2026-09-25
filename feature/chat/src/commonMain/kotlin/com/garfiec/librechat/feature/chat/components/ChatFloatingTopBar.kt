@@ -207,6 +207,8 @@ internal fun ChatFloatingTopBar(
                 usage = sheetContextUsage,
                 tokenUsage = uiState.tokenUsage,
                 onDismiss = { showContextSheet = false },
+                isCompacting = uiState.isCompacting,
+                onCompact = viewModel::compactConversation.takeIf { uiState.canCompactNow },
             )
         }
 

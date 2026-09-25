@@ -132,6 +132,9 @@
     <string name="cd_tool_call">Tool call</string>
     <string name="cd_collapse_tool_call">Collapse tool call %1$s</string>
     <string name="cd_expand_tool_call">Expand tool call %1$s</string>
+    <string name="context_compact">Compact conversation</string>
+    <string name="context_compacting">Compacting…</string>
+    <string name="context_compact_info">Summarizes everything so far into a shorter note the model keeps reading, freeing context for what comes next. Nothing is deleted.</string>
     <string name="cd_tool_complete">Complete</string>
     <string name="cd_tool_cancelled">Stopped</string>
     <string name="cd_tool_failed">Failed</string>

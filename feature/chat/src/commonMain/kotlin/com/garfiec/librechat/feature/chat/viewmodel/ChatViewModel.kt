@@ -272,6 +272,7 @@ class ChatViewModel(
         val iface: InterfaceConfig?,
         val version: String?,
         val dropParamsMap: Map<String, JsonElement>?,
+        val compactionEnabled: Boolean?,
     )
 
     private data class BaseChatPrefs(
@@ -1625,6 +1626,9 @@ class ChatViewModel(
         editingDelegate.continueGeneration()
     }
 
+    /** Manual context compaction (v0.8.8-rc3). See [ChatUiState.canCompactNow]. */
+    fun compactConversation() = editingDelegate.compactConversation()
+
     /**
      * Bumped when any prompt is created, edited or deleted — the signal the composer's `/` picker
      * is stale. Read from the chat screen's composition (`ChatRoot`), not collected here, so the
@@ -1761,7 +1765,13 @@ class ChatViewModel(
                 configRepository.startupConfig,
                 configRepository.detectedBackendVersion,
             ) { role, config, version ->
-                GateInputs(role, config?.interfaceConfig, version, config?.endpointsDropParamsMap)
+                GateInputs(
+                    role,
+                    config?.interfaceConfig,
+                    version,
+                    config?.endpointsDropParamsMap,
+                    config?.compactionEnabled,
+                )
             }.distinctUntilChanged().collect { gates ->
                 val role = gates.role
                 val iface = gates.iface
@@ -1813,6 +1823,7 @@ class ChatViewModel(
                             // Pinned tools (v0.8.7): raw interface list; mapped/filtered by pinnedToolChips.
                             pinnedTools = iface?.defaultPinnedTools ?: emptyList(),
                             dropParamsMap = gates.dropParamsMap,
+                            compactionEnabled = gates.compactionEnabled == true,
                         ),
                     )
                 }

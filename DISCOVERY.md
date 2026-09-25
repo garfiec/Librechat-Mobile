@@ -367,6 +367,23 @@ GET    /api/memories                      (v0.8.8-rc3) rows can now carry `conte
                                             an edit can come back redacted. (BUILT)
 
 # Added
+POST   /api/agents/chat  (+ `compact`)     (v0.8.8-rc3) `compact: true` on the send payload turns the turn into
+                                            a summarize-only one: the server summarizes the branch up to
+                                            `parentMessageId` and ends WITHOUT a reply, persisting the summary
+                                            as the boundary every later turn starts from. **No user message is
+                                            created**, so the turn is regenerate-shaped — upstream's `ask`
+                                            derives `isRegenerate = isRegenerate || compact` and sends both.
+                                            `messageId` and `parentMessageId` are BOTH the branch leaf (the
+                                            summary's parent and the server-side anchor), `text` is empty, and
+                                            `overrideParentMessageId` stays null so the summary parents onto the
+                                            leaf rather than replacing a sibling. Announced by
+                                            `/api/config.compactionEnabled`
+                                            (`appConfig?.summarization?.enabled !== false`, so true unless an
+                                            admin disabled summarization) — a presence gate, no version check.
+                                            Not offered on the assistants endpoints (their thread lives on the
+                                            provider, so a local summary compacts nothing) nor on a leaf that is
+                                            already a finished compaction. The reply arrives as SUMMARY content
+                                            parts, not text, so no message deltas stream. (BUILT)
 GET    /api/mcp/tools                     (v0.8.8-rc2) each `servers[name]` entry gained
                                             `authorizationState?: 'reauth_required'` and
                                             `authorizationGeneration?`, and each tool gained

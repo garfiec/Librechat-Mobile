@@ -54,6 +54,13 @@ data class MessagesState(
      */
     val justSettledMessageId: String? = null,
     val isStreaming: Boolean = false,
+    /**
+     * A manual compaction this client submitted is still running (v0.8.8-rc3). Distinct from
+     * [isStreaming], which a compaction also sets: the compact action needs to label ITSELF as
+     * running, and a compaction produces no message deltas, so nothing else distinguishes it from
+     * an ordinary turn. Retired by whichever teardown ends the run.
+     */
+    val isCompacting: Boolean = false,
     val streamingContent: String = "",
     val activeToolCalls: List<ActiveToolCall> = emptyList(),
     /** Attachments received during SSE streaming (e.g., tool-generated images). Cleared when

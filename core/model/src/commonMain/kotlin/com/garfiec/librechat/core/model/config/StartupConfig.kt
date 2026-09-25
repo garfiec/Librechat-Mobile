@@ -96,4 +96,13 @@ data class StartupConfig(
      * pre-login config read.
      */
     val endpointsDropParamsMap: Map<String, JsonElement>? = null,
+    /**
+     * Whether manual context compaction is offered (`appConfig?.summarization?.enabled !== false`,
+     * so it is `true` unless an admin turned summarization off).
+     *
+     * Null on any server that predates it, which is the gate: an announced capability, so nothing
+     * stacks a version check on top. Absent means the send would carry a `compact` flag the server
+     * ignores, producing an empty turn — so absent is withheld, not defaulted true.
+     */
+    val compactionEnabled: Boolean? = null,
 )

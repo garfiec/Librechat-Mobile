@@ -15,6 +15,7 @@ import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.PendingAction
+import com.garfiec.librechat.core.model.content.Compaction
 import com.garfiec.librechat.core.model.endpoint.KeyState
 import com.garfiec.librechat.core.model.response.FileUploadConfig
 import com.garfiec.librechat.core.model.response.UploadRoute
@@ -125,6 +126,33 @@ data class ChatUiState(
         get() = quotesSupportedOn(selectedEndpoint)
 
     /**
+     * Whether manual compaction can run right now (v0.8.8-rc3). Mirrors upstream's `canCompact`
+     * ANDed with its `compactionAvailable`.
+     *
+     * The `isCompactedLeaf` term is the one that is not obvious: compacting a leaf that is already
+     * a finished compaction summarizes a summary, so the action is withheld there. An interrupted
+     * one — still streaming, or failed — is not finished, and stays retryable.
+     */
+    val canCompactNow: Boolean
+        get() = gates.compactionEnabled &&
+            Compaction.supportsCompaction(selectedEndpoint) &&
+            !conversationId.isNullOrBlank() &&
+            !isStreaming &&
+            compactionLeaf != null
+
+    /**
+     * The branch leaf a compaction would hang off: both the summary's parent and the server-side
+     * anchor it compacts up to. Null when the tail is unusable as one — no messages, a root with
+     * no parent, or a leaf that is already a finished compaction.
+     */
+    val compactionLeaf: Message?
+        get() {
+            val leaf = displayMessages.lastOrNull()?.message ?: return null
+            if (leaf.parentMessageId.isNullOrBlank()) return null
+            return leaf.takeIf { !Compaction.isCompactedLeaf(it) }
+        }
+
+    /**
      * True while picked files exist but are not yet in the attachment tray — mid-intake, or staged
      * awaiting a manual routing decision.
      *
@@ -175,6 +203,7 @@ data class ChatUiState(
     val activeBranches: Map<String, Int> get() = content.activeBranches
     val justSettledMessageId: String? get() = content.justSettledMessageId
     val isStreaming: Boolean get() = content.isStreaming
+    val isCompacting: Boolean get() = content.isCompacting
     val streamingContent: String get() = content.streamingContent
     val activeToolCalls: List<ActiveToolCall> get() = content.activeToolCalls
     val streamingAttachments: List<Attachment> get() = content.streamingAttachments

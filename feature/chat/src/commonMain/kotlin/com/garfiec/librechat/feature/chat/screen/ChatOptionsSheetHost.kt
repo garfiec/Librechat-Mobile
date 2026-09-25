@@ -84,6 +84,8 @@ internal fun ChatOptionsSheetHost(
             contextUsage = uiState.contextUsage,
             tokenUsage = uiState.tokenUsage,
             contextUsageEnabled = uiState.contextUsageEnabled,
+            isCompacting = uiState.isCompacting,
+            onCompact = viewModel::compactConversation.takeIf { uiState.canCompactNow },
             contextBarPlacement = uiState.contextBarPlacement,
             contextGaugeExpanded = uiState.contextGaugeExpanded,
             onContextGaugeExpandedChange = viewModel::setContextGaugeExpanded,

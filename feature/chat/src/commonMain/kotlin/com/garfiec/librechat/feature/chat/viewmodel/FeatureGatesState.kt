@@ -42,6 +42,10 @@ data class FeatureGatesState(
      *  provider. Raw, as sent — the endpoint/model lookup is a union shape and is resolved inside
      *  [com.garfiec.librechat.core.ui.components.EndpointParameterRegistry]. */
     val dropParamsMap: Map<String, JsonElement>? = null,
+    /** `/api/config.compactionEnabled` (v0.8.8-rc3). An announced capability, so absence is the
+     *  gate on its own and nothing stacks a version check on it — a server that does not know the
+     *  flag would answer a `compact` send as an ordinary empty turn. */
+    val compactionEnabled: Boolean = false,
     /**
      * Context-usage gauge gate (v0.8.7). = `interface.contextUsage` AND backend ≥ 0.8.7.
      * Fails closed on older/unknown servers (the gauge has no data source there).
