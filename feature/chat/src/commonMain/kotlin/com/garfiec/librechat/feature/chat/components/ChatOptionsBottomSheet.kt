@@ -125,6 +125,8 @@ data class ModelParametersPageParams(
     /** Underlying provider when the endpoint is "agents"; routes to that provider's param set. */
     val selectedProvider: String? = null,
     val selectedModel: String? = null,
+    /** Resolved `/api/config.endpointsDropParamsMap` entry; see [ModelParameterContent]. */
+    val dropParams: List<String> = emptyList(),
     val onSaveAsPreset: () -> Unit = {},
 )
 
@@ -282,6 +284,7 @@ fun ChatOptionsBottomSheet(
                             extendedEffortSupported = parameters.extendedEffortSupported,
                             selectedProvider = parameters.selectedProvider,
                             selectedModel = parameters.selectedModel,
+                            dropParams = parameters.dropParams,
                             onSaveAsPreset = parameters.onSaveAsPreset,
                             // The back row above replaces the content's own title.
                             showHeader = false,

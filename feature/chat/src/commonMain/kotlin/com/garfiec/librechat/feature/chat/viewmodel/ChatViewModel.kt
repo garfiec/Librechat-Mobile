@@ -110,6 +110,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -265,11 +266,12 @@ class ChatViewModel(
     val attachedFiles: StateFlow<List<AttachedFile>> get() = fileDelegate.attachedFiles
     val shareLinkUrl: StateFlow<String?> get() = conversationActionsDelegate.shareLinkUrl
 
-    /** The three inputs of the feature-gate combine, named so the collector destructures readably. */
+    /** The inputs of the feature-gate combine, named so the collector destructures readably. */
     private data class GateInputs(
         val role: UserRolePermissions?,
         val iface: InterfaceConfig?,
         val version: String?,
+        val dropParamsMap: Map<String, JsonElement>?,
     )
 
     private data class BaseChatPrefs(
@@ -1759,7 +1761,7 @@ class ChatViewModel(
                 configRepository.startupConfig,
                 configRepository.detectedBackendVersion,
             ) { role, config, version ->
-                GateInputs(role, config?.interfaceConfig, version)
+                GateInputs(role, config?.interfaceConfig, version, config?.endpointsDropParamsMap)
             }.distinctUntilChanged().collect { gates ->
                 val role = gates.role
                 val iface = gates.iface
@@ -1810,6 +1812,7 @@ class ChatViewModel(
                                 role.hasAccessOrPermissive(PermissionType.MEMORIES, Permission.UPDATE),
                             // Pinned tools (v0.8.7): raw interface list; mapped/filtered by pinnedToolChips.
                             pinnedTools = iface?.defaultPinnedTools ?: emptyList(),
+                            dropParamsMap = gates.dropParamsMap,
                         ),
                     )
                 }

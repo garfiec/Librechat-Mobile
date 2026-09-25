@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import com.garfiec.librechat.core.common.EndpointConstants
+import com.garfiec.librechat.core.model.config.EndpointDropParams
 import com.garfiec.librechat.feature.chat.components.ChatOptionsBottomSheet
 import com.garfiec.librechat.feature.chat.components.ChatOptionsSheetController
 import com.garfiec.librechat.feature.chat.components.ChatToolsPageParams
@@ -132,6 +133,12 @@ internal fun ChatOptionsSheetHost(
             extendedEffortSupported = uiState.extendedEffortSupported,
             selectedProvider = activeAgent?.provider,
             selectedModel = activeAgent?.model ?: uiState.selectedModel,
+            dropParams = EndpointDropParams.resolve(
+                map = uiState.gates.dropParamsMap,
+                endpoint = uiState.selectedEndpoint,
+                provider = activeAgent?.provider,
+                model = activeAgent?.model ?: uiState.selectedModel,
+            ),
             onSaveAsPreset = {
                 controller.close()
                 onShowSavePresetDialog()

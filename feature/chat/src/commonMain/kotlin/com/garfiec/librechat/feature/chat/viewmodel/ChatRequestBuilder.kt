@@ -84,6 +84,7 @@ class ChatRequestBuilder(
             model = state.selectedModel,
             extendedEffortSupported = state.extendedEffortSupported,
             params = state.modelParameters,
+            dropParamsMap = state.gates.dropParamsMap,
         ).takeIf { it.isNotEmpty() }
     }
 }

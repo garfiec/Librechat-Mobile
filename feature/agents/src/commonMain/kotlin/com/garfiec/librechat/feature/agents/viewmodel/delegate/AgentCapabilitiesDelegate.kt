@@ -43,6 +43,16 @@ class AgentCapabilitiesDelegate(
         observeSkillsAvailability()
         observeSubagentsAvailability()
         observeServerVersion()
+        observeDropParams()
+    }
+
+    /** `endpointsDropParamsMap` is stripped for unauthenticated callers, so it can arrive late. */
+    private fun observeDropParams() {
+        stateHandle.scope.launch {
+            configRepository.startupConfig.collect { config ->
+                stateHandle.update { copy(dropParamsMap = config?.endpointsDropParamsMap) }
+            }
+        }
     }
 
     /**

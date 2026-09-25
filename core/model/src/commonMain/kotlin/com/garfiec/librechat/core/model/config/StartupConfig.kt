@@ -86,4 +86,14 @@ data class StartupConfig(
      * nothing branches on this yet. Absent (null) on older backends; server default is off.
      */
     val fileUploadSseEnabled: Boolean? = null,
+    // --- v0.8.8-rc3 ---
+    /**
+     * Per-endpoint `dropParams`: parameters the server strips from the provider request. Kept as
+     * raw JSON because the value is a union — a list of names for most endpoints, a per-model
+     * lookup for `azureOpenAI`. Read through [EndpointDropParams.resolve].
+     *
+     * Stripped for unauthenticated callers, so absent does not mean "nothing is dropped" on a
+     * pre-login config read.
+     */
+    val endpointsDropParamsMap: Map<String, JsonElement>? = null,
 )

@@ -142,6 +142,9 @@ data class AgentEditorUiState(
     val isHandoffsAvailable: Boolean = false,
     /** Whether the granular ACL sharing API is supported (v0.8.5+). */
     val isAclAvailable: Boolean = false,
+    /** `/api/config.endpointsDropParamsMap` (v0.8.8-rc3), unresolved; hides advanced-parameter
+     *  controls this server strips before calling the provider. */
+    val dropParamsMap: Map<String, JsonElement>? = null,
     // Skills (v0.8.6) — agent-editor skills selector.
     /** Whether the agent `skills_enabled` master toggle is on. */
     val skillsEnabled: Boolean = false,

@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
 import androidx.compose.runtime.Immutable
+import kotlinx.serialization.json.JsonElement
 
 /**
  * Feature availability gates loaded from the server's `interface.*` config AND role
@@ -37,6 +38,10 @@ data class FeatureGatesState(
     /** `interface.defaultPinnedTools` (v0.8.7): tool keys the server pins to the prompt bar.
      *  Raw, as sent; mapped/filtered to renderable chips by [ChatUiState.pinnedToolChips]. */
     val pinnedTools: List<String> = emptyList(),
+    /** `endpointsDropParamsMap` (v0.8.8-rc3): parameters this server strips before calling the
+     *  provider. Raw, as sent — the endpoint/model lookup is a union shape and is resolved inside
+     *  [com.garfiec.librechat.core.ui.components.EndpointParameterRegistry]. */
+    val dropParamsMap: Map<String, JsonElement>? = null,
     /**
      * Context-usage gauge gate (v0.8.7). = `interface.contextUsage` AND backend ≥ 0.8.7.
      * Fails closed on older/unknown servers (the gauge has no data source there).

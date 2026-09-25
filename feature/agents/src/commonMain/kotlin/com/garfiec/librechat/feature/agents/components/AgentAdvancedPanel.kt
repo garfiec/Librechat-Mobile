@@ -21,11 +21,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.model.config.EndpointDropParams
 import com.garfiec.librechat.core.ui.components.EndpointParameterRegistry
 import com.garfiec.librechat.core.ui.components.ModelParameterContent
 import com.garfiec.librechat.feature.agents.components.model.AgentAdvancedSettings
 import com.garfiec.librechat.feature.agents.resources.*
 import com.garfiec.librechat.feature.agents.resources.Res
+import kotlinx.serialization.json.JsonElement
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -48,7 +50,11 @@ fun AgentAdvancedPanel(
     model: String,
     extendedEffortSupported: Boolean,
     modifier: Modifier = Modifier,
+    dropParamsMap: Map<String, JsonElement>? = null,
 ) {
+    val dropParams = remember(dropParamsMap, provider, model) {
+        EndpointDropParams.resolve(dropParamsMap, endpoint = "agents", provider = provider, model = model)
+    }
     var expanded by remember { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxWidth()) {
@@ -76,12 +82,13 @@ fun AgentAdvancedPanel(
 
         AnimatedVisibility(visible = expanded) {
             val parameters = remember(settings) { settings.toModelParameters() }
-            val definitions = remember(provider, model, extendedEffortSupported) {
+            val definitions = remember(provider, model, extendedEffortSupported, dropParams) {
                 EndpointParameterRegistry.getDefinitions(
                     endpoint = "agents",
                     extendedEffortSupported = extendedEffortSupported,
                     provider = provider.takeIf { it.isNotBlank() },
                     model = model.takeIf { it.isNotBlank() },
+                    dropParams = dropParams,
                 )
             }
 
@@ -93,6 +100,7 @@ fun AgentAdvancedPanel(
                 selectedEndpoint = "agents",
                 selectedProvider = provider.takeIf { it.isNotBlank() },
                 selectedModel = model.takeIf { it.isNotBlank() },
+                dropParams = dropParams,
                 extendedEffortSupported = extendedEffortSupported,
                 showHeader = false,
                 showSaveAsPreset = false,
