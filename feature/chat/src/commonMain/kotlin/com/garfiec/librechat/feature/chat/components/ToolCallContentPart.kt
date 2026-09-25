@@ -88,6 +88,7 @@ internal fun ToolCallDispatcher(
                 baseUrl = baseUrl,
                 attachments = attachments,
                 showImageDescriptions = showImageDescriptions,
+                parentToolCallId = toolCallId,
                 stateKey = cardKey,
             )
             if (!hideAttachments) {

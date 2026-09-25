@@ -237,6 +237,7 @@ actual fun ChatScreen(
         mermaidRenderCache = viewModel.mermaidRenderCache,
         parsedMarkdownCache = viewModel.parsedMarkdownCache,
         subagentProgress = uiState.subagentProgress,
+        conversationId = uiState.conversationId,
         mediaPreview = uiState.mediaPreview,
         onOpenMedia = viewModel::openMedia,
         onCloseMedia = viewModel::closeMedia,

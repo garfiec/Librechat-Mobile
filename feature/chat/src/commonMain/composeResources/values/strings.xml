@@ -121,6 +121,14 @@
 
     <!-- Content descriptions - Subagent trace (subagents, v0.8.6+) -->
     <string name="label_subagent">Subagent</string>
+    <string name="subagent_threads_title">Subagent thread</string>
+    <string name="subagent_threads_open">View thread</string>
+    <string name="subagent_threads_empty">This conversation has no subagent threads.</string>
+    <string name="subagent_threads_unavailable">No subagent threads are available here.</string>
+    <string name="subagent_threads_event_origin">Started by an event</string>
+    <string name="subagent_threads_truncated">Some of this was too long to show in full.</string>
+    <string name="subagent_threads_load_older">Load older</string>
+    <string name="subagent_threads_older_unavailable">Older history is no longer available.</string>
     <string name="cd_collapse_subagent">Collapse subagent %1$s</string>
     <string name="cd_expand_subagent">Expand subagent %1$s</string>
 
