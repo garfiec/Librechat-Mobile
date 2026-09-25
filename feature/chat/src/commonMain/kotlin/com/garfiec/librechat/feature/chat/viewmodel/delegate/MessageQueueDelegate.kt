@@ -281,6 +281,33 @@ class MessageQueueDelegate(
     }
 
     /**
+     * Retires every admission whose successor the run at [runCreatedAt] has already overtaken.
+     *
+     * The ordinary way an admission is spent is the epoch match below, on its predecessor run's
+     * `Final`. A run that ends client-side WITHOUT one — a stream error nobody resumed — leaves
+     * the evidence armed for the ViewModel's life, and the paths with no epoch to match then
+     * refuse forever: "Send queued" becomes a dead button with nothing on screen to say why.
+     *
+     * Attaching to a server-started run is proof those boundaries are behind us, because the
+     * server only starts one when the previous turn has finished. Strictly `<`: an admission
+     * anchored to the run now streaming is owed a successor AFTER it, and retiring that one would
+     * unfence the very boundary it exists for.
+     */
+    fun retireAdmissionsBefore(runCreatedAt: Long) {
+        fun SettledQueuedTurn.isOvertaken(): Boolean =
+            ownsUnstartedSuccessor &&
+                (effectivePredecessorCreatedAt ?: Long.MAX_VALUE) < runCreatedAt
+        if (handle.state.settledQueuedTurns.none { it.isOvertaken() }) return
+        handle.update {
+            queue = queue.copy(
+                settledQueuedTurns = queue.settledQueuedTurns.map {
+                    if (it.isOvertaken()) it.copy(boundaryConsumed = true) else it
+                },
+            )
+        }
+    }
+
+    /**
      * Marks the admission that consumed [endedGenerationCreatedAt] and reports whether one did.
      *
      * Matched on the boundary rather than on "is there any admitted turn": a queue can hold

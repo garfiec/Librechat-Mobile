@@ -152,6 +152,39 @@ class QueuedTurnFenceTest {
     }
 
     /**
+     * The fence has to be retirable by something other than the boundary's own `Final`, or a run
+     * that dies without one leaves "Send queued" refusing for the ViewModel's life with nothing
+     * on screen to explain it. Attaching to a server-started run is that something.
+     */
+    @Test
+    fun `attaching to a later run retires the admission it overtook`() {
+        admitLegacyBehind()
+        queueDelegate.pause()
+        // The predecessor died without a Final, so nothing consumed the evidence.
+        queueDelegate.resume()
+        assertThat(sent).isEmpty()
+
+        queueDelegate.retireAdmissionsBefore(EPOCH + 1)
+        queueDelegate.resume()
+
+        assertThat(sent.map { it.localId }).containsExactly("legacy")
+    }
+
+    /**
+     * The run now streaming is the one an admission anchored to it is owed a successor AFTER, so
+     * retiring that one would unfence the very boundary the evidence exists for.
+     */
+    @Test
+    fun `attaching does not retire an admission anchored to the run itself`() {
+        admitLegacyBehind()
+
+        queueDelegate.retireAdmissionsBefore(EPOCH)
+
+        queueDelegate.drainNext(endedGenerationCreatedAt = EPOCH)
+        assertThat(sent).isEmpty()
+    }
+
+    /**
      * A receipt can carry a reported boundary AND `rootPredecessor`. Retention keyed on the flag
      * rather than on the timestamp throws that evidence away while the fence still needs it, so
      * `Final` finds nothing and drains into a boundary the admission already consumed.

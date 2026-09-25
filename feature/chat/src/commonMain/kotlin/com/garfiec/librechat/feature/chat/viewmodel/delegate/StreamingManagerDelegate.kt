@@ -1098,6 +1098,12 @@ class StreamingManagerDelegate(
                 val status = chatRepository.checkStreamStatus(conversationId, steeringDelegate::reclaimParked)
                 if (isResumeStale(session) || abortRequested) return@launch
                 if (status.active) {
+                    // The server only starts a run once the previous turn has finished, so a live
+                    // one is proof every boundary before it is done. That is the only evidence the
+                    // queued-turn fence gets when a run ends without a `Final` — without it the
+                    // admission stays armed and the drain refuses silently for the rest of the
+                    // ViewModel's life.
+                    status.createdAt?.let(queueDelegate::retireAdmissionsBefore)
                     handle.update {
                         content = content.copy(
                             isStreaming = true,

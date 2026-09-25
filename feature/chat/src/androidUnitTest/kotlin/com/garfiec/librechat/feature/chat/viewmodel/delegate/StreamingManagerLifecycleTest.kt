@@ -79,6 +79,14 @@ class StreamingManagerLifecycleTest {
         content = MessagesState(messages = listOf(message("u1", isUser = true)), isStreaming = true),
     )
 
+    /** What `attachToServerStartedRun` exists for: a conversation open, with nothing streaming. */
+    private fun idleState() = ChatUiState(
+        conversation = ConversationMetaState(conversationId = "conv-1"),
+    )
+
+    /** A generation epoch strictly after any admission the tests below set up. */
+    private val SUCCESSOR_EPOCH = 1_758_000_100_000L
+
     private fun delegateWith(
         scope: TestScope,
         state: ChatUiState = streamingState(),
@@ -367,6 +375,43 @@ class StreamingManagerLifecycleTest {
             events.close()
             advanceUntilIdle()
         }
+
+    /**
+     * Attaching to a run the server started is the only proof this client gets that the boundaries
+     * behind it are done, when the predecessor ended without a `Final`. Without this the queued-turn
+     * evidence is never retired and the drain refuses silently forever.
+     */
+    @Test
+    fun `attaching to a server-started run retires the admissions it overtook`() =
+        runTest(StandardTestDispatcher()) {
+            coEvery { chatRepository.checkStreamStatus("conv-1", any()) } coAnswers {
+                claimingStatusAnswer(ChatStatusResponse(active = true, createdAt = SUCCESSOR_EPOCH))
+            }
+            val (delegate, _) = delegateWith(this, state = idleState())
+
+            delegate.attachToServerStartedRun()
+            advanceUntilIdle()
+
+            verify { queueDelegate.retireAdmissionsBefore(SUCCESSOR_EPOCH) }
+            delegate.reset()
+            advanceUntilIdle()
+        }
+
+    /** Nothing to retire against: a status with no epoch leaves the evidence exactly as it was. */
+    @Test
+    fun `an epochless status retires nothing`() = runTest(StandardTestDispatcher()) {
+        coEvery { chatRepository.checkStreamStatus("conv-1", any()) } coAnswers {
+            claimingStatusAnswer(ChatStatusResponse(active = true, createdAt = null))
+        }
+        val (delegate, _) = delegateWith(this, state = idleState())
+
+        delegate.attachToServerStartedRun()
+        advanceUntilIdle()
+
+        verify(exactly = 0) { queueDelegate.retireAdmissionsBefore(any()) }
+        delegate.reset()
+        advanceUntilIdle()
+    }
 
     /** Same claim-before-guard rule on the conversation-open sibling. */
     @Test
