@@ -61,8 +61,11 @@ data class QueuedMessage(
      * Quoted excerpts taken from the pending-quote chips when this spec was minted (v0.8.7
      * "Add to chat"). They ride the spec — not the composer — so a queued follow-up, a drained
      * item, and a degraded steer that re-homes here all send the excerpts they were composed
-     * with. Composer-origin steers deliberately mint their spec WITHOUT quotes (web parity:
-     * server steers never carry them, so they stay staged for the next real send).
+     * with.
+     *
+     * Composer-origin steers mint their spec WITH quotes from v0.8.8-rc2, when
+     * `POST /api/agents/chat/steer` began carrying them. The spec is also what a dropped excerpt
+     * is recovered from, so `SteeringDelegate` strips it once the chips hold the copy.
      */
     val quotes: List<String> = emptyList(),
     val dispatch: EndpointDispatch,

@@ -19,6 +19,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.SteeringHandle
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.slot
 import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -46,6 +47,7 @@ class SteeringDelegateTest {
      */
     private val enqueued = mutableListOf<QueuedMessage>()
     private var queuePaused = false
+    private val restaged = mutableListOf<String>()
 
     private fun spec(text: String) = QueuedMessage(
         localId = "spec-$text",
@@ -72,6 +74,7 @@ class SteeringDelegateTest {
             enqueueParked = { enqueued += it },
             pauseQueue = { queuePaused = true },
             isStreaming = { isStreaming },
+            restageQuotes = { restaged += it },
         )
         return delegate to flow
     }
@@ -184,6 +187,7 @@ class SteeringDelegateTest {
                 enqueueParked = { enqueued += it },
                 pauseQueue = { queuePaused = true },
                 isStreaming = { streaming },
+                restageQuotes = { restaged += it },
             )
 
             delegate.steer("conv-1", spec("be brief"))
@@ -361,15 +365,35 @@ class SteeringDelegateTest {
         }
 
     @Test
-    fun `a steer posts only its text and conversation`() = runTest(UnconfinedTestDispatcher()) {
-        // The server injects into the ORIGINATING run and re-derives its identity from job
-        // metadata, so an agent selection sent here would be ignored at best.
-        coEvery { chatRepository.steerChat(any()) } returns Result.Success(SteerResponse(steerId = "s"))
+    fun `a steer posts its text, conversation and correlation id, and no model selection`() =
+        runTest(UnconfinedTestDispatcher()) {
+            // The server injects into the ORIGINATING run and re-derives its identity from job
+            // metadata, so an agent selection sent here would be ignored at best. `clientSteerId`
+            // is what correlates terminal events that can arrive before this POST's response.
+            val request = slot<SteerRequest>()
+            coEvery { chatRepository.steerChat(capture(request)) } returns
+                Result.Success(SteerResponse(steerId = "s"))
+            val (delegate, _) = delegateWith(this)
+
+            delegate.steer("conv-1", spec("  be brief  "))
+
+            assertThat(request.captured.conversationId).isEqualTo("conv-1")
+            assertThat(request.captured.text).isEqualTo("be brief")
+            assertThat(request.captured.clientSteerId).isNotEmpty()
+            // A spec with no staged excerpts sends none rather than an empty array.
+            assertThat(request.captured.quotes).isNull()
+        }
+
+    @Test
+    fun `a steer carries the excerpts its spec was minted with`() = runTest(UnconfinedTestDispatcher()) {
+        val request = slot<SteerRequest>()
+        coEvery { chatRepository.steerChat(capture(request)) } returns
+            Result.Success(SteerResponse(steerId = "s"))
         val (delegate, _) = delegateWith(this)
 
-        delegate.steer("conv-1", spec("  be brief  "))
+        delegate.steer("conv-1", spec("be brief").copy(quotes = listOf("excerpt a", "excerpt b")))
 
-        coVerify { chatRepository.steerChat(SteerRequest("conv-1", "be brief")) }
+        assertThat(request.captured.quotes).containsExactly("excerpt a", "excerpt b").inOrder()
     }
 
     // ── Session boundaries ────────────────────────────────────────────────
@@ -399,6 +423,7 @@ class SteeringDelegateTest {
                 enqueueParked = { enqueued += it },
                 pauseQueue = { queuePaused = true },
                 isStreaming = { true },
+                restageQuotes = { restaged += it },
             )
 
             delegate.steer("conv-1", spec("be brief").copy(model = "model-at-send-time"))
@@ -468,6 +493,7 @@ class SteeringDelegateTest {
                 enqueueParked = { enqueued += it },
                 pauseQueue = { queuePaused = true },
                 isStreaming = { streaming },
+                restageQuotes = { restaged += it },
             )
 
             delegate.steer("conv-1", spec("be brief"))
@@ -506,6 +532,7 @@ class SteeringDelegateTest {
                 enqueueParked = { enqueued += it },
                 pauseQueue = { queuePaused = true },
                 isStreaming = { true },
+                restageQuotes = { restaged += it },
             )
 
             delegate.steer("conv-1", spec("be brief"))
@@ -526,8 +553,9 @@ class SteeringDelegateTest {
         runTest(UnconfinedTestDispatcher()) {
             val first = CompletableDeferred<Result<SteerResponse>>()
             val second = CompletableDeferred<Result<SteerResponse>>()
-            coEvery { chatRepository.steerChat(SteerRequest("conv-1", "one")) } coAnswers { first.await() }
-            coEvery { chatRepository.steerChat(SteerRequest("conv-1", "two")) } coAnswers { second.await() }
+            // Matched on text, not on the whole request: `clientSteerId` is minted per steer.
+            coEvery { chatRepository.steerChat(match { it.text == "one" }) } coAnswers { first.await() }
+            coEvery { chatRepository.steerChat(match { it.text == "two" }) } coAnswers { second.await() }
             var streaming = true
             val flow = MutableStateFlow(
                 ChatUiState(conversation = ConversationMetaState(conversationId = "conv-1")),
@@ -540,6 +568,7 @@ class SteeringDelegateTest {
                 enqueueParked = { enqueued += it },
                 pauseQueue = { queuePaused = true },
                 isStreaming = { streaming },
+                restageQuotes = { restaged += it },
             )
 
             delegate.steer("conv-1", spec("one"))

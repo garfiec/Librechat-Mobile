@@ -99,6 +99,34 @@ class SseEventMapperTest {
         assertThat(tc.output).isEqualTo("Results here")
     }
 
+    // --- on_steer_applied quotes (v0.8.8-rc2) ---
+
+    @Test
+    fun `an applied steer carries the quotes its injected part kept`() {
+        val event = SseEvent(
+            event = "",
+            data = """{"event":"on_steer_applied","data":{"steerId":"s1","clientSteerId":"local-1",""" +
+                """"index":3,"part":{"type":"steer","steer":"be brief","quotes":["excerpt a","excerpt b"]}}}""",
+        )
+        val applied = mapper.map(event) as StreamEvent.SteerApplied
+        assertThat(applied.steerId).isEqualTo("s1")
+        assertThat(applied.clientSteerId).isEqualTo("local-1")
+        assertThat(applied.quotes).containsExactly("excerpt a", "excerpt b").inOrder()
+    }
+
+    @Test
+    fun `a part injected without quotes reports an empty list`() {
+        // Empty is the signal, not an absence to shrug at: it means a pre-quotes server injected
+        // the words bare, so the client still holds the only copy of the excerpts.
+        val event = SseEvent(
+            event = "",
+            data = """{"event":"on_steer_applied","data":{"steerId":"s1","part":{"type":"steer","steer":"be brief"}}}""",
+        )
+        val applied = mapper.map(event) as StreamEvent.SteerApplied
+        assertThat(applied.quotes).isEmpty()
+        assertThat(applied.clientSteerId).isNull()
+    }
+
     // --- on_run_step_closed (v0.8.8-rc2) ---
 
     private fun runStep(stepId: String, callId: String) = SseEvent(

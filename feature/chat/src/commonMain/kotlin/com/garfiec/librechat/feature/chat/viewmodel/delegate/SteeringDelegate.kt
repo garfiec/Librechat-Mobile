@@ -7,6 +7,8 @@ import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.model.PendingSteer
 import com.garfiec.librechat.core.model.request.SteerCancelRequest
 import com.garfiec.librechat.core.model.request.SteerRequest
+import com.garfiec.librechat.core.model.response.SteerResponse
+import com.garfiec.librechat.core.model.steer.mergeRestagedQuotes
 import com.garfiec.librechat.core.model.steer.parseSteerRejectionCode
 import com.garfiec.librechat.feature.chat.viewmodel.PendingSteerChip
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
@@ -61,6 +63,12 @@ class SteeringDelegate(
     private val pauseQueue: () -> Unit,
     /** True while the client still believes a run is in flight. */
     private val isStreaming: () -> Boolean,
+    /**
+     * Puts excerpts back on the composer's quote chips, deduped against what is already staged
+     * ([mergeRestagedQuotes]). Called from the two places a steer's quotes are actually LOST —
+     * see [restageDroppedQuotes].
+     */
+    private val restageQuotes: (List<String>) -> Unit,
 ) {
 
     /**
@@ -147,7 +155,17 @@ class SteeringDelegate(
         publishChips()
 
         handle.scope.launch {
-            val result = chatRepository.steerChat(SteerRequest(conversationId, trimmed))
+            val result = chatRepository.steerChat(
+                SteerRequest(
+                    conversationId = conversationId,
+                    text = trimmed,
+                    // From the SPEC, not the composer: the composer was cleared at send time, and
+                    // the spec is what every degrade path re-homes — so the excerpts travel with
+                    // the words on every route out of here.
+                    quotes = fallback.quotes.takeIf { it.isNotEmpty() },
+                    clientSteerId = localId,
+                ),
+            )
             val record = records[localId] ?: return@launch
             // Settled while the POST was in flight — a turn boundary marked it unreachable, or a
             // report already re-homed it. Its text has a home; neither branch below may give it a
@@ -162,7 +180,7 @@ class SteeringDelegate(
             }
             when (result) {
                 is Result.Success ->
-                    acknowledge(conversationId, localId, record, result.data.steerId)
+                    acknowledge(conversationId, localId, record, result.data)
 
                 is Result.Error -> {
                     Logger.d(result.exception) { "Steer rejected: ${result.message}" }
@@ -196,9 +214,21 @@ class SteeringDelegate(
         conversationId: String,
         localId: String,
         record: SteerRecord,
-        serverId: String?,
+        ack: SteerResponse,
     ) {
+        val serverId = ack.steerId
         val wasCancelled = record.status == SteerRecord.Status.CANCELLED
+        // A 202 without `quotesAccepted` means a pre-quotes server took the words and dropped the
+        // excerpts — but NOT that they are lost yet, and this is deliberately not where they are
+        // re-staged. The steer is still queued and will still inject; re-staging now would deliver
+        // them twice, once in the injected part and once on the next send. The one exception is a
+        // receipt replayed for a steer that has ALREADY left the queue: no future event will name
+        // it, so this is its only chance. `leftover` is excluded because that branch re-homes the
+        // whole spec, and a normal send carries quotes on any server.
+        val quotesDropped = ack.quotesAccepted != true && record.spec?.quotes?.isNotEmpty() == true
+        if (quotesDropped && ack.settled == true && ack.leftover != true) {
+            restageDroppedQuotes(record)
+        }
         // A 202 with no id is unusable: it can be neither cancelled nor matched to an applied
         // event, so treat it as un-steered rather than showing a chip that can never resolve.
         if (serverId.isNullOrBlank()) {
@@ -244,13 +274,39 @@ class SteeringDelegate(
      * own 202, and the tombstone is what stops that ack from re-minting a chip for a steer
      * already in the content.
      */
-    fun onSteerApplied(steerId: String) {
+    fun onSteerApplied(steerId: String, appliedQuotes: List<String> = emptyList(), clientSteerId: String? = null) {
         if (steerId.isBlank()) return
-        val existing = records[steerId]
-        records[steerId] = existing?.copy(status = SteerRecord.Status.APPLIED)
-            ?: SteerRecord("", 0L, SteerRecord.Status.APPLIED, spec = null, turnEpoch = turnEpoch)
+        // Both ids settle: the event can name either, depending on whether the server had learned
+        // this client's placeholder by the time it injected.
+        val ids = listOfNotNull(steerId, clientSteerId?.takeIf { it.isNotBlank() && it != steerId })
+        // THE moment the excerpts are actually lost: the part went in without them, so the record
+        // holds the only copy. Re-stage before the tombstone replaces the record that carries it.
+        if (appliedQuotes.isEmpty()) {
+            ids.firstNotNullOfOrNull { records[it]?.takeIf { r -> r.spec?.quotes?.isNotEmpty() == true } }
+                ?.let(::restageDroppedQuotes)
+        }
+        for (id in ids) {
+            val existing = records[id]
+            records[id] = existing?.copy(status = SteerRecord.Status.APPLIED)
+                ?: SteerRecord("", 0L, SteerRecord.Status.APPLIED, spec = null, turnEpoch = turnEpoch)
+        }
         evictSettled()
         publishChips()
+    }
+
+    /**
+     * Puts a steer's dropped excerpts back on the composer and STRIPS them from its spec.
+     *
+     * The strip is what keeps the two recovery triggers from double-delivering: once the chips
+     * hold them, a later re-home of the same spec must not send them again.
+     * [mergeRestagedQuotes] covers the other direction — the same excerpts arriving twice.
+     */
+    private fun restageDroppedQuotes(record: SteerRecord) {
+        val quotes = record.spec?.quotes.orEmpty()
+        if (quotes.isEmpty()) return
+        restageQuotes(quotes)
+        val stripped = record.spec?.copy(quotes = emptyList()) ?: return
+        records.entries.filter { it.value === record }.forEach { it.setValue(record.copy(spec = stripped)) }
     }
 
     /**

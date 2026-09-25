@@ -514,7 +514,7 @@ class StreamingManagerDelegate(
                 // The steer is now a content part of the reply being streamed, so its chip has
                 // done its job. The text itself needs no handling here: it arrives through the
                 // normal content path like everything else the run writes.
-                steeringDelegate.onSteerApplied(event.steerId)
+                steeringDelegate.onSteerApplied(event.steerId, event.quotes, event.clientSteerId)
             }
             is StreamEvent.PendingSteersSynced -> {
                 steeringDelegate.onPendingSteersSynced(event.pendingSteers)

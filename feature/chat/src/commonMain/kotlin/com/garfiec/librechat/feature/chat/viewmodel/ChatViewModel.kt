@@ -51,6 +51,7 @@ import com.garfiec.librechat.core.model.permissions.canCreateSharedLinks
 import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
 import com.garfiec.librechat.core.model.request.ToolApprovalResolution
 import com.garfiec.librechat.core.model.response.UploadRoute
+import com.garfiec.librechat.core.model.steer.mergeRestagedQuotes
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.core.ui.media.MediaItem
 import com.garfiec.librechat.core.ui.media.MediaPreviewState
@@ -418,6 +419,7 @@ class ChatViewModel(
         enqueueParked = queueDelegate::enqueue,
         pauseQueue = { queueDelegate.pause() },
         isStreaming = { _uiState.value.isStreaming },
+        restageQuotes = ::restagePendingQuotes,
     )
 
     private val streamingManager = StreamingManagerDelegate(
@@ -1113,7 +1115,11 @@ class ChatViewModel(
         // The steer's own fallback spec, minted now: every degradation path re-homes it as a
         // queued follow-up, and rebuilding it then would capture whatever model, tools, and
         // attachments the composer holds by that point rather than what was sent.
-        val spec = buildSendSpec(state.inputText.trim()) ?: return
+        // The staged excerpts ride the spec, taken here rather than left behind: a steer carries
+        // quotes from v0.8.8-rc2, and every path out of the delegate — injection, a rejection that
+        // re-homes to the queue, a terminal leftover — delivers or restores what the spec holds.
+        val spec = buildSendSpec(state.inputText.trim())?.let { it.copy(quotes = takePendingQuotes(it.endpoint)) }
+            ?: return
         clearComposer()
         steeringDelegate.steer(conversationId, spec)
     }
@@ -1397,6 +1403,21 @@ class ChatViewModel(
         if (excerpt.isEmpty()) return
         _uiState.update {
             it.copy(composer = it.composer.copy(pendingQuotes = it.composer.pendingQuotes + excerpt))
+        }
+    }
+
+    /**
+     * Puts excerpts a steer lost back on the composer's chips, deduped and capped.
+     *
+     * Unlike [addPendingQuote] this is a RESTORE, not a new selection, so it goes through
+     * [mergeRestagedQuotes]: the same excerpts can arrive from more than one recovery trigger for
+     * one steer, and appending blindly would multiply the user's chips.
+     */
+    private fun restagePendingQuotes(quotes: List<String>) {
+        if (quotes.isEmpty()) return
+        _uiState.update {
+            val merged = mergeRestagedQuotes(it.composer.pendingQuotes, quotes)
+            if (merged === it.composer.pendingQuotes) it else it.copy(composer = it.composer.copy(pendingQuotes = merged))
         }
     }
 

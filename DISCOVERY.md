@@ -807,10 +807,38 @@ Quotes (v0.8.7 feature, capture newly built):
 - `ChatRequest.quotes: string[]` (5eb1c2c1 #13868, first tag v0.8.7 — NOT in 0.8.7-rc1): the server
   merges the excerpts into the user message as Markdown blockquotes and persists/echoes
   `message.quotes`. Mobile now CAPTURES quotes too — Android selection-toolbar "Add to chat" →
-  pending chips → drained onto the next fresh send (or composer-origin queue item). Composer steers
-  leave them staged (server steers never carry quotes); regenerate/edit-assistant replay the parent
-  user message's persisted quotes (web `overrideQuotes` parity); continue/edit-user send none;
-  assistants endpoints are skipped. Gated `isCompatibleOrNewer(v, "0.8.7")`, fail-closed. (BUILT)
+  pending chips → drained onto the next fresh send (or composer-origin queue item).
+  Regenerate/edit-assistant replay the parent user message's persisted quotes (web `overrideQuotes`
+  parity); continue/edit-user send none; assistants endpoints are skipped. Gated
+  `isCompatibleOrNewer(v, "0.8.7")`, fail-closed. (BUILT)
+
+**CORRECTED at v0.8.8-rc2 — "server steers never carry quotes" is FALSE, in both directions.**
+`POST /api/agents/chat/steer` takes `quotes` in its BODY (`SteerMessageParams.quotes`), and the
+persisted `steer` content part carries them back, rendered by web as reference blocks with the same
+component normal message quotes use — not folded into the text. A composer steer therefore TAKES
+the staged excerpts now rather than leaving them for the next send.
+
+The recovery contract is a **capability echo, never a version gate**. `SteerMessageResponse` echoes
+`quotesAccepted` only when the durable item kept the quotes; a pre-quotes server 202s while silently
+dropping them. Four rules, and the second is the one that looks wrong and is not:
+
+1. **Send** the excerpts on the steer, taken from the composer onto the steer's fallback spec — so
+   every route out (injection, a rejection that re-homes to the queue, a terminal leftover) carries
+   or restores them.
+2. **An ACK with `quotesAccepted` absent does NOT re-stage.** The steer is still queued and will
+   still inject; re-staging here would deliver the excerpts twice, once inside the injected part and
+   once on the next send. Upstream is explicit about this (`useSteering.ts:1649-1657`).
+3. **`on_steer_applied` whose part carries NO quotes is where the loss is real** — the words went in
+   bare and the local record holds the only copy, so the excerpts are re-staged there, before the
+   record becomes a tombstone.
+4. **A settled receipt replay** (`settled` without `leftover`) re-stages immediately: the steer has
+   already left the queue, so no future event will name it. `leftover` is excluded because that
+   branch re-homes the whole spec into the follow-up queue, whose normal send delivers quotes on any
+   server.
+
+**Both restore paths must stay idempotent or the chips duplicate.** Mobile has two independent
+guards: `mergeRestagedQuotes` (dedupe-append, capped at 10, mirroring upstream) and stripping the
+excerpts off the record's spec once the chips hold them.
 - iOS capture is DEFERRED (deliberate): the chips display/removal plumbing is commonMain and renders
   on iOS, but nothing stages a quote there — the capture affordance is the Android text-context-menu
   provider (`AddToChatSelectionMenu.kt`), and CMP's iOS text-context-menu API surface differs and

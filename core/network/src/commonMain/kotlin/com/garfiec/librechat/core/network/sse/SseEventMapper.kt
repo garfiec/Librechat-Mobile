@@ -440,6 +440,13 @@ class SseEventMapper(private val json: Json) {
             steerId = steerId,
             index = data["index"]?.jsonPrimitive?.intOrNull,
             text = part?.get("steer")?.jsonPrimitive?.contentOrNull,
+            clientSteerId = data["clientSteerId"]?.jsonPrimitive?.contentOrNull
+                ?: part?.get("clientSteerId")?.jsonPrimitive?.contentOrNull,
+            // Read off the PART, not the envelope: it is the injected record, so its absence is
+            // what says the excerpts did not survive.
+            quotes = part?.get("quotes")?.jsonArray
+                ?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }
+                .orEmpty(),
             responseMessageId = data["responseMessageId"]?.jsonPrimitive?.contentOrNull,
             conversationId = data["conversationId"]?.jsonPrimitive?.contentOrNull,
         )

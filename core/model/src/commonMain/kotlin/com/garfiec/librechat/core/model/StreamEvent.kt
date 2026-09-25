@@ -145,6 +145,16 @@ sealed interface StreamEvent {
         val index: Int? = null,
         /** The steer's text as injected, for a client that never saw its own 202. */
         val text: String? = null,
+        /** This client's own id, when the server echoed it back. */
+        val clientSteerId: String? = null,
+        /**
+         * Quotes carried by the INJECTED part (v0.8.8-rc2).
+         *
+         * Empty is load-bearing: it proves a pre-quotes server injected the words bare, leaving
+         * the local record as the only copy of the user's excerpts. That is the moment they are
+         * actually lost, and the moment they are re-staged.
+         */
+        val quotes: List<String> = emptyList(),
         val responseMessageId: String? = null,
         val conversationId: String? = null,
     ) : StreamEvent
