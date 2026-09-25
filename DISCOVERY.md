@@ -839,6 +839,25 @@ dropping them. Four rules, and the second is the one that looks wrong and is not
 **Both restore paths must stay idempotent or the chips duplicate.** Mobile has two independent
 guards: `mergeRestagedQuotes` (dedupe-append, capped at 10, mirroring upstream) and stripping the
 excerpts off the record's spec once the chips hold them.
+
+The reports that hand a steer back (`resumeState.pendingSteers`, the final frame, the abort ack)
+also carry its `quotes` now, still claim-on-read — so a steer with no local spec re-homes with the
+reported excerpts attached to the follow-up built for it.
+
+Three parts of the rc2 steer surface are deliberately NOT ported:
+- **`generationCreatedAt` on the steer POST** — a server-side fence against a run that has since
+  been replaced. Mobile already fences locally with `SteerRecord.turnEpoch`, which exists for
+  exactly that failure (a slow 202 from a finished turn attaching to the current one). Sending the
+  epoch would need it plumbed out of `PendingActionDelegate`, and mobile would gain nothing it does
+  not already have. `clientSteerId` IS sent — it costs nothing (the placeholder already exists) and
+  is what correlates an event that beats its own POST.
+- **`on_steer_updated` / `TSteerUpdatedEvent`** — a preempt-label change on a still-queued steer.
+  Mobile never asks to `preempt`, so every steer it sends is `preempt: false` and the event could
+  only ever relabel a chip to what it already reads. Lands in `SseEventMapper`'s `else -> null`.
+- **Rendering steer quotes as reference blocks.** The persisted `steer` part carries them and web
+  draws them with the same component normal message quotes use. Mobile renders the part's text as a
+  user turn and ignores the excerpts — a display gap on a persisted part, separable from the
+  send/recovery contract above.
 - iOS capture is DEFERRED (deliberate): the chips display/removal plumbing is commonMain and renders
   on iOS, but nothing stages a quote there — the capture affordance is the Android text-context-menu
   provider (`AddToChatSelectionMenu.kt`), and CMP's iOS text-context-menu API surface differs and
