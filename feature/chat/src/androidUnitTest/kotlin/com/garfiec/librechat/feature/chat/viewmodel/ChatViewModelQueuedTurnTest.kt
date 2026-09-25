@@ -444,6 +444,60 @@ class ChatViewModelQueuedTurnTest {
     }
 
     /**
+     * The same window, entered from the ×. `cancelQueued` READ the withdrawal fence and never
+     * raised it, so its own DELETE left the window open: a second × on the same row, or a
+     * tap-to-edit behind it, started a second withdrawal of a row the first had already taken,
+     * and whichever landed second reported a refusal over a cancel that actually succeeded.
+     *
+     * The fence is global, so it also refuses a tap on a different row — which is why the refusal
+     * has to say something rather than returning silently.
+     */
+    @Test
+    fun `a second cancel tap during a withdrawal does not start a second delete`() = queuedTurnTest { vm ->
+        vm.onInputChanged("first follow-up")
+        vm.queueMessage()
+        runCurrent()
+        vm.onInputChanged("second follow-up")
+        vm.queueMessage()
+        runCurrent()
+        val (first, second) = vm.uiState.value.messageQueue
+
+        val cancelGate = CompletableDeferred<Unit>()
+        coEvery { queuedTurnRepository.cancel(any()) } coAnswers {
+            cancelGate.await()
+            val id = firstArg<String>()
+            val row = listOf(first, second).first { it.server?.id == id }
+            serverRows.removeAll { it.clientRequestId == row.clientRequestId }
+            QueuedTurnOutcome.Committed(
+                AgentQueuedTurnReceipt(
+                    queuedTurnId = id,
+                    clientRequestId = row.clientRequestId!!,
+                    text = row.text,
+                    status = QueuedTurnStatus.CANCELLED,
+                ),
+            )
+        }
+
+        vm.cancelQueued(first.localId)
+        runCurrent()
+        // Same row again, then a different one, then a tap-to-edit: all inside the DELETE's window.
+        vm.cancelQueued(first.localId)
+        vm.cancelQueued(second.localId)
+        vm.editQueued(second.localId)
+        runCurrent()
+
+        coVerify(exactly = 1) { queuedTurnRepository.cancel(any()) }
+        assertThat(vm.uiState.value.error).isNotNull()
+        assertThat(vm.uiState.value.editingQueuedItem).isNull()
+
+        cancelGate.complete(Unit)
+        runCurrent()
+
+        // The one withdrawal that was allowed still completed, and the fence let go after it.
+        assertThat(vm.uiState.value.messageQueue.map { it.text }).containsExactly("second follow-up")
+    }
+
+    /**
      * The same window, entered from a LEGACY row. A legacy edit opens its session synchronously, so
      * it never reaches the server-owned branch — and the withdrawal that is still in flight lands
      * on top of it, leaving the legacy row out of the queue with no session to put it back.

@@ -220,7 +220,17 @@ class QueuedTurnDelegate(
             QueuedTurnOutcome.Unsupported -> true
             // A bounded refusal is the server saying the turn is past withdrawing. Reporting
             // success would drop the row locally while the server still runs it.
-            is QueuedTurnOutcome.Rejected -> false
+            //
+            // Except a 404. The cancel route answers `QUEUED_TURN_NOT_FOUND` when its lifecycle
+            // reports `not_found` for this id in this scope — the server has no such row to
+            // withdraw, which is the withdrawal's own goal already met. (A route-level 404 carries
+            // no `code` and is classified `Unsupported` before it can reach here, so this arm only
+            // ever sees the feature's own answer.) Reported as a refusal it is the worst outcome
+            // available: the × becomes a permanent no-op on a row that also refuses every drain,
+            // so the whole queue stops sending with nothing on screen that can clear it. The 409
+            // `QUEUED_TURN_ALREADY_ADMITTING` — the server still intends to run it — is the case
+            // the refusal arm exists for, and it stays false.
+            is QueuedTurnOutcome.Rejected -> outcome.statusCode == HTTP_NOT_FOUND
             is QueuedTurnOutcome.Indeterminate -> false
         }
     }
@@ -389,5 +399,8 @@ class QueuedTurnDelegate(
     private companion object {
         /** Upstream's `refetchInterval`. */
         val POLL_INTERVAL = 2.seconds
+
+        /** The cancel route's "this turn is not in my queue" answer. See [cancel]. */
+        const val HTTP_NOT_FOUND = 404
     }
 }

@@ -486,6 +486,14 @@ class ChatViewModel(
         /** Upper bound on waiting for a finished reply to land in the tree before draining the
          *  next queued message. Generous so a slow post-Final reload still chains correctly. */
         private const val REPLY_SETTLE_TIMEOUT_MS = 8_000L
+
+        // Plain strings, like every other message on this `error` channel. `getString(Res.string…)`
+        // is not usable from a ViewModel here: compose-resources resolves through
+        // `Resources.getSystem()`, which is null under this module's plain-JVM unit tests.
+        private const val WITHDRAW_REFUSED_MESSAGE =
+            "Could not withdraw this message from the server."
+        private const val WITHDRAW_BUSY_MESSAGE =
+            "Still finishing the previous withdrawal. Try again in a moment."
     }
 
     /** True when this ViewModel was opened for a brand-new chat (no conversationId from navigation). */
@@ -1319,21 +1327,34 @@ class ChatViewModel(
     }
 
     /**
+     * The row whose withdrawal DELETE is in flight, or null.
+     *
+     * A **global** fence, not a per-row one: one withdrawal at a time across the whole queue. The
+     * row it names is for diagnostics; every consumer tests it for null. That is deliberately
+     * stricter than the race each consumer can describe on its own — [reorderQueue] in particular
+     * needs it, because any in-flight withdrawal is about to shift the indices it operates on —
+     * and it is why the two consumers that refuse a user's tap say so rather than returning
+     * silently. A per-row `Set` is recorded as a follow-up; it changes the concurrency model.
+     */
+    private var withdrawingForEdit: String? = null
+
+    /**
      * Tap a queued ghost bubble: enter queued-edit mode. Stashes the current new-message draft,
      * pulls the item OUT of the queue, and loads its text + attachments + model/tools/params into
      * the composer for editing. Commit ([commitQueuedEdit]) or cancel ([cancelQueuedEdit]) puts the
      * item back in its slot and restores the stashed draft. Ignored if already editing one.
      */
-    private var withdrawingForEdit: String? = null
-
     fun editQueued(localId: String) {
         if (_uiState.value.isEditingQueued) return
         // A server-owned edit opens its session only after the withdrawal DELETE returns, so
-        // `isEditingQueued` is still false for the whole round trip. Any second tap in that window
+        // `isEditingQueued` is still false for the whole round trip. A second tap in that window
         // — including a legacy one, which opens its session synchronously and would then be
         // overwritten by the withdrawal landing on top of it — leaves a row out of the queue with
         // nothing that will put it back.
-        if (withdrawingForEdit != null) return
+        if (withdrawingForEdit != null) {
+            reportQueueBusy()
+            return
+        }
         // A pick that has not settled yet belongs to the new-message draft. Swapping the composer
         // out from under it re-homes it onto the queued item instead — attaching it to a message
         // the user did not pick it for, and losing it from the one they did, since `captureComposer`
@@ -1350,7 +1371,13 @@ class ChatViewModel(
             // original queued behind the edit. Withdraw it first, and only edit if that succeeded.
             viewModelScope.launch {
                 try {
-                    if (!queuedTurnDelegate.cancel(serverOwned)) return@launch
+                    if (!queuedTurnDelegate.cancel(serverOwned)) {
+                        // Reported for the same reason the × reports it: the tap looks like it
+                        // did nothing, and the row it was aimed at is one the server will still
+                        // run. Silence here reads as a dead bubble.
+                        reportWithdrawRefused()
+                        return@launch
+                    }
                     // A real DELETE's receipt already retired the row; a refused one never had an
                     // id to delete and is still sitting there. Take it out either way — leaving it
                     // would put the edit BESIDE the original and block the drain on a row nothing
@@ -1430,45 +1457,78 @@ class ChatViewModel(
         tryResumeDrain()
     }
 
+    /** The queue refused a tap because [withdrawingForEdit] holds it; say so. */
+    private fun reportQueueBusy() {
+        _uiState.update { it.copy(error = WITHDRAW_BUSY_MESSAGE) }
+    }
+
+    /** A withdrawal the server declined. Shared, so the × and the tap-to-edit read the same. */
+    private fun reportWithdrawRefused() {
+        _uiState.update { it.copy(error = WITHDRAW_REFUSED_MESSAGE) }
+    }
+
     fun cancelQueued(localId: String) {
         // Ignore ghost ×/reorder while an edit is in flight, so the queue can't shift under the
         // session's captured originalIndex.
         if (_uiState.value.isEditingQueued) return
-        // …and while an edit's withdrawal is still in flight, which is the same window with
-        // `isEditingQueued` not yet set: the row is still on screen, so a second tap here starts a
-        // SECOND withdrawal of it, and whichever lands first leaves the other holding a row the
-        // server no longer has.
-        if (withdrawingForEdit != null) return
         val item = _uiState.value.messageQueue.firstOrNull { it.localId == localId }
         if (item?.server == null) {
+            // A purely local row is removed by id and talks to nothing, so the withdrawal fence
+            // does not apply to it — and must not be consulted BEFORE this branch, or every × on
+            // an ordinary queued message during any withdrawal is refused with a message about an
+            // operation that row has no part in.
             queueDelegate.cancel(localId)
+            return
+        }
+        // A withdrawal is already in flight, which is the same window with `isEditingQueued` not
+        // yet set: the rows are still on screen, so a tap here would start a second concurrent
+        // DELETE, and whichever lands first leaves the other holding a row the server no longer
+        // has. Reported rather than swallowed — the fence is global, so this also refuses a tap on
+        // a DIFFERENT server-owned row, and a × that dies silently reads as a broken button.
+        if (withdrawingForEdit != null) {
+            reportQueueBusy()
             return
         }
         // The server holds this one. Withdraw it there FIRST and drop the local row only on a
         // confirmed cancel — removing it locally on a refused one would hide a turn the server
         // still intends to run.
+        //
+        // Claimed BEFORE the launch, not only read: this path issues a withdrawal of its own, and
+        // the fence it consults is worthless to it unless it also raises it. Without this a second
+        // × tap, or an × followed by a tap-to-edit, starts a second DELETE of the same row — and
+        // whichever lands second reports a refusal over a withdrawal that actually succeeded.
+        withdrawingForEdit = localId
         viewModelScope.launch {
-            if (!queuedTurnDelegate.cancel(item)) {
-                // Reported, not swallowed. A refusal is either "the server is past withdrawing
-                // this" or "this row has no id to withdraw" — and the latter is reachable and
-                // sticky: an `Uncertain` row whose reconciliation window has expired will never
-                // be handed one, so its × is a permanent no-op while the row itself refuses every
-                // drain. Silence made that read as a dead button on a row the UI has already
-                // labelled as needing attention.
-                _uiState.update { it.copy(error = "Could not withdraw this message from the server.") }
-                return@launch
+            try {
+                if (!queuedTurnDelegate.cancel(item)) {
+                    // Reported, not swallowed. A refusal is either "the server is past withdrawing
+                    // this" or "this row has no id to withdraw" — and the latter is reachable and
+                    // sticky: an `Uncertain` row whose reconciliation window has expired will never
+                    // be handed one, so its × is a permanent no-op while the row itself refuses
+                    // every drain. Silence made that read as a dead button on a row the UI has
+                    // already labelled as needing attention.
+                    reportWithdrawRefused()
+                    return@launch
+                }
+                // Re-checked after the round trip, not only before it: an edit session opened while
+                // the DELETE was out, and dropping a row into it now shifts the slots its captured
+                // originalIndex points at — the exact thing the guard above exists to prevent.
+                if (_uiState.value.isEditingQueued) return@launch
+                queueDelegate.cancel(localId)
+            } finally {
+                withdrawingForEdit = null
             }
-            // Re-checked after the round trip, not only before it: an edit session opened while
-            // the DELETE was out, and dropping a row into it now shifts the slots its captured
-            // originalIndex points at — the exact thing the guard above exists to prevent.
-            if (_uiState.value.isEditingQueued) return@launch
-            queueDelegate.cancel(localId)
         }
     }
 
     fun reorderQueue(fromIndex: Int, toIndex: Int) {
         if (_uiState.value.isEditingQueued) return
-        if (withdrawingForEdit != null) return
+        // Global on purpose, unlike the ×: a withdrawal that lands removes a row and renumbers
+        // every index behind it, so a drag started now commits against slots that have moved.
+        if (withdrawingForEdit != null) {
+            reportQueueBusy()
+            return
+        }
         // Server-owned rows run in the server's sequence; dragging one would show an order the
         // backend will not honour.
         val queue = _uiState.value.messageQueue

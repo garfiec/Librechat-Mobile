@@ -645,6 +645,20 @@
       },
       "why": "The shape a memory key must have, enforced by the CREATE route from v0.8.8-rc3 and never served to a client. Upstream labels its own client-side copy a mirror of this validator (`client/src/utils/memory.ts`), which is the same reason this one exists. The mobile check is version-gated and fails OPEN -- rc1 and rc2 accept keys rc3 rejects, so an unknown server must not be refused locally.",
       "failure_mode": "A widened pattern leaves the client refusing keys the server would take, with no way for the user to tell why. A narrowed one lets a key through to a 400 the client could have prevented. Neither shows up as a decode or a version mismatch."
+    },
+    {
+      "id": "queued-turn-cancel-outcomes",
+      "upstream": {
+        "file": "packages/api/src/agents/queuedTurnHttp.ts",
+        "symbol": "handleAgentQueuedTurnCancel",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/delegate/QueuedTurnDelegate.kt",
+        "symbol": "cancel"
+      },
+      "why": "What the DELETE route's refusals MEAN, which the shared `isDefiniteQueuedTurnRejection` cannot say: that predicate answers 'the row was never committed', which is the enqueue's question. For a withdrawal the two bounded refusals point opposite ways -- `404 QUEUED_TURN_NOT_FOUND` is the goal already met (the server does not have the turn) and `409 QUEUED_TURN_ALREADY_ADMITTING` means it still intends to run it. The client hardcodes that split; nothing on the wire states it, and neither code appears in `QueuedTurnErrorCode`.",
+      "failure_mode": "Upstream re-codes or re-statuses either arm and the split inverts. Reading a 404 as a refusal is the expensive direction: the row stays, its x becomes a permanent no-op, and a server-owned row refuses every drain -- the queue never sends again, with nothing on screen that can clear it. Reading a 409 as success drops a row the server still runs."
     }
   ]
 }

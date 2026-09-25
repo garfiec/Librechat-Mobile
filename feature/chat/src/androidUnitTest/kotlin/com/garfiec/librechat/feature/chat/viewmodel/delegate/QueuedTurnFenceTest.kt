@@ -6,17 +6,21 @@ import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
 import com.garfiec.librechat.core.data.endpoint.EndpointDispatch
 import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
 import com.garfiec.librechat.core.model.queuedturn.AgentQueuedTurnReceipt
+import com.garfiec.librechat.core.model.queuedturn.QueuedTurnOutcome
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnReceiptSource
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnStatus
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.QueueHandle
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
+import com.garfiec.librechat.feature.chat.viewmodel.QueuedTurnServerState
 import com.google.common.truth.Truth.assertThat
+import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
 /**
@@ -248,8 +252,48 @@ class QueuedTurnFenceTest {
         assertThat(successorOwedCount).isEqualTo(1)
     }
 
+    /**
+     * What the cancel route's refusals mean, which is not what the ENQUEUE route's mean.
+     *
+     * `isDefiniteQueuedTurnRejection` answers "the row was never committed" and every bounded 4xx
+     * qualifies — correct for an enqueue, and backwards for a withdrawal's 404. The route answers
+     * `QUEUED_TURN_NOT_FOUND` when the turn is not in its queue, which is the withdrawal's own
+     * goal already met; reported as a refusal the row stays, its × is a permanent no-op, and that
+     * row then refuses every drain for the life of the ViewModel.
+     */
+    @Test
+    fun `a cancel the server has no row for is a successful withdrawal`() = runTest {
+        val repository = mockk<QueuedTurnRepository>(relaxed = true)
+        val delegate = QueuedTurnDelegate(
+            handle = QueueHandle(stateHandle),
+            repository = repository,
+            onSuccessorOwed = { true },
+            projectOrphan = { null },
+            nowMillis = { NOW },
+        )
+        val row = legacyRow("row").copy(
+            server = QueuedTurnServerState(status = QueuedTurnServerState.Status.Queued, id = "qt-1"),
+        )
+
+        coEvery { repository.cancel("qt-1") } returns
+            QueuedTurnOutcome.Rejected(HTTP_NOT_FOUND, "QUEUED_TURN_NOT_FOUND", null)
+        assertThat(delegate.cancel(row)).isTrue()
+
+        // 409 QUEUED_TURN_ALREADY_ADMITTING is the case the refusal arm exists for: the server
+        // still intends to run it, so dropping the row locally hides a turn that will happen.
+        coEvery { repository.cancel("qt-1") } returns
+            QueuedTurnOutcome.Rejected(HTTP_CONFLICT, "QUEUED_TURN_ALREADY_ADMITTING", null)
+        assertThat(delegate.cancel(row)).isFalse()
+
+        // An unrevealed outcome is not evidence either way and must never drop the row.
+        coEvery { repository.cancel("qt-1") } returns QueuedTurnOutcome.Indeterminate(null, null, null)
+        assertThat(delegate.cancel(row)).isFalse()
+    }
+
     private companion object {
         const val EPOCH = 1_758_000_000_000L
         const val NOW = 1_758_000_050_000L
+        const val HTTP_NOT_FOUND = 404
+        const val HTTP_CONFLICT = 409
     }
 }
