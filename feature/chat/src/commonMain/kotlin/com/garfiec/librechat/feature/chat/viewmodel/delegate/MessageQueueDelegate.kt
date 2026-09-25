@@ -275,18 +275,28 @@ class MessageQueueDelegate(
      */
     private fun consumeAdmittedBoundary(endedGenerationCreatedAt: Long?): Boolean {
         if (endedGenerationCreatedAt == null) return false
-        val settled = handle.state.settledQueuedTurns
-        val index = settled.indexOfFirst {
-            it.evidence == SettledQueuedTurn.Evidence.Admitted &&
-                !it.boundaryConsumed &&
-                it.effectivePredecessorCreatedAt == endedGenerationCreatedAt
-        }
-        if (index < 0) return false
+        fun SettledQueuedTurn.consumesBoundary(): Boolean =
+            evidence == SettledQueuedTurn.Evidence.Admitted &&
+                !boundaryConsumed &&
+                effectivePredecessorCreatedAt == endedGenerationCreatedAt
+        // The verdict is read here, on the Main-confined state this delegate shares with the
+        // reconcile poll; the WRITE below re-derives from the block's own copy rather than
+        // writing back a list captured out here. `handle.update` is a compare-and-set retry, so a
+        // captured copy would overwrite whatever the poll recorded between this read and the
+        // commit — and would do it again on every retry pass.
+        if (handle.state.settledQueuedTurns.none { it.consumesBoundary() }) return false
         handle.update {
-            queue = queue.copy(
-                settledQueuedTurns = settled.toMutableList()
-                    .apply { this[index] = this[index].copy(boundaryConsumed = true) },
-            )
+            // Re-matched per invocation: a retry restarts from the newer list, where a different
+            // row may now be the first match — or none may match at all, which writes nothing.
+            val index = queue.settledQueuedTurns.indexOfFirst { it.consumesBoundary() }
+            if (index >= 0) {
+                queue = queue.copy(
+                    settledQueuedTurns = queue.settledQueuedTurns.mapIndexed { i, turn ->
+                        // Exactly one admission fences one run end.
+                        if (i == index) turn.copy(boundaryConsumed = true) else turn
+                    },
+                )
+            }
         }
         return true
     }

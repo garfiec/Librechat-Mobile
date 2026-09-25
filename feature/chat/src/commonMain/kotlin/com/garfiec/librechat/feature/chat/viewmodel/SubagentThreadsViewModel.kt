@@ -126,7 +126,12 @@ class SubagentThreadsViewModel(
             error = null,
         )
         viewModelScope.launch {
-            when (val result = subagentRepository.getThread(parentConversationId, threadId)) {
+            val result = subagentRepository.getThread(parentConversationId, threadId)
+            // The selection moved on while this was in flight — the user went back to the list, or
+            // opened a different child. Landing this page anyway would re-open a thread nobody
+            // asked for, under the wrong header.
+            if (_uiState.value.openThreadId != threadId) return@launch
+            when (result) {
                 is Result.Success -> _uiState.value = _uiState.value.copy(
                     openThread = result.data,
                     isLoadingThread = false,
@@ -152,7 +157,11 @@ class SubagentThreadsViewModel(
         if (state.isLoadingOlder) return
         _uiState.value = state.copy(isLoadingOlder = true, error = null)
         viewModelScope.launch {
-            when (val result = subagentRepository.getOlderPage(parentConversationId, threadId, cursor)) {
+            val result = subagentRepository.getOlderPage(parentConversationId, threadId, cursor)
+            // Same rule as the thread read: a page for a thread that is no longer open would
+            // re-open it.
+            if (_uiState.value.openThreadId != threadId) return@launch
+            when (result) {
                 is Result.Success -> _uiState.value = _uiState.value.copy(
                     openThread = result.data,
                     isLoadingOlder = false,
@@ -166,8 +175,22 @@ class SubagentThreadsViewModel(
         }
     }
 
+    /**
+     * Returns to the child list, including from the spinner a thread load puts up.
+     *
+     * [SubagentThreadsUiState.isLoadingThread] has to be cleared too: the sheet renders the
+     * spinner ahead of everything else, so leaving it set strands the user on a spinner with the
+     * back arrow — gated on [SubagentThreadsUiState.isShowingThread] — already gone. The in-flight
+     * read is left to finish and discards itself, since [openThreadId] no longer names it.
+     */
     fun backToList() {
-        _uiState.value = _uiState.value.copy(openThread = null, openThreadId = null, error = null)
+        _uiState.value = _uiState.value.copy(
+            openThread = null,
+            openThreadId = null,
+            isLoadingThread = false,
+            isLoadingOlder = false,
+            error = null,
+        )
     }
 
     fun clearError() {

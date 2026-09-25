@@ -13,6 +13,7 @@ import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.hasAccessStrictOrDenied
 import com.garfiec.librechat.core.model.schedule.Schedule
 import com.garfiec.librechat.core.model.schedule.ScheduleLimits
+import com.garfiec.librechat.core.model.schedule.UpdateScheduleRequest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -114,16 +115,25 @@ class SchedulesListViewModel(
     /**
      * Pauses or resumes a schedule.
      *
-     * Sends `enabled` alone. The cadence is never included, so a schedule whose cadence this
-     * client cannot represent — a raw cron expression — can still be paused without its schedule
-     * being rewritten.
+     * Builds the body directly rather than round-tripping through [ScheduleDraft]: the draft is
+     * the EDITOR's model, and its `cadence` substitutes `hour ?: 0` / `minute ?: 0` for a time it
+     * cannot represent. A cadence arm this build does not know — one with no hour/minute, or with
+     * a field `ScheduleCadence` does not model — therefore comes back out of the form differing
+     * from the original, and [diffAgainst] would include it, silently rewriting when the schedule
+     * runs. Only the cron arm survives that round trip intact, so only cron was ever safe.
+     *
+     * `enabled` alone, with the revision fence, has nothing to round-trip and is safe for every
+     * arm — present and future.
      */
     fun setEnabled(schedule: Schedule, enabled: Boolean) {
         if (!_uiState.value.canCreate) return
         write(schedule.id) {
             scheduleRepository.updateSchedule(
                 schedule.id,
-                ScheduleDraft.from(schedule).copy(enabled = enabled).diffAgainst(schedule),
+                UpdateScheduleRequest(
+                    enabled = enabled,
+                    expectedConfigRevision = schedule.configRevision,
+                ),
             ).map { }
         }
     }

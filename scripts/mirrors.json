@@ -393,6 +393,132 @@
       },
       "why": "Two display rules that exist only in the web client and are never served. (1) The cost total is withheld unless something was priced AND every generation was -- a total that silently skips an unpriced model call would under-report spend and looks identical to a real one. (2) A `parentId` counts only when it names a loaded record in the SAME turn, and parent cycles are cut, so a partial page's dangling parent becomes a root rather than vanishing. Watched file-level rather than by block: both rules live inside buildTraceModel/resolveParents bodies with no smaller exported symbol around them, and the flatten/filter half of the file is deliberately not ported. Consequence: unrelated churn in the timeline or filter code reports DRIFT -- check the two rules, not the file, before investigating.",
       "failure_mode": "The cost rule going stale is the dangerous one and it is invisible: a number still renders, it is just smaller than what was spent. The tree rule going stale drops or duplicates rows on a paged trace, which at least looks wrong."
+    },
+    {
+      "id": "prompt-cache-model-patterns",
+      "upstream": {
+        "file": "packages/data-provider/src/bedrock.ts",
+        "symbol": "supportsPromptCache",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/EndpointParameterRegistry.kt",
+        "symbol": "supportsPromptCache / PROMPT_CACHE_PATTERNS"
+      },
+      "why": "Which Claude model ids expose the promptCache / promptCacheTtl controls. Transcribed as a list of Kotlin Regex literals because the server never serves the table -- it only accepts or ignores the parameters. Lives in bedrock.ts, which `parameter-settings` does NOT watch: that entry is file-mode on parameterSettings.ts only.",
+      "failure_mode": "A new Claude family ships and the two controls silently stop being offered for it, or keep being offered for a model that no longer takes them. Nothing errors -- the request is simply sent without the caching the user believes is on, and the bill is the only place it shows."
+    },
+    {
+      "id": "mythos-class-families",
+      "upstream": {
+        "file": "packages/data-provider/src/schemas.ts",
+        "symbol": "MYTHOS_CLASS_FAMILIES",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/EndpointParameterRegistry.kt",
+        "symbol": "PROMPT_CACHE_PATTERNS (the claude-(?:fable|mythos) arm)"
+      },
+      "why": "Upstream's single source of truth for the Mythos-class family names, which supportsPromptCache ORs in via isMythosClassModel. The Kotlin inlines the compiled pattern rather than the list, so a family added upstream is invisible here.",
+      "failure_mode": "A future sibling class is added upstream and every Mythos-class gate picks it up there while this client keeps hiding the prompt-cache controls for it. Silent: the model works, one pair of controls is simply absent."
+    },
+    {
+      "id": "google-thinking-budget-bounds",
+      "upstream": {
+        "file": "packages/data-provider/src/schemas.ts",
+        "symbol": "getGoogleThinkingBudgetBounds",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/EndpointParameterRegistry.kt",
+        "symbol": "googleThinkingBudgetBounds"
+      },
+      "why": "Per-model thinking-budget floors and ceilings for Gemini 2.5 (Pro 128-32768, Flash 0-24576, Flash-Lite 512-24576). Upstream added these because the shared 32,000 bound both under-limits Pro and accepts Flash values the provider rejects. schemas.ts is watched only at block scope for documentSupportedProviders, so this is not covered by that entry.",
+      "failure_mode": "A bound moves upstream and the slider keeps its old range: the user is either refused a budget the model now accepts, or allowed one the provider rejects at send time with a provider-level error that names nothing on this screen."
+    },
+    {
+      "id": "steer-restaged-quotes",
+      "upstream": {
+        "file": "client/src/utils/steer.ts",
+        "symbol": "mergeRestagedQuotes",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/steer/RestagedQuotes.kt",
+        "symbol": "mergeRestagedQuotes"
+      },
+      "why": "How a steer's dropped excerpts are folded back onto the composer's chips: dedupe against what is already staged, cap with the staged chips winning. The dedupe is load-bearing, not an optimisation -- the same excerpts can be recovered from more than one trigger for one steer.",
+      "failure_mode": "The merge rule diverges and the user's quote chips multiply on every recovery, or a restored tail is shown as a chip the next send silently discards. Nothing errors either way."
+    },
+    {
+      "id": "steer-max-quote-count",
+      "upstream": {
+        "file": "client/src/utils/steer.ts",
+        "symbol": "MAX_QUOTE_COUNT",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/steer/RestagedQuotes.kt",
+        "symbol": "MAX_QUOTE_COUNT"
+      },
+      "why": "The cap on staged excerpts, which itself mirrors the backend's QUOTE_MAX_COUNT. Mirrored so every chip the composer displays actually reaches the model on the next send.",
+      "failure_mode": "The backend cap moves and this one does not: a client cap that is too high shows chips the server drops (the user believes context was sent that never was), and one that is too low refuses excerpts the server would have taken."
+    },
+    {
+      "id": "run-step-duration",
+      "upstream": {
+        "file": "packages/data-provider/src/runSteps.ts",
+        "symbol": "getRunStepDurationMs",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/network/src/commonMain/kotlin/com/garfiec/librechat/core/network/sse/SseEventMapper.kt",
+        "symbol": "runStepDurationMs"
+      },
+      "why": "How a closed run step's elapsed time is computed from created_at/closed_at, including the rule that a negative result is withheld rather than shown -- a step can be opened in one process and closed in another after a checkpoint resume, so disagreeing clocks are not hypothetical.",
+      "failure_mode": "Upstream changes the units or the guard and the tool-call card reports a wrong duration. A wrong number renders exactly like a right one."
+    },
+    {
+      "id": "normalize-endpoint-name",
+      "upstream": {
+        "file": "packages/data-provider/src/utils.ts",
+        "symbol": "normalizeEndpointName",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/EndpointDropParams.kt",
+        "symbol": "normalizeEndpointName"
+      },
+      "why": "How an endpoint name is folded before it is looked up in endpointsDropParamsMap. The lookup is the whole point of the map, so a normalisation that disagrees with the server's silently matches nothing.",
+      "failure_mode": "A deployment's dropParams stop being applied: the client keeps offering parameters the server strips, so the user sets a value that is discarded before the provider ever sees it. No error, no empty state -- just a control that does nothing."
+    },
+    {
+      "id": "compacted-leaf-detection",
+      "upstream": {
+        "file": "packages/data-provider/src/messages.ts",
+        "symbol": "isCompactedLeaf",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/content/Compaction.kt",
+        "symbol": "isCompactedLeaf"
+      },
+      "why": "Recognises a message whose content is a compaction summary, which is what decides whether the composer may offer to compact again. Derived from the content shape rather than a served flag.",
+      "failure_mode": "The shape changes and a compacted branch stops being recognised, so the affordance is offered on a branch that was just compacted -- or withheld on one that needs it. Nothing decodes wrong."
+    },
+    {
+      "id": "mcp-discovery-authorization-state",
+      "upstream": {
+        "file": "client/src/hooks/MCP/polling.ts",
+        "symbol": "applyMCPDiscoveryAuthorizationState",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/McpConnectionStatus.kt",
+        "symbol": "applyMCPDiscoveryAuthorizationState"
+      },
+      "why": "Folds the per-server verdicts from GET /api/mcp/tools onto the connection-status map, so a lapsed OAuth authorization noticed by discovery is reflected before the status route catches up. A web-client rule; the server sends the two halves and never the combination.",
+      "failure_mode": "The fold diverges and a server whose authorization has lapsed keeps rendering as connected until the status route notices independently -- the user's tool calls fail against a server the settings screen says is fine."
     }
   ]
 }

@@ -162,7 +162,11 @@ class QueuedTurnDelegate(
             .map { it.clientRequestId }
             .toSet()
         val fresh = owed - announcedOwed
-        announcedOwed = owed
+        // Only a SNAPSHOT speaks for every live row, so only a snapshot may retire ids from the
+        // memory. A single-receipt enqueue/cancel answer that replaced it wholesale would forget
+        // the turns already announced, and the very next poll would re-announce them — spending
+        // the `/chat/status` GET this dedupe exists to avoid.
+        announcedOwed = if (source == QueuedTurnReceiptSource.Snapshot) owed else announcedOwed + owed
         if (fresh.isNotEmpty()) onSuccessorOwed()
     }
 

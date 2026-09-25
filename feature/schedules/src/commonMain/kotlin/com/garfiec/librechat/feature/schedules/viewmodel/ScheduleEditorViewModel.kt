@@ -12,6 +12,7 @@ import com.garfiec.librechat.core.model.ChatProject
 import com.garfiec.librechat.core.model.schedule.Schedule
 import com.garfiec.librechat.core.model.schedule.ScheduleLimits
 import com.garfiec.librechat.core.model.schedule.cadenceToCron
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -82,15 +83,23 @@ class ScheduleEditorViewModel(
 
     private fun load() {
         viewModelScope.launch {
-            // The limits ride on the list, not on the single-schedule route, so an editor opened
-            // straight from a deep link still has to read the list to know its own policy.
-            val listing = scheduleRepository.listSchedules()
+            // Three independent reads, so they go out together: the editor is blocked on a spinner
+            // until all of them land, and serialising them made that wait the sum rather than the
+            // slowest. The limits ride on the LIST, not on the single-schedule route, so an editor
+            // opened straight from a deep link still has to read the list to know its own policy.
+            val listingAsync = async { scheduleRepository.listSchedules() }
+            val existingAsync = async { scheduleId?.let { scheduleRepository.getSchedule(it) } }
+            val agentsAsync = async { loadAgents() }
+
+            val listing = listingAsync.await()
             val limits = (listing as? Result.Success)?.data?.limits ?: ScheduleLimits()
-            val existing = scheduleId?.let { scheduleRepository.getSchedule(it) }
+            val existing = existingAsync.await()
             val schedule = (existing as? Result.Success)?.data
             original = schedule
 
-            val agents = loadAgents()
+            val agents = agentsAsync.await()
+            // Sequenced deliberately: a pinned deployment picks its own destination, so there is
+            // nothing to choose and the request is not worth making.
             val projects = if (limits.projectId == null) loadProjects() else emptyList()
 
             _uiState.value = _uiState.value.copy(
