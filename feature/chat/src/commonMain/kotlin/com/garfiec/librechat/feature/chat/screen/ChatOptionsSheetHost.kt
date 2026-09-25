@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import com.garfiec.librechat.core.common.EndpointConstants
+import com.garfiec.librechat.core.model.config.EndpointDropParams
 import com.garfiec.librechat.feature.chat.components.ChatOptionsBottomSheet
 import com.garfiec.librechat.feature.chat.components.ChatOptionsSheetController
 import com.garfiec.librechat.feature.chat.components.ChatToolsPageParams
@@ -83,6 +84,8 @@ internal fun ChatOptionsSheetHost(
             contextUsage = uiState.contextUsage,
             tokenUsage = uiState.tokenUsage,
             contextUsageEnabled = uiState.contextUsageEnabled,
+            isCompacting = uiState.isCompacting,
+            onCompact = viewModel::compactConversation.takeIf { uiState.canCompactNow },
             contextBarPlacement = uiState.contextBarPlacement,
             contextGaugeExpanded = uiState.contextGaugeExpanded,
             onContextGaugeExpandedChange = viewModel::setContextGaugeExpanded,
@@ -132,6 +135,23 @@ internal fun ChatOptionsSheetHost(
             extendedEffortSupported = uiState.extendedEffortSupported,
             selectedProvider = activeAgent?.provider,
             selectedModel = activeAgent?.model ?: uiState.selectedModel,
+            // Remembered: `uiState` emits per SSE delta, so an open sheet recomposes once per
+            // token and this would walk the map and allocate a fresh list every time, for a value
+            // that only moves when the endpoint, model or config does. `AgentAdvancedPanel` wraps
+            // the identical call the same way.
+            dropParams = remember(
+                uiState.gates.dropParamsMap,
+                uiState.selectedEndpoint,
+                activeAgent?.provider,
+                activeAgent?.model ?: uiState.selectedModel,
+            ) {
+                EndpointDropParams.resolve(
+                    map = uiState.gates.dropParamsMap,
+                    endpoint = uiState.selectedEndpoint,
+                    provider = activeAgent?.provider,
+                    model = activeAgent?.model ?: uiState.selectedModel,
+                )
+            },
             onSaveAsPreset = {
                 controller.close()
                 onShowSavePresetDialog()

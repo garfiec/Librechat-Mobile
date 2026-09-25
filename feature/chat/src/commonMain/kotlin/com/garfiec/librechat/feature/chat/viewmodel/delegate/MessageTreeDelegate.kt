@@ -154,6 +154,7 @@ class MessageTreeDelegate(
                 // activity groups have already picked their initial expansion and nothing re-opens
                 // them. See MessagesState.justSettledMessageId.
                 justSettledMessageId = response?.messageId,
+                isCompacting = false,
             )
         }
         if (finalMessages.isEmpty()) return emptyList()
@@ -199,6 +200,7 @@ class MessageTreeDelegate(
                 pendingResumeUserMessage = null,
                 // Nothing settled — the turn was un-sent.
                 justSettledMessageId = null,
+                isCompacting = false,
             )
         }
     }

@@ -9,6 +9,7 @@ import com.garfiec.librechat.feature.auth.di.authModule
 import com.garfiec.librechat.feature.chat.di.chatModule
 import com.garfiec.librechat.feature.conversations.di.conversationsModule
 import com.garfiec.librechat.feature.files.di.filesModule
+import com.garfiec.librechat.feature.schedules.di.schedulesFeatureModule
 import com.garfiec.librechat.feature.settings.di.settingsModule
 import com.garfiec.librechat.feature.skills.di.skillsFeatureModule
 import com.garfiec.librechat.shared.navigation.sharedAppModule
@@ -42,6 +43,7 @@ val sharedKoinModules: List<Module> = listOf(
     settingsModule,
     agentsModule,
     filesModule,
+    schedulesFeatureModule,
     skillsFeatureModule,
     sharedAppModule,
 )

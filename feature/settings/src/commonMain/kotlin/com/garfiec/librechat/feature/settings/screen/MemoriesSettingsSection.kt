@@ -37,6 +37,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.Memory
+import com.garfiec.librechat.core.model.MemoryKeyProblem
+import com.garfiec.librechat.core.model.memoryKeyProblem
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -47,6 +49,7 @@ internal fun MemoriesSettingsSection(
     memoriesEnabled: Boolean,
     showMemoryDialog: Boolean,
     editingMemory: Memory?,
+    enforceKeyPattern: Boolean,
     onToggleEnable: (Boolean) -> Unit,
     onAddMemory: () -> Unit,
     onEditMemory: (Memory) -> Unit,
@@ -128,6 +131,8 @@ internal fun MemoriesSettingsSection(
         // Create/edit dialog
         if (showMemoryDialog) {
             MemoryDialog(
+                memories = memories,
+                enforceKeyPattern = enforceKeyPattern,
                 editingMemory = editingMemory,
                 onDismiss = onDismissDialog,
                 onSave = onSaveMemory,
@@ -146,11 +151,15 @@ private fun MemoryItem(
     modifier: Modifier = Modifier,
 ) {
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    // Same contract as the full Memories screen: a content-filtered entry arrives with its fields
+    // BLANKED rather than omitted, so it must say so, and editing it would PATCH that blank back
+    // over the real content through a key the server has also blanked.
+    val redacted = memory.contentFilterBlocked == true
 
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onEdit)
+            .then(if (redacted) Modifier else Modifier.clickable(onClick = onEdit))
             .padding(vertical = 4.dp),
     ) {
         Row(
@@ -159,26 +168,34 @@ private fun MemoryItem(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = memory.key,
+                    text = memory.key.ifBlank {
+                        if (redacted) stringResource(Res.string.memory_redacted_key) else ""
+                    },
                     style = MaterialTheme.typography.bodyLarge,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = memory.value,
+                    text = if (redacted) {
+                        stringResource(Res.string.memory_redacted_value)
+                    } else {
+                        memory.value
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = stringResource(Res.string.cd_edit),
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            if (!redacted) {
+                IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = stringResource(Res.string.cd_edit),
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
             IconButton(
                 onClick = { showDeleteConfirm = true },
@@ -220,6 +237,8 @@ private fun MemoryItem(
 
 @Composable
 private fun MemoryDialog(
+    memories: List<Memory>,
+    enforceKeyPattern: Boolean,
     editingMemory: Memory?,
     onDismiss: () -> Unit,
     onSave: (key: String, value: String) -> Unit,
@@ -228,6 +247,22 @@ private fun MemoryDialog(
     val isEditing = editingMemory != null
     var key by remember { mutableStateOf(editingMemory?.key ?: "") }
     var value by remember { mutableStateOf(editingMemory?.value ?: "") }
+    // Only CREATE carries a key: the update path sends a value alone, so the server's rename arm
+    // never fires and there is nothing here to validate.
+    val keyProblem = remember(key, memories, enforceKeyPattern, isEditing) {
+        if (isEditing) {
+            null
+        } else {
+            memoryKeyProblem(key = key, memories = memories, enforcePattern = enforceKeyPattern)
+        }
+    }
+    // A blank key is already what disables the button; surfacing it as an error would put one
+    // under the field the moment the dialog opens.
+    val keyError = when (keyProblem) {
+        MemoryKeyProblem.PATTERN -> Res.string.memory_key_invalid
+        MemoryKeyProblem.DUPLICATE -> Res.string.memory_key_exists
+        else -> null
+    }
 
     AlertDialog(
         modifier = modifier,
@@ -243,6 +278,12 @@ private fun MemoryDialog(
                     label = { Text(stringResource(Res.string.memory_key_label)) },
                     singleLine = true,
                     enabled = !isEditing,
+                    isError = keyError != null,
+                    supportingText = if (isEditing) {
+                        null
+                    } else {
+                        { Text(stringResource(keyError ?: Res.string.memory_key_hint)) }
+                    },
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -261,7 +302,7 @@ private fun MemoryDialog(
                 onClick = {
                     onSave(key.trim(), value.trim())
                 },
-                enabled = key.isNotBlank() && value.isNotBlank(),
+                enabled = key.isNotBlank() && value.isNotBlank() && keyError == null,
             ) {
                 Text(stringResource(if (isEditing) Res.string.action_save else Res.string.action_add))
             }

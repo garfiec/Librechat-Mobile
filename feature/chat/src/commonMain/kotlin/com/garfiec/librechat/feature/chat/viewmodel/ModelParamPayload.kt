@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
 import com.garfiec.librechat.core.model.ParameterType
+import com.garfiec.librechat.core.model.config.EndpointDropParams
 import com.garfiec.librechat.core.ui.components.EndpointParameterRegistry
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import kotlinx.serialization.json.JsonArray
@@ -31,12 +32,14 @@ object ModelParamPayload {
         model: String?,
         extendedEffortSupported: Boolean,
         params: ModelParameters,
+        dropParamsMap: Map<String, JsonElement>? = null,
     ): JsonObject {
         val definitions = EndpointParameterRegistry.getDefinitions(
             endpoint = endpoint,
             extendedEffortSupported = extendedEffortSupported,
             provider = provider,
             model = model,
+            dropParams = EndpointDropParams.resolve(dropParamsMap, endpoint, provider, model),
         )
         val out = LinkedHashMap<String, JsonElement>()
         for (definition in definitions) {

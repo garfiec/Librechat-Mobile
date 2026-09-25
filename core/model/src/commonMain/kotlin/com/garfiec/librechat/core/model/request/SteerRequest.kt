@@ -22,6 +22,22 @@ data class SteerRequest(
     val conversationId: String,
     /** Trimmed instruction text. The server caps it — see [com.garfiec.librechat.core.model.steer.SteerLimits]. */
     val text: String,
+    /**
+     * Quoted excerpts steered with the message (v0.8.8-rc2, "Add to chat"). The server normalizes
+     * them like a normal send's and merges them into the model-bound turn at the injection
+     * boundary; they are persisted separately from the typed text on the `steer` content part.
+     *
+     * A pre-quotes server **202s while silently dropping them**, which is what
+     * [com.garfiec.librechat.core.model.response.SteerResponse.quotesAccepted] exists to report.
+     * Omitted when empty so the body is unchanged for a steer that carries none.
+     */
+    val quotes: List<String>? = null,
+    /**
+     * This client's own id for the steer, echoed back on terminal reports and on
+     * `on_steer_applied`. It correlates events that can arrive BEFORE this POST's response —
+     * without it such an event names an id the client has not learned yet.
+     */
+    val clientSteerId: String? = null,
 )
 
 /**

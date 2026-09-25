@@ -203,6 +203,14 @@ actual fun ChatScreen(
         snackbarHostState = snackbarHostState,
     )
 
+    ChatScreenOutcomes(
+        uiState = uiState,
+        viewModel = viewModel,
+        snackbarHostState = snackbarHostState,
+        onConversationStart = onConversationStart,
+        onNavigateToConversation = onNavigateToConversation,
+    )
+
     val sendBlockMessage = uiState.sendBlockReason?.asString()
 
     ChatRoot(
@@ -210,6 +218,8 @@ actual fun ChatScreen(
         mermaidRenderCache = viewModel.mermaidRenderCache,
         parsedMarkdownCache = viewModel.parsedMarkdownCache,
         subagentProgress = uiState.subagentProgress,
+        conversationId = uiState.conversationId,
+        subagentThreadsSupported = uiState.gates.subagentThreadsSupported,
         mediaPreview = uiState.mediaPreview,
         onOpenMedia = viewModel::openMedia,
         onCloseMedia = viewModel::closeMedia,
@@ -316,6 +326,8 @@ actual fun ChatScreen(
                 contextUsage = uiState.contextUsage,
                 tokenUsage = uiState.tokenUsage,
                 contextUsageEnabled = uiState.contextUsageEnabled,
+                isCompacting = uiState.isCompacting,
+                onCompact = viewModel::compactConversation.takeIf { uiState.canCompactNow },
                 contextBarPlacement = uiState.contextBarPlacement,
                 queuedPausedCount = uiState.pausedQueueCount,
                 isEditingQueued = uiState.isEditingQueued,
@@ -615,6 +627,7 @@ private fun IosChatBody(
                     copyToClipboard(viewModel.getMessageClipboardText(messageId), "Message")
                 },
                 onFeedback = viewModel::submitFeedback,
+                feedbackEnabled = uiState.gates.feedbackEnabled,
                 onContinue = { viewModel.continueGeneration() },
                 onReadAloud = viewModel::readAloud,
                 onFork = viewModel::showForkOptions,

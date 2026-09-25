@@ -38,6 +38,8 @@
     <string name="cd_delete_shared_link">Delete shared link</string>
     <string name="cd_edit">Edit</string>
     <string name="cd_edit_memory">Edit memory</string>
+    <string name="memory_redacted_key">Hidden entry</string>
+    <string name="memory_redacted_value">This server\'s content policy hides what\'s stored here. You can still delete it.</string>
     <string name="cd_edit_server">Edit server</string>
     <string name="cd_expand_tools">Expand tools</string>
     <string name="cd_loading_profile">Loading profile</string>
@@ -336,6 +338,12 @@
     <!-- Data settings -->
     <string name="clear_all_conversations">Clear All Conversations</string>
     <string name="clearing">Clearing…</string>
+    <string name="archive_all_conversations">Archive All Conversations</string>
+    <string name="archiving_all">Archiving…</string>
+    <string name="dialog_title_archive_all">Archive All Conversations?</string>
+    <string name="dialog_archive_all_message">Every conversation moves to Archived. You can still open them there, and you can unarchive any of them later.</string>
+    <string name="action_archive_all">Archive All</string>
+    <string name="archived_all_count">Archived %1$d conversations</string>
     <string name="archived_conversations">Archived Conversations</string>
     <string name="export_all_data">Export All Data</string>
     <string name="shared_links">Shared Links</string>
@@ -406,6 +414,9 @@
     <string name="dialog_delete_memory_message">Are you sure you want to delete the memory "%1$s"?</string>
     <string name="memory_key_label">Key</string>
     <string name="memory_value_label">Value</string>
+    <string name="memory_key_hint">Use lowercase letters and underscores only</string>
+    <string name="memory_key_invalid">Key must only contain lowercase letters and underscores</string>
+    <string name="memory_key_exists">A memory with this key already exists</string>
 
     <!-- MCP -->
     <string name="add_mcp_server">Add MCP Server</string>

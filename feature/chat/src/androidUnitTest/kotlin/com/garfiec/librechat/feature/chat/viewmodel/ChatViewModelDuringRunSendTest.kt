@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.chat.viewmodel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.BackendBuildClass
 import com.garfiec.librechat.core.common.DetectedBackend
+import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
@@ -28,6 +29,7 @@ import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PickedFile
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformFileHandler
 import com.google.common.truth.Truth.assertThat
+import io.mockk.CapturingSlot
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -181,7 +183,9 @@ class ChatViewModelDuringRunSendTest {
             vm.sendDuringRun()
             runCurrent()
 
-            coVerify(exactly = 1) { chatRepository.steerChat(SteerRequest(CONVERSATION_ID, TEXT)) }
+            coVerify(exactly = 1) {
+                chatRepository.steerChat(match { it.conversationId == CONVERSATION_ID && it.text == TEXT })
+            }
             assertThat(vm.uiState.value.messageQueue).isEmpty()
         }
 
@@ -583,6 +587,7 @@ class ChatViewModelDuringRunSendTest {
             chatRepository.startChat(
                 any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
                 any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                any(),
                 captureNullable(captured),
             )
         } returns MutableSharedFlow()
@@ -643,18 +648,97 @@ class ChatViewModelDuringRunSendTest {
             assertThat(captured.last()).containsExactly("the selected excerpt")
         }
 
+    // ─── steer quotes (v0.8.8-rc2) ───────────────────────────────────
+
+    /** Captures the `SteerRequest` the ViewModel actually posts. */
+    private fun captureSteerRequest(response: SteerResponse): CapturingSlot<SteerRequest> {
+        val slot = slot<SteerRequest>()
+        coEvery { chatRepository.steerChat(capture(slot)) } returns Result.Success(response)
+        return slot
+    }
+
     @Test
-    fun `a composer steer leaves the staged quotes for the next real send`() =
+    fun `a composer steer carries the staged quotes and clears them`() =
         duringRunTest(DuringRunAction.STEER) { vm ->
-            // Web parity: server steers never carry quotes, so a composer-origin steer must not
-            // consume them — they stay staged and ride the next fresh submit instead.
+            // `POST /chat/steer` carries quotes from v0.8.8-rc2, so they leave the composer with
+            // the words — leaving them staged would glue them onto whatever is sent next instead.
+            val request = captureSteerRequest(SteerResponse(status = "queued", steerId = "s1", quotesAccepted = true))
             vm.addPendingQuote("the selected excerpt")
             vm.onInputChanged(TEXT)
             vm.sendDuringRun()
             runCurrent()
 
-            coVerify(exactly = 1) { chatRepository.steerChat(SteerRequest(CONVERSATION_ID, TEXT)) }
+            assertThat(request.captured.quotes).containsExactly("the selected excerpt")
+            assertThat(request.captured.text).isEqualTo(TEXT)
+            assertThat(vm.uiState.value.pendingQuotes).isEmpty()
+        }
+
+    @Test
+    fun `an ack that drops the quotes does NOT re-stage them`() =
+        duringRunTest(DuringRunAction.STEER) { vm ->
+            // A pre-quotes server 202s while dropping the excerpts, but the steer is still queued
+            // and will still inject: re-staging here would deliver them twice, once inside the
+            // injected part and once on the next send. The applied event is where the loss is real.
+            captureSteerRequest(SteerResponse(status = "queued", steerId = "s1", quotesAccepted = null))
+            vm.addPendingQuote("the selected excerpt")
+            vm.onInputChanged(TEXT)
+            vm.sendDuringRun()
+            runCurrent()
+
+            assertThat(vm.uiState.value.pendingQuotes).isEmpty()
+        }
+
+    @Test
+    fun `a quote-less applied event re-stages the excerpts exactly once`() =
+        duringRunTest(DuringRunAction.STEER) { vm ->
+            // The injected part carries no quotes, so the local record holds the only copy. Both
+            // recovery triggers can fire for one steer, so the restore has to be idempotent.
+            captureSteerRequest(SteerResponse(status = "queued", steerId = "s1", quotesAccepted = null))
+            vm.addPendingQuote("the selected excerpt")
+            vm.onInputChanged(TEXT)
+            vm.sendDuringRun()
+            runCurrent()
+            assertThat(vm.uiState.value.pendingQuotes).isEmpty()
+
+            resumedStream.emit(StreamEvent.SteerApplied(steerId = "s1", text = TEXT, quotes = emptyList()))
+            runCurrent()
             assertThat(vm.uiState.value.pendingQuotes).containsExactly("the selected excerpt")
+
+            resumedStream.emit(StreamEvent.SteerApplied(steerId = "s1", text = TEXT, quotes = emptyList()))
+            runCurrent()
+            assertThat(vm.uiState.value.pendingQuotes).containsExactly("the selected excerpt")
+        }
+
+    @Test
+    fun `an applied event that kept the quotes re-stages nothing`() =
+        duringRunTest(DuringRunAction.STEER) { vm ->
+            captureSteerRequest(SteerResponse(status = "queued", steerId = "s1", quotesAccepted = true))
+            vm.addPendingQuote("the selected excerpt")
+            vm.onInputChanged(TEXT)
+            vm.sendDuringRun()
+            runCurrent()
+
+            resumedStream.emit(
+                StreamEvent.SteerApplied(steerId = "s1", text = TEXT, quotes = listOf("the selected excerpt")),
+            )
+            runCurrent()
+            assertThat(vm.uiState.value.pendingQuotes).isEmpty()
+        }
+
+    @Test
+    fun `a rejected steer re-homes its quotes onto the queued follow-up`() =
+        duringRunTest(DuringRunAction.STEER) { vm ->
+            // The queue sends through the normal path, where quotes work on any server — so the
+            // excerpts ride the spec rather than going back to the composer.
+            coEvery { chatRepository.steerChat(any()) } returns
+                Result.Error(exception = ApiException(statusCode = 409, message = "no active run", body = null))
+            vm.addPendingQuote("the selected excerpt")
+            vm.onInputChanged(TEXT)
+            vm.sendDuringRun()
+            runCurrent()
+
+            assertThat(vm.uiState.value.messageQueue.single().quotes).containsExactly("the selected excerpt")
+            assertThat(vm.uiState.value.pendingQuotes).isEmpty()
         }
 
     @Test

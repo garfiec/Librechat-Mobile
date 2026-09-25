@@ -1,4 +1,4 @@
-package com.garfiec.librechat.feature.chat.util
+package com.garfiec.librechat.core.common.extensions
 
 import java.text.SimpleDateFormat
 import java.util.Date

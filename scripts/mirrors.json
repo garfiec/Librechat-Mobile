@@ -59,7 +59,7 @@
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/response/UploadRouting.kt",
         "symbol": "DOCUMENT_SUPPORTED_PROVIDERS"
       },
-      "why": "Which providers can take a document natively. The router sends a file to server-side text extraction only when the provider is absent from this set, so membership decides the delivery mode. Note the commented-out azureOpenAI entry is load-bearing -- it records a deliberate exclusion, so a comment-only change here is still a real change.",
+      "why": "Which providers can take a document natively. The router sends a file to server-side text extraction only when the provider is absent from this set, so membership decides the delivery mode. Note the commented-out azureOpenAI entry is load-bearing -- it records a deliberate exclusion, so a comment-only change here is still a real change. That exclusion is CONDITIONAL upstream, not absolute: `isProviderAttachType` re-admits azureOpenAI when `useResponsesApi === true`, an arm mobile does not port (see the KDoc above the Kotlin set), so this entry going `ok` says nothing about whether that condition still holds. **Watch the predicate, not only the literal**: rc3 made `isDocumentSupportedProvider` lower-case BOTH sides, and a Set-only entry reported `ok` straight through that behavioural change, which is how mobile kept a case-sensitive match for a release.",
       "failure_mode": "A provider upstream ADDED keeps having its documents extracted to text instead of sent natively -- worse quality, no citations, no error. A provider upstream REMOVED gets documents sent natively that it cannot read, which is the silent drop this feature exists to fix. This set changed four times in the 4.6 months after it was introduced, at gaps of 8, 4, 6 and 3 weeks."
     },
     {
@@ -169,7 +169,7 @@
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/artifact/ArtifactDetector.kt",
         "symbol": "ArtifactDetector"
       },
-      "why": "Ported in shape from findArtifactClose/getOpeningCodeFence. The real contract is 'whatever micromark parses', so this is a behavioural port, not a table. Three divergences are deliberate and pinned by ArtifactDetectorCorpusTest.",
+      "why": "Ported in shape from findArtifactClose/getOpeningCodeFence. The real contract is 'whatever micromark parses', so this is a behavioural port, not a table. Three divergences are deliberate and pinned by ArtifactDetectorCorpusTest. Only the DETECTION half of update.ts is mirrored: replaceArtifactContent and the normalizeBeforeClosingArtifactFence it calls run server-side when an artifact-edit tool rewrites a message, so their text reaches the client already normalised and they have no Kotlin counterpart. A diff confined to those is out of scope here -- verified at v0.8.8-rc3, where normalizeBeforeClosingArtifactFence was rewritten.",
       "failure_mode": "An artifact renders as raw source, or swallows the rest of the reply. The corpus test pins current agreement at 22/25 with a known-divergent set, so a genuine drift shows up there -- but only if someone re-runs the corpus against the new upstream."
     },
     {
@@ -242,20 +242,6 @@
       "failure_mode": "Upstream LOWERING it makes a long answer 400 at submit with the run already paused; raising it costs the user characters they were entitled to type. Both are silent -- a stale copy still compiles and still submits."
     },
     {
-      "id": "model-not-found-url-pattern",
-      "upstream": {
-        "file": "client/src/components/Messages/Content/Error.tsx",
-        "symbol": "langChainModelNotFoundUrl",
-        "mode": "block"
-      },
-      "kotlin": {
-        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/error/StreamErrorType.kt",
-        "symbol": "StreamErrorType.MODEL_NOT_FOUND_PATTERN"
-      },
-      "why": "MODEL_NOT_FOUND is not one of upstream's typed ErrorTypes -- it arrives as a documentation URL embedded in provider prose, and this regex is the whole of the detection. Nothing on the wire distinguishes it from any other provider sentence. The Kotlin copy spells `\\b` out as a character-class lookahead because Android's Regex is ICU; that divergence is deliberate and is not drift.",
-      "failure_mode": "A reworded upstream link stops matching, so the provider's raw unhelpful sentence reaches the user instead of the 'that model is not available' message -- exactly where a model picker would have fixed it. A widened pattern retitles unrelated provider errors as a missing model."
-    },
-    {
       "id": "generation-reconcile-message",
       "upstream": {
         "file": "api/server/routes/agents/index.js",
@@ -292,10 +278,10 @@
       },
       "kotlin": {
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/error/ServerErrorCode.kt",
-        "symbol": "ServerErrorCode.OAUTH_SECRET_REENTRY_REQUIRED"
+        "symbol": "ServerErrorCode.OAUTH_SECRET_REENTRY_REQUIRED, .MCP_AUTHENTICATION_REJECTED, .MCP_AUTHENTICATION_REFRESH_FAILED"
       },
-      "why": "The MCP save path branches on the literal `MCP_OAUTH_SECRET_REENTRY_REQUIRED` to turn a 400 into a re-enter-your-secret prompt rather than a generic failure. The wire value carries an `MCP_` prefix that upstream's TypeScript member name drops, so the copy cannot be derived from the member name and has to be transcribed.",
-      "failure_mode": "A renamed code makes the re-entry prompt unreachable: the save reports a plain 'could not save' and the user has no way to learn the stored secret is the thing that must be re-supplied, so the write keeps failing forever."
+      "why": "Three literals transcribed out of one upstream block, so the block is what is watched. `MCP_OAUTH_SECRET_REENTRY_REQUIRED` turns a 400 on the save path into a re-enter-your-secret prompt rather than a generic failure; the wire value carries an `MCP_` prefix that upstream's TypeScript member name drops, so it cannot be derived from the member name. `MCP_AUTHENTICATION_REJECTED` and `MCP_AUTHENTICATION_REFRESH_FAILED` (v0.8.8-rc2) are what tell a lapsed OAuth authorization apart from a server that is simply down, which is what decides whether the user is offered re-authorization or an error.",
+      "failure_mode": "A renamed re-entry code makes that prompt unreachable: the save reports a plain 'could not save' and the user never learns the stored secret is what must be re-supplied, so the write keeps failing forever. A renamed authentication code degrades to the generic failure, so a server whose authorization merely lapsed is reported as broken and the one action that would fix it is never offered. Reconcile all three when this entry reports drift -- they arrive together and only one of them names itself in the Kotlin file's own comments."
     },
     {
       "id": "refresh-403-rejection-bodies",
@@ -324,6 +310,383 @@
       },
       "why": "banResponse answers 403 with {\"message\": \"Your account has been temporarily banned...\"}. The client matches on that wording to tell a genuine account ban from any other 403, because a 403 from a proxy must not end the session.",
       "failure_mode": "Upstream rewords the ban sentence and a real ban stops being recognised: the request fails without the session ever being torn down, so the user sits in a broken shell instead of being told they are banned."
+    },
+    {
+      "id": "schedule-cadence-to-cron",
+      "upstream": {
+        "file": "packages/data-provider/src/cadence.ts",
+        "symbol": "cadenceToCron",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/schedule/ScheduleCadenceRules.kt",
+        "symbol": "cadenceToCron"
+      },
+      "why": "Compiles a structured cadence (hourly/daily/weekdays/weekly) to the cron expression the schedule engine actually fires from. The client shows it so a user can see what a picker choice means; the server never serves the compiled form.",
+      "failure_mode": "Upstream changes a mapping -- a new frequency, or weekly's Monday fallback -- and the editor keeps describing a schedule as running at a time it no longer runs at. Nothing errors: the schedule fires correctly, the label is simply a lie."
+    },
+    {
+      "id": "schedule-cadence-interval-minutes",
+      "upstream": {
+        "file": "packages/data-provider/src/cadence.ts",
+        "symbol": "cadenceIntervalMinutes",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/schedule/ScheduleCadenceRules.kt",
+        "symbol": "cadenceIntervalMinutesOrUnknown (structured arms only)"
+      },
+      "why": "The deployment's minIntervalMinutes floor is served with the schedule list SO THAT the editor can refuse a too-frequent cadence before submit. Doing that needs upstream's own gap arithmetic, including the two-hour DST compression allowance and the weekly wrap-around. The cron arm is deliberately NOT mirrored -- upstream measures it by walking occurrences with croner -- and returns null so the caller submits and surfaces the 400.",
+      "failure_mode": "Upstream retunes the allowance or a formula, and the editor either refuses a cadence the server would accept (a feature the user cannot reach) or accepts one it rejects (a 400 after submit, with the form already cleared)."
+    },
+    {
+      "id": "trace-record-kinds",
+      "upstream": {
+        "file": "packages/data-provider/src/types/traces.ts",
+        "symbol": "TTraceRecordKind",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/trace/TraceRecord.kt",
+        "symbol": "TraceRecordKind"
+      },
+      "why": "A trace record's kind decides the summary arithmetic: only a `generation` contributes tokens, only an unpriced `generation` suppresses the turn's cost total, and only a `tool` counts as a tool call. Kotlin holds `kind` as a raw String rather than an enum ON PURPOSE -- an unrecognized value has to degrade one row instead of failing the page -- which is exactly what stops a rename from ever surfacing. That is what takes this out of the self-correcting type-shape category and puts it here.",
+      "failure_mode": "A renamed kind stops matching, so a model call silently leaves the token totals and, worse, stops counting as an unpriced generation -- which re-enables a cost figure that is now missing that call's spend. The page renders, the row is there, and every number beside it is quietly wrong."
+    },
+    {
+      "id": "trace-statuses",
+      "upstream": {
+        "file": "packages/data-provider/src/types/traces.ts",
+        "symbol": "TTraceStatus",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/trace/TraceRecord.kt",
+        "symbol": "TraceStatus"
+      },
+      "why": "`running` is what withholds a duration for a record that has a start and no end, and `error` is what marks a turn as failed. Same String-not-enum reasoning as trace-record-kinds: nothing decodes wrong when a value is renamed.",
+      "failure_mode": "A renamed `error` empties the error count, so a turn that failed reads as a turn that did not -- on the one surface whose entire purpose is finding the failure."
+    },
+    {
+      "id": "trace-error-codes",
+      "upstream": {
+        "file": "packages/data-provider/src/types/traces.ts",
+        "symbol": "TTraceErrorCode",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/trace/TraceRecord.kt",
+        "symbol": "TraceErrorCode"
+      },
+      "why": "The client branches on these to tell apart what a user can act on: waiting out a rate limit, retrying a timeout, or telling an operator the tracing credentials are rejected. The accompanying `error` string is written to be shown and is rendered as sent, but it cannot be branched on. Same precedent as stream-error-types.",
+      "failure_mode": "A renamed code degrades to the generic failure, so a user who only had to wait a minute is told the trace could not be read. Nothing fails to decode."
+    },
+    {
+      "id": "trace-summary-and-tree-rules",
+      "upstream": {
+        "file": "client/src/components/Chat/Trace/model.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/trace/TraceGrouping.kt",
+        "symbol": "summarizeTrace / buildRows"
+      },
+      "why": "Two display rules that exist only in the web client and are never served. (1) The cost total is withheld unless something was priced AND every generation was -- a total that silently skips an unpriced model call would under-report spend and looks identical to a real one. (2) A `parentId` counts only when it names a loaded record in the SAME turn, and parent cycles are cut, so a partial page's dangling parent becomes a root rather than vanishing. Watched file-level rather than by block: both rules live inside buildTraceModel/resolveParents bodies with no smaller exported symbol around them, and the flatten/filter half of the file is deliberately not ported. Consequence: unrelated churn in the timeline or filter code reports DRIFT -- check the two rules, not the file, before investigating.",
+      "failure_mode": "The cost rule going stale is the dangerous one and it is invisible: a number still renders, it is just smaller than what was spent. The tree rule going stale drops or duplicates rows on a paged trace, which at least looks wrong."
+    },
+    {
+      "id": "prompt-cache-model-patterns",
+      "upstream": {
+        "file": "packages/data-provider/src/bedrock.ts",
+        "symbol": "supportsPromptCache",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/EndpointParameterRegistry.kt",
+        "symbol": "supportsPromptCache / PROMPT_CACHE_PATTERNS"
+      },
+      "why": "Which Claude model ids expose the promptCache / promptCacheTtl controls. Transcribed as a list of Kotlin Regex literals because the server never serves the table -- it only accepts or ignores the parameters. Lives in bedrock.ts, which `parameter-settings` does NOT watch: that entry is file-mode on parameterSettings.ts only.",
+      "failure_mode": "A new Claude family ships and the two controls silently stop being offered for it, or keep being offered for a model that no longer takes them. Nothing errors -- the request is simply sent without the caching the user believes is on, and the bill is the only place it shows."
+    },
+    {
+      "id": "mythos-class-families",
+      "upstream": {
+        "file": "packages/data-provider/src/schemas.ts",
+        "symbol": "MYTHOS_CLASS_FAMILIES",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/EndpointParameterRegistry.kt",
+        "symbol": "PROMPT_CACHE_PATTERNS (the claude-(?:fable|mythos) arm)"
+      },
+      "why": "Upstream's single source of truth for the Mythos-class family names, which supportsPromptCache ORs in via isMythosClassModel. The Kotlin inlines the compiled pattern rather than the list, so a family added upstream is invisible here.",
+      "failure_mode": "A future sibling class is added upstream and every Mythos-class gate picks it up there while this client keeps hiding the prompt-cache controls for it. Silent: the model works, one pair of controls is simply absent."
+    },
+    {
+      "id": "google-thinking-budget-bounds",
+      "upstream": {
+        "file": "packages/data-provider/src/schemas.ts",
+        "symbol": "getGoogleThinkingBudgetBounds",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/EndpointParameterRegistry.kt",
+        "symbol": "googleThinkingBudgetBounds"
+      },
+      "why": "Per-model thinking-budget floors and ceilings for Gemini 2.5 (Pro 128-32768, Flash 0-24576, Flash-Lite 512-24576). Upstream added these because the shared 32,000 bound both under-limits Pro and accepts Flash values the provider rejects. schemas.ts is watched only at block scope for documentSupportedProviders, so this is not covered by that entry.",
+      "failure_mode": "A bound moves upstream and the slider keeps its old range: the user is either refused a budget the model now accepts, or allowed one the provider rejects at send time with a provider-level error that names nothing on this screen."
+    },
+    {
+      "id": "steer-restaged-quotes",
+      "upstream": {
+        "file": "client/src/utils/steer.ts",
+        "symbol": "mergeRestagedQuotes",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/steer/RestagedQuotes.kt",
+        "symbol": "mergeRestagedQuotes"
+      },
+      "why": "How a steer's dropped excerpts are folded back onto the composer's chips: dedupe against what is already staged, cap with the staged chips winning. The dedupe is load-bearing, not an optimisation -- the same excerpts can be recovered from more than one trigger for one steer.",
+      "failure_mode": "The merge rule diverges and the user's quote chips multiply on every recovery, or a restored tail is shown as a chip the next send silently discards. Nothing errors either way."
+    },
+    {
+      "id": "steer-max-quote-count",
+      "upstream": {
+        "file": "client/src/utils/steer.ts",
+        "symbol": "MAX_QUOTE_COUNT",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/steer/RestagedQuotes.kt",
+        "symbol": "MAX_QUOTE_COUNT"
+      },
+      "why": "The cap on staged excerpts, which itself mirrors the backend's QUOTE_MAX_COUNT. Mirrored so every chip the composer displays actually reaches the model on the next send.",
+      "failure_mode": "The backend cap moves and this one does not: a client cap that is too high shows chips the server drops (the user believes context was sent that never was), and one that is too low refuses excerpts the server would have taken."
+    },
+    {
+      "id": "run-step-duration",
+      "upstream": {
+        "file": "packages/data-provider/src/runSteps.ts",
+        "symbol": "getRunStepDurationMs",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/network/src/commonMain/kotlin/com/garfiec/librechat/core/network/sse/SseEventMapper.kt",
+        "symbol": "runStepDurationMs"
+      },
+      "why": "How a closed run step's elapsed time is computed from created_at/closed_at, including the rule that a negative result is withheld rather than shown -- a step can be opened in one process and closed in another after a checkpoint resume, so disagreeing clocks are not hypothetical.",
+      "failure_mode": "Upstream changes the units or the guard and the tool-call card reports a wrong duration. A wrong number renders exactly like a right one."
+    },
+    {
+      "id": "stream-error-identifier-extraction",
+      "upstream": {
+        "file": "client/src/utils/json.ts",
+        "symbol": "extractJson",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/error/StreamErrorType.kt",
+        "symbol": "StreamErrorType.parse / balancedObjectAt / identifier"
+      },
+      "why": "How the typed identifier is found in a stream-error message, which is NOT simply 'parse the message': rc2's terminal-run handler composes prose followed by the payload, so the payload is embedded, and the identifier arrives under `code` or `type`, at the top level or inside an `error` envelope (client/src/components/Messages/Content/Error/index.tsx reads `readString(json,'code') ?? readString(json,'type')` then unwraps `error`). The Kotlin side deliberately WIDENS upstream twice -- it walks every balanced run rather than only the first, and it skips quoted braces -- so prose braces and a `{` inside a string value cannot lose a well-formed payload. Neither divergence can classify a code `byWire` does not already name. **Watch the resolution ORDER too, not only the extraction**: upstream gates the `error` envelope on `topLevelKey == null`, so a top-level `code`/`type` it does not recognize is FINAL and degrades to the provider's own sentence. The Kotlin side mirrors that by reading the identifier as a STRING and consulting `byWire` once, at the end; resolving through the table first and searching on for a hit reports a content-filter block for an ordinary invalid-request error, and no extraction diff would show it.",
+      "failure_mode": "Upstream changes where the identifier lives, or stops prefixing prose, and a mapped error type stops classifying -- the raw JSON payload is rendered into the assistant message body and the end-of-run snackbar instead of the actionable sentence. Nothing throws: `parse` returning null IS the documented degrade path, so the regression is indistinguishable from an unrecognized code."
+    },
+    {
+      "id": "run-step-closed-statuses",
+      "upstream": {
+        "file": "packages/data-provider/src/types/agents.ts",
+        "symbol": "RunStepStatus",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/RunStepStatus.kt",
+        "symbol": "RunStepStatus.byWire"
+      },
+      "why": "The literals a run step can close with, carried by on_run_step_closed and persisted as `runStepStatus`. Watched on RunStepStatus rather than on RunStepClosedStatus, which is an Exclude<> over it and holds no literal of its own. The Kotlin side decodes through a byWire map that returns NULL for anything unrecognized -- deliberately, so a newer terminal state degrades one card instead of failing the frame -- which is also what stops a rename ever surfacing. Same reasoning as trace-record-kinds and trace-statuses.",
+      "failure_mode": "A renamed member makes fromWire return null, SseEventMapper's `?: return null` drops the whole on_run_step_closed frame, and toolCallVerdict falls back to the completion heuristic -- so a step the user cancelled, or one that failed, renders with a green completed check on both the live and the reloaded card. Nothing throws and nothing fails to decode."
+    },
+    {
+      "id": "normalize-endpoint-name",
+      "upstream": {
+        "file": "packages/data-provider/src/utils.ts",
+        "symbol": "normalizeEndpointName",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/EndpointDropParams.kt",
+        "symbol": "normalizeEndpointName"
+      },
+      "why": "How an endpoint name is folded before it is looked up in endpointsDropParamsMap. The lookup is the whole point of the map, so a normalisation that disagrees with the server's silently matches nothing.",
+      "failure_mode": "A deployment's dropParams stop being applied: the client keeps offering parameters the server strips, so the user sets a value that is discarded before the provider ever sees it. No error, no empty state -- just a control that does nothing."
+    },
+    {
+      "id": "compacted-leaf-detection",
+      "upstream": {
+        "file": "packages/data-provider/src/messages.ts",
+        "symbol": "isCompactedLeaf",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/content/Compaction.kt",
+        "symbol": "isCompactedLeaf"
+      },
+      "why": "Recognises a message whose content is a compaction summary, which is what decides whether the composer may offer to compact again. Derived from the content shape rather than a served flag.",
+      "failure_mode": "The shape changes and a compacted branch stops being recognised, so the affordance is offered on a branch that was just compacted -- or withheld on one that needs it. Nothing decodes wrong."
+    },
+    {
+      "id": "mcp-discovery-authorization-state",
+      "upstream": {
+        "file": "client/src/hooks/MCP/polling.ts",
+        "symbol": "applyMCPDiscoveryAuthorizationState",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/McpConnectionStatus.kt",
+        "symbol": "applyDiscoveryAuthorizationState"
+      },
+      "why": "Folds the per-server verdicts from GET /api/mcp/tools onto the connection-status map, so a lapsed OAuth authorization noticed by discovery is reflected before the status route catches up. A web-client rule; the server sends the two halves and never the combination.",
+      "failure_mode": "The fold diverges and a server whose authorization has lapsed keeps rendering as connected until the status route notices independently -- the user's tool calls fail against a server the settings screen says is fine."
+    },
+    {
+      "id": "queued-turn-unsupported-classification",
+      "upstream": {
+        "file": "client/src/data-provider/SSE/queuedTurns.ts",
+        "symbol": "isDefiniteQueuedTurnsUnsupported",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/queuedturn/QueuedTurnPolicy.kt",
+        "symbol": "isDefiniteQueuedTurnsUnsupported"
+      },
+      "why": "Decides that a deployment has no queued-turn routes at all, from the 404/501 arms and the QUEUED_TURNS_UNSUPPORTED literal. The server never says so directly -- it is inferred from the refusal, and the inference latches the feature off.",
+      "failure_mode": "An arm upstream narrows is still treated as 'unsupported', so the client latches the whole feature off against a server that has it -- every follow-up silently falls back to the local queue. Nothing errors."
+    },
+    {
+      "id": "queued-turn-rejection-classification",
+      "upstream": {
+        "file": "client/src/data-provider/SSE/queuedTurns.ts",
+        "symbol": "isDefiniteQueuedTurnRejection",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/queuedturn/QueuedTurnPolicy.kt",
+        "symbol": "isDefiniteQueuedTurnRejection"
+      },
+      "why": "The boundary between 'the server definitely did NOT commit this turn' and 'unknown', including the deliberate 408/425 exclusions and the QUEUED_TURN_PRIORITY_UNSUPPORTED literal. There is no server-side guard against a turn being run twice, so this line is the only thing standing between a lost ack and a duplicate submission.",
+      "failure_mode": "**The one mirror here whose drift double-sends.** A status upstream moves out of the definite set is still read as 'not committed', so the row goes back to the local drain and the same words run twice in one conversation -- once by the server, once by this client."
+    },
+    {
+      "id": "queued-turn-poll-policy",
+      "upstream": {
+        "file": "client/src/data-provider/SSE/queuedTurns.ts",
+        "symbol": "shouldPollAgentQueuedTurns",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/queuedturn/QueuedTurnPolicy.kt",
+        "symbol": "shouldPollQueuedTurns"
+      },
+      "why": "Which projection states keep the reconcile poll alive. Note the Kotlin name drops the `Agent` infix, so a rename upstream does not show up as a rename on this side.",
+      "failure_mode": "The poll stops one state too early and a row never reconciles -- it sits server-owned on screen forever -- or one state too late and an idle client polls the route indefinitely."
+    },
+    {
+      "id": "queued-turn-successor-owed",
+      "upstream": {
+        "file": "client/src/data-provider/SSE/queuedTurns.ts",
+        "symbol": "isQueuedTurnSuccessorOwed",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/queuedturn/QueuedTurnPolicy.kt",
+        "symbol": "isQueuedTurnSuccessorOwed"
+      },
+      "why": "Whether the server owes this conversation a run it will start itself -- wider than the poll predicate by exactly `admitted`. It is what sends the client looking for a run it is not attached to.",
+      "failure_mode": "The predicate narrows and the client never goes looking, so a queued follow-up runs to completion server-side against a blank idle screen."
+    },
+    {
+      "id": "queued-turn-list-id-cap",
+      "upstream": {
+        "file": "packages/data-provider/src/api-endpoints.ts",
+        "symbol": "agentQueuedTurnsByConversation",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/queuedturn/QueuedTurnWire.kt",
+        "symbol": "MAX_QUEUED_TURN_LIST_IDS"
+      },
+      "why": "The cap on `clientRequestIds` per list request, which upstream expresses as a bare `.slice(0, 100)` inside the URL builder rather than as a named constant -- so there is no symbol on that side for a diff to anchor to except the builder itself.",
+      "failure_mode": "The cap drops and requests over it 400, so reconciliation stops for a conversation with a long queue and every row in it stays server-owned on screen."
+    },
+    {
+      "id": "document-supported-provider-predicate",
+      "upstream": {
+        "file": "packages/data-provider/src/schemas.ts",
+        "symbol": "isDocumentSupportedProvider",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/response/UploadRouting.kt",
+        "symbol": "isDocumentSupported"
+      },
+      "why": "The comparison itself, registered apart from the `document-supported-providers` Set because the two drift independently: rc3 changed only the predicate (to lower-case both sides) and the Set-only entry stayed `ok` throughout. The sibling literal comparisons in `isProviderCapable` are deliberately still case-SENSITIVE, mirroring `isProviderAttachType` in `client/src/utils/files.ts`, so a blanket normalisation here would be a divergence rather than a fix. The Kotlin side is VERSION-GATED at `0.8.8-rc3` and falls back to the case-sensitive match below it, because the server runs this predicate too (`packages/api/src/files/encode/document.ts` returns an empty document list when it is false) -- so if the threshold ever moves, move `CASE_INSENSITIVE_PROVIDER_MIN_VERSION` with it.",
+      "failure_mode": "A provider differing only in case (`Anthropic`, `Google`) misses the set, so its documents are routed to server-side text extraction instead of being sent natively -- worse quality, no citations, no error."
+    },
+    {
+      "id": "memory-key-pattern",
+      "upstream": {
+        "file": "packages/data-schemas/src/schema/memory.ts",
+        "symbol": "isValidMemoryKey",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/MemoryKey.kt",
+        "symbol": "MEMORY_KEY_PATTERN"
+      },
+      "why": "The shape a memory key must have, enforced by the CREATE route from v0.8.8-rc3 and never served to a client. Upstream labels its own client-side copy a mirror of this validator (`client/src/utils/memory.ts`), which is the same reason this one exists. The mobile check is version-gated and fails OPEN -- rc1 and rc2 accept keys rc3 rejects, so an unknown server must not be refused locally.",
+      "failure_mode": "A widened pattern leaves the client refusing keys the server would take, with no way for the user to tell why. A narrowed one lets a key through to a 400 the client could have prevented. Neither shows up as a decode or a version mismatch."
+    },
+    {
+      "id": "queued-turn-cancel-outcomes",
+      "upstream": {
+        "file": "packages/api/src/agents/queuedTurnHttp.ts",
+        "symbol": "handleAgentQueuedTurnCancel",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/delegate/QueuedTurnDelegate.kt",
+        "symbol": "cancel"
+      },
+      "why": "What the DELETE route's refusals MEAN, which the shared `isDefiniteQueuedTurnRejection` cannot say: that predicate answers 'the row was never committed', which is the enqueue's question. For a withdrawal the two bounded refusals point opposite ways -- `404 QUEUED_TURN_NOT_FOUND` is the goal already met (the server does not have the turn) and `409 QUEUED_TURN_ALREADY_ADMITTING` means it still intends to run it. The client hardcodes that split; nothing on the wire states it, and neither code appears in `QueuedTurnErrorCode`.",
+      "failure_mode": "Upstream re-codes or re-statuses either arm and the split inverts. Reading a 404 as a refusal is the expensive direction: the row stays, its x becomes a permanent no-op, and a server-owned row refuses every drain -- the queue never sends again, with nothing on screen that can clear it. Reading a 409 as success drops a row the server still runs."
+    },
+    {
+      "id": "compaction-endpoint-support",
+      "upstream": {
+        "file": "client/src/hooks/Chat/useCompactConversation.ts",
+        "symbol": "supportsCompaction",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/content/Compaction.kt",
+        "symbol": "supportsCompaction"
+      },
+      "why": "Which endpoints the Compact action may be offered on. Upstream expresses it as `!isAssistantsEndpoint(endpoint)`; the Kotlin copy spells both Assistants endpoints out, so an endpoint upstream ADDS to that helper is not picked up here. `GET /api/config` says nothing about it. Its sibling `isCompactedLeaf` in the same file is registered; this one was not.",
+      "failure_mode": "A newly-excluded endpoint keeps being offered Compact and the turn fails against the provider, or a newly-included one has the affordance withheld. Neither decodes wrong and neither errors -- the button is simply present or absent when it should not be."
+    },
+    {
+      "id": "queued-turn-wire-values",
+      "upstream": {
+        "file": "packages/data-provider/src/types/queuedTurns.ts",
+        "symbol": "agentQueuedTurnStatuses",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/queuedturn/QueuedTurn.kt",
+        "symbol": "QueuedTurnStatus"
+      },
+      "why": "The five projection statuses the client branches on, hand-copied as string constants because the routes serve them as bare strings and never enumerate them for a client. Every queued-turn policy predicate keys off these literals, so a renamed or added status reads as 'none of the above' rather than as an unknown.",
+      "failure_mode": "A renamed status makes every predicate false for that row: the poll stops, the drain stops refusing, and the same words can be submitted twice. An ADDED status is silently treated as terminal. The decode does not fail -- these are plain strings, not an enum."
     }
   ]
 }

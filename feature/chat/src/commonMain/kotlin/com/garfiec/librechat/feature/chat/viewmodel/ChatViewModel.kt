@@ -29,9 +29,11 @@ import com.garfiec.librechat.core.data.repository.McpRepository
 import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.PromptRepository
+import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
 import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
+import com.garfiec.librechat.core.data.repository.TraceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.logging.Diag
@@ -42,15 +44,20 @@ import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.MinimalFeedback
 import com.garfiec.librechat.core.model.Preset
 import com.garfiec.librechat.core.model.config.InterfaceConfig
+import com.garfiec.librechat.core.model.config.isTraceViewerEnabled
 import com.garfiec.librechat.core.model.error.UserKeyError
+import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 import com.garfiec.librechat.core.model.media.resolveFileReferenceUrl
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.core.model.permissions.canCreateSharedLinks
 import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
+import com.garfiec.librechat.core.model.queuedturn.AgentQueuedTurnReceipt
+import com.garfiec.librechat.core.model.queuedturn.QueuedTurnFileRef
 import com.garfiec.librechat.core.model.request.ToolApprovalResolution
 import com.garfiec.librechat.core.model.response.UploadRoute
+import com.garfiec.librechat.core.model.steer.mergeRestagedQuotes
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.core.ui.media.MediaItem
 import com.garfiec.librechat.core.ui.media.MediaPreviewState
@@ -83,6 +90,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.delegate.PendingActionDelega
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PickedFile
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformDelegateFactory
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PresetPromptDelegate
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.QueuedTurnDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.RoutedFile
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.SendCompletionDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ShareData
@@ -98,6 +106,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -110,6 +119,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -139,7 +149,9 @@ class ChatViewModel(
     private val keyRepository: KeyRepository,
     presetRepository: PresetRepository,
     private val promptRepository: PromptRepository,
+    queuedTurnRepository: QueuedTurnRepository,
     shareRepository: ShareRepository,
+    private val traceRepository: TraceRepository,
     mcpRepository: McpRepository,
     private val userRepository: UserRepository,
     private val roleRepository: RoleRepository,
@@ -261,15 +273,34 @@ class ChatViewModel(
         holdRenewalSupported = { fileRepository.supportsUsageHold() },
     )
 
+    private val queuedTurnDelegate = QueuedTurnDelegate(
+        handle = QueueHandle(stateHandle),
+        repository = queuedTurnRepository,
+        // The server started a run this client never asked for. Nothing else would notice it:
+        // queued turns have no push channel, and the ordinary resume path only fires for a client
+        // that was already streaming.
+        onSuccessorOwed = { streamingManager.attachToServerStartedRun() },
+        projectOrphan = ::projectOrphanQueuedTurn,
+        onServerRowsCleared = ::tryResumeDrain,
+    )
+
     // --- Delegate-owned flows exposed to the UI ---
     val attachedFiles: StateFlow<List<AttachedFile>> get() = fileDelegate.attachedFiles
     val shareLinkUrl: StateFlow<String?> get() = conversationActionsDelegate.shareLinkUrl
 
-    /** The three inputs of the feature-gate combine, named so the collector destructures readably. */
+    /** The inputs of the feature-gate combine, named so the collector destructures readably. */
     private data class GateInputs(
         val role: UserRolePermissions?,
         val iface: InterfaceConfig?,
         val version: String?,
+        val dropParamsMap: Map<String, JsonElement>?,
+        val compactionEnabled: Boolean?,
+    )
+
+    private data class TraceGateInputs(
+        val conversationId: String?,
+        val isStreaming: Boolean,
+        val enabled: Boolean,
     )
 
     private data class BaseChatPrefs(
@@ -376,6 +407,13 @@ class ChatViewModel(
                 contextGaugeExpanded = displayPrefs.contextGaugeExpanded,
                 duringRunAction = displayPrefs.duringRunAction,
             ),
+            // The user record carries a RELATIVE `/images/…` avatar, which Coil has no fetcher for.
+            // Resolved here rather than in `loadUserProfile` because the base URL arrives on its own
+            // flow: resolving at load time races it and would pin an unloadable path for the session.
+            // Idempotent — an already-absolute URL (a social-login avatar) passes through untouched.
+            account = state.account.copy(
+                userAvatarUrl = resolveAvatarUrl(state.account.userAvatarUrl, url),
+            ),
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, ChatUiState())
 
@@ -415,6 +453,7 @@ class ChatViewModel(
         enqueueParked = queueDelegate::enqueue,
         pauseQueue = { queueDelegate.pause() },
         isStreaming = { _uiState.value.isStreaming },
+        restageQuotes = ::restagePendingQuotes,
     )
 
     private val streamingManager = StreamingManagerDelegate(
@@ -457,6 +496,14 @@ class ChatViewModel(
         /** Upper bound on waiting for a finished reply to land in the tree before draining the
          *  next queued message. Generous so a slow post-Final reload still chains correctly. */
         private const val REPLY_SETTLE_TIMEOUT_MS = 8_000L
+
+        // Plain strings, like every other message on this `error` channel. `getString(Res.string…)`
+        // is not usable from a ViewModel here: compose-resources resolves through
+        // `Resources.getSystem()`, which is null under this module's plain-JVM unit tests.
+        private const val WITHDRAW_REFUSED_MESSAGE =
+            "Could not withdraw this message from the server."
+        private const val WITHDRAW_BUSY_MESSAGE =
+            "Still finishing the previous withdrawal. Try again in a moment."
     }
 
     /** True when this ViewModel was opened for a brand-new chat (no conversationId from navigation). */
@@ -563,6 +610,16 @@ class ChatViewModel(
         // Seed/refresh the context-usage gauge for a loaded or snapshot-less branch (v0.8.7).
         contextProjectionDelegate.start()
 
+        // Queued turns are reconciled by polling, so the poll has to be (re)aimed whenever the
+        // conversation it is about changes — including the moment a new chat's id resolves, which
+        // is the first point a follow-up can become server-owned.
+        viewModelScope.launch {
+            _uiState
+                .map { Triple(it.conversationId, it.selectedEndpoint, it.gates.serverQueueSupported) }
+                .distinctUntilChanged()
+                .collect { refreshQueuedTurns() }
+        }
+
         // Single authority for a new chat's initial model selection. Continuous so
         // the retained NewChat landing VM re-syncs to last-used when it changes
         // (a model picked later inside a conversation), and deterministic so the
@@ -605,10 +662,25 @@ class ChatViewModel(
                     detected = detected,
                     minVersion = "0.8.8-rc1",
                 )
+                // Fail-SAFE rather than fail-closed, unlike steering above: suppressed only on a
+                // build that resolved to a tag below the routes. A 0.8.6/0.8.7 server renders
+                // subagent trace cards, so this is what keeps the "View thread" row off exactly
+                // the servers that cannot serve it, without hiding it from an unplaceable one.
+                val subagentThreads = !BackendVersion.featureSupport(
+                    detected = detected,
+                    minVersion = "0.8.8-rc2",
+                ).isRuledOut
+                val serverQueue = BackendVersion.supportsFeature(
+                    detected = detected,
+                    minVersion = "0.8.8-rc2",
+                    landedDate = "2026-08-31",
+                )
                 _uiState.update {
                     it.copy(
                         gates = it.gates.copy(
                             steeringSupported = supported,
+                            subagentThreadsSupported = subagentThreads,
+                            serverQueueSupported = serverQueue,
                             backendVersion = detected?.version,
                         ),
                     )
@@ -685,6 +757,7 @@ class ChatViewModel(
         favoritesDelegate.load()
         loadUserProfile()
         loadFlags()
+        observeTraceAvailability()
         loadFileConfig()
         voiceDelegate.loadSpeechConfig()
 
@@ -1110,7 +1183,11 @@ class ChatViewModel(
         // The steer's own fallback spec, minted now: every degradation path re-homes it as a
         // queued follow-up, and rebuilding it then would capture whatever model, tools, and
         // attachments the composer holds by that point rather than what was sent.
-        val spec = buildSendSpec(state.inputText.trim()) ?: return
+        // The staged excerpts ride the spec, taken here rather than left behind: a steer carries
+        // quotes from v0.8.8-rc2, and every path out of the delegate — injection, a rejection that
+        // re-homes to the queue, a terminal leftover — delivers or restores what the spec holds.
+        val spec = buildSendSpec(state.inputText.trim())?.let { it.copy(quotes = takePendingQuotes(it.endpoint)) }
+            ?: return
         clearComposer()
         steeringDelegate.steer(conversationId, spec)
     }
@@ -1188,9 +1265,101 @@ class ChatViewModel(
      * again there would wipe whatever the user has typed in the meantime.
      */
     private fun enqueueSpec(spec: QueuedMessage) {
-        queueDelegate.enqueue(spec)
+        placeInQueue(spec, queueDelegate::enqueue)
         // If the in-flight reply already finished, no Final will arrive to drain this — kick it now.
         tryResumeDrain()
+    }
+
+    /** Puts [spec] in the queue through [insert], handing it to the server when it can own it. */
+    private fun placeInQueue(spec: QueuedMessage, insert: (QueuedMessage) -> Unit) {
+        val conversationId = _uiState.value.conversationId
+        val owned = if (conversationId == null) spec else serverOwnedSpec(spec)
+        insert(owned)
+        // Strictly after the row is in the queue: everything the enqueue answer does — marking it
+        // rejected, handing it back to the legacy drain — addresses a row that has to exist.
+        if (owned.server != null && conversationId != null) {
+            queuedTurnDelegate.enqueue(owned, conversationId)
+        }
+    }
+
+    /**
+     * Marks [spec] as one the SERVER will admit and run, or returns it unchanged for the legacy
+     * local drain.
+     *
+     * Three things have to be true, and all three are properties of a live agent run:
+     * the endpoint takes queued turns at all, there is a visible branch leaf to anchor to, and
+     * the run's generation epoch is known. Without an authoritative pair the follow-up stays
+     * local — a guess here would have the server admit behind the wrong boundary.
+     *
+     * The anchor is the *user* message of the running turn, not the reply: the reply has no
+     * server id until it is persisted. That is what upstream sends too, and the server treats it
+     * as a branch anchor rather than a literal parent — it walks forward to the newest assistant
+     * message descending from it, which is how a queue of several chains correctly.
+     * `displayMessages` is truncated at that leaf for the duration of a stream, so its tail IS
+     * the anchor (the same identity the completion-render keying relies on).
+     *
+     * `clientRequestId` is minted here and not taken from [QueuedMessage.localId]: localId
+     * survives an edit, and reusing an id for different text is a 409.
+     */
+    private fun serverOwnedSpec(spec: QueuedMessage): QueuedMessage {
+        val state = _uiState.value
+        if (!state.gates.serverQueueSupported) return spec
+        if (state.selectedEndpoint != EndpointConstants.AGENTS) return spec
+        if (!state.isStreaming) return spec
+        val parentMessageId = state.displayMessages.lastOrNull()?.message?.messageId ?: return spec
+        val predecessorCreatedAt = pendingActionDelegate.generationEpoch ?: return spec
+        return spec.copy(
+            server = QueuedTurnServerState(status = QueuedTurnServerState.Status.Sending),
+            clientRequestId = Uuid.random().toString(),
+            parentMessageId = parentMessageId,
+            expectedPredecessorCreatedAt = predecessorCreatedAt,
+        )
+    }
+
+    /**
+     * A display row for a queued turn this client has no record of — one queued on another
+     * device, or by a process that has since been killed (the queue is memory-only, the server's
+     * is not).
+     *
+     * The server runs the turn with the conversation's own config, so the model, tools and
+     * parameters here are the composer's current ones. They are read only if the user edits the
+     * row, which loads them into the composer exactly as upstream's edit does. The files are the
+     * receipt's own: an edit that dropped them would send the turn without them.
+     */
+    private fun projectOrphanQueuedTurn(receipt: AgentQueuedTurnReceipt): QueuedMessage {
+        val state = _uiState.value
+        return QueuedMessage(
+            localId = receipt.clientRequestId,
+            text = receipt.text,
+            attachments = receipt.files.orEmpty().map { it.toAttachedFile(state.serverUrl) },
+            endpoint = state.selectedEndpoint,
+            model = state.selectedModel,
+            agentId = state.selectedModel.takeIf {
+                state.selectedEndpoint == EndpointConstants.AGENTS
+            },
+            dispatch = requestBuilder.currentDispatch(),
+            accountId = activeAccountProvider.currentAccountId()?.value,
+        )
+    }
+
+    private fun QueuedTurnFileRef.toAttachedFile(baseUrl: String): AttachedFile {
+        val isImage = type?.let(::isImageType) == true
+        val previewUrl = if (isImage) {
+            resolveFileReferenceUrl(FileReference(fileId = fileId, filepath = filepath, type = type), baseUrl)
+        } else {
+            null
+        }
+        return AttachedFile(
+            uri = previewUrl ?: fileId,
+            name = filename ?: fileId,
+            isImage = isImage,
+            uploadProgress = 1f,
+            fileId = fileId,
+            filepath = filepath,
+            type = type,
+            width = width,
+            height = height,
+        )
     }
 
     /** Resumes FIFO draining when the queue is idle (not mid-stream, not paused). No-op otherwise;
@@ -1202,6 +1371,18 @@ class ChatViewModel(
     }
 
     /**
+     * The row whose withdrawal DELETE is in flight, or null.
+     *
+     * A **global** fence, not a per-row one: one withdrawal at a time across the whole queue. The
+     * row it names is for diagnostics; every consumer tests it for null. That is deliberately
+     * stricter than the race each consumer can describe on its own — [reorderQueue] in particular
+     * needs it, because any in-flight withdrawal is about to shift the indices it operates on —
+     * and it is why the two consumers that refuse a user's tap say so rather than returning
+     * silently. A per-row `Set` is recorded as a follow-up; it changes the concurrency model.
+     */
+    private var withdrawingForEdit: String? = null
+
+    /**
      * Tap a queued ghost bubble: enter queued-edit mode. Stashes the current new-message draft,
      * pulls the item OUT of the queue, and loads its text + attachments + model/tools/params into
      * the composer for editing. Commit ([commitQueuedEdit]) or cancel ([cancelQueuedEdit]) puts the
@@ -1209,6 +1390,15 @@ class ChatViewModel(
      */
     fun editQueued(localId: String) {
         if (_uiState.value.isEditingQueued) return
+        // A server-owned edit opens its session only after the withdrawal DELETE returns, so
+        // `isEditingQueued` is still false for the whole round trip. A second tap in that window
+        // — including a legacy one, which opens its session synchronously and would then be
+        // overwritten by the withdrawal landing on top of it — leaves a row out of the queue with
+        // nothing that will put it back.
+        if (withdrawingForEdit != null) {
+            reportQueueBusy()
+            return
+        }
         // A pick that has not settled yet belongs to the new-message draft. Swapping the composer
         // out from under it re-homes it onto the queued item instead — attaching it to a message
         // the user did not pick it for, and losing it from the one they did, since `captureComposer`
@@ -1217,16 +1407,58 @@ class ChatViewModel(
             Logger.d { "editQueued: refusing — picked files are not settled yet" }
             return
         }
+        val index = _uiState.value.messageQueue.indexOfFirst { it.localId == localId }
+        val serverOwned = _uiState.value.messageQueue.getOrNull(index)?.takeIf { it.server != null }
+        if (serverOwned != null) {
+            withdrawingForEdit = localId
+            // The server holds these words and will run them, so editing in place would leave the
+            // original queued behind the edit. Withdraw it first, and only edit if that succeeded.
+            viewModelScope.launch {
+                try {
+                    if (!queuedTurnDelegate.cancel(serverOwned)) {
+                        // Reported for the same reason the × reports it: the tap looks like it
+                        // did nothing, and the row it was aimed at is one the server will still
+                        // run. Silence here reads as a dead bubble.
+                        reportWithdrawRefused()
+                        return@launch
+                    }
+                    // A real DELETE's receipt already retired the row; a refused one never had an
+                    // id to delete and is still sitting there. Take it out either way — leaving it
+                    // would put the edit BESIDE the original and block the drain on a row nothing
+                    // retires. Its server identity is dropped here and a fresh one minted when the
+                    // edit is offered back (see [placeInQueue]). Its slot is re-read here because a
+                    // drain may have shifted it meanwhile.
+                    val taken = queueDelegate.takeForEdit(localId)
+                    beginQueuedEdit(serverOwned.asLegacyRow(), taken?.index ?: index, withdrawnFromServer = true)
+                } finally {
+                    withdrawingForEdit = null
+                }
+            }
+            return
+        }
         val taken = queueDelegate.takeForEdit(localId) ?: return
+        beginQueuedEdit(taken.value, taken.index)
+    }
+
+    /** Drops every trace of server ownership, leaving a row the local drain may send. */
+    private fun QueuedMessage.asLegacyRow(): QueuedMessage = copy(
+        server = null,
+        clientRequestId = null,
+        parentMessageId = null,
+        expectedPredecessorCreatedAt = null,
+    )
+
+    private fun beginQueuedEdit(item: QueuedMessage, index: Int, withdrawnFromServer: Boolean = false) {
         val stashed = captureComposer()
-        applyComposer(taken.value.toComposerSnapshot())
+        applyComposer(item.toComposerSnapshot())
         _uiState.update {
             it.copy(
                 composer = it.composer.copy(
                     editingQueuedItem = QueuedEditSession(
-                        original = taken.value,
-                        originalIndex = taken.index,
+                        original = item,
+                        originalIndex = index,
                         stashed = stashed,
+                        withdrawnFromServer = withdrawnFromServer,
                     ),
                 ),
             )
@@ -1245,7 +1477,7 @@ class ChatViewModel(
             val edited = buildSendSpec(text)
                 ?.copy(localId = session.original.localId, quotes = session.original.quotes)
             if (edited != null) {
-                queueDelegate.reinsert(session.originalIndex, edited)
+                restoreQueued(session, edited)
             } else {
                 // Composer emptied → treat as delete; the item is simply not put back.
                 queueDelegate.clearPauseIfEmpty()
@@ -1258,8 +1490,23 @@ class ChatViewModel(
      *  and bring back the stashed new-message draft. */
     fun cancelQueuedEdit() {
         val session = _uiState.value.editingQueuedItem ?: return
-        queueDelegate.reinsert(session.originalIndex, session.original)
+        restoreQueued(session, session.original)
         finishQueuedEdit(session)
+    }
+
+    /**
+     * Puts an edited (or un-edited) item back into its slot.
+     *
+     * One withdrawn from the server goes back to it while the run is still live. Left local, it
+     * would be overtaken: every follow-up queued after it is server-owned, the server admits those
+     * at the run end, and the drain refuses to send this one until they have all run.
+     */
+    private fun restoreQueued(session: QueuedEditSession, item: QueuedMessage) {
+        if (session.withdrawnFromServer) {
+            placeInQueue(item) { queueDelegate.reinsert(session.originalIndex, it) }
+        } else {
+            queueDelegate.reinsert(session.originalIndex, item)
+        }
     }
 
     private fun finishQueuedEdit(session: QueuedEditSession) {
@@ -1270,20 +1517,130 @@ class ChatViewModel(
         tryResumeDrain()
     }
 
+    /** The queue refused a tap because [withdrawingForEdit] holds it; say so. */
+    private fun reportQueueBusy() {
+        _uiState.update { it.copy(error = WITHDRAW_BUSY_MESSAGE) }
+    }
+
+    /** A withdrawal the server declined. Shared, so the × and the tap-to-edit read the same. */
+    private fun reportWithdrawRefused() {
+        _uiState.update { it.copy(error = WITHDRAW_REFUSED_MESSAGE) }
+    }
+
     fun cancelQueued(localId: String) {
         // Ignore ghost ×/reorder while an edit is in flight, so the queue can't shift under the
         // session's captured originalIndex.
         if (_uiState.value.isEditingQueued) return
-        queueDelegate.cancel(localId)
+        val item = _uiState.value.messageQueue.firstOrNull { it.localId == localId }
+        if (item?.server == null) {
+            // A purely local row is removed by id and talks to nothing, so the withdrawal fence
+            // does not apply to it — and must not be consulted BEFORE this branch, or every × on
+            // an ordinary queued message during any withdrawal is refused with a message about an
+            // operation that row has no part in.
+            queueDelegate.cancel(localId)
+            return
+        }
+        // An unconfirmed delivery: its window expired with no id, so nothing can withdraw it and
+        // it refuses every drain. Upstream's × dismisses it locally, leaving the server to run it
+        // if it did land. Only the × — an edit would resend words the server may already hold.
+        if (item.server.status == QueuedTurnServerState.Status.Uncertain &&
+            item.server.reconciliationExpired
+        ) {
+            queueDelegate.cancel(localId)
+            tryResumeDrain()
+            return
+        }
+        // A withdrawal is already in flight, which is the same window with `isEditingQueued` not
+        // yet set: the rows are still on screen, so a tap here would start a second concurrent
+        // DELETE, and whichever lands first leaves the other holding a row the server no longer
+        // has. Reported rather than swallowed — the fence is global, so this also refuses a tap on
+        // a DIFFERENT server-owned row, and a × that dies silently reads as a broken button.
+        if (withdrawingForEdit != null) {
+            reportQueueBusy()
+            return
+        }
+        // The server holds this one. Withdraw it there FIRST and drop the local row only on a
+        // confirmed cancel — removing it locally on a refused one would hide a turn the server
+        // still intends to run.
+        //
+        // Claimed BEFORE the launch, not only read: this path issues a withdrawal of its own, and
+        // the fence it consults is worthless to it unless it also raises it. Without this a second
+        // × tap, or an × followed by a tap-to-edit, starts a second DELETE of the same row — and
+        // whichever lands second reports a refusal over a withdrawal that actually succeeded.
+        withdrawingForEdit = localId
+        viewModelScope.launch {
+            try {
+                if (!queuedTurnDelegate.cancel(item)) {
+                    // Reported, not swallowed. A refusal is either "the server is past withdrawing
+                    // this" or "this row has no id to withdraw" — and the latter is reachable and
+                    // sticky: an `Uncertain` row whose reconciliation window has expired will never
+                    // be handed one, so its × is a permanent no-op while the row itself refuses
+                    // every drain. Silence made that read as a dead button on a row the UI has
+                    // already labelled as needing attention.
+                    reportWithdrawRefused()
+                    return@launch
+                }
+                // Re-checked after the round trip, not only before it: an edit session opened while
+                // the DELETE was out, and dropping a row into it now shifts the slots its captured
+                // originalIndex points at — the exact thing the guard above exists to prevent.
+                if (_uiState.value.isEditingQueued) return@launch
+                queueDelegate.cancel(localId)
+                // The run end that found this row refused to drain; if it was the last server
+                // row, the local ones behind it have no other trigger.
+                tryResumeDrain()
+            } finally {
+                withdrawingForEdit = null
+            }
+        }
     }
 
     fun reorderQueue(fromIndex: Int, toIndex: Int) {
         if (_uiState.value.isEditingQueued) return
+        // Global on purpose, unlike the ×: a withdrawal that lands removes a row and renumbers
+        // every index behind it, so a drag started now commits against slots that have moved.
+        if (withdrawingForEdit != null) {
+            reportQueueBusy()
+            return
+        }
+        // Server-owned rows run in the server's sequence; dragging one would show an order the
+        // backend will not honour.
+        val queue = _uiState.value.messageQueue
+        if (queue.getOrNull(fromIndex)?.server != null || queue.getOrNull(toIndex)?.server != null) {
+            return
+        }
         queueDelegate.reorder(fromIndex, toIndex)
     }
 
-    /** "Send queued" control after a Stop/error pause: lift the pause and resume draining. */
-    fun sendQueuedNow() = queueDelegate.resume()
+    /**
+     * "Send queued" control after a Stop/error pause: lift the pause and resume draining.
+     *
+     * A refused row the server still lists is withdrawn there first, under the same fence as the
+     * × — see [QueuedTurnDelegate.withdrawRefused].
+     */
+    fun sendQueuedNow() {
+        val refused = _uiState.value.messageQueue.firstOrNull {
+            it.server?.status == QueuedTurnServerState.Status.Rejected && it.server.id != null
+        }
+        if (refused == null) {
+            queueDelegate.resume()
+            return
+        }
+        if (withdrawingForEdit != null) {
+            reportQueueBusy()
+            return
+        }
+        withdrawingForEdit = refused.localId
+        viewModelScope.launch {
+            try {
+                // A row that could not be withdrawn stays refused, and resume() says the server
+                // still holds one.
+                queuedTurnDelegate.withdrawRefused()
+                queueDelegate.resume()
+            } finally {
+                withdrawingForEdit = null
+            }
+        }
+    }
 
     /** Snapshots the editable composer surface (the new-message draft) for stashing during an edit. */
     private fun captureComposer(): ComposerSnapshot {
@@ -1394,6 +1751,21 @@ class ChatViewModel(
         if (excerpt.isEmpty()) return
         _uiState.update {
             it.copy(composer = it.composer.copy(pendingQuotes = it.composer.pendingQuotes + excerpt))
+        }
+    }
+
+    /**
+     * Puts excerpts a steer lost back on the composer's chips, deduped and capped.
+     *
+     * Unlike [addPendingQuote] this is a RESTORE, not a new selection, so it goes through
+     * [mergeRestagedQuotes]: the same excerpts can arrive from more than one recovery trigger for
+     * one steer, and appending blindly would multiply the user's chips.
+     */
+    private fun restagePendingQuotes(quotes: List<String>) {
+        if (quotes.isEmpty()) return
+        _uiState.update {
+            val merged = mergeRestagedQuotes(it.composer.pendingQuotes, quotes)
+            if (merged === it.composer.pendingQuotes) it else it.copy(composer = it.composer.copy(pendingQuotes = merged))
         }
     }
 
@@ -1623,6 +1995,9 @@ class ChatViewModel(
         editingDelegate.continueGeneration()
     }
 
+    /** Manual context compaction (v0.8.8-rc3). See [ChatUiState.canCompactNow]. */
+    fun compactConversation() = editingDelegate.compactConversation()
+
     /**
      * Bumped when any prompt is created, edited or deleted — the signal the composer's `/` picker
      * is stale. Read from the chat screen's composition (`ChatRoot`), not collected here, so the
@@ -1636,9 +2011,31 @@ class ChatViewModel(
         presetPromptDelegate.refreshAvailablePromptsIfStale()
     }
 
-    fun onPause() = streamingManager.onPause()
+    fun onPause() {
+        streamingManager.onPause()
+        queuedTurnDelegate.stopPolling()
+    }
 
-    fun onResume() = streamingManager.onResume()
+    fun onResume() {
+        streamingManager.onResume()
+        // A foreground is a reconciliation point, not just a stream resume: the server may have
+        // admitted, dropped or added a queued turn while the app was away, and there is nothing
+        // to hear it from.
+        refreshQueuedTurns()
+    }
+
+    /**
+     * Restarts the queued-turn reconcile poll, whose first read is unconditional.
+     *
+     * Deliberately not gated on the local queue being non-empty: the rows this exists to
+     * rediscover are exactly the ones this process does not have.
+     */
+    private fun refreshQueuedTurns() {
+        val state = _uiState.value
+        val eligible = state.selectedEndpoint == EndpointConstants.AGENTS &&
+            state.gates.serverQueueSupported
+        queuedTurnDelegate.ensurePolling(state.conversationId.takeIf { eligible })
+    }
 
     /**
      * Submits [feedback] for a message, or clears it when null.
@@ -1730,6 +2127,64 @@ class ChatViewModel(
         }
     }
 
+    /**
+     * Resolves whether the trace entry point may render for the conversation on screen.
+     *
+     * Three eligibility inputs and then one network round trip, mirroring upstream's
+     * `useTraceControl`: a persisted conversation, `interface.traceViewer` on, and a server not
+     * known to predate the routes. There is no permission to check — unlike schedules, this is
+     * interface config and conversation state only.
+     *
+     * `collectLatest` is doing real work here: the resolve suspends across the backend's
+     * "ask again" waits, and leaving a conversation or starting a run has to cancel it rather
+     * than let a late answer land against a conversation that is no longer on screen.
+     *
+     * Nothing is asked while a run is in flight, and the previous answer is KEPT rather than
+     * cleared — the entry point must not blink out for the duration of every reply. The
+     * re-emission when streaming ends is the re-read a settled run needs: the turn it just
+     * added is what can make a trace readable for the first time.
+     */
+    private fun observeTraceAvailability() {
+        viewModelScope.launch {
+            combine(
+                _uiState.map { it.conversationId }.distinctUntilChanged(),
+                _uiState.map { it.isStreaming }.distinctUntilChanged(),
+                configRepository.startupConfig
+                    .map { isTraceViewerEnabled(it?.interfaceConfig?.traceViewer) }
+                    .distinctUntilChanged(),
+            ) { conversationId, isStreaming, enabled ->
+                TraceGateInputs(conversationId, isStreaming, enabled)
+            }.collectLatest { (conversationId, isStreaming, enabled) ->
+                val isRuledOut = traceRepository.isRuledOutForServer()
+                if (conversationId == null || !enabled || isRuledOut) {
+                    setTraceViewerConversation(null)
+                    return@collectLatest
+                }
+                val shouldResolve = shouldResolveTraceAvailability(
+                    conversationId = conversationId,
+                    enabled = true,
+                    isRuledOut = false,
+                    isStreaming = isStreaming,
+                    alreadyShownFor = _uiState.value.gates.traceViewerConversationId,
+                )
+                if (!shouldResolve) return@collectLatest
+                val result = traceRepository.resolveAvailability(conversationId)
+                val available = result is Result.Success && result.data.available
+                setTraceViewerConversation(conversationId.takeIf { available })
+            }
+        }
+    }
+
+    private fun setTraceViewerConversation(conversationId: String?) {
+        _uiState.update {
+            if (it.gates.traceViewerConversationId == conversationId) {
+                it
+            } else {
+                it.copy(gates = it.gates.copy(traceViewerConversationId = conversationId))
+            }
+        }
+    }
+
     private fun loadFlags() {
         // Share visibility = server feature flag AND the SHARED_LINKS/CREATE role permission
         // (v0.8.7). Permissive on unknown so older backends (no permission emitted) keep
@@ -1759,7 +2214,13 @@ class ChatViewModel(
                 configRepository.startupConfig,
                 configRepository.detectedBackendVersion,
             ) { role, config, version ->
-                GateInputs(role, config?.interfaceConfig, version)
+                GateInputs(
+                    role,
+                    config?.interfaceConfig,
+                    version,
+                    config?.endpointsDropParamsMap,
+                    config?.compactionEnabled,
+                )
             }.distinctUntilChanged().collect { gates ->
                 val role = gates.role
                 val iface = gates.iface
@@ -1796,6 +2257,7 @@ class ChatViewModel(
                             parametersEnabled = iface?.parameters ?: true,
                             // Web gates the presets menu on `presets && modelSelect` (Header.tsx).
                             presetsEnabled = (iface?.presets ?: true) && (iface?.modelSelect ?: true),
+                            feedbackEnabled = iface?.feedback ?: true,
                             // Context-usage gauge (v0.8.7): interface flag AND backend support.
                             contextUsageEnabled = contextGaugeSupported && (iface?.contextUsage ?: true),
                             // The inline memory tools WRITE, so the composer toggle needs the full
@@ -1809,6 +2271,8 @@ class ChatViewModel(
                                 role.hasAccessOrPermissive(PermissionType.MEMORIES, Permission.UPDATE),
                             // Pinned tools (v0.8.7): raw interface list; mapped/filtered by pinnedToolChips.
                             pinnedTools = iface?.defaultPinnedTools ?: emptyList(),
+                            dropParamsMap = gates.dropParamsMap,
+                            compactionEnabled = gates.compactionEnabled == true,
                         ),
                     )
                 }

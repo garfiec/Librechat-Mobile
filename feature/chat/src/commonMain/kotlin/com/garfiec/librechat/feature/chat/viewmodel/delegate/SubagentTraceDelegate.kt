@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
 import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.model.ContentType
+import com.garfiec.librechat.core.model.RunStepStatus
 import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.SubagentPhase
 import com.garfiec.librechat.core.model.content.AgentToolCall
@@ -153,6 +154,7 @@ class SubagentTraceDelegate(
                 ),
             )
             is StreamEvent.ToolCallComplete -> completeToolCall(parts, inner.toolCallId, inner.output)
+            is StreamEvent.ToolCallClosed -> closeToolCall(parts, inner.toolCallId, inner.status)
             else -> parts // start/stop/error/run_step_delta carry no foldable content
         }
     }
@@ -188,6 +190,20 @@ class SubagentTraceDelegate(
         if (index < 0) return parts
         val part = parts[index]
         val updated = part.copy(toolCall = part.toolCall?.copy(output = output))
+        return parts.toMutableList().also { it[index] = updated }
+    }
+
+    private fun closeToolCall(
+        parts: List<MessageContentPart>,
+        toolCallId: String,
+        status: RunStepStatus,
+    ): List<MessageContentPart> {
+        val index = parts.indexOfLast {
+            it.type == ContentType.TOOL_CALL && it.toolCall?.id == toolCallId
+        }
+        if (index < 0) return parts
+        val part = parts[index]
+        val updated = part.copy(toolCall = part.toolCall?.copy(runStepStatus = status))
         return parts.toMutableList().also { it[index] = updated }
     }
 

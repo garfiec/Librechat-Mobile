@@ -37,7 +37,7 @@ class PromptRepositoryImpl(
         }
     }
 
-    override suspend fun getGroup(groupId: String): Result<PromptGroup> {
+    override suspend fun getGroup(groupId: String): Result<PromptGroup?> {
         return safeApiCall {
             promptsApi.getPromptGroup(groupId)
         }

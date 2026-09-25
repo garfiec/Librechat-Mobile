@@ -37,7 +37,8 @@ class UploadRoutingTest {
         endpoint: String?,
         endpointType: String? = null,
         agentProvider: String? = null,
-    ) = resolveUploadRoute(mime, endpoint, endpointType, agentProvider)
+        serverVersion: String? = null,
+    ) = resolveUploadRoute(mime, endpoint, endpointType, agentProvider, serverVersion)
 
     // ---------------------------------------------------------------- images
 
@@ -249,14 +250,47 @@ class UploadRoutingTest {
     }
 
     @Test
-    fun openRouterIsMatchedCaseInsensitively() {
-        // The one provider upstream lower-cases before comparing. A blanket lowercase() would
-        // instead drop `openAI` out of the document-supported set, so this must stay narrow.
+    fun providerNamesAreMatchedCaseInsensitively() {
+        // openrouter is the one name upstream normalises before comparing, so its video path holds
+        // whatever the casing — on every server, since `canonicalProvider` rewrites it to the
+        // set's own spelling before the comparison ever happens.
         assertEquals(UploadRoute.PROVIDER, route(mp4, "OpenRouter"))
         assertEquals(UploadRoute.PROVIDER, route(pdf, "OPENROUTER"))
+        // The set's own `openAI` spelling matches whatever the server does.
         assertEquals(UploadRoute.PROVIDER, route(pdf, "openAI"))
-        // Casing is not forgiven elsewhere — `openai` is not the upstream key.
-        assertEquals(UploadRoute.TEXT, route(pdf, "openai"))
+        // Document support became case-insensitive on BOTH sides in v0.8.8-rc3, so from there a
+        // differently-cased name agrees with the set.
+        assertEquals(UploadRoute.PROVIDER, route(pdf, "openai", serverVersion = "0.8.8-rc3"))
+        assertEquals(UploadRoute.PROVIDER, route(pdf, "Anthropic", serverVersion = "0.8.8-rc3"))
+        // The `google` and `bedrock` capability comparisons stay case-SENSITIVE, mirroring
+        // `isProviderAttachType` in `client/src/utils/files.ts`, which rc3 did NOT change.
+        // Openrouter is not in that set: that function opens by rewriting a case-insensitive
+        // `openrouter` match back to the canonical spelling, as `canonicalProvider` does here, so
+        // its comparison never sees non-canonical input. Only the document-support predicate is
+        // watched (scripts/mirrors.json, `document-supported-provider-predicate`) — this
+        // canonicalisation is not, so a change to it will not be reported. Routing does not read
+        // any of them — it keys on document support alone — so the divergence is only visible
+        // through the capability probe the manual picker uses.
+        assertTrue(isProviderCapable(mp4, "google"))
+        assertFalse(isProviderCapable(mp4, "Google"))
+    }
+
+    /**
+     * The pre-rc3 half of the same rule, and the reason the gate fails CLOSED. `document.ts` runs
+     * this predicate server-side and returns an EMPTY document list when it is false, so treating
+     * an rc2-or-older server as case-insensitive routes the file to a provider that will silently
+     * drop it — whereas guessing case-sensitive costs text extraction, which the user can see.
+     */
+    @Test
+    fun caseInsensitiveMatchingIsWithheldFromServersThatDoNotDoIt() {
+        assertEquals(UploadRoute.TEXT, route(pdf, "openai", serverVersion = "0.8.8-rc1"))
+        // rc2 is the boundary that matters: it looks like it should have the feature and does not.
+        assertEquals(UploadRoute.TEXT, route(pdf, "openai", serverVersion = "0.8.8-rc2"))
+        assertEquals(UploadRoute.TEXT, route(pdf, "Anthropic", serverVersion = "0.8.7"))
+        // Unknown version fails closed the same way.
+        assertEquals(UploadRoute.TEXT, route(pdf, "Anthropic"))
+        // The exact spellings are unaffected on every server.
+        assertEquals(UploadRoute.PROVIDER, route(pdf, "anthropic", serverVersion = "0.8.7"))
     }
 
     // ------------------------------------------------------- capability probe

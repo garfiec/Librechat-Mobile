@@ -1,6 +1,8 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
 import com.garfiec.librechat.core.ui.components.ModelParameters
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.double
 import kotlinx.serialization.json.jsonPrimitive
@@ -58,5 +60,39 @@ class ModelParamPayloadTest {
         assertNull(result["promptCache"])
         assertNull(result["top_p"])
         assertNull(result["topP"])
+    }
+
+    @Test
+    fun `an anthropic agent sends prompt caching for a model that supports it`() {
+        // The registry filters per model, so the payload has to be built with the AGENT'S
+        // model. Built with the agent id (which is what `selectedModel` holds on this endpoint)
+        // no cache-capable model matches, and the two controls are dropped from the definitions —
+        // which silently removes them from the body a user explicitly set.
+        val params = ModelParameters.DEFAULT.copy(
+            dynamicValues = mapOf("promptCache" to "false", "promptCacheTtl" to "1h"),
+        )
+        val result = ModelParamPayload.build(
+            endpoint = "agents",
+            provider = "anthropic",
+            model = "claude-sonnet-4-5",
+            extendedEffortSupported = false,
+            params = params,
+        )
+        assertEquals(false, result["promptCache"]?.jsonPrimitive?.boolean)
+        assertEquals("1h", result["promptCacheTtl"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun `a dropped param is not sent`() {
+        val params = ModelParameters.DEFAULT.copy(temperature = 0.7f)
+        val result = ModelParamPayload.build(
+            endpoint = "anthropic",
+            provider = null,
+            model = "claude-sonnet-4-5",
+            extendedEffortSupported = false,
+            params = params,
+            dropParamsMap = mapOf("anthropic" to JsonArray(listOf(JsonPrimitive("temperature")))),
+        )
+        assertNull(result["temperature"])
     }
 }

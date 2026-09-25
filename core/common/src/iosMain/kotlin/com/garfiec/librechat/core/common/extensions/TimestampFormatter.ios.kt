@@ -1,4 +1,4 @@
-package com.garfiec.librechat.feature.chat.util
+package com.garfiec.librechat.core.common.extensions
 
 import platform.Foundation.NSDate
 import platform.Foundation.NSDateFormatter

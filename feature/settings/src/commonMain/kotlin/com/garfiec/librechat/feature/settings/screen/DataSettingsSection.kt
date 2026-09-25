@@ -37,6 +37,9 @@ internal fun DataSettingsSection(
     archivedCount: Int,
     isClearing: Boolean,
     onClearAllChats: () -> Unit,
+    archiveAllSupported: Boolean,
+    isArchivingAll: Boolean,
+    onArchiveAllChats: () -> Unit,
     onViewArchive: () -> Unit,
     onExportAllData: () -> Unit,
     logsBufferBytes: Long,
@@ -47,6 +50,7 @@ internal fun DataSettingsSection(
     modifier: Modifier = Modifier,
 ) {
     var showClearDialog by remember { mutableStateOf(false) }
+    var showArchiveAllDialog by remember { mutableStateOf(false) }
     var showClearLogsDialog by remember { mutableStateOf(false) }
 
     Column(modifier = modifier) {
@@ -67,6 +71,20 @@ internal fun DataSettingsSection(
                 ),
             ) {
                 Text(stringResource(if (isClearing) Res.string.clearing else Res.string.clear_all_conversations))
+            }
+
+            if (archiveAllSupported) {
+                OutlinedButton(
+                    onClick = { showArchiveAllDialog = true },
+                    enabled = !isArchivingAll,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        stringResource(
+                            if (isArchivingAll) Res.string.archiving_all else Res.string.archive_all_conversations,
+                        ),
+                    )
+                }
             }
 
             // Archived conversations
@@ -177,6 +195,29 @@ internal fun DataSettingsSection(
                 },
                 dismissButton = {
                     TextButton(onClick = { showClearDialog = false }) {
+                        Text(stringResource(Res.string.action_cancel))
+                    }
+                },
+            )
+        }
+
+        if (showArchiveAllDialog) {
+            AlertDialog(
+                onDismissRequest = { showArchiveAllDialog = false },
+                title = { Text(stringResource(Res.string.dialog_title_archive_all)) },
+                text = { Text(stringResource(Res.string.dialog_archive_all_message)) },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showArchiveAllDialog = false
+                            onArchiveAllChats()
+                        },
+                    ) {
+                        Text(stringResource(Res.string.action_archive_all))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showArchiveAllDialog = false }) {
                         Text(stringResource(Res.string.action_cancel))
                     }
                 },

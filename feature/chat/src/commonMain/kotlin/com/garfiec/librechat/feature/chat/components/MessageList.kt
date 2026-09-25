@@ -86,6 +86,8 @@ fun MessageList(
     activeToolCalls: List<ActiveToolCall> = emptyList(),
     streamingAttachments: List<Attachment> = emptyList(),
     onFeedback: (messageId: String, feedback: MinimalFeedback?) -> Unit = { _, _ -> },
+    /** `interface.feedback`. Gated here rather than at each caller so every list inherits it. */
+    feedbackEnabled: Boolean = true,
     /**
      * The response that just took over from the streaming bubble, from `ChatUiState`. Read from
      * state rather than derived here from `isStreaming`: a UI-side derivation can only run in an
@@ -600,7 +602,7 @@ fun MessageList(
                         null
                     },
                     onCopy = { onCopyMessage(node.message.messageId) },
-                    onFeedback = if (!node.message.isCreatedByUser) {
+                    onFeedback = if (!node.message.isCreatedByUser && feedbackEnabled) {
                         { feedback -> onFeedback(node.message.messageId, feedback) }
                     } else {
                         null

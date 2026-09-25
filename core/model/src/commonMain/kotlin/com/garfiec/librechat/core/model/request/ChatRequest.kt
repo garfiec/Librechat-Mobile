@@ -27,6 +27,24 @@ data class ChatRequest(
     val isContinued: Boolean = false,
     val isEdited: Boolean = false,
     val isRegenerate: Boolean = false,
+    /**
+     * Manual context compaction (v0.8.8-rc3): summarize the branch up to [parentMessageId] and end
+     * WITHOUT a reply. No user message is created, so the turn is regenerate-shaped **client-side
+     * only**: `isRegenerate`, `isContinued`, `editedContent` and [responseMessageId] must all be
+     * absent from the body, because `getCompactionRejection` 400s `INVALID_COMPACTION_REQUEST` on
+     * any of them arriving beside this flag.
+     *
+     * Today that holds for two different reasons, and only one of them is a guard.
+     * `ChatPayloadBuilder` drops `isRegenerate` when this is set, the way upstream does
+     * (`isRegenerate: compact === true ? undefined : isRegenerate`). The other three are simply
+     * never set on the one path that compacts, so they stay at their defaults and are omitted. A
+     * caller that sets one must drop it in the builder too — do not read that line as covering
+     * them.
+     *
+     * Omitted rather than sent as `false`: a server that does not know the flag would answer an
+     * ordinary empty-text turn.
+     */
+    val compact: Boolean? = null,
     val overrideParentMessageId: String? = null,
     val responseMessageId: String? = null,
     val temperature: Double? = null,

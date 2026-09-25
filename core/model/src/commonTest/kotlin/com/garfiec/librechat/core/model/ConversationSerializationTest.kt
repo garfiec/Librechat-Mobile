@@ -117,4 +117,24 @@ class ConversationSerializationTest {
         assertEquals("OpenRouter", decoded.endpoint)
         assertEquals("custom", decoded.endpointType)
     }
+
+    @Test
+    fun archivedAtDecodesAndIsNullWhenUnarchived() {
+        // v0.8.8-rc2. The server nulls the stamp on unarchive and omits it entirely on older
+        // servers, so both spellings of "not archived" have to reach the same value.
+        val archived = json.decodeFromString(
+            Conversation.serializer(),
+            """{"conversationId":"c1","isArchived":true,"archivedAt":"2026-09-01T12:00:00.000Z"}""",
+        )
+        assertEquals(Instant.parse("2026-09-01T12:00:00.000Z"), archived.archivedAt)
+
+        val explicitNull = json.decodeFromString(
+            Conversation.serializer(),
+            """{"conversationId":"c1","isArchived":false,"archivedAt":null}""",
+        )
+        assertEquals(null, explicitNull.archivedAt)
+
+        val omitted = json.decodeFromString(Conversation.serializer(), """{"conversationId":"c1"}""")
+        assertEquals(null, omitted.archivedAt)
+    }
 }

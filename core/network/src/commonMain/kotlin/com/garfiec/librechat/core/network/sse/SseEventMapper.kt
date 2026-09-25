@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.PendingAction
 import com.garfiec.librechat.core.model.PendingSteer
+import com.garfiec.librechat.core.model.RunStepStatus
 import com.garfiec.librechat.core.model.StreamErrorCodes
 import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.SubagentPhase
@@ -22,6 +23,7 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.longOrNull
 
 /**
  * Maps raw SSE events into domain [StreamEvent]s.
@@ -63,11 +65,18 @@ class SseEventMapper(private val json: Json) {
     // whose step was never announced (e.g. some handoff/subagent frames).
     private val stepAgentContext = mutableMapOf<String, Pair<String?, Int?>>()
 
+    // Step id -> tool_call id, for `on_run_step_closed`. That frame names the STEP, while every
+    // tool-call event on this side is keyed by the tool_call id, and the closure carries no
+    // tool_call of its own — the announcing `on_run_step` is the only place the two ids appear
+    // together.
+    private val stepToolCallIds = mutableMapOf<String, String>()
+
     /** Resets tracked state. Call when starting a new SSE stream. */
     fun resetState() {
         activeAgentId = null
         activeGroupId = null
         stepAgentContext.clear()
+        stepToolCallIds.clear()
     }
 
     /**
@@ -392,6 +401,9 @@ class SseEventMapper(private val json: Json) {
             "on_run_step" -> mapRunStep(data, agentId, groupId)
             "on_run_step_delta" -> null // Tool call argument streaming - not currently tracked
             "on_run_step_completed" -> mapRunStepCompleted(data, agentId, groupId)
+            // v0.8.8-rc2: a run step reached a terminal state. The rc1 server registered no
+            // handler, so this never reached the wire before.
+            "on_run_step_closed" -> mapRunStepClosed(data, agentId, groupId)
             "on_chat_model_end" -> null
             "on_agent_update" -> null
             "on_summarize_start" -> null // Lifecycle only; no useful payload to surface
@@ -428,6 +440,13 @@ class SseEventMapper(private val json: Json) {
             steerId = steerId,
             index = data["index"]?.jsonPrimitive?.intOrNull,
             text = part?.get("steer")?.jsonPrimitive?.contentOrNull,
+            clientSteerId = data["clientSteerId"]?.jsonPrimitive?.contentOrNull
+                ?: part?.get("clientSteerId")?.jsonPrimitive?.contentOrNull,
+            // Read off the PART, not the envelope: it is the injected record, so its absence is
+            // what says the excerpts did not survive.
+            quotes = part?.get("quotes")?.jsonArray
+                ?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }
+                .orEmpty(),
             responseMessageId = data["responseMessageId"]?.jsonPrimitive?.contentOrNull,
             conversationId = data["conversationId"]?.jsonPrimitive?.contentOrNull,
         )
@@ -489,6 +508,7 @@ class SseEventMapper(private val json: Json) {
                 SubagentPhase.REASONING_DELTA -> mapReasoningDelta(payload, agentId, groupId)
                 SubagentPhase.RUN_STEP -> mapRunStep(payload, agentId, groupId)
                 SubagentPhase.RUN_STEP_COMPLETED -> mapRunStepCompleted(payload, agentId, groupId)
+                SubagentPhase.RUN_STEP_CLOSED -> mapRunStepClosed(payload, agentId, groupId)
                 else -> null // start / stop / error / run_step_delta carry no foldable content
             }
         }
@@ -576,6 +596,8 @@ class SseEventMapper(private val json: Json) {
         val toolName = firstToolCall["name"]?.jsonPrimitive?.contentOrNull ?: ""
         val args = firstToolCall["args"]?.toStringValue() ?: ""
 
+        data["id"]?.jsonPrimitive?.contentOrNull?.let { stepToolCallIds[it] = toolCallId }
+
         return StreamEvent.ToolCallStart(
             toolCallId = toolCallId,
             toolName = toolName,
@@ -603,6 +625,45 @@ class SseEventMapper(private val json: Json) {
             agentId = agentId,
             groupId = groupId,
         )
+    }
+
+    /**
+     * Maps `on_run_step_closed` (v0.8.8-rc2).
+     *
+     * Dropped when the step was never announced on this connection — a reconnect can replay from
+     * after the step was created, and `message_creation` steps have no tool call at all. Upstream
+     * does the same and states why: a closure for a step this client never saw opened is not an
+     * error worth surfacing.
+     */
+    private fun mapRunStepClosed(
+        data: JsonObject,
+        agentId: String?,
+        groupId: Int?,
+    ): StreamEvent? {
+        val stepId = data["id"]?.jsonPrimitive?.contentOrNull ?: return null
+        val toolCallId = stepToolCallIds[stepId] ?: return null
+        val status = RunStepStatus.fromWire(data["status"]?.jsonPrimitive?.contentOrNull) ?: return null
+
+        return StreamEvent.ToolCallClosed(
+            toolCallId = toolCallId,
+            status = status,
+            durationMs = runStepDurationMs(data),
+            agentId = agentId,
+            groupId = groupId,
+        )
+    }
+
+    /**
+     * MIRRORED from upstream `getRunStepDurationMs` (`packages/data-provider/src/runSteps.ts`).
+     * Null wherever the value would be a guess: `created_at` is optional, and a negative result
+     * means the two stamps came from clocks that disagree — since a step can be opened in one
+     * process and closed in another after a checkpoint resume, that is not hypothetical. A wrong
+     * duration is worse than an absent one, because an absent one renders nothing.
+     */
+    private fun runStepDurationMs(data: JsonObject): Long? {
+        val createdAt = data["created_at"]?.jsonPrimitive?.longOrNull ?: return null
+        val closedAt = data["closed_at"]?.jsonPrimitive?.longOrNull ?: return null
+        return (closedAt - createdAt).takeIf { it >= 0 }
     }
 
     private fun mapTitleEvent(data: JsonObject): StreamEvent? {

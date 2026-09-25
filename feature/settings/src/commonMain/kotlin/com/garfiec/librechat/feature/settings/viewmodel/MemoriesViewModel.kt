@@ -3,8 +3,11 @@ package com.garfiec.librechat.feature.settings.viewmodel
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.garfiec.librechat.core.common.BackendVersion
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.MemoryRepository
+import com.garfiec.librechat.core.model.MEMORY_KEY_PATTERN_MIN_VERSION
 import com.garfiec.librechat.core.model.Memory
 import com.garfiec.librechat.core.model.request.CreateMemoryRequest
 import com.garfiec.librechat.core.model.request.UpdateMemoryPreferencesRequest
@@ -23,10 +26,17 @@ data class MemoriesUiState(
     val error: String? = null,
     val showDialog: Boolean = false,
     val editingMemory: Memory? = null,
+    /**
+     * Whether the server is KNOWN to enforce the memory-key shape (v0.8.8-rc3+). Fail-OPEN, unlike
+     * the affordance gates elsewhere: this one refuses input, and rc1/rc2 accept keys rc3 rejects,
+     * so an older or unresolved server must not have a usable key withheld from it.
+     */
+    val keyPatternEnforced: Boolean = false,
 )
 
 class MemoriesViewModel(
     private val memoryRepository: MemoryRepository,
+    configRepository: ConfigRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MemoriesUiState())
@@ -34,6 +44,14 @@ class MemoriesViewModel(
 
     init {
         loadMemories()
+        viewModelScope.launch {
+            configRepository.detectedBackendVersion.collect { version ->
+                _uiState.value = _uiState.value.copy(
+                    keyPatternEnforced = version != null &&
+                        BackendVersion.isCompatibleOrNewer(version, MEMORY_KEY_PATTERN_MIN_VERSION),
+                )
+            }
+        }
     }
 
     fun loadMemories() {
@@ -100,9 +118,8 @@ class MemoriesViewModel(
             val editing = _uiState.value.editingMemory
             val result = if (editing != null) {
                 memoryRepository.updateMemory(
-                    key = editing.key,
+                    memory = editing,
                     request = UpdateMemoryRequest(value = value),
-                    agentId = editing.agentId,
                 )
             } else {
                 memoryRepository.createMemory(
@@ -126,7 +143,7 @@ class MemoriesViewModel(
 
     fun deleteMemory(memory: Memory) {
         viewModelScope.launch {
-            when (val result = memoryRepository.deleteMemory(memory.key, memory.agentId)) {
+            when (val result = memoryRepository.deleteMemory(memory)) {
                 is Result.Success -> loadMemories()
                 is Result.Error -> {
                     _uiState.value = _uiState.value.copy(

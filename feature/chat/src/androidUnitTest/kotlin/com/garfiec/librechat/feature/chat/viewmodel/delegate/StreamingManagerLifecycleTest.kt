@@ -79,6 +79,14 @@ class StreamingManagerLifecycleTest {
         content = MessagesState(messages = listOf(message("u1", isUser = true)), isStreaming = true),
     )
 
+    /** What `attachToServerStartedRun` exists for: a conversation open, with nothing streaming. */
+    private fun idleState() = ChatUiState(
+        conversation = ConversationMetaState(conversationId = "conv-1"),
+    )
+
+    /** A generation epoch strictly after any admission the tests below set up. */
+    private val SUCCESSOR_EPOCH = 1_758_000_100_000L
+
     private fun delegateWith(
         scope: TestScope,
         state: ChatUiState = streamingState(),
@@ -361,12 +369,114 @@ class StreamingManagerLifecycleTest {
             events.send(AbortFrameFixtures.earlyAbortFrame().copy(pendingSteers = parked))
             runCurrent()
 
-            // The frame's own list, not a parked one: claimed via reclaim, which auto-drains
-            // normally. Only /chat/status hands over steers the server parked for a dead run.
-            verify { steeringDelegate.reclaim(parked) }
+            // Claimed as a stopped run's report: held as local rows, since the server dead-claims
+            // any turn queued behind an aborted run.
+            verify { steeringDelegate.reclaimAborted(parked) }
             events.close()
             advanceUntilIdle()
         }
+
+    /**
+     * Attaching to a run the server started is the only proof this client gets that the boundaries
+     * behind it are done, when the predecessor ended without a `Final`. Without this the queued-turn
+     * evidence is never retired and the drain refuses silently forever.
+     */
+    @Test
+    fun `attaching to a server-started run retires the admissions it overtook`() =
+        runTest(StandardTestDispatcher()) {
+            coEvery { chatRepository.checkStreamStatus("conv-1", any()) } coAnswers {
+                claimingStatusAnswer(ChatStatusResponse(active = true, createdAt = SUCCESSOR_EPOCH))
+            }
+            val (delegate, _) = delegateWith(this, state = idleState())
+
+            delegate.attachToServerStartedRun()
+            advanceUntilIdle()
+
+            verify { queueDelegate.retireAdmissionsBefore(SUCCESSOR_EPOCH) }
+            delegate.reset()
+            advanceUntilIdle()
+        }
+
+    /**
+     * The admitted turn finished inside one poll interval: no run is left to attach to, and the
+     * announcement is spent, so this is the only chance to show it and its reply.
+     */
+    @Test
+    fun `attaching after the server-started run already finished loads it`() =
+        runTest(StandardTestDispatcher()) {
+            coEvery { chatRepository.checkStreamStatus("conv-1", any()) } coAnswers {
+                claimingStatusAnswer(ChatStatusResponse(active = false))
+            }
+            val (delegate, _) = delegateWith(this, state = idleState())
+
+            delegate.attachToServerStartedRun()
+            advanceUntilIdle()
+
+            verify(exactly = 1) { reloadConversation("conv-1") }
+        }
+
+    /** The attach is announced once, so a failed status check is retried rather than dropped. */
+    @Test
+    fun `a failed status check on attach is retried`() = runTest(StandardTestDispatcher()) {
+        var calls = 0
+        coEvery { chatRepository.checkStreamStatus("conv-1", any()) } coAnswers {
+            if (++calls == 1) throw IllegalStateException("timeout")
+            claimingStatusAnswer(ChatStatusResponse(active = true, createdAt = SUCCESSOR_EPOCH))
+        }
+        val (delegate, _) = delegateWith(this, state = idleState())
+
+        delegate.attachToServerStartedRun()
+        advanceUntilIdle()
+
+        verify { queueDelegate.retireAdmissionsBefore(SUCCESSOR_EPOCH) }
+        delegate.reset()
+        advanceUntilIdle()
+    }
+
+    /** With every check failing, the turn is loaded as if it had already finished. */
+    @Test
+    fun `an attach whose status never answers falls back to a reload`() =
+        runTest(StandardTestDispatcher()) {
+            coEvery { chatRepository.checkStreamStatus("conv-1", any()) } throws
+                IllegalStateException("timeout")
+            val (delegate, _) = delegateWith(this, state = idleState())
+
+            delegate.attachToServerStartedRun()
+            advanceUntilIdle()
+
+            coVerify(exactly = 3) { chatRepository.checkStreamStatus("conv-1", any()) }
+            verify(exactly = 1) { reloadConversation("conv-1") }
+        }
+
+    /** Every conversation open runs this check; an idle conversation must not fetch twice. */
+    @Test
+    fun `an open that finds no run does not reload`() = runTest(StandardTestDispatcher()) {
+        coEvery { chatRepository.checkStreamStatus("conv-1", any()) } coAnswers {
+            claimingStatusAnswer(ChatStatusResponse(active = false))
+        }
+        val (delegate, _) = delegateWith(this, state = idleState())
+
+        delegate.resumeActiveStreamIfNeeded("conv-1")
+        advanceUntilIdle()
+
+        verify(exactly = 0) { reloadConversation(any()) }
+    }
+
+    /** Nothing to retire against: a status with no epoch leaves the evidence exactly as it was. */
+    @Test
+    fun `an epochless status retires nothing`() = runTest(StandardTestDispatcher()) {
+        coEvery { chatRepository.checkStreamStatus("conv-1", any()) } coAnswers {
+            claimingStatusAnswer(ChatStatusResponse(active = true, createdAt = null))
+        }
+        val (delegate, _) = delegateWith(this, state = idleState())
+
+        delegate.attachToServerStartedRun()
+        advanceUntilIdle()
+
+        verify(exactly = 0) { queueDelegate.retireAdmissionsBefore(any()) }
+        delegate.reset()
+        advanceUntilIdle()
+    }
 
     /** Same claim-before-guard rule on the conversation-open sibling. */
     @Test

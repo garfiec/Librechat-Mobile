@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
 import com.garfiec.librechat.core.model.ContentType
+import com.garfiec.librechat.core.model.RunStepStatus
 import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
@@ -131,6 +132,35 @@ class SubagentTraceDelegateTest {
         assertThat(part?.type).isEqualTo(ContentType.TOOL_CALL)
         assertThat(part?.toolCall?.name).isEqualTo("search")
         assertThat(part?.toolCall?.output).isEqualTo("results")
+    }
+
+    /**
+     * Cancelling a run closes its open steps without completing them. The parent card picks the
+     * verdict up from `ActiveToolCall.closedStatus`; a step nested inside a subagent trace has
+     * only this stamp, so the trace's own card reads as an ordinary call without it.
+     */
+    @Test
+    fun `a cancelled run stamps its verdict onto an open nested tool call`() {
+        val (delegate, flow) = fixture()
+        delegate.onUpdate(
+            StreamEvent.SubagentUpdate(
+                phase = "run_step",
+                parentToolCallId = "call_1",
+                subagentRunId = "run_1",
+                inner = StreamEvent.ToolCallStart(toolCallId = "c9", toolName = "search", input = ""),
+            ),
+        )
+        delegate.onUpdate(
+            StreamEvent.SubagentUpdate(
+                phase = "run_step_closed",
+                parentToolCallId = "call_1",
+                subagentRunId = "run_1",
+                inner = StreamEvent.ToolCallClosed(toolCallId = "c9", status = RunStepStatus.CANCELLED),
+            ),
+        )
+
+        val part = flow.value.subagentProgress["call_1"]?.parts?.single()
+        assertThat(part?.toolCall?.runStepStatus).isEqualTo(RunStepStatus.CANCELLED)
     }
 
     @Test

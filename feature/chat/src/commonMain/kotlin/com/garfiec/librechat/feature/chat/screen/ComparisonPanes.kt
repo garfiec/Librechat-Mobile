@@ -128,6 +128,7 @@ internal fun ComparisonPanes(
             onRegenerateMessage = viewModel::regenerateMessage,
             onCopyMessage = onCopyMessage,
             onFeedback = viewModel::submitFeedback,
+            feedbackEnabled = uiState.gates.feedbackEnabled,
             onContinue = { viewModel.continueGeneration() },
             onReadAloud = viewModel::readAloud,
             onFork = viewModel::showForkOptions,

@@ -146,6 +146,9 @@ fun ModelParameterContent(
     extendedEffortSupported: Boolean = false,
     selectedProvider: String? = null,
     selectedModel: String? = null,
+    /** Resolved `/api/config.endpointsDropParamsMap` entry: controls for parameters this server
+     *  strips are not rendered, so the user cannot set something that is discarded in silence. */
+    dropParams: List<String> = emptyList(),
     onSaveAsPreset: () -> Unit = {},
     showHeader: Boolean = true,
     showSaveAsPreset: Boolean = true,
@@ -161,6 +164,7 @@ fun ModelParameterContent(
         extendedEffortSupported,
         selectedProvider,
         selectedModel,
+        dropParams,
     ) {
         if (!dynamicParameterDefinitions.isNullOrEmpty()) {
             dynamicParameterDefinitions
@@ -170,6 +174,7 @@ fun ModelParameterContent(
                 extendedEffortSupported = extendedEffortSupported,
                 provider = selectedProvider,
                 model = selectedModel,
+                dropParams = dropParams,
             )
         }
     }

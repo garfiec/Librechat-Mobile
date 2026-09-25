@@ -7,7 +7,7 @@ import com.garfiec.librechat.core.model.mcp.McpReinitializeResponse
 import com.garfiec.librechat.core.model.mcp.McpServer
 import com.garfiec.librechat.core.model.mcp.McpServerStatus
 import com.garfiec.librechat.core.model.mcp.McpServerType
-import com.garfiec.librechat.core.model.mcp.McpTool
+import com.garfiec.librechat.core.model.mcp.McpToolCatalog
 
 /** Repository for MCP server management. Uses serverName as unique identifier for operations. */
 interface McpRepository {
@@ -38,6 +38,6 @@ interface McpRepository {
     ): Result<McpServer>
     suspend fun deleteServer(serverName: String): Result<Unit>
     suspend fun reinitialize(serverName: String): Result<McpReinitializeResponse>
-    suspend fun getTools(): Result<List<McpTool>>
+    suspend fun getTools(): Result<McpToolCatalog>
     suspend fun getConnectionStatus(): Result<Map<String, McpServerStatus>>
 }

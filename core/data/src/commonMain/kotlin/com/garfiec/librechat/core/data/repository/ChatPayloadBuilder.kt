@@ -31,6 +31,7 @@ object ChatPayloadBuilder {
         responseMessageId: String? = null,
         isEdited: Boolean = false,
         isRegenerate: Boolean = false,
+        compact: Boolean? = null,
         isContinued: Boolean = false,
         webSearch: Boolean = false,
         files: List<FileReference>? = null,
@@ -55,7 +56,19 @@ object ChatPayloadBuilder {
             overrideParentMessageId = overrideParentMessageId,
             responseMessageId = responseMessageId,
             isEdited = isEdited,
-            isRegenerate = isRegenerate,
+            // A compaction borrows the regenerate SHAPE client-side — no user message is minted —
+            // but the server must see it as a compaction and nothing else: rc3's
+            // `getCompactionRejection` 400s `INVALID_COMPACTION_REQUEST` on ANY of `isRegenerate`,
+            // `isContinued`, `editedContent` or `responseMessageId` arriving alongside `compact`.
+            //
+            // Only `isRegenerate` is dropped here, because it is the only one a compaction sets:
+            // `compactConversationNow` is the sole `compact = true` caller and passes nothing
+            // else, so the other three sit at their defaults and never reach the wire. A future
+            // caller that does set one has to drop it here too — this line is not a guard for
+            // them. Upstream drops its own the same way, `isRegenerate: compact === true ?
+            // undefined : isRegenerate` in packages/data-provider/src/createPayload.ts.
+            isRegenerate = if (compact == true) false else isRegenerate,
+            compact = compact,
             isContinued = isContinued,
             webSearch = if (webSearch) true else null,
             quotes = quotes?.takeIf { it.isNotEmpty() },

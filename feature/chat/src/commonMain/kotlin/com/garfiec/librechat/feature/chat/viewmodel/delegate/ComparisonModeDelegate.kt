@@ -192,10 +192,32 @@ class ComparisonModeDelegate(
         }
     }
 
+    private fun routeToolCallClosed(event: StreamEvent.ToolCallClosed) {
+        if (isSecondaryEvent(event.agentId)) {
+            handle.update {
+                val updated = comparisonState.secondaryActiveToolCalls.map { tc ->
+                    if (tc.id == event.toolCallId) tc.copy(isComplete = true, closedStatus = event.status) else tc
+                }
+                comparisonState = comparisonState.copy(secondaryActiveToolCalls = updated)
+            }
+        } else {
+            handle.update {
+                val updated = comparisonState.primaryActiveToolCalls.map { tc ->
+                    if (tc.id == event.toolCallId) tc.copy(isComplete = true, closedStatus = event.status) else tc
+                }
+                comparisonState = comparisonState.copy(primaryActiveToolCalls = updated)
+            }
+        }
+    }
+
     /**
      * Routes a streaming event into the comparison panes. Returns `true` if the event
      * was consumed for comparison mode (so the caller skips its normal handling), `false`
      * otherwise — including when comparison is disabled, leaving the standard path intact.
+     *
+     * A tool-call event with no branch here falls through to the standard path, which writes the
+     * non-comparison `activeToolCalls` the panes never read. That is why the closure needs one:
+     * without it an aborted comparison run leaves both panes' cards spinning.
      */
     fun routeEvent(event: StreamEvent): Boolean {
         if (!handle.state.comparisonState.isEnabled) return false
@@ -205,6 +227,7 @@ class ComparisonModeDelegate(
             is StreamEvent.ThinkingDelta -> { routeTextDelta(event.agentId, event.chunk); true }
             is StreamEvent.ToolCallStart -> { routeToolCallStart(event); true }
             is StreamEvent.ToolCallComplete -> { routeToolCallComplete(event); true }
+            is StreamEvent.ToolCallClosed -> { routeToolCallClosed(event); true }
             else -> false
         }
     }

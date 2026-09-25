@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.model.response.Category
 import com.garfiec.librechat.core.network.api.FavoritesApi
 import com.garfiec.librechat.core.network.api.FilesApi
 import com.garfiec.librechat.core.network.api.FilesExtApi
+import com.garfiec.librechat.core.network.di.librechatJson
 import com.google.common.truth.Truth.assertThat
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
@@ -121,7 +122,7 @@ class GateProbeDeviceTest {
 
     private fun files(detected: DetectedBackend?): FileRepository {
         val c = countingClient(login())
-        return FileRepositoryImpl(FilesApi(c), FilesExtApi(c), FakeConfig(detected))
+        return FileRepositoryImpl(FilesApi(c, librechatJson), FilesExtApi(c), FakeConfig(detected))
     }
 
     private fun favorites(detected: DetectedBackend?): ToolFavoritesRepository {

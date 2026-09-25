@@ -157,6 +157,13 @@ private val SHELL_SCRIPT_MIME_ALIASES: Set<String> = setOf(
 private const val SHELL_SCRIPT_ALIAS_MIN_VERSION = "0.8.8-rc1"
 
 /**
+ * First server version whose `isDocumentSupportedProvider` lower-cases both sides. An rc-granular
+ * threshold on purpose: `"0.8.8"` would exclude every rc, and the change landed in rc3 — at rc2
+ * `schemas.ts` still reads `documentSupportedProviders.has(provider ?? '')`, case-sensitively.
+ */
+private const val CASE_INSENSITIVE_PROVIDER_MIN_VERSION = "0.8.8-rc3"
+
+/**
  * The excel MIME variants upstream matches with `excelMimeTypes`, which is one leg of
  * `documentParserMimeTypes`.
  */
@@ -243,9 +250,11 @@ private fun normalizeMimeType(mimeType: String?, serverVersion: String? = null):
 }
 
 /**
- * Upstream lower-cases exactly one provider name before comparing (`DragDropModal.tsx`), with a
- * comment that comparisons should become case-insensitive some day. Copy that narrowly: a blanket
- * `lowercase()` would drop `openAI` out of [DOCUMENT_SUPPORTED_PROVIDERS].
+ * Upstream lower-cases exactly one provider name before comparing
+ * (`isProviderAttachType`, `client/src/utils/files.ts`). Copied narrowly rather than blanket-lowered:
+ * the literal comparisons downstream ([isProviderCapable]) are still case-SENSITIVE upstream, so
+ * normalising here would diverge from them. Only the document-support test is case-insensitive —
+ * see [isDocumentSupported].
  */
 private fun canonicalProvider(name: String?): String? {
     val trimmed = name?.trim()?.takeIf { it.isNotEmpty() } ?: return null
@@ -283,17 +292,43 @@ fun isProviderUnknown(
 ): Boolean = effectiveProvider(endpoint, agentProvider) == null &&
     canonicalProvider(endpointType) == null
 
-private fun isDocumentSupported(name: String?): Boolean =
-    name != null && name in DOCUMENT_SUPPORTED_PROVIDERS
+/**
+ * Mirrors `isDocumentSupportedProvider`, which upstream made case-insensitive in v0.8.8-rc3 — it
+ * lower-cases BOTH sides, which is why the set keeps its `openAI` spelling rather than being
+ * normalised at rest.
+ *
+ * Version-gated, because this predicate is not the client's alone: the server's own document,
+ * audio and video encoders run it too (`packages/api/src/files/encode/document.ts` returns an
+ * EMPTY document list when it is false), so an rc2-or-older server still comparing
+ * case-sensitively drops the file out of the LLM payload with no error and no text fallback.
+ *
+ * Fails CLOSED on an unknown version — the opposite of the memory-key gate, and for the reason
+ * that decides every such gate: guessing case-sensitive costs a mixed-case provider server-side
+ * text extraction, which is visible and recoverable, while guessing case-insensitive costs the
+ * document entirely and says nothing.
+ */
+private fun isDocumentSupported(name: String?, serverVersion: String? = null): Boolean {
+    val provider = name ?: return false
+    val caseInsensitive = serverVersion != null &&
+        BackendVersion.isCompatibleOrNewer(serverVersion, CASE_INSENSITIVE_PROVIDER_MIN_VERSION)
+    if (!caseInsensitive) return provider in DOCUMENT_SUPPORTED_PROVIDERS
+    val normalized = provider.lowercase()
+    return DOCUMENT_SUPPORTED_PROVIDERS.any { it.lowercase() == normalized }
+}
 
 /**
- * Whether the provider can take [mimeType] natively, mirroring `isValidProviderFile` in upstream's
- * `DragDropModal.tsx`.
+ * Whether the provider can take [mimeType] natively, mirroring `isProviderDocSupported` in
+ * upstream's `client/src/components/Chat/Input/Files/DragDropModal.tsx`.
  *
- * Note `supportsImageDocVideoAudio` upstream is `google || openrouter` only — vertexai is excluded
- * there even though the server's encoders do handle its video and audio. Under this router video
- * and audio never route to text anyway (see [TEXTUAL_APPLICATION_MIME_TYPES]), so the discrepancy
- * changes no outcome; it is mirrored rather than "fixed" so a sync diff stays clean.
+ * The `supportsImageDocVideoAudio` test below is this file's own, and is `google || openrouter`.
+ * rc3 introduced upstream's equivalent — `isMediaSupportedProvider`, over a `mediaSupportedProviders`
+ * set of google, vertexai and openrouter, matched case-insensitively — which ADDS vertexai, so from
+ * rc3 this no longer mirrors upstream.
+ *
+ * Deliberately not ported. Video and audio never route to text under this router anyway (see
+ * [TEXTUAL_APPLICATION_MIME_TYPES]), so routing is unaffected; the one surface that can see the
+ * difference is the manual picker's capability probe, which withholds a native video/audio attach
+ * for vertexai that an rc3 server would accept.
  */
 fun isProviderCapable(
     mimeType: String?,
@@ -306,7 +341,7 @@ fun isProviderCapable(
     val provider = effectiveProvider(endpoint, agentProvider)
     val type = canonicalProvider(endpointType)
 
-    if (!isDocumentSupported(provider) && !isDocumentSupported(type)) {
+    if (!isDocumentSupported(provider, serverVersion) && !isDocumentSupported(type, serverVersion)) {
         // Non-document providers still take images natively, and nothing else.
         return mime.startsWith("image/")
     }

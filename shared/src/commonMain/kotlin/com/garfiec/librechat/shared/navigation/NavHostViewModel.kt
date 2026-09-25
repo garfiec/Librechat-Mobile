@@ -22,6 +22,7 @@ import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.data.repository.ToolFavoritesRepository
 import com.garfiec.librechat.core.data.util.SessionTaskRunner
 import com.garfiec.librechat.core.model.Banner
+import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 import com.garfiec.librechat.core.network.client.AccountReadyGate
 import com.garfiec.librechat.core.network.client.ServerUrlProvider
 import com.garfiec.librechat.core.network.client.SessionEndReason
@@ -121,7 +122,12 @@ class NavHostViewModel(
                         accountId = entry.accountId,
                         displayLabel = entry.displayLabel,
                         serverHost = entry.serverUrl.serverHostLabel(),
-                        avatarUrl = entry.avatarUrl,
+                        // The server hands back a RELATIVE `/images/…` path, which Coil has
+                        // no fetcher for — it fails before issuing a request, and the slot
+                        // draws nothing. Resolved here rather than at seed time so the
+                        // persisted entry keeps what the server actually sent, and a
+                        // re-pointed server URL heals on the next read.
+                        avatarUrl = resolveAvatarUrl(entry.avatarUrl, entry.serverUrl),
                         isActive = entry.accountId == activeId,
                     )
                 }

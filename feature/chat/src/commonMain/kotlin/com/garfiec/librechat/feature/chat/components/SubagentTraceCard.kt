@@ -23,6 +23,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,6 +44,7 @@ import com.garfiec.librechat.feature.chat.resources.cd_collapse_subagent
 import com.garfiec.librechat.feature.chat.resources.cd_expand
 import com.garfiec.librechat.feature.chat.resources.cd_expand_subagent
 import com.garfiec.librechat.feature.chat.resources.label_subagent
+import com.garfiec.librechat.feature.chat.resources.subagent_threads_open
 import com.garfiec.librechat.feature.chat.viewmodel.SubagentTrace
 import org.jetbrains.compose.resources.stringResource
 
@@ -89,12 +91,19 @@ internal fun SubagentTraceCard(
     baseUrl: String = "",
     attachments: List<Attachment> = emptyList(),
     showImageDescriptions: Boolean = true,
+    /**
+     * The `subagent` tool_call this card renders, used to jump straight to the child's own thread
+     * in the viewer. NOT a `threadId` — that exists only in the parent index — so the viewer
+     * fetches the index and resolves the join itself.
+     */
+    parentToolCallId: String? = null,
     // Scopes this card's expand state and its nested parts'. Unscoped, every subagent card's
     // first nested part shared one key — the lazy item's SaveableStateHolder is keyed by
     // conversation slot, so expansion bled between unrelated cards.
     stateKey: String = "",
 ) {
     val parts = subagentTraceParts(persistedParts, liveTrace)
+    val openThreads = LocalSubagentThreads.current.takeIf { LocalSubagentThreadsAvailable.current }
     val isComplete = persistedParts != null || (liveTrace?.isComplete ?: true)
     val title = liveTrace?.subagentType?.takeIf { it.isNotBlank() }
         ?: liveTrace?.label?.takeIf { it.isNotBlank() }
@@ -165,6 +174,15 @@ internal fun SubagentTraceCard(
                             // The caller hoists this subtree's files out — see the KDoc.
                             hideAttachments = true,
                         )
+                    }
+                    // The trace above is what the parent's run saw. The viewer adds what cannot
+                    // reach a tool call at all — the child's own messages, and its history across
+                    // turns. Shown only where a viewer exists to open (v0.8.8-rc2 and inside the
+                    // chat screen), so nothing offers a dead affordance.
+                    if (openThreads != null) {
+                        TextButton(onClick = { openThreads(parentToolCallId) }) {
+                            Text(stringResource(Res.string.subagent_threads_open))
+                        }
                     }
                 }
             }

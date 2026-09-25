@@ -58,10 +58,132 @@ class StreamErrorTypeTest {
 
     @Test
     fun the_url_pattern_does_not_fire_on_a_neighbouring_langchain_error_code() {
-        // MODEL_NOT_FOUND is matched by URL because it is not one of upstream's ErrorTypes, which
-        // makes over-matching the risk: every LangChain troubleshooting link shares the prefix.
+        // The rc1 fallback is matched by URL, which makes over-matching the risk: every LangChain
+        // troubleshooting link shares the prefix.
         val other = "Troubleshooting URL: https://js.langchain.com/docs/troubleshooting/errors/INVALID_TOOL_RESULTS/"
         assertNull(StreamErrorType.parse(other))
+    }
+
+    @Test
+    fun the_v088_rc2_codes_classify_off_the_typed_payload() {
+        // Wire values copied from upstream `ErrorTypes` (packages/data-provider/src/config.ts),
+        // except SHARE_LIMIT, which is a `ViolationTypes` member upstream's error registry keys
+        // off the same `type` field.
+        val expected = mapOf(
+            "model_rate_limit" to StreamErrorType.MODEL_RATE_LIMIT,
+            "final_context_overflow" to StreamErrorType.FINAL_CONTEXT_OVERFLOW,
+            "compaction_skipped" to StreamErrorType.COMPACTION_SKIPPED,
+            "compaction_failed" to StreamErrorType.COMPACTION_FAILED,
+            "auth_rate_limited" to StreamErrorType.AUTH_RATE_LIMITED,
+            "auth_banned" to StreamErrorType.AUTH_BANNED,
+            "auth_cross_origin" to StreamErrorType.AUTH_CROSS_ORIGIN,
+            "share_limit" to StreamErrorType.SHARE_LIMIT,
+        )
+        expected.forEach { (wire, type) ->
+            assertEquals(type, StreamErrorType.parse("""{"type":"$wire","message":"server text"}"""))
+            assertEquals(type.marker, StreamErrorType.markerOrText("""{"type":"$wire"}"""))
+        }
+    }
+
+    /**
+     * The shape rc2's terminal-run handler actually composes: prose, a newline, then the payload
+     * (`packages/api/src/agents/failures/terminal.ts`). A case built from a bare JSON object
+     * passes whether or not `parse` can find an EMBEDDED payload, which is how a mapped type can
+     * still reach the user as raw JSON in the assistant message body.
+     */
+    @Test
+    fun a_payload_prefixed_with_prose_still_classifies() {
+        val raw = "The model provider could not complete this request.\n" +
+            """{"type":"upstream_model_error","status":503}"""
+
+        assertEquals(StreamErrorType.UPSTREAM_MODEL_ERROR, StreamErrorType.parse(raw))
+        assertEquals(StreamErrorType.UPSTREAM_MODEL_ERROR.marker, StreamErrorType.markerOrText(raw))
+    }
+
+    /** Braces in the prose must not swallow the payload: the span is BALANCED, not outermost-pair. */
+    @Test
+    fun braces_in_the_prose_do_not_break_the_extraction() {
+        val raw = """Template {placeholder} failed. {"type":"empty_messages"}"""
+
+        assertEquals(StreamErrorType.EMPTY_MESSAGES, StreamErrorType.parse(raw))
+    }
+
+    /**
+     * Upstream reads `code ?? type` and then unwraps an `error` envelope.
+     * `CodeWorkspaceSelectionError` names itself under `code` and never under `type`.
+     */
+    @Test
+    fun the_identifier_is_read_from_code_and_from_an_error_envelope() {
+        assertEquals(
+            StreamErrorType.CODE_WORKSPACE_UNAVAILABLE,
+            StreamErrorType.parse("""{"code":"code_workspace_unavailable","status":409}"""),
+        )
+        assertEquals(
+            StreamErrorType.MODERATION,
+            StreamErrorType.parse("""{"error":{"type":"moderation"}}"""),
+        )
+    }
+
+    /**
+     * Upstream gates the envelope on `topLevelKey == null`, so a top-level identifier it does not
+     * recognize is FINAL and the provider's own sentence is what the user reads. Resolving through
+     * the lookup table first and searching on for a hit instead reports a content-filter block for
+     * an ordinary invalid-request error.
+     */
+    @Test
+    fun an_unrecognized_top_level_identifier_stops_the_search() {
+        assertNull(
+            StreamErrorType.parse(
+                """{"type":"invalid_request_error","error":{"type":"moderation"}}""",
+            ),
+        )
+        // …and one that IS recognized still wins over the envelope beneath it.
+        assertEquals(
+            StreamErrorType.EMPTY_MESSAGES,
+            StreamErrorType.parse("""{"type":"empty_messages","error":{"type":"moderation"}}"""),
+        )
+    }
+
+    /**
+     * The walk resumes past each span it parsed, not one character into it. Re-entering offers a
+     * payload's own children as top-level payloads, which is the same fall-through by another
+     * route — here the nested `moderation` would be reached as if it stood alone.
+     */
+    @Test
+    fun the_walk_does_not_re_enter_a_span_it_already_parsed() {
+        assertNull(
+            StreamErrorType.parse(
+                """Provider said: {"type":"invalid_request_error","error":{"type":"moderation"}}""",
+            ),
+        )
+        // The span-advance on its own, with the envelope gate out of the picture: the top level
+        // names no identifier and carries no `error` envelope, so upstream renders it
+        // unclassified. Re-entering the span offers `{"type":"moderation"}` as a payload of its
+        // own, at any nesting depth and under any key.
+        assertNull(StreamErrorType.parse("""{"data":{"type":"moderation"}}"""))
+    }
+
+    /**
+     * …and the advance skips only a span that PARSED. A brace run that is not JSON at all is
+     * prose, and a real payload can sit inside one — skipping it would narrow the very widening
+     * the walk exists for. (A run that DOES parse and names nothing is settled, exactly as
+     * upstream's single-run `extractJson` settles it.)
+     */
+    @Test
+    fun a_payload_nested_in_a_non_json_brace_run_is_still_found() {
+        assertEquals(
+            StreamErrorType.EMPTY_MESSAGES,
+            StreamErrorType.parse("""Retry {1 2 3 {"type":"empty_messages"}} gave up."""),
+        )
+    }
+
+    /** A message with no payload at all still degrades to the server's own text. */
+    @Test
+    fun prose_with_no_payload_is_left_alone() {
+        val raw = "Something went wrong."
+
+        assertNull(StreamErrorType.parse(raw))
+        assertEquals(raw, StreamErrorType.markerOrText(raw))
     }
 
     @Test

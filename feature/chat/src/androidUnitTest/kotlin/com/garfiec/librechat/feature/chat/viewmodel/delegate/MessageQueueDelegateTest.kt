@@ -10,6 +10,8 @@ import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ComposerSnapshot
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedEditSession
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
+import com.garfiec.librechat.feature.chat.viewmodel.QueuedTurnServerState
+import com.garfiec.librechat.feature.chat.viewmodel.SettledQueuedTurn
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -50,6 +52,30 @@ class MessageQueueDelegateTest {
         agentId = null,
         dispatch = EndpointDispatch(endpointType = null, key = null, modelDisplayLabel = null),
     )
+
+    private fun serverOwned(
+        id: String,
+        status: QueuedTurnServerState.Status = QueuedTurnServerState.Status.Queued,
+    ) = spec(id).copy(
+        server = QueuedTurnServerState(status = status, id = "qt-$id"),
+        clientRequestId = "req-$id",
+        parentMessageId = "msg-0",
+    )
+
+    private fun settle(
+        evidence: SettledQueuedTurn.Evidence,
+        effectivePredecessorCreatedAt: Long? = null,
+    ) {
+        stateFlow.value = stateFlow.value.copy(
+            queue = stateFlow.value.queue.copy(
+                settledQueuedTurns = stateFlow.value.queue.settledQueuedTurns + SettledQueuedTurn(
+                    clientRequestId = "req-settled-${stateFlow.value.queue.settledQueuedTurns.size}",
+                    evidence = evidence,
+                    effectivePredecessorCreatedAt = effectivePredecessorCreatedAt,
+                ),
+            ),
+        )
+    }
 
     private val queue get() = stateFlow.value.messageQueue
     private val paused get() = stateFlow.value.isQueuePaused
@@ -220,6 +246,117 @@ class MessageQueueDelegateTest {
         delegate.drainNext()
 
         assertThat(sent).isEmpty()
+    }
+
+    @Test
+    fun `drainNext refuses to send a row the server owns`() {
+        // The server has no guard against a turn being enqueued and then also sent the ordinary
+        // way, so this refusal is the whole double-send protection.
+        delegate.enqueue(serverOwned("a"))
+
+        delegate.drainNext()
+
+        assertThat(sent).isEmpty()
+        assertThat(queue.map { it.localId }).containsExactly("a")
+    }
+
+    @Test
+    fun `a server-owned row anywhere in the queue blocks the whole drain`() {
+        // The server admits behind the boundary this run just closed, so a local row firing now
+        // races it wherever it sits — the head is not the only thing that matters.
+        delegate.enqueue(spec("a"))
+        delegate.enqueue(serverOwned("b"))
+
+        delegate.drainNext()
+
+        assertThat(sent).isEmpty()
+        assertThat(queue.map { it.localId }).containsExactly("a", "b").inOrder()
+    }
+
+    @Test
+    fun `a rejected row still blocks the drain`() {
+        // A definite rejection proves nothing was committed, but recovery is the user's call —
+        // upstream keeps the row server-owned rather than quietly resending it.
+        delegate.enqueue(
+            serverOwned("a", QueuedTurnServerState.Status.Rejected).let {
+                it.copy(server = it.server?.copy(errorCode = "QUEUED_TURN_QUEUE_FULL"))
+            },
+        )
+
+        delegate.drainNext()
+
+        assertThat(sent).isEmpty()
+    }
+
+    @Test
+    fun `an admission that consumed this boundary blocks the drain after its row is gone`() {
+        // The race the settled store exists for: the poll removes an admitted row, then the run's
+        // own Final arrives. With only the `server != null` test, the legacy follow-up behind it
+        // would drain into a turn the server has already started.
+        delegate.enqueue(spec("a"))
+        settle(SettledQueuedTurn.Evidence.Admitted, effectivePredecessorCreatedAt = 100L)
+
+        delegate.drainNext(endedGenerationCreatedAt = 100L)
+
+        assertThat(sent).isEmpty()
+        assertThat(queue.map { it.localId }).containsExactly("a")
+    }
+
+    @Test
+    fun `one admission fences one boundary`() {
+        // Same epoch twice — a re-delivered run end must not keep the queue frozen for ever on
+        // evidence that was already spent. The second pass drains.
+        delegate.enqueue(spec("a"))
+        settle(SettledQueuedTurn.Evidence.Admitted, effectivePredecessorCreatedAt = 100L)
+        delegate.drainNext(endedGenerationCreatedAt = 100L)
+        assertThat(sent).isEmpty()
+
+        delegate.drainNext(endedGenerationCreatedAt = 100L)
+
+        assertThat(sent.map { it.localId }).containsExactly("a")
+    }
+
+    @Test
+    fun `a spent admission does not fence a later run's boundary`() {
+        delegate.enqueue(spec("a"))
+        settle(SettledQueuedTurn.Evidence.Admitted, effectivePredecessorCreatedAt = 100L)
+        delegate.drainNext(endedGenerationCreatedAt = 100L)
+
+        // The admitted turn's OWN run now ends under a new epoch.
+        delegate.drainNext(endedGenerationCreatedAt = 200L)
+
+        assertThat(sent.map { it.localId }).containsExactly("a")
+    }
+
+    @Test
+    fun `an admission for a different boundary does not block`() {
+        delegate.enqueue(spec("a"))
+        settle(SettledQueuedTurn.Evidence.Admitted, effectivePredecessorCreatedAt = 999L)
+
+        delegate.drainNext(endedGenerationCreatedAt = 100L)
+
+        assertThat(sent.map { it.localId }).containsExactly("a")
+    }
+
+    @Test
+    fun `an admission whose boundary the server has not reported does not block`() {
+        // AdmittedPendingBoundary cannot fence anything — there is no epoch to match, and
+        // blocking on it would wedge the queue on evidence that may never be completed.
+        delegate.enqueue(spec("a"))
+        settle(SettledQueuedTurn.Evidence.AdmittedPendingBoundary)
+
+        delegate.drainNext(endedGenerationCreatedAt = 100L)
+
+        assertThat(sent.map { it.localId }).containsExactly("a")
+    }
+
+    @Test
+    fun `a legacy queue still drains`() {
+        delegate.enqueue(spec("a"))
+
+        delegate.drainNext()
+
+        assertThat(sent.map { it.localId }).containsExactly("a")
     }
 
     @Test
