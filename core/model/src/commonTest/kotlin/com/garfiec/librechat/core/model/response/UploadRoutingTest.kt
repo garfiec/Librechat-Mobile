@@ -258,12 +258,12 @@ class UploadRoutingTest {
         assertEquals(UploadRoute.PROVIDER, route(pdf, "OPENROUTER"))
         // The set's own `openAI` spelling matches whatever the server does.
         assertEquals(UploadRoute.PROVIDER, route(pdf, "openAI"))
-        // Document support became case-insensitive on BOTH sides in v0.8.8-rc2, so from there a
+        // Document support became case-insensitive on BOTH sides in v0.8.8-rc3, so from there a
         // differently-cased name agrees with the set.
-        assertEquals(UploadRoute.PROVIDER, route(pdf, "openai", serverVersion = "0.8.8-rc2"))
+        assertEquals(UploadRoute.PROVIDER, route(pdf, "openai", serverVersion = "0.8.8-rc3"))
         assertEquals(UploadRoute.PROVIDER, route(pdf, "Anthropic", serverVersion = "0.8.8-rc3"))
         // The `google` and `bedrock` capability comparisons stay case-SENSITIVE, mirroring
-        // `isProviderAttachType` in `client/src/utils/files.ts`, which rc2 did NOT change.
+        // `isProviderAttachType` in `client/src/utils/files.ts`, which rc3 did NOT change.
         // Openrouter is not in that set: that function opens by rewriting a case-insensitive
         // `openrouter` match back to the canonical spelling, as `canonicalProvider` does here, so
         // its comparison never sees non-canonical input. Only the document-support predicate is
@@ -276,14 +276,16 @@ class UploadRoutingTest {
     }
 
     /**
-     * The rc1 half of the same rule, and the reason the gate fails CLOSED. `document.ts` runs this
-     * predicate server-side and returns an EMPTY document list when it is false, so treating an
-     * rc1 server as case-insensitive routes the file to a provider that will silently drop it —
-     * whereas guessing case-sensitive costs text extraction, which the user can see.
+     * The pre-rc3 half of the same rule, and the reason the gate fails CLOSED. `document.ts` runs
+     * this predicate server-side and returns an EMPTY document list when it is false, so treating
+     * an rc2-or-older server as case-insensitive routes the file to a provider that will silently
+     * drop it — whereas guessing case-sensitive costs text extraction, which the user can see.
      */
     @Test
     fun caseInsensitiveMatchingIsWithheldFromServersThatDoNotDoIt() {
         assertEquals(UploadRoute.TEXT, route(pdf, "openai", serverVersion = "0.8.8-rc1"))
+        // rc2 is the boundary that matters: it looks like it should have the feature and does not.
+        assertEquals(UploadRoute.TEXT, route(pdf, "openai", serverVersion = "0.8.8-rc2"))
         assertEquals(UploadRoute.TEXT, route(pdf, "Anthropic", serverVersion = "0.8.7"))
         // Unknown version fails closed the same way.
         assertEquals(UploadRoute.TEXT, route(pdf, "Anthropic"))

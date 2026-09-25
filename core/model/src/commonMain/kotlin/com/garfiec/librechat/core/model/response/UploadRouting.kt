@@ -158,9 +158,10 @@ private const val SHELL_SCRIPT_ALIAS_MIN_VERSION = "0.8.8-rc1"
 
 /**
  * First server version whose `isDocumentSupportedProvider` lower-cases both sides. An rc-granular
- * threshold on purpose: `"0.8.8"` would exclude every rc, and the change landed in rc2.
+ * threshold on purpose: `"0.8.8"` would exclude every rc, and the change landed in rc3 — at rc2
+ * `schemas.ts` still reads `documentSupportedProviders.has(provider ?? '')`, case-sensitively.
  */
-private const val CASE_INSENSITIVE_PROVIDER_MIN_VERSION = "0.8.8-rc2"
+private const val CASE_INSENSITIVE_PROVIDER_MIN_VERSION = "0.8.8-rc3"
 
 /**
  * The excel MIME variants upstream matches with `excelMimeTypes`, which is one leg of
@@ -292,14 +293,14 @@ fun isProviderUnknown(
     canonicalProvider(endpointType) == null
 
 /**
- * Mirrors `isDocumentSupportedProvider`, which upstream made case-insensitive in v0.8.8-rc2 — it
+ * Mirrors `isDocumentSupportedProvider`, which upstream made case-insensitive in v0.8.8-rc3 — it
  * lower-cases BOTH sides, which is why the set keeps its `openAI` spelling rather than being
  * normalised at rest.
  *
  * Version-gated, because this predicate is not the client's alone: the server's own document,
  * audio and video encoders run it too (`packages/api/src/files/encode/document.ts` returns an
- * EMPTY document list when it is false), so an rc1 server still comparing case-sensitively drops
- * the file out of the LLM payload with no error and no text fallback.
+ * EMPTY document list when it is false), so an rc2-or-older server still comparing
+ * case-sensitively drops the file out of the LLM payload with no error and no text fallback.
  *
  * Fails CLOSED on an unknown version — the opposite of the memory-key gate, and for the reason
  * that decides every such gate: guessing case-sensitive costs a mixed-case provider server-side
