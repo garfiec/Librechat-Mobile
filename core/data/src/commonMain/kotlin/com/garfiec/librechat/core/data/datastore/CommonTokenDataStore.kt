@@ -391,17 +391,27 @@ abstract class CommonTokenDataStore(
         accountId: String,
         baseUrl: String,
         usedAccessToken: String?,
-    ): RefreshResult =
+    ): RefreshResult {
+        // An empty string is absence, not a base URL: concatenated it yields the RELATIVE
+        // `/api/auth/refresh`, and passed on as `pinnedBaseUrl` it is a server id that names
+        // nothing. Both are absorbed today — Ktor resolves the relative path against the same
+        // live base an unpinned POST would use, and `ServerHeadersPlugin.resolveBaseUrl` applies
+        // this identical `takeIf` before it looks a server up — so this changes no behaviour. It
+        // is here because the two downstream normalizations are what make it true, and saying
+        // "unpinned" once beats depending on both of them to keep saying it.
+        // [ensureFreshAccessToken] normalizes at this same seam.
+        val pinned = baseUrl.trimTrailingSlash().takeIf { it.isNotEmpty() }
         // URL-pinned: post to an absolute URL so a concurrent server switch can't redirect this
         // account's refresh token to another server. [pinnedBaseUrl] carries the *server* half of that
         // pin to ServerHeadersPlugin — the request URL alone can't serve as the key, because it is the
         // refresh endpoint, not the deployment root, and would derive a different serverId.
-        performRefresh(
+        return performRefresh(
             accountKey = accountId,
-            absoluteRefreshUrl = "${baseUrl.trimTrailingSlash()}$REFRESH_PATH",
-            pinnedBaseUrl = baseUrl.trimTrailingSlash(),
+            absoluteRefreshUrl = pinned?.let { "$it$REFRESH_PATH" },
+            pinnedBaseUrl = pinned,
             usedAccessToken = usedAccessToken,
         )
+    }
 
     override suspend fun ensureFreshAccessToken(
         accountId: String?,
