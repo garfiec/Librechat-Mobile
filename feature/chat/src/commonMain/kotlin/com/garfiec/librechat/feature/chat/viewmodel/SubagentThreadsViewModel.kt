@@ -62,6 +62,15 @@ class SubagentThreadsViewModel(
     private var loadedFor: String? = null
 
     /**
+     * The tool call the LATEST [openFor] asked to focus.
+     *
+     * Read back when the index lands rather than captured by the launch: the sheet can be
+     * dismissed and reopened on a different card while the first read is still out, and the
+     * launching call's parameter then names the tap the user abandoned.
+     */
+    private var requestedFocus: String? = null
+
+    /**
      * Loads the conversation's children, once per conversation.
      *
      * Skipped entirely on a server KNOWN to predate the routes; an unplaceable one is asked,
@@ -72,7 +81,12 @@ class SubagentThreadsViewModel(
             _uiState.value = SubagentThreadsUiState(hasNoChildView = true)
             return
         }
+        requestedFocus = focusParentToolCallId
         if (loadedFor == parentConversationId) {
+            // Still reading this conversation's index: there is nothing to focus against yet, and
+            // restarting would throw away a request already in flight. The read lands on
+            // `requestedFocus`, which the line above has just moved to this tap.
+            if (_uiState.value.isLoadingIndex) return
             // Reopened on a conversation already read. Back to the list first, so dismissing while
             // a child was open does not reopen onto a stale thread the user did not ask for.
             backToList()
@@ -94,7 +108,9 @@ class SubagentThreadsViewModel(
                         childrenTruncated = result.data.childrenTruncated,
                         isLoadingIndex = false,
                     )
-                    focusChild(parentConversationId, focusParentToolCallId)
+                    // The latest request's focus, not this launch's: a reopen on another card
+                    // while the read was out has already moved it.
+                    focusChild(parentConversationId, requestedFocus)
                 }
                 is Result.Error -> {
                     // NOTHING here is remembered. A 404 is per-conversation — missing, not yours,
@@ -141,7 +157,12 @@ class SubagentThreadsViewModel(
                     openThread = result.data,
                     isLoadingThread = false,
                 )
+                // The thread never opened, so the id has to go with the spinner. Left set, the
+                // sheet falls past every thread arm of its `when` and draws the child list again
+                // — under a back arrow (gated on [SubagentThreadsUiState.isShowingThread]) that
+                // returns to the list the user is already looking at. The tap reads as a no-op.
                 is Result.Error -> _uiState.value = _uiState.value.copy(
+                    openThreadId = null,
                     isLoadingThread = false,
                     error = result.message,
                 )

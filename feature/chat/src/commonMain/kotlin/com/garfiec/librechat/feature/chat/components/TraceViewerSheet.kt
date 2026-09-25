@@ -79,6 +79,7 @@ import com.garfiec.librechat.feature.chat.resources.trace_stat_turns
 import com.garfiec.librechat.feature.chat.resources.trace_title
 import com.garfiec.librechat.feature.chat.resources.trace_tokens_detail
 import com.garfiec.librechat.feature.chat.resources.trace_truncated
+import com.garfiec.librechat.feature.chat.util.formatAbsoluteTimestamp
 import com.garfiec.librechat.feature.chat.viewmodel.TraceViewerViewModel
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -288,8 +289,19 @@ private fun Stat(
 private fun TurnHeader(turn: TraceTurn, modifier: Modifier = Modifier) {
     val summary = turn.summary
     Column(modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp)) {
+        // `startTime` is a SORT key — kept as an ISO string so lexicographic order is
+        // chronological — not a display value. Shown raw it reads
+        // "2026-09-19T14:32:11.523Z", in UTC, directly above bubbles the same screen
+        // renders with the formatted stamp this helper produces. An unparseable value
+        // formats to "", which falls back to the message id as before.
+        val heading = remember(turn.startTime, turn.messageId) {
+            turn.startTime.takeIf { it.isNotEmpty() }
+                ?.let(::formatAbsoluteTimestamp)
+                ?.takeIf { it.isNotEmpty() }
+                ?: turn.messageId
+        }
         Text(
-            text = turn.startTime.ifEmpty { turn.messageId },
+            text = heading,
             style = MaterialTheme.typography.labelLarge,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

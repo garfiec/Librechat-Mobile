@@ -3,6 +3,7 @@ package com.garfiec.librechat.core.model.subagent
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.ToolCallType
 import com.garfiec.librechat.core.model.content.AgentToolCall
+import com.garfiec.librechat.core.model.content.FunctionCall
 import com.garfiec.librechat.core.model.content.MessageContentPart
 import kotlinx.serialization.json.JsonPrimitive
 
@@ -57,6 +58,11 @@ private fun SubagentActivityItem.toPart(): MessageContentPart? = when (type) {
             // structured JSON. Wrapped as a primitive so the card shows what the server sent
             // instead of failing to decode something that was never an object.
             args = input?.let(::JsonPrimitive),
+            // …and carried on `function` as well, because that is the field the card actually
+            // draws its Input block from (`toolCall.function.arguments`). With only `args` set,
+            // every tool row in the thread viewer renders its output and silently omits what the
+            // tool was called with.
+            function = FunctionCall(name = name, arguments = input, output = output),
             output = output,
             inputValidationError = inputValidationError.takeIf { it == true },
         ),

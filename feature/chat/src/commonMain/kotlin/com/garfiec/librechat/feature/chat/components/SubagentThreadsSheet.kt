@@ -42,10 +42,12 @@ import com.garfiec.librechat.core.model.subagent.toContentParts
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.resources.subagent_threads_back
 import com.garfiec.librechat.feature.chat.resources.subagent_threads_empty
 import com.garfiec.librechat.feature.chat.resources.subagent_threads_event_origin
 import com.garfiec.librechat.feature.chat.resources.subagent_threads_load_older
 import com.garfiec.librechat.feature.chat.resources.subagent_threads_older_unavailable
+import com.garfiec.librechat.feature.chat.resources.subagent_threads_open
 import com.garfiec.librechat.feature.chat.resources.subagent_threads_title
 import com.garfiec.librechat.feature.chat.resources.subagent_threads_truncated
 import com.garfiec.librechat.feature.chat.resources.subagent_threads_unavailable
@@ -90,7 +92,10 @@ internal fun SubagentThreadsSheet(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (uiState.isShowingThread) {
                     IconButton(onClick = viewModel::backToList) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(Res.string.subagent_threads_back),
+                        )
                     }
                 }
                 Text(
@@ -118,6 +123,10 @@ internal fun SubagentThreadsSheet(
                     olderUnavailable = uiState.olderHistoryUnavailable,
                     isLoadingOlder = uiState.isLoadingOlder,
                     onLoadOlder = { viewModel.loadOlder(parentConversationId) },
+                    // Weighted so the error line below keeps its space: the sheet's Column is
+                    // height-capped, and an unweighted list long enough to fill it measures
+                    // everything after it at zero — which is the only feedback a failed read has.
+                    modifier = Modifier.weight(1f, fill = false),
                 )
 
                 uiState.children.isEmpty() ->
@@ -127,6 +136,7 @@ internal fun SubagentThreadsSheet(
                     children = uiState.children,
                     truncated = uiState.childrenTruncated,
                     onOpen = { viewModel.openThread(parentConversationId, it) },
+                    modifier = Modifier.weight(1f, fill = false),
                 )
             }
 
@@ -158,9 +168,18 @@ private fun ChildList(
     children: List<SubagentSummary>,
     truncated: Boolean,
     onOpen: (String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    LazyColumn(Modifier.fillMaxWidth()) {
-        items(children, key = { it.threadId }) { child ->
+    LazyColumn(modifier.fillMaxWidth()) {
+        items(children, key = { it.threadId }, contentType = { "child" }) { child ->
+            // `status` is nullable and routinely absent, so the separator is joined only between
+            // the parts that are actually there — otherwise an event-spawned child reads "Started
+            // by an event · " and a status-less tool child draws an empty supporting line that
+            // still occupies a row.
+            val origin = stringResource(Res.string.subagent_threads_event_origin)
+                .takeIf { child.origin == SubagentOrigin.EVENT }
+            val supporting = listOfNotNull(origin, child.status?.takeIf { it.isNotBlank() })
+                .joinToString(" · ")
             ListItem(
                 headlineContent = {
                     Text(
@@ -169,16 +188,8 @@ private fun ChildList(
                         overflow = TextOverflow.Ellipsis,
                     )
                 },
-                supportingContent = {
-                    val suffix = child.status.orEmpty()
-                    Text(
-                        text = if (child.origin == SubagentOrigin.EVENT) {
-                            stringResource(Res.string.subagent_threads_event_origin) + " · " + suffix
-                        } else {
-                            suffix
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                    )
+                supportingContent = supporting.takeIf { it.isNotEmpty() }?.let { line ->
+                    { Text(text = line, style = MaterialTheme.typography.bodySmall) }
                 },
                 leadingContent = {
                     Icon(Icons.Default.AccountTree, contentDescription = null, modifier = Modifier.size(20.dp))
@@ -186,7 +197,7 @@ private fun ChildList(
                 modifier = Modifier.fillMaxWidth(),
             )
             TextButton(onClick = { onOpen(child.threadId) }, modifier = Modifier.padding(start = 8.dp)) {
-                Text(stringResource(Res.string.subagent_threads_title))
+                Text(stringResource(Res.string.subagent_threads_open))
             }
         }
         if (truncated) {
@@ -209,6 +220,7 @@ private fun ThreadBody(
     olderUnavailable: Boolean,
     isLoadingOlder: Boolean,
     onLoadOlder: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     // The view's own activity shape converts to the content parts the app already draws, so the
     // shared dispatcher renders the child's reasoning, tools and text instead of a second set of
@@ -219,12 +231,16 @@ private fun ThreadBody(
     // through it draws nothing at all. Folding the child's tools under collapsible headers would
     // mean running that transform here too; a read-only trace does not need it, and a label that
     // silently vanished would be worse than one shown as the line it is.
-    val parts = view.activity.toContentParts()
+    //
     // `loadOlder` REPLACES the thread rather than appending, so every position shifts when an
     // older page lands. Keyed by position, a tool-call card would inherit the expansion state of
     // whatever unrelated part now sits at its index.
-    val keyedParts = remember(parts) { parts.withStableKeys() }
-    LazyColumn(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    //
+    // Keyed on the SOURCE list, not on the converted one: the sheet recomposes on every state
+    // change while it is open, and converting first would rebuild a part per activity item on each
+    // pass only for `remember` to deep-compare the fresh list away.
+    val keyedParts = remember(view.activity) { view.activity.toContentParts().withStableKeys() }
+    LazyColumn(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (olderUnavailable) {
             item(key = "older-unavailable", contentType = "notice") {
                 // The retained chain vanished between requests, so no cursor brings it back. A
@@ -287,12 +303,22 @@ private data class KeyedThreadPart(val key: String, val part: MessageContentPart
 private fun List<MessageContentPart>.withStableKeys(): List<KeyedThreadPart> {
     val seen = mutableMapOf<String, Int>()
     return map { part ->
+        // `think` and the tool name are in the chain because `toContentParts` fills exactly one
+        // field per arm: a REASONING item lands in `think` with `text` null, so reading `text`
+        // alone identifies every reasoning block as the empty string and collapses the whole
+        // column back onto positional keys — the defect these keys exist to prevent. Same for a
+        // TOOL arm the projection served without a `toolCallId`.
         val identity = part.toolCall?.id?.takeIf { it.isNotEmpty() }
             ?: part.activityLabel?.takeIf { it.isNotEmpty() }
             ?: part.text?.takeIf { it.isNotEmpty() }
+            ?: part.think?.takeIf { it.isNotEmpty() }
+            ?: part.toolCall?.name?.takeIf { it.isNotEmpty() }
             ?: ""
         val base = "${part.type}:${identity.hashCode()}"
-        val occurrence = seen.merge(base, 1, Int::plus) ?: 1
+        // Not `MutableMap.merge`: that is a java.util.Map default method with no Kotlin/Native
+        // counterpart, so it compiles on Android and breaks the iOS build from commonMain.
+        val occurrence = (seen[base] ?: 0) + 1
+        seen[base] = occurrence
         KeyedThreadPart(if (occurrence == 1) base else "$base#$occurrence", part)
     }
 }
