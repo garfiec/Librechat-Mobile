@@ -135,4 +135,6 @@ data class QueuedEditSession(
     val original: QueuedMessage,
     val originalIndex: Int,
     val stashed: ComposerSnapshot,
+    /** [original] was withdrawn from the server queue to be edited, so it is offered back there. */
+    val withdrawnFromServer: Boolean = false,
 )

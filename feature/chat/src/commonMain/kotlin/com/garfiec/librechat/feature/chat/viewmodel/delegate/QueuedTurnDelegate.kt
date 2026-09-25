@@ -49,8 +49,8 @@ class QueuedTurnDelegate(
     private val onSuccessorOwed: () -> Boolean,
     /**
      * Builds a display row for a receipt this client has never seen — queued on another device,
-     * or by a process that has since been killed. Its send config is a placeholder and is never
-     * read: the server runs the turn, and the drain refuses server-owned rows.
+     * or by a process that has since been killed. An edit loads the row into the composer, so it
+     * has to carry what the receipt does, files included.
      */
     private val projectOrphan: (AgentQueuedTurnReceipt) -> QueuedMessage?,
     /**

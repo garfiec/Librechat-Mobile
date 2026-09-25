@@ -54,6 +54,7 @@ import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.core.model.permissions.canCreateSharedLinks
 import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
 import com.garfiec.librechat.core.model.queuedturn.AgentQueuedTurnReceipt
+import com.garfiec.librechat.core.model.queuedturn.QueuedTurnFileRef
 import com.garfiec.librechat.core.model.request.ToolApprovalResolution
 import com.garfiec.librechat.core.model.response.UploadRoute
 import com.garfiec.librechat.core.model.steer.mergeRestagedQuotes
@@ -1264,16 +1265,21 @@ class ChatViewModel(
      * again there would wipe whatever the user has typed in the meantime.
      */
     private fun enqueueSpec(spec: QueuedMessage) {
+        placeInQueue(spec, queueDelegate::enqueue)
+        // If the in-flight reply already finished, no Final will arrive to drain this — kick it now.
+        tryResumeDrain()
+    }
+
+    /** Puts [spec] in the queue through [insert], handing it to the server when it can own it. */
+    private fun placeInQueue(spec: QueuedMessage, insert: (QueuedMessage) -> Unit) {
         val conversationId = _uiState.value.conversationId
         val owned = if (conversationId == null) spec else serverOwnedSpec(spec)
-        queueDelegate.enqueue(owned)
+        insert(owned)
         // Strictly after the row is in the queue: everything the enqueue answer does — marking it
         // rejected, handing it back to the legacy drain — addresses a row that has to exist.
         if (owned.server != null && conversationId != null) {
             queuedTurnDelegate.enqueue(owned, conversationId)
         }
-        // If the in-flight reply already finished, no Final will arrive to drain this — kick it now.
-        tryResumeDrain()
     }
 
     /**
@@ -1315,15 +1321,17 @@ class ChatViewModel(
      * device, or by a process that has since been killed (the queue is memory-only, the server's
      * is not).
      *
-     * The send config is a placeholder and is never read: the server runs the turn with the
-     * conversation's own config, and the drain refuses server-owned rows outright. It is filled
-     * in only because [QueuedMessage] requires it for the rows that DO drain locally.
+     * The server runs the turn with the conversation's own config, so the model, tools and
+     * parameters here are the composer's current ones. They are read only if the user edits the
+     * row, which loads them into the composer exactly as upstream's edit does. The files are the
+     * receipt's own: an edit that dropped them would send the turn without them.
      */
     private fun projectOrphanQueuedTurn(receipt: AgentQueuedTurnReceipt): QueuedMessage {
         val state = _uiState.value
         return QueuedMessage(
             localId = receipt.clientRequestId,
             text = receipt.text,
+            attachments = receipt.files.orEmpty().map { it.toAttachedFile(state.serverUrl) },
             endpoint = state.selectedEndpoint,
             model = state.selectedModel,
             agentId = state.selectedModel.takeIf {
@@ -1331,6 +1339,26 @@ class ChatViewModel(
             },
             dispatch = requestBuilder.currentDispatch(),
             accountId = activeAccountProvider.currentAccountId()?.value,
+        )
+    }
+
+    private fun QueuedTurnFileRef.toAttachedFile(baseUrl: String): AttachedFile {
+        val isImage = type?.let(::isImageType) == true
+        val previewUrl = if (isImage) {
+            resolveFileReferenceUrl(FileReference(fileId = fileId, filepath = filepath, type = type), baseUrl)
+        } else {
+            null
+        }
+        return AttachedFile(
+            uri = previewUrl ?: fileId,
+            name = filename ?: fileId,
+            isImage = isImage,
+            uploadProgress = 1f,
+            fileId = fileId,
+            filepath = filepath,
+            type = type,
+            width = width,
+            height = height,
         )
     }
 
@@ -1397,11 +1425,11 @@ class ChatViewModel(
                     // A real DELETE's receipt already retired the row; a refused one never had an
                     // id to delete and is still sitting there. Take it out either way — leaving it
                     // would put the edit BESIDE the original and block the drain on a row nothing
-                    // retires. It comes back as an ordinary local item: re-offering it to the
-                    // server under the same clientRequestId with different text would be a 409.
-                    // Its slot is re-read here because a drain may have shifted it meanwhile.
+                    // retires. Its server identity is dropped here and a fresh one minted when the
+                    // edit is offered back (see [placeInQueue]). Its slot is re-read here because a
+                    // drain may have shifted it meanwhile.
                     val taken = queueDelegate.takeForEdit(localId)
-                    beginQueuedEdit(serverOwned.asLegacyRow(), taken?.index ?: index)
+                    beginQueuedEdit(serverOwned.asLegacyRow(), taken?.index ?: index, withdrawnFromServer = true)
                 } finally {
                     withdrawingForEdit = null
                 }
@@ -1420,7 +1448,7 @@ class ChatViewModel(
         expectedPredecessorCreatedAt = null,
     )
 
-    private fun beginQueuedEdit(item: QueuedMessage, index: Int) {
+    private fun beginQueuedEdit(item: QueuedMessage, index: Int, withdrawnFromServer: Boolean = false) {
         val stashed = captureComposer()
         applyComposer(item.toComposerSnapshot())
         _uiState.update {
@@ -1430,6 +1458,7 @@ class ChatViewModel(
                         original = item,
                         originalIndex = index,
                         stashed = stashed,
+                        withdrawnFromServer = withdrawnFromServer,
                     ),
                 ),
             )
@@ -1448,7 +1477,7 @@ class ChatViewModel(
             val edited = buildSendSpec(text)
                 ?.copy(localId = session.original.localId, quotes = session.original.quotes)
             if (edited != null) {
-                queueDelegate.reinsert(session.originalIndex, edited)
+                restoreQueued(session, edited)
             } else {
                 // Composer emptied → treat as delete; the item is simply not put back.
                 queueDelegate.clearPauseIfEmpty()
@@ -1461,8 +1490,23 @@ class ChatViewModel(
      *  and bring back the stashed new-message draft. */
     fun cancelQueuedEdit() {
         val session = _uiState.value.editingQueuedItem ?: return
-        queueDelegate.reinsert(session.originalIndex, session.original)
+        restoreQueued(session, session.original)
         finishQueuedEdit(session)
+    }
+
+    /**
+     * Puts an edited (or un-edited) item back into its slot.
+     *
+     * One withdrawn from the server goes back to it while the run is still live. Left local, it
+     * would be overtaken: every follow-up queued after it is server-owned, the server admits those
+     * at the run end, and the drain refuses to send this one until they have all run.
+     */
+    private fun restoreQueued(session: QueuedEditSession, item: QueuedMessage) {
+        if (session.withdrawnFromServer) {
+            placeInQueue(item) { queueDelegate.reinsert(session.originalIndex, it) }
+        } else {
+            queueDelegate.reinsert(session.originalIndex, item)
+        }
     }
 
     private fun finishQueuedEdit(session: QueuedEditSession) {

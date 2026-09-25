@@ -14,6 +14,7 @@ import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.queuedturn.AgentQueuedTurnReceipt
 import com.garfiec.librechat.core.model.queuedturn.EnqueueQueuedTurnRequest
+import com.garfiec.librechat.core.model.queuedturn.QueuedTurnFileRef
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnOutcome
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnStatus
 import com.garfiec.librechat.core.model.response.ChatStatusResponse
@@ -300,6 +301,7 @@ class ChatViewModelQueuedTurnTest {
                         text = "left over from last time",
                         status = QueuedTurnStatus.QUEUED,
                         revision = 3,
+                        files = listOf(QueuedTurnFileRef(fileId = "file-1", filename = "chart.png", type = "image/png")),
                     ),
                 )
             },
@@ -310,6 +312,8 @@ class ChatViewModelQueuedTurnTest {
             assertThat(recovered.text).isEqualTo("left over from last time")
             assertThat(recovered.clientRequestId).isEqualTo("req-orphan")
             assertThat(recovered.server?.id).isEqualTo("qt-orphan")
+            // An edit loads the row into the composer; without its files it is resent without them.
+            assertThat(recovered.attachments.map { it.fileId }).containsExactly("file-1")
         }
 
     @Test
@@ -415,9 +419,51 @@ class ChatViewModelQueuedTurnTest {
         vm.commitQueuedEdit()
         runCurrent()
 
-        val edited = vm.uiState.value.messageQueue.single()
-        assertThat(edited.text).isEqualTo("edited follow-up")
-        assertThat(edited.server).isNull()
+        // Offered back under a fresh idempotency key, since the run is still live; this stub's
+        // server refuses it again.
+        val requests = mutableListOf<EnqueueQueuedTurnRequest>()
+        coVerify(exactly = 2) { queuedTurnRepository.enqueue(capture(requests)) }
+        assertThat(requests.map { it.text }).containsExactly(TEXT, "edited follow-up").inOrder()
+        assertThat(requests.map { it.clientRequestId }.toSet()).hasSize(2)
+        coVerify(exactly = 0) { queuedTurnRepository.cancel(any()) }
+        assertThat(vm.uiState.value.messageQueue.single().text).isEqualTo("edited follow-up")
+    }
+
+    /**
+     * Left local, an edited row is overtaken: the follow-up queued after it is server-owned, the
+     * server admits it at the run end, and the drain refuses the edited one until that has run.
+     */
+    @Test
+    fun `an edited row goes back to the server ahead of a later follow-up`() = queuedTurnTest { vm ->
+        vm.onInputChanged("first")
+        vm.queueMessage()
+        runCurrent()
+        val first = vm.uiState.value.messageQueue.single()
+        coEvery { queuedTurnRepository.cancel(first.server!!.id!!) } answers {
+            serverRows.removeAll { it.clientRequestId == first.clientRequestId }
+            QueuedTurnOutcome.Committed(
+                AgentQueuedTurnReceipt(
+                    queuedTurnId = first.server!!.id!!,
+                    clientRequestId = first.clientRequestId!!,
+                    text = first.text,
+                    status = QueuedTurnStatus.CANCELLED,
+                ),
+            )
+        }
+
+        vm.editQueued(first.localId)
+        runCurrent()
+        vm.onInputChanged("first, fixed")
+        vm.commitQueuedEdit()
+        runCurrent()
+        vm.onInputChanged("second")
+        vm.queueMessage()
+        runCurrent()
+
+        val requests = mutableListOf<EnqueueQueuedTurnRequest>()
+        coVerify(exactly = 3) { queuedTurnRepository.enqueue(capture(requests)) }
+        assertThat(requests.map { it.text }).containsExactly("first", "first, fixed", "second").inOrder()
+        assertThat(vm.uiState.value.messageQueue.map { it.server != null }).containsExactly(true, true)
     }
 
     /**
