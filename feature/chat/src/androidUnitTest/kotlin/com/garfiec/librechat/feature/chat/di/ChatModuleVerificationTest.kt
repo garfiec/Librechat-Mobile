@@ -31,10 +31,9 @@ import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.feature.chat.prompts.PromptsViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.SubagentThreadsViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.TraceViewerViewModel
+import io.mockk.mockk
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.serialization.json.Json
-import io.mockk.mockk
-import kotlin.test.assertTrue
 import org.junit.Test
 import org.koin.core.Koin
 import org.koin.core.error.InstanceCreationException
@@ -42,6 +41,7 @@ import org.koin.core.error.NoDefinitionFoundException
 import org.koin.dsl.koinApplication
 import org.koin.dsl.module
 import org.koin.test.verify.verify
+import kotlin.test.assertTrue
 
 class ChatModuleVerificationTest {
     @Test

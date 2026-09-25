@@ -132,6 +132,36 @@
     <string name="cd_collapse_subagent">Collapse subagent %1$s</string>
     <string name="cd_expand_subagent">Expand subagent %1$s</string>
 
+    <!-- Conversation trace viewer (v0.8.8-rc3) -->
+    <string name="trace_title">Conversation trace</string>
+    <string name="trace_open">View trace</string>
+    <string name="trace_refresh">Refresh</string>
+    <string name="trace_back">Back to records</string>
+    <string name="trace_load_older">Load older</string>
+    <string name="trace_retry">Retry</string>
+    <string name="trace_empty">No trace records for this conversation yet.</string>
+    <string name="trace_stat_turns">Turns</string>
+    <string name="trace_stat_generations">Generations</string>
+    <string name="trace_stat_tools">Tools</string>
+    <string name="trace_stat_errors">Errors</string>
+    <string name="trace_stat_tokens">Tokens</string>
+    <string name="trace_stat_cost">Cost</string>
+    <string name="trace_running">Running</string>
+    <string name="trace_partial">Showing %1$d records. Older turns have not been loaded.</string>
+    <string name="trace_input">Input</string>
+    <string name="trace_output">Output</string>
+    <string name="trace_metadata">Metadata</string>
+    <string name="trace_truncated">Truncated by the server.</string>
+    <string name="trace_content_unavailable">This server does not return record input and output.</string>
+    <string name="trace_tokens_detail">In %1$d · Out %2$d · Total %3$d</string>
+    <string name="trace_error_generic">The trace could not be read.</string>
+    <string name="trace_error_not_found">This trace is no longer available.</string>
+    <string name="trace_error_changed">The trace changed while it was being read. Refresh to start again.</string>
+    <string name="trace_error_rate_limited">Too many trace requests. Try again shortly.</string>
+    <string name="trace_error_timeout">The tracing service did not respond in time.</string>
+    <string name="trace_error_unauthorized">The tracing service rejected this server\'s credentials.</string>
+    <string name="trace_error_unsupported">This server\'s tracing service cannot return traces.</string>
+
     <!-- Office-doc preview attachments (deferred preview, v0.8.6+) -->
     <string name="office_preview_preparing">Preparing preview of %1$s…</string>
     <string name="office_preview_failed">Couldn't preview %1$s (%2$s)</string>
