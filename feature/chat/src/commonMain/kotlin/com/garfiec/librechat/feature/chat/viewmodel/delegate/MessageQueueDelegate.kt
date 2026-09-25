@@ -237,6 +237,9 @@ class MessageQueueDelegate(
                 isQueuePaused = released.any { it.server != null },
             )
         }
+        // Said rather than swallowed: the control is still there, and a tap that visibly does
+        // nothing reads as a broken button.
+        if (handle.state.isQueuePaused) handle.setError(SERVER_HOLDS_QUEUED_MESSAGE)
         drainNext(awaitSettle = false)
     }
 
@@ -385,6 +388,9 @@ class MessageQueueDelegate(
     }
 
     private companion object {
+        const val SERVER_HOLDS_QUEUED_MESSAGE =
+            "The server still holds a queued message. Try again in a moment."
+
         /** Matches upstream's `useQueueDrain` heartbeat. Anything under ~12 h clears the
          *  server's unconditional 24 h hold floor; 30 min leaves headroom if a deployment ever
          *  shortens it, and at one tick per 30 min the 15-minute rate window sees at most one

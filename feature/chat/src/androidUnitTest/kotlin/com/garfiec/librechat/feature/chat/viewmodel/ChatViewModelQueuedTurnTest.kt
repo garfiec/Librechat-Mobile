@@ -808,6 +808,7 @@ class ChatViewModelQueuedTurnTest {
 
         assertThat(sent).isEmpty()
         assertThat(vm.uiState.value.pausedQueueCount).isEqualTo(1)
+        assertThat(vm.uiState.value.error).isEqualTo("The server still holds a queued message. Try again in a moment.")
     }
 
     private fun stubAcceptedSteer() {
