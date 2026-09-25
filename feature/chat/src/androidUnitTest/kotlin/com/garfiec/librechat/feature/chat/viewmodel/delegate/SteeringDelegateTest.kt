@@ -442,6 +442,32 @@ class SteeringDelegateTest {
         }
 
     /**
+     * The reported excerpts are CLAIM-ON-READ: the server hands them over as it drops its own
+     * copy. A steer this client never sent — one from another device, or one that predates a
+     * reconnect — has no local spec, so the follow-up is built here and the quotes have to be
+     * attached to it or the user's selections are gone for good.
+     */
+    @Test
+    fun `a server-reported steer re-homes with the excerpts the report handed over`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val (delegate, _) = delegateWith(this)
+
+            delegate.onPendingSteersSynced(
+                listOf(
+                    PendingSteer(
+                        steerId = "st-1",
+                        text = "be brief",
+                        createdAt = 1L,
+                        quotes = listOf("excerpt a", "excerpt b"),
+                    ),
+                ),
+            )
+            delegate.reclaimLocalChips()
+
+            assertThat(enqueued.single().quotes).containsExactly("excerpt a", "excerpt b").inOrder()
+        }
+
+    /**
      * A cancel is optimistic and the server's next sync can still list the steer. Re-seeding it
      * would let the run's end re-home text the user explicitly withdrew.
      */

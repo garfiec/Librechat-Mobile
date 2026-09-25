@@ -112,6 +112,12 @@ class SteeringDelegate(
         val status: Status,
         /** The send spec this steer falls back to. Null for steers only the server reported. */
         val spec: QueuedMessage?,
+        /**
+         * Excerpts a SERVER report handed over for a steer with no local spec (a reconnect,
+         * another device, a terminal report). Claim-on-read: the server drops its copy, so these
+         * are the only remaining one and must reach the follow-up the re-home builds.
+         */
+        val reportedQuotes: List<String> = emptyList(),
         /** The turn this steer was sent into; see [turnEpoch]. */
         val turnEpoch: Int,
     ) {
@@ -151,7 +157,7 @@ class SteeringDelegate(
         // sent them, not by how long each round-trip took, or a steer sent first can end up
         // displayed behind one sent after it.
         val createdAt = Clock.System.now().toEpochMilliseconds()
-        records[localId] = SteerRecord(trimmed, createdAt, SteerRecord.Status.SENDING, fallback, turnEpoch)
+        records[localId] = SteerRecord(trimmed, createdAt, SteerRecord.Status.SENDING, fallback, turnEpoch = turnEpoch)
         publishChips()
 
         handle.scope.launch {
@@ -386,7 +392,12 @@ class SteeringDelegate(
         // Already settled: injected, withdrawn, or re-homed by an earlier report.
         if (records[id]?.isLive == false) return false
         records[id] = record.copy(status = SteerRecord.Status.RECLAIMED)
-        val spec = record.spec ?: buildFollowUp(record.text) ?: return false
+        // A locally-composed steer carries its own spec (and its own quotes). One only the
+        // server reported has neither, so the follow-up is built here and the reported excerpts
+        // are attached — dropping them is the claim-on-read loss this field exists to prevent.
+        val spec = record.spec
+            ?: buildFollowUp(record.text)?.copy(quotes = record.reportedQuotes)
+            ?: return false
         enqueue(spec)
         return true
     }
@@ -530,7 +541,11 @@ class SteeringDelegate(
             text = body,
             createdAt = createdAt ?: Clock.System.now().toEpochMilliseconds(),
             status = SteerRecord.Status.PENDING,
+            // No spec — this steer was composed elsewhere, or before a reconnect — but its
+            // reported excerpts are claim-on-read, so they are carried until the re-home can
+            // put them on the follow-up it builds.
             spec = null,
+            reportedQuotes = quotes,
             turnEpoch = turnEpoch,
         )
     }
