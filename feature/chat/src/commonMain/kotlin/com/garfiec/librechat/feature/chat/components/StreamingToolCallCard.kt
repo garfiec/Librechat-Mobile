@@ -35,7 +35,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.Attachment
-import com.garfiec.librechat.core.model.RunStepStatus
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
@@ -164,32 +163,29 @@ private fun GenericStreamingToolCard(
                         modifier = Modifier.weight(1f),
                     )
 
-                    when {
-                        // A closed step is never running, and it did not necessarily succeed —
-                        // a green check on a step the user stopped, or one that failed, reads as
-                        // a result they never got.
-                        toolCall.closedStatus == RunStepStatus.CANCELLED -> Icon(
+                    when (toolCallVerdict(toolCall.closedStatus, toolCall.isComplete)) {
+                        ToolCallVerdict.CANCELLED -> Icon(
                             imageVector = Icons.Default.Block,
                             contentDescription = stringResource(Res.string.cd_tool_cancelled),
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
 
-                        toolCall.closedStatus == RunStepStatus.FAILED -> Icon(
+                        ToolCallVerdict.FAILED -> Icon(
                             imageVector = Icons.Default.ErrorOutline,
                             contentDescription = stringResource(Res.string.cd_tool_failed),
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.error,
                         )
 
-                        toolCall.isComplete -> Icon(
+                        ToolCallVerdict.COMPLETED -> Icon(
                             imageVector = Icons.Default.Check,
                             contentDescription = stringResource(Res.string.cd_tool_complete),
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.primary,
                         )
 
-                        else -> CircularProgressIndicator(
+                        ToolCallVerdict.RUNNING -> CircularProgressIndicator(
                             modifier = Modifier.size(16.dp),
                             strokeWidth = 2.dp,
                             color = MaterialTheme.colorScheme.primary,
