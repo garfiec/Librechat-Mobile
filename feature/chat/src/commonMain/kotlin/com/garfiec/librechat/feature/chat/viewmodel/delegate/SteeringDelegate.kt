@@ -231,8 +231,11 @@ class SteeringDelegate(
         // receipt replayed for a steer that has ALREADY left the queue: no future event will name
         // it, so this is its only chance. `leftover` is excluded because that branch re-homes the
         // whole spec, and a normal send carries quotes on any server.
+        // A receipt replayed after the item left the durable queue, by any route other than the
+        // terminal drain `leftover` names — i.e. it was INJECTED and the words are in the reply.
+        val wasInjected = ack.settled == true && ack.leftover != true
         val quotesDropped = ack.quotesAccepted != true && staged.spec?.quotes?.isNotEmpty() == true
-        if (quotesDropped && ack.settled == true && ack.leftover != true) {
+        if (quotesDropped && wasInjected) {
             restageDroppedQuotes(staged)
         }
         // Re-read after the restage: it strips the excerpts by REPLACING the map entry, so the
@@ -242,8 +245,15 @@ class SteeringDelegate(
         // A 202 with no id is unusable: it can be neither cancelled nor matched to an applied
         // event, so treat it as un-steered rather than showing a chip that can never resolve.
         if (serverId.isNullOrBlank()) {
-            settle(localId, if (wasCancelled) SteerRecord.Status.CANCELLED else SteerRecord.Status.RECLAIMED)
-            if (!wasCancelled) record.spec?.let(enqueueFollowUp)
+            val status = when {
+                wasCancelled -> SteerRecord.Status.CANCELLED
+                // An id-less ack cannot address the steer, but the receipt still says it was
+                // injected — the words are in the reply, and re-homing would deliver them twice.
+                wasInjected -> SteerRecord.Status.APPLIED
+                else -> SteerRecord.Status.RECLAIMED
+            }
+            settle(localId, status)
+            if (status == SteerRecord.Status.RECLAIMED) record.spec?.let(enqueueFollowUp)
             return
         }
 
@@ -261,6 +271,17 @@ class SteeringDelegate(
         // Without the tombstone the ack would mint a chip for a steer already in the reply.
         if (existing != null && !existing.isLive) {
             records[serverId] = existing
+            publishChips()
+            return
+        }
+        // The receipt itself says the steer already went into the reply. This is the only thing
+        // that can retire the chip when the `on_steer_applied` that would have done it was lost
+        // with the SSE stream the POST was retried over — and re-homing the spec below would
+        // queue text the user can already read in the answer. Recorded as a tombstone rather
+        // than settled live, so the run's end cannot convert it either.
+        if (wasInjected) {
+            records[serverId] = record.copy(status = SteerRecord.Status.APPLIED)
+            evictSettled()
             publishChips()
             return
         }

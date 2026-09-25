@@ -468,23 +468,74 @@ class SteeringDelegateTest {
         }
 
     /**
-     * A settled receipt for a steer that never injected recovers the excerpts onto the composer
-     * AND re-homes the words as a follow-up. Both happen inside one call, so the strip that keeps
-     * them from being delivered twice has to be visible to the re-home that follows it.
+     * `settled` without `leftover` means the steer left the durable queue by being INJECTED — the
+     * words are already in the reply. The replay that says so reaches this client when the POST
+     * was retried over a flaky connection, and the `on_steer_applied` that would normally have
+     * retired the chip can easily have been lost with the same SSE stream.
+     *
+     * Re-homing on the run's end then queues text the user can already read in the answer.
      */
     @Test
-    fun `a settled receipt re-homes without the excerpts it just put back on the composer`() =
+    fun `a replayed receipt for an injected steer is not re-homed`() = runTest(UnconfinedTestDispatcher()) {
+        // No APPLIED tombstone: the event that would have written one never arrived. A pre-quotes
+        // server, so the excerpts were dropped and this receipt is their only chance back.
+        coEvery { chatRepository.steerChat(any()) } returns
+            Result.Success(SteerResponse(steerId = "st-1", settled = true))
+        val (delegate, flow) = delegateWith(this, isStreaming = false)
+
+        delegate.steer("conv-1", spec("be brief").copy(quotes = listOf("excerpt a", "excerpt b")))
+
+        // The excerpts come back to the composer exactly once, and the words themselves do not
+        // come back at all — they are already in the reply.
+        assertThat(restaged).containsExactly("excerpt a", "excerpt b").inOrder()
+        assertThat(enqueued).isEmpty()
+        assertThat(flow.value.pendingSteers).isEmpty()
+    }
+
+    /** The same verdict reached through the id-less ack, the other branch that re-homes. */
+    @Test
+    fun `an injected steer whose ack carries no id is not re-homed either`() =
         runTest(UnconfinedTestDispatcher()) {
-            // A pre-quotes server: 202 with no `quotesAccepted`, and the item has already left its
-            // durable queue without injecting, so this receipt is the last word on it.
+            coEvery { chatRepository.steerChat(any()) } returns
+                Result.Success(SteerResponse(steerId = null, settled = true))
+            val (delegate, flow) = delegateWith(this, isStreaming = false)
+
+            delegate.steer("conv-1", spec("be brief"))
+
+            assertThat(enqueued).isEmpty()
+            assertThat(flow.value.pendingSteers).isEmpty()
+        }
+
+    /** `leftover` is the opposite verdict: the run ended without injecting it, so it must re-home. */
+    @Test
+    fun `a terminal-drain leftover is still re-homed`() = runTest(UnconfinedTestDispatcher()) {
+        coEvery { chatRepository.steerChat(any()) } returns
+            Result.Success(SteerResponse(steerId = "st-1", settled = true, leftover = true))
+        val (delegate, _) = delegateWith(this, isStreaming = false)
+
+        delegate.steer("conv-1", spec("be brief"))
+
+        assertThat(enqueued.single().text).isEqualTo("be brief")
+    }
+
+    /**
+     * An injected steer must not be re-homed by the *later* reclaim path either — the ack is the
+     * only thing that can retire a chip whose applied event was lost, so it has to leave a
+     * tombstone rather than a live chip the run's end will convert.
+     */
+    @Test
+    fun `an injected steer acked mid-run is not re-homed when the run ends`() =
+        runTest(UnconfinedTestDispatcher()) {
             coEvery { chatRepository.steerChat(any()) } returns
                 Result.Success(SteerResponse(steerId = "st-1", settled = true))
-            val (delegate, _) = delegateWith(this, isStreaming = false)
+            val (delegate, flow) = delegateWith(this, isStreaming = true)
 
-            delegate.steer("conv-1", spec("be brief").copy(quotes = listOf("excerpt a", "excerpt b")))
+            delegate.steer("conv-1", spec("be brief"))
+            assertThat(flow.value.pendingSteers).isEmpty()
 
-            assertThat(restaged).containsExactly("excerpt a", "excerpt b").inOrder()
-            assertThat(enqueued.single().quotes).isEmpty()
+            delegate.reclaimLocalChips()
+
+            assertThat(enqueued).isEmpty()
         }
 
     /**
