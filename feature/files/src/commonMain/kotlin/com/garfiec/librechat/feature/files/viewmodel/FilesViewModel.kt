@@ -567,9 +567,17 @@ class FilesViewModel(
         if (selectedIds.isEmpty()) return
 
         viewModelScope.launch {
+            // Only rows still in the list can be named; a selection is sticky across filter
+            // changes and survives a reload, so an id with no row is one nothing can be asked
+            // about — counting it as deleted is the same silent success as a blank filepath,
+            // which the repository now reports as a failure for every caller.
             val entries = selectedIds.mapNotNull { id ->
-                val file = _files.value.find { it.fileId == id }
-                file?.let { DeleteFileEntry(fileId = it.fileId, filepath = it.filepath) }
+                _files.value.find { it.fileId == id }
+                    ?.let { DeleteFileEntry(fileId = it.fileId, filepath = it.filepath) }
+            }
+            if (entries.isEmpty()) {
+                updateTransient { copy(error = "Failed to delete files") }
+                return@launch
             }
             when (val result = fileRepository.deleteFiles(entries)) {
                 is Result.Success -> {
@@ -577,13 +585,17 @@ class FilesViewModel(
                     // server names no ids, so the failed set is empty and this evicts the whole
                     // selection, exactly as before.
                     val failed = result.data.failedFileIds.toSet()
-                    val removed = selectedIds - failed
+                    val removed = entries.map { it.fileId }.toSet() - failed
                     _files.value = _files.value.filter { it.fileId !in removed }
                     updateTransient {
                         copy(
                             isSelectionMode = failed.isNotEmpty(),
                             selectedFileIds = failed,
-                            error = if (failed.isEmpty()) error else result.data.message,
+                            error = if (failed.isEmpty()) {
+                                error
+                            } else {
+                                result.data.message ?: "Failed to delete files"
+                            },
                         )
                     }
                 }

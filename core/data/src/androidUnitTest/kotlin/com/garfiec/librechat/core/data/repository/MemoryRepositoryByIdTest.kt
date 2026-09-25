@@ -88,19 +88,33 @@ class MemoryRepositoryByIdTest {
     }
 
     /**
-     * The same blank key, on the other route. `PATCH /api/memories/` matches no registered route
-     * — upstream mounts only `patch('/:key')` — so the fallback cannot answer and the user is
-     * handed a bare 404 from a path that was never addressable, instead of the by-id route's
-     * honest "this row cannot be reached". The asymmetry with `deleteMemory` is the defect.
+     * A redaction blanks `value`, so an edit dialog can only seed an empty field — and `_id`
+     * survives the redaction, so `updateMemoryById` would address the row perfectly and write that
+     * blank over content the user was never shown, reporting a 200.
+     *
+     * Asserted against the REPOSITORY, deliberately. The two screens that omit the row's
+     * `clickable` today prove only that those two screens are careful; this pins that no caller
+     * can reach the route at all, which is what makes them belt-and-braces rather than the whole
+     * enforcement.
      */
     @Test
-    fun `a redacted entry is not updated through an unaddressable key`() = runTest {
-        coEvery { api.updateMemoryById("mem-2", any(), null) } throws notFound()
-
-        val result = repository(rc3()).updateMemory(redacted, UpdateMemoryRequest(value = "no"))
+    fun `a redacted entry cannot be updated through either route`() = runTest {
+        val result = repository(rc3()).updateMemory(redacted, UpdateMemoryRequest(value = ""))
 
         assertThat(result).isInstanceOf(Result.Error::class.java)
+        coVerify(exactly = 0) { api.updateMemoryById(any(), any(), any()) }
         coVerify(exactly = 0) { api.updateMemory(any(), any(), any()) }
+    }
+
+    /**
+     * Deleting one is still allowed: the row is unreadable, so removing it is the only action left
+     * that means anything, and it destroys nothing the user could otherwise recover.
+     */
+    @Test
+    fun `a redacted entry can still be deleted`() = runTest {
+        repository(rc3()).deleteMemory(redacted)
+
+        coVerify(exactly = 1) { api.deleteMemoryById("mem-2", null) }
     }
 
     @Test

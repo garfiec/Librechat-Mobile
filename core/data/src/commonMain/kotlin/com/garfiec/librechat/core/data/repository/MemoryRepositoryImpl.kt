@@ -26,6 +26,19 @@ class MemoryRepositoryImpl(
         safeApiCall { memoriesApi.updatePreferences(request) }
 
     override suspend fun updateMemory(memory: Memory, request: UpdateMemoryRequest): Result<Memory> {
+        // A redacted row comes back with `value` BLANKED, so an edit dialog seeds an empty field
+        // and a PATCH writes that blank over content the user was never shown — irreversibly, and
+        // reported as a success.
+        //
+        // Refused here rather than at the screens. `_id` is the one handle redaction does not
+        // blank, so `updateMemoryById` addresses a filtered row perfectly well, and the only thing
+        // standing between a user and this today is `Modifier.clickable` being omitted in two
+        // composables. Any third surface reaching this API — an edit-from-chat affordance, a
+        // keyboard or a11y activation, a swipe action, a deep link — is the N+1th caller that
+        // reintroduces it.
+        if (memory.contentFilterBlocked == true) {
+            return Result.Error(message = "This memory is hidden by a content filter and cannot be edited.")
+        }
         val id = memory.byIdHandle()
         if (id != null) {
             val byId = safeApiCall { memoriesApi.updateMemoryById(id, request, memory.agentId) }
