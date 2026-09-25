@@ -310,6 +310,34 @@
       },
       "why": "banResponse answers 403 with {\"message\": \"Your account has been temporarily banned...\"}. The client matches on that wording to tell a genuine account ban from any other 403, because a 403 from a proxy must not end the session.",
       "failure_mode": "Upstream rewords the ban sentence and a real ban stops being recognised: the request fails without the session ever being torn down, so the user sits in a broken shell instead of being told they are banned."
+    },
+    {
+      "id": "schedule-cadence-to-cron",
+      "upstream": {
+        "file": "packages/data-provider/src/cadence.ts",
+        "symbol": "cadenceToCron",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/schedule/ScheduleCadenceRules.kt",
+        "symbol": "cadenceToCron"
+      },
+      "why": "Compiles a structured cadence (hourly/daily/weekdays/weekly) to the cron expression the schedule engine actually fires from. The client shows it so a user can see what a picker choice means; the server never serves the compiled form.",
+      "failure_mode": "Upstream changes a mapping -- a new frequency, or weekly's Monday fallback -- and the editor keeps describing a schedule as running at a time it no longer runs at. Nothing errors: the schedule fires correctly, the label is simply a lie."
+    },
+    {
+      "id": "schedule-cadence-interval-minutes",
+      "upstream": {
+        "file": "packages/data-provider/src/cadence.ts",
+        "symbol": "cadenceIntervalMinutes",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/schedule/ScheduleCadenceRules.kt",
+        "symbol": "cadenceIntervalMinutesOrUnknown (structured arms only)"
+      },
+      "why": "The deployment's minIntervalMinutes floor is served with the schedule list SO THAT the editor can refuse a too-frequent cadence before submit. Doing that needs upstream's own gap arithmetic, including the two-hour DST compression allowance and the weekly wrap-around. The cron arm is deliberately NOT mirrored -- upstream measures it by walking occurrences with croner -- and returns null so the caller submits and surfaces the 400.",
+      "failure_mode": "Upstream retunes the allowance or a formula, and the editor either refuses a cadence the server would accept (a feature the user cannot reach) or accepts one it rejects (a 400 after submit, with the form already cleared)."
     }
   ]
 }
