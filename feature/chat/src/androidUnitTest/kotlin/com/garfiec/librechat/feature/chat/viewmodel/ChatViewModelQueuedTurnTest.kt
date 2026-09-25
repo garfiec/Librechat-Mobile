@@ -24,6 +24,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
@@ -71,6 +72,9 @@ class ChatViewModelQueuedTurnTest {
 
     /** The fake server's queue. Written by the enqueue stub, read by the list stub. */
     private val serverRows = mutableListOf<AgentQueuedTurnReceipt>()
+
+    /** Holds an enqueue POST open so a row can be observed while it is still `Sending`. */
+    private val enqueueGate = CompletableDeferred<Unit>()
 
     @Before
     fun setUp() {
@@ -282,6 +286,114 @@ class ChatViewModelQueuedTurnTest {
             assertThat(recovered.clientRequestId).isEqualTo("req-orphan")
             assertThat(recovered.server?.id).isEqualTo("qt-orphan")
         }
+
+    @Test
+    fun `the second queued item follows the same anchor as the first`() = queuedTurnTest { vm ->
+        // Its real parent is the reply to the item ahead of it, which does not exist yet. The
+        // server resolves that itself by walking forward from the anchor, so both turns capture
+        // the same one — the client never needs an id it cannot have.
+        vm.onInputChanged("first follow-up")
+        vm.queueMessage()
+        runCurrent()
+        vm.onInputChanged("second follow-up")
+        vm.queueMessage()
+        runCurrent()
+
+        val requests = mutableListOf<EnqueueQueuedTurnRequest>()
+        coVerify(exactly = 2) { queuedTurnRepository.enqueue(capture(requests)) }
+        assertThat(requests.map { it.parentMessageId })
+            .containsExactly(USER_MESSAGE_ID, USER_MESSAGE_ID)
+        assertThat(requests.map { it.clientRequestId }.toSet()).hasSize(2)
+    }
+
+    @Test
+    fun `a row whose POST has not answered cannot be cancelled`() = queuedTurnTest(
+        arrange = {
+            // Held open, so the row stays `Sending` — no queuedTurnId, and the request may
+            // already have landed.
+            coEvery { queuedTurnRepository.enqueue(any()) } coAnswers {
+                enqueueGate.await()
+                val receipt = receiptFor(firstArg())
+                serverRows.add(receipt)
+                QueuedTurnOutcome.Committed(receipt)
+            }
+        },
+    ) { vm ->
+        vm.onInputChanged(TEXT)
+        vm.queueMessage()
+        runCurrent()
+        val queued = vm.uiState.value.messageQueue.single()
+        assertThat(queued.server?.status).isEqualTo(QueuedTurnServerState.Status.Sending)
+
+        vm.cancelQueued(queued.localId)
+        runCurrent()
+
+        // Dropping it locally here is how the server runs a turn nothing on screen knows about.
+        assertThat(vm.uiState.value.messageQueue).hasSize(1)
+
+        enqueueGate.complete(Unit)
+        runCurrent()
+        assertThat(vm.uiState.value.messageQueue.single().server?.status)
+            .isEqualTo(QueuedTurnServerState.Status.Queued)
+    }
+
+    @Test
+    fun `cancelling one queued row leaves the others alone`() = queuedTurnTest { vm ->
+        vm.onInputChanged("first follow-up")
+        vm.queueMessage()
+        runCurrent()
+        vm.onInputChanged("second follow-up")
+        vm.queueMessage()
+        runCurrent()
+        assertThat(vm.uiState.value.messageQueue).hasSize(2)
+
+        val first = vm.uiState.value.messageQueue.first()
+        serverRows.removeAll { it.clientRequestId == first.clientRequestId }
+        coEvery { queuedTurnRepository.cancel(first.server!!.id!!) } returns
+            QueuedTurnOutcome.Committed(
+                AgentQueuedTurnReceipt(
+                    queuedTurnId = first.server!!.id!!,
+                    clientRequestId = first.clientRequestId!!,
+                    text = first.text,
+                    status = QueuedTurnStatus.CANCELLED,
+                ),
+            )
+
+        vm.cancelQueued(first.localId)
+        runCurrent()
+
+        // A cancel's receipt speaks for ONE row. Applied as a full snapshot it would retire every
+        // other server-owned row it does not mention, unblocking the drain for a couple of
+        // seconds against a boundary the server still owns.
+        assertThat(vm.uiState.value.messageQueue.map { it.text }).containsExactly("second follow-up")
+    }
+
+    @Test
+    fun `a refused row is withdrawn once when it is edited`() = queuedTurnTest(
+        arrange = {
+            coEvery { queuedTurnRepository.enqueue(any()) } returns
+                QueuedTurnOutcome.Rejected(statusCode = 429, code = "QUEUED_TURN_QUEUE_FULL", message = "full")
+        },
+    ) { vm ->
+        vm.onInputChanged(TEXT)
+        vm.queueMessage()
+        runCurrent()
+        val rejected = vm.uiState.value.messageQueue.single()
+
+        vm.editQueued(rejected.localId)
+        runCurrent()
+        assertThat(vm.uiState.value.isEditingQueued).isTrue()
+        // Taken OUT for editing. A refused row has no queuedTurnId, so nothing removed it for us.
+        assertThat(vm.uiState.value.messageQueue).isEmpty()
+
+        vm.onInputChanged("edited follow-up")
+        vm.commitQueuedEdit()
+        runCurrent()
+
+        val edited = vm.uiState.value.messageQueue.single()
+        assertThat(edited.text).isEqualTo("edited follow-up")
+        assertThat(edited.server).isNull()
+    }
 
     private fun receiptFor(request: EnqueueQueuedTurnRequest) = AgentQueuedTurnReceipt(
         queuedTurnId = "qt-1",

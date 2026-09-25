@@ -31,10 +31,14 @@ interface QueuedTurnRepository {
     suspend fun cancel(queuedTurnId: String): QueuedTurnOutcome<AgentQueuedTurnReceipt>
 
     /**
-     * Whether this server has already answered that it has no queued turns.
+     * Whether this server has answered that the queued-turn ROUTES are not there at all.
      *
-     * Latched, because the answer cannot change without a redeploy, and keyed on the active
-     * account so one server's verdict is never carried onto the next one's.
+     * Latched, because that cannot change without a redeploy, and keyed on the active account so
+     * one server's verdict is never carried onto the next one's.
+     *
+     * Only an UNCODED 404/501 sets it. A coded `QUEUED_TURNS_UNSUPPORTED` is about one
+     * conversation — not an agents conversation, or an ephemeral agent — and still returns
+     * [QueuedTurnOutcome.Unsupported] for that call without latching anything.
      */
     suspend fun isUnsupported(): Boolean
 }

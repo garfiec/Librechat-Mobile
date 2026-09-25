@@ -78,11 +78,21 @@ class QueuedTurnRepositoryImpl(
     private suspend fun <T> call(
         block: suspend () -> QueuedTurnOutcome<T>,
     ): QueuedTurnOutcome<T> = try {
-        onApiDispatcher { block() }.also { if (it is QueuedTurnOutcome.Unsupported) latch() }
+        onApiDispatcher { block() }
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {
-        classify(e).also { if (it is QueuedTurnOutcome.Unsupported) latch() }
+        val api = e as? ApiException
+        val code = ServerErrorCode.generationCodeOf(api?.body)
+        classify(api?.statusCode, code, api?.message).also {
+            // **Only an UNCODED answer latches.** A coded `QUEUED_TURNS_UNSUPPORTED` is
+            // `authorizeConversation` saying THIS conversation is ineligible — it is not an agents
+            // conversation, or its agent is ephemeral, which is an everyday case here. Latching
+            // that would disable the feature for the whole account after one ephemeral-agent chat,
+            // silently and for the rest of the session. An uncoded 404/501 is the route itself
+            // being absent, which is a property of the deployment.
+            if (it is QueuedTurnOutcome.Unsupported && code == null) latch()
+        }
     }
 
     private suspend fun latch() = latchMutex.withLock {
@@ -92,18 +102,21 @@ class QueuedTurnRepositoryImpl(
 
     private fun activeAccountId(): String? = activeAccountProvider.currentAccountId()?.value
 
-    private fun classify(e: Exception): QueuedTurnOutcome<Nothing> {
-        val api = e as? ApiException
-        val status = api?.statusCode
-        // `generationCodeOf`, not `from`: the unsupported test is `code == null`, and `from`'s
-        // `error` fallback would read an English sentence there as a code — turning "this route
-        // does not exist" into "it exists and refused", which keeps the client polling it.
-        val code = ServerErrorCode.generationCodeOf(api?.body)
-        return when {
-            isDefiniteQueuedTurnsUnsupported(status, code) -> QueuedTurnOutcome.Unsupported
-            isDefiniteQueuedTurnRejection(status, code) ->
-                QueuedTurnOutcome.Rejected(status, code, api?.message)
-            else -> QueuedTurnOutcome.Indeterminate(status, code, api?.message)
-        }
+    /**
+     * The outcome a failure proves.
+     *
+     * [code] must come from `generationCodeOf`, not `ServerErrorCode.from`: the unsupported test is
+     * `code == null`, and `from`'s `error` fallback would read an English sentence there as a code
+     * — turning "this route does not exist" into "it exists and refused", which keeps the client
+     * polling it.
+     */
+    private fun classify(
+        status: Int?,
+        code: String?,
+        message: String?,
+    ): QueuedTurnOutcome<Nothing> = when {
+        isDefiniteQueuedTurnsUnsupported(status, code) -> QueuedTurnOutcome.Unsupported
+        isDefiniteQueuedTurnRejection(status, code) -> QueuedTurnOutcome.Rejected(status, code, message)
+        else -> QueuedTurnOutcome.Indeterminate(status, code, message)
     }
 }

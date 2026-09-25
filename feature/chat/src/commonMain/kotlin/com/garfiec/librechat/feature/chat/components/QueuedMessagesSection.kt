@@ -43,7 +43,9 @@ import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_cancel_queued_message
 import com.garfiec.librechat.feature.chat.resources.cd_reorder_queued_message
 import com.garfiec.librechat.feature.chat.resources.queued_attachment_only
+import com.garfiec.librechat.feature.chat.resources.queued_turn_needs_attention
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
+import com.garfiec.librechat.feature.chat.viewmodel.QueuedTurnServerState
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -175,13 +177,17 @@ private fun QueuedMessageRow(
                 .clickable(onClick = onTap)
                 .padding(start = 8.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
         ) {
-            Icon(
-                imageVector = Icons.Default.DragHandle,
-                contentDescription = stringResource(Res.string.cd_reorder_queued_message),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                modifier = Modifier.size(20.dp),
-            )
-            Spacer(Modifier.width(8.dp))
+            // No handle on a server-owned row: the backend runs those in its own sequence, so
+            // offering a drag would show an order it will not honour.
+            if (item.server == null) {
+                Icon(
+                    imageVector = Icons.Default.DragHandle,
+                    contentDescription = stringResource(Res.string.cd_reorder_queued_message),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+            }
 
             if (item.attachments.isNotEmpty()) {
                 Icon(
@@ -206,6 +212,19 @@ private fun QueuedMessageRow(
                     .padding(vertical = 2.dp),
             )
 
+            // A row the server refused, or one whose outcome was never revealed, blocks the whole
+            // queue by design — it is held for the user rather than resent. Without a cue the
+            // follow-up queue simply stops draining with nothing on screen to explain why.
+            if (item.needsAttention) {
+                Text(
+                    text = stringResource(Res.string.queued_turn_needs_attention),
+                    maxLines = 1,
+                    color = MaterialTheme.colorScheme.error,
+                    fontSize = 12.sp * fontSizeMultiplier,
+                    modifier = Modifier.padding(horizontal = 6.dp),
+                )
+            }
+
             IconButton(
                 onClick = onCancel,
                 modifier = Modifier.alpha(0.8f),
@@ -220,3 +239,19 @@ private fun QueuedMessageRow(
         }
     }
 }
+
+/**
+ * Whether this row is waiting on the user rather than on the server.
+ *
+ * `Rejected` is a refusal the server proved never committed; `Indeterminate` and an expired
+ * `Uncertain` are outcomes it cannot resolve. All three stop the queue draining, so all three have
+ * to say something.
+ */
+private val QueuedMessage.needsAttention: Boolean
+    get() = when (server?.status) {
+        QueuedTurnServerState.Status.Rejected,
+        QueuedTurnServerState.Status.Indeterminate,
+        -> true
+        QueuedTurnServerState.Status.Uncertain -> server.reconciliationExpired
+        else -> false
+    }

@@ -1320,12 +1320,14 @@ class ChatViewModel(
             // The server holds these words and will run them, so editing in place would leave the
             // original queued behind the edit. Withdraw it first, and only edit if that succeeded.
             viewModelScope.launch {
-                if (queuedTurnDelegate.cancel(serverOwned)) {
-                    // The cancel's own receipt already retired the row, so there is nothing left
-                    // to take out of the queue. It comes back as an ordinary local item —
-                    // re-offering it to the server under the same id would be a 409.
-                    beginQueuedEdit(serverOwned.asLegacyRow(), index)
-                }
+                if (!queuedTurnDelegate.cancel(serverOwned)) return@launch
+                // A real DELETE's receipt already retired the row; a refused one never had an id
+                // to delete and is still sitting there. Take it out either way — leaving it would
+                // put the edit BESIDE the original and block the drain on a row nothing retires.
+                // It comes back as an ordinary local item: re-offering it to the server under the
+                // same clientRequestId with different text would be a 409.
+                queueDelegate.takeForEdit(localId)
+                beginQueuedEdit(serverOwned.asLegacyRow(), index)
             }
             return
         }

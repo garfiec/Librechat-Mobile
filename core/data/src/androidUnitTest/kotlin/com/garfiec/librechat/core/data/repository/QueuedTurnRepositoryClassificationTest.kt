@@ -71,18 +71,6 @@ class QueuedTurnRepositoryClassificationTest {
     }
 
     @Test
-    fun `a 501 is definitive with or without a code`() = runTest {
-        failing(501, null)
-        assertThat(repository.enqueue(request)).isEqualTo(QueuedTurnOutcome.Unsupported)
-
-        failing(501, """{"code":"${QueuedTurnErrorCode.UNSUPPORTED}"}""")
-        assertThat(repository.enqueue(request)).isEqualTo(QueuedTurnOutcome.Unsupported)
-
-        failing(501, """{"code":"${QueuedTurnErrorCode.PRIORITY_UNSUPPORTED}"}""")
-        assertThat(repository.enqueue(request)).isEqualTo(QueuedTurnOutcome.Unsupported)
-    }
-
-    @Test
     fun `a bounded 4xx proves the row was not committed`() = runTest {
         failing(409, """{"code":"${QueuedTurnErrorCode.IDEMPOTENCY_CONFLICT}"}""")
 
@@ -167,13 +155,53 @@ class QueuedTurnRepositoryClassificationTest {
     }
 
     @Test
-    fun `the unsupported verdict latches`() = runTest {
+    fun `an absent route latches`() = runTest {
         failing(404, """{"message":"Endpoint not found"}""")
         assertThat(repository.isUnsupported()).isFalse()
 
         repository.enqueue(request)
 
         assertThat(repository.isUnsupported()).isTrue()
+    }
+
+    @Test
+    fun `a coded refusal answers for one conversation and must not latch`() = runTest {
+        // `QUEUED_TURNS_UNSUPPORTED` is what `authorizeConversation` answers when THIS
+        // conversation is not an agents one or its agent is EPHEMERAL — which is an everyday
+        // case here. Latching it would disable queued turns for the whole account after one
+        // ephemeral-agent chat, with nothing on screen to explain why.
+        failing(501, """{"code":"${QueuedTurnErrorCode.UNSUPPORTED}"}""")
+
+        assertThat(repository.enqueue(request)).isEqualTo(QueuedTurnOutcome.Unsupported)
+        assertThat(repository.isUnsupported()).isFalse()
+    }
+
+    @Test
+    fun `a coded priority refusal is about the request and must not latch`() = runTest {
+        failing(501, """{"code":"${QueuedTurnErrorCode.PRIORITY_UNSUPPORTED}"}""")
+
+        assertThat(repository.enqueue(request)).isEqualTo(QueuedTurnOutcome.Unsupported)
+        assertThat(repository.isUnsupported()).isFalse()
+    }
+
+    @Test
+    fun `an uncoded 501 is the route itself and latches`() = runTest {
+        failing(501, null)
+
+        assertThat(repository.enqueue(request)).isEqualTo(QueuedTurnOutcome.Unsupported)
+        assertThat(repository.isUnsupported()).isTrue()
+    }
+
+    @Test
+    fun `a capability that announces no support does not latch either`() = runTest {
+        // The route is plainly there — it answered 200. Only the conversation is ineligible.
+        coEvery { api.enqueueQueuedTurn(any()) } returns EnqueueQueuedTurnResponse(
+            receipt = null,
+            capability = AgentQueuedTurnCapability(supported = false),
+        )
+
+        assertThat(repository.enqueue(request)).isEqualTo(QueuedTurnOutcome.Unsupported)
+        assertThat(repository.isUnsupported()).isFalse()
     }
 
     @Test

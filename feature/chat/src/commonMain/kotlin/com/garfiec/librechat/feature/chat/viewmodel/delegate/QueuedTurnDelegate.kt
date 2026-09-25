@@ -56,6 +56,9 @@ class QueuedTurnDelegate(
     private var pollJob: Job? = null
     private var pollConversationId: String? = null
 
+    /** Turns this client has already gone looking for a run for. See [applyReceipts]. */
+    private var announcedOwed: Set<String> = emptySet()
+
     /**
      * Hands [spec] to the server and folds the answer back onto its row.
      *
@@ -152,15 +155,37 @@ class QueuedTurnDelegate(
                 ),
             )
         }
-        if (isQueuedTurnSuccessorOwed(receipts)) onSuccessorOwed()
+        // On the TURNS newly owed, not on "anything is owed". The owed predicate is a keep-alive
+        // test — it stays true for every tick a row is queued — so firing on it would spend a
+        // `/chat/status` GET every two seconds on an idle client for no new information.
+        val owed = receipts.filter { isQueuedTurnSuccessorOwed(listOf(it)) }
+            .map { it.clientRequestId }
+            .toSet()
+        val fresh = owed - announcedOwed
+        announcedOwed = owed
+        if (fresh.isNotEmpty()) onSuccessorOwed()
     }
 
-    /** Withdraws a queued turn. Returns false when the server refused, leaving the row in place. */
+    /**
+     * Withdraws a queued turn. Returns false when it could not be, leaving the row in place.
+     *
+     * A row with no [QueuedTurnServerState.id] has no address to withdraw, and there is exactly
+     * ONE state where that means it is safe to drop: [QueuedTurnServerState.Status.Rejected], whose
+     * bounded refusal proves nothing was committed. `Sending`, `Uncertain` and `Indeterminate` have
+     * no id either and mean the opposite — the POST may well have landed — so removing one locally
+     * is how the server ends up running a turn nothing on screen knows about.
+     */
     suspend fun cancel(item: QueuedMessage): Boolean {
-        val queuedTurnId = item.server?.id ?: return true
+        val server = item.server ?: return true
+        val queuedTurnId = server.id
+            ?: return server.status == QueuedTurnServerState.Status.Rejected
         return when (val outcome = repository.cancel(queuedTurnId)) {
             is QueuedTurnOutcome.Committed -> {
-                applyReceipts(listOf(outcome.value), QueuedTurnReceiptSource.Snapshot)
+                // Applied as an ENQUEUE-source observation, not a snapshot: this receipt speaks
+                // for one row. Treated as authoritative it would retire every other server-owned
+                // row it does not mention, and until the next poll the drain would see an
+                // unowned queue and send into a boundary the server still holds.
+                applyReceipts(listOf(outcome.value), QueuedTurnReceiptSource.Enqueue)
                 true
             }
             // The row is gone from a server that never had it; nothing is owed either way.
