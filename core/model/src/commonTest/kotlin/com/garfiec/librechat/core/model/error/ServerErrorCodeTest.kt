@@ -29,6 +29,14 @@ class ServerErrorCodeTest {
     }
 
     @Test
+    fun mcp_authentication_constants_match_the_v088_rc2_wire_values() {
+        // packages/api/src/mcp/errors.ts MCPErrorCodes — the `MCP_` prefix is on the wire value
+        // and dropped from the TypeScript member name, the same trap as the re-entry code above.
+        assertEquals("MCP_AUTHENTICATION_REJECTED", ServerErrorCode.MCP_AUTHENTICATION_REJECTED)
+        assertEquals("MCP_AUTHENTICATION_REFRESH_FAILED", ServerErrorCode.MCP_AUTHENTICATION_REFRESH_FAILED)
+    }
+
+    @Test
     fun code_wins_over_error_when_both_are_present() {
         val body = """{"code":"SERVER_NOT_READY","error":"something went wrong"}"""
         assertEquals(ServerErrorCode.SERVER_NOT_READY, ServerErrorCode.from(body))
