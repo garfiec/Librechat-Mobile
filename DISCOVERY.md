@@ -929,9 +929,14 @@ Not ported, and why:
 - **The reveal placeholder.** Upstream shows an admitted turn as the next user message while the
   server's run starts (`useQueuedTurnReveal.ts`). Mobile discovers and ATTACHES to that run (the
   existing `/chat/status` + resume path), so the reply streams — but the user's own words are not on
-  screen until the turn finalizes. Seeding them would mean writing `messages`/`displayMessages`
-  mid-run, which is the streaming-anchor invariant's exact failure mode, and the seed's id can never
-  match the one the server mints, so it cannot reconcile away by id the way the handoff seed does.
+  screen until the turn finalizes. **The blocker is that seeding them means writing
+  `messages`/`displayMessages` while a run is live**, which is the streaming-anchor invariant's
+  exact failure mode (the path is truncated at the anchor for the stream's duration, and a rebuild
+  un-truncates it — the #169 class). A second problem compounds it: admission mints an ordinary
+  message id (nothing in `triggers.js` derives one from `clientRequestId` or `queuedTurnId`), so a
+  seed cannot reconcile away by id the way the handoff seed does — `finalizeChatDisplay` clears
+  `pendingResumeUserMessage` at Final either way, but `mergeFinalMessagesInMemory` replaces BY ID,
+  so the unmatched seed would linger in `messages` as a phantom sibling until the next load.
   Display-only: no invariant depends on it and it cannot cause a double send.
 - **`priority` / interrupt-and-send.** The route answers 501 `QUEUED_TURN_PRIORITY_UNSUPPORTED`
   unconditionally in rc3, so there is nothing to send.
