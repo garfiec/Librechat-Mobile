@@ -83,6 +83,7 @@ class AgentFilesDelegate(
                     filename = agentFile.filename ?: obj.filename,
                     bytes = agentFile.bytes ?: obj.bytes,
                     type = agentFile.type ?: obj.type,
+                    filepath = agentFile.filepath ?: obj.filepath,
                 )
             } ?: agentFile
         }
@@ -166,6 +167,7 @@ class AgentFilesDelegate(
                             filename = obj.filename,
                             bytes = obj.bytes,
                             type = obj.type,
+                            filepath = obj.filepath,
                             originResource = slot.wire,
                         )
                         // Re-pick latest because the snackbar might have cleared
@@ -199,11 +201,19 @@ class AgentFilesDelegate(
             setFilesFor(slot, filesFor(slot).filterNot { it.fileId == fileId })
             return
         }
-        // Optimistically remove; rollback on error.
         val before = filesFor(slot)
+        val target = before.firstOrNull { it.fileId == fileId } ?: return
+        // The route drops any entry with a falsy filepath before reading `agent_id`, so an unlink
+        // without one is filtered away, answered 204, and reads back as a success while the file
+        // stays attached. Refuse instead of removing the chip over a request that does nothing.
+        val filepath = target.filepath
+        if (filepath.isNullOrBlank()) {
+            stateHandle.update { copy(error = AgentEditorViewModel.AGENT_FILE_REMOVE_FAILED_MARKER) }
+            return
+        }
+        // Optimistically remove; rollback on error.
         setFilesFor(slot, before.filterNot { it.fileId == fileId })
         stateHandle.scope.launch {
-            val target = before.firstOrNull { it.fileId == fileId } ?: return@launch
             // The Context slot UI shows files from both `context` and `ocr`
             // tool_resources merged. Route the deletion to the slot the file
             // was actually loaded from so the backend can find and remove
@@ -211,7 +221,7 @@ class AgentFilesDelegate(
             // this session (which the picker writes under slot.wire).
             val toolResource = target.originResource ?: slot.wire
             val result = fileRepository.deleteFiles(
-                files = listOf(DeleteFileEntry(fileId = target.fileId, filepath = "")),
+                files = listOf(DeleteFileEntry(fileId = target.fileId, filepath = filepath)),
                 agentId = agentId,
                 toolResource = toolResource,
             )

@@ -18,12 +18,14 @@ import io.ktor.client.request.forms.formData
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
 import io.ktor.http.path
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -37,6 +39,7 @@ private data class FilesUsageRequest(
 
 class FilesApi constructor(
     private val client: HttpClient,
+    private val json: Json,
 ) {
     suspend fun getFiles(): List<FileObject> =
         client.get {
@@ -147,12 +150,21 @@ class FilesApi constructor(
      *
      * From v0.8.8-rc2 the response reports per-file outcomes and a PARTIAL delete still answers
      * 200 — see [DeleteFilesResponse].
+     *
+     * The body is read raw because one answer carries none: the route drops every entry with a
+     * falsy `filepath` and, when that leaves nothing, replies `res.status(204).json(…)` — on which
+     * Express strips the body AND the Content-Type, so ContentNegotiation never engages and
+     * `.body()` throws instead of reporting "nothing was deleted". Same treatment as
+     * [BannerApi.getBanner], for the same Express behaviour.
      */
-    suspend fun deleteFiles(request: DeleteFilesRequest): DeleteFilesResponse =
-        client.delete {
+    suspend fun deleteFiles(request: DeleteFilesRequest): DeleteFilesResponse {
+        val text = client.delete {
             url { path("api/files") }
             setBody(request)
-        }.body()
+        }.bodyAsText().trim()
+        if (text.isEmpty() || text == "null") return DeleteFilesResponse()
+        return json.decodeFromString<DeleteFilesResponse>(text)
+    }
 
     /**
      * Pushes back the upload-window TTL on [fileIds] (v0.8.8 line, #14220).

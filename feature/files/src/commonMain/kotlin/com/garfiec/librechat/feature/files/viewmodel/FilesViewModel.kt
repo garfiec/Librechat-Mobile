@@ -373,11 +373,15 @@ class FilesViewModel(
 
     fun deleteFile(fileId: String) {
         viewModelScope.launch {
+            // The route drops any entry with a falsy filepath before doing anything else, so a
+            // row we cannot name a path for would be filtered away and answered 204 — a silent
+            // no-op the list would then render as a successful delete.
             val file = _files.value.find { it.fileId == fileId }
-            val entry = DeleteFileEntry(
-                fileId = fileId,
-                filepath = file?.filepath ?: "",
-            )
+            if (file == null || file.filepath.isBlank()) {
+                updateTransient { copy(error = "Failed to delete file") }
+                return@launch
+            }
+            val entry = DeleteFileEntry(fileId = fileId, filepath = file.filepath)
             when (val result = fileRepository.deleteFiles(listOf(entry))) {
                 is Result.Success -> {
                     // A partial delete answers 200, so success alone does not mean the file is
