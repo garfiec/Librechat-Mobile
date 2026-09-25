@@ -133,15 +133,12 @@ class SchedulesListViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(busyScheduleId = schedule.id, error = null)
             val result = scheduleRepository.runScheduleNow(schedule.id)
-            _uiState.value = _uiState.value.copy(busyScheduleId = null)
             when (result) {
-                is Result.Success -> {
-                    onStarted(result.data.conversationId)
-                    refresh()
-                }
+                is Result.Success -> onStarted(result.data.conversationId)
                 is Result.Error -> _uiState.value = _uiState.value.copy(error = result.message)
                 is Result.Loading -> Unit
             }
+            refreshAndSettle()
         }
     }
 
@@ -158,13 +155,29 @@ class SchedulesListViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(busyScheduleId = scheduleId, error = null)
             val result = block()
-            _uiState.value = _uiState.value.copy(busyScheduleId = null)
             if (result is Result.Error) {
                 _uiState.value = _uiState.value.copy(error = result.message)
             }
             // Refreshed either way: a refused write leaves the server's copy authoritative, and a
             // successful one moves fields (nextRunAt, disabledReason) this client cannot derive.
-            refresh()
+            // The row stays busy ACROSS the refresh — clearing first makes it flash settled and
+            // then busy again while the list reloads underneath it.
+            refreshAndSettle()
+        }
+    }
+
+    /** Re-reads the list and clears the busy row in ONE emission, so nothing flashes between. */
+    private suspend fun refreshAndSettle() {
+        val result = scheduleRepository.listSchedules()
+        _uiState.value = when (result) {
+            is Result.Success -> _uiState.value.copy(
+                schedules = result.data.schedules,
+                limits = result.data.limits,
+                busyScheduleId = null,
+            )
+            // A failed reload is not worth reporting over the write's own outcome; the list is
+            // simply left as it was and the next resume re-reads it.
+            else -> _uiState.value.copy(busyScheduleId = null)
         }
     }
 

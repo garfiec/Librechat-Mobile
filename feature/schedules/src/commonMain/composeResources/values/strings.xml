@@ -35,17 +35,21 @@
     <string name="schedule_cron_expression">Cron expression</string>
     <string name="schedule_cron_hint">Five fields: minute, hour, day of month, month, day of week. Checked by the server.</string>
     <string name="schedule_cadence_preview">Runs at %1$s</string>
-    <string name="schedule_time">Time</string>
+    <string name="schedule_time">Hour</string>
+    <string name="schedule_minute">Minute</string>
     <string name="schedule_days">Days</string>
     <string name="schedule_save">Save</string>
     <string name="schedule_conflict">This schedule was changed somewhere else. Reload to see the current version — your edits here were not saved.</string>
     <string name="schedule_reload">Reload</string>
+    <string name="schedule_cancel">Cancel</string>
 
     <string name="schedule_problem_name">Give the schedule a name.</string>
     <string name="schedule_problem_prompt">Add the prompt to send.</string>
     <string name="schedule_problem_agent">Choose an agent.</string>
     <string name="schedule_problem_cron">Enter five cron fields, for example 0 9 * * 1-5.</string>
     <string name="schedule_problem_weekday">Pick at least one day.</string>
+    <string name="schedule_problem_time">Enter an hour (0–23) and a minute (0–59).</string>
+    <string name="schedule_problem_no_agents">No agents are available to run a schedule.</string>
     <string name="schedule_problem_project">Choose a project to file runs under.</string>
     <string name="schedule_problem_too_frequent">This server needs at least %1$d minutes between runs.</string>
 

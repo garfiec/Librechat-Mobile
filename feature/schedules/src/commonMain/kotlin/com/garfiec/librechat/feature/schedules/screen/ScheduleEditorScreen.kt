@@ -54,6 +54,7 @@ import com.garfiec.librechat.feature.schedules.resources.schedule_days
 import com.garfiec.librechat.feature.schedules.resources.schedule_editor_edit_title
 import com.garfiec.librechat.feature.schedules.resources.schedule_editor_new_title
 import com.garfiec.librechat.feature.schedules.resources.schedule_enable
+import com.garfiec.librechat.feature.schedules.resources.schedule_minute
 import com.garfiec.librechat.feature.schedules.resources.schedule_name
 import com.garfiec.librechat.feature.schedules.resources.schedule_project
 import com.garfiec.librechat.feature.schedules.resources.schedule_project_needed
@@ -228,22 +229,20 @@ private fun EditorBody(
         )
     } else {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Raw text, so the field can be cleared and retyped. The draft turns an
+            // unparseable value into a problem rather than substituting a default.
             OutlinedTextField(
-                value = draft.hour.toString(),
-                onValueChange = { value ->
-                    value.toIntOrNull()?.let { hour -> onChange { it.copy(hour = hour.coerceIn(0, 23)) } }
-                },
+                value = draft.hourText,
+                onValueChange = { value -> onChange { it.copy(hourText = value) } },
                 label = { Text(stringResource(Res.string.schedule_time)) },
                 singleLine = true,
                 enabled = enabled && draft.frequency != ScheduleFrequency.HOURLY,
                 modifier = Modifier.weight(1f),
             )
             OutlinedTextField(
-                value = draft.minute.toString(),
-                onValueChange = { value ->
-                    value.toIntOrNull()?.let { minute -> onChange { it.copy(minute = minute.coerceIn(0, 59)) } }
-                },
-                label = { Text("Minute") },
+                value = draft.minuteText,
+                onValueChange = { value -> onChange { it.copy(minuteText = value) } },
+                label = { Text(stringResource(Res.string.schedule_minute)) },
                 singleLine = true,
                 enabled = enabled,
                 modifier = Modifier.weight(1f),

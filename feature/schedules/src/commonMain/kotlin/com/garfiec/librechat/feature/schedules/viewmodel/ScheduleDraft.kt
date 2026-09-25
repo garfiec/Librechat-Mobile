@@ -20,8 +20,16 @@ data class ScheduleDraft(
     val prompt: String = "",
     val agentId: String = "",
     val frequency: String = ScheduleFrequency.DAILY,
-    val hour: Int = DEFAULT_HOUR,
-    val minute: Int = 0,
+    /**
+     * Held as text, not as Int.
+     *
+     * Parsing on every keystroke and discarding what does not parse means the field cannot be
+     * cleared to retype it and swallows a leading zero — it snaps back under the user's cursor.
+     * Blank is a legitimate intermediate state here, and becomes [ScheduleDraftProblem.TIME_REQUIRED]
+     * rather than a silently substituted default.
+     */
+    val hourText: String = DEFAULT_HOUR.toString(),
+    val minuteText: String = "0",
     val daysOfWeek: Set<Int> = setOf(DEFAULT_WEEKDAY),
     val cronExpression: String = "",
     val timezone: String = "",
@@ -30,14 +38,17 @@ data class ScheduleDraft(
 ) {
     val isCron: Boolean get() = frequency == ScheduleFrequency.CRON
 
+    val hour: Int? get() = hourText.trim().toIntOrNull()?.takeIf { it in 0..MAX_HOUR }
+    val minute: Int? get() = minuteText.trim().toIntOrNull()?.takeIf { it in 0..MAX_MINUTE }
+
     val cadence: ScheduleCadence
         get() = if (isCron) {
             ScheduleCadence.cron(cronExpression)
         } else {
             ScheduleCadence.structured(
                 frequency = frequency,
-                hour = hour,
-                minute = minute,
+                hour = hour ?: 0,
+                minute = minute ?: 0,
                 daysOfWeek = daysOfWeek.toList().takeIf { frequency == ScheduleFrequency.WEEKLY },
             )
         }
@@ -45,6 +56,8 @@ data class ScheduleDraft(
     companion object {
         const val DEFAULT_HOUR = 9
         const val DEFAULT_WEEKDAY = 1
+        const val MAX_HOUR = 23
+        const val MAX_MINUTE = 59
 
         /** Loads an existing schedule into the form, cron expression and all. */
         fun from(schedule: Schedule): ScheduleDraft {
@@ -54,8 +67,10 @@ data class ScheduleDraft(
                 prompt = schedule.prompt,
                 agentId = schedule.agentId,
                 frequency = cadence.frequency,
-                hour = cadence.hour ?: DEFAULT_HOUR,
-                minute = cadence.minute ?: 0,
+                // Blank for a cron row: it carries no time, and inventing one here is what
+                // `withFrequency` exists to avoid.
+                hourText = cadence.hour?.toString().orEmpty(),
+                minuteText = cadence.minute?.toString().orEmpty(),
                 daysOfWeek = cadence.daysOfWeek?.toSet()?.takeIf { it.isNotEmpty() }
                     ?: setOf(DEFAULT_WEEKDAY),
                 cronExpression = cadence.expression.orEmpty(),
@@ -73,7 +88,9 @@ enum class ScheduleDraftProblem {
     PROMPT_REQUIRED,
     AGENT_REQUIRED,
     CRON_SHAPE,
+    TIME_REQUIRED,
     WEEKDAY_REQUIRED,
+    NO_AGENTS,
     PROJECT_REQUIRED,
     TOO_FREQUENT,
 }
@@ -85,11 +102,16 @@ enum class ScheduleDraftProblem {
  * before submit beats a 400 after it. A cron cadence's interval is deliberately NOT checked here —
  * measuring it needs a real cron engine, so it is submitted and the server answers.
  */
-fun ScheduleDraft.firstProblem(limits: ScheduleLimits): ScheduleDraftProblem? = when {
+fun ScheduleDraft.firstProblem(
+    limits: ScheduleLimits,
+    hasNoAgents: Boolean = false,
+): ScheduleDraftProblem? = when {
     name.isBlank() -> ScheduleDraftProblem.NAME_REQUIRED
     prompt.isBlank() -> ScheduleDraftProblem.PROMPT_REQUIRED
+    hasNoAgents -> ScheduleDraftProblem.NO_AGENTS
     agentId.isBlank() -> ScheduleDraftProblem.AGENT_REQUIRED
     isCron && !isPlausibleCronShape(cronExpression) -> ScheduleDraftProblem.CRON_SHAPE
+    !isCron && (hour == null || minute == null) -> ScheduleDraftProblem.TIME_REQUIRED
     frequency == ScheduleFrequency.WEEKLY && daysOfWeek.isEmpty() ->
         ScheduleDraftProblem.WEEKDAY_REQUIRED
     // A pinned project is supplied by the server, so only an unpinned requirement can be unmet.
@@ -112,7 +134,8 @@ fun ScheduleDraft.toCreateRequest(clientRequestId: String): CreateScheduleReques
         cadence = cadence,
         timezone = timezone,
         clientRequestId = clientRequestId,
-        // A pinned deployment ignores any choice sent, so nothing is sent — the server fills it.
+        // Sent as chosen. A pinned deployment ignores it and fills its own destination in, which
+        // is why the editor offers no picker there rather than suppressing the field here.
         chatProjectId = chatProjectId,
         enabled = enabled,
     )

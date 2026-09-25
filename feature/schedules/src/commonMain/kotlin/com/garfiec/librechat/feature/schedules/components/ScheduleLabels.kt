@@ -23,8 +23,10 @@ import com.garfiec.librechat.feature.schedules.resources.schedule_frequency_week
 import com.garfiec.librechat.feature.schedules.resources.schedule_problem_agent
 import com.garfiec.librechat.feature.schedules.resources.schedule_problem_cron
 import com.garfiec.librechat.feature.schedules.resources.schedule_problem_name
+import com.garfiec.librechat.feature.schedules.resources.schedule_problem_no_agents
 import com.garfiec.librechat.feature.schedules.resources.schedule_problem_project
 import com.garfiec.librechat.feature.schedules.resources.schedule_problem_prompt
+import com.garfiec.librechat.feature.schedules.resources.schedule_problem_time
 import com.garfiec.librechat.feature.schedules.resources.schedule_problem_too_frequent
 import com.garfiec.librechat.feature.schedules.resources.schedule_problem_weekday
 import com.garfiec.librechat.feature.schedules.viewmodel.ScheduleDraftProblem
@@ -69,7 +71,9 @@ fun problemLabel(problem: ScheduleDraftProblem, minIntervalMinutes: Int): String
     ScheduleDraftProblem.PROMPT_REQUIRED -> stringResource(Res.string.schedule_problem_prompt)
     ScheduleDraftProblem.AGENT_REQUIRED -> stringResource(Res.string.schedule_problem_agent)
     ScheduleDraftProblem.CRON_SHAPE -> stringResource(Res.string.schedule_problem_cron)
+    ScheduleDraftProblem.TIME_REQUIRED -> stringResource(Res.string.schedule_problem_time)
     ScheduleDraftProblem.WEEKDAY_REQUIRED -> stringResource(Res.string.schedule_problem_weekday)
+    ScheduleDraftProblem.NO_AGENTS -> stringResource(Res.string.schedule_problem_no_agents)
     ScheduleDraftProblem.PROJECT_REQUIRED -> stringResource(Res.string.schedule_problem_project)
     ScheduleDraftProblem.TOO_FREQUENT ->
         stringResource(Res.string.schedule_problem_too_frequent, minIntervalMinutes)

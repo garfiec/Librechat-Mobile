@@ -40,7 +40,8 @@ data class ScheduleEditorUiState(
     /** The cron line the engine would fire from, for the structured picker's preview. */
     val cadencePreview: String get() = cadenceToCron(draft.cadence)
 
-    val problem: ScheduleDraftProblem? get() = draft.firstProblem(limits)
+    val problem: ScheduleDraftProblem?
+        get() = draft.firstProblem(limits, hasNoAgents = !isLoading && agents.isEmpty())
 
     /** A pinned deployment supplies the destination itself, so no picker is offered. */
     val isProjectPinned: Boolean get() = limits.projectId != null

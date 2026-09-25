@@ -54,7 +54,7 @@ class ScheduleDraftTest {
     @Test
     fun a_deliberate_cadence_change_is_sent_whole() {
         val draft = ScheduleDraft.from(cronSchedule)
-            .copy(frequency = ScheduleFrequency.DAILY, hour = 6, minute = 45)
+            .copy(frequency = ScheduleFrequency.DAILY, hourText = "6", minuteText = "45")
 
         val cadence = draft.diffAgainst(cronSchedule).cadence
 
@@ -153,14 +153,59 @@ class ScheduleDraftTest {
     }
 
     @Test
+    fun a_cron_schedule_loads_with_no_time_rather_than_an_invented_one() {
+        // A cron row carries no hour or minute. Pre-filling the structured controls with 09:00
+        // would show a time the user never chose, and switching to a structured cadence would
+        // commit it. Blank instead, which blocks Save until a real one is entered.
+        val draft = ScheduleDraft.from(cronSchedule).copy(frequency = ScheduleFrequency.WEEKLY)
+
+        assertThat(draft.hourText).isEmpty()
+        assertThat(draft.firstProblem(limits)).isEqualTo(ScheduleDraftProblem.TIME_REQUIRED)
+    }
+
+    @Test
+    fun a_structured_schedule_loads_with_its_own_time() {
+        val daily = cronSchedule.copy(
+            cadence = ScheduleCadence.structured(ScheduleFrequency.DAILY, hour = 6, minute = 45),
+        )
+
+        val draft = ScheduleDraft.from(daily).copy(frequency = ScheduleFrequency.WEEKDAYS)
+
+        assertThat(draft.hourText).isEqualTo("6")
+        assertThat(draft.minuteText).isEqualTo("45")
+    }
+
+    @Test
+    fun the_time_fields_can_be_cleared_and_retyped() {
+        // Parsing per keystroke and discarding what does not parse makes the field un-clearable —
+        // it snaps back under the cursor. Blank is a valid intermediate state that blocks Save.
+        val draft = ScheduleDraft(name = "n", prompt = "p", agentId = "a", hourText = "")
+
+        assertThat(draft.hour).isNull()
+        assertThat(draft.firstProblem(limits)).isEqualTo(ScheduleDraftProblem.TIME_REQUIRED)
+        assertThat(draft.copy(hourText = "07").hour).isEqualTo(7)
+        assertThat(draft.copy(hourText = "99").hour).isNull()
+    }
+
+    @Test
+    fun a_server_with_no_agents_says_so_rather_than_asking_for_one() {
+        val draft = ScheduleDraft(name = "n", prompt = "p", agentId = "")
+
+        assertThat(draft.firstProblem(limits, hasNoAgents = true))
+            .isEqualTo(ScheduleDraftProblem.NO_AGENTS)
+        assertThat(draft.firstProblem(limits, hasNoAgents = false))
+            .isEqualTo(ScheduleDraftProblem.AGENT_REQUIRED)
+    }
+
+    @Test
     fun a_create_body_carries_the_idempotency_key_and_the_built_cadence() {
         val draft = ScheduleDraft(
             name = "  Morning digest  ",
             prompt = "  Summarise  ",
             agentId = "agent_abc",
             frequency = ScheduleFrequency.WEEKLY,
-            hour = 8,
-            minute = 30,
+            hourText = "8",
+            minuteText = "30",
             daysOfWeek = setOf(3, 1),
             timezone = "Europe/London",
         )
@@ -174,3 +219,4 @@ class ScheduleDraftTest {
         assertThat(request.cadence.expression).isNull()
     }
 }
+

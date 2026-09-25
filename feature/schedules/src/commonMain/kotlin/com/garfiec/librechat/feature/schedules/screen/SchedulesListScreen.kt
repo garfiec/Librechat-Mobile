@@ -48,6 +48,7 @@ import com.garfiec.librechat.core.model.schedule.Schedule
 import com.garfiec.librechat.core.model.schedule.cadenceToCron
 import com.garfiec.librechat.feature.schedules.components.disabledReasonLabel
 import com.garfiec.librechat.feature.schedules.resources.Res
+import com.garfiec.librechat.feature.schedules.resources.schedule_cancel
 import com.garfiec.librechat.feature.schedules.resources.schedule_delete
 import com.garfiec.librechat.feature.schedules.resources.schedule_delete_confirm_body
 import com.garfiec.librechat.feature.schedules.resources.schedule_delete_confirm_title
@@ -163,7 +164,9 @@ fun SchedulesListScreen(
                 }) { Text(stringResource(Res.string.schedule_delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
+                TextButton(onClick = { pendingDelete = null }) {
+                    Text(stringResource(Res.string.schedule_cancel))
+                }
             },
         )
     }
