@@ -20,10 +20,13 @@ import com.garfiec.librechat.core.model.queuedturn.QueuedTurnStatus
 data class SettledQueuedTurn(
     val clientRequestId: String,
     val evidence: Evidence,
-    /** The boundary the admission actually consumed; absent until the server reports one. */
+    /**
+     * The boundary the admission actually consumed, absent until the server reports one — and
+     * absent forever for a root admission, which consumed none. It is therefore also the test for
+     * whether this evidence can fence anything at all; nothing else may stand in for it, because
+     * a receipt can carry a reported boundary AND the root flag at once.
+     */
     val effectivePredecessorCreatedAt: Long? = null,
-    /** The admission consumed no predecessor boundary, so there is none for it to fence. */
-    val rootPredecessor: Boolean = false,
     /**
      * This client has already let the admission fence one terminal boundary. Purely local —
      * nothing on the wire says it — and it is what stops a single admission from swallowing
@@ -54,7 +57,6 @@ fun evidenceFor(receipt: AgentQueuedTurnReceipt): SettledQueuedTurn? = when {
             clientRequestId = receipt.clientRequestId,
             evidence = SettledQueuedTurn.Evidence.Admitted,
             effectivePredecessorCreatedAt = receipt.effectivePredecessorCreatedAt,
-            rootPredecessor = receipt.rootPredecessor == true,
         )
 
     receipt.status == QueuedTurnStatus.ADMITTED ->

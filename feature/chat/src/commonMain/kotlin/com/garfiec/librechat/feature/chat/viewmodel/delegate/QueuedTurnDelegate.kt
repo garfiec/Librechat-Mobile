@@ -56,8 +56,15 @@ class QueuedTurnDelegate(
     private var pollJob: Job? = null
     private var pollConversationId: String? = null
 
-    /** Turns this client has already gone looking for a run for. See [applyReceipts]. */
-    private var announcedOwed: Set<String> = emptySet()
+    /**
+     * Turns this client has already gone looking for a run for, as `(clientRequestId, status)`.
+     *
+     * The status is part of the key because the owed predicate is true from a turn's FIRST
+     * sighting, which is `queued` — while this client is still streaming, so the look-up it
+     * triggers is a no-op. Keyed on the id alone, the `admitted` receipt that finally needs it is
+     * deduped away and the follow-up completes server-side against an idle screen.
+     */
+    private var announcedOwed: Set<Pair<String, String?>> = emptySet()
 
     /**
      * Hands [spec] to the server and folds the answer back onto its row.
@@ -138,8 +145,11 @@ class QueuedTurnDelegate(
             // fenced its boundary, or a row whose POST is still out. Everything else would grow
             // without bound for the ViewModel's life.
             val retainedEvidence = bySettled.values.filter {
+                // Keyed on the boundary itself, not on a root flag: a receipt can report a
+                // consumed boundary AND `rootPredecessor`, and dropping that one leaves the drain
+                // with nothing to match against the run end the admission really did consume.
                 (it.evidence == SettledQueuedTurn.Evidence.Admitted &&
-                    !it.rootPredecessor &&
+                    it.effectivePredecessorCreatedAt != null &&
                     !it.boundaryConsumed) ||
                     it.clientRequestId in pending
             }
@@ -159,7 +169,7 @@ class QueuedTurnDelegate(
         // test — it stays true for every tick a row is queued — so firing on it would spend a
         // `/chat/status` GET every two seconds on an idle client for no new information.
         val owed = receipts.filter { isQueuedTurnSuccessorOwed(listOf(it)) }
-            .map { it.clientRequestId }
+            .map { it.clientRequestId to it.status }
             .toSet()
         val fresh = owed - announcedOwed
         // Only a SNAPSHOT speaks for every live row, so only a snapshot may retire ids from the

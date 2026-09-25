@@ -252,6 +252,20 @@ class MessageQueueDelegate(
         // two turns. The evidence is consumed here so one admission fences one boundary, not
         // every later run end as well.
         if (consumeAdmittedBoundary(endedGenerationCreatedAt)) return
+        // "Send queued" and the idle re-drain arrive with no boundary epoch, so the match above is
+        // a no-op for them and the evidence — whose row has already left the queue, which is why
+        // the server-owned check below cannot stand in for it — would never be consulted at all.
+        // With nothing to match against, any admission still owed a successor has to block.
+        //
+        // Blocked WITHOUT consuming: only the epoch-matched consume retires an admission, and
+        // burning it here would leave the run end it was actually holding unfenced. An admission
+        // anchored to a DIFFERENT boundary is deliberately still blocking on this path — the
+        // caller cannot say which run just ended, so it cannot say the two are unrelated either.
+        if (endedGenerationCreatedAt == null &&
+            handle.state.settledQueuedTurns.any { it.ownsUnstartedSuccessor }
+        ) {
+            return
+        }
         if (handle.state.messageQueue.any { it.server != null }) return
         // A server-owned row means the BACKEND owns the next fresh-turn admission, and there is no
         // server-side guard against this client also sending it — the admission check is gated on
@@ -276,9 +290,7 @@ class MessageQueueDelegate(
     private fun consumeAdmittedBoundary(endedGenerationCreatedAt: Long?): Boolean {
         if (endedGenerationCreatedAt == null) return false
         fun SettledQueuedTurn.consumesBoundary(): Boolean =
-            evidence == SettledQueuedTurn.Evidence.Admitted &&
-                !boundaryConsumed &&
-                effectivePredecessorCreatedAt == endedGenerationCreatedAt
+            ownsUnstartedSuccessor && effectivePredecessorCreatedAt == endedGenerationCreatedAt
         // The verdict is read here, on the Main-confined state this delegate shares with the
         // reconcile poll; the WRITE below re-derives from the block's own copy rather than
         // writing back a list captured out here. `handle.update` is a compare-and-set retry, so a
@@ -316,3 +328,13 @@ class MessageQueueDelegate(
         val MIN_TICK = 1.minutes
     }
 }
+
+/**
+ * An admission whose successor this client has not yet let run. Both the boundary-matched fence
+ * and the blanket refusal read it, so neither can drift onto its own idea of live evidence.
+ *
+ * A root admission never reaches here: it consumed no boundary, so [QueuedTurnDelegate] does not
+ * retain it in the first place.
+ */
+private val SettledQueuedTurn.ownsUnstartedSuccessor: Boolean
+    get() = evidence == SettledQueuedTurn.Evidence.Admitted && !boundaryConsumed

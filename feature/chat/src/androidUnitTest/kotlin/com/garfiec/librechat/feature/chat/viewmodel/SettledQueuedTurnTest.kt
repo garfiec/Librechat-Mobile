@@ -47,7 +47,8 @@ class SettledQueuedTurnTest {
         val evidence = evidenceFor(receipt(QueuedTurnStatus.ADMITTED, rootPredecessor = true))
 
         assertThat(evidence?.evidence).isEqualTo(SettledQueuedTurn.Evidence.Admitted)
-        assertThat(evidence?.rootPredecessor).isTrue()
+        // No boundary to fence, which is also what keeps it out of the retained evidence.
+        assertThat(evidence?.effectivePredecessorCreatedAt).isNull()
     }
 
     @Test
