@@ -124,6 +124,59 @@ class StreamErrorTypeTest {
         )
     }
 
+    /**
+     * Upstream gates the envelope on `topLevelKey == null`, so a top-level identifier it does not
+     * recognize is FINAL and the provider's own sentence is what the user reads. Resolving through
+     * the lookup table first and searching on for a hit instead reports a content-filter block for
+     * an ordinary invalid-request error.
+     */
+    @Test
+    fun an_unrecognized_top_level_identifier_stops_the_search() {
+        assertNull(
+            StreamErrorType.parse(
+                """{"type":"invalid_request_error","error":{"type":"moderation"}}""",
+            ),
+        )
+        // …and one that IS recognized still wins over the envelope beneath it.
+        assertEquals(
+            StreamErrorType.EMPTY_MESSAGES,
+            StreamErrorType.parse("""{"type":"empty_messages","error":{"type":"moderation"}}"""),
+        )
+    }
+
+    /**
+     * The walk resumes past each span it parsed, not one character into it. Re-entering offers a
+     * payload's own children as top-level payloads, which is the same fall-through by another
+     * route — here the nested `moderation` would be reached as if it stood alone.
+     */
+    @Test
+    fun the_walk_does_not_re_enter_a_span_it_already_parsed() {
+        assertNull(
+            StreamErrorType.parse(
+                """Provider said: {"type":"invalid_request_error","error":{"type":"moderation"}}""",
+            ),
+        )
+        // The span-advance on its own, with the envelope gate out of the picture: the top level
+        // names no identifier and carries no `error` envelope, so upstream renders it
+        // unclassified. Re-entering the span offers `{"type":"moderation"}` as a payload of its
+        // own, at any nesting depth and under any key.
+        assertNull(StreamErrorType.parse("""{"data":{"type":"moderation"}}"""))
+    }
+
+    /**
+     * …and the advance skips only a span that PARSED. A brace run that is not JSON at all is
+     * prose, and a real payload can sit inside one — skipping it would narrow the very widening
+     * the walk exists for. (A run that DOES parse and names nothing is settled, exactly as
+     * upstream's single-run `extractJson` settles it.)
+     */
+    @Test
+    fun a_payload_nested_in_a_non_json_brace_run_is_still_found() {
+        assertEquals(
+            StreamErrorType.EMPTY_MESSAGES,
+            StreamErrorType.parse("""Retry {1 2 3 {"type":"empty_messages"}} gave up."""),
+        )
+    }
+
     /** A message with no payload at all still degrades to the server's own text. */
     @Test
     fun prose_with_no_payload_is_left_alone() {

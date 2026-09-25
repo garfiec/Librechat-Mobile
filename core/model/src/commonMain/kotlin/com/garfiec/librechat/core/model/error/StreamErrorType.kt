@@ -146,7 +146,8 @@ enum class StreamErrorType(val wire: String) {
          * **The identifier can arrive under `code` or `type`, at the top level or inside an
          * `error` envelope.** `CodeWorkspaceSelectionError` carries `code`, never `type`, and an
          * OpenAI-compatible provider body is shaped `{"error":{"type":…}}`. Upstream reads
-         * `readString(json,'code') ?? readString(json,'type')` and then unwraps `error`.
+         * `readString(json,'code') ?? readString(json,'type')` and unwraps `error` only when the
+         * top level names neither — see [identifier], which mirrors that gate.
          *
          * Checked BEFORE the JSON parse, because [MODEL_NOT_FOUND] arrives as provider prose
          * rather than as a typed payload and would otherwise fall straight through to generic.
@@ -157,22 +158,43 @@ enum class StreamErrorType(val wire: String) {
             var from = rawMessage.indexOf('{')
             while (from >= 0) {
                 val span = balancedObjectAt(rawMessage, from)
-                val identified = span
+                val payload = span
                     ?.let { runCatching { parser.parseToJsonElement(it) }.getOrNull() }
-                    ?.let { it as? JsonObject }
-                    ?.let { it.identify() ?: (it["error"] as? JsonObject)?.identify() }
-                if (identified != null) return identified
-                from = rawMessage.indexOf('{', from + 1)
+                    as? JsonObject
+                // The FIRST payload that names an identifier settles it, mapped or not. Resolving
+                // `byWire` first and searching on for a hit is the difference between this and
+                // upstream, and it is the difference between "generic" and "wrong": for
+                // `{"type":"invalid_request_error","error":{"type":"moderation"}}` upstream reads
+                // the present top-level key, finds no renderer, and shows the provider's own
+                // sentence, while a hit-seeking walk descends into the envelope and tells the user
+                // their message was blocked by a content filter.
+                payload?.identifier()?.let { return byWire[it] }
+                // Past a span that PARSED, into one that did not. Re-entering a parsed object
+                // re-offers its own children as payloads; skipping a run that is not JSON at all
+                // would drop a real payload nested inside prose braces (`Run {id: 1, e:
+                // {"type":…}}`), which is the widening this walk exists for.
+                from = rawMessage.indexOf('{', from + if (payload != null) span!!.length else 1)
             }
             return null
         }
 
-        /** `code` first, then `type`, matching upstream's `readString(json,'code') ?? …`. */
-        private fun JsonObject.identify(): StreamErrorType? {
+        /**
+         * The identifier this payload names, or null — `code` then `type` at the top level, and
+         * the `error` envelope only when the top level names neither, exactly as upstream's
+         * `readString(json,'code') ?? readString(json,'type')` and its `topLevelKey == null` gate.
+         *
+         * Returns the raw string rather than a [StreamErrorType]: presence and recognition are
+         * different questions, and collapsing them is what lets an unrecognized identifier fall
+         * through to a nested one.
+         */
+        private fun JsonObject.identifier(): String? =
+            ownIdentifier() ?: (this["error"] as? JsonObject)?.ownIdentifier()
+
+        private fun JsonObject.ownIdentifier(): String? {
             // Safe-cast, not `.jsonPrimitive`: that extension throws on an object or array value,
             // and this runs inside the SSE mapping coroutine.
-            val code = (this["code"] as? JsonPrimitive)?.contentOrNull?.let { byWire[it] }
-            return code ?: (this["type"] as? JsonPrimitive)?.contentOrNull?.let { byWire[it] }
+            val code = (this["code"] as? JsonPrimitive)?.contentOrNull
+            return code ?: (this["type"] as? JsonPrimitive)?.contentOrNull
         }
 
         /**
