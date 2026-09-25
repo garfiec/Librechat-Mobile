@@ -37,6 +37,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.Memory
+import com.garfiec.librechat.core.model.MemoryKeyProblem
+import com.garfiec.librechat.core.model.memoryKeyProblem
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -47,6 +49,7 @@ internal fun MemoriesSettingsSection(
     memoriesEnabled: Boolean,
     showMemoryDialog: Boolean,
     editingMemory: Memory?,
+    enforceKeyPattern: Boolean,
     onToggleEnable: (Boolean) -> Unit,
     onAddMemory: () -> Unit,
     onEditMemory: (Memory) -> Unit,
@@ -128,6 +131,8 @@ internal fun MemoriesSettingsSection(
         // Create/edit dialog
         if (showMemoryDialog) {
             MemoryDialog(
+                memories = memories,
+                enforceKeyPattern = enforceKeyPattern,
                 editingMemory = editingMemory,
                 onDismiss = onDismissDialog,
                 onSave = onSaveMemory,
@@ -232,6 +237,8 @@ private fun MemoryItem(
 
 @Composable
 private fun MemoryDialog(
+    memories: List<Memory>,
+    enforceKeyPattern: Boolean,
     editingMemory: Memory?,
     onDismiss: () -> Unit,
     onSave: (key: String, value: String) -> Unit,
@@ -240,6 +247,20 @@ private fun MemoryDialog(
     val isEditing = editingMemory != null
     var key by remember { mutableStateOf(editingMemory?.key ?: "") }
     var value by remember { mutableStateOf(editingMemory?.value ?: "") }
+    // Only CREATE carries a key: the update path sends a value alone, so the server's rename arm
+    // never fires and there is nothing here to validate.
+    val keyProblem = if (isEditing) {
+        null
+    } else {
+        memoryKeyProblem(key = key, memories = memories, enforcePattern = enforceKeyPattern)
+    }
+    // A blank key is already what disables the button; surfacing it as an error would put one
+    // under the field the moment the dialog opens.
+    val keyError = when (keyProblem) {
+        MemoryKeyProblem.PATTERN -> Res.string.memory_key_invalid
+        MemoryKeyProblem.DUPLICATE -> Res.string.memory_key_exists
+        else -> null
+    }
 
     AlertDialog(
         modifier = modifier,
@@ -255,6 +276,14 @@ private fun MemoryDialog(
                     label = { Text(stringResource(Res.string.memory_key_label)) },
                     singleLine = true,
                     enabled = !isEditing,
+                    isError = keyError != null,
+                    // The hint rides on every server — it costs nothing where the shape is not
+                    // enforced, and it is the only thing that explains the refusal where it is.
+                    supportingText = if (isEditing) {
+                        null
+                    } else {
+                        { Text(stringResource(keyError ?: Res.string.memory_key_hint)) }
+                    },
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -273,7 +302,7 @@ private fun MemoryDialog(
                 onClick = {
                     onSave(key.trim(), value.trim())
                 },
-                enabled = key.isNotBlank() && value.isNotBlank(),
+                enabled = key.isNotBlank() && value.isNotBlank() && keyError == null,
             ) {
                 Text(stringResource(if (isEditing) Res.string.action_save else Res.string.action_add))
             }

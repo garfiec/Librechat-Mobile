@@ -112,6 +112,12 @@ data class SettingsUiState(
     val isArchivingAll: Boolean = false,
     /** `POST /api/convos/archive/all` (v0.8.8-rc2). See VERSION_GATES.md. */
     val archiveAllSupported: Boolean = false,
+    /**
+     * Whether the server is KNOWN to enforce the memory-key shape (v0.8.8-rc3+). False on an older
+     * or unresolved version, where the key field still shows the hint but does not refuse: rc1 and
+     * rc2 accept keys rc3 rejects, so blocking there would withhold a key those servers take.
+     */
+    val memoryKeyPatternEnforced: Boolean = false,
     /** One-shot count from the last successful archive-all, for the confirmation snackbar. */
     val archivedAllCount: Int? = null,
     val showExportComingSoon: Boolean = false,

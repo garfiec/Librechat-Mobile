@@ -414,6 +414,9 @@
     <string name="dialog_delete_memory_message">Are you sure you want to delete the memory "%1$s"?</string>
     <string name="memory_key_label">Key</string>
     <string name="memory_value_label">Value</string>
+    <string name="memory_key_hint">Use lowercase letters and underscores only</string>
+    <string name="memory_key_invalid">Key must only contain lowercase letters and underscores</string>
+    <string name="memory_key_exists">A memory with this key already exists</string>
 
     <!-- MCP -->
     <string name="add_mcp_server">Add MCP Server</string>

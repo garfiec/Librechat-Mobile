@@ -207,6 +207,10 @@ class SettingsViewModel(
                             backend,
                             minVersion = "0.8.8-rc2",
                         ).isRuledOut,
+                        // Fail-OPEN, unlike the flags above: this one refuses input rather than
+                        // hiding an affordance, and only rc3+ validates the key server-side.
+                        memoryKeyPatternEnforced = version != null &&
+                            BackendVersion.isCompatibleOrNewer(version, "0.8.8-rc3"),
                     )
                 }
             }

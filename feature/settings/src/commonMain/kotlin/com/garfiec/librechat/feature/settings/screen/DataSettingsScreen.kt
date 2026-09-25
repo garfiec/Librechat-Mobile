@@ -247,6 +247,7 @@ fun DataSettingsContent(
                         memoriesEnabled = uiState.memoriesEnabled,
                         showMemoryDialog = uiState.showMemoryDialog,
                         editingMemory = uiState.editingMemory,
+                        enforceKeyPattern = uiState.memoryKeyPatternEnforced,
                         onToggleEnable = viewModel::toggleMemoriesEnabled,
                         onAddMemory = viewModel::showAddMemoryDialog,
                         onEditMemory = viewModel::showEditMemoryDialog,

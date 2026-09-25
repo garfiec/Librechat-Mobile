@@ -59,7 +59,7 @@
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/response/UploadRouting.kt",
         "symbol": "DOCUMENT_SUPPORTED_PROVIDERS"
       },
-      "why": "Which providers can take a document natively. The router sends a file to server-side text extraction only when the provider is absent from this set, so membership decides the delivery mode. Note the commented-out azureOpenAI entry is load-bearing -- it records a deliberate exclusion, so a comment-only change here is still a real change.",
+      "why": "Which providers can take a document natively. The router sends a file to server-side text extraction only when the provider is absent from this set, so membership decides the delivery mode. Note the commented-out azureOpenAI entry is load-bearing -- it records a deliberate exclusion, so a comment-only change here is still a real change. **Watch the predicate, not only the literal**: rc2 made `isDocumentSupportedProvider` lower-case BOTH sides, and a Set-only entry reported `ok` straight through that behavioural change, which is how mobile kept a case-sensitive match for a release.",
       "failure_mode": "A provider upstream ADDED keeps having its documents extracted to text instead of sent natively -- worse quality, no citations, no error. A provider upstream REMOVED gets documents sent natively that it cannot read, which is the silent drop this feature exists to fix. This set changed four times in the 4.6 months after it was introduced, at gaps of 8, 4, 6 and 3 weeks."
     },
     {
@@ -617,6 +617,34 @@
       },
       "why": "The cap on `clientRequestIds` per list request, which upstream expresses as a bare `.slice(0, 100)` inside the URL builder rather than as a named constant -- so there is no symbol on that side for a diff to anchor to except the builder itself.",
       "failure_mode": "The cap drops and requests over it 400, so reconciliation stops for a conversation with a long queue and every row in it stays server-owned on screen."
+    },
+    {
+      "id": "document-supported-provider-predicate",
+      "upstream": {
+        "file": "packages/data-provider/src/schemas.ts",
+        "symbol": "isDocumentSupportedProvider",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/response/UploadRouting.kt",
+        "symbol": "isDocumentSupported"
+      },
+      "why": "The comparison itself, registered apart from the `document-supported-providers` Set because the two drift independently: rc2 changed only the predicate (to lower-case both sides) and the Set-only entry stayed `ok` throughout. The sibling literal comparisons in `isProviderCapable` are deliberately still case-SENSITIVE, mirroring `isProviderAttachType` in `client/src/utils/files.ts`, so a blanket normalisation here would be a divergence rather than a fix.",
+      "failure_mode": "A provider differing only in case (`Anthropic`, `Google`) misses the set, so its documents are routed to server-side text extraction instead of being sent natively -- worse quality, no citations, no error."
+    },
+    {
+      "id": "memory-key-pattern",
+      "upstream": {
+        "file": "packages/data-schemas/src/schema/memory.ts",
+        "symbol": "isValidMemoryKey",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/MemoryKey.kt",
+        "symbol": "MEMORY_KEY_PATTERN"
+      },
+      "why": "The shape a memory key must have, enforced by the CREATE route from v0.8.8-rc3 and never served to a client. Upstream labels its own client-side copy a mirror of this validator (`client/src/utils/memory.ts`), which is the same reason this one exists. The mobile check is version-gated and fails OPEN -- rc1 and rc2 accept keys rc3 rejects, so an unknown server must not be refused locally.",
+      "failure_mode": "A widened pattern leaves the client refusing keys the server would take, with no way for the user to tell why. A narrowed one lets a key through to a 400 the client could have prevented. Neither shows up as a decode or a version mismatch."
     }
   ]
 }
