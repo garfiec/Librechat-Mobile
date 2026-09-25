@@ -146,11 +146,15 @@ private fun MemoryItem(
     modifier: Modifier = Modifier,
 ) {
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    // Same contract as the full Memories screen: a content-filtered entry arrives with its fields
+    // BLANKED rather than omitted, so it must say so, and editing it would PATCH that blank back
+    // over the real content through a key the server has also blanked.
+    val redacted = memory.contentFilterBlocked == true
 
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onEdit)
+            .then(if (redacted) Modifier else Modifier.clickable(onClick = onEdit))
             .padding(vertical = 4.dp),
     ) {
         Row(
@@ -159,26 +163,34 @@ private fun MemoryItem(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = memory.key,
+                    text = memory.key.ifBlank {
+                        if (redacted) stringResource(Res.string.memory_redacted_key) else ""
+                    },
                     style = MaterialTheme.typography.bodyLarge,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = memory.value,
+                    text = if (redacted) {
+                        stringResource(Res.string.memory_redacted_value)
+                    } else {
+                        memory.value
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = stringResource(Res.string.cd_edit),
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            if (!redacted) {
+                IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = stringResource(Res.string.cd_edit),
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
             IconButton(
                 onClick = { showDeleteConfirm = true },
