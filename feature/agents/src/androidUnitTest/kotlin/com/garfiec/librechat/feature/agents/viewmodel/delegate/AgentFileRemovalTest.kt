@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.model.response.DeleteFilesResponse
 import com.garfiec.librechat.feature.agents.util.ContentReader
 import com.garfiec.librechat.feature.agents.viewmodel.AgentEditorStateHandle
 import com.garfiec.librechat.feature.agents.viewmodel.AgentEditorUiState
+import com.garfiec.librechat.feature.agents.viewmodel.AgentEditorViewModel
 import com.garfiec.librechat.feature.agents.viewmodel.AgentFileSlot
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -46,9 +47,15 @@ class AgentFileRemovalTest {
     private fun delegateWith(
         scope: TestScope,
         files: List<AgentFile>,
+        unlinkAvailable: Boolean = true,
     ): Pair<AgentFilesDelegate, MutableStateFlow<AgentEditorUiState>> {
         val flow = MutableStateFlow(
-            AgentEditorUiState(isEditMode = true, agentId = AGENT_ID, knowledgeFiles = files),
+            AgentEditorUiState(
+                isEditMode = true,
+                agentId = AGENT_ID,
+                knowledgeFiles = files,
+                isAgentFileUnlinkAvailable = unlinkAvailable,
+            ),
         )
         val delegate = AgentFilesDelegate(
             stateHandle = AgentEditorStateHandle(flow, scope),
@@ -130,6 +137,30 @@ class AgentFileRemovalTest {
             coVerify(exactly = 0) { fileRepository.deleteFiles(any(), any(), any()) }
             assertThat(flow.value.knowledgeFiles.map { it.fileId }).containsExactly(FILE_ID)
             assertThat(flow.value.error).isNotNull()
+        }
+
+    /**
+     * Below v0.8.8-rc1 the route runs `processDeleteRequest` on an all-owned batch before it ever
+     * reads `agent_id`, so the same request that unlinks on rc1+ destroys the file there — from My
+     * Files and every other agent that references it. Nothing may be sent.
+     */
+    @Test
+    fun `a server that deletes instead of unlinking is never sent the request`() =
+        runTest(UnconfinedTestDispatcher()) {
+            coEvery { fileRepository.getAgentFiles(AGENT_ID) } returns
+                Result.Success(listOf(fileObject(FILE_ID, FILE_PATH)))
+            val (delegate, flow) = delegateWith(
+                this,
+                listOf(AgentFile(fileId = FILE_ID, originResource = "file_search")),
+                unlinkAvailable = false,
+            )
+            delegate.loadAgentFiles(AGENT_ID)
+
+            delegate.removeAgentFile(FILE_ID, AgentFileSlot.KNOWLEDGE)
+
+            coVerify(exactly = 0) { fileRepository.deleteFiles(any(), any(), any()) }
+            assertThat(flow.value.knowledgeFiles.map { it.fileId }).containsExactly(FILE_ID)
+            assertThat(flow.value.error).isEqualTo(AgentEditorViewModel.AGENT_FILE_REMOVE_FAILED_MARKER)
         }
 
     private companion object {

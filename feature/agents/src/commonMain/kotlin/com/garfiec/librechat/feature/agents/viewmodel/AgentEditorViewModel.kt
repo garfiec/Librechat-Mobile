@@ -142,6 +142,12 @@ data class AgentEditorUiState(
     val isHandoffsAvailable: Boolean = false,
     /** Whether the granular ACL sharing API is supported (v0.8.5+). */
     val isAclAvailable: Boolean = false,
+    /**
+     * Whether `DELETE /api/files` unlinks an agent's file before it deletes anything (v0.8.8-rc1+).
+     * Below that the route deletes an owned file outright, so removing a chip would destroy the
+     * user's file everywhere. False until the version is known, so an unplaced server refuses.
+     */
+    val isAgentFileUnlinkAvailable: Boolean = false,
     /** `/api/config.endpointsDropParamsMap` (v0.8.8-rc3), unresolved; hides advanced-parameter
      *  controls this server strips before calling the provider. */
     val dropParamsMap: Map<String, JsonElement>? = null,

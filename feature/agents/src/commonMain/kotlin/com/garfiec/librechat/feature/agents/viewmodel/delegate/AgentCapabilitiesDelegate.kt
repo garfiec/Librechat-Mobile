@@ -73,6 +73,8 @@ class AgentCapabilitiesDelegate(
                         showCollaborativeToggle = show,
                         isHandoffsAvailable = handoffsAvailable,
                         isAclAvailable = handoffsAvailable,
+                        isAgentFileUnlinkAvailable = version != null &&
+                            BackendVersion.isCompatibleOrNewer(version, "0.8.8-rc1"),
                     )
                 }
             }

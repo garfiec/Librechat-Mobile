@@ -201,6 +201,10 @@ class AgentFilesDelegate(
             setFilesFor(slot, filesFor(slot).filterNot { it.fileId == fileId })
             return
         }
+        if (!stateHandle.state.isAgentFileUnlinkAvailable) {
+            stateHandle.update { copy(error = AgentEditorViewModel.AGENT_FILE_REMOVE_FAILED_MARKER) }
+            return
+        }
         val before = filesFor(slot)
         val target = before.firstOrNull { it.fileId == fileId } ?: return
         // The route drops any entry with a falsy filepath before reading `agent_id`, so an unlink
