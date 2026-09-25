@@ -720,6 +720,64 @@ Two shapes worth knowing before touching this:
   caller's, or itself a child. **None of them says the route is absent**, so nothing latches off it;
   see VERSION_GATES.md.
 
+## Conversation trace viewer (v0.8.8-rc3)
+
+A provider-neutral read of what the deployment's tracing backend recorded for a conversation's
+turns. The server maps whatever its backend stores into the wire shapes, so the client never sees a
+backend's field names, credentials, URL structure or API version — nothing on this side should grow
+a Langfuse-shaped field.
+
+PORTED:
+- `GET /api/traces/:conversationId/availability` — whether this conversation has a readable trace.
+- `GET /api/traces/:conversationId/records?cursor=` — newest turns first; `nextCursor` pages older.
+- `GET /api/traces/:conversationId/records/:recordId?message=&source=` — one record's detail.
+- A sheet off the chat overflow menu, which is where upstream puts it on mobile as well.
+
+Five shapes worth knowing before touching this:
+- **There is no `GET /api/traces/:conversationId`.** Only the three sub-routes exist
+  (`api/server/routes/traces.js`), so the section is reachable in no other way.
+- **`/availability` never fails.** Disabled, not found, not owned and every other refusal answer
+  `200 { available: false }`; only an unexpected throw is a 500. So the gate has no error arm, and
+  there is no response shape meaning "this deployment does not have the routes" — nothing latches.
+  It is also deliberately NOT rate-limited, while the two record routes are, which is why the
+  client's re-read loop bounds itself rather than relying on the server to stop it.
+- **`retryAfterMs` is a wait, not a poll.** It is set only while the backend cannot decide yet
+  (a run still being ingested). Bounded at ten re-reads client-side, as upstream bounds it.
+- **`messageId` is required on the detail read and `sourceId` is not optional in practice.** The
+  message id is the turn the list attributed the record to, and its traces are what authorize the
+  read; `sourceId` names the backend project that served the PAGE, and a multi-project deployment
+  serves different sources across pages, so a detail read must carry the source of the page the
+  record came from rather than a global one.
+- **Cost is filtered server-side by `interface.contextCost`** (`applyCostPolicy` in
+  `packages/api/src/traces/handlers.ts`), and `showInputOutput` is enforced in the reader
+  (`packages/api/src/langfuse/reader.ts`, surfacing as `contentAvailable: false`). Neither is
+  mirrored client-side: a second gate here would hide what the deployment chose to show.
+
+`interface.traceViewer` is **object-only and default-OFF**, and that is NOT the same rule as
+`interface.schedules` despite the resemblance. `traceViewerSchema` is `z.object({…}).optional()`
+with no boolean arm, and `resolveTraceViewerConfig` reads `config?.enabled === true` — so `{}` is
+**off** here, where `schedules: {}` is **on**. Both absent-cases are off, which is itself unlike the
+rest of `interface.*`. The two resolvers are separate functions in `InterfaceConfig.kt` and a test
+pins the divergence; reusing one for the other compiles.
+
+NOT ported, and deliberately:
+- **The zoomable timeline, the collapsible record tree and the text filter.** Each trades screen for
+  navigation, which is the wrong trade on a phone for a surface opened to answer one question. The
+  records still nest — depth is computed and indented — they simply cannot be folded.
+- **The Langfuse session link** (`GET /api/admin/langfuse/session/:conversationId`, gated on
+  `startupConfig.langfuseConnectionAccess`). An admin route that opens a web console this app has
+  no session for; it is also outside the provider-neutral contract the rest of this is built on.
+- **`interface.currency`.** Not modelled on `InterfaceConfig` at all — a pre-existing gap, not one
+  this introduced. Cost renders as USD, which is what the wire contract states.
+
+Two divergences from upstream's own rendering, both deliberate:
+- **Turns are newest first**, where the desktop viewer is oldest first. The surface is opened to look
+  at the turn that just settled, and oldest-first means scrolling past every earlier turn to reach
+  it; it also matches the direction the server pages in, so "load older" appends at the bottom.
+- **A record with an unreadable `startTime` is kept and sorted last**, where upstream drops it
+  (`toNode` returns null on a non-finite parse). On a diagnostic surface the malformed row is the
+  one most likely to be what the user came to look at.
+
 Revised message / SSE shapes:
 - Message content parts add a `steer` type (`type == "steer"`, #14220) — mid-run steering. `ContentType`
   gained `STEER` and `MessageContentPart` a nullable `steer: JsonElement?`, so a persisted message carrying
