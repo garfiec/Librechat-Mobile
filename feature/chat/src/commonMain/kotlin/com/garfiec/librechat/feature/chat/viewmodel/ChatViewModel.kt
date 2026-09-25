@@ -46,6 +46,7 @@ import com.garfiec.librechat.core.model.Preset
 import com.garfiec.librechat.core.model.config.InterfaceConfig
 import com.garfiec.librechat.core.model.config.isTraceViewerEnabled
 import com.garfiec.librechat.core.model.error.UserKeyError
+import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 import com.garfiec.librechat.core.model.media.resolveFileReferenceUrl
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
@@ -403,6 +404,13 @@ class ChatViewModel(
                 contextBarPlacement = displayPrefs.contextBarPlacement,
                 contextGaugeExpanded = displayPrefs.contextGaugeExpanded,
                 duringRunAction = displayPrefs.duringRunAction,
+            ),
+            // The user record carries a RELATIVE `/images/…` avatar, which Coil has no fetcher for.
+            // Resolved here rather than in `loadUserProfile` because the base URL arrives on its own
+            // flow: resolving at load time races it and would pin an unloadable path for the session.
+            // Idempotent — an already-absolute URL (a social-login avatar) passes through untouched.
+            account = state.account.copy(
+                userAvatarUrl = resolveAvatarUrl(state.account.userAvatarUrl, url),
             ),
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, ChatUiState())
