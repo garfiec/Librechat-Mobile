@@ -120,6 +120,20 @@ data class Agent(
     /** Subagent spawning configuration — isolated-context child agents. Forward-compat (v0.8.6). */
     val subagents: AgentSubagentsConfig? = null,
     /**
+     * Commit author identity the sandbox's tooling uses (v0.8.8-rc2). Round-tripped, not edited:
+     * the standing policy for new agent fields is preserve-don't-surface, so a save from mobile
+     * cannot drop an identity an admin set on the web.
+     */
+    @SerialName("git_identity") val gitIdentity: AgentGitIdentity? = null,
+    /** The persistent code workspace this agent's sandbox attaches to (v0.8.8-rc2). Round-tripped. */
+    @SerialName("code_workspace_id") val codeWorkspaceId: String? = null,
+    /**
+     * Which skills the agent is exposed to while skills are enabled (v0.8.8-rc2). A missing value
+     * preserves the legacy semantics server-side, which is exactly why this is a raw String and
+     * not an enum: an unrecognized value would throw at decode and fail the whole agent.
+     */
+    @SerialName("skills_scope") val skillsScope: String? = null,
+    /**
      * Keeps the code-interpreter sandbox alive between tool calls in a run instead of
      * booting a fresh one each time. Gated server-side by the `stateful_code_sessions`
      * agent capability. Mobile has no editor toggle yet — round-tripped so an agent
