@@ -51,9 +51,14 @@ class SteeringDelegate(
     /** Holds a message as a follow-up for after the run; the queue's own drain fires it. */
     private val enqueueFollowUp: (QueuedMessage) -> Unit,
     /**
-     * Queues a message WITHOUT kicking the drain, so it stays put until [pauseQueue] can hold it.
-     * Only [reclaimParked] uses this, and only because the ordinary [enqueueFollowUp] self-drains
-     * the instant the run is over — which is precisely the state a parked claim arrives in.
+     * Queues a message as a local row, WITHOUT kicking the drain, so it stays put until
+     * [pauseQueue] can hold it.
+     *
+     * For steers reclaimed from a run that did not finish cleanly: [reclaimParked],
+     * [reclaimAborted] and [reclaimLocalChips]. [enqueueFollowUp] would self-drain the instant the
+     * run is over, and while the run is still winding down it hands the text to the SERVER queue
+     * — which dead-claims a turn behind an aborted or failed run, and which, after a dropped
+     * socket, may also receive the same words from the detached run injecting the steer.
      */
     private val enqueueParked: (QueuedMessage) -> Unit,
     /**
@@ -383,6 +388,11 @@ class SteeringDelegate(
      */
     fun reclaim(steers: List<PendingSteer>): Int = reclaimInto(steers, enqueueFollowUp)
 
+    /** [reclaim] for a stopped run's reports — the abort ack and the aborted final. */
+    fun reclaimAborted(steers: List<PendingSteer>) {
+        reclaimInto(steers, enqueueParked)
+    }
+
     private fun reclaimInto(steers: List<PendingSteer>, enqueue: (QueuedMessage) -> Unit): Int {
         if (steers.isEmpty()) return 0
         val reported = steers.mapNotNull { it.toRecordEntry() }
@@ -407,7 +417,7 @@ class SteeringDelegate(
         records.filterValues { it.status == SteerRecord.Status.PENDING && it.turnEpoch == turnEpoch }
             .entries
             .sortedBy { it.value.createdAt }
-            .forEach { (id, record) -> rehome(id, record, enqueueFollowUp) }
+            .forEach { (id, record) -> rehome(id, record, enqueueParked) }
         evictSettled()
         publishChips()
     }

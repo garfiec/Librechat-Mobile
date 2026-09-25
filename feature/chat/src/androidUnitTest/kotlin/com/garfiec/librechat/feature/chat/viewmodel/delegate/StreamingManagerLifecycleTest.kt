@@ -369,9 +369,9 @@ class StreamingManagerLifecycleTest {
             events.send(AbortFrameFixtures.earlyAbortFrame().copy(pendingSteers = parked))
             runCurrent()
 
-            // The frame's own list, not a parked one: claimed via reclaim, which auto-drains
-            // normally. Only /chat/status hands over steers the server parked for a dead run.
-            verify { steeringDelegate.reclaim(parked) }
+            // Claimed as a stopped run's report: held as local rows, since the server dead-claims
+            // any turn queued behind an aborted run.
+            verify { steeringDelegate.reclaimAborted(parked) }
             events.close()
             advanceUntilIdle()
         }

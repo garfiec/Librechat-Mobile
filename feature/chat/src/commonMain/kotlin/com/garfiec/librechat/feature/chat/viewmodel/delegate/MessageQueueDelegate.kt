@@ -4,6 +4,7 @@ import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.feature.chat.viewmodel.QueueHandle
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
+import com.garfiec.librechat.feature.chat.viewmodel.QueuedTurnServerState
 import com.garfiec.librechat.feature.chat.viewmodel.SettledQueuedTurn
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -205,10 +206,37 @@ class MessageQueueDelegate(
         handle.update { queue = queue.copy(isQueuePaused = true) }
     }
 
-    /** User tapped "Send queued": lift the pause and start draining. The reply already settled
-     *  while paused, so no settle-wait is needed. */
+    /**
+     * User tapped "Send queued": lift the pause and start draining. The reply already settled
+     * while paused, so no settle-wait is needed.
+     *
+     * A row the server refused is released to the local drain first. The server will never run
+     * it — a stopped run dead-claims every turn queued behind it, asking the user to review it —
+     * and this tap is that review; left server-owned it would block the drain for good.
+     *
+     * A row the server still holds keeps the queue paused rather than dropping the control: the
+     * drain refuses to send around it, and once the pause is lifted nothing else offers the user a
+     * way to send what is behind it.
+     */
     fun resume() {
-        handle.update { queue = queue.copy(isQueuePaused = false) }
+        handle.update {
+            val released = queue.messageQueue.map { item ->
+                if (item.server?.status != QueuedTurnServerState.Status.Rejected) {
+                    item
+                } else {
+                    item.copy(
+                        server = null,
+                        clientRequestId = null,
+                        parentMessageId = null,
+                        expectedPredecessorCreatedAt = null,
+                    )
+                }
+            }
+            queue = queue.copy(
+                messageQueue = released,
+                isQueuePaused = released.any { it.server != null },
+            )
+        }
         drainNext(awaitSettle = false)
     }
 

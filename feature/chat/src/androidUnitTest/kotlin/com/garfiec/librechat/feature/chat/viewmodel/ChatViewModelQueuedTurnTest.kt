@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.chat.viewmodel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.BackendBuildClass
 import com.garfiec.librechat.core.common.DetectedBackend
+import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
 import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
@@ -11,13 +12,17 @@ import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.PendingSteer
 import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.queuedturn.AgentQueuedTurnReceipt
 import com.garfiec.librechat.core.model.queuedturn.EnqueueQueuedTurnRequest
+import com.garfiec.librechat.core.model.queuedturn.QueuedTurnFailure
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnFileRef
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnOutcome
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnStatus
+import com.garfiec.librechat.core.model.response.ChatAbortResponse
 import com.garfiec.librechat.core.model.response.ChatStatusResponse
+import com.garfiec.librechat.core.model.response.SteerResponse
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformFileHandler
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -34,6 +39,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -671,6 +677,142 @@ class ChatViewModelQueuedTurnTest {
         runCurrent()
 
         assertThat(sent).containsExactly(TEXT)
+    }
+
+    /**
+     * A dropped socket says nothing about the run: it carries on server-side and may still inject
+     * the steer. Handed to the server queue as well, the same words would be delivered twice with
+     * nothing the user could do to stop it.
+     */
+    @Test
+    fun `a steer reclaimed after a dropped socket stays local`() = queuedTurnTest(
+        arrange = { stubAcceptedSteer() },
+    ) { vm ->
+        assertThat(vm.uiState.value.canSteerNow).isTrue()
+        vm.onInputChanged(TEXT)
+        vm.steerMessage()
+        runCurrent()
+
+        resumedStream.emit(StreamEvent.Error("connection reset", isNetworkError = true))
+        runCurrent()
+
+        coVerify(exactly = 0) { queuedTurnRepository.enqueue(any()) }
+        val reclaimed = vm.uiState.value.messageQueue.single()
+        assertThat(reclaimed.text).isEqualTo(TEXT)
+        assertThat(reclaimed.server).isNull()
+        assertThat(vm.uiState.value.isQueuePaused).isTrue()
+    }
+
+    /** The server dead-claims every turn queued behind a stopped run, so it would never run it. */
+    @Test
+    fun `a steer the stopped run hands back is not given to the server`() = queuedTurnTest(
+        arrange = {
+            stubAcceptedSteer()
+            coEvery { chatRepository.abortChat(CONVERSATION_ID, any(), any()) } answers {
+                thirdArg<(List<PendingSteer>) -> Unit>()(listOf(PendingSteer(steerId = "steer-1", text = TEXT)))
+                Result.Success(ChatAbortResponse())
+            }
+        },
+    ) { vm ->
+        vm.onInputChanged(TEXT)
+        vm.steerMessage()
+        runCurrent()
+
+        vm.stopGeneration()
+        runCurrent()
+
+        coVerify(exactly = 0) { queuedTurnRepository.enqueue(any()) }
+        assertThat(vm.uiState.value.messageQueue.single().server).isNull()
+    }
+
+    @Test
+    fun `a steer the aborted final hands back is not given to the server`() = queuedTurnTest(
+        arrange = {
+            stubAcceptedSteer()
+            coEvery { chatRepository.abortChat(CONVERSATION_ID, any(), any()) } returns
+                Result.Success(ChatAbortResponse())
+        },
+    ) { vm ->
+        vm.onInputChanged(TEXT)
+        vm.steerMessage()
+        runCurrent()
+        vm.stopGeneration()
+        runCurrent()
+
+        resumedStream.emit(
+            StreamEvent.Final(aborted = true, pendingSteers = listOf(PendingSteer(steerId = "steer-1", text = TEXT))),
+        )
+        runCurrent()
+
+        coVerify(exactly = 0) { queuedTurnRepository.enqueue(any()) }
+        assertThat(vm.uiState.value.messageQueue.single().server).isNull()
+    }
+
+    /**
+     * "Send queued" after a Stop. The follow-up was server-owned, and the server dead-claimed it
+     * behind the aborted run; the tap is the review it asks for, so the tap has to send it.
+     */
+    @Test
+    fun `Send queued sends a turn the stopped run dead-claimed`() = queuedTurnTest(
+        arrange = {
+            coEvery { chatRepository.abortChat(CONVERSATION_ID, any(), any()) } returns
+                Result.Success(ChatAbortResponse())
+        },
+    ) { vm ->
+        val sent = captureSentTexts()
+        vm.onInputChanged(TEXT)
+        vm.queueMessage()
+        runCurrent()
+
+        vm.stopGeneration()
+        runCurrent()
+        resumedStream.emit(StreamEvent.Final(aborted = true))
+        runCurrent()
+        serverRows.replaceAll {
+            it.copy(
+                status = QueuedTurnStatus.DEAD,
+                failure = QueuedTurnFailure(code = "PREDECESSOR_ABORTED", message = "aborted"),
+            )
+        }
+        advanceTimeBy(3_000)
+        runCurrent()
+        assertThat(vm.uiState.value.messageQueue.single().server?.status)
+            .isEqualTo(QueuedTurnServerState.Status.Rejected)
+        assertThat(vm.uiState.value.pausedQueueCount).isEqualTo(1)
+
+        vm.sendQueuedNow()
+        runCurrent()
+
+        assertThat(sent).containsExactly(TEXT)
+    }
+
+    /** Tapped before the dead claim is seen, the control must stay on screen for a second try. */
+    @Test
+    fun `Send queued keeps its control while the server still holds the row`() = queuedTurnTest(
+        arrange = {
+            coEvery { chatRepository.abortChat(CONVERSATION_ID, any(), any()) } returns
+                Result.Success(ChatAbortResponse())
+        },
+    ) { vm ->
+        val sent = captureSentTexts()
+        vm.onInputChanged(TEXT)
+        vm.queueMessage()
+        runCurrent()
+        vm.stopGeneration()
+        runCurrent()
+        resumedStream.emit(StreamEvent.Final(aborted = true))
+        runCurrent()
+
+        vm.sendQueuedNow()
+        runCurrent()
+
+        assertThat(sent).isEmpty()
+        assertThat(vm.uiState.value.pausedQueueCount).isEqualTo(1)
+    }
+
+    private fun stubAcceptedSteer() {
+        coEvery { chatRepository.steerChat(any()) } returns
+            Result.Success(SteerResponse(status = "queued", steerId = "steer-1"))
     }
 
     /** Records the text of every turn the ViewModel sends. */

@@ -355,7 +355,11 @@ class StreamingManagerDelegate(
             is StreamEvent.Final -> {
                 // Claim-on-read: the server dropped its copy writing this frame. Claimed here,
                 // outside handleFinal, so none of its early returns can skip it.
-                steeringDelegate.reclaim(event.pendingSteers)
+                if (event.aborted) {
+                    steeringDelegate.reclaimAborted(event.pendingSteers)
+                } else {
+                    steeringDelegate.reclaim(event.pendingSteers)
+                }
                 handleFinal(event)
             }
             is StreamEvent.Error -> {
@@ -759,7 +763,7 @@ class StreamingManagerDelegate(
                 isTemporary = handle.state.isTemporaryChat,
                 // The ack hands back the steers the stopped run never injected — the only report
                 // for this ending. Claimed inside the call so it cannot be skipped.
-                claimSteers = steeringDelegate::reclaim,
+                claimSteers = steeringDelegate::reclaimAborted,
             )
             if (abortResult is Result.Error) {
                 Logger.w(abortResult.exception) { "Failed to abort chat: ${abortResult.message}" }
