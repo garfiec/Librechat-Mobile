@@ -34,6 +34,10 @@ private val materializeLock = Mutex()
 @Volatile
 private var cachedBaseUrl: String? = null
 
+/** A copy this process finished with files missing, so the marker was withheld for the next launch. */
+@Volatile
+private var copyIncomplete = false
+
 /**
  * Copies the vendored assets out of the framework bundle into the caches directory,
  * once, and returns that directory's URL.
@@ -57,7 +61,15 @@ internal actual suspend fun webAssetBaseUrl(): String {
         // Returning the remembered path after that would hand every WebView a base URL
         // whose scripts have all vanished — which renders blank, silently, for the rest
         // of the process's life.
-        if (NSFileManager.defaultManager.fileExistsAtPath(manifestPath())) return cached
+        //
+        // [copyIncomplete] is the one case where an absent manifest is NOT a purge: this
+        // process wrote a partial copy and deliberately withheld the marker so the next
+        // LAUNCH redoes it. Re-validating on the marker alone would re-enter `materialize`
+        // on every call, and its first act is to delete the directory — out from under the
+        // WKWebViews already holding pages inside it, once per render, forever.
+        if (copyIncomplete || NSFileManager.defaultManager.fileExistsAtPath(manifestPath())) {
+            return cached
+        }
         cachedBaseUrl = null
     }
     return materializeLock.withLock {
@@ -94,6 +106,7 @@ private suspend fun materialize(): String = withContext(Dispatchers.IO) {
     fm.removeItemAtPath(root, null)
     fm.createDirectoryAtPath(root, withIntermediateDirectories = true, attributes = null, error = null)
 
+    var complete = true
     for (relative in VendoredWebAssets.FILES) {
         val bytes = Res.readBytes("${VendoredWebAssets.ROOT}/$relative")
         val target = "$root/$relative"
@@ -101,12 +114,18 @@ private suspend fun materialize(): String = withContext(Dispatchers.IO) {
         fm.createDirectoryAtPath(parent, withIntermediateDirectories = true, attributes = null, error = null)
         if (!bytes.toNSData().writeToFile(target, atomically = true)) {
             Logger.w { "Failed to write vendored web asset $relative" }
+            complete = false
         }
     }
 
-    // Written last: the manifest is the "copy completed" signal, so a crash midway
-    // leaves it absent and the next launch redoes the copy rather than trusting it.
-    expected.writeUtf8To(manifestPath)
+    // Written last, and only when every file landed: the manifest is the "copy completed"
+    // signal, so a crash midway leaves it absent and the next launch redoes the copy rather
+    // than trusting it. A write that merely RETURNS false — a full disk, a purge racing the
+    // copy — does not crash, so without this it would latch a partial copy as complete and
+    // every WebView on the install would render against missing scripts, silently, until the
+    // next repin changed the fingerprint.
+    copyIncomplete = !complete
+    if (complete) expected.writeUtf8To(manifestPath)
     root.asDirectoryUrl()
 }
 
