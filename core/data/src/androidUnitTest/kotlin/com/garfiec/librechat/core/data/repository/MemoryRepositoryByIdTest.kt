@@ -87,6 +87,22 @@ class MemoryRepositoryByIdTest {
         coVerify(exactly = 1) { api.deleteMemory("likes_tea", null) }
     }
 
+    /**
+     * The same blank key, on the other route. `PATCH /api/memories/` matches no registered route
+     * — upstream mounts only `patch('/:key')` — so the fallback cannot answer and the user is
+     * handed a bare 404 from a path that was never addressable, instead of the by-id route's
+     * honest "this row cannot be reached". The asymmetry with `deleteMemory` is the defect.
+     */
+    @Test
+    fun `a redacted entry is not updated through an unaddressable key`() = runTest {
+        coEvery { api.updateMemoryById("mem-2", any(), null) } throws notFound()
+
+        val result = repository(rc3()).updateMemory(redacted, UpdateMemoryRequest(value = "no"))
+
+        assertThat(result).isInstanceOf(Result.Error::class.java)
+        coVerify(exactly = 0) { api.updateMemory(any(), any(), any()) }
+    }
+
     @Test
     fun `an update keeps the partition on both routes`() = runTest {
         val scoped = plain.copy(agentId = "agent_7")

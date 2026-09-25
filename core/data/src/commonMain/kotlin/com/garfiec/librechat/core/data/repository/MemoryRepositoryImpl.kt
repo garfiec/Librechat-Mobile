@@ -30,6 +30,11 @@ class MemoryRepositoryImpl(
         if (id != null) {
             val byId = safeApiCall { memoriesApi.updateMemoryById(id, request, memory.agentId) }
             if (!byId.isRouteMissing()) return byId
+            // Same rule as [deleteMemory]: a blanked key addresses nothing. `PATCH /api/memories/`
+            // matches no route at all — upstream mounts only `patch('/:key')` — so the fallback
+            // cannot answer, and reporting the by-id 404 beats a bare one from a path that was
+            // never addressable.
+            if (memory.key.isBlank()) return byId
         }
         return safeApiCall { memoriesApi.updateMemory(memory.key, request, memory.agentId) }
     }
