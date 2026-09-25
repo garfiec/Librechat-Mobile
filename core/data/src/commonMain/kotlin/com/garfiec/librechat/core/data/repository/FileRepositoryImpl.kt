@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.common.result.safeApiCall
 import com.garfiec.librechat.core.model.FileObject
 import com.garfiec.librechat.core.model.request.DeleteFileEntry
 import com.garfiec.librechat.core.model.request.DeleteFilesRequest
+import com.garfiec.librechat.core.model.response.DeleteFilesResponse
 import com.garfiec.librechat.core.model.response.FilePreviewResponse
 import com.garfiec.librechat.core.model.response.FileUploadConfig
 import com.garfiec.librechat.core.network.api.FILES_USAGE_MAX_IDS
@@ -86,7 +87,7 @@ class FileRepositoryImpl(
         files: List<DeleteFileEntry>,
         agentId: String?,
         toolResource: String?,
-    ): Result<Unit> =
+    ): Result<DeleteFilesResponse> =
         safeApiCall {
             filesApi.deleteFiles(
                 DeleteFilesRequest(

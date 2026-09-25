@@ -380,7 +380,13 @@ class FilesViewModel(
             )
             when (val result = fileRepository.deleteFiles(listOf(entry))) {
                 is Result.Success -> {
-                    _files.value = _files.value.filter { it.fileId != fileId }
+                    // A partial delete answers 200, so success alone does not mean the file is
+                    // gone — dropping the row anyway hides a file that is still on the server.
+                    if (fileId in result.data.failedFileIds) {
+                        updateTransient { copy(error = result.data.message ?: "Failed to delete file") }
+                    } else {
+                        _files.value = _files.value.filter { it.fileId != fileId }
+                    }
                 }
                 is Result.Error -> {
                     updateTransient {
@@ -563,11 +569,17 @@ class FilesViewModel(
             }
             when (val result = fileRepository.deleteFiles(entries)) {
                 is Result.Success -> {
-                    _files.value = _files.value.filter { it.fileId !in selectedIds }
+                    // Everything asked for MINUS what the server reported as failed. An older
+                    // server names no ids, so the failed set is empty and this evicts the whole
+                    // selection, exactly as before.
+                    val failed = result.data.failedFileIds.toSet()
+                    val removed = selectedIds - failed
+                    _files.value = _files.value.filter { it.fileId !in removed }
                     updateTransient {
                         copy(
-                            isSelectionMode = false,
-                            selectedFileIds = emptySet(),
+                            isSelectionMode = failed.isNotEmpty(),
+                            selectedFileIds = failed,
+                            error = if (failed.isEmpty()) error else result.data.message,
                         )
                     }
                 }

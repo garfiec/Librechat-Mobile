@@ -315,6 +315,31 @@ DELETE /api/files                         reworked (#14149): agent-attached unli
                                             ocr}; the non-owner via-agent fallback was dropped. Mobile already
                                             complies (owner manager sends neither agent_id nor tool_resource;
                                             AgentFilesDelegate always routes a valid resource). (NO CHANGE — documented)
+DELETE /api/files                         (v0.8.8-rc2) response is now
+                                            `{ message, deletedFileIds[], failedFileIds[] }` — additive, so it
+                                            decodes on any client, but the SEMANTICS changed: **a partial
+                                            delete answers 200**, with the outcome in the body rather than the
+                                            status. Upstream's rule for clients is to read `failedFileIds` and
+                                            "treat everything else they asked for as gone", which also keeps an
+                                            older server (whose body names no ids) behaving as before. Mobile
+                                            evicts requested-minus-failed and reports the partial. (BUILT)
+POST   /api/files/images/…/avatar         (v0.8.8-rc3) gained a content-filter preflight that can answer **400**
+                                            `{ error: 'content_filter_block', message, source, field }` on a
+                                            deployment with active `filters` policies. A `{message}` envelope,
+                                            so `extractErrorMessage` already surfaces the server's own sentence
+                                            through both avatar upload paths. (NO CHANGE — documented)
+GET    /api/share/:shareId                (v0.8.8-rc3) gained `shareIpLimiter` + `shareUserLimiter`, so this
+                                            route can now answer **429** `{ message: 'Too many shared link
+                                            requests. Try again later' }`. The 429 body carries NO machine-
+                                            readable code — the `share_limit` ViolationType goes to the
+                                            server's violation log, not the response — so status is the only
+                                            signal. **Mobile does not call this route**: it has no public-share
+                                            viewer, and the limiters are on `/:shareId` alone, not on the
+                                            owner-side list/create/update/delete or on `/:shareId/fork`. So
+                                            there is no reachable 429 today. `StreamErrorType.SHARE_LIMIT`
+                                            exists for the error-payload path, where upstream's registry keys
+                                            ViolationTypes off the same `type` field as ErrorTypes.
+                                            (NO CHANGE — documented)
 GET    /api/memories                      now returns EVERY memory of the user, agent-partitioned ones included,
                                             each with `agentId` (null = shared personal pool) and `agentName`
                                             (resolved server-side, present only when the caller may VIEW that

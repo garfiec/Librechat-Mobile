@@ -3,6 +3,7 @@ package com.garfiec.librechat.core.network.api
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.model.FileObject
 import com.garfiec.librechat.core.model.request.DeleteFilesRequest
+import com.garfiec.librechat.core.model.response.DeleteFilesResponse
 import com.garfiec.librechat.core.model.response.FileDownloadURLResponse
 import com.garfiec.librechat.core.model.response.FilePreviewResponse
 import com.garfiec.librechat.core.model.response.FileUploadConfig
@@ -143,13 +144,15 @@ class FilesApi constructor(
      *   400s on a missing/invalid `tool_resource` and dropped the non-owner via-agent fallback.
      *   `AgentFilesDelegate` routes deletes with the file's origin resource (or the slot's wire
      *   value), all of which are in the allowed set, so this stays compliant.
+     *
+     * From v0.8.8-rc2 the response reports per-file outcomes and a PARTIAL delete still answers
+     * 200 — see [DeleteFilesResponse].
      */
-    suspend fun deleteFiles(request: DeleteFilesRequest) {
+    suspend fun deleteFiles(request: DeleteFilesRequest): DeleteFilesResponse =
         client.delete {
             url { path("api/files") }
             setBody(request)
-        }
-    }
+        }.body()
 
     /**
      * Pushes back the upload-window TTL on [fileIds] (v0.8.8 line, #14220).

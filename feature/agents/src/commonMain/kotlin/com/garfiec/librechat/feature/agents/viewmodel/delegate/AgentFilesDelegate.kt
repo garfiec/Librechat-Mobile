@@ -215,11 +215,18 @@ class AgentFilesDelegate(
                 agentId = agentId,
                 toolResource = toolResource,
             )
-            if (result is Result.Error) {
+            // A partial delete answers 200 (v0.8.8-rc2), so a reported failure has to roll the
+            // optimistic removal back exactly as a transport error does — otherwise the row
+            // disappears from the editor while the file stays attached to the agent.
+            val reportedFailed = result is Result.Success && target.fileId in result.data.failedFileIds
+            if (result is Result.Error || reportedFailed) {
                 // Rollback
                 setFilesFor(slot, before)
                 stateHandle.update {
-                    copy(error = result.message ?: AgentEditorViewModel.AGENT_FILE_REMOVE_FAILED_MARKER)
+                    copy(
+                        error = (result as? Result.Error)?.message
+                            ?: AgentEditorViewModel.AGENT_FILE_REMOVE_FAILED_MARKER,
+                    )
                 }
             }
         }

@@ -3,6 +3,7 @@ package com.garfiec.librechat.core.data.repository
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.model.FileObject
 import com.garfiec.librechat.core.model.request.DeleteFileEntry
+import com.garfiec.librechat.core.model.response.DeleteFilesResponse
 import com.garfiec.librechat.core.model.response.FilePreviewResponse
 import com.garfiec.librechat.core.model.response.FileUploadConfig
 
@@ -32,11 +33,17 @@ interface FileRepository {
         height: Int? = null,
         onProgress: ((Float) -> Unit)? = null,
     ): Result<FileObject>
+
+    /**
+     * Deletes [files]. Success carries the per-file outcome: a partial delete answers 200, so the
+     * caller must evict what it asked for MINUS [DeleteFilesResponse.failedFileIds] rather than
+     * treating success as "all gone". See [DeleteFilesResponse].
+     */
     suspend fun deleteFiles(
         files: List<DeleteFileEntry>,
         agentId: String? = null,
         toolResource: String? = null,
-    ): Result<Unit>
+    ): Result<DeleteFilesResponse>
     suspend fun downloadFile(userId: String, fileId: String): Result<ByteArray>
     suspend fun getAgentFiles(agentId: String): Result<List<FileObject>>
 
