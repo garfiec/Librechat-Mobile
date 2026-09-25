@@ -367,6 +367,24 @@ GET    /api/memories                      (v0.8.8-rc3) rows can now carry `conte
                                             an edit can come back redacted. (BUILT)
 
 # Added
+GET    /api/mcp/tools                     (v0.8.8-rc2) each `servers[name]` entry gained
+                                            `authorizationState?: 'reauth_required'` and
+                                            `authorizationGeneration?`, and each tool gained
+                                            `serverToolName?`. **These are on the TOOLS response, not on
+                                            `/connection/status`** — `reauth_required` is NOT a member of the
+                                            connection-status `authorizationState` union, which is unchanged.
+                                            Passive discovery notices a lapsed OAuth authorization here before
+                                            the status route does; upstream folds it into the status map as
+                                            `needs_authorization` rather than teaching every surface a new
+                                            state, skipping the verdict when the live status contradicts it
+                                            (actively connecting/authorizing, or connected with a DIFFERENT
+                                            `authorizationGeneration` — the generation is the staleness
+                                            tiebreaker). Mobile mirrors that fold. (BUILT)
+GET    /api/mcp/connection/status         (v0.8.8-rc2) `MCPServerStatus` gained `requestScoped?` (the server
+                                            only connects inside a chat request, so being `disconnected`
+                                            between requests is not a fault), `configurationState?:
+                                            'configured'|'needs_configuration'`, and `authorizationGeneration?`.
+                                            All decode surface; only the generation is read, by the fold above.
 PATCH  /api/memories/id/:id               (v0.8.8-rc2) `{ value, key? }` + optional `?agentId=` →
 DELETE /api/memories/id/:id                 `{updated, memory}` / `{deleted}`. Addresses a row by its stable
                                             `_id` instead of by key. **There is no GET by id** — only these

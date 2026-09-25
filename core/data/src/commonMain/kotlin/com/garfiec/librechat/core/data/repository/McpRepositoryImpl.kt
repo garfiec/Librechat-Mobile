@@ -8,7 +8,7 @@ import com.garfiec.librechat.core.model.mcp.McpReinitializeResponse
 import com.garfiec.librechat.core.model.mcp.McpServer
 import com.garfiec.librechat.core.model.mcp.McpServerStatus
 import com.garfiec.librechat.core.model.mcp.McpServerType
-import com.garfiec.librechat.core.model.mcp.McpTool
+import com.garfiec.librechat.core.model.mcp.McpToolCatalog
 import com.garfiec.librechat.core.network.api.McpApi
 
 class McpRepositoryImpl(
@@ -45,7 +45,7 @@ class McpRepositoryImpl(
     override suspend fun reinitialize(serverName: String): Result<McpReinitializeResponse> =
         safeApiCall { mcpApi.reinitialize(serverName) }
 
-    override suspend fun getTools(): Result<List<McpTool>> =
+    override suspend fun getTools(): Result<McpToolCatalog> =
         safeApiCall { mcpApi.getTools() }
 
     override suspend fun getConnectionStatus(): Result<Map<String, McpServerStatus>> =

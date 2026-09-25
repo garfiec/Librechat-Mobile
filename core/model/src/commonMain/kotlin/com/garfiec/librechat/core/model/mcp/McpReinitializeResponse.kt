@@ -54,4 +54,12 @@ object McpAuthorizationStates {
     const val AUTHORIZED = "authorized"
     const val NEEDS_AUTHORIZATION = "needs_authorization"
     const val ERROR = "error"
+
+    /**
+     * v0.8.8-rc2, and NOT a member of the connection-status union: it appears only on the
+     * per-server entries of `GET /api/mcp/tools`, where passive discovery reports that stored
+     * OAuth authorization must be renewed. [applyDiscoveryAuthorizationState] folds it into the
+     * status map as [NEEDS_AUTHORIZATION], which is what every surface already renders.
+     */
+    const val REAUTH_REQUIRED = "reauth_required"
 }
