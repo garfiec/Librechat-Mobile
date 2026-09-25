@@ -949,6 +949,30 @@ data: {"sync":true,"resumeState":{"runSteps":[...],"aggregatedContent":[...]}}
 - Callback redirect to app via deep link
 - Exchange code for token
 
+### Browser-header invariant — one header MUST be present, two MUST be absent
+
+These two rules are inverses of each other and are recorded together on purpose: satisfying one
+by "completing" the browser impersonation breaks the other, and nothing else in the codebase
+states both.
+
+- **`User-Agent` must look like a browser.** The stock server's `ua-parser-js` middleware answers
+  403 and soft-bans the client on the **first** non-browser UA to reach one of its routes. Applied
+  in `applyBrowserDefaults` (`core/network/.../client/LibreChatHttpClient.kt`) for every Ktor
+  client, and hand-written in `core/network/src/iosMain/.../sse/SseHttpTransport.ios.kt` for the
+  iOS SSE socket.
+- **`Origin` and `Sec-Fetch-Site` must NOT be sent.** From **v0.8.8-rc3**, `requireSameOrigin`
+  (`api/server/middleware/requireSameOrigin.js` → `createSameOriginGuard`) guards
+  `POST /api/auth/login`, `POST /api/auth/2fa/verify-temp` and admin local login. Its
+  `isCrossSiteRequest` passes a request carrying *neither* header — upstream's own comment: *"A
+  request carrying neither header did not come from a browser page and passes."* A real mobile
+  `Origin` can never match `DOMAIN_CLIENT`, so adding either header fails login and 2FA with
+  `403 { code: 'auth_cross_origin' }` (mapped as `StreamErrorType.AUTH_CROSS_ORIGIN`).
+
+Both directions are locked by `core/network/src/androidUnitTest/.../client/UserAgentGuardTest.kt`,
+which asserts through the real client factory. The iOS SSE transport's hand-written header block
+cannot be reached from a JVM test and is the one uncovered path — check it by hand when touching
+those headers. The failure only reproduces against rc3+ servers, so it reads as a server bug.
+
 ---
 
 ## UI/UX Reference (from Web App)
