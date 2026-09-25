@@ -146,6 +146,15 @@
     <string name="trace_stat_errors">Errors</string>
     <string name="trace_stat_tokens">Tokens</string>
     <string name="trace_stat_cost">Cost</string>
+    <string name="trace_kind_agent">Agent</string>
+    <string name="trace_kind_generation">Generation</string>
+    <string name="trace_kind_tool">Tool</string>
+    <string name="trace_kind_span">Span</string>
+    <string name="trace_kind_event">Event</string>
+    <string name="trace_kind_other">Record</string>
+    <string name="trace_status_ok">OK</string>
+    <string name="trace_status_warning">Warning</string>
+    <string name="trace_status_error">Error</string>
     <string name="trace_running">Running</string>
     <string name="trace_partial">Showing %1$d records. Older turns have not been loaded.</string>
     <string name="trace_input">Input</string>

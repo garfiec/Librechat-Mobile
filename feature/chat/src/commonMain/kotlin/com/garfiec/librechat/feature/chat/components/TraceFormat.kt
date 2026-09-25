@@ -1,7 +1,20 @@
 package com.garfiec.librechat.feature.chat.components
 
+import androidx.compose.runtime.Composable
 import com.garfiec.librechat.core.model.trace.TraceRecordKind
 import com.garfiec.librechat.core.model.trace.TraceStatus
+import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.resources.trace_kind_agent
+import com.garfiec.librechat.feature.chat.resources.trace_kind_event
+import com.garfiec.librechat.feature.chat.resources.trace_kind_generation
+import com.garfiec.librechat.feature.chat.resources.trace_kind_other
+import com.garfiec.librechat.feature.chat.resources.trace_kind_span
+import com.garfiec.librechat.feature.chat.resources.trace_kind_tool
+import com.garfiec.librechat.feature.chat.resources.trace_running
+import com.garfiec.librechat.feature.chat.resources.trace_status_error
+import com.garfiec.librechat.feature.chat.resources.trace_status_ok
+import com.garfiec.librechat.feature.chat.resources.trace_status_warning
+import org.jetbrains.compose.resources.stringResource
 import kotlin.math.abs
 import kotlin.math.roundToLong
 import kotlin.time.Instant
@@ -37,21 +50,27 @@ internal fun formatTraceCount(value: Long): String {
     return digits.reversed().chunked(GROUP_SIZE).joinToString(",").reversed()
 }
 
-/** A one-word label for a record's kind; an unrecognized kind shows itself rather than nothing. */
+/**
+ * A one-word label for a record's kind. An unrecognized kind shows its raw wire value rather than
+ * nothing — the whole point of holding `kind` as a String is that a value this build has never seen
+ * degrades one row instead of failing the page, and hiding it would undo that.
+ */
+@Composable
 internal fun traceKindLabel(kind: String): String = when (kind) {
-    TraceRecordKind.AGENT -> "Agent"
-    TraceRecordKind.GENERATION -> "Generation"
-    TraceRecordKind.TOOL -> "Tool"
-    TraceRecordKind.SPAN -> "Span"
-    TraceRecordKind.EVENT -> "Event"
-    else -> kind.ifEmpty { "Record" }
+    TraceRecordKind.AGENT -> stringResource(Res.string.trace_kind_agent)
+    TraceRecordKind.GENERATION -> stringResource(Res.string.trace_kind_generation)
+    TraceRecordKind.TOOL -> stringResource(Res.string.trace_kind_tool)
+    TraceRecordKind.SPAN -> stringResource(Res.string.trace_kind_span)
+    TraceRecordKind.EVENT -> stringResource(Res.string.trace_kind_event)
+    else -> kind.ifEmpty { stringResource(Res.string.trace_kind_other) }
 }
 
+@Composable
 internal fun traceStatusLabel(status: String): String = when (status) {
-    TraceStatus.OK -> "OK"
-    TraceStatus.WARNING -> "Warning"
-    TraceStatus.ERROR -> "Error"
-    TraceStatus.RUNNING -> "Running"
+    TraceStatus.OK -> stringResource(Res.string.trace_status_ok)
+    TraceStatus.WARNING -> stringResource(Res.string.trace_status_warning)
+    TraceStatus.ERROR -> stringResource(Res.string.trace_status_error)
+    TraceStatus.RUNNING -> stringResource(Res.string.trace_running)
     else -> status
 }
 

@@ -19,15 +19,4 @@ fun Throwable?.traceErrorCode(): String? {
         ?.takeIf { it.isNotEmpty() }
 }
 
-/** True for a refusal that will answer the same way until the request itself changes. */
-fun Throwable?.isTerminalTraceError(): Boolean =
-    traceErrorCode() in TERMINAL_TRACE_ERROR_CODES
-
-private val TERMINAL_TRACE_ERROR_CODES = setOf(
-    TraceErrorCode.DISABLED,
-    TraceErrorCode.NOT_FOUND,
-    TraceErrorCode.INVALID_REQUEST,
-    TraceErrorCode.UNSUPPORTED,
-)
-
 private val lenientJson = Json { ignoreUnknownKeys = true; isLenient = true }
