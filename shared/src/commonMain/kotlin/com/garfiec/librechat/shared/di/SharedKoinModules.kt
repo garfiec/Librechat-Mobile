@@ -25,11 +25,10 @@ import org.koin.core.module.Module
  * iOS-only binding (`LibreChatSDK`). Adding a feature module means editing
  * this one list, so whole-module divergence is impossible by construction.
  *
- * `authPlatformModule` is intentionally absent: `authModule` already
- * `includes(authPlatformModule)`, so listing it here would double-add it.
  * Engine + `SseHttpTransport` are platform-specific but arrive via
- * `networkModule.includes(networkPlatformModule)` (expect/actual), so they
- * need no per-platform entry here.
+ * `networkModule.includes(networkPlatformModule)` (expect/actual). A platform
+ * module is included by its own feature module and is never listed here, or it
+ * would be added twice.
  */
 val sharedKoinModules: List<Module> = listOf(
     commonModule,
