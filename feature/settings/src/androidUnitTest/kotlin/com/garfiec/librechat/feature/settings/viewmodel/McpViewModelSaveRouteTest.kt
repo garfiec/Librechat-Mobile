@@ -6,6 +6,7 @@ import com.garfiec.librechat.core.data.repository.McpRepository
 import com.garfiec.librechat.core.model.mcp.McpOAuthConfig
 import com.garfiec.librechat.core.model.mcp.McpServer
 import com.garfiec.librechat.core.model.mcp.McpServerType
+import com.garfiec.librechat.core.model.mcp.McpToolCatalog
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -38,7 +39,7 @@ class McpViewModelSaveRouteTest {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         coEvery { mcpRepository.listServers() } returns Result.Success(emptyList())
         coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(emptyMap())
-        coEvery { mcpRepository.getTools() } returns Result.Success(emptyList())
+        coEvery { mcpRepository.getTools() } returns Result.Success(McpToolCatalog())
         coEvery { mcpRepository.createServer(any(), any(), any(), any(), any(), any()) } returns
             Result.Success(SERVER)
         coEvery { mcpRepository.updateServer(any(), any(), any(), any(), any(), any(), any()) } returns

@@ -474,15 +474,20 @@ internal fun MessageContentAndActions(
                             }
                         }
                     }
-                } else if (message.text.isNotBlank()) {
-                    MarkdownContent(
-                        text = message.text,
-                        fontSizeMultiplier = fontSizeMultiplier,
-                        useKatex = useKatex,
-                        searchQuery = if (isSearchMatch) searchQuery else null,
-                        searchFocusedOccurrence = if (isCurrentSearchMatch) searchFocusedOccurrence else -1,
-                        onFocusedOccurrencePosition = if (isCurrentSearchMatch) onFocusedOccurrencePosition else null,
-                    )
+                } else {
+                    val turnFailure = persistedTurnError(message)
+                    if (turnFailure != null) {
+                        ErrorContentPart(errorText = localizedStreamError(turnFailure))
+                    } else if (message.text.isNotBlank()) {
+                        MarkdownContent(
+                            text = message.text,
+                            fontSizeMultiplier = fontSizeMultiplier,
+                            useKatex = useKatex,
+                            searchQuery = if (isSearchMatch) searchQuery else null,
+                            searchFocusedOccurrence = if (isCurrentSearchMatch) searchFocusedOccurrence else -1,
+                            onFocusedOccurrencePosition = if (isCurrentSearchMatch) onFocusedOccurrencePosition else null,
+                        )
+                    }
                 }
 
                 // Deferred office-doc preview attachments (v0.8.6) on a persisted message

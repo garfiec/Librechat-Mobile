@@ -18,6 +18,16 @@ data class Conversation(
     val tags: List<String> = emptyList(),
     val isArchived: Boolean = false,
     /**
+     * When the conversation was archived (v0.8.8-rc2), or null when it is not archived — the
+     * server nulls it on unarchive and preserves the original stamp when an already-archived
+     * conversation is archived again.
+     *
+     * Not cached: the archived list renders from Room, ordered by `updatedAt`, so this is present
+     * only on rows read straight off the wire.
+     */
+    @Serializable(with = LenientInstantSerializer::class)
+    val archivedAt: Instant? = null,
+    /**
      * Whether a shared link currently exists for this conversation.
      *
      * Derived per **list** request from one batched SharedLink lookup and deliberately NOT

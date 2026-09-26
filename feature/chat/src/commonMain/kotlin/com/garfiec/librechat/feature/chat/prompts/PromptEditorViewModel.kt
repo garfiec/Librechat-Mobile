@@ -59,6 +59,13 @@ class PromptEditorViewModel(
             when (groupResult) {
                 is Result.Success -> {
                     val group = groupResult.data
+                    if (group == null) {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            error = "This prompt is not available.",
+                        )
+                        return@launch
+                    }
                     val prompts = (promptsResult as? Result.Success)?.data ?: emptyList()
                     val mergedGroup = group.copy(prompts = prompts)
                     val productionPrompt = mergedGroup.prompts.find { it.id == mergedGroup.productionId }

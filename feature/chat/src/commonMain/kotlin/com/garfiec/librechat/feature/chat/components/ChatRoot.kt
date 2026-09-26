@@ -38,6 +38,15 @@ fun ChatRoot(
     mermaidRenderCache: MermaidRenderCache,
     parsedMarkdownCache: ParsedMarkdownCache,
     subagentProgress: Map<String, SubagentTrace>,
+    /** The conversation the child-thread viewer reads from. Null on the landing screen. */
+    conversationId: String?,
+    /**
+     * Whether this server can serve child threads at all. Required, not defaulted, so neither
+     * platform's `ChatScreen` can quietly drop it and offer a row that only ever says "unavailable"
+     * — `on_subagent_update` predates these routes by two releases, so a 0.8.6/0.8.7 server draws
+     * the trace cards the row would hang off.
+     */
+    subagentThreadsSupported: Boolean,
     mediaPreview: MediaPreviewState?,
     onOpenMedia: (url: String) -> Unit,
     onCloseMedia: () -> Unit,
@@ -60,6 +69,19 @@ fun ChatRoot(
     var pdfRequest by rememberSaveable(stateSaver = PdfRequestSaver) { mutableStateOf<PdfRequest?>(null) }
     val openPdf = remember { { fileId: String, filename: String -> pdfRequest = PdfRequest(fileId, filename) } }
 
+    // Hosted here for the same reason the PDF overlay is: the card that opens it can scroll away,
+    // and a sheet owned by a lazy item would be disposed with it. Two saveable primitives rather
+    // than one nullable holder, because "open on the list" and "closed" are different states and
+    // both carry a null tool call.
+    var subagentSheetOpen by rememberSaveable { mutableStateOf(false) }
+    var subagentFocusToolCallId by rememberSaveable { mutableStateOf<String?>(null) }
+    val openSubagentThreads = remember {
+        { parentToolCallId: String? ->
+            subagentFocusToolCallId = parentToolCallId
+            subagentSheetOpen = true
+        }
+    }
+
     CompositionLocalProvider(
         LocalInlineArtifactPrefs provides inlineArtifactPrefs,
         LocalMermaidRenderCache provides mermaidRenderCache,
@@ -68,8 +90,21 @@ fun ChatRoot(
         LocalChatMediaViewer provides onOpenMedia,
         LocalAttachmentDownloader provides onDownloadAttachment,
         LocalOpenPdf provides openPdf,
+        LocalSubagentThreads provides openSubagentThreads,
+        // Both halves: a conversation to read children from, and a server that can serve them.
+        // The repository asks the version question again before it issues a request — this one
+        // decides whether the affordance is drawn at all.
+        LocalSubagentThreadsAvailable provides (conversationId != null && subagentThreadsSupported),
     ) {
         content()
+
+        if (subagentSheetOpen && conversationId != null) {
+            SubagentThreadsSheet(
+                parentConversationId = conversationId,
+                focusParentToolCallId = subagentFocusToolCallId,
+                onDismiss = { subagentSheetOpen = false },
+            )
+        }
 
         // Remembered above the `if` so the save/share coroutine scope (and the permission
         // launcher) live as long as the chat screen, not just while the viewer is open — a

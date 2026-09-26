@@ -14,8 +14,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Card
@@ -161,15 +163,29 @@ private fun GenericStreamingToolCard(
                         modifier = Modifier.weight(1f),
                     )
 
-                    if (toolCall.isComplete) {
-                        Icon(
+                    when (toolCallVerdict(toolCall.closedStatus, toolCall.isComplete)) {
+                        ToolCallVerdict.CANCELLED -> Icon(
+                            imageVector = Icons.Default.Block,
+                            contentDescription = stringResource(Res.string.cd_tool_cancelled),
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+
+                        ToolCallVerdict.FAILED -> Icon(
+                            imageVector = Icons.Default.ErrorOutline,
+                            contentDescription = stringResource(Res.string.cd_tool_failed),
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.error,
+                        )
+
+                        ToolCallVerdict.COMPLETED -> Icon(
                             imageVector = Icons.Default.Check,
                             contentDescription = stringResource(Res.string.cd_tool_complete),
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.primary,
                         )
-                    } else {
-                        CircularProgressIndicator(
+
+                        ToolCallVerdict.RUNNING -> CircularProgressIndicator(
                             modifier = Modifier.size(16.dp),
                             strokeWidth = 2.dp,
                             color = MaterialTheme.colorScheme.primary,

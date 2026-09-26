@@ -19,6 +19,7 @@ import com.garfiec.librechat.core.data.repository.AndroidSwitchCacheCleaner
 import com.garfiec.librechat.core.data.repository.CommonSessionCacheCleaner
 import com.garfiec.librechat.core.data.repository.SessionCacheCleaner
 import com.garfiec.librechat.core.data.repository.SwitchCacheCleaner
+import com.garfiec.librechat.core.network.client.ImageCookieCredentials
 import com.garfiec.librechat.core.network.client.SecureTokenStorage
 import com.garfiec.librechat.core.network.client.TokenManager
 import io.ktor.client.HttpClient
@@ -58,7 +59,14 @@ actual val dataPlatformModule: Module = module {
         )
         // Bound as CommonTokenDataStore too: TokenCacheWarmer needs warmTokenCache(), which is
         // deliberately not part of the TokenManager contract.
-    } binds arrayOf(TokenManager::class, SecureTokenStorage::class, CommonTokenDataStore::class)
+    } binds arrayOf(
+        TokenManager::class,
+        SecureTokenStorage::class,
+        // The image-cookie seam (see ImageCookiePlugin): per-account refresh-token reads, kept off
+        // TokenManager so the six fakes that implement it don't gain a second credential.
+        ImageCookieCredentials::class,
+        CommonTokenDataStore::class,
+    )
 
     // --- Session Cache Cleaner ---
     single<SessionCacheCleaner> {

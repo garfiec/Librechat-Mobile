@@ -373,14 +373,24 @@ class FilesViewModel(
 
     fun deleteFile(fileId: String) {
         viewModelScope.launch {
+            // The route drops any entry with a falsy filepath before doing anything else, so a
+            // row we cannot name a path for would be filtered away and answered 204 — a silent
+            // no-op the list would then render as a successful delete.
             val file = _files.value.find { it.fileId == fileId }
-            val entry = DeleteFileEntry(
-                fileId = fileId,
-                filepath = file?.filepath ?: "",
-            )
+            if (file == null || file.filepath.isBlank()) {
+                updateTransient { copy(error = "Failed to delete file") }
+                return@launch
+            }
+            val entry = DeleteFileEntry(fileId = fileId, filepath = file.filepath)
             when (val result = fileRepository.deleteFiles(listOf(entry))) {
                 is Result.Success -> {
-                    _files.value = _files.value.filter { it.fileId != fileId }
+                    // A partial delete answers 200, so success alone does not mean the file is
+                    // gone — dropping the row anyway hides a file that is still on the server.
+                    if (fileId in result.data.failedFileIds) {
+                        updateTransient { copy(error = result.data.message ?: "Failed to delete file") }
+                    } else {
+                        _files.value = _files.value.filter { it.fileId != fileId }
+                    }
                 }
                 is Result.Error -> {
                     updateTransient {
@@ -557,17 +567,35 @@ class FilesViewModel(
         if (selectedIds.isEmpty()) return
 
         viewModelScope.launch {
+            // Only rows still in the list can be named; a selection is sticky across filter
+            // changes and survives a reload, so an id with no row is one nothing can be asked
+            // about — counting it as deleted is the same silent success as a blank filepath,
+            // which the repository now reports as a failure for every caller.
             val entries = selectedIds.mapNotNull { id ->
-                val file = _files.value.find { it.fileId == id }
-                file?.let { DeleteFileEntry(fileId = it.fileId, filepath = it.filepath) }
+                _files.value.find { it.fileId == id }
+                    ?.let { DeleteFileEntry(fileId = it.fileId, filepath = it.filepath) }
+            }
+            if (entries.isEmpty()) {
+                updateTransient { copy(error = "Failed to delete files") }
+                return@launch
             }
             when (val result = fileRepository.deleteFiles(entries)) {
                 is Result.Success -> {
-                    _files.value = _files.value.filter { it.fileId !in selectedIds }
+                    // Everything asked for MINUS what the server reported as failed. An older
+                    // server names no ids, so the failed set is empty and this evicts the whole
+                    // selection, exactly as before.
+                    val failed = result.data.failedFileIds.toSet()
+                    val removed = entries.map { it.fileId }.toSet() - failed
+                    _files.value = _files.value.filter { it.fileId !in removed }
                     updateTransient {
                         copy(
-                            isSelectionMode = false,
-                            selectedFileIds = emptySet(),
+                            isSelectionMode = failed.isNotEmpty(),
+                            selectedFileIds = failed,
+                            error = if (failed.isEmpty()) {
+                                error
+                            } else {
+                                result.data.message ?: "Failed to delete files"
+                            },
                         )
                     }
                 }

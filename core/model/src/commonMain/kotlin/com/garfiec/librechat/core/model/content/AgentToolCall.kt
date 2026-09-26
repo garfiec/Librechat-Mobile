@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.model.content
 
+import com.garfiec.librechat.core.model.RunStepStatus
 import com.garfiec.librechat.core.model.ToolCallType
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -32,4 +33,17 @@ data class AgentToolCall(
      * put to the user, and rendering it as one they declined to answer would be a lie.
      */
     val inputValidationError: Boolean? = null,
+    /**
+     * Terminal lifecycle status of the run step that produced this call (v0.8.8-rc2), stamped by
+     * the server from `on_run_step_closed`. Absent on parts saved before the event existed and on
+     * endpoints that never emit it, where the card falls back to inferring completion from the
+     * presence of output.
+     */
+    val runStepStatus: RunStepStatus? = null,
+    /**
+     * Wall-clock milliseconds the run step took, from the same event. Absent means "not
+     * derivable" — the server only writes it when both timestamps were present and ordered —
+     * never "instant".
+     */
+    val runStepDurationMs: Long? = null,
 )

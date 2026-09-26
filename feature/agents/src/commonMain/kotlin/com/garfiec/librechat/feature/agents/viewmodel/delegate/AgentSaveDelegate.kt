@@ -180,6 +180,8 @@ class AgentSaveDelegate(
                             enabled = false,
                             allowSelf = state.subagentAllowSelf,
                             agentIds = state.selectedSubagentIds,
+                            shareFiles = state.subagentShareFiles,
+                            graphs = state.subagentGraphs,
                         )
                     } else {
                         null
@@ -188,6 +190,8 @@ class AgentSaveDelegate(
                     enabled = true,
                     allowSelf = state.subagentAllowSelf,
                     agentIds = state.selectedSubagentIds,
+                    shareFiles = state.subagentShareFiles,
+                    graphs = state.subagentGraphs,
                 )
             }
 

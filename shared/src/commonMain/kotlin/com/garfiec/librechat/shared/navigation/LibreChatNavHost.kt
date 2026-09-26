@@ -70,6 +70,8 @@ import com.garfiec.librechat.feature.files.navigation.Files
 import com.garfiec.librechat.feature.files.navigation.FilesPicker
 import com.garfiec.librechat.feature.files.navigation.filePickerEntries
 import com.garfiec.librechat.feature.files.navigation.filesEntries
+import com.garfiec.librechat.feature.schedules.navigation.SchedulesList
+import com.garfiec.librechat.feature.schedules.navigation.schedulesEntries
 import com.garfiec.librechat.feature.settings.navigation.SettingsTabbed
 import com.garfiec.librechat.feature.settings.navigation.mcpServersEntry
 import com.garfiec.librechat.feature.settings.navigation.memoriesEntry
@@ -421,6 +423,10 @@ fun PhoneLayout(
                         scope.launch { drawerState.close() }
                         navigator.navigate(SkillsList)
                     },
+                    onSchedulesClick = {
+                        scope.launch { drawerState.close() }
+                        navigator.navigate(SchedulesList)
+                    },
                     onOpenProjectsIndex = {
                         scope.launch { drawerState.close() }
                         navigator.navigate(Projects)
@@ -548,6 +554,11 @@ fun MainNavDisplay(
             skillsEntries(
                 onNavigate = { navigator.navigate(it) },
                 onBack = { navigator.goBack() },
+            )
+            schedulesEntries(
+                onNavigate = { navigator.navigate(it) },
+                onBack = { navigator.goBack() },
+                onOpenConversation = { navigator.navigateToChat(it) },
             )
             filesEntries(
                 onBack = { navigator.goBack() },

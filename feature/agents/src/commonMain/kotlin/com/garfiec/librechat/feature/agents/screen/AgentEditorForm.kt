@@ -516,6 +516,7 @@ internal fun AgentEditorForm(
             provider = uiState.provider,
             model = uiState.model,
             extendedEffortSupported = uiState.isHandoffsAvailable,
+            dropParamsMap = uiState.dropParamsMap,
         )
 
         Spacer(modifier = Modifier.height(24.dp))

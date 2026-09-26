@@ -355,7 +355,11 @@ class StreamingManagerDelegate(
             is StreamEvent.Final -> {
                 // Claim-on-read: the server dropped its copy writing this frame. Claimed here,
                 // outside handleFinal, so none of its early returns can skip it.
-                steeringDelegate.reclaim(event.pendingSteers)
+                if (event.aborted) {
+                    steeringDelegate.reclaimAborted(event.pendingSteers)
+                } else {
+                    steeringDelegate.reclaim(event.pendingSteers)
+                }
                 handleFinal(event)
             }
             is StreamEvent.Error -> {
@@ -400,6 +404,21 @@ class StreamingManagerDelegate(
                 }
                 // If this was a `subagent` tool_call, freeze its live trace —
                 // the child run is done; stop accumulating for that key.
+                subagentTraceDelegate.onParentToolCallResolved(event.toolCallId)
+            }
+            is StreamEvent.ToolCallClosed -> {
+                handle.update {
+                    val updated = content.activeToolCalls.map { tc ->
+                        if (tc.id == event.toolCallId) {
+                            tc.copy(isComplete = true, closedStatus = event.status)
+                        } else {
+                            tc
+                        }
+                    }
+                    content = content.copy(activeToolCalls = updated)
+                }
+                // An aborted run closes its steps without ever completing them, so this is also
+                // where a subagent trace stops accumulating on that path.
                 subagentTraceDelegate.onParentToolCallResolved(event.toolCallId)
             }
             is StreamEvent.AttachmentCreated -> {
@@ -499,7 +518,7 @@ class StreamingManagerDelegate(
                 // The steer is now a content part of the reply being streamed, so its chip has
                 // done its job. The text itself needs no handling here: it arrives through the
                 // normal content path like everything else the run writes.
-                steeringDelegate.onSteerApplied(event.steerId)
+                steeringDelegate.onSteerApplied(event.steerId, event.quotes, event.clientSteerId)
             }
             is StreamEvent.PendingSteersSynced -> {
                 steeringDelegate.onPendingSteersSynced(event.pendingSteers)
@@ -744,7 +763,7 @@ class StreamingManagerDelegate(
                 isTemporary = handle.state.isTemporaryChat,
                 // The ack hands back the steers the stopped run never injected — the only report
                 // for this ending. Claimed inside the call so it cannot be skipped.
-                claimSteers = steeringDelegate::reclaim,
+                claimSteers = steeringDelegate::reclaimAborted,
             )
             if (abortResult is Result.Error) {
                 Logger.w(abortResult.exception) { "Failed to abort chat: ${abortResult.message}" }
@@ -805,6 +824,9 @@ class StreamingManagerDelegate(
         // whatever the user had typed into it, and attemptNetworkRecovery re-attaches moments
         // later to find the same pause waiting.
         val keepPause = reason is StreamEndReason.StreamError && reason.isNetwork
+        // Captured before the clear below wipes it: the drain needs the ENDING run's epoch to
+        // tell whether a server admission already claimed this boundary.
+        val endedGenerationCreatedAt = pendingActionDelegate.generationEpoch
         if (!keepPause) pendingActionDelegate.clear()
         // Steers the ended run never injected. A `Finalized` frame reports them authoritatively
         // and handleFinal has already re-homed them; every other ending carries no report at all,
@@ -812,6 +834,13 @@ class StreamingManagerDelegate(
         // would double-send any steer whose applied event this client happened to miss.
         if (reason !is StreamEndReason.Finalized) steeringDelegate.reclaimLocalChips()
         steeringDelegate.clear()
+        // Before the branch, so every ending retires it: a compaction that errors, is stopped or
+        // has its resume expire would otherwise leave the action labelled "Compacting…" forever.
+        // The Finalized path also clears it inside finalizeChatDisplay's atomic update, which is
+        // what keeps the label and the settled message appearing in one emission.
+        if (handle.state.isCompacting) {
+            handle.update { content = content.copy(isCompacting = false) }
+        }
         when (reason) {
             is StreamEndReason.Finalized -> {
                 stopStreamingUpdater()
@@ -826,7 +855,7 @@ class StreamingManagerDelegate(
                     // Reply finished cleanly: fire the next queued follow-up (if any, and not
                     // paused). isStreaming is already false here, so the next send respects the
                     // no-Room-write-while-streaming invariant.
-                    queueDelegate.drainNext()
+                    queueDelegate.drainNext(endedGenerationCreatedAt = endedGenerationCreatedAt)
                 }
             }
             is StreamEndReason.StreamError -> {
@@ -981,6 +1010,11 @@ class StreamingManagerDelegate(
                 // A Stop landed during the check: hand off to the abort machinery as above.
                 if (abortRequested) return@launch
                 if (status.active) {
+                    // Same evidence as in resumeActiveStreamIfNeeded, and needed on every attach
+                    // path rather than one: a live server run proves each boundary before it is
+                    // closed, and this path is one of the two that recover a run which ended with
+                    // NO `Final` — exactly the ending the admission fence cannot retire itself.
+                    status.createdAt?.let(queueDelegate::retireAdmissionsBefore)
                     handle.update { content = content.copy(isStreaming = true) }
                     resumeStream(conversationId)
                     applyStatusPendingAction(status)
@@ -1050,7 +1084,53 @@ class StreamingManagerDelegate(
         }
     }
 
-    fun resumeActiveStreamIfNeeded(conversationId: String) {
+    /**
+     * Attaches to a run the SERVER started — it admitted a queued turn while this client sat idle.
+     *
+     * [onResume] cannot serve this: it is gated on `wasStreaming`, and by definition this client
+     * was not. Queued turns have no push channel either, so without this the user's follow-up runs
+     * to completion with nothing on screen until the conversation is reopened.
+     *
+     * Returns whether the attach was taken up. A refusal has to be reported, not swallowed: the
+     * caller announces each owed turn exactly once and the admitted row leaves the queue as soon
+     * as the poll sees it, so an announcement made into a refusal is the last one that turn will
+     * ever get.
+     */
+    fun attachToServerStartedRun(): Boolean {
+        if (handle.state.isStreaming) return false
+        val conversationId = handle.state.conversationId ?: return false
+        attachToServerStartedRun(conversationId, ATTACH_ATTEMPTS)
+        return true
+    }
+
+    /**
+     * The attach is announced once, so a status check that fails is retried here rather than
+     * dropped; after the last attempt the conversation is reloaded as if the run had finished.
+     */
+    private fun attachToServerStartedRun(conversationId: String, attemptsLeft: Int) {
+        // A turn the server admitted can finish inside one poll interval, and then there is no run
+        // left to attach to. Its messages are on the server either way, so load them.
+        val reload = { reloadConversation(conversationId) }
+        resumeActiveStreamIfNeeded(
+            conversationId,
+            onInactive = reload,
+            onFailed = {
+                scope.launch {
+                    if (attemptsLeft > 1) delay(ATTACH_RETRY_DELAY_MS)
+                    if (handle.state.isStreaming || handle.state.conversationId != conversationId) {
+                        return@launch
+                    }
+                    if (attemptsLeft > 1) attachToServerStartedRun(conversationId, attemptsLeft - 1) else reload()
+                }
+            },
+        )
+    }
+
+    fun resumeActiveStreamIfNeeded(
+        conversationId: String,
+        onInactive: () -> Unit = {},
+        onFailed: () -> Unit = {},
+    ) {
         // Sibling of onResume (runs on conversation open); apply the same hardening so the two
         // can't race into two resumes, and a pending Stop is never overridden by a restart.
         if (abortRequested) return
@@ -1060,6 +1140,12 @@ class StreamingManagerDelegate(
                 val status = chatRepository.checkStreamStatus(conversationId, steeringDelegate::reclaimParked)
                 if (isResumeStale(session) || abortRequested) return@launch
                 if (status.active) {
+                    // The server only starts a run once the previous turn has finished, so a live
+                    // one is proof every boundary before it is done. That is the only evidence the
+                    // queued-turn fence gets when a run ends without a `Final` — without it the
+                    // admission stays armed and the drain refuses silently for the rest of the
+                    // ViewModel's life.
+                    status.createdAt?.let(queueDelegate::retireAdmissionsBefore)
                     handle.update {
                         content = content.copy(
                             isStreaming = true,
@@ -1068,11 +1154,14 @@ class StreamingManagerDelegate(
                     }
                     resumeStream(conversationId)
                     applyStatusPendingAction(status)
+                } else {
+                    onInactive()
                 }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 Logger.d(e) { "No active stream to resume for $conversationId" }
+                onFailed()
             }
         }
     }
@@ -1120,6 +1209,10 @@ class StreamingManagerDelegate(
             try {
                 val status = chatRepository.checkStreamStatus(conversationId, steeringDelegate::reclaimParked)
                 if (status.active) {
+                    // See resumeActiveStreamIfNeeded: a live server run is the fence's only
+                    // evidence that the boundaries before it are closed, and a network drop is
+                    // precisely how a run ends without the `Final` that would have retired it.
+                    status.createdAt?.let(queueDelegate::retireAdmissionsBefore)
                     handle.update {
                         content = content.copy(
                             isStreaming = true,
@@ -1153,5 +1246,9 @@ class StreamingManagerDelegate(
          * SSE stall timeout that is otherwise the only recovery.
          */
         const val ABORT_FINAL_TIMEOUT_MS = 15_000L
+
+        /** Status checks spent attaching to a run the server started, and the gap between them. */
+        const val ATTACH_ATTEMPTS = 3
+        const val ATTACH_RETRY_DELAY_MS = 2_000L
     }
 }

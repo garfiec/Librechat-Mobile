@@ -106,6 +106,8 @@ fun ChatToolsSheetContent(
     tokenUsage: TokenUsage? = null,
     /** Server/version gate for the context gauge (`interface.contextUsage` AND backend ≥ 0.8.7). */
     contextUsageEnabled: Boolean = false,
+    isCompacting: Boolean = false,
+    onCompact: (() -> Unit)? = null,
     /** Where the user chose to surface the gauge; the sheet only renders it when [ContextBarPlacement.OPTIONS_SHEET]. */
     contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
     /** Persisted expanded/collapsed state of the gauge's inline breakdown. */
@@ -191,6 +193,8 @@ fun ChatToolsSheetContent(
                 expanded = contextGaugeExpanded,
                 onExpandedChange = onContextGaugeExpandedChange,
                 tokenUsage = tokenUsage,
+                isCompacting = isCompacting,
+                onCompact = onCompact,
                 modifier = Modifier
                     .padding(horizontal = 16.dp)
                     .padding(bottom = 8.dp),

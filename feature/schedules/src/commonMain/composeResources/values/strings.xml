@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="schedules">Scheduled chats</string>
+    <string name="schedules_empty_title">No scheduled chats</string>
+    <string name="schedules_empty_body">Have an agent run a prompt on a schedule and file each conversation for you.</string>
+    <string name="schedules_disabled_on_server">Scheduled chats are turned off on this server.</string>
+    <string name="schedules_create">New schedule</string>
+    <string name="schedules_at_limit">You have reached this server\'s limit of %1$d scheduled chats. Delete one to add another.</string>
+    <string name="schedule_paused">Paused</string>
+    <string name="schedule_running">Running now</string>
+    <string name="schedule_next_run">Next run %1$s</string>
+    <string name="schedule_last_run">Last run %1$s</string>
+    <string name="schedule_run_now">Run now</string>
+    <string name="schedule_delete">Delete</string>
+    <string name="schedule_delete_confirm_title">Delete this schedule?</string>
+    <string name="schedule_delete_confirm_body">It will stop running. Conversations it already created are kept.</string>
+    <string name="schedule_enable">Enable</string>
+    <string name="schedule_disable">Pause</string>
+
+    <string name="schedule_editor_new_title">New schedule</string>
+    <string name="schedule_editor_edit_title">Edit schedule</string>
+    <string name="schedule_name">Name</string>
+    <string name="schedule_prompt">Prompt</string>
+    <string name="schedule_agent">Agent</string>
+    <string name="schedule_project">Project</string>
+    <string name="schedule_project_pinned">Filed under the project this server pins schedules to.</string>
+    <string name="schedule_project_needed">Create a chat project before adding a schedule — this server files every scheduled run under one.</string>
+    <string name="schedule_timezone">Time zone</string>
+    <string name="schedule_repeats">Repeats</string>
+    <string name="schedule_frequency_hourly">Every hour</string>
+    <string name="schedule_frequency_daily">Every day</string>
+    <string name="schedule_frequency_weekdays">Weekdays</string>
+    <string name="schedule_frequency_weekly">Weekly</string>
+    <string name="schedule_frequency_cron">Custom (cron)</string>
+    <string name="schedule_cron_expression">Cron expression</string>
+    <string name="schedule_cron_hint">Five fields: minute, hour, day of month, month, day of week. Checked by the server.</string>
+    <string name="schedule_cadence_preview">Runs at %1$s</string>
+    <string name="schedule_time">Hour</string>
+    <string name="schedule_minute">Minute</string>
+    <string name="schedule_days">Days</string>
+    <string name="schedule_save">Save</string>
+    <string name="schedule_conflict">This schedule was changed somewhere else. Reload to see the current version — your edits here were not saved.</string>
+    <string name="schedule_reload">Reload</string>
+    <string name="schedule_load_failed">This schedule could not be loaded, so there is nothing here to save yet. Reload to try again.</string>
+    <string name="schedule_cancel">Cancel</string>
+
+    <string name="schedule_problem_name">Give the schedule a name.</string>
+    <string name="schedule_problem_prompt">Add the prompt to send.</string>
+    <string name="schedule_problem_agent">Choose an agent.</string>
+    <string name="schedule_problem_cron">Enter five cron fields, for example 0 9 * * 1-5.</string>
+    <string name="schedule_problem_weekday">Pick at least one day.</string>
+    <string name="schedule_problem_time">Enter an hour (0–23) and a minute (0–59).</string>
+    <string name="schedule_problem_no_agents">No agents are available to run a schedule.</string>
+    <string name="schedule_problem_project">Choose a project to file runs under.</string>
+    <string name="schedule_problem_too_frequent">This server needs at least %1$d minutes between runs.</string>
+
+    <string name="schedule_disabled_mcp_reauth">Paused: a connected tool needs you to sign in again. Open the agent in a chat to reconnect it.</string>
+    <string name="schedule_disabled_mcp_config">Paused: a connected tool is missing configuration.</string>
+    <string name="schedule_disabled_mcp_permission">Paused: you no longer have access to a connected tool. An administrator has to restore it.</string>
+    <string name="schedule_disabled_failures">Paused after too many failed runs.</string>
+    <string name="schedule_disabled_agent">Paused: the agent it used was deleted.</string>
+    <string name="schedule_disabled_invalid">Paused: the schedule has no valid next run.</string>
+    <string name="schedule_disabled_permission">Paused: your permission to run schedules was removed.</string>
+    <string name="schedule_disabled_balance">Paused: not enough balance to run.</string>
+    <string name="schedule_disabled_project">Paused: the project it filed runs under was deleted.</string>
+    <string name="schedule_disabled_project_required">Paused: this server now requires a project, and this schedule has none.</string>
+    <string name="schedule_disabled_unknown">Paused by the server.</string>
+</resources>

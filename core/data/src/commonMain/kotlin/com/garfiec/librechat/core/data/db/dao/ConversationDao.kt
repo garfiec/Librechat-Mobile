@@ -118,11 +118,23 @@ interface ConversationDao {
     @Query("UPDATE conversations SET title = :title, updatedAt = :updatedAt WHERE conversationId = :id AND accountId = :accountId")
     suspend fun updateTitle(id: String, title: String, updatedAt: Long, accountId: String)
 
+    /**
+     * Deliberately does NOT touch `updatedAt`.
+     *
+     * Filing a chat away is not activity, and the archived list is ordered by `updatedAt`, so
+     * stamping it here would collapse the list onto the moment of archiving and — on unarchive —
+     * restore the chat to the wrong place in the date groups. Upstream's own route passes
+     * `preserveUpdatedAt: true` for exactly this.
+     */
     @Query(
-        "UPDATE conversations SET isArchived = :isArchived, updatedAt = :updatedAt " +
+        "UPDATE conversations SET isArchived = :isArchived " +
             "WHERE conversationId = :id AND accountId = :accountId",
     )
-    suspend fun updateArchived(id: String, isArchived: Boolean, updatedAt: Long, accountId: String)
+    suspend fun updateArchived(id: String, isArchived: Boolean, accountId: String)
+
+    /** Same rule as [updateArchived], and upstream passes `timestamps: false` for the same reason. */
+    @Query("UPDATE conversations SET isArchived = 1 WHERE accountId = :accountId AND isArchived = 0")
+    suspend fun archiveAllForAccount(accountId: String)
 
     @Query("UPDATE conversations SET pinned = :pinned WHERE conversationId = :id AND accountId = :accountId")
     suspend fun updatePinned(id: String, pinned: Boolean, accountId: String)

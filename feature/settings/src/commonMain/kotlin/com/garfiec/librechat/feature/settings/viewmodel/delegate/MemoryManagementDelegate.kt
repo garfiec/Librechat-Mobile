@@ -49,9 +49,8 @@ class MemoryManagementDelegate(
             val editing = stateHandle.state.editingMemory
             val result = if (editing != null) {
                 memoryRepository.updateMemory(
-                    key = editing.key,
+                    memory = editing,
                     request = UpdateMemoryRequest(value = value),
-                    agentId = editing.agentId,
                 )
             } else {
                 memoryRepository.createMemory(
@@ -73,7 +72,7 @@ class MemoryManagementDelegate(
 
     fun deleteMemory(memory: Memory) {
         stateHandle.scope.launch {
-            when (val result = memoryRepository.deleteMemory(memory.key, memory.agentId)) {
+            when (val result = memoryRepository.deleteMemory(memory)) {
                 is Result.Success -> loadMemories()
                 is Result.Error -> {
                     stateHandle.update { copy(error = result.message ?: "Failed to delete memory") }

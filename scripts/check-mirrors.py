@@ -253,6 +253,14 @@ def _callable_body_start(masked: str, init: int) -> int | None:
     `(…) => {…}` and `arg => {…}`, each optionally `async` -- and returns the index at which
     the caller should start counting. A concise arrow body (`(a) => a.map(…)`) has no brace, so
     counting starts just past the `=>`, which is still the value rather than the signature.
+
+    A **return-type annotation** sits between the parameter list and the arrow
+    (`(p?: string | null): boolean => {`), so the arrow is not adjacent to the closing `)`.
+    It is found by scanning for the first `=>` at bracket depth zero rather than by matching
+    it straight after the parens: a function-typed annotation
+    (`(): ((x: string) => void) => {`) carries its own `=>` inside parentheses, and stopping
+    at that one would start counting inside the signature -- the same inert-watch outcome by
+    a different route.
     """
     i = re.compile(r"\s*(?:async\s+)?").match(masked, init).end()
 
@@ -279,8 +287,47 @@ def _callable_body_start(masked: str, init: int) -> int | None:
     if i >= n:
         return None
 
-    arrow = re.compile(r"\s*=>\s*").match(masked, i + 1)
-    return arrow.end() if arrow else None
+    return _arrow_body_start(masked, i + 1)
+
+
+def _arrow_body_start(masked: str, after_params: int) -> int | None:
+    """Index just past the `=>` that follows a parameter list, or None if there is none.
+
+    Skips a return-type annotation by scanning at depth zero, so nothing nested in one can be
+    mistaken for the arrow. Stops at a `;` or a `=` at depth zero: neither can appear between a
+    parameter list and its arrow, so reaching one means this initializer is not a function after
+    all and the caller must not treat the text as a signature.
+
+    **Angle brackets are counted too, and separately.** `_OPEN`/`_CLOSE` are round, square and
+    curly, so a `=>` inside a GENERIC argument sits at depth zero and is taken for the body arrow
+    — `(): Record<string, () => { id: number }> => {` then starts counting inside the annotation
+    and yields the signature alone. It only shows up when the generic contains a brace, which is
+    why an unparameterised `() => void` inside one appears to work: the wrong arrow is matched,
+    but counting still begins before the real body. Between a parameter list's `)` and its arrow
+    the only `<`/`>` are type brackets, so a plain counter is safe here and nowhere else.
+    """
+    depth, angle, i, n = 0, 0, after_params, len(masked)
+    while i < n:
+        c = masked[i]
+        if c in _OPEN:
+            depth += 1
+        elif c in _CLOSE:
+            depth -= 1
+            if depth < 0:
+                return None
+        elif c == "<":
+            angle += 1
+        elif c == ">":
+            # Not a closing bracket: the `>` of a `=>` we are standing next to. Leave it.
+            if angle > 0 and not masked.startswith("=>", i - 1):
+                angle -= 1
+        elif depth == 0 and angle == 0:
+            if masked.startswith("=>", i):
+                return re.compile(r"=>\s*").match(masked, i).end()
+            if c in ";=":
+                return None
+        i += 1
+    return None
 
 
 def extract_block(text: str, symbol: str) -> str | None:
@@ -406,6 +453,49 @@ _SELF_TEST_CASES: list[tuple[str, str, int]] = [
     ("async arrow with a destructured parameter", """
 const handler = async ({ req, res }) => {
   await run(req);
+};
+""", 3),
+    # The annotation sits between the parameter list and the arrow, so an arrow matched
+    # straight after the closing paren is not found at all and the block collapses to the
+    # signature. Two registered entries extracted a signature-only block before this case
+    # existed: `document-supported-provider-predicate` (1 line) and
+    # `google-thinking-budget-bounds` (3). `isValidMemoryKey` was never affected -- a
+    # `function` declaration has no arrow to miss.
+    ("arrow with a return-type annotation", """
+export const isDocumentSupportedProvider = (provider?: string | null): boolean => {
+  const normalized = provider?.toLowerCase() ?? '';
+  return documentSupportedProviders.has(normalized);
+};
+""", 4),
+    ("arrow with a multi-line parameter list and a return-type annotation", """
+export const getGoogleThinkingBudgetBounds = (
+  model: string,
+): GoogleThinkingBudgetBounds | undefined => {
+  return BOUNDS[model];
+};
+""", 5),
+    # A function-typed annotation carries its own `=>` inside parentheses; stopping at that
+    # one starts the count inside the signature, which is the same inert watch by another
+    # route.
+    ("arrow returning a function type", """
+const makeGuard = (name: string): ((x: string) => boolean) => {
+  return (x) => x === name;
+};
+""", 3),
+    # The same trap one bracket further out, and the one the parenthesised case above does NOT
+    # cover: `_OPEN`/`_CLOSE` are round, square and curly, so an arrow inside a GENERIC argument
+    # is at depth zero. It only bites when the generic also contains a brace — with
+    # `Map<string, () => void>` the wrong arrow is matched and counting still starts before the
+    # real body, so the block comes out right by accident.
+    ("arrow returning a generic containing a function type", """
+export const build = (): Record<string, () => { id: number }> => {
+  const out = {};
+  return out;
+};
+""", 4),
+    ("arrow returning a generic with a braced type argument", """
+export const index = (): Map<string, { id: number }> => {
+  return new Map();
 };
 """, 3),
     ("single bare parameter, no parentheses", """

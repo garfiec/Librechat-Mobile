@@ -42,15 +42,19 @@ import com.garfiec.librechat.core.data.repository.PermissionsRepository
 import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.ProjectRepository
 import com.garfiec.librechat.core.data.repository.PromptRepository
+import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
 import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.data.repository.RoleRepository
+import com.garfiec.librechat.core.data.repository.ScheduleRepository
 import com.garfiec.librechat.core.data.repository.SearchRepository
 import com.garfiec.librechat.core.data.repository.ServerRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
 import com.garfiec.librechat.core.data.repository.SkillsRepository
 import com.garfiec.librechat.core.data.repository.SpeechRepository
+import com.garfiec.librechat.core.data.repository.SubagentRepository
 import com.garfiec.librechat.core.data.repository.TagRepository
 import com.garfiec.librechat.core.data.repository.ToolFavoritesRepository
+import com.garfiec.librechat.core.data.repository.TraceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.data.util.SessionTask
@@ -77,10 +81,14 @@ import com.garfiec.librechat.core.network.api.PermissionsApi
 import com.garfiec.librechat.core.network.api.PresetsApi
 import com.garfiec.librechat.core.network.api.ProjectsApi
 import com.garfiec.librechat.core.network.api.PromptsApi
+import com.garfiec.librechat.core.network.api.QueuedTurnsApi
+import com.garfiec.librechat.core.network.api.SchedulesApi
 import com.garfiec.librechat.core.network.api.ShareApi
 import com.garfiec.librechat.core.network.api.SkillsApi
 import com.garfiec.librechat.core.network.api.SpeechApi
+import com.garfiec.librechat.core.network.api.SubagentsApi
 import com.garfiec.librechat.core.network.api.TagsApi
+import com.garfiec.librechat.core.network.api.TracesApi
 import com.garfiec.librechat.core.network.api.UserApi
 import com.garfiec.librechat.core.network.client.AccountReadyGate
 import com.garfiec.librechat.core.network.client.SecureTokenStorage
@@ -164,10 +172,14 @@ class KoinGraphVerificationTest {
             PresetsApi::class,
             ProjectsApi::class,
             PromptsApi::class,
+            QueuedTurnsApi::class,
+            SchedulesApi::class,
             ShareApi::class,
             SkillsApi::class,
             SpeechApi::class,
+            SubagentsApi::class,
             TagsApi::class,
+            TracesApi::class,
             UserApi::class,
             // core:data provides
             ConfigCacheDataStore::class,
@@ -200,13 +212,17 @@ class KoinGraphVerificationTest {
             ResumePinStore::class,
             ProjectRepository::class,
             PromptRepository::class,
+            QueuedTurnRepository::class,
             RoleRepository::class,
+            ScheduleRepository::class,
             SearchRepository::class,
             ShareRepository::class,
             SkillsRepository::class,
+            SubagentRepository::class,
             SpeechRepository::class,
             TagRepository::class,
             ToolFavoritesRepository::class,
+            TraceRepository::class,
             UserRepository::class,
             PermissionGate::class,
             SessionTask::class,

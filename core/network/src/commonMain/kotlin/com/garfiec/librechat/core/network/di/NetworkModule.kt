@@ -23,14 +23,19 @@ import com.garfiec.librechat.core.network.api.PermissionsApi
 import com.garfiec.librechat.core.network.api.PresetsApi
 import com.garfiec.librechat.core.network.api.ProjectsApi
 import com.garfiec.librechat.core.network.api.PromptsApi
+import com.garfiec.librechat.core.network.api.QueuedTurnsApi
 import com.garfiec.librechat.core.network.api.RolesApi
+import com.garfiec.librechat.core.network.api.SchedulesApi
 import com.garfiec.librechat.core.network.api.ShareApi
 import com.garfiec.librechat.core.network.api.SkillsApi
 import com.garfiec.librechat.core.network.api.SpeechApi
+import com.garfiec.librechat.core.network.api.SubagentsApi
 import com.garfiec.librechat.core.network.api.TagsApi
+import com.garfiec.librechat.core.network.api.TracesApi
 import com.garfiec.librechat.core.network.api.UserApi
 import com.garfiec.librechat.core.network.client.AuthInterceptorPlugin
 import com.garfiec.librechat.core.network.client.GatewayDetectionPlugin
+import com.garfiec.librechat.core.network.client.ImageCookieCredentials
 import com.garfiec.librechat.core.network.client.LibreChatHttpClient
 import com.garfiec.librechat.core.network.client.ServerHeadersPlugin
 import com.garfiec.librechat.core.network.client.ServerHeadersProvider
@@ -93,6 +98,7 @@ val networkModule = module {
             tokenManager = get(),
             serverUrlProvider = get(),
             redactor = get(),
+            imageCookieCredentials = get<ImageCookieCredentials>(),
             accountReadyGate = getOrNull(),
             switchGate = get(),
             serverHeadersProvider = get(),
@@ -206,10 +212,14 @@ val networkModule = module {
     singleOf(::PresetsApi)
     singleOf(::ProjectsApi)
     singleOf(::PromptsApi)
+    singleOf(::QueuedTurnsApi)
     singleOf(::RolesApi)
+    singleOf(::SchedulesApi)
     singleOf(::ShareApi)
     singleOf(::SkillsApi)
     singleOf(::SpeechApi)
+    singleOf(::SubagentsApi)
     singleOf(::TagsApi)
+    singleOf(::TracesApi)
     singleOf(::UserApi)
 }

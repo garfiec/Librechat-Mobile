@@ -49,7 +49,7 @@ class PromptsApiWireShapeTest {
             // Mirrors production's defaultRequest, which is what makes the body serialize as JSON.
             defaultRequest { contentType(ContentType.Application.Json) }
         }
-        return PromptsApi(client)
+        return PromptsApi(client, librechatJson)
     }
 
     private fun sentBody(): String = (lastRequest.body as TextContent).text

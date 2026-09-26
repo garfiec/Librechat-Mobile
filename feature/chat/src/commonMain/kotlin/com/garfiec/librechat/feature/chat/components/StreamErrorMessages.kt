@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.runtime.Composable
+import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.error.StreamErrorType
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -31,13 +32,40 @@ internal fun localizedStreamError(raw: String): String {
     return when (type) {
         StreamErrorType.RESOURCE_RECOVERY_REQUIRED -> stringResource(Res.string.error_resource_recovery_required)
         StreamErrorType.MODEL_NOT_FOUND -> stringResource(Res.string.error_model_not_found)
+        StreamErrorType.MODEL_RATE_LIMIT -> stringResource(Res.string.error_model_rate_limit)
         StreamErrorType.MISSING_MODEL -> stringResource(Res.string.error_missing_model)
         StreamErrorType.MODELS_NOT_LOADED -> stringResource(Res.string.error_models_not_loaded)
         StreamErrorType.ENDPOINT_MODELS_NOT_LOADED -> stringResource(Res.string.error_endpoint_models_not_loaded)
         StreamErrorType.INVALID_AGENT_PROVIDER -> stringResource(Res.string.error_invalid_agent_provider)
         StreamErrorType.REFUSAL -> stringResource(Res.string.error_refusal)
         StreamErrorType.INPUT_LENGTH -> stringResource(Res.string.error_input_length)
+        StreamErrorType.FINAL_CONTEXT_OVERFLOW -> stringResource(Res.string.error_final_context_overflow)
+        StreamErrorType.COMPACTION_SKIPPED -> stringResource(Res.string.error_compaction_skipped)
+        StreamErrorType.COMPACTION_FAILED -> stringResource(Res.string.error_compaction_failed)
         StreamErrorType.MODERATION -> stringResource(Res.string.error_moderation)
+        StreamErrorType.AUTH_RATE_LIMITED -> stringResource(Res.string.error_auth_rate_limited)
+        StreamErrorType.AUTH_BANNED -> stringResource(Res.string.error_auth_banned)
+        StreamErrorType.AUTH_CROSS_ORIGIN -> stringResource(Res.string.error_auth_cross_origin)
+        StreamErrorType.SHARE_LIMIT -> stringResource(Res.string.error_share_limit)
         StreamErrorType.STREAM_EXPIRED -> stringResource(Res.string.error_stream_expired)
+        StreamErrorType.UPSTREAM_MODEL_ERROR -> stringResource(Res.string.error_upstream_model_error)
+        StreamErrorType.EMPTY_MESSAGES -> stringResource(Res.string.error_empty_messages)
+        StreamErrorType.CODE_WORKSPACE_UNAVAILABLE ->
+            stringResource(Res.string.error_code_workspace_unavailable)
+        StreamErrorType.STATEFUL_CODE_ENVIRONMENT_NOT_ALLOWED ->
+            stringResource(Res.string.error_stateful_code_environment_not_allowed)
     }
+}
+
+/**
+ * The failure a turn was saved with, ready for [localizedStreamError], or null for any other
+ * message.
+ *
+ * From v0.8.8-rc2 the server persists a failed turn as `error: true` with no content parts and
+ * the failure itself as `text` — for an initialization failure, the JSON of its typed payload.
+ * Rendered as ordinary text that JSON is what the thread showed, where the web shows the error.
+ */
+internal fun persistedTurnError(message: Message): String? {
+    if (!message.error || !message.content.isNullOrEmpty()) return null
+    return message.text.takeIf { it.isNotBlank() }?.let(StreamErrorType::markerOrText)
 }

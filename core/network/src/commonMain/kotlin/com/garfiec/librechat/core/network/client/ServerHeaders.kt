@@ -243,11 +243,11 @@ internal fun HeadersBuilder.stripCustomHeaders(custom: Map<String, String>) {
     }
 }
 
-private fun cookieSegments(value: String): List<String> =
+internal fun cookieSegments(value: String): List<String> =
     value.split(';').map { it.trim() }.filter { it.isNotEmpty() }
 
 /** The name half of a `name=value` cookie segment; the whole segment when there is no `=`. */
-private fun String.cookieName(): String = substringBefore('=').trim()
+internal fun String.cookieName(): String = substringBefore('=').trim()
 
 /**
  * [custom] rendered as raw HTTP/1.1 header lines (each CRLF-terminated), for the iOS SSE transport,

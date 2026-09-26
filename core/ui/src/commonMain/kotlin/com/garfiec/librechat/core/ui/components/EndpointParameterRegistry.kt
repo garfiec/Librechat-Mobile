@@ -30,15 +30,23 @@ object EndpointParameterRegistry {
         extendedEffortSupported: Boolean = false,
         provider: String? = null,
         model: String? = null,
+        dropParams: List<String> = emptyList(),
     ): List<ParameterDefinition> {
         val key = endpoint.lowercase()
+        // Upstream resolves the settings key from `endpointType ?? provider`, which for the agents
+        // endpoint is the agent's own provider — so an Anthropic agent is subject to the same
+        // per-model rules as the Anthropic endpoint.
+        val settingsKey = if (key == "agents") provider?.lowercase() ?: key else key
         val base = when (key) {
             "bedrock" -> bedrockParamsForModel(model, extendedEffortSupported)
             "agents" -> agentsParamsForProvider(provider, model, extendedEffortSupported)
             else -> ENDPOINT_PARAMS[key] ?: ENDPOINT_PARAMS["default"]!!
         }
-        if (extendedEffortSupported) return base
-        return base.map { def ->
+        val dropped = resolveDropParamsUIKeys(dropParams, settingsKey)
+        val filtered = if (dropped.isEmpty()) base else base.filterNot { it.key in dropped }
+        val modelAware = applyModelAwareDefaults(filtered, settingsKey, model)
+        if (extendedEffortSupported) return modelAware
+        return modelAware.map { def ->
             val options = def.options
             if (def.key in EFFORT_KEYS && options != null && options.any { it in EXTENDED_EFFORT_VALUES }) {
                 def.copy(options = options.filterNot { it in EXTENDED_EFFORT_VALUES })
@@ -47,6 +55,111 @@ object EndpointParameterRegistry {
             }
         }
     }
+
+    /**
+     * Narrows a definition list to what the selected model actually accepts. Mirrors upstream
+     * `applyModelAwareDefaults`, which runs after the `dropParams` filter and before rendering.
+     *
+     * [settingsKey] is the resolved parameter-set key (the agent's provider for agents), not the
+     * raw endpoint name.
+     */
+    private fun applyModelAwareDefaults(
+        definitions: List<ParameterDefinition>,
+        settingsKey: String,
+        model: String?,
+    ): List<ParameterDefinition> {
+        if (model.isNullOrBlank()) return definitions
+        val adjusted = if (settingsKey == "google") {
+            val bounds = googleThinkingBudgetBounds(model)
+            if (bounds == null) {
+                definitions
+            } else {
+                definitions.map { def ->
+                    if (def.key == "thinkingBudget") def.withGoogleThinkingBudget(bounds) else def
+                }
+            }
+        } else {
+            definitions
+        }
+        if (settingsKey != "anthropic" || supportsPromptCache(model)) return adjusted
+        return adjusted.filterNot { it.key in PROMPT_CACHE_KEYS }
+    }
+
+    private val PROMPT_CACHE_KEYS = setOf("promptCache", "promptCacheTtl")
+
+    private fun ParameterDefinition.withGoogleThinkingBudget(bounds: ThinkingBudgetBounds) = copy(
+        max = bounds.max.toDouble(),
+        // `min` stays -1: that is the "decide automatically" sentinel, and it is not subject to the
+        // positive floor. The floor only applies once a real budget is typed, so it lives in the
+        // description, which is the only part of a TEXT definition this app renders.
+        description = "Max tokens for thinking (-1 = dynamic, or ${bounds.min}-${bounds.max}).",
+    )
+
+    private data class ThinkingBudgetBounds(val min: Int, val max: Int)
+
+    /**
+     * MIRRORED from upstream `getGoogleThinkingBudgetBounds` (`packages/data-provider/src/schemas.ts`).
+     * The shared 32,000 bound under-limits Pro and accepts Flash values the provider rejects.
+     */
+    private fun googleThinkingBudgetBounds(model: String): ThinkingBudgetBounds? = when {
+        !GEMINI_25.containsMatchIn(model) -> null
+        GEMINI_FLASH_LITE.containsMatchIn(model) -> ThinkingBudgetBounds(min = 512, max = 24576)
+        GEMINI_FLASH.containsMatchIn(model) -> ThinkingBudgetBounds(min = 0, max = 24576)
+        GEMINI_PRO.containsMatchIn(model) -> ThinkingBudgetBounds(min = 128, max = 32768)
+        else -> null
+    }
+
+    /**
+     * MIRRORED from upstream `supportsPromptCache` (`packages/data-provider/src/bedrock.ts`).
+     * Matched against the configured model id, not a token-map resolution: collapsing a new Claude
+     * model to the generic `claude-` fallback would wrongly hide the cache controls.
+     */
+    private fun supportsPromptCache(model: String): Boolean {
+        if (model.contains("claude-3-5-sonnet-latest") || model.contains("claude-3.5-sonnet-latest")) {
+            return false
+        }
+        return PROMPT_CACHE_PATTERNS.any { it.containsMatchIn(model) }
+    }
+
+    // No `\b` anywhere: Android's Regex is ICU, and a pattern that compiles on the JVM can still
+    // behave differently there.
+    private val GEMINI_25 = Regex("""gemini-2\.5""", RegexOption.IGNORE_CASE)
+    private val GEMINI_FLASH_LITE = Regex("""flash[-_.]?lite""", RegexOption.IGNORE_CASE)
+    private val GEMINI_FLASH = Regex("flash", RegexOption.IGNORE_CASE)
+    private val GEMINI_PRO = Regex("pro", RegexOption.IGNORE_CASE)
+
+    private val PROMPT_CACHE_PATTERNS = listOf(
+        Regex("""claude-3[-.]7"""),
+        Regex("""claude-3[-.]5-(?:sonnet|haiku)"""),
+        Regex("""claude-3-(?:sonnet|haiku|opus)?"""),
+        Regex("""claude-(?:sonnet|opus|haiku)[-.]?(?:[4-9]|\d{2,})"""),
+        Regex("""claude-(?:[4-9]|\d{2,})(?:[-.](?:sonnet|opus|haiku))?"""),
+        // MYTHOS_CLASS_FAMILIES — new top-level Claude classes, peers of opus/sonnet/haiku.
+        Regex("""claude-(?:fable|mythos)[-.]?\d"""),
+    )
+
+    /**
+     * MIRRORED from upstream `resolveDropParamsUIKeys` (`packages/data-provider/src/parameterSettings.ts`).
+     *
+     * An admin's `dropParams` names the backend field (`maxTokens`), which is also the UI key for
+     * the native providers but not for the OpenAI-compatible sets, where the control is
+     * `max_tokens`. Aliasing unconditionally would hide `top_p` on Anthropic, which spells its
+     * own control `topP` and drops nothing.
+     */
+    private fun resolveDropParamsUIKeys(dropParams: List<String>, settingsKey: String): Set<String> {
+        if (dropParams.isEmpty()) return emptySet()
+        if (settingsKey !in OPENAI_LIKE_PARAM_KEYS) return dropParams.toSet()
+        return dropParams.mapTo(mutableSetOf()) { DROP_PARAM_UI_KEYS[it] ?: it }
+    }
+
+    private val DROP_PARAM_UI_KEYS = mapOf(
+        "maxTokens" to "max_tokens",
+        "topP" to "top_p",
+        "frequencyPenalty" to "frequency_penalty",
+        "presencePenalty" to "presence_penalty",
+    )
+
+    private val OPENAI_LIKE_PARAM_KEYS = setOf("openai", "azureopenai", "custom", "openrouter")
 
     /**
      * Agents endpoint dispatch — mirrors upstream `agentParamSettings`
@@ -746,8 +859,13 @@ object EndpointParameterRegistry {
         ),
         ParameterDefinition(
             key = "maxContextTokens",
+            // Upstream scopes this definition to the Google endpoint (googleSettings.maxContextTokens)
+            // rather than sharing the unbounded one, whose other endpoints have smaller windows.
             label = "Max Context Tokens",
             type = ParameterType.TEXT,
+            min = 10.0,
+            max = 2000000.0,
+            step = 1000.0,
             default = "",
             description = "Max context tokens for this conversation.",
         ),

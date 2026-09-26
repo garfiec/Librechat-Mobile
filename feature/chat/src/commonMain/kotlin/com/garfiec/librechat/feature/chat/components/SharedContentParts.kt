@@ -19,16 +19,12 @@ import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.ContentType
+import com.garfiec.librechat.core.model.content.Compaction
 import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.core.model.error.StreamErrorType
 import com.garfiec.librechat.core.model.media.resolveImageFilePartUrl
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.compose.resources.stringResource
 
 // ─── ContentPartDispatcher ──────────────────────────────────────────
@@ -151,7 +147,7 @@ internal fun ContentPartDispatcher(
         }
         ContentType.SUMMARY -> {
             SummaryContentPart(
-                summaryText = extractSummaryText(part),
+                summaryText = Compaction.summaryText(part),
                 modifier = mod,
                 fontSizeMultiplier = fontSizeMultiplier,
                 useKatex = useKatex,
@@ -164,28 +160,4 @@ internal fun ContentPartDispatcher(
             }
         }
     }
-}
-
-/**
- * Extracts text from a SUMMARY content part. Mirrors upstream's `getSummaryText`:
- * `content` may be an array of {type:"text", text} blocks, a raw string, or absent —
- * in which case the legacy top-level `text` field is the fallback.
- */
-private fun extractSummaryText(part: MessageContentPart): String {
-    val content = part.content
-    if (content is JsonArray) {
-        val builder = StringBuilder()
-        for (element in content) {
-            val item = element as? JsonObject ?: continue
-            val type = item["type"]?.jsonPrimitive?.contentOrNull
-            if (type == "text") {
-                item["text"]?.jsonPrimitive?.contentOrNull?.let { builder.append(it) }
-            }
-        }
-        return builder.toString()
-    }
-    if (content is JsonPrimitive && content.isString) {
-        return content.content
-    }
-    return part.text.orEmpty()
 }

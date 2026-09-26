@@ -2,6 +2,9 @@ package com.garfiec.librechat.core.model.config
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
 
 @Serializable
 data class InterfaceConfig(
@@ -53,4 +56,78 @@ data class InterfaceConfig(
     val sharedLinks: JsonElement? = null,
     /** Maximum number of skills shown in the catalog. Parse-surface only (no mobile skills UI). */
     val maxCatalogSkills: Int? = null,
+    // --- v0.8.8-rc2 ---
+    /** Whether message feedback (thumbs up/down + reason tags) is offered. Server default is
+     *  `true`; a deployment that sets it false wants the affordance gone, not disabled. */
+    val feedback: Boolean = true,
+    /**
+     * Scheduled chats. `bool | { use, create, maxPerUser, minIntervalMinutes, requireProject,
+     * projectId, … }`, kept raw for forward-compat like [prompts] / [agents] / [sharedLinks].
+     *
+     * **Read it through [isSchedulesEnabled], never through a generic interface-flag helper.**
+     * Absent means OFF here, which is the opposite of every other flag on this class — see that
+     * function's KDoc.
+     */
+    val schedules: JsonElement? = null,
+    // --- v0.8.8-rc3 ---
+    /**
+     * Conversation trace viewer. An OBJECT — `{ enabled, showInputOutput, maxRecords, … }` — and
+     * **not** a boolean-or-object union like [schedules], despite looking like one.
+     *
+     * Read it through [isTraceViewerEnabled], never through [isSchedulesEnabled]: the two
+     * absent-cases differ, and so does `{}`.
+     */
+    val traceViewer: JsonElement? = null,
 )
+
+/**
+ * Whether the conversation trace viewer is enabled on this server.
+ *
+ * **`{}` is OFF here**, which is where this differs from [isSchedulesEnabled] — the shapes look
+ * alike and the rules are not. Upstream's `resolveTraceViewerConfig` reads `config?.enabled ===
+ * true`, so only an explicit `enabled: true` turns it on:
+ * absent → off · `{}` → **off** · `{ enabled: false }` → off · `{ enabled: true }` → on.
+ *
+ * A bare `traceViewer: true` is off as well. It is not schema-valid (the section is
+ * `z.object({…}).optional()` with no boolean arm), and upstream reading `.enabled` off a boolean
+ * gets `undefined` — so the two agree, and a deployment that wrote the boolean form by analogy
+ * with `schedules` gets the same nothing from both clients.
+ *
+ * The other fields — `showInputOutput` and the four numeric budgets — are enforced entirely
+ * server-side: content is withheld by `contentAvailable` on the record detail, and the budgets
+ * bound what the server reads and how often it may be asked. Nothing here needs them, so nothing
+ * here mirrors them.
+ */
+fun isTraceViewerEnabled(traceViewer: JsonElement?): Boolean {
+    val obj = traceViewer as? JsonObject ?: return false
+    return (obj["enabled"] as? JsonPrimitive)?.booleanOrNull == true
+}
+
+/**
+ * Whether scheduled chats are enabled on this server.
+ *
+ * **Absent is OFF.** The feature is experimental and opt-in: the server enables it only when an
+ * admin says so, and the same resolution drives the write handlers and the fire path. Every other
+ * object-form flag on [InterfaceConfig] defaults ON when absent, so reusing a generic helper here
+ * would offer a surface whose create and run operations the backend rejects.
+ *
+ * The truth table, mirroring `useSideNavLinks.ts` and `getLimits` exactly:
+ * absent/`null` → off · `false` → off · `true` → on · `{}` → **on** · `{ use: false }` → off.
+ *
+ * One deliberate departure, on input the server cannot actually produce: upstream reads anything
+ * that is not null, `false` or `{ use: false }` as ON, so a string or an array would enable the
+ * feature there. The config's own zod union is `boolean | object`, so neither shape survives
+ * `/api/config` — and between the two possible readings of an unreadable value, OFF is the right
+ * direction for a feature that is off by default.
+ *
+ * Note the boolean form is a RUNTIME FEATURE DISABLE, not a permission denial — a server that
+ * sets `schedules: false` has turned the feature off, and telling the user they lack permission
+ * would be wrong. The permission half is [com.garfiec.librechat.core.model.permissions.PermissionType.SCHEDULES]
+ * and is asked separately; both must hold.
+ */
+fun isSchedulesEnabled(schedules: JsonElement?): Boolean {
+    val element = schedules ?: return false
+    (element as? JsonPrimitive)?.let { return !it.isString && it.booleanOrNull == true }
+    val obj = element as? JsonObject ?: return false
+    return (obj["use"] as? JsonPrimitive)?.booleanOrNull != false
+}

@@ -10,6 +10,9 @@ object SubagentPhase {
     const val RUN_STEP = "run_step"
     const val RUN_STEP_DELTA = "run_step_delta"
     const val RUN_STEP_COMPLETED = "run_step_completed"
+
+    /** v0.8.8-rc2. Closes a STEP, not the child run — the run terminals stay [STOP] / [ERROR]. */
+    const val RUN_STEP_CLOSED = "run_step_closed"
     const val MESSAGE_DELTA = "message_delta"
     const val REASONING_DELTA = "reasoning_delta"
     const val STOP = "stop"

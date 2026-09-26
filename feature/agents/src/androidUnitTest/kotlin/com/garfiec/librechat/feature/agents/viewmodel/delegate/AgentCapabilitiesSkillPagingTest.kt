@@ -64,6 +64,10 @@ class AgentCapabilitiesSkillPagingTest {
         every { configRepository.endpointConfigs } returns
             MutableStateFlow(mapOf("agents" to EndpointConfig(capabilities = listOf("skills"))))
         every { configRepository.detectedBackendVersion } returns MutableStateFlow(null)
+        // Every StateFlow the delegate collects has to be stubbed, not left relaxed: `collect`
+        // returns `Nothing` there, which a relaxed mock cannot produce, so it throws — and the
+        // delegate's scope is not supervised, so that one failure cancels the skills walk too.
+        every { configRepository.startupConfig } returns MutableStateFlow(null)
         val roleRepository = mockk<RoleRepository>(relaxed = true)
         every { roleRepository.userPermissions } returns MutableStateFlow<UserRolePermissions?>(null)
 

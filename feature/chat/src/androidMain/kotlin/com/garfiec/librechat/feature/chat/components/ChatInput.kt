@@ -108,6 +108,8 @@ fun ChatInput(
     contextUsage: ContextUsage? = null,
     tokenUsage: TokenUsage? = null,
     contextUsageEnabled: Boolean = false,
+    isCompacting: Boolean = false,
+    onCompact: (() -> Unit)? = null,
     contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
 ) {
     val cdOpenToolsMenu = stringResource(Res.string.cd_open_tools_menu)
@@ -160,6 +162,8 @@ fun ChatInput(
         contextUsage = contextUsage,
         tokenUsage = tokenUsage,
         contextUsageEnabled = contextUsageEnabled,
+        isCompacting = isCompacting,
+        onCompact = onCompact,
         contextBarPlacement = contextBarPlacement,
         promptSuggestions = promptSuggestions,
     )

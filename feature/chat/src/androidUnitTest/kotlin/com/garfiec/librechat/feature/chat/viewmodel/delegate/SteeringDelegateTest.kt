@@ -20,6 +20,7 @@ import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -46,6 +47,7 @@ class SteeringDelegateTest {
      */
     private val enqueued = mutableListOf<QueuedMessage>()
     private var queuePaused = false
+    private val restaged = mutableListOf<String>()
 
     private fun spec(text: String) = QueuedMessage(
         localId = "spec-$text",
@@ -72,6 +74,7 @@ class SteeringDelegateTest {
             enqueueParked = { enqueued += it },
             pauseQueue = { queuePaused = true },
             isStreaming = { isStreaming },
+            restageQuotes = { restaged += it },
         )
         return delegate to flow
     }
@@ -184,6 +187,7 @@ class SteeringDelegateTest {
                 enqueueParked = { enqueued += it },
                 pauseQueue = { queuePaused = true },
                 isStreaming = { streaming },
+                restageQuotes = { restaged += it },
             )
 
             delegate.steer("conv-1", spec("be brief"))
@@ -327,6 +331,62 @@ class SteeringDelegateTest {
             assertThat(enqueued.map { it.text }).containsExactly("be brief")
         }
 
+    /**
+     * The server took the steer but its 202 was lost, so the error path re-homed the words under
+     * the local id. The run's report names the steer by the server's id and carries the local one
+     * as `clientSteerId`; read by the server id alone, it is a second steer and a second turn.
+     */
+    @Test
+    fun `a steer whose ack was lost is not re-homed again by the run's report`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val sent = slot<SteerRequest>()
+            coEvery { chatRepository.steerChat(capture(sent)) } returns
+                Result.Error(ApiException(statusCode = 502, message = "Bad Gateway", body = ""))
+            val (delegate, _) = delegateWith(this)
+            delegate.steer("conv-1", spec("be brief"))
+            assertThat(enqueued.map { it.text }).containsExactly("be brief")
+
+            delegate.reclaim(
+                listOf(PendingSteer(steerId = "st-1", text = "be brief", clientSteerId = sent.captured.clientSteerId)),
+            )
+
+            assertThat(enqueued.map { it.text }).containsExactly("be brief")
+        }
+
+    /** The same steer seen first on a reconnect's sync frame must not come back as a live chip. */
+    @Test
+    fun `a sync frame naming a re-homed steer does not revive it`() = runTest(UnconfinedTestDispatcher()) {
+        val sent = slot<SteerRequest>()
+        coEvery { chatRepository.steerChat(capture(sent)) } returns
+            Result.Error(ApiException(statusCode = 502, message = "Bad Gateway", body = ""))
+        val (delegate, flow) = delegateWith(this)
+        delegate.steer("conv-1", spec("be brief"))
+        val report = listOf(PendingSteer(steerId = "st-1", text = "be brief", clientSteerId = sent.captured.clientSteerId))
+
+        delegate.onPendingSteersSynced(report)
+        delegate.reclaim(report)
+
+        assertThat(flow.value.pendingSteers).isEmpty()
+        assertThat(enqueued.map { it.text }).containsExactly("be brief")
+    }
+
+    /** A report can outrun the steer's own POST; whichever lands first re-homes, the other not. */
+    @Test
+    fun `a report that names a steer still in flight re-homes it once`() = runTest(UnconfinedTestDispatcher()) {
+        val sent = slot<SteerRequest>()
+        val answer = CompletableDeferred<Result<SteerResponse>>()
+        coEvery { chatRepository.steerChat(capture(sent)) } coAnswers { answer.await() }
+        val (delegate, _) = delegateWith(this)
+        delegate.steer("conv-1", spec("be brief"))
+
+        delegate.reclaim(
+            listOf(PendingSteer(steerId = "st-1", text = "be brief", clientSteerId = sent.captured.clientSteerId)),
+        )
+        answer.complete(Result.Error(ApiException(statusCode = 502, message = "Bad Gateway", body = "")))
+
+        assertThat(enqueued.map { it.text }).containsExactly("be brief")
+    }
+
     @Test
     fun `a stream that dies with no report converts its accepted chips locally`() =
         runTest(UnconfinedTestDispatcher()) {
@@ -361,15 +421,35 @@ class SteeringDelegateTest {
         }
 
     @Test
-    fun `a steer posts only its text and conversation`() = runTest(UnconfinedTestDispatcher()) {
-        // The server injects into the ORIGINATING run and re-derives its identity from job
-        // metadata, so an agent selection sent here would be ignored at best.
-        coEvery { chatRepository.steerChat(any()) } returns Result.Success(SteerResponse(steerId = "s"))
+    fun `a steer posts its text, conversation and correlation id, and no model selection`() =
+        runTest(UnconfinedTestDispatcher()) {
+            // The server injects into the ORIGINATING run and re-derives its identity from job
+            // metadata, so an agent selection sent here would be ignored at best. `clientSteerId`
+            // is what correlates terminal events that can arrive before this POST's response.
+            val request = slot<SteerRequest>()
+            coEvery { chatRepository.steerChat(capture(request)) } returns
+                Result.Success(SteerResponse(steerId = "s"))
+            val (delegate, _) = delegateWith(this)
+
+            delegate.steer("conv-1", spec("  be brief  "))
+
+            assertThat(request.captured.conversationId).isEqualTo("conv-1")
+            assertThat(request.captured.text).isEqualTo("be brief")
+            assertThat(request.captured.clientSteerId).isNotEmpty()
+            // A spec with no staged excerpts sends none rather than an empty array.
+            assertThat(request.captured.quotes).isNull()
+        }
+
+    @Test
+    fun `a steer carries the excerpts its spec was minted with`() = runTest(UnconfinedTestDispatcher()) {
+        val request = slot<SteerRequest>()
+        coEvery { chatRepository.steerChat(capture(request)) } returns
+            Result.Success(SteerResponse(steerId = "s"))
         val (delegate, _) = delegateWith(this)
 
-        delegate.steer("conv-1", spec("  be brief  "))
+        delegate.steer("conv-1", spec("be brief").copy(quotes = listOf("excerpt a", "excerpt b")))
 
-        coVerify { chatRepository.steerChat(SteerRequest("conv-1", "be brief")) }
+        assertThat(request.captured.quotes).containsExactly("excerpt a", "excerpt b").inOrder()
     }
 
     // ── Session boundaries ────────────────────────────────────────────────
@@ -399,6 +479,7 @@ class SteeringDelegateTest {
                 enqueueParked = { enqueued += it },
                 pauseQueue = { queuePaused = true },
                 isStreaming = { true },
+                restageQuotes = { restaged += it },
             )
 
             delegate.steer("conv-1", spec("be brief").copy(model = "model-at-send-time"))
@@ -414,6 +495,103 @@ class SteeringDelegateTest {
             delegate.reclaimLocalChips()
 
             assertThat(enqueued.single().model).isEqualTo("model-at-send-time")
+        }
+
+    /**
+     * The reported excerpts are CLAIM-ON-READ: the server hands them over as it drops its own
+     * copy. A steer this client never sent — one from another device, or one that predates a
+     * reconnect — has no local spec, so the follow-up is built here and the quotes have to be
+     * attached to it or the user's selections are gone for good.
+     */
+    @Test
+    fun `a server-reported steer re-homes with the excerpts the report handed over`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val (delegate, _) = delegateWith(this)
+
+            delegate.onPendingSteersSynced(
+                listOf(
+                    PendingSteer(
+                        steerId = "st-1",
+                        text = "be brief",
+                        createdAt = 1L,
+                        quotes = listOf("excerpt a", "excerpt b"),
+                    ),
+                ),
+            )
+            delegate.reclaimLocalChips()
+
+            assertThat(enqueued.single().quotes).containsExactly("excerpt a", "excerpt b").inOrder()
+        }
+
+    /**
+     * `settled` without `leftover` means the steer left the durable queue by being INJECTED — the
+     * words are already in the reply. The replay that says so reaches this client when the POST
+     * was retried over a flaky connection, and the `on_steer_applied` that would normally have
+     * retired the chip can easily have been lost with the same SSE stream.
+     *
+     * Re-homing on the run's end then queues text the user can already read in the answer.
+     */
+    @Test
+    fun `a replayed receipt for an injected steer is not re-homed`() = runTest(UnconfinedTestDispatcher()) {
+        // No APPLIED tombstone: the event that would have written one never arrived. A pre-quotes
+        // server, so the excerpts were dropped and this receipt is their only chance back.
+        coEvery { chatRepository.steerChat(any()) } returns
+            Result.Success(SteerResponse(steerId = "st-1", settled = true))
+        val (delegate, flow) = delegateWith(this, isStreaming = false)
+
+        delegate.steer("conv-1", spec("be brief").copy(quotes = listOf("excerpt a", "excerpt b")))
+
+        // The excerpts come back to the composer exactly once, and the words themselves do not
+        // come back at all — they are already in the reply.
+        assertThat(restaged).containsExactly("excerpt a", "excerpt b").inOrder()
+        assertThat(enqueued).isEmpty()
+        assertThat(flow.value.pendingSteers).isEmpty()
+    }
+
+    /** The same verdict reached through the id-less ack, the other branch that re-homes. */
+    @Test
+    fun `an injected steer whose ack carries no id is not re-homed either`() =
+        runTest(UnconfinedTestDispatcher()) {
+            coEvery { chatRepository.steerChat(any()) } returns
+                Result.Success(SteerResponse(steerId = null, settled = true))
+            val (delegate, flow) = delegateWith(this, isStreaming = false)
+
+            delegate.steer("conv-1", spec("be brief"))
+
+            assertThat(enqueued).isEmpty()
+            assertThat(flow.value.pendingSteers).isEmpty()
+        }
+
+    /** `leftover` is the opposite verdict: the run ended without injecting it, so it must re-home. */
+    @Test
+    fun `a terminal-drain leftover is still re-homed`() = runTest(UnconfinedTestDispatcher()) {
+        coEvery { chatRepository.steerChat(any()) } returns
+            Result.Success(SteerResponse(steerId = "st-1", settled = true, leftover = true))
+        val (delegate, _) = delegateWith(this, isStreaming = false)
+
+        delegate.steer("conv-1", spec("be brief"))
+
+        assertThat(enqueued.single().text).isEqualTo("be brief")
+    }
+
+    /**
+     * An injected steer must not be re-homed by the *later* reclaim path either — the ack is the
+     * only thing that can retire a chip whose applied event was lost, so it has to leave a
+     * tombstone rather than a live chip the run's end will convert.
+     */
+    @Test
+    fun `an injected steer acked mid-run is not re-homed when the run ends`() =
+        runTest(UnconfinedTestDispatcher()) {
+            coEvery { chatRepository.steerChat(any()) } returns
+                Result.Success(SteerResponse(steerId = "st-1", settled = true))
+            val (delegate, flow) = delegateWith(this, isStreaming = true)
+
+            delegate.steer("conv-1", spec("be brief"))
+            assertThat(flow.value.pendingSteers).isEmpty()
+
+            delegate.reclaimLocalChips()
+
+            assertThat(enqueued).isEmpty()
         }
 
     /**
@@ -468,6 +646,7 @@ class SteeringDelegateTest {
                 enqueueParked = { enqueued += it },
                 pauseQueue = { queuePaused = true },
                 isStreaming = { streaming },
+                restageQuotes = { restaged += it },
             )
 
             delegate.steer("conv-1", spec("be brief"))
@@ -506,6 +685,7 @@ class SteeringDelegateTest {
                 enqueueParked = { enqueued += it },
                 pauseQueue = { queuePaused = true },
                 isStreaming = { true },
+                restageQuotes = { restaged += it },
             )
 
             delegate.steer("conv-1", spec("be brief"))
@@ -526,8 +706,9 @@ class SteeringDelegateTest {
         runTest(UnconfinedTestDispatcher()) {
             val first = CompletableDeferred<Result<SteerResponse>>()
             val second = CompletableDeferred<Result<SteerResponse>>()
-            coEvery { chatRepository.steerChat(SteerRequest("conv-1", "one")) } coAnswers { first.await() }
-            coEvery { chatRepository.steerChat(SteerRequest("conv-1", "two")) } coAnswers { second.await() }
+            // Matched on text, not on the whole request: `clientSteerId` is minted per steer.
+            coEvery { chatRepository.steerChat(match { it.text == "one" }) } coAnswers { first.await() }
+            coEvery { chatRepository.steerChat(match { it.text == "two" }) } coAnswers { second.await() }
             var streaming = true
             val flow = MutableStateFlow(
                 ChatUiState(conversation = ConversationMetaState(conversationId = "conv-1")),
@@ -540,6 +721,7 @@ class SteeringDelegateTest {
                 enqueueParked = { enqueued += it },
                 pauseQueue = { queuePaused = true },
                 isStreaming = { streaming },
+                restageQuotes = { restaged += it },
             )
 
             delegate.steer("conv-1", spec("one"))

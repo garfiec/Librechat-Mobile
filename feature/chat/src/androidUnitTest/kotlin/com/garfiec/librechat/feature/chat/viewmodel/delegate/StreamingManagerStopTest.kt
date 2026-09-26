@@ -150,7 +150,7 @@ class StreamingManagerStopTest {
             }
             assertThat(text.captured).isEqualTo("partial answer")
             // A stopped turn holds the queue rather than firing the next item.
-            verify(exactly = 0) { queueDelegate.drainNext(any()) }
+            verify(exactly = 0) { queueDelegate.drainNext(any(), any()) }
             verify(atLeast = 1) { queueDelegate.pause() }
             // No refetch — the frame is authoritative, so nothing races the server's persistence.
             verify(exactly = 0) { reloadConversation(any()) }
@@ -181,7 +181,7 @@ class StreamingManagerStopTest {
                 aborted = false,
             )
         }
-        verify(exactly = 1) { queueDelegate.drainNext(any()) }
+        verify(exactly = 1) { queueDelegate.drainNext(any(), any()) }
         events.close()
         advanceUntilIdle()
     }
@@ -203,7 +203,7 @@ class StreamingManagerStopTest {
         verify {
             completionDelegate.onFinal(any(), any(), any(), false, any(), any(), any(), any(), true)
         }
-        verify(exactly = 0) { queueDelegate.drainNext(any()) }
+        verify(exactly = 0) { queueDelegate.drainNext(any(), any()) }
         events.close()
         advanceUntilIdle()
     }

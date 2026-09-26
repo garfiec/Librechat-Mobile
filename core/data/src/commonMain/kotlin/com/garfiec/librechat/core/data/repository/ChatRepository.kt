@@ -33,6 +33,7 @@ interface ChatRepository {
         responseMessageId: String? = null,
         isEdited: Boolean = false,
         isRegenerate: Boolean = false,
+        compact: Boolean? = null,
         isContinued: Boolean = false,
         webSearch: Boolean = false,
         files: List<FileReference>? = null,

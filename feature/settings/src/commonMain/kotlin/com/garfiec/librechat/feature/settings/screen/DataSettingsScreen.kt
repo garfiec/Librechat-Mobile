@@ -116,11 +116,20 @@ fun DataSettingsContent(
     var pendingLogsContent by remember { mutableStateOf<String?>(null) }
     var logsSaverResult by remember { mutableStateOf<String?>(null) }
     val logsExportedMsg = stringResource(Res.string.logs_exported)
+    val archivedAllMessage = uiState.archivedAllCount?.let {
+        stringResource(Res.string.archived_all_count, it)
+    }
 
     LaunchedEffect(uiState.error) {
         val error = uiState.error ?: return@LaunchedEffect
         snackbarHostState.showSnackbar(message = error)
         viewModel.dismissError()
+    }
+
+    LaunchedEffect(archivedAllMessage) {
+        val message = archivedAllMessage ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(message = message)
+        viewModel.consumeArchivedAllCount()
     }
 
     LaunchedEffect(uiState.showExportComingSoon) {
@@ -179,6 +188,9 @@ fun DataSettingsContent(
                     archivedCount = uiState.archivedCount,
                     isClearing = uiState.isClearing,
                     onClearAllChats = viewModel::clearAllChats,
+                    archiveAllSupported = uiState.archiveAllSupported,
+                    isArchivingAll = uiState.isArchivingAll,
+                    onArchiveAllChats = viewModel::archiveAllChats,
                     onViewArchive = onNavigateToArchive,
                     onExportAllData = viewModel::exportAllData,
                     logsBufferBytes = uiState.logsBufferBytes,
@@ -235,6 +247,7 @@ fun DataSettingsContent(
                         memoriesEnabled = uiState.memoriesEnabled,
                         showMemoryDialog = uiState.showMemoryDialog,
                         editingMemory = uiState.editingMemory,
+                        enforceKeyPattern = uiState.memoryKeyPatternEnforced,
                         onToggleEnable = viewModel::toggleMemoriesEnabled,
                         onAddMemory = viewModel::showAddMemoryDialog,
                         onEditMemory = viewModel::showEditMemoryDialog,

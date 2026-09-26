@@ -80,6 +80,14 @@ data class MessageContentPart(
     val content: JsonElement? = null,
     val tokenCount: Int? = null,
     val summarizing: Boolean? = null,
+    /** SUMMARY/ERROR parts: the round failed, so the part carries no usable text of its own. */
+    val failed: Boolean? = null,
+    /**
+     * SUMMARY/ERROR parts: `"user"` when the compaction was requested from the context indicator
+     * rather than produced by the automatic detour. Absent on compactions stored before the marker
+     * existed, so it can only ever confirm, never rule out.
+     */
+    val initiatedBy: String? = null,
     val summaryVersion: Int? = null,
     val model: String? = null,
     val provider: String? = null,

@@ -131,6 +131,10 @@ data class ChatInputState(
     val tokenUsage: TokenUsage? = null,
     /** Server/version gate for the context gauge (`interface.contextUsage` AND backend ≥ 0.8.7). */
     val contextUsageEnabled: Boolean = false,
+    /** A manual compaction this client submitted is running (v0.8.8-rc3). */
+    val isCompacting: Boolean = false,
+    /** Null when the server does not offer compaction, or nothing can be compacted right now. */
+    val onCompact: (() -> Unit)? = null,
     /** User preference (Settings → Chat) for where the context gauge is surfaced. The composer
      *  only renders it when this is [ContextBarPlacement.ABOVE_INPUT]. */
     val contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
@@ -291,7 +295,12 @@ fun CommonChatInputCore(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    ContextUsageGauge(usage = contextUsage, tokenUsage = state.tokenUsage)
+                    ContextUsageGauge(
+                        usage = contextUsage,
+                        tokenUsage = state.tokenUsage,
+                        isCompacting = state.isCompacting,
+                        onCompact = state.onCompact,
+                    )
                 }
             }
 

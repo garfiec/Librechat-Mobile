@@ -45,6 +45,27 @@ fun resolveAttachmentUrl(attachment: Attachment?, baseUrl: String): String? {
 }
 
 /**
+ * Resolves a full URL for a user or account avatar.
+ *
+ * Avatars are served off the deployment root (`${baseUrl}/images/…`), not through `/api/files/`,
+ * so a bare relative path joins with `/`. A social-login avatar arrives as an absolute URL on the
+ * provider's host and is returned untouched.
+ *
+ * The trailing slash is trimmed rather than assumed away: the roster stores the base URL as the
+ * user typed it at onboarding, so a server entered as `https://host/` would otherwise build
+ * `https://host//images/…` — which loads, but under a different cache key than every other image
+ * surface derives for the same bytes.
+ */
+fun resolveAvatarUrl(avatar: String?, baseUrl: String): String? =
+    resolveImageUrl(
+        filepath = avatar?.takeIf { it.isNotBlank() },
+        fileId = null,
+        baseUrl = baseUrl.trimEnd('/'),
+        includeBareSlash = true,
+        relativePathPrefix = "/",
+    )
+
+/**
  * Maps a [filepath]/[fileId] pair to a loadable URL. The two flags capture the only differences
  * between the call sites, so the branches can't silently drift apart:
  *  - [includeBareSlash]: route any bare absolute path (`/foo`) through `baseUrl` directly.

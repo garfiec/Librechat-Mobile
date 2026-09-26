@@ -15,6 +15,7 @@ import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.PendingAction
+import com.garfiec.librechat.core.model.content.Compaction
 import com.garfiec.librechat.core.model.endpoint.KeyState
 import com.garfiec.librechat.core.model.response.FileUploadConfig
 import com.garfiec.librechat.core.model.response.UploadRoute
@@ -72,6 +73,8 @@ data class ChatUiState(
     //    Each delegates to its owning slice; writes go through the slice, not these. ──
     val messageQueue: List<QueuedMessage> get() = queue.messageQueue
     val isQueuePaused: Boolean get() = queue.isQueuePaused
+    val settledQueuedTurns: List<SettledQueuedTurn> get() = queue.settledQueuedTurns
+    val pendingQueuedTurnEnqueueIds: List<String> get() = queue.pendingQueuedTurnEnqueueIds
     val pendingSteers: List<PendingSteerChip> get() = steer.pendingSteers
     val isSearchOpen: Boolean get() = search.isSearchOpen
     val searchQuery: String get() = search.searchQuery
@@ -125,6 +128,33 @@ data class ChatUiState(
         get() = quotesSupportedOn(selectedEndpoint)
 
     /**
+     * Whether manual compaction can run right now (v0.8.8-rc3). Mirrors upstream's `canCompact`
+     * ANDed with its `compactionAvailable`.
+     *
+     * The `isCompactedLeaf` term is the one that is not obvious: compacting a leaf that is already
+     * a finished compaction summarizes a summary, so the action is withheld there. An interrupted
+     * one — still streaming, or failed — is not finished, and stays retryable.
+     */
+    val canCompactNow: Boolean
+        get() = gates.compactionEnabled &&
+            Compaction.supportsCompaction(selectedEndpoint) &&
+            !conversationId.isNullOrBlank() &&
+            !isStreaming &&
+            compactionLeaf != null
+
+    /**
+     * The branch leaf a compaction would hang off: both the summary's parent and the server-side
+     * anchor it compacts up to. Null when the tail is unusable as one — no messages, a root with
+     * no parent, or a leaf that is already a finished compaction.
+     */
+    val compactionLeaf: Message?
+        get() {
+            val leaf = displayMessages.lastOrNull()?.message ?: return null
+            if (leaf.parentMessageId.isNullOrBlank()) return null
+            return leaf.takeIf { !Compaction.isCompactedLeaf(it) }
+        }
+
+    /**
      * True while picked files exist but are not yet in the attachment tray — mid-intake, or staged
      * awaiting a manual routing decision.
      *
@@ -175,6 +205,7 @@ data class ChatUiState(
     val activeBranches: Map<String, Int> get() = content.activeBranches
     val justSettledMessageId: String? get() = content.justSettledMessageId
     val isStreaming: Boolean get() = content.isStreaming
+    val isCompacting: Boolean get() = content.isCompacting
     val streamingContent: String get() = content.streamingContent
     val activeToolCalls: List<ActiveToolCall> get() = content.activeToolCalls
     val streamingAttachments: List<Attachment> get() = content.streamingAttachments
@@ -188,6 +219,10 @@ data class ChatUiState(
     val askAnswerDrafts: Map<String, AskAnswerDraft> get() = content.askAnswerDrafts
     val memoryEnabled: Boolean get() = gates.memoryEnabled
     val conversationId: String? get() = conversation.conversationId
+
+    /** Whether the trace entry point should render — see [FeatureGatesState.traceViewerConversationId]. */
+    val traceViewerAvailable: Boolean
+        get() = conversationId != null && gates.traceViewerConversationId == conversationId
     val conversationTitle: String? get() = conversation.conversationTitle
     val isTemporaryChat: Boolean get() = conversation.isTemporaryChat
     val sharedLinksEnabled: Boolean get() = conversation.sharedLinksEnabled

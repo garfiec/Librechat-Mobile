@@ -445,7 +445,7 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun `exportLogs offers the buffer under a jsonl filename`() = runTest {
+    fun `exportLogs offers the buffer under a log filename`() = runTest {
         val buffer = """{"ts":1,"msg":"first"}""" + "\n" + """{"ts":2,"msg":"second"}""" + "\n"
         coEvery { diagnosticLogRepository.exportText() } returns buffer
 
@@ -458,7 +458,7 @@ class SettingsViewModelTest {
         val payload = viewModel.uiState.value.logsExportReady
         assertThat(payload).isNotNull()
         assertThat(payload?.content).isEqualTo(buffer)
-        assertThat(payload?.fileName).endsWith(".jsonl")
+        assertThat(payload?.fileName).endsWith(".log")
         assertThat(viewModel.uiState.value.isLogsExporting).isFalse()
     }
 

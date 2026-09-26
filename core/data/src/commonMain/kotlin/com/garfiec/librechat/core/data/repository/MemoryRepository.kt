@@ -19,6 +19,14 @@ interface MemoryRepository {
     suspend fun getMemories(): Result<List<Memory>>
     suspend fun createMemory(request: CreateMemoryRequest): Result<Memory>
     suspend fun updatePreferences(request: UpdateMemoryPreferencesRequest): Result<MemoryPreferences>
-    suspend fun updateMemory(key: String, request: UpdateMemoryRequest, agentId: String? = null): Result<Memory>
-    suspend fun deleteMemory(key: String, agentId: String? = null): Result<Unit>
+
+    /**
+     * Updates [memory]'s value. Addresses the row by its stable `_id` where the server supports it
+     * (v0.8.8-rc2), falling back to the key-addressed route — which cannot reach a row whose key
+     * the content filter blanked, and is ambiguous across partitions.
+     */
+    suspend fun updateMemory(memory: Memory, request: UpdateMemoryRequest): Result<Memory>
+
+    /** Deletes [memory]. Addresses it the same way as [updateMemory]. */
+    suspend fun deleteMemory(memory: Memory): Result<Unit>
 }

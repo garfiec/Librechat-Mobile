@@ -26,12 +26,16 @@ import com.garfiec.librechat.core.data.repository.McpRepository
 import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.PromptRepository
+import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
 import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
+import com.garfiec.librechat.core.data.repository.TraceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
+import com.garfiec.librechat.core.model.queuedturn.QueuedTurnOutcome
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformDelegateFactory
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CoroutineDispatcher
@@ -70,7 +74,9 @@ internal class ChatViewModelTestFixture {
     val keyRepository = mockk<KeyRepository>(relaxed = true)
     val presetRepository = mockk<PresetRepository>(relaxed = true)
     val promptRepository = mockk<PromptRepository>(relaxed = true)
+    val queuedTurnRepository = mockk<QueuedTurnRepository>(relaxed = true)
     val shareRepository = mockk<ShareRepository>(relaxed = true)
+    val traceRepository = mockk<TraceRepository>(relaxed = true)
     val mcpRepository = mockk<McpRepository>(relaxed = true)
     val userRepository = mockk<UserRepository>(relaxed = true)
     val roleRepository = mockk<RoleRepository>(relaxed = true)
@@ -98,6 +104,13 @@ internal class ChatViewModelTestFixture {
         every { agentRepository.revision } returns MutableStateFlow(0L)
         every { promptRepository.revision } returns promptRevision
         every { messageRepository.observeMessages(any()) } returns emptyFlow()
+        // A server WITHOUT queued turns by default, so the reconcile poll exits on its first tick
+        // and no test that is not about the feature pays for it. A relaxed mock would instead hand
+        // back an erased QueuedTurnOutcome whose payload fails the List cast inside applyReceipts.
+        coEvery { queuedTurnRepository.isUnsupported() } returns true
+        coEvery { queuedTurnRepository.list(any(), any()) } returns QueuedTurnOutcome.Unsupported
+        coEvery { queuedTurnRepository.enqueue(any()) } returns QueuedTurnOutcome.Unsupported
+        coEvery { queuedTurnRepository.cancel(any()) } returns QueuedTurnOutcome.Unsupported
         every { serverFileSelectionHandoff.selectionsFor(any()) } returns emptyFlow()
         every { platformDelegateFactory.createShareConsumer().sharesFor(any()) } returns emptyFlow()
 
@@ -137,7 +150,9 @@ internal class ChatViewModelTestFixture {
         keyRepository = keyRepository,
         presetRepository = presetRepository,
         promptRepository = promptRepository,
+        queuedTurnRepository = queuedTurnRepository,
         shareRepository = shareRepository,
+        traceRepository = traceRepository,
         mcpRepository = mcpRepository,
         userRepository = userRepository,
         roleRepository = roleRepository,

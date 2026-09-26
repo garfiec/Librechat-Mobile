@@ -19,6 +19,7 @@ import androidx.compose.material.icons.outlined.FileOpen
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.SaveAs
 import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.Timeline
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -45,6 +46,7 @@ import com.garfiec.librechat.feature.chat.resources.delete
 import com.garfiec.librechat.feature.chat.resources.load_preset
 import com.garfiec.librechat.feature.chat.resources.prompts_library
 import com.garfiec.librechat.feature.chat.resources.save_as_preset
+import com.garfiec.librechat.feature.chat.resources.trace_open
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -62,6 +64,8 @@ internal fun ChatOverflowMenu(
     multiConvoEnabled: Boolean,
     sharedLinksEnabled: Boolean,
     isComparisonEnabled: Boolean,
+    /** Confirmed by `/api/traces/:id/availability` for THIS conversation — see FeatureGatesState. */
+    traceViewerAvailable: Boolean,
     contextUsage: ContextUsage?,
     contextUsageEnabled: Boolean,
     contextBarPlacement: ContextBarPlacement,
@@ -72,6 +76,7 @@ internal fun ChatOverflowMenu(
     onSavePreset: () -> Unit,
     onOpenPromptsLibrary: (() -> Unit)?,
     onToggleComparison: () -> Unit,
+    onOpenTraceViewer: () -> Unit,
     onShare: () -> Unit,
     onRename: () -> Unit,
     onDuplicate: () -> Unit,
@@ -169,6 +174,21 @@ internal fun ChatOverflowMenu(
                 },
                 leadingIcon = {
                     Icon(Icons.Outlined.Compare, contentDescription = null)
+                },
+            )
+        }
+        // The conversation trace (v0.8.8-rc3). Upstream puts it here on mobile too — the desktop
+        // header has a dedicated button, and HeaderMenu carries the same action behind the overflow
+        // control. Availability is a precondition, so reaching this means there is a trace to read.
+        if (traceViewerAvailable) {
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.trace_open)) },
+                onClick = {
+                    onDismiss()
+                    onOpenTraceViewer()
+                },
+                leadingIcon = {
+                    Icon(Icons.Outlined.Timeline, contentDescription = null)
                 },
             )
         }

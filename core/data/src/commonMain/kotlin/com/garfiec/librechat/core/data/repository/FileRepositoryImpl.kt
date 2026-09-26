@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.common.result.safeApiCall
 import com.garfiec.librechat.core.model.FileObject
 import com.garfiec.librechat.core.model.request.DeleteFileEntry
 import com.garfiec.librechat.core.model.request.DeleteFilesRequest
+import com.garfiec.librechat.core.model.response.DeleteFilesResponse
 import com.garfiec.librechat.core.model.response.FilePreviewResponse
 import com.garfiec.librechat.core.model.response.FileUploadConfig
 import com.garfiec.librechat.core.network.api.FILES_USAGE_MAX_IDS
@@ -82,20 +83,46 @@ class FileRepositoryImpl(
             )
         }
 
+    /**
+     * Deletes [files], reporting every entry the route would silently discard as a FAILURE.
+     *
+     * `DELETE /api/files` drops each entry with a falsy `filepath` before it looks at anything
+     * else, and answers 204 with no body when that leaves nothing — so an unnameable entry is
+     * never listed in `failedFileIds` and a caller diffing "asked minus failed" reads it as
+     * deleted. Enforced here rather than at each caller because the rule belongs to the route —
+     * every caller that diffs its own request against `failedFileIds` needs it, and none of them
+     * can see that the route dropped the entry.
+     */
     override suspend fun deleteFiles(
         files: List<DeleteFileEntry>,
         agentId: String?,
         toolResource: String?,
-    ): Result<Unit> =
-        safeApiCall {
+    ): Result<DeleteFilesResponse> {
+        val (deletable, unnameable) = files.partition { it.filepath.isNotBlank() }
+        if (deletable.isEmpty()) {
+            return Result.Success(
+                DeleteFilesResponse(failedFileIds = unnameable.map { it.fileId }),
+            )
+        }
+        val result = safeApiCall {
             filesApi.deleteFiles(
                 DeleteFilesRequest(
-                    files = files,
+                    files = deletable,
                     agentId = agentId,
                     toolResource = toolResource,
                 ),
             )
         }
+        if (unnameable.isEmpty()) return result
+        return when (result) {
+            is Result.Success -> Result.Success(
+                result.data.copy(
+                    failedFileIds = result.data.failedFileIds + unnameable.map { it.fileId },
+                ),
+            )
+            else -> result
+        }
+    }
 
     /**
      * Prefers the direct/presigned download URL (v0.8.6 — S3/CloudFront) so the

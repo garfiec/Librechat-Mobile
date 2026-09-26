@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SmartToy
@@ -123,6 +124,7 @@ import com.garfiec.librechat.feature.conversations.resources.project_unassigned
 import com.garfiec.librechat.feature.conversations.resources.projects
 import com.garfiec.librechat.feature.conversations.resources.projects_all
 import com.garfiec.librechat.feature.conversations.resources.remove_bookmark
+import com.garfiec.librechat.feature.conversations.resources.schedules
 import com.garfiec.librechat.feature.conversations.resources.search_conversations_placeholder
 import com.garfiec.librechat.feature.conversations.resources.settings
 import com.garfiec.librechat.feature.conversations.resources.show_less
@@ -165,6 +167,7 @@ fun DrawerContent(
     onAgentsClick: () -> Unit,
     onFilesClick: () -> Unit,
     onSkillsClick: () -> Unit,
+    onSchedulesClick: () -> Unit,
     accounts: List<AccountUiModel>,
     modifier: Modifier = Modifier,
     onOpenProjectsIndex: () -> Unit = {},
@@ -250,6 +253,7 @@ fun DrawerContent(
         onAgentsClick = onAgentsClick,
         onFilesClick = onFilesClick,
         onSkillsClick = onSkillsClick,
+        onSchedulesClick = onSchedulesClick,
         onToggleFavorite = { data -> viewModel.toggleFavorite(data.conversationId, data.tags) },
         onRefresh = viewModel::refreshConversations,
         onLoadMore = viewModel::loadMoreConversations,
@@ -314,6 +318,7 @@ fun DrawerContent(
     onAgentsClick: () -> Unit,
     onFilesClick: () -> Unit,
     onSkillsClick: () -> Unit,
+    onSchedulesClick: () -> Unit,
     modifier: Modifier = Modifier,
     // Slot below the footer links (Files, Agents, …) — the stateful wrapper puts the Settings row
     // and the account avatar here, at the bottom of the drawer.
@@ -801,6 +806,13 @@ fun DrawerContent(
                     icon = Icons.Default.Extension,
                     label = stringResource(Res.string.skills),
                     onClick = onSkillsClick,
+                )
+            }
+            if (uiState.schedulesEnabled) {
+                DrawerFooterItem(
+                    icon = Icons.Default.Schedule,
+                    label = stringResource(Res.string.schedules),
+                    onClick = onSchedulesClick,
                 )
             }
             DrawerFooterItem(

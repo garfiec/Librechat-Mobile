@@ -11,9 +11,11 @@ import com.garfiec.librechat.core.model.error.ServerErrorCode
 import com.garfiec.librechat.core.model.mcp.McpApiKeyConfig
 import com.garfiec.librechat.core.model.mcp.McpOAuthConfig
 import com.garfiec.librechat.core.model.mcp.McpServer
+import com.garfiec.librechat.core.model.mcp.McpServerDiscovery
 import com.garfiec.librechat.core.model.mcp.McpServerStatus
 import com.garfiec.librechat.core.model.mcp.McpServerType
 import com.garfiec.librechat.core.model.mcp.McpTool
+import com.garfiec.librechat.core.model.mcp.applyDiscoveryAuthorizationState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,6 +25,8 @@ import kotlinx.coroutines.launch
 data class McpUiState(
     val servers: List<McpServer> = emptyList(),
     val connectionStatus: Map<String, McpServerStatus> = emptyMap(),
+    /** Per-server verdicts from `GET /api/mcp/tools`, retained so either fetch can re-fold them. */
+    val discovery: Map<String, McpServerDiscovery> = emptyMap(),
     val tools: List<McpTool> = emptyList(),
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
@@ -100,7 +104,12 @@ class McpViewModel(
         viewModelScope.launch {
             when (val result = mcpRepository.getConnectionStatus()) {
                 is Result.Success -> {
-                    _uiState.value = _uiState.value.copy(connectionStatus = result.data)
+                    _uiState.value = _uiState.value.copy(
+                        connectionStatus = applyDiscoveryAuthorizationState(
+                            result.data,
+                            _uiState.value.discovery,
+                        ),
+                    )
                 }
                 is Result.Error -> {
                     Logger.d(result.exception) { "Failed to load connection status: ${result.message}" }
@@ -114,7 +123,16 @@ class McpViewModel(
         viewModelScope.launch {
             when (val result = mcpRepository.getTools()) {
                 is Result.Success -> {
-                    _uiState.value = _uiState.value.copy(tools = result.data)
+                    _uiState.value = _uiState.value.copy(
+                        tools = result.data.tools,
+                        discovery = result.data.servers,
+                        // Discovery can notice a lapsed authorization before the status route
+                        // does, so re-fold whichever of the two arrived second.
+                        connectionStatus = applyDiscoveryAuthorizationState(
+                            _uiState.value.connectionStatus,
+                            result.data.servers,
+                        ),
+                    )
                 }
                 is Result.Error -> {
                     Logger.d(result.exception) { "Failed to load tools: ${result.message}" }

@@ -30,6 +30,7 @@ import com.garfiec.librechat.core.data.repository.ShareRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.logging.DiagnosticLogRepository
+import com.garfiec.librechat.core.model.MEMORY_KEY_PATTERN_MIN_VERSION
 import com.garfiec.librechat.core.model.Memory
 import com.garfiec.librechat.core.model.mcp.McpApiKeyConfig
 import com.garfiec.librechat.core.model.mcp.McpOAuthConfig
@@ -187,7 +188,10 @@ class SettingsViewModel(
             combine(
                 configRepository.startupConfig,
                 configRepository.detectedBackendVersion,
-            ) { config, version -> config to version }.collect { (config, version) ->
+                configRepository.detectedBackend,
+            ) { config, version, backend ->
+                Triple(config, version, backend)
+            }.collect { (config, version, backend) ->
                 _uiState.update {
                     it.copy(
                         allowAccountDeletion = config?.allowAccountDeletion ?: true,
@@ -197,6 +201,17 @@ class SettingsViewModel(
                         // a re-publish, so an unresolved version warns instead of promising it.
                         sharedLinkUpdateKeepsUrl = version != null &&
                             BackendVersion.isCompatibleOrNewer(version, "0.8.8-rc1"),
+                        // Offered unless the server is KNOWN to predate the route: a dev build
+                        // reporting the previous release, or one built past the commit-map pin,
+                        // is the population most likely to HAVE it. See VERSION_GATES.md.
+                        archiveAllSupported = !BackendVersion.featureSupport(
+                            backend,
+                            minVersion = "0.8.8-rc2",
+                        ).isRuledOut,
+                        // Fail-OPEN, unlike the flags above: this one refuses input rather than
+                        // hiding an affordance, and only rc3+ validates the key server-side.
+                        memoryKeyPatternEnforced = version != null &&
+                            BackendVersion.isCompatibleOrNewer(version, MEMORY_KEY_PATTERN_MIN_VERSION),
                     )
                 }
             }
@@ -441,6 +456,8 @@ class SettingsViewModel(
 
     // Data management
     fun clearAllChats() = dataDelegate.clearAllChats()
+    fun archiveAllChats() = dataDelegate.archiveAllChats()
+    fun consumeArchivedAllCount() = dataDelegate.consumeArchivedAllCount()
     fun exportAllData() = dataDelegate.exportAllData()
     fun dismissExportComingSoon() = dataDelegate.dismissExportComingSoon()
     fun loadSharedLinks() = dataDelegate.loadSharedLinks()

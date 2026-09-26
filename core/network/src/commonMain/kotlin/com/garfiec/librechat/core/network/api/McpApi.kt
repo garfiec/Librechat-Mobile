@@ -7,9 +7,11 @@ import com.garfiec.librechat.core.model.mcp.McpConnectionStatusResponse
 import com.garfiec.librechat.core.model.mcp.McpOAuthConfig
 import com.garfiec.librechat.core.model.mcp.McpReinitializeResponse
 import com.garfiec.librechat.core.model.mcp.McpServer
+import com.garfiec.librechat.core.model.mcp.McpServerDiscovery
 import com.garfiec.librechat.core.model.mcp.McpServerStatus
 import com.garfiec.librechat.core.model.mcp.McpServerType
 import com.garfiec.librechat.core.model.mcp.McpTool
+import com.garfiec.librechat.core.model.mcp.McpToolCatalog
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
@@ -21,6 +23,7 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.path
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -33,17 +36,29 @@ class McpApi constructor(
 
     /**
      * GET /api/mcp/tools returns { servers: Record<string, MCPServer> }
-     * where each MCPServer has: name, icon, authenticated, authConfig, tools[]
-     * tools[] items have: name, pluginKey, description
+     * where each MCPServer has: name, icon, authenticated, authorizationState?,
+     * authorizationGeneration?, authConfig, tools[]
+     * tools[] items have: name, pluginKey, description, serverToolName?
+     *
+     * The per-server fields are kept rather than flattened away: passive discovery reports a
+     * lapsed OAuth authorization HERE, before the connection-status route notices — see
+     * [applyDiscoveryAuthorizationState]. A server with no tools still contributes its verdict,
+     * so the loop cannot `continue` past one for want of a tools array.
      */
-    suspend fun getTools(): List<McpTool> {
+    suspend fun getTools(): McpToolCatalog {
         val response: JsonObject = client.get {
             url { path("api/mcp/tools") }
         }.body()
-        val servers = response["servers"]?.jsonObject ?: return emptyList()
+        val servers = response["servers"]?.jsonObject ?: return McpToolCatalog()
         val tools = mutableListOf<McpTool>()
+        val discovery = mutableMapOf<String, McpServerDiscovery>()
         for ((serverName, serverJson) in servers) {
             val serverObj = serverJson.jsonObject
+            discovery[serverName] = McpServerDiscovery(
+                authenticated = serverObj["authenticated"]?.jsonPrimitive?.booleanOrNull ?: true,
+                authorizationState = serverObj["authorizationState"]?.jsonPrimitive?.contentOrNull,
+                authorizationGeneration = serverObj["authorizationGeneration"]?.jsonPrimitive?.contentOrNull,
+            )
             val serverTools = serverObj["tools"]?.jsonArray ?: continue
             for (toolJson in serverTools) {
                 val toolObj = toolJson.jsonObject
@@ -52,11 +67,12 @@ class McpApi constructor(
                         name = toolObj["name"]?.jsonPrimitive?.contentOrNull ?: continue,
                         description = toolObj["description"]?.jsonPrimitive?.contentOrNull,
                         serverName = serverName,
+                        serverToolName = toolObj["serverToolName"]?.jsonPrimitive?.contentOrNull,
                     ),
                 )
             }
         }
-        return tools
+        return McpToolCatalog(tools = tools, servers = discovery)
     }
 
     suspend fun reinitialize(serverName: String): McpReinitializeResponse {

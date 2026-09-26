@@ -139,6 +139,39 @@ class MessageEditingDelegate(
         )
     }
 
+    /**
+     * Manual context compaction (v0.8.8-rc3): summarize the branch up to its leaf and end WITHOUT a
+     * reply. Regenerate-shaped — no user message is created — which is why it goes down this path
+     * and not the new-message one.
+     *
+     * The shape is borrowed for the CLIENT's benefit only: `isRegenerate` is set here and stripped
+     * again by `ChatPayloadBuilder`, because rc3 400s it arriving beside `compact`.
+     */
+    fun compactConversation() {
+        val state = handle.state
+        if (!state.canCompactNow) return
+        val leaf = state.compactionLeaf ?: return
+        runWhenSendReady { compactConversationNow(leaf) }
+    }
+
+    private fun compactConversationNow(leaf: Message) {
+        handle.update { content = content.copy(isCompacting = true) }
+        // The leaf is both the summary's parent and the server-side anchor: `parentMessageId` is
+        // what the controller compacts up to.
+        treeDelegate.anchorStreamTo(leaf.messageId)
+        launchSend(
+            text = "",
+            parentMessageId = leaf.messageId,
+            userMessageId = leaf.messageId,
+            // The leaf is a PERSISTED row, not a message this turn minted, so the early-abort
+            // un-send must never remove it — the same rule regenerate and continue follow.
+            optimisticUserMessageId = null,
+            isRegenerate = true,
+            compact = true,
+            logLabel = "compactConversation",
+        )
+    }
+
     fun continueGeneration() {
         if (handle.state.isStreaming) return
         val lastAiMessage = handle.state.displayMessages.lastOrNull {
@@ -187,6 +220,12 @@ class MessageEditingDelegate(
         parentMessageId: String?,
         logLabel: String,
         userMessageId: String? = null,
+        /**
+         * The id the early-abort un-send may remove. Defaults to [userMessageId] because for every
+         * path but compaction they are the same message — compaction sends an existing leaf's id as
+         * the wire `messageId` while minting nothing, so the two must be separable.
+         */
+        optimisticUserMessageId: String? = userMessageId,
         overrideParentMessageId: String? = null,
         responseMessageId: String? = null,
         files: List<FileReference>? = null,
@@ -194,11 +233,15 @@ class MessageEditingDelegate(
         isEdited: Boolean = false,
         isRegenerate: Boolean = false,
         isContinued: Boolean = false,
+        compact: Boolean? = null,
     ) {
-        // userMessageId is non-null only for the edit-user path, whose optimistic sibling this
-        // turn minted; regenerate/continue/edit-AI resubmit a persisted message the early-abort
-        // un-send must never remove.
-        streamingManager.prepareForStreaming(isEdit = true, optimisticUserMessageId = userMessageId)
+        // optimisticUserMessageId is non-null only for the edit-user path, whose optimistic sibling
+        // this turn minted; regenerate/continue/edit-AI/compact resubmit a persisted message the
+        // early-abort un-send must never remove.
+        streamingManager.prepareForStreaming(
+            isEdit = true,
+            optimisticUserMessageId = optimisticUserMessageId,
+        )
 
         val state = handle.state
         val isAgent = state.selectedEndpoint == EndpointConstants.AGENTS
@@ -222,6 +265,7 @@ class MessageEditingDelegate(
                 responseMessageId = responseMessageId,
                 isEdited = isEdited,
                 isRegenerate = isRegenerate,
+                compact = compact,
                 isContinued = isContinued,
                 webSearch = webSearchEnabled,
                 files = files,

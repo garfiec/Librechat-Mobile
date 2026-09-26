@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.logging.Diag
 import com.garfiec.librechat.core.logging.LogOrigin
 import com.garfiec.librechat.core.model.response.RefreshResponse
 import com.garfiec.librechat.core.network.client.CookieHelper
+import com.garfiec.librechat.core.network.client.ImageCookieCredentials
 import com.garfiec.librechat.core.network.client.PinnedServerBaseUrlKey
 import com.garfiec.librechat.core.network.client.RefreshResult
 import com.garfiec.librechat.core.network.client.SecureTokenStorage
@@ -71,7 +72,7 @@ import kotlin.time.Clock
 abstract class CommonTokenDataStore(
     private val refreshClient: Lazy<HttpClient>,
     private val ioDispatcher: CoroutineDispatcher,
-) : TokenManager, SecureTokenStorage {
+) : TokenManager, SecureTokenStorage, ImageCookieCredentials {
 
     @Volatile
     private var cachedAccessToken: String? = null
@@ -390,17 +391,27 @@ abstract class CommonTokenDataStore(
         accountId: String,
         baseUrl: String,
         usedAccessToken: String?,
-    ): RefreshResult =
+    ): RefreshResult {
+        // An empty string is absence, not a base URL: concatenated it yields the RELATIVE
+        // `/api/auth/refresh`, and passed on as `pinnedBaseUrl` it is a server id that names
+        // nothing. Both are absorbed today — Ktor resolves the relative path against the same
+        // live base an unpinned POST would use, and `ServerHeadersPlugin.resolveBaseUrl` applies
+        // this identical `takeIf` before it looks a server up — so this changes no behaviour. It
+        // is here because the two downstream normalizations are what make it true, and saying
+        // "unpinned" once beats depending on both of them to keep saying it.
+        // [ensureFreshAccessToken] normalizes at this same seam.
+        val pinned = baseUrl.trimTrailingSlash().takeIf { it.isNotEmpty() }
         // URL-pinned: post to an absolute URL so a concurrent server switch can't redirect this
         // account's refresh token to another server. [pinnedBaseUrl] carries the *server* half of that
         // pin to ServerHeadersPlugin — the request URL alone can't serve as the key, because it is the
         // refresh endpoint, not the deployment root, and would derive a different serverId.
-        performRefresh(
+        return performRefresh(
             accountKey = accountId,
-            absoluteRefreshUrl = "${baseUrl.trimTrailingSlash()}$REFRESH_PATH",
-            pinnedBaseUrl = baseUrl.trimTrailingSlash(),
+            absoluteRefreshUrl = pinned?.let { "$it$REFRESH_PATH" },
+            pinnedBaseUrl = pinned,
             usedAccessToken = usedAccessToken,
         )
+    }
 
     override suspend fun ensureFreshAccessToken(
         accountId: String?,
@@ -1142,6 +1153,23 @@ abstract class CommonTokenDataStore(
     // --- SecureTokenStorage ---
 
     override suspend fun getRefreshToken(): String? = readValue(refreshKey(activeAccountKey))
+
+    // --- ImageCookieCredentials ---
+
+    /**
+     * Read directly off the account's own slot, unlocked, exactly like [getRefreshToken].
+     *
+     * No [stateMutex]: this reads a keyed slot rather than the active-account binding the mutex
+     * guards, and taking it would put a per-image keystore decrypt behind the same lock an account
+     * switch flips under. The value can therefore be read either side of a concurrent rotation — which
+     * is the race [ImageCookieCredentials] documents and its caller's one-shot 403 retry resolves.
+     *
+     * A null [accountId] returns null rather than falling back to the bare key: that slot holds a
+     * *staged* sign-in's token mid add-account flow, and the caller's gate is the only other thing
+     * standing between it and a server the user has not finished authenticating to.
+     */
+    override suspend fun refreshTokenFor(accountId: String?): String? =
+        accountId?.let { readValue(refreshKey(it)).nonBlankOrNull() }
 
     override suspend fun storeTokens(accessToken: String, refreshToken: String) {
         setTokens(accessToken, refreshToken)

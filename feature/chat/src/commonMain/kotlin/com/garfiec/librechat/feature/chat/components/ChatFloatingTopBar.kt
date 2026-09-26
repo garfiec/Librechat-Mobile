@@ -86,6 +86,7 @@ internal fun ChatFloatingTopBar(
 ) {
     var showOverflowMenu by remember { mutableStateOf(false) }
     var showContextSheet by remember { mutableStateOf(false) }
+    var showTraceViewer by remember { mutableStateOf(false) }
     val conversationId = uiState.conversationId
     val conversationTitle = uiState.conversationTitle
     // Interactive on the new-chat landing; once a temporary chat is active it stays visible (ON) as
@@ -179,6 +180,7 @@ internal fun ChatFloatingTopBar(
                     multiConvoEnabled = uiState.multiConvoEnabled,
                     sharedLinksEnabled = uiState.sharedLinksEnabled,
                     isComparisonEnabled = uiState.comparisonState.isEnabled,
+                    traceViewerAvailable = uiState.traceViewerAvailable,
                     contextUsage = uiState.contextUsage,
                     contextUsageEnabled = uiState.contextUsageEnabled,
                     contextBarPlacement = uiState.contextBarPlacement,
@@ -189,6 +191,7 @@ internal fun ChatFloatingTopBar(
                     onSavePreset = onSavePreset,
                     onOpenPromptsLibrary = onOpenPromptsLibrary,
                     onToggleComparison = viewModel::toggleComparison,
+                    onOpenTraceViewer = { showTraceViewer = true },
                     onShare = viewModel::shareConversation,
                     onRename = onRename,
                     onDuplicate = viewModel::duplicateConversation,
@@ -207,6 +210,18 @@ internal fun ChatFloatingTopBar(
                 usage = sheetContextUsage,
                 tokenUsage = uiState.tokenUsage,
                 onDismiss = { showContextSheet = false },
+                isCompacting = uiState.isCompacting,
+                onCompact = viewModel::compactConversation.takeIf { uiState.canCompactNow },
+            )
+        }
+
+        // Hosted here rather than from the menu item, for the same reason the context sheet is:
+        // a modal surface cannot open from inside the dropdown's popup.
+        if (showTraceViewer && conversationId != null) {
+            TraceViewerSheet(
+                conversationId = conversationId,
+                isStreaming = uiState.isStreaming,
+                onDismiss = { showTraceViewer = false },
             )
         }
 

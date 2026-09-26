@@ -157,6 +157,44 @@ field gets under half the width, which rendered both `CF-Access-Client-Id` and
 `CF-Access-Client-Secret` as `CF-Access-C…`: two different headers looking identical, next to a
 masked value.
 
+## The image cookie (`/images/*`, upstream 0.8.8-rc2+)
+
+The server's local image mount is credentialed by default since rc2 and authenticates on a **cookie
+only** — no `Authorization` branch, no query token, no signed URL. `ImageCookiePlugin` attaches the
+account's refresh token to exactly that mount; `isSecuredImagePath` is the shared predicate that
+decides what "that mount" means. See `DISCOVERY.md` for the server side, including the iOS cookie-jar
+guardrail.
+
+Four rules that are load-bearing and easy to undo by accident:
+
+- **`/images/` must NOT go in `AUTH_SKIP_PATHS`.** That set means "takes no bearer *and* its 401 is
+  the endpoint's own verdict"; it also suppresses `SwitchBarrierPlugin`'s proactive renewal, and its
+  matcher is a whole-path-suffix match for `auth/login`-shaped strings, not a prefix. The image mount
+  needs only the *second* half of that meaning, so it is a separate check in the 401 leg and the
+  bearer stays attached at the `State` phase — harmless, and correct the day upstream grows a bearer
+  path.
+- **Install position: between `AuthInterceptorPlugin` and `ServerHeadersPlugin`, main client only.**
+  Same-phase `State` interceptors run in install order, so the app's `Cookie: refreshToken=` is on
+  the request before `applyCustomHeaders` merges the user's gateway cookie into the same line — which
+  is what keeps it to one `Cookie` header and lets the app's segment win a name collision against a
+  stale one pasted out of devtools. Coil resolves the main client; the streaming and refresh clients
+  must not carry this.
+- **The cross-authority strip stays in the `HttpSend` interceptor**, for the same reason the gateway
+  headers' does: `HttpRedirect` copies every header to the redirect target and strips only
+  `Authorization`, and `stripCustomHeaders` deliberately unpicks only the *user's* cookie segments.
+  A `/images/` 302 off-domain would otherwise hand the refresh token to a foreign host.
+- **Never cache the token.** From rc2 the middleware matches it against `session.refreshTokenHash`, which
+  every refresh overwrites, so a value snapshotted before a rotation is already rejected — with a
+  **403**, not a 401. Read it at attach time, keyed to the snapshot's `accountId`, and let the
+  one-shot 403 retry (re-read, resend only if it *changed*) absorb the race. It is deliberately not
+  on `RequestIdentity` and not on `TokenManager`: `ImageCookieCredentials` is a one-method seam bound
+  to the token store, so the six `TokenManager` fakes never gain a second credential.
+
+Gating is `isSameServerAuthority` (scheme + host + port, fail-closed) plus a **base-path-aware** path
+match — upstream computes `imagesPath = ${basePath}/images`, so a bare `/images/` prefix test misses
+`https://host/librechat/images/…` and, worse, *matches* a host-root path that is not that
+deployment's mount at all. A null or pending account attaches nothing.
+
 ## Key Configuration
 
 - `Json { ignoreUnknownKeys = true; isLenient = true; encodeDefaults = false; explicitNulls = false; coerceInputValues = true }`

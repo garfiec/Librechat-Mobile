@@ -43,6 +43,16 @@ class AgentCapabilitiesDelegate(
         observeSkillsAvailability()
         observeSubagentsAvailability()
         observeServerVersion()
+        observeDropParams()
+    }
+
+    /** `endpointsDropParamsMap` is stripped for unauthenticated callers, so it can arrive late. */
+    private fun observeDropParams() {
+        stateHandle.scope.launch {
+            configRepository.startupConfig.collect { config ->
+                stateHandle.update { copy(dropParamsMap = config?.endpointsDropParamsMap) }
+            }
+        }
     }
 
     /**
@@ -63,6 +73,8 @@ class AgentCapabilitiesDelegate(
                         showCollaborativeToggle = show,
                         isHandoffsAvailable = handoffsAvailable,
                         isAclAvailable = handoffsAvailable,
+                        isAgentFileUnlinkAvailable = version != null &&
+                            BackendVersion.isCompatibleOrNewer(version, "0.8.8-rc1"),
                     )
                 }
             }

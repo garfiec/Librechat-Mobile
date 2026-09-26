@@ -83,6 +83,9 @@ data class ChatToolsPageParams(
     val contextUsage: ContextUsage? = null,
     val tokenUsage: TokenUsage? = null,
     val contextUsageEnabled: Boolean = false,
+    val isCompacting: Boolean = false,
+    /** Null when compaction is unavailable — see [ChatUiState.canCompactNow]. */
+    val onCompact: (() -> Unit)? = null,
     val contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
     val contextGaugeExpanded: Boolean = false,
     val onContextGaugeExpandedChange: (Boolean) -> Unit = {},
@@ -125,6 +128,8 @@ data class ModelParametersPageParams(
     /** Underlying provider when the endpoint is "agents"; routes to that provider's param set. */
     val selectedProvider: String? = null,
     val selectedModel: String? = null,
+    /** Resolved `/api/config.endpointsDropParamsMap` entry; see [ModelParameterContent]. */
+    val dropParams: List<String> = emptyList(),
     val onSaveAsPreset: () -> Unit = {},
 )
 
@@ -238,6 +243,8 @@ fun ChatOptionsBottomSheet(
                         contextUsage = tools.contextUsage,
                         tokenUsage = tools.tokenUsage,
                         contextUsageEnabled = tools.contextUsageEnabled,
+                        isCompacting = tools.isCompacting,
+                        onCompact = tools.onCompact,
                         contextBarPlacement = tools.contextBarPlacement,
                         contextGaugeExpanded = tools.contextGaugeExpanded,
                         onContextGaugeExpandedChange = tools.onContextGaugeExpandedChange,
@@ -282,6 +289,7 @@ fun ChatOptionsBottomSheet(
                             extendedEffortSupported = parameters.extendedEffortSupported,
                             selectedProvider = parameters.selectedProvider,
                             selectedModel = parameters.selectedModel,
+                            dropParams = parameters.dropParams,
                             onSaveAsPreset = parameters.onSaveAsPreset,
                             // The back row above replaces the content's own title.
                             showHeader = false,

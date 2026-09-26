@@ -48,6 +48,44 @@ class DataManagementDelegate(
         }
     }
 
+    /**
+     * v0.8.8-rc2. The gate offers this on every server the version check cannot rule out, so a 404
+     * here is a real outcome rather than a failure: the route simply is not there, and saying
+     * "failed" would send the user looking for a problem on their end.
+     */
+    fun archiveAllChats() {
+        stateHandle.scope.launch {
+            stateHandle.update { copy(isArchivingAll = true, archivedAllCount = null) }
+            when (val result = conversationRepository.archiveAll()) {
+                is Result.Success -> {
+                    stateHandle.update {
+                        copy(isArchivingAll = false, archivedAllCount = result.data)
+                    }
+                }
+                is Result.Error -> {
+                    val missing = (result.exception as? ApiException)?.statusCode == HTTP_NOT_FOUND
+                    stateHandle.update {
+                        copy(
+                            isArchivingAll = false,
+                            archiveAllSupported = !missing && archiveAllSupported,
+                            error = if (missing) {
+                                "This server doesn't support archiving everything at once."
+                            } else {
+                                result.message ?: "Failed to archive conversations"
+                            },
+                        )
+                    }
+                }
+                is Result.Loading -> { /* no-op */ }
+            }
+        }
+    }
+
+    /** Clears the consumed count so a recomposition won't re-announce it. */
+    fun consumeArchivedAllCount() {
+        stateHandle.update { copy(archivedAllCount = null) }
+    }
+
     fun exportAllData() {
         stateHandle.update { copy(showExportComingSoon = true) }
     }
@@ -80,7 +118,7 @@ class DataManagementDelegate(
             stateHandle.update { copy(isLogsExporting = true) }
             try {
                 val content = diagnosticLogRepository.exportText()
-                val fileName = "switchboard-logs-${Clock.System.now().toEpochMilliseconds()}.jsonl"
+                val fileName = "switchboard-logs-${Clock.System.now().toEpochMilliseconds()}.log"
                 stateHandle.update {
                     copy(
                         isLogsExporting = false,
@@ -302,6 +340,9 @@ class DataManagementDelegate(
 
 /** The route answers 403 when the caller's role lost SHARED_LINKS CREATE. */
 private const val HTTP_FORBIDDEN = 403
+
+/** A server predating `POST /api/convos/archive/all`. */
+private const val HTTP_NOT_FOUND = 404
 
 private fun SharedLink.toDisplayData() = SharedLinkDisplayData(
     shareId = shareId ?: "",
