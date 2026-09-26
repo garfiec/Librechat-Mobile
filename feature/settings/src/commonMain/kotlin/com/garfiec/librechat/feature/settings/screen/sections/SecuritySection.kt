@@ -37,6 +37,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.OTP_LENGTH
 import com.garfiec.librechat.core.ui.components.OtpCodeInput
+import com.garfiec.librechat.core.ui.components.sanitizeOtpInput
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.util.copyToClipboard
@@ -234,7 +235,7 @@ internal fun TwoFactorCodeDialog(
                 )
                 OutlinedTextField(
                     value = code,
-                    onValueChange = { code = it.filter { ch -> ch.isDigit() }.take(6) },
+                    onValueChange = { new -> sanitizeOtpInput(old = code, new = new)?.let { code = it } },
                     label = { Text(stringResource(Res.string.hint_verification_code)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
