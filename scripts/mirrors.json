@@ -687,6 +687,19 @@
       },
       "why": "The five projection statuses the client branches on, hand-copied as string constants because the routes serve them as bare strings and never enumerate them for a client. Every queued-turn policy predicate keys off these literals, so a renamed or added status reads as 'none of the above' rather than as an unknown.",
       "failure_mode": "A renamed status makes every predicate false for that row: the poll stops, the drain stops refusing, and the same words can be submitted twice. An ADDED status is silently treated as terminal. The decode does not fail -- these are plain strings, not an enum."
+    },
+    {
+      "id": "oauth-browser-flow-routes",
+      "upstream": {
+        "file": "api/server/routes/oauth.js",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/auth/src/commonMain/kotlin/com/garfiec/librechat/feature/auth/oauth/SsoNavigationGate.kt",
+        "symbol": "callbackPrefix (+ the start URL built in SsoWebView.android.kt / SsoWebView.ios.kt)"
+      },
+      "why": "The embedded SSO WebView hardcodes the browser OAuth round-trip's shape: it loads `{server}/oauth/{provider}` and decides the round-trip is over by matching `{server}/oauth/{provider}/callback`. The mount point, the per-provider callback paths and whether a provider returns by GET or by form_post all live in this router and are never described to the client. Watched as a whole file because the shape is spread across the router rather than held in one table.",
+      "failure_mode": "Silent. If upstream remounts the router or renames a callback path, the gate never arms: the post-callback page loads, the web app's silentRefresh() races the app's own refresh and rotates the token, and the loser gets a 401 that reads as a server bug. If the start path moves, the WebView opens a 404 instead of a provider. Nothing fails to decode and no request errors."
     }
   ]
 }

@@ -76,4 +76,8 @@
 
     <!-- Custom server headers (issue #287) -->
     <string name="server_headers_advanced">متقدم</string>
+    <!-- SSO (in-app WebView) -->
+    <string name="sso_risk_title">تسجيل الدخول داخل التطبيق؟</string>
+    <string name="sso_risk_body">بعض المزوّدين، ومنهم Google، لا يدعمون ذلك رسميًا وقد يحظرونه في أي وقت. استخدمه على مسؤوليتك الخاصة.</string>
+    <string name="sso_sign_in_failed">فشل تسجيل الدخول. يرجى المحاولة مرة أخرى.</string>
 </resources>
