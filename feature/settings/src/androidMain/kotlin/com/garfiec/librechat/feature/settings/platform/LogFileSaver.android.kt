@@ -11,7 +11,8 @@ import androidx.compose.ui.platform.LocalContext
  * writes [content] via the resolved `OutputStream`. Mirrors the `feature:conversations` `FileSaver`
  * Android actual.
  *
- * The MIME type must stay `application/octet-stream` or SAF appends `.json` to the `.jsonl` name.
+ * The MIME type must stay `application/octet-stream`: any other type makes SAF append that type's
+ * extension to the `.log` name.
  */
 @Composable
 actual fun LogFileSaver(
