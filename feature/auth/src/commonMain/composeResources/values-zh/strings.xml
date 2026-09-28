@@ -76,4 +76,8 @@
 
     <!-- Custom server headers (issue #287) -->
     <string name="server_headers_advanced">高级</string>
+    <!-- SSO (in-app WebView) -->
+    <string name="sso_risk_title">在应用内浏览器中登录？</string>
+    <string name="sso_risk_body">包括 Google 在内的部分服务商并不正式支持这种方式，并可能随时封锁。请自行承担风险。</string>
+    <string name="sso_sign_in_failed">登录失败，请重试。</string>
 </resources>

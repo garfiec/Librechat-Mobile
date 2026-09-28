@@ -76,4 +76,8 @@
 
     <!-- Custom server headers (issue #287) -->
     <string name="server_headers_advanced">Avancé</string>
+    <!-- SSO (in-app WebView) -->
+    <string name="sso_risk_title">Se connecter dans un navigateur intégré ?</string>
+    <string name="sso_risk_body">Certains fournisseurs, dont Google, ne le prennent pas officiellement en charge et peuvent le bloquer à tout moment. À utiliser à vos risques et périls.</string>
+    <string name="sso_sign_in_failed">Échec de la connexion. Veuillez réessayer.</string>
 </resources>

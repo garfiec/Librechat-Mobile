@@ -76,4 +76,8 @@
 
     <!-- Custom server headers (issue #287) -->
     <string name="server_headers_advanced">詳細設定</string>
+    <!-- SSO (in-app WebView) -->
+    <string name="sso_risk_title">アプリ内ブラウザーでサインインしますか？</string>
+    <string name="sso_risk_body">Google を含む一部のプロバイダーは公式にはこれをサポートしておらず、いつでもブロックされる可能性があります。自己責任でご利用ください。</string>
+    <string name="sso_sign_in_failed">サインインに失敗しました。もう一度お試しください。</string>
 </resources>

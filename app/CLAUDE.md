@@ -47,8 +47,9 @@ Conversations are integrated into the drawer body. Agents, Files, and Settings a
   `Uri → DeepLinkUri` adapter in `DeepLinkUriAdapter.kt`), then forwards to this module's
   `LibreChatNavHost`, which resolves again to place the target on the back stack.
 - `requiresAuth` links (conversation) redirect to login when logged out; non-auth links (device-scoped
-  artifact) open logged-out. `oauth` is `Consumed` — its token returns via cookie read by the login
-  screen (`checkOAuthResult`), so the link only brings the app forward.
+  artifact) open logged-out. `oauth` is `Consumed` — sign-in completes in the app's own WebView, so
+  nothing arrives this way any more; the mapping survives so a link from an older build still brings
+  the app forward rather than being dropped.
 - `onNewIntent` handles deep links when the app is already running.
 
 ## Share Intents

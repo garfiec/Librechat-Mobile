@@ -36,7 +36,6 @@ atomicfu = "0.33.0"
 paging = "3.5.0"
 
 # Browser
-browser = "1.10.0"
 
 # Markdown
 markdown-renderer = "0.40.2"
@@ -160,7 +159,6 @@ paging-compose = { group = "androidx.paging", name = "paging-compose", version.r
 paging-common = { group = "androidx.paging", name = "paging-common", version.ref = "paging" }
 
 # Browser
-browser = { group = "androidx.browser", name = "browser", version.ref = "browser" }
 
 # Markdown
 markdown-renderer-m3 = { group = "com.mikepenz", name = "multiplatform-markdown-renderer-m3", version.ref = "markdown-renderer" }

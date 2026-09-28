@@ -5,18 +5,18 @@ import com.garfiec.librechat.feature.auth.viewmodel.LoginViewModel
 import com.garfiec.librechat.feature.auth.viewmodel.RegisterViewModel
 import com.garfiec.librechat.feature.auth.viewmodel.ResetPasswordViewModel
 import com.garfiec.librechat.feature.auth.viewmodel.ServerUrlViewModel
+import com.garfiec.librechat.feature.auth.viewmodel.SsoLoginViewModel
 import com.garfiec.librechat.feature.auth.viewmodel.TermsViewModel
 import com.garfiec.librechat.feature.auth.viewmodel.TwoFactorViewModel
 import com.garfiec.librechat.feature.auth.viewmodel.VerifyEmailViewModel
-import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
-expect val authPlatformModule: Module
-
+// No authPlatformModule: this module's only platform seam is the `SsoWebView` expect/actual
+// composable, which the compiler links. An unimplemented expect is a compile error, so it needs no
+// DI binding and no runtime check.
 val authModule = module {
-    includes(authPlatformModule)
     // Lambda form (not viewModelOf) for the addAccount mode flag the add-account nav entry passes
     // via parametersOf — see the DeprecatedKoinApi note below.
     @Suppress("DeprecatedKoinApi")
@@ -31,6 +31,7 @@ val authModule = module {
     }
     viewModelOf(::LoginViewModel)
     viewModelOf(::RegisterViewModel)
+    viewModelOf(::SsoLoginViewModel)
     // Koin's constructor-DSL (`viewModelOf`) wires every argument via `get()` and cannot read
     // values passed through `parametersOf`. The VMs below receive initial seeds (email, user
     // id, token, temp token) from the navigation layer via `parametersOf`, so the lambda-form

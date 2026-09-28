@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -33,8 +34,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.feature.auth.resources.*
 import com.garfiec.librechat.feature.auth.resources.Res
@@ -49,6 +48,7 @@ fun LoginScreen(
     modifier: Modifier = Modifier,
     onNavigateToForgotPassword: () -> Unit = {},
     onNavigateToTwoFactor: (String) -> Unit = {},
+    onNavigateToSso: (String) -> Unit = {},
     onBack: (() -> Unit)? = null,
     viewModel: LoginViewModel = koinViewModel(),
 ) {
@@ -56,9 +56,12 @@ fun LoginScreen(
     val currentOnLoginSuccess by rememberUpdatedState(onLoginSuccess)
     val currentOnNavigateToTwoFactor by rememberUpdatedState(onNavigateToTwoFactor)
 
-    // Check for OAuth result when returning from Chrome Custom Tab
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        viewModel.checkOAuthResult()
+    val currentOnNavigateToSso by rememberUpdatedState(onNavigateToSso)
+    LaunchedEffect(uiState.ssoProvider) {
+        uiState.ssoProvider?.let { provider ->
+            viewModel.consumeSsoNavigation()
+            currentOnNavigateToSso(provider)
+        }
     }
 
     LaunchedEffect(uiState.isLoggedIn) {
@@ -198,7 +201,7 @@ fun LoginScreen(
 
                 socialLogins.forEach { provider ->
                     OutlinedButton(
-                        onClick = { viewModel.launchOAuth(provider) },
+                        onClick = { viewModel.onSsoProviderSelected(provider) },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !uiState.isLoading,
                     ) {
@@ -207,6 +210,24 @@ fun LoginScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                 }
             }
+        }
+
+        uiState.pendingSsoProvider?.let {
+            AlertDialog(
+                onDismissRequest = viewModel::onSsoRiskDismissed,
+                title = { Text(stringResource(Res.string.sso_risk_title)) },
+                text = { Text(stringResource(Res.string.sso_risk_body)) },
+                confirmButton = {
+                    TextButton(onClick = viewModel::onSsoRiskAccepted) {
+                        Text(stringResource(Res.string.continue_button))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = viewModel::onSsoRiskDismissed) {
+                        Text(stringResource(Res.string.cancel))
+                    }
+                },
+            )
         }
 
         BackAffordanceOverlay(onBack)

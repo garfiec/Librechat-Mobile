@@ -31,9 +31,10 @@ sealed interface DeepLinkResolution {
 
     /**
      * Accepted — the app should come to the foreground — but there is nothing to place on the back
-     * stack: the payload is consumed by an in-progress flow. The OAuth redirect is the case; its
-     * refresh token rides back in a cookie read by the login screen (`checkOAuthResult`), so the
-     * link only needs to return focus to the app.
+     * stack: the payload is consumed by an in-progress flow. The OAuth redirect is the case.
+     * Sign-in now completes inside the app's own WebView, so nothing arrives by this route any
+     * more; it stays mapped so a link from an older build returns focus instead of falling to
+     * [None].
      */
     data object Consumed : DeepLinkResolution
 
