@@ -221,6 +221,28 @@ class StreamErrorTypeTest {
     }
 
     @Test
+    fun upstream_model_error_detail_reads_the_envelope_that_named_it() {
+        // Upstream hands its renderer the `error` envelope when the type lives there.
+        assertEquals(
+            UpstreamModelErrorDetail(status = 502, message = "Bad gateway from proxy"),
+            StreamErrorType.upstreamModelErrorDetail(
+                """{"error":{"type":"upstream_model_error","status":502,"message":"Bad gateway from proxy"}}""",
+            ),
+        )
+    }
+
+    @Test
+    fun upstream_model_error_detail_ignores_a_status_that_is_not_a_finite_whole_number() {
+        for (status in listOf("\"NaN\"", "\"Infinity\"", "1e20", "429.5")) {
+            assertEquals(
+                UpstreamModelErrorDetail(status = null, message = null),
+                StreamErrorType.upstreamModelErrorDetail("""{"type":"upstream_model_error","status":$status}"""),
+                "status $status",
+            )
+        }
+    }
+
+    @Test
     fun upstream_model_error_detail_is_null_for_every_other_error() {
         assertNull(StreamErrorType.upstreamModelErrorDetail("""{"type":"model_rate_limit","message":"slow down"}"""))
         assertNull(StreamErrorType.upstreamModelErrorDetail("plain prose"))

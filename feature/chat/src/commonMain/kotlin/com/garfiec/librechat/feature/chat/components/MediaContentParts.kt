@@ -31,6 +31,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 import com.garfiec.librechat.feature.chat.resources.*
@@ -110,21 +111,19 @@ internal fun ErrorContentPart(
     ) {
         Text(errorText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onErrorContainer)
         if (detail == null) return@Column
-        val detailColor = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = DETAIL_ALPHA)
-        if (isInlineErrorDetail(detail)) {
-            Text(
-                detail,
-                style = MaterialTheme.typography.bodySmall,
-                color = detailColor,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-        } else {
-            var expanded by rememberSaveable(detail) { mutableStateOf(false) }
+        val inline = isInlineErrorDetail(detail)
+        var expanded by rememberSaveable(detail) { mutableStateOf(false) }
+        if (!inline) {
+            // A state description, as ActivityGroup announces its own: the Row's label is already
+            // its content, so a content description would read the label twice.
+            val expansionState =
+                stringResource(if (expanded) Res.string.state_expanded else Res.string.state_collapsed)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .padding(top = 4.dp)
-                    .clickable(role = Role.Button) { expanded = !expanded },
+                    .clickable(role = Role.Button) { expanded = !expanded }
+                    .semantics { stateDescription = expansionState },
             ) {
                 Text(
                     stringResource(Res.string.error_details_provider),
@@ -138,14 +137,14 @@ internal fun ErrorContentPart(
                     tint = MaterialTheme.colorScheme.onErrorContainer,
                 )
             }
-            if (expanded) {
-                Text(
-                    detail,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = detailColor,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
-            }
+        }
+        if (inline || expanded) {
+            Text(
+                detail,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = DETAIL_ALPHA),
+                modifier = Modifier.padding(top = 4.dp),
+            )
         }
     }
 }

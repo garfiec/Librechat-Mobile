@@ -173,7 +173,11 @@ enum class StreamErrorType(val wire: String) {
             if (parse(rawMessage) != UPSTREAM_MODEL_ERROR) return null
             val (payload, _) = identifiedPayload(rawMessage) ?: return null
             return UpstreamModelErrorDetail(
-                status = (payload["status"] as? JsonPrimitive)?.contentOrNull?.toDoubleOrNull()?.toInt(),
+                // A finite whole number only, as upstream's `readNumber` insists on a finite one:
+                // Double.toInt() would headline NaN as "status 0" and Infinity as Int.MAX_VALUE.
+                status = (payload["status"] as? JsonPrimitive)?.contentOrNull?.toDoubleOrNull()
+                    ?.takeIf { it.isFinite() && it == it.toInt().toDouble() }
+                    ?.toInt(),
                 message = (payload["message"] as? JsonPrimitive)
                     ?.takeIf { it.isString }
                     ?.content
@@ -184,6 +188,10 @@ enum class StreamErrorType(val wire: String) {
         /**
          * The first payload in [rawMessage] that names an identifier, with that identifier. See
          * [parse] for why the walk stops at the first identifying payload, mapped or not.
+         *
+         * The object returned is the one that NAMED the identifier: the `error` envelope when the
+         * top level named none, as upstream hands its renderer the envelope in that case
+         * (`payload = nestedKey != null ? envelope : json`), so its fields are read from there.
          */
         private fun identifiedPayload(rawMessage: String): Pair<JsonObject, String>? {
             var from = rawMessage.indexOf('{')
@@ -199,7 +207,7 @@ enum class StreamErrorType(val wire: String) {
                 // the present top-level key, finds no renderer, and shows the provider's own
                 // sentence, while a hit-seeking walk descends into the envelope and tells the user
                 // their message was blocked by a content filter.
-                payload?.identifier()?.let { return payload to it }
+                payload?.identified()?.let { return it }
                 // Past a span that PARSED, into one that did not. Re-entering a parsed object
                 // re-offers its own children as payloads; skipping a run that is not JSON at all
                 // would drop a real payload nested inside prose braces (`Run {id: 1, e:
@@ -210,16 +218,20 @@ enum class StreamErrorType(val wire: String) {
         }
 
         /**
-         * The identifier this payload names, or null — `code` then `type` at the top level, and
-         * the `error` envelope only when the top level names neither, exactly as upstream's
-         * `readString(json,'code') ?? readString(json,'type')` and its `topLevelKey == null` gate.
+         * The identifier this payload names, with the object that named it, or null — `code` then
+         * `type` at the top level, and the `error` envelope only when the top level names neither,
+         * exactly as upstream's `readString(json,'code') ?? readString(json,'type')` and its
+         * `topLevelKey == null` gate.
          *
          * Returns the raw string rather than a [StreamErrorType]: presence and recognition are
          * different questions, and collapsing them is what lets an unrecognized identifier fall
          * through to a nested one.
          */
-        private fun JsonObject.identifier(): String? =
-            ownIdentifier() ?: (this["error"] as? JsonObject)?.ownIdentifier()
+        private fun JsonObject.identified(): Pair<JsonObject, String>? {
+            ownIdentifier()?.let { return this to it }
+            val envelope = this["error"] as? JsonObject ?: return null
+            return envelope.ownIdentifier()?.let { envelope to it }
+        }
 
         private fun JsonObject.ownIdentifier(): String? {
             // Safe-cast, not `.jsonPrimitive`: that extension throws on an object or array value,
