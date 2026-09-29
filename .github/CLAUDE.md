@@ -44,7 +44,7 @@ File: `.github/workflows/ci.yml`
 - Uploads the debug APK as an artifact (90-day retention) and posts its download link to the PR
 
 #### `ios` (Build iOS App)
-- Selects latest stable Xcode
+- Selects Xcode 27.1 (pinned; see Environment)
 - Runs `./gradlew :shared:iosSimulatorArm64Test` (the iOS Koin graph test — the `ubuntu` `test` job
   cannot run Kotlin/Native tests)
 - Caches `~/.konan`
@@ -58,7 +58,7 @@ File: `.github/workflows/ci.yml`
 
 - `lint` + `test` + `android` jobs: `ubuntu-latest`, JDK 21
 - iOS jobs (`ios`, `ios-release-link`, release's `ios`, appstore's `upload`): `xcode-27` (Apple Silicon — required since there's no `iosSimulatorX64` target), JDK 21
-- Xcode is pinned to `'27.1'`, never `latest-stable`: only an iOS 27.1 SDK build fills the iPhone Duo's inner display. `latest-stable` resolves to the image's default (27.0 on `xcode-27`; 26.6 on `macos-latest`). Bump the pin deliberately, in all four jobs together.
+- Xcode is pinned to `'27.1'`, not `latest-stable`: per Apple's iPhone Duo guidance only an iOS 27.1 SDK build fills the inner display, and `latest-stable` follows whatever non-beta Xcode the image adds next. setup-xcode matches a plain version only against a non-beta Xcode, so a pin to a beta fails at "Select Xcode". Bump the pin deliberately, in all four jobs together.
 - Concurrency: cancels in-progress runs for same branch
 
 ### Notes

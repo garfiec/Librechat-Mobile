@@ -56,9 +56,9 @@ jobs:
         with:
           ref: ${{ inputs.tag }}
 
-      # Pinned, not latest-stable: only an iOS 27.1 SDK build fills the iPhone Duo's inner
-      # display (older SDKs run in a phone-sized compatibility window). The xcode-27 image
-      # defaults to 27.0, and macos-latest carries no Xcode 27 at all.
+      # Xcode 27.1: Apple's iPhone Duo guidance is that only an iOS 27.1 SDK build fills the
+      # inner display (older SDKs get a phone-sized compatibility window). Pinned rather than
+      # latest-stable, which follows whatever non-beta Xcode the image adds next.
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
