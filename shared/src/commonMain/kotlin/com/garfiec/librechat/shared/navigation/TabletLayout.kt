@@ -1,6 +1,5 @@
-package com.garfiec.librechat.navigation
+package com.garfiec.librechat.shared.navigation
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -29,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.model.Banner
 import com.garfiec.librechat.core.ui.components.BannerDisplay
+import com.garfiec.librechat.core.ui.components.PlatformBackHandler
 import com.garfiec.librechat.feature.agents.navigation.AgentMarketplace
 import com.garfiec.librechat.feature.auth.navigation.AddAccountServerUrl
 import com.garfiec.librechat.feature.chat.navigation.NewChat
@@ -37,13 +37,8 @@ import com.garfiec.librechat.feature.files.navigation.Files
 import com.garfiec.librechat.feature.schedules.navigation.SchedulesList
 import com.garfiec.librechat.feature.settings.navigation.SettingsTabbed
 import com.garfiec.librechat.feature.skills.navigation.SkillsList
-import com.garfiec.librechat.shared.navigation.MainNavDisplay
-import com.garfiec.librechat.shared.navigation.NavHostViewModel
-import com.garfiec.librechat.shared.navigation.Navigator
-import com.garfiec.librechat.shared.navigation.SidebarMode
-import com.garfiec.librechat.shared.navigation.SidebarScaffold
-import com.garfiec.librechat.shared.navigation.toRoute
 import kotlinx.coroutines.launch
+import org.koin.compose.viewmodel.koinViewModel
 
 private val SidebarWidth = 320.dp
 
@@ -53,8 +48,9 @@ private const val FLING_VELOCITY_THRESHOLD = 800f
 @Composable
 fun TabletLayout(
     navigator: Navigator,
-    navHostViewModel: NavHostViewModel,
     modifier: Modifier = Modifier,
+    navDisplay: NavDisplaySlot = rememberMovableNavDisplay(navigator),
+    navHostViewModel: NavHostViewModel = koinViewModel(),
 ) {
     // Banner state only -- drawer state is collected inside DrawerContent itself
     val banner by navHostViewModel.banner.collectAsStateWithLifecycle()
@@ -76,7 +72,7 @@ fun TabletLayout(
     val scope = rememberCoroutineScope()
 
     // Back press closes sidebar before navigating away
-    BackHandler(enabled = isSidebarOpen) {
+    PlatformBackHandler(enabled = isSidebarOpen) {
         navHostViewModel.setTabletSidebarOpen(false)
     }
 
@@ -216,7 +212,7 @@ fun TabletLayout(
                 }
                 // Slot 1: Main content -- resizes to fill remaining space
                 MainContent(
-                    navigator = navigator,
+                    navDisplay = navDisplay,
                     isInAuthFlow = false,
                     banner = banner,
                     onDismissBanner = navHostViewModel::dismissBanner,
@@ -246,7 +242,7 @@ fun TabletLayout(
     } else {
         // Auth flow -- no sidebar, just main content
         MainContent(
-            navigator = navigator,
+            navDisplay = navDisplay,
             isInAuthFlow = true,
             banner = banner,
             onDismissBanner = navHostViewModel::dismissBanner,
@@ -258,7 +254,7 @@ fun TabletLayout(
 
 @Composable
 private fun MainContent(
-    navigator: Navigator,
+    navDisplay: NavDisplaySlot,
     isInAuthFlow: Boolean,
     banner: Banner?,
     onDismissBanner: (String) -> Unit,
@@ -272,10 +268,6 @@ private fun MainContent(
                 onDismiss = onDismissBanner,
             )
         }
-        MainNavDisplay(
-            navigator = navigator,
-            onMenuClick = onToggleDrawer,
-            modifier = Modifier.fillMaxSize(),
-        )
+        navDisplay(onToggleDrawer, Modifier.fillMaxSize())
     }
 }

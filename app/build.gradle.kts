@@ -79,5 +79,8 @@ dependencies {
     debugImplementation(libs.leakcanary)
 
     androidTestImplementation(libs.compose.ui.test)
+    // Pin espresso ≥3.7.0: the 3.5.x pulled in transitively by ui-test-junit4 injects
+    // input via InputManager.getInstance, which no longer exists on API 36+.
+    androidTestImplementation(libs.espresso.core)
     debugImplementation(libs.compose.ui.test.manifest)
 }
