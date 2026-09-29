@@ -41,7 +41,8 @@ fun DynamicEnumSlider(
     // sits at the first position and is not sent (ModelParamPayload), so its own label would describe
     // a setting that has no effect.
     val shown = options[index]
-    val displayLabel = optionLabels?.get(shown) ?: shown.ifEmpty { options.firstOrNull().orEmpty() }
+    // The empty option is "not set"; named as DynamicDropdown names it, so the two controls agree.
+    val displayLabel = optionLabels?.get(shown) ?: shown.ifEmpty { "Unset" }
     val sliderCd = "$label slider, value $displayLabel"
 
     Column(
