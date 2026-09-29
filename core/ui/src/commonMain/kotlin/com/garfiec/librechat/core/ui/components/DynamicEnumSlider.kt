@@ -37,9 +37,11 @@ fun DynamicEnumSlider(
     if (options.isEmpty()) return
 
     val index = options.indexOf(selectedValue).let { if (it < 0) 0 else it }
-    // Labelled by the option the thumb sits on, not the raw value: a value the model no longer offers
+    // Labelled by the option the thumb sits on, not the raw value: a value a per-model rule took away
     // sits at the first position and is not sent (ModelParamPayload), so its own label would describe
-    // a setting that has no effect.
+    // a setting that has no effect. Known gap: a value absent for another reason — `xhigh`/`max`
+    // before the server version is detected, or one newer than this app — sits there too and reads
+    // "Unset", but it IS sent (EndpointParameterRegistry.modelRemovedOptions).
     val shown = options[index]
     // The empty option is "not set"; named as DynamicDropdown names it, so the two controls agree.
     val displayLabel = optionLabels?.get(shown) ?: shown.ifEmpty { "Unset" }

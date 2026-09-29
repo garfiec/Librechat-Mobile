@@ -159,4 +159,38 @@ class EndpointParameterRegistryModelAwareTest {
         assertEquals(effortOf("custom", "gpt-4o"), effortOf("custom", "grok-4.70"))
         assertEquals(effortOf("custom", "gpt-4o"), effortOf("custom", "my-grok-4.7"))
     }
+
+    /**
+     * What a stored value may be dropped for: only what a per-model rule took away. A value missing
+     * from the options for any other reason — a version gate, or a newer backend's addition — is
+     * the user's, and dropping it deleted it from the server on an agent save.
+     */
+    @Test
+    fun modelRemovedOptionsNamesOnlyWhatAPerModelRuleTookAway() {
+        assertEquals(
+            mapOf("reasoning_effort" to setOf("minimal")),
+            EndpointParameterRegistry.modelRemovedOptions(endpoint = "openAI", model = "gpt-6-sol"),
+        )
+        assertEquals(
+            mapOf("reasoning_effort" to setOf("minimal")),
+            EndpointParameterRegistry.modelRemovedOptions(endpoint = "agents", provider = "openAI", model = "gpt-6-luna"),
+        )
+        assertEquals(
+            setOf("none", "minimal"),
+            EndpointParameterRegistry.modelRemovedOptions(endpoint = "custom", model = "grok-4.7")["reasoning_effort"],
+        )
+    }
+
+    @Test
+    fun modelRemovedOptionsNeverNamesAVersionGatedValue() {
+        // `xhigh`/`max` are filtered from the options while the server version is undetected; that
+        // is a gate, not the model, so they are never "removed".
+        for ((endpoint, model) in listOf("anthropic" to "claude-opus-4-5", "openAI" to "gpt-6-sol", "custom" to "grok-4.7")) {
+            val removed = EndpointParameterRegistry.modelRemovedOptions(endpoint = endpoint, model = model).values.flatten()
+            assertFalse(removed.contains("xhigh"), "$endpoint/$model")
+            assertFalse(removed.contains("max"), "$endpoint/$model")
+        }
+        // A model with no per-model rule removes nothing.
+        assertTrue(EndpointParameterRegistry.modelRemovedOptions(endpoint = "openAI", model = "gpt-4o").isEmpty())
+    }
 }

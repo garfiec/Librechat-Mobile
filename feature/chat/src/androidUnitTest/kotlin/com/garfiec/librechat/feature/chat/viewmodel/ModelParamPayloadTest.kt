@@ -119,4 +119,23 @@ class ModelParamPayloadTest {
         assertNull(effortSent("custom", "grok-4.7", "none"))
         assertEquals("high", effortSent("custom", "grok-4.7", "high"))
     }
+
+    /**
+     * Only a value a per-model rule took away is withheld. `max` is filtered from the options while
+     * the server version is undetected — a gate, not the model — and a value a newer backend added
+     * is in no list here; omitting either would silently change the run, since the server saves
+     * the conversation's parameters from the request.
+     */
+    @Test
+    fun `a version-gated or unknown effort is still sent`() {
+        val undetected = ModelParamPayload.build(
+            endpoint = "anthropic",
+            provider = null,
+            model = "claude-opus-4-5",
+            extendedEffortSupported = false,
+            params = ModelParameters.DEFAULT.withUpdatedKey("effort", "max"),
+        )
+        assertEquals("max", undetected["effort"]?.jsonPrimitive?.content)
+        assertEquals("ultra", effortSent("openAI", "gpt-6-sol", "ultra"))
+    }
 }

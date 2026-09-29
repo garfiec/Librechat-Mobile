@@ -84,11 +84,14 @@ fun AgentAdvancedPanel(
             val definitions = remember(provider, model, extendedEffortSupported, dropParamsMap) {
                 agentParameterDefinitions(provider, model, extendedEffortSupported, dropParamsMap)
             }
+            val modelRemoved = remember(provider, model, dropParamsMap) {
+                agentModelRemovedOptions(provider, model, dropParamsMap)
+            }
 
             ModelParameterContent(
                 parameters = parameters,
                 onParametersChange = { updated ->
-                    onSettingsChange(updated.toAgentAdvancedSettings(settings, definitions))
+                    onSettingsChange(updated.toAgentAdvancedSettings(settings, definitions, modelRemoved))
                 },
                 selectedEndpoint = "agents",
                 selectedProvider = provider.takeIf { it.isNotBlank() },

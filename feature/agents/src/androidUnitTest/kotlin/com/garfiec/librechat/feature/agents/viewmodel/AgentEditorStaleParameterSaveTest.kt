@@ -47,13 +47,16 @@ class AgentEditorStaleParameterSaveTest {
     private val roleRepository = mockk<RoleRepository>(relaxed = true)
     private val toolFavoritesRepository = mockk<ToolFavoritesRepository>(relaxed = true)
 
+    /** What version detection has found; null until it runs, and forever on a server it can't read. */
+    private val detectedVersion = MutableStateFlow<String?>("0.8.8-rc4")
+
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
         // Every StateFlow the ViewModel collects is stubbed: a relaxed mock cannot return one, and
         // the failed collect would cancel the delegate scope the load runs in.
         every { configRepository.detectedBackend } returns MutableStateFlow(null)
-        every { configRepository.detectedBackendVersion } returns MutableStateFlow("0.8.8-rc4")
+        every { configRepository.detectedBackendVersion } returns detectedVersion
         every { configRepository.endpointConfigs } returns MutableStateFlow(emptyMap())
         every { configRepository.startupConfig } returns MutableStateFlow(null)
         every { roleRepository.userPermissions } returns MutableStateFlow(null)
@@ -80,14 +83,19 @@ class AgentEditorStaleParameterSaveTest {
         coEvery { agentRepository.getAgentForEditing(agent.id) } returns Result.Success(agent)
     }
 
-    private fun agent(effort: String) = Agent(
+    private fun agent(
+        effort: String,
+        provider: String = "openAI",
+        model: String = "gpt-6-sol",
+        effortKey: String = "reasoning_effort",
+    ) = Agent(
         id = "agent_stale",
         name = "Stale Effort",
         description = "before",
-        provider = "openAI",
-        model = "gpt-6-sol",
+        provider = provider,
+        model = model,
         modelParameters = buildJsonObject {
-            put("reasoning_effort", effort)
+            put(effortKey, effort)
             put("temperature", 0.7)
         },
     )
@@ -125,5 +133,28 @@ class AgentEditorStaleParameterSaveTest {
         val request = saveAfterDescriptionEdit(agent("low"))
 
         assertThat(request.modelParameters?.get("reasoning_effort")).isEqualTo(JsonPrimitive("low"))
+    }
+
+    /**
+     * `max` is filtered from the options until the server version is detected — and forever on a
+     * server whose version never is. That is a version gate, not the model: the value is valid, and
+     * dropping it on "not in the options" deleted it from the server for every client.
+     */
+    @Test
+    fun `a version-gated effort survives a save made before the version is detected`() {
+        detectedVersion.value = null
+        val request = saveAfterDescriptionEdit(
+            agent("max", provider = "anthropic", model = "claude-opus-4-5", effortKey = "effort"),
+        )
+
+        assertThat(request.modelParameters?.get("effort")).isEqualTo(JsonPrimitive("max"))
+    }
+
+    /** A value a newer backend added is in no list this app knows; it is the user's, and it stays. */
+    @Test
+    fun `an effort this app does not know survives the save`() {
+        val request = saveAfterDescriptionEdit(agent("ultra"))
+
+        assertThat(request.modelParameters?.get("reasoning_effort")).isEqualTo(JsonPrimitive("ultra"))
     }
 }

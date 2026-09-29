@@ -32,18 +32,8 @@ object EndpointParameterRegistry {
         model: String? = null,
         dropParams: List<String> = emptyList(),
     ): List<ParameterDefinition> {
-        val key = endpoint.lowercase()
-        // Upstream resolves the settings key from `endpointType ?? provider`, which for the agents
-        // endpoint is the agent's own provider — so an Anthropic agent is subject to the same
-        // per-model rules as the Anthropic endpoint.
-        val settingsKey = if (key == "agents") provider?.lowercase() ?: key else key
-        val base = when (key) {
-            "bedrock" -> bedrockParamsForModel(model, extendedEffortSupported)
-            "agents" -> agentsParamsForProvider(provider, model, extendedEffortSupported)
-            else -> ENDPOINT_PARAMS[key] ?: ENDPOINT_PARAMS["default"]!!
-        }
-        val dropped = resolveDropParamsUIKeys(dropParams, settingsKey)
-        val filtered = if (dropped.isEmpty()) base else base.filterNot { it.key in dropped }
+        val settingsKey = settingsKeyFor(endpoint, provider)
+        val filtered = baseDefinitions(endpoint, extendedEffortSupported, provider, model, dropParams)
         val modelAware = applyModelAwareDefaults(filtered, settingsKey, model)
         if (extendedEffortSupported) return modelAware
         return modelAware.map { def ->
@@ -54,6 +44,62 @@ object EndpointParameterRegistry {
                 def
             }
         }
+    }
+
+    /**
+     * The option values a per-model rule takes away from [model], by parameter key: what the
+     * provider's list offers minus what [getDefinitions] offers for this model — effort `minimal`
+     * on gpt-6-sol/luna, `none`/`minimal` on Grok 4.7.
+     *
+     * This, not "absent from the current options", is what a stored value may be dropped for. The
+     * current options also lack values for reasons that say nothing about the model: `xhigh`/`max`
+     * are filtered while the server version is undetected (and forever on a server whose version
+     * never is), and a value a newer backend added is in no list this app knows. Dropping on
+     * absence deleted those from the server on an agent save, and omitted them from a chat send.
+     * Computed with the version-gated values present on both sides, so a gate never shows up here.
+     * Keys a rule removes entirely (Opus 5.5's sampling controls) are not option-level and are
+     * not listed.
+     */
+    fun modelRemovedOptions(
+        endpoint: String,
+        provider: String? = null,
+        model: String? = null,
+        dropParams: List<String> = emptyList(),
+    ): Map<String, Set<String>> {
+        val base = baseDefinitions(endpoint, extendedEffortSupported = true, provider, model, dropParams)
+        val offered = applyModelAwareDefaults(base, settingsKeyFor(endpoint, provider), model)
+            .associateBy { it.key }
+        return base.mapNotNull { def ->
+            val before = def.options ?: return@mapNotNull null
+            val after = offered[def.key]?.options ?: return@mapNotNull null
+            (before.toSet() - after.toSet()).takeIf { it.isNotEmpty() }?.let { def.key to it }
+        }.toMap()
+    }
+
+    // Upstream resolves the settings key from `endpointType ?? provider`, which for the agents
+    // endpoint is the agent's own provider — so an Anthropic agent is subject to the same
+    // per-model rules as the Anthropic endpoint.
+    private fun settingsKeyFor(endpoint: String, provider: String?): String {
+        val key = endpoint.lowercase()
+        return if (key == "agents") provider?.lowercase() ?: key else key
+    }
+
+    /** The provider's parameter list for [endpoint], after `dropParams`, before any per-model rule. */
+    private fun baseDefinitions(
+        endpoint: String,
+        extendedEffortSupported: Boolean,
+        provider: String?,
+        model: String?,
+        dropParams: List<String>,
+    ): List<ParameterDefinition> {
+        val key = endpoint.lowercase()
+        val base = when (key) {
+            "bedrock" -> bedrockParamsForModel(model, extendedEffortSupported)
+            "agents" -> agentsParamsForProvider(provider, model, extendedEffortSupported)
+            else -> ENDPOINT_PARAMS[key] ?: ENDPOINT_PARAMS["default"]!!
+        }
+        val dropped = resolveDropParamsUIKeys(dropParams, settingsKeyFor(endpoint, provider))
+        return if (dropped.isEmpty()) base else base.filterNot { it.key in dropped }
     }
 
     /**

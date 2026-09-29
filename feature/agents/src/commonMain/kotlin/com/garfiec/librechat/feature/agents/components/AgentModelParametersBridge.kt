@@ -48,6 +48,7 @@ internal fun AgentAdvancedSettings.toModelParameters(): ModelParameters {
 internal fun ModelParameters.toAgentAdvancedSettings(
     previous: AgentAdvancedSettings,
     visibleDefs: List<ParameterDefinition>,
+    modelRemoved: Map<String, Set<String>>,
 ): AgentAdvancedSettings {
     val newExtras = previous.extras.toMutableMap()
     var topPKey = previous.topPKey
@@ -78,11 +79,13 @@ internal fun ModelParameters.toAgentAdvancedSettings(
         val wasInExtras = def.key in previous.extras
         when {
             value.isBlank() -> newExtras.remove(def.key)
-            // A value the current model no longer offers (effort `minimal` after a switch to
-            // gpt-6-sol, `none` on Grok 4.7) is removed, not preserved: the editor shows it as
-            // "Unset", and keeping it would save a value the provider may reject. Deliberately unlike
-            // the web, which keeps it — the same rule as the chat payload (ModelParamPayload).
-            def.options?.contains(value) == false -> newExtras.remove(def.key)
+            // A value a per-model rule took away (effort `minimal` after a switch to gpt-6-sol,
+            // `none` on Grok 4.7) is removed, not preserved: the editor shows it as "Unset", and
+            // keeping it would save a value the provider may reject. Deliberately unlike the web,
+            // which keeps it — the same rule as the chat payload (ModelParamPayload). Only such a
+            // value: one merely absent from the options (version-gated, or newer than this app)
+            // is kept. See EndpointParameterRegistry.modelRemovedOptions.
+            value in modelRemoved[def.key].orEmpty() -> newExtras.remove(def.key)
             wasInExtras || !isDefault -> newExtras[def.key] = encodeAsJsonElement(value, def.type)
             // else: untouched default value, not previously in extras — skip.
         }
@@ -145,8 +148,9 @@ private fun encodeAsJsonElement(value: String, type: ParameterType): JsonElement
 }
 
 /**
- * The parameter definitions an agent with [provider] and [model] offers — the one list both the
- * Advanced panel renders and a save checks values against, so the two cannot disagree.
+ * The parameter definitions an agent with [provider] and [model] offers — what the Advanced panel
+ * renders. Not what a save checks stored values against: the options here also lack version-gated
+ * values, so a value's absence is no reason to drop it. See [agentModelRemovedOptions].
  */
 internal fun agentParameterDefinitions(
     provider: String,
@@ -162,20 +166,39 @@ internal fun agentParameterDefinitions(
 )
 
 /**
- * Drops every stored value the current model does not offer — effort `minimal` on an agent now on
+ * The option values a per-model rule takes away for an agent on [provider]/[model] — the only
+ * values a save may drop. See [EndpointParameterRegistry.modelRemovedOptions].
+ */
+internal fun agentModelRemovedOptions(
+    provider: String,
+    model: String,
+    dropParamsMap: Map<String, JsonElement>?,
+): Map<String, Set<String>> = EndpointParameterRegistry.modelRemovedOptions(
+    endpoint = "agents",
+    provider = provider.takeIf { it.isNotBlank() },
+    model = model.takeIf { it.isNotBlank() },
+    dropParams = EndpointDropParams.resolve(dropParamsMap, endpoint = "agents", provider = provider, model = model),
+)
+
+/**
+ * Drops every stored value a per-model rule took away — effort `minimal` on an agent now on
  * gpt-6-sol, `none` on Grok 4.7 — whether or not the user opened the Advanced panel.
  *
  * Applied at save, not only in [toAgentAdvancedSettings]: that runs when a control in the panel
  * changes, and an agent saved after editing only its description never goes through it, so the
  * loaded `extras` would be written back verbatim. Deliberately unlike the web, which keeps the value.
- * Only string values are checked; a key with no definition here is left alone.
+ *
+ * Only those values. A value merely absent from the current options is kept: `xhigh`/`max` are
+ * filtered while the server version is undetected, and a value a newer backend added is in no list
+ * this app knows — dropping either deleted it from the server for every client. Only string values
+ * are checked.
  */
-internal fun AgentAdvancedSettings.withoutUnofferedValues(
-    definitions: List<ParameterDefinition>,
+internal fun AgentAdvancedSettings.withoutModelRemovedValues(
+    modelRemoved: Map<String, Set<String>>,
 ): AgentAdvancedSettings {
-    val stale = definitions.mapNotNull { def ->
-        val value = (extras[def.key] as? JsonPrimitive)?.takeIf { it.isString }?.content
-        def.key.takeIf { value != null && def.options?.contains(value) == false }
+    val stale = modelRemoved.mapNotNull { (key, removed) ->
+        val value = (extras[key] as? JsonPrimitive)?.takeIf { it.isString }?.content
+        key.takeIf { value != null && value in removed }
     }
     return if (stale.isEmpty()) this else copy(extras = extras - stale.toSet())
 }
