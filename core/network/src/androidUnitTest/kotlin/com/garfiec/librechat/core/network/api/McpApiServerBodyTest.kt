@@ -37,11 +37,13 @@ class McpApiServerBodyTest {
 
     private val requests = mutableListOf<HttpRequestData>()
 
-    private fun api(): McpApi {
+    private fun api(
+        response: String = """{"serverName":"docs_mcp","url":"https://docs.example.test/mcp","title":"Docs"}""",
+    ): McpApi {
         val engine = MockEngine { request ->
             requests += request
             respond(
-                content = """{"serverName":"docs_mcp","url":"https://docs.example.test/mcp","title":"Docs"}""",
+                content = response,
                 headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
             )
         }
@@ -141,5 +143,48 @@ class McpApiServerBodyTest {
                 """{"config":{"url":"https://docs.example.test/mcp","type":"streamable-http","title":"Docs"}}""",
             ),
         )
+    }
+
+    /**
+     * An admin-keyed edit with the key left blank sends `source: "admin"` and no `key` — the shape
+     * that asks the server to keep the stored key, and from v0.8.8-rc4 lets it refuse with
+     * `MCP_API_KEY_REENTRY_REQUIRED` when the connection changed. Sent as `user`, the same edit is a
+     * 200 that silently discards the shared key.
+     */
+    @Test
+    fun `an admin-keyed edit with a blank key sends source admin and no key`() = runTest {
+        api().updateServer(
+            serverName = "docs_mcp",
+            name = "Docs",
+            url = "https://moved.example.test/mcp",
+            type = McpServerType.SSE,
+            apiKey = McpApiKeyConfig(source = McpApiKeySource.ADMIN, authorizationType = McpAuthorizationType.BEARER),
+        )
+
+        assertThat(sentBody()).isEqualTo(
+            Json.parseToJsonElement(
+                """{"config":{"url":"https://moved.example.test/mcp","type":"sse","title":"Docs",
+                   "apiKey":{"source":"admin","authorization_type":"bearer"}}}""",
+            ),
+        )
+    }
+
+    /**
+     * The stored source has to survive the read, because the edit dialog resends it. Reads never
+     * return the key, only who supplies it; upstream's form treats anything but "user" as admin.
+     */
+    @Test
+    fun `the listed server keeps the stored key source`() = runTest {
+        val servers = api(
+            """{
+              "shared":{"type":"sse","url":"https://a.test/mcp","apiKey":{"source":"admin","authorization_type":"bearer"}},
+              "personal":{"type":"sse","url":"https://b.test/mcp","apiKey":{"source":"user","authorization_type":"bearer"}},
+              "unlabelled":{"type":"sse","url":"https://c.test/mcp","apiKey":{"authorization_type":"bearer"}}
+            }""",
+        ).listServers().associateBy { it.name }
+
+        assertThat(servers.getValue("shared").apiKey?.source).isEqualTo(McpApiKeySource.ADMIN)
+        assertThat(servers.getValue("personal").apiKey?.source).isEqualTo(McpApiKeySource.USER)
+        assertThat(servers.getValue("unlabelled").apiKey?.source).isEqualTo(McpApiKeySource.ADMIN)
     }
 }

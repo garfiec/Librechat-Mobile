@@ -3,15 +3,19 @@ package com.garfiec.librechat.feature.settings.screen
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -29,7 +33,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.mcp.McpApiKeyConfig
@@ -84,9 +90,10 @@ internal fun McpServerDialog(
     var apiKeyCustomHeader by remember {
         mutableStateOf(editingServer?.apiKey?.customHeader ?: "")
     }
-    var apiKeyValue by remember {
-        mutableStateOf(editingServer?.apiKey?.key ?: "")
-    }
+    // Never pre-filled: reads do not return the key, and a blank key on an admin edit is what
+    // asks the server to keep the stored one. See apiKeyConfigFrom.
+    var apiKeyValue by remember { mutableStateOf("") }
+    var apiKeySource by remember { mutableStateOf(initialApiKeySource(editingServer)) }
 
     // OAuth fields
     var oauthClientId by remember { mutableStateOf(editingServer?.oauth?.clientId ?: "") }
@@ -210,6 +217,28 @@ internal fun McpServerDialog(
                 // API Key fields
                 AnimatedVisibility(visible = authMode == McpAuthMode.API_KEY) {
                     Column {
+                        // Upstream's "Each user provides their own key": unchecked, the admin's key
+                        // below is shared by every user; checked, each user is asked for theirs.
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .toggleable(
+                                    value = apiKeySource == McpApiKeySource.USER,
+                                    role = Role.Checkbox,
+                                    onValueChange = { perUser ->
+                                        apiKeySource = if (perUser) McpApiKeySource.USER else McpApiKeySource.ADMIN
+                                    },
+                                ),
+                        ) {
+                            Checkbox(checked = apiKeySource == McpApiKeySource.USER, onCheckedChange = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                stringResource(Res.string.mcp_api_key_user_provides),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
                         ApiKeyAuthTypeSelector(
                             selected = apiKeyAuthType,
                             onSelect = { apiKeyAuthType = it },
@@ -227,21 +256,26 @@ internal fun McpServerDialog(
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = apiKeyValue,
-                            onValueChange = { apiKeyValue = it },
-                            label = { Text(stringResource(Res.string.mcp_api_key_label)) },
-                            singleLine = true,
-                            visualTransformation = PasswordVisualTransformation(),
-                            isError = apiKeyReentryRequired,
-                            supportingText = if (apiKeyReentryRequired) {
-                                { Text(stringResource(Res.string.mcp_api_key_reentry_required)) }
-                            } else {
-                                null
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
+                        // Only the admin supplies a key here; a per-user server asks each user later.
+                        AnimatedVisibility(visible = apiKeySource == McpApiKeySource.ADMIN) {
+                            Column {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                OutlinedTextField(
+                                    value = apiKeyValue,
+                                    onValueChange = { apiKeyValue = it },
+                                    label = { Text(stringResource(Res.string.mcp_api_key_label)) },
+                                    singleLine = true,
+                                    visualTransformation = PasswordVisualTransformation(),
+                                    isError = apiKeyReentryRequired,
+                                    supportingText = if (apiKeyReentryRequired) {
+                                        { Text(stringResource(Res.string.mcp_api_key_reentry_required)) }
+                                    } else {
+                                        null
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -308,16 +342,7 @@ internal fun McpServerDialog(
             TextButton(
                 onClick = {
                     val apiKey = if (authMode == McpAuthMode.API_KEY) {
-                        McpApiKeyConfig(
-                            source = McpApiKeySource.USER,
-                            authorizationType = apiKeyAuthType,
-                            key = apiKeyValue.trim().ifBlank { null },
-                            customHeader = if (apiKeyAuthType == McpAuthorizationType.CUSTOM) {
-                                apiKeyCustomHeader.trim().ifBlank { null }
-                            } else {
-                                null
-                            },
-                        )
+                        apiKeyConfigFrom(apiKeySource, apiKeyAuthType, apiKeyValue, apiKeyCustomHeader)
                     } else {
                         null
                     }

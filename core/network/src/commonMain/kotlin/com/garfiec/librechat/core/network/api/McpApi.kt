@@ -238,9 +238,11 @@ class McpApi constructor(
     }
 
     private fun parseApiKeyConfig(obj: JsonObject): McpApiKeyConfig = McpApiKeyConfig(
+        // Upstream's form reads `source || 'admin'`, so only an explicit "user" is per-user. The
+        // edit dialog resends this value, and resending the wrong one rewrites the server.
         source = when (obj["source"]?.jsonPrimitive?.contentOrNull) {
-            "admin" -> McpApiKeySource.ADMIN
-            else -> McpApiKeySource.USER
+            "user" -> McpApiKeySource.USER
+            else -> McpApiKeySource.ADMIN
         },
         authorizationType = when (obj["authorization_type"]?.jsonPrimitive?.contentOrNull) {
             "basic" -> McpAuthorizationType.BASIC

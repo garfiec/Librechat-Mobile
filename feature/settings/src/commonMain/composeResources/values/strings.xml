@@ -442,6 +442,7 @@
     <string name="mcp_header_name_label">Header Name</string>
     <string name="mcp_header_name_placeholder">X-API-Key</string>
     <string name="mcp_api_key_label">API Key</string>
+    <string name="mcp_api_key_user_provides">Each user provides their own key</string>
     <string name="mcp_oauth_client_id">Client ID</string>
     <string name="mcp_oauth_client_secret">Client Secret</string>
     <string name="mcp_oauth_auth_url">Authorization URL</string>
