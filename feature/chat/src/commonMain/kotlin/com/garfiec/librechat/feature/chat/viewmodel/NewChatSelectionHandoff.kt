@@ -68,13 +68,13 @@ class NewChatSelectionHandoff {
  * Whether this server row is the persisted copy of a handed-off [seed] user message.
  *
  * Not by id: the server does not adopt the id the client minted. It persists the user message
- * under `overrideUserMessageId ?? randomUUID()` (`resolvePreallocatedUserMessageId`,
- * `api/server/controllers/agents/request.js`) and overwrites the request's `messageId`, so an
- * id match only ever retired the seed at Final, which carries the server's copy. A run that
- * ends without one — a resume that finds the job already gone — left the seed in the list as a
- * second root sibling, and the path's newest-sibling default then showed it alone, hiding the
- * persisted turn beside it. Matched on what the server keeps from the request: the author, the
- * parent, and the text.
+ * under `overrideUserMessageId ?? overrideParentMessageId ?? randomUUID()`
+ * (`resolvePreallocatedUserMessageId`, `api/server/controllers/agents/request.js`) and overwrites
+ * the request's `messageId`, so an id match only ever retired the seed at Final, which carries the
+ * server's copy. A run that ends without one — a resume that finds the job already gone — left the
+ * seed in the list as a second root sibling, and the path's newest-sibling default then showed it
+ * alone, hiding the persisted turn beside it. Matched on what the server keeps from the request:
+ * the author, the parent, and the text.
  */
 internal fun Message.isServerCopyOf(seed: Message): Boolean =
     isCreatedByUser && seed.isCreatedByUser &&
