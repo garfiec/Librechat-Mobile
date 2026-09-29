@@ -2,7 +2,6 @@ package com.garfiec.librechat.feature.agents.viewmodel.delegate
 
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.BackendVersion
-import com.garfiec.librechat.core.common.FeatureSupport
 import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.ConfigRepository
@@ -57,8 +56,7 @@ class AgentCapabilitiesDelegate(
     private fun observeFileRemovalSemantics() {
         stateHandle.scope.launch {
             configRepository.detectedBackend.collect { detected ->
-                val deletes = BackendVersion.featureSupport(detected, "0.8.8-rc4", "2026-09-17") ==
-                    FeatureSupport.PRESENT
+                val deletes = BackendVersion.supportsFeature(detected, "0.8.8-rc4", "2026-09-17")
                 stateHandle.update { copy(agentFileRemovalDeletes = deletes) }
             }
         }

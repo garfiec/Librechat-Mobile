@@ -95,7 +95,7 @@ internal fun AgentEditorForm(
             text = { Text(stringResource(Res.string.agent_file_remove_confirm_message)) },
             confirmButton = {
                 TextButton(onClick = viewModel::confirmAgentFileRemoval) {
-                    Text(stringResource(Res.string.agent_file_remove_confirm_action))
+                    Text(stringResource(Res.string.remove))
                 }
             },
             dismissButton = {

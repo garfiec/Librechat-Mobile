@@ -42,14 +42,18 @@ class AgentFileRemovalConfirmTest {
 
     private val fileRepository = mockk<FileRepository>()
 
-    private fun TestScope.editorOn(detected: DetectedBackend?, block: (AgentFilesDelegate, MutableStateFlow<AgentEditorUiState>) -> Unit) {
+    private fun TestScope.editorOn(
+        detected: DetectedBackend?,
+        file: AgentFile = AgentFile(fileId = FILE_ID, filename = "notes.pdf", filepath = FILE_PATH),
+        block: (AgentFilesDelegate, MutableStateFlow<AgentEditorUiState>) -> Unit,
+    ) {
         coEvery { fileRepository.deleteFiles(any(), any(), any()) } returns
             Result.Success(DeleteFilesResponse(deletedFileIds = listOf(FILE_ID)))
         val flow = MutableStateFlow(
             AgentEditorUiState(
                 isEditMode = true,
                 agentId = AGENT_ID,
-                knowledgeFiles = listOf(AgentFile(fileId = FILE_ID, filename = "notes.pdf", filepath = FILE_PATH)),
+                knowledgeFiles = listOf(file),
                 isAgentFileUnlinkAvailable = true,
             ),
         )
@@ -108,6 +112,23 @@ class AgentFileRemovalConfirmTest {
             files.dismissAgentFileRemoval()
 
             assertThat(flow.value.pendingFileRemoval).isNull()
+            assertThat(flow.value.knowledgeFiles).hasSize(1)
+            coVerify(exactly = 0) { fileRepository.deleteFiles(any(), any(), any()) }
+        }
+    }
+
+    /**
+     * A chip loaded before the files fetch has no filepath, and the removal route cannot act on one
+     * without it, so the client refuses. It must refuse without first asking the user to confirm a
+     * permanent delete.
+     */
+    @Test
+    fun `a removal the client would refuse is refused without asking`() = runTest(UnconfinedTestDispatcher()) {
+        editorOn(DetectedBackend("0.8.8-rc4", BackendBuildClass.RC), file = AgentFile(fileId = FILE_ID, filename = "notes.pdf")) { files, flow ->
+            files.removeAgentFile(FILE_ID, AgentFileSlot.KNOWLEDGE)
+
+            assertThat(flow.value.pendingFileRemoval).isNull()
+            assertThat(flow.value.error).isNotNull()
             assertThat(flow.value.knowledgeFiles).hasSize(1)
             coVerify(exactly = 0) { fileRepository.deleteFiles(any(), any(), any()) }
         }

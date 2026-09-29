@@ -197,15 +197,21 @@ class AgentFilesDelegate(
     /**
      * The chip's remove action. On a server where removal can delete the file outright (see
      * [AgentEditorUiState.agentFileRemovalDeletes]) it only asks; [confirmAgentFileRemoval] acts.
+     *
+     * It asks only when the removal would actually be sent. A removal [performRemoval] refuses
+     * locally (unlink unavailable, no filepath yet) goes straight there, so the user is never asked
+     * to confirm a permanent delete that is then refused without a request.
      */
     fun removeAgentFile(fileId: String, slot: AgentFileSlot) {
         val state = stateHandle.state
         if (state.agentFileRemovalDeletes && !state.agentId.isNullOrBlank()) {
             val target = filesFor(slot).firstOrNull { it.fileId == fileId } ?: return
-            stateHandle.update {
-                copy(pendingFileRemoval = PendingAgentFileRemoval(fileId, slot, target.filename))
+            if (state.isAgentFileUnlinkAvailable && !target.filepath.isNullOrBlank()) {
+                stateHandle.update {
+                    copy(pendingFileRemoval = PendingAgentFileRemoval(fileId, slot, target.filename))
+                }
+                return
             }
-            return
         }
         performRemoval(fileId, slot)
     }
