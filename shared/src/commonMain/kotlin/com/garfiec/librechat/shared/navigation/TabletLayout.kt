@@ -1,6 +1,5 @@
-package com.garfiec.librechat.navigation
+package com.garfiec.librechat.shared.navigation
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -18,6 +17,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -25,10 +25,13 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.model.Banner
 import com.garfiec.librechat.core.ui.components.BannerDisplay
+import com.garfiec.librechat.core.ui.components.PlatformBackHandler
 import com.garfiec.librechat.feature.agents.navigation.AgentMarketplace
 import com.garfiec.librechat.feature.auth.navigation.AddAccountServerUrl
 import com.garfiec.librechat.feature.chat.navigation.NewChat
@@ -37,13 +40,8 @@ import com.garfiec.librechat.feature.files.navigation.Files
 import com.garfiec.librechat.feature.schedules.navigation.SchedulesList
 import com.garfiec.librechat.feature.settings.navigation.SettingsTabbed
 import com.garfiec.librechat.feature.skills.navigation.SkillsList
-import com.garfiec.librechat.shared.navigation.MainNavDisplay
-import com.garfiec.librechat.shared.navigation.NavHostViewModel
-import com.garfiec.librechat.shared.navigation.Navigator
-import com.garfiec.librechat.shared.navigation.SidebarMode
-import com.garfiec.librechat.shared.navigation.SidebarScaffold
-import com.garfiec.librechat.shared.navigation.toRoute
 import kotlinx.coroutines.launch
+import org.koin.compose.viewmodel.koinViewModel
 
 private val SidebarWidth = 320.dp
 
@@ -53,30 +51,40 @@ private const val FLING_VELOCITY_THRESHOLD = 800f
 @Composable
 fun TabletLayout(
     navigator: Navigator,
-    navHostViewModel: NavHostViewModel,
     modifier: Modifier = Modifier,
+    navDisplay: NavDisplaySlot = rememberMovableNavDisplay(navigator),
+    navHostViewModel: NavHostViewModel = koinViewModel(),
 ) {
     // Banner state only -- drawer state is collected inside DrawerContent itself
     val banner by navHostViewModel.banner.collectAsStateWithLifecycle()
+    val isLoggedIn by navHostViewModel.isLoggedIn.collectAsStateWithLifecycle()
+    // The sidebar is an authenticated surface, same rule as PhoneLayout's drawer gestures: a
+    // logged-out deep link (artifact viewer atop the auth base) is not in the auth flow either.
+    val showSidebar = isLoggedIn && !navigator.isInAuthFlow
 
     // Persisted sidebar state from DataStore -- single source of truth in the ViewModel.
     // Null until the persisted value resolves; treat unknown as closed for boolean callers.
     val resolvedSidebarOpen by navHostViewModel.tabletSidebarOpen.collectAsStateWithLifecycle()
     val isSidebarOpen = resolvedSidebarOpen == true
+    // Read by the gesture callbacks, which outlive recomposition (pointerInput is not restarted).
+    val currentIsSidebarOpen by rememberUpdatedState(isSidebarOpen)
 
     // Whether swipe gesture is enabled (from settings)
     val gestureEnabled by navHostViewModel.tabletSidebarGestureEnabled.collectAsStateWithLifecycle()
 
     val density = LocalDensity.current
     val sidebarWidthPx = with(density) { SidebarWidth.toPx() }
+    // Drag deltas are physical (+x = rightward) but the sidebar sits on the start edge, which RTL mirrors.
+    val dragSign = if (LocalLayoutDirection.current == LayoutDirection.Rtl) -1f else 1f
 
     // Animatable tracks sidebar reveal in pixels: 0 = closed, sidebarWidthPx = open.
     val sidebarOffset = remember { Animatable(0f) }
     var initialStateApplied by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    // Back press closes sidebar before navigating away
-    BackHandler(enabled = isSidebarOpen) {
+    // Back press closes sidebar before navigating away. Gated on the sidebar being shown: armed while
+    // hidden, it swallows back on the root auth screen and silently persists the sidebar closed.
+    PlatformBackHandler(enabled = showSidebar && isSidebarOpen) {
         navHostViewModel.setTabletSidebarOpen(false)
     }
 
@@ -109,16 +117,16 @@ fun TabletLayout(
         }
     }
 
-    if (!navigator.isInAuthFlow) {
+    if (showSidebar) {
         val swipeModifier = if (gestureEnabled) {
-            Modifier.pointerInput(Unit) {
+            Modifier.pointerInput(sidebarWidthPx, dragSign) {
                 val velocityTracker = VelocityTracker()
                 detectHorizontalDragGestures(
                     onDragStart = {
                         velocityTracker.resetTracking()
                     },
                     onDragEnd = {
-                        val velocity = velocityTracker.calculateVelocity().x
+                        val velocity = velocityTracker.calculateVelocity().x * dragSign
                         val currentOffset = sidebarOffset.value
                         val shouldOpen = when {
                             velocity > FLING_VELOCITY_THRESHOLD -> true
@@ -137,7 +145,7 @@ fun TabletLayout(
                         }
                     },
                     onDragCancel = {
-                        val target = if (isSidebarOpen) sidebarWidthPx else 0f
+                        val target = if (currentIsSidebarOpen) sidebarWidthPx else 0f
                         scope.launch {
                             sidebarOffset.animateTo(
                                 targetValue = target,
@@ -155,7 +163,7 @@ fun TabletLayout(
                             change.position,
                         )
                         scope.launch {
-                            val newOffset = (sidebarOffset.value + dragAmount)
+                            val newOffset = (sidebarOffset.value + dragAmount * dragSign)
                                 .coerceIn(0f, sidebarWidthPx)
                             sidebarOffset.snapTo(newOffset)
                         }
@@ -216,8 +224,8 @@ fun TabletLayout(
                 }
                 // Slot 1: Main content -- resizes to fill remaining space
                 MainContent(
-                    navigator = navigator,
-                    isInAuthFlow = false,
+                    navDisplay = navDisplay,
+                    showBanner = true,
                     banner = banner,
                     onDismissBanner = navHostViewModel::dismissBanner,
                     onToggleDrawer = {
@@ -244,38 +252,34 @@ fun TabletLayout(
             }
         }
     } else {
-        // Auth flow -- no sidebar, just main content
+        // Auth flow or logged out -- no sidebar, just main content
         MainContent(
-            navigator = navigator,
-            isInAuthFlow = true,
+            navDisplay = navDisplay,
+            showBanner = false,
             banner = banner,
             onDismissBanner = navHostViewModel::dismissBanner,
             onToggleDrawer = {},
-            modifier = Modifier.fillMaxSize(),
+            modifier = modifier.fillMaxSize(),
         )
     }
 }
 
 @Composable
 private fun MainContent(
-    navigator: Navigator,
-    isInAuthFlow: Boolean,
+    navDisplay: NavDisplaySlot,
+    showBanner: Boolean,
     banner: Banner?,
     onDismissBanner: (String) -> Unit,
     onToggleDrawer: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
-        if (!isInAuthFlow) {
+        if (showBanner) {
             BannerDisplay(
                 banner = banner,
                 onDismiss = onDismissBanner,
             )
         }
-        MainNavDisplay(
-            navigator = navigator,
-            onMenuClick = onToggleDrawer,
-            modifier = Modifier.fillMaxSize(),
-        )
+        navDisplay(onToggleDrawer, Modifier.fillMaxSize())
     }
 }

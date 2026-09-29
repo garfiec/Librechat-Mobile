@@ -11,19 +11,20 @@ Single Activity architecture. `MainActivity` is the sole entry point.
   the user is not on one — see Share Intents below)
 - **Tablet layout branching** based on `WindowSizeClass`
 
-The shared module owns the core navigation: `Navigator`, `NavHostViewModel`, `MainNavDisplay`, `PhoneLayout`, sidebar/drawer composables, and all feature entry providers. See `shared/CLAUDE.md` for details.
+The shared module owns the core navigation: `Navigator`, `NavHostViewModel`, `MainNavDisplay`, `PhoneLayout`, `TabletLayout`, sidebar/drawer composables, and all feature entry providers. See `shared/CLAUDE.md` for details.
 
 ### Layout Modes
 
 - **Phone**: Delegates to shared `PhoneLayout` — `ModalNavigationDrawer` sidebar-first pattern.
-- **Tablet** (600dp+ width): Uses `TabletLayout` (Android-only, in this module) — persistent side panel with swipe gesture and `BackHandler`.
+- **Tablet** (600dp+ width): Delegates to shared `TabletLayout` — persistent side panel that pushes the content aside, with swipe gesture and back handling.
+- Android picks the layout here from `WindowSizeClass`; iOS gets the same two layouts from the shared host, which reads the window width against the same 600dp line. Change the breakpoint in both places.
+- iOS switches layouts in place (rotation, Split View, fold), so both layouts must place the one `rememberMovableNavDisplay` instance — a `MainNavDisplay` that leaves the composition clears every back-stack entry's ViewModels. Keep the layout choice in the host's own composition rather than a subcomposition such as `BoxWithConstraints` — only the single-composition case is covered, by `MovableNavDisplayTest`.
 
 Feature modules provide entries via `EntryProviderScope<NavKey>` extensions (e.g., `authEntries()`, `chatEntries()`). Navigation is driven by `onNavigate: (NavKey) -> Unit` and `onBack: () -> Unit` lambdas — feature modules never receive `NavBackStack` directly.
 
 ## Android-Only Files in This Module
 
 - `LibreChatNavHost.kt` — Thin wrapper adding deep links, share intents, and tablet/phone branching
-- `TabletLayout.kt` — Persistent sidebar with `BackHandler`, `android.net.Uri`, and custom swipe gesture
 
 ## Top-Level Destinations
 
@@ -84,7 +85,7 @@ It applies convention plugins: `librechat.mobile.application`, `librechat.mobile
 - The server applies the `displayFrom`/`displayTo` window and filters `type: 'banner'` itself, so the client does neither — a client-side re-check can only ever subtract from the server's decision, and did so on device-clock skew
 - Dismissal is resolved in `BannerStateHolder`, not the UI: it nulls the banner and records a **(serverId, bannerId)** key, in-memory for the process. Both halves of that key are load-bearing and pull opposite ways — keyed by banner alone, a fleet seeding one bannerId across its servers delivers the next server's banner pre-dismissed; cleared on switch, dismissing A's banner and switching away and back brings A's right back
 - `BannerStateHolder.clearForAccountChange()` drops the banner (scoped to a deployment) on switch and sign-out. It deliberately does **not** touch dismissals
-- `BannerDisplay` composable shown at top of content in both `PhoneLayout` (shared) and `TabletLayout` (app). It takes a nullable banner and decides visibility itself — hoisting the null check to the callers would add/remove it from the tree and kill its enter/exit animation
+- `BannerDisplay` composable shown at top of content in both `PhoneLayout` and `TabletLayout` (both shared). It takes a nullable banner and decides visibility itself — hoisting the null check to the callers would add/remove it from the tree and kill its enter/exit animation
 - One visual treatment, from `secondaryContainer`/`onSecondaryContainer`. Do not re-introduce a `type`-keyed palette or hardcoded hex: the server only ever sends `type: "banner"`, and fixed colours ignore the accent seed and break in dark mode
 - A `persistable` banner hides the dismiss control (matching web); a banner with no `bannerId` is not rendered at all, since nothing could ever remove it
 

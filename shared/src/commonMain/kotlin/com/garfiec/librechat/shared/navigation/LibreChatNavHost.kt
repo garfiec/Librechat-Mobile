@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -32,6 +33,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -99,12 +103,16 @@ import org.koin.compose.viewmodel.koinViewModel
 private const val HYGIENE_UNRECORDED = "__unrecorded__"
 
 /**
+ * Width at which the sidebar stops overlaying the content and pushes it aside instead. Must match the
+ * `WindowWidthSizeClass.Medium` branch in the app module's LibreChatNavHost, or the platforms diverge.
+ */
+private val TabletMinWidth = 600.dp
+
+/**
  * Shared root composable for LibreChat navigation.
- * Uses ModalNavigationDrawer (phone layout) for the sidebar-first pattern.
  *
- * Platform-specific features (deep links, tablet layout with BackHandler + swipe)
- * are handled by the Android app module. This shared version provides the core
- * phone layout that works on both Android and iOS.
+ * With no [content], picks [TabletLayout] or [PhoneLayout] from the available width (iOS). Android
+ * passes [content] to add deep links and share intents, and branches on its own WindowSizeClass.
  */
 @Composable
 fun LibreChatNavHost(
@@ -270,10 +278,18 @@ fun LibreChatNavHost(
         if (content != null) {
             content(navigator, navHostViewModel, modifier)
         } else {
-            PhoneLayout(
-                navigator = navigator,
-                modifier = modifier,
-            )
+            // Read from the window rather than a size class so iPad Split View / Slide Over, which
+            // resize the window without a rotation, flip the layout too. iOS resizes in place, so
+            // both layouts share one movable NavDisplay; see rememberMovableNavDisplay.
+            val navDisplay = rememberMovableNavDisplay(navigator)
+            val windowWidth = with(LocalDensity.current) {
+                LocalWindowInfo.current.containerSize.width.toDp()
+            }
+            if (windowWidth >= TabletMinWidth) {
+                TabletLayout(navigator = navigator, modifier = modifier, navDisplay = navDisplay)
+            } else {
+                PhoneLayout(navigator = navigator, modifier = modifier, navDisplay = navDisplay)
+            }
         }
 
         // Version mismatch warning dialog
@@ -362,11 +378,12 @@ private fun VersionMismatchDialog(
     )
 }
 
-/** Default phone layout with modal drawer sidebar. Used by iOS directly and by Android as the non-tablet path. */
+/** Phone layout with a modal drawer sidebar: the below-600dp path on both platforms. */
 @Composable
 fun PhoneLayout(
     navigator: Navigator,
     modifier: Modifier = Modifier,
+    navDisplay: NavDisplaySlot = rememberMovableNavDisplay(navigator),
     navHostViewModel: NavHostViewModel = koinViewModel(),
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -451,16 +468,28 @@ fun PhoneLayout(
                     onDismiss = navHostViewModel::dismissBanner,
                 )
             }
-            MainNavDisplay(
-                navigator = navigator,
-                onMenuClick = { scope.launch { drawerState.open() } },
-                modifier = Modifier.fillMaxSize(),
-            )
+            navDisplay({ scope.launch { drawerState.open() } }, Modifier.fillMaxSize())
         }
     }
 }
 
-/** Core NavDisplay with entry providers for all feature modules. Used by both PhoneLayout and Android's TabletLayout. */
+/** [MainNavDisplay] taking `(onMenuClick, modifier)`, as produced by [rememberMovableNavDisplay]. */
+typealias NavDisplaySlot = @Composable (onMenuClick: () -> Unit, modifier: Modifier) -> Unit
+
+/**
+ * [MainNavDisplay] as movable content. Hand the same instance to both layouts: a layout switch then
+ * moves the display instead of disposing it, and disposing it clears every back-stack entry's
+ * ViewModels (cancelling an in-flight stream). Pick the layout in the caller's own composition, not
+ * in a subcomposition such as BoxWithConstraints; only the single-composition move is tested.
+ */
+@Composable
+fun rememberMovableNavDisplay(navigator: Navigator): NavDisplaySlot = remember(navigator) {
+    movableContentOf { onMenuClick: () -> Unit, modifier: Modifier ->
+        MainNavDisplay(navigator = navigator, onMenuClick = onMenuClick, modifier = modifier)
+    }
+}
+
+/** Core NavDisplay with entry providers for all feature modules. Used by both PhoneLayout and TabletLayout. */
 @Composable
 fun MainNavDisplay(
     navigator: Navigator,
