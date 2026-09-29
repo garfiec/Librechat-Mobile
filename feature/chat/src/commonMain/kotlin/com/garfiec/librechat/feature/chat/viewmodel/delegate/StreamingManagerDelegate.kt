@@ -103,10 +103,10 @@ class StreamingManagerDelegate(
      * with one of these; the reason decides teardown (job cancel, state write, queue policy,
      * reload) in ONE place instead of each exit path hand-copying its own subset.
      *
-     * Not covered: a flow that completes with neither Final nor Error (a clean SSE EOF or a 404 on
-     * the stream GET). That falls to the `onTerminated` safety net the caller passes to
-     * [launchStream], which clears streaming state directly without a reason. Rare, and a known
-     * gap in the chokepoint — do not treat [endStream] as the *only* teardown path.
+     * A flow that completes with neither Final nor Error — a clean SSE EOF, or a 404 on the stream
+     * GET, which `SseClient` ends without an event — is ended here too: [launchStream] as
+     * [Reconcile], [resumeStream] as [ResumeExpired]. Either way the job is gone and the reply, if
+     * any, is on the server.
      */
     private sealed interface StreamEndReason {
         /**
@@ -154,6 +154,10 @@ class StreamingManagerDelegate(
          * v1 client cannot tell "your turn finished, here it is" from "your turn was replaced by
          * a newer one" — and auto-firing the next queued message into the second case sends it
          * against a parent that is not what the user saw.
+         *
+         * Also how [launchStream] ends a send whose flow completed with neither Final nor Error
+         * (a clean EOF, or a reconnect's resume 404 after a network drop): the same situation
+         * without the frame saying so — the job is gone and the reply is on the server.
          */
         data object Reconcile : StreamEndReason
     }
@@ -274,8 +278,17 @@ class StreamingManagerDelegate(
      */
     fun launchStream(flow: Flow<StreamEvent>, onTerminated: suspend () -> Unit = {}) {
         streamJob?.cancel()
+        val session = streamSession
         streamJob = scope.launch {
             collectStreamSafely(flow)
+            // Ended with neither Final nor Error: the SSE client's own reconnect found the job gone
+            // (a 404 — the run finished while the connection was down), or the stream closed
+            // without a final frame. The reply is on the server, so reconcile to it. Without this
+            // the session never ends: the caller's safety net reloads only when no Room observer
+            // is running, which in an existing conversation it always is, so the chat froze on the
+            // partial. Skipped while a Stop is pending — the abort watchdog owns that ending, and
+            // nothing reloads on an abort path.
+            if (!isResumeStale(session) && !abortRequested) endStream(StreamEndReason.Reconcile, session)
             onTerminated()
         }
     }

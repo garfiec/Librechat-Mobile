@@ -1919,7 +1919,9 @@ class ChatViewModel(
             quotes = spec.quotes.takeIf { it.isNotEmpty() },
         )
         streamingManager.launchStream(stream) {
-            // Safety net: if the flow ends without Final or Error, clear streaming
+            // Safety net. A flow that ends without Final or Error is normally ended by launchStream
+            // itself (Reconcile), which clears isStreaming first; this runs only when that was
+            // skipped — a Stop pending (the abort watchdog owns it) or a superseded session.
             if (_uiState.value.isStreaming) {
                 val cid = _uiState.value.conversationId
                 if (cid != null && roomObserverJob?.isActive != true) {
