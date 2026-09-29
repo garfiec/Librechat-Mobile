@@ -259,6 +259,10 @@
     <string name="agent_file_upload_failed">Failed to upload file</string>
     <string name="agent_file_remove_failed">Failed to remove file</string>
     <string name="cd_remove_file">Remove %1$s</string>
+    <string name="agent_file_remove_confirm_title">Remove %1$s?</string>
+    <string name="agent_file_remove_confirm_title_generic">Remove this file?</string>
+    <string name="agent_file_remove_confirm_message">If no other agent uses this file, it will be permanently deleted.</string>
+    <string name="agent_file_remove_confirm_action">Remove</string>
 
     <!-- Skills selector (v0.8.6) -->
     <string name="label_skills">Skills</string>

@@ -11,6 +11,7 @@ import com.garfiec.librechat.feature.agents.util.ContentReader
 import com.garfiec.librechat.feature.agents.viewmodel.AgentEditorStateHandle
 import com.garfiec.librechat.feature.agents.viewmodel.AgentEditorViewModel
 import com.garfiec.librechat.feature.agents.viewmodel.AgentFileSlot
+import com.garfiec.librechat.feature.agents.viewmodel.PendingAgentFileRemoval
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.launch
@@ -193,7 +194,33 @@ class AgentFilesDelegate(
         }
     }
 
+    /**
+     * The chip's remove action. On a server where removal can delete the file outright (see
+     * [AgentEditorUiState.agentFileRemovalDeletes]) it only asks; [confirmAgentFileRemoval] acts.
+     */
     fun removeAgentFile(fileId: String, slot: AgentFileSlot) {
+        val state = stateHandle.state
+        if (state.agentFileRemovalDeletes && !state.agentId.isNullOrBlank()) {
+            val target = filesFor(slot).firstOrNull { it.fileId == fileId } ?: return
+            stateHandle.update {
+                copy(pendingFileRemoval = PendingAgentFileRemoval(fileId, slot, target.filename))
+            }
+            return
+        }
+        performRemoval(fileId, slot)
+    }
+
+    fun confirmAgentFileRemoval() {
+        val pending = stateHandle.state.pendingFileRemoval ?: return
+        stateHandle.update { copy(pendingFileRemoval = null) }
+        performRemoval(pending.fileId, pending.slot)
+    }
+
+    fun dismissAgentFileRemoval() {
+        stateHandle.update { copy(pendingFileRemoval = null) }
+    }
+
+    private fun performRemoval(fileId: String, slot: AgentFileSlot) {
         val agentId = stateHandle.state.agentId
         // Local-only state when there's no agentId yet (we never let this happen
         // through uploadAgentFile, but stay defensive).

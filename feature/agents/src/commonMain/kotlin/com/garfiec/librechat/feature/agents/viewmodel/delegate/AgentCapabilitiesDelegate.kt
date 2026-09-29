@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.agents.viewmodel.delegate
 
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.BackendVersion
+import com.garfiec.librechat.core.common.FeatureSupport
 import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.ConfigRepository
@@ -43,7 +44,24 @@ class AgentCapabilitiesDelegate(
         observeSkillsAvailability()
         observeSubagentsAvailability()
         observeServerVersion()
+        observeFileRemovalSemantics()
         observeDropParams()
+    }
+
+    /**
+     * v0.8.8-rc4 (#16007, landed 2026-09-17) made removing an agent's file delete it when the
+     * caller owns it and no other agent references it. A date gate so a dev build past that commit
+     * gets the confirmation too; PRESENT only, so a server that cannot be placed keeps the removal
+     * as it was rather than warning about a deletion it may not perform. See VERSION_GATES.md.
+     */
+    private fun observeFileRemovalSemantics() {
+        stateHandle.scope.launch {
+            configRepository.detectedBackend.collect { detected ->
+                val deletes = BackendVersion.featureSupport(detected, "0.8.8-rc4", "2026-09-17") ==
+                    FeatureSupport.PRESENT
+                stateHandle.update { copy(agentFileRemovalDeletes = deletes) }
+            }
+        }
     }
 
     /** `endpointsDropParamsMap` is stripped for unauthenticated callers, so it can arrive late. */
