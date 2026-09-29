@@ -251,8 +251,8 @@ class SearchMatchEnumerationTest {
     }
 
     /**
-     * A wake-up renders as a system row that draws none of its text, so its payload must not be
-     * counted: a jump to a hit there has no on-screen occurrence to land on.
+     * A wake-up renders as a system row and is deliberately not searched — not even the task results
+     * an expanded row shows — because a jump cannot expand a collapsed row to reach a match.
      */
     @Test
     fun `a wake-up turn contributes nothing`() {

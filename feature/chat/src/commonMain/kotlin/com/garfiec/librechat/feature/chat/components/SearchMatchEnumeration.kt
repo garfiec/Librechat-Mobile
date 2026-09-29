@@ -120,11 +120,15 @@ internal fun countPartOccurrences(
 /**
  * Total searchable occurrences in a message, numbering the render walk 0-based.
  *
- * Two kinds of message draw none of their stored text, so they contribute nothing: a wake-up turn,
- * which renders as a system row ([systemEventFor]), and a persisted failed turn, which renders its
- * classified error ([persistedTurnError]). Counting their raw payloads offers matches a jump can
- * never land on. Keep these two checks in step with the branches `MessageList` and
- * `MessageContentAndActions` take.
+ * Two kinds of message are deliberately left out and contribute nothing:
+ * - a persisted failed turn ([persistedTurnError]) renders its classified error, not the raw
+ *   payload it was saved with, so that payload is never on screen;
+ * - a wake-up turn ([systemEventFor]) renders as a system row. Collapsed, it shows none of its
+ *   stored text; expanded, it does show each task's result, but that text is still not searched.
+ *   A match has to be reachable whatever state the row is in, a jump cannot expand a collapsed row
+ *   to reach one, and the rest of the stored text (the header sentence and the JSON payload) is
+ *   never drawn at all.
+ * Keep these two checks in step with the branches `MessageList` and `MessageContentAndActions` take.
  */
 internal fun countMessageOccurrences(message: Message, query: String): Int {
     if (systemEventFor(message, isEditing = false) != null || persistedTurnError(message) != null) return 0
