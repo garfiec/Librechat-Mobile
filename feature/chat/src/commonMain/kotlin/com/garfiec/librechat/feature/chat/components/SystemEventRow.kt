@@ -114,25 +114,28 @@ internal fun SystemEventRow(
                     modifier = Modifier.size(16.dp),
                     tint = headerColor,
                 )
+                // The label is a short fixed phrase and takes the width it needs; only the name
+                // summary, which can list several tools, gives way. It fills what is left, which
+                // is also what puts the chevron at the edge.
                 Text(
                     wakeupHeaderLabel(display),
                     style = MaterialTheme.typography.labelLarge,
                     color = headerColor,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
                 )
-                wakeupNameSummary(display).takeIf { it.isNotEmpty() }?.let { names ->
+                val names = wakeupNameSummary(display)
+                if (names.isNotEmpty()) {
                     Text(
                         "· $names",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false),
+                        modifier = Modifier.weight(1f),
                     )
+                } else {
+                    Spacer(Modifier.weight(1f))
                 }
-                Spacer(Modifier.weight(1f))
                 Icon(
                     if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = null,
