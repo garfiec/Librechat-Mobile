@@ -59,4 +59,18 @@
     <string name="skill_acl_collapse">Collapse</string>
     <string name="skill_acl_expand">Expand</string>
     <string name="skill_acl_close">Close</string>
+    <!-- Skill import failure report (v0.8.8-rc4) -->
+    <string name="skill_import_failed_title">Import failed</string>
+    <string name="skill_import_incomplete">Import canceled: %1$d file(s) in the archive could not be imported. Fix the archive and upload it again.</string>
+    <string name="skill_import_rollback_failed">Import failed for %1$d file(s), and the incomplete skill could not be removed automatically. Delete it before trying again.</string>
+    <string name="skill_import_cleanup_incomplete">Import failed for %1$d file(s). The incomplete skill was removed, but automatic cleanup did not finish.</string>
+    <string name="skill_import_failed_files">These files could not be imported:</string>
+    <string name="skill_import_rollback_failed_files">Import failed for these files, and the incomplete skill was left behind:</string>
+    <string name="skill_import_cleanup_incomplete_files">Import failed for these files; automatic cleanup did not finish:</string>
+    <string name="skill_import_reason_invalid_path">Unsupported file path</string>
+    <string name="skill_import_reason_file_too_large">Exceeds the %1$s MB file size limit</string>
+    <string name="skill_import_reason_archive_too_large">Not imported: the archive exceeds the %1$s MB total size limit</string>
+    <string name="skill_import_reason_archive_entry_changed">Changed while the archive was being read</string>
+    <string name="skill_import_reason_persistence_failed">Could not be saved</string>
+    <string name="skill_import_reason_unknown">Could not be imported</string>
 </resources>
