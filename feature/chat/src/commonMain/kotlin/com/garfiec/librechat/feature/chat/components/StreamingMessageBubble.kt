@@ -269,7 +269,8 @@ private fun TwoSidedStreamingBubble(
 
 /**
  * The live reply's reasoning, collapsed, above its text. Keyed to one stable state key so a user who
- * expands it mid-stream keeps it expanded as deltas arrive.
+ * expands it mid-stream keeps it expanded as deltas arrive — but not across settle: the persisted
+ * THINK part has its own key and opens collapsed (an accepted limit, see feature/chat CLAUDE.md).
  */
 @Composable
 private fun StreamingThinking(thinking: String, fontSizeMultiplier: Float, useKatex: Boolean) {

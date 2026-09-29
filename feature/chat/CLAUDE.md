@@ -137,7 +137,14 @@ Two consequences worth knowing before touching that block:
   sync now restores it from THINK parts' `think`. It follows `streamingContent` everywhere: cleared
   in the same atomic `finalizeChatDisplay` update (no duplicate, no flash), preserved with the partial
   on the error/abort ends, and neutralized for the chrome. Comparison panes still fold reasoning into
-  their own buffers.
+  their own buffers. **Two accepted limits at settle:** the live block's expanded state (key
+  `think:streaming`) does not carry over to the persisted THINK part (keyed `messageId:index`), so a
+  block the user opened mid-stream shows collapsed after Final; and a multi-step reply's reasoning is
+  merged into the one live block at the top, so at settle it redistributes into its per-step THINK
+  parts and the reply reflows. Carrying the state across would mean hoisting the card's expand state
+  through the bubble and threading a "first THINK of the just-settled message" flag through
+  `MessageContentAndActions`, the grouping transform and `ActivityGroup` — and that first THINK is
+  often folded inside a collapsed activity group, where opening it shows nothing.
 - **The live bubble renders through `TextContentPart(streaming = true)`** (#302), so artifact
   detection runs on every flush — an unclosed artifact streams as its source via
   `IncompleteArtifact` instead of raw `:::artifact{…}` text. The `streaming` flag must stay
