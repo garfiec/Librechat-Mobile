@@ -475,9 +475,8 @@ internal fun MessageContentAndActions(
                         }
                     }
                 } else {
-                    val turnFailure = persistedTurnError(message)
-                    if (turnFailure != null) {
-                        ErrorContentPart(errorText = localizedStreamError(turnFailure))
+                    if (isPersistedTurnError(message)) {
+                        StreamErrorPart(raw = message.text)
                     } else if (message.text.isNotBlank()) {
                         MarkdownContent(
                             text = message.text,

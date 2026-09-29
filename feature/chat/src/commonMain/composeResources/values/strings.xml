@@ -144,6 +144,7 @@
     <string name="trace_stat_turns">Turns</string>
     <string name="trace_stat_generations">Generations</string>
     <string name="trace_stat_tools">Tools</string>
+    <string name="trace_stat_labels">Labels</string>
     <string name="trace_stat_errors">Errors</string>
     <string name="trace_stat_tokens">Tokens</string>
     <string name="trace_stat_cost">Cost</string>
@@ -157,6 +158,10 @@
     <string name="trace_status_warning">Warning</string>
     <string name="trace_status_error">Error</string>
     <string name="trace_running">Running</string>
+    <string name="trace_view_steps">Steps</string>
+    <string name="trace_view_all">All records</string>
+    <string name="trace_step">Step %1$d</string>
+    <string name="trace_step_title">Title</string>
     <string name="trace_partial">Showing %1$d records. Older turns have not been loaded.</string>
     <string name="trace_input">Input</string>
     <string name="trace_output">Output</string>
@@ -169,8 +174,8 @@
     <string name="trace_error_changed">The trace changed while it was being read. Refresh to start again.</string>
     <string name="trace_error_rate_limited">Too many trace requests. Try again shortly.</string>
     <string name="trace_error_timeout">The tracing service did not respond in time.</string>
-    <string name="trace_error_unauthorized">The tracing service rejected this server\'s credentials.</string>
-    <string name="trace_error_unsupported">This server\'s tracing service cannot return traces.</string>
+    <string name="trace_error_unauthorized">The tracing service rejected this server's credentials.</string>
+    <string name="trace_error_unsupported">This server's tracing service cannot return traces.</string>
 
     <!-- Office-doc preview attachments (deferred preview, v0.8.6+) -->
     <string name="office_preview_preparing">Preparing preview of %1$s…</string>
@@ -228,7 +233,7 @@
     <string name="upload_routing_why_provider">The model reads the file itself.</string>
     <string name="upload_routing_why_text">The server reads the file and sends its text.</string>
     <string name="upload_routing_why_provider_only">This model can only take this file directly.</string>
-    <string name="upload_routing_why_text_only">This model can\'t read this file, so its text is sent instead.</string>
+    <string name="upload_routing_why_text_only">This model can't read this file, so its text is sent instead.</string>
     <string name="upload_routing_apply_all">Use for all</string>
     <string name="upload_routing_attach">Attach</string>
     <string name="cd_upload_route_text">Sent as extracted text</string>
@@ -351,7 +356,7 @@
     <string name="feedback_question">What was the issue with this response?</string>
     <string name="feedback_question_positive">What was good about this response?</string>
     <string name="hint_optional_comment">Optional comment\u2026</string>
-    <string name="feedback_tag_not_matched">Didn\'t match my request</string>
+    <string name="feedback_tag_not_matched">Didn't match my request</string>
     <string name="feedback_tag_inaccurate">Inaccurate or incorrect answer</string>
     <string name="feedback_tag_bad_style">Poor style or tone</string>
     <string name="feedback_tag_missing_image">Expected an image</string>
@@ -520,24 +525,26 @@
     <string name="ask_user_question_batch_subtitle">Answer all %1$d questions to continue</string>
     <!-- Typed stream errors. An unrecognized code keeps the server's own text, so these cover
          only the codes with something actionable to say. -->
-    <string name="error_resource_recovery_required">The files attached to this conversation could not be restored, so the assistant couldn\'t use them. Attach them again and retry.</string>
+    <string name="error_resource_recovery_required">The files attached to this conversation could not be restored, so the assistant couldn't use them. Attach them again and retry.</string>
     <string name="error_model_not_found">The selected model is unavailable from this provider. Pick a different model, or ask an administrator to check the provider configuration.</string>
     <string name="error_missing_model">No model is selected. Choose a model and try again.</string>
-    <string name="error_models_not_loaded">The model list couldn\'t be loaded. Pull to refresh and try again.</string>
-    <string name="error_endpoint_models_not_loaded">This endpoint\'s models couldn\'t be loaded. Pull to refresh and try again.</string>
-    <string name="error_invalid_agent_provider">This agent\'s provider isn\'t allowed on this server. Ask an administrator to enable it.</string>
+    <string name="error_models_not_loaded">The model list couldn't be loaded. Pull to refresh and try again.</string>
+    <string name="error_endpoint_models_not_loaded">This endpoint's models couldn't be loaded. Pull to refresh and try again.</string>
+    <string name="error_invalid_agent_provider">This agent's provider isn't allowed on this server. Ask an administrator to enable it.</string>
     <string name="error_refusal">The model declined to answer this. Rephrasing the request may help.</string>
     <string name="error_input_length">This message is longer than the model accepts. Shorten it and try again.</string>
-    <string name="error_moderation">This message was flagged by the server\'s moderation. Edit it, or start a new conversation.</string>
+    <string name="error_moderation">This message was flagged by the server's moderation. Edit it, or start a new conversation.</string>
     <string name="error_stream_expired">This reply finished or expired before it could be shown. Reopen the conversation to load it.</string>
     <string name="error_model_rate_limit">The provider is rate-limiting this model. Wait a moment and try again, or pick a different model.</string>
-    <string name="error_final_context_overflow">This conversation no longer fits the model\'s context window. Start a new conversation, or switch to a model with a larger window.</string>
+    <string name="error_final_context_overflow">This conversation no longer fits the model's context window. Start a new conversation, or switch to a model with a larger window.</string>
     <string name="error_compaction_skipped">There was nothing to compact yet. Keep chatting and try again later.</string>
-    <string name="error_compaction_failed">The summary couldn\'t be generated, so the conversation is unchanged. Try again.</string>
-    <string name="error_upstream_model_error">The model provider couldn\'t complete this request. Try again, or pick a different model.</string>
-    <string name="error_empty_messages">There was nothing left to send after this conversation was trimmed to fit the model\'s context. Start a new conversation, or switch to a model with a larger window.</string>
-    <string name="error_code_workspace_unavailable">The code workspace for this conversation isn\'t available. Try again, or pick a different workspace.</string>
-    <string name="error_stateful_code_environment_not_allowed">This server doesn\'t allow a persistent code environment. Turn it off in the code interpreter options and try again.</string>
+    <string name="error_compaction_failed">The summary couldn't be generated, so the conversation is unchanged. Try again.</string>
+    <string name="error_upstream_model_error">The model provider couldn't complete this request. Try again, or pick a different model.</string>
+    <string name="error_upstream_model_error_status">The model provider couldn't complete this request (status %1$d). Try again, or pick a different model.</string>
+    <string name="error_details_provider">Provider response</string>
+    <string name="error_empty_messages">There was nothing left to send after this conversation was trimmed to fit the model's context. Start a new conversation, or switch to a model with a larger window.</string>
+    <string name="error_code_workspace_unavailable">The code workspace for this conversation isn't available. Try again, or pick a different workspace.</string>
+    <string name="error_stateful_code_environment_not_allowed">This server doesn't allow a persistent code environment. Turn it off in the code interpreter options and try again.</string>
     <string name="error_auth_rate_limited">Too many sign-in attempts. Wait a moment and try again.</string>
     <string name="error_auth_banned">This account or network is blocked from signing in. Contact an administrator.</string>
     <string name="error_auth_cross_origin">The server rejected the sign-in as coming from another site. Report this — it is an app bug, not a password problem.</string>
@@ -550,8 +557,8 @@
     <string name="ask_user_question_record_skipped">You skipped this question</string>
     <string name="ask_user_question_record_options">Options offered</string>
     <string name="ask_user_question_record_options_multi">Options offered (pick as many as apply)</string>
-    <string name="ask_user_question_record_failed">Question wasn\'t shown</string>
-    <string name="ask_user_question_record_failed_description">The assistant couldn\'t show this question and may retry automatically.</string>
+    <string name="ask_user_question_record_failed">Question wasn't shown</string>
+    <string name="ask_user_question_record_failed_description">The assistant couldn't show this question and may retry automatically.</string>
     <string name="cd_expand_ask_user_question">Expand question details</string>
     <string name="cd_collapse_ask_user_question">Collapse question details</string>
     <string name="tool_memory">Memory</string>
@@ -565,4 +572,17 @@
     <string name="during_run_queue">Add to queue</string>
     <string name="during_run_always_steer">Always steer while generating</string>
     <string name="during_run_always_queue">Always queue while generating</string>
+    <!-- System events: wake-up turns (v0.8.8-rc4 styling) -->
+    <string name="system_event_label">System</string>
+    <string name="wakeup_explainer">This durable result woke the agent to continue the conversation.</string>
+    <string name="wakeup_subagent_completed">Subagent task completed</string>
+    <string name="wakeup_subagent_failed">Subagent task failed</string>
+    <string name="wakeup_subagent_cancelled">Subagent task cancelled</string>
+    <string name="wakeup_task_finished">Background task finished</string>
+    <string name="wakeup_task_failed">Background task failed</string>
+    <string name="wakeup_tasks_finished">%1$d background tasks finished</string>
+    <string name="wakeup_status_completed">Completed</string>
+    <string name="wakeup_status_failed">Failed</string>
+    <string name="wakeup_status_cancelled">Cancelled</string>
+    <string name="wakeup_subagent_thread">Thread %1$s</string>
 </resources>

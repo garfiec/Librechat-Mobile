@@ -37,6 +37,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.model.SkillSummary
+import com.garfiec.librechat.feature.skills.components.SkillImportFailureDialog
 import com.garfiec.librechat.feature.skills.components.rememberSkillFilePicker
 import com.garfiec.librechat.feature.skills.resources.*
 import com.garfiec.librechat.feature.skills.resources.Res
@@ -72,6 +73,10 @@ fun SkillsListScreen(
     }
     androidx.compose.runtime.LaunchedEffect(shouldLoadMore) {
         if (shouldLoadMore) viewModel.loadMore()
+    }
+
+    uiState.importFailure?.let { failure ->
+        SkillImportFailureDialog(failure = failure, onDismiss = viewModel::dismissImportFailure)
     }
 
     Scaffold(

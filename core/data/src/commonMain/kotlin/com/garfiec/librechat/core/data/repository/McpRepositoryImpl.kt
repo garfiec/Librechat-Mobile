@@ -4,6 +4,7 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.safeApiCall
 import com.garfiec.librechat.core.model.mcp.McpApiKeyConfig
 import com.garfiec.librechat.core.model.mcp.McpOAuthConfig
+import com.garfiec.librechat.core.model.mcp.McpOboConfig
 import com.garfiec.librechat.core.model.mcp.McpReinitializeResponse
 import com.garfiec.librechat.core.model.mcp.McpServer
 import com.garfiec.librechat.core.model.mcp.McpServerStatus
@@ -25,8 +26,10 @@ class McpRepositoryImpl(
         type: McpServerType,
         apiKey: McpApiKeyConfig?,
         oauth: McpOAuthConfig?,
+        iconPath: String?,
+        obo: McpOboConfig?,
     ): Result<McpServer> =
-        safeApiCall { mcpApi.createServer(name, description, url, type, apiKey, oauth) }
+        safeApiCall { mcpApi.createServer(name, description, url, type, apiKey, oauth, iconPath, obo) }
 
     override suspend fun updateServer(
         serverName: String,
@@ -36,8 +39,10 @@ class McpRepositoryImpl(
         type: McpServerType,
         apiKey: McpApiKeyConfig?,
         oauth: McpOAuthConfig?,
+        iconPath: String?,
+        obo: McpOboConfig?,
     ): Result<McpServer> =
-        safeApiCall { mcpApi.updateServer(serverName, name, description, url, type, apiKey, oauth) }
+        safeApiCall { mcpApi.updateServer(serverName, name, description, url, type, apiKey, oauth, iconPath, obo) }
 
     override suspend fun deleteServer(serverName: String): Result<Unit> =
         safeApiCall { mcpApi.deleteServer(serverName) }

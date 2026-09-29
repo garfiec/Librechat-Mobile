@@ -28,8 +28,9 @@ data class MessagesState(
     val displayMessages: List<MessageNode> = emptyList(),
     /**
      * A just-sent optimistic user message handed off from the NewChat landing VM, kept on screen
-     * until the server persists its own copy. `loadConversation` reconciles it away by id once the
-     * server's copy arrives. Null in every other case. See [NewChatSelectionHandoff].
+     * until the server persists its own copy. `loadConversation` drops it once the server's copy
+     * arrives, matched by id or by content ([isServerCopyOf] — rc3+ re-mints the id). Null in every
+     * other case. See [NewChatSelectionHandoff].
      */
     val pendingResumeUserMessage: Message? = null,
     val activeBranches: Map<String, Int> = emptyMap(),
@@ -62,6 +63,12 @@ data class MessagesState(
      */
     val isCompacting: Boolean = false,
     val streamingContent: String = "",
+    /**
+     * The live reply's reasoning, apart from [streamingContent] so the streaming bubble renders it
+     * in a collapsed Thinking block rather than as body text. Cleared with it everywhere, including
+     * in the atomic finalize, where the persisted message's THINK part takes over.
+     */
+    val streamingThinking: String = "",
     val activeToolCalls: List<ActiveToolCall> = emptyList(),
     /** Attachments received during SSE streaming (e.g., tool-generated images). Cleared when
      *  streaming ends. */

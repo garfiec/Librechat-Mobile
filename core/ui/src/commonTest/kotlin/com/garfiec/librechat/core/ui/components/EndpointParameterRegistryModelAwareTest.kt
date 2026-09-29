@@ -107,4 +107,90 @@ class EndpointParameterRegistryModelAwareTest {
             ),
         )
     }
+
+    private fun effortOf(endpoint: String, model: String, extended: Boolean = true) =
+        EndpointParameterRegistry.getDefinitions(
+            endpoint = endpoint,
+            model = model,
+            extendedEffortSupported = extended,
+        ).single { it.key == "reasoning_effort" }.options
+
+    @Test
+    fun opus55HidesThinkingAndSamplingControls() {
+        val hidden = listOf("thinking", "thinkingBudget", "temperature", "topP", "topK")
+        for (model in listOf("claude-opus-5-5", "claude-opus-5.5", "claude-5-5-opus", "global.anthropic.claude-opus-5-5")) {
+            val keys = keysOf(anthropic(model))
+            hidden.forEach { assertFalse(keys.contains(it), "$model still offers $it") }
+            // Only those five; the rest of the Anthropic panel stays.
+            assertTrue(keys.contains("maxOutputTokens"), model)
+        }
+        val bedrock = keysOf(
+            EndpointParameterRegistry.getDefinitions(endpoint = "bedrock", model = "global.anthropic.claude-opus-5-5"),
+        )
+        hidden.forEach { assertFalse(bedrock.contains(it), "bedrock still offers $it") }
+    }
+
+    @Test
+    fun otherOpusVersionsKeepTheirControls() {
+        // A missing minor is 0, and a date suffix is not a minor.
+        for (model in listOf("claude-opus-5", "claude-opus-5-20260101", "claude-opus-4-5", "claude-opus-5-55")) {
+            assertTrue(keysOf(anthropic(model)).contains("temperature"), model)
+        }
+    }
+
+    @Test
+    fun gpt6SolAndLunaDropMinimalEffort() {
+        for (model in listOf("gpt-6-sol", "gpt-6-luna", "GPT-6-Sol-2026-09-01")) {
+            val options = effortOf("openAI", model)!!
+            assertFalse(options.contains("minimal"), model)
+            assertTrue(options.contains("none"), model)
+        }
+        assertTrue(effortOf("openAI", "gpt-6-astra")!!.contains("minimal"))
+        assertTrue(effortOf("openAI", "gpt-6-solar")!!.contains("minimal"))
+    }
+
+    @Test
+    fun grok47OffersItsOwnEffortLadder() {
+        assertEquals(listOf("", "low", "medium", "high", "xhigh"), effortOf("custom", "grok-4.7"))
+        assertEquals(listOf("", "low", "medium", "high", "xhigh"), effortOf("custom", "xai/grok-4-7:beta"))
+        // The extended-effort filter still applies on a server that predates `xhigh`.
+        assertEquals(listOf("", "low", "medium", "high"), effortOf("custom", "grok-4.7", extended = false))
+        // Anchored at the start of the last segment, and a longer version is a different model.
+        assertEquals(effortOf("custom", "gpt-4o"), effortOf("custom", "grok-4.70"))
+        assertEquals(effortOf("custom", "gpt-4o"), effortOf("custom", "my-grok-4.7"))
+    }
+
+    /**
+     * What a stored value may be dropped for: only what a per-model rule took away. A value missing
+     * from the options for any other reason — a version gate, or a newer backend's addition — is
+     * the user's, and dropping it would delete it from the server on an agent save.
+     */
+    @Test
+    fun modelRemovedOptionsNamesOnlyWhatAPerModelRuleTookAway() {
+        assertEquals(
+            mapOf("reasoning_effort" to setOf("minimal")),
+            EndpointParameterRegistry.modelRemovedOptions(endpoint = "openAI", model = "gpt-6-sol"),
+        )
+        assertEquals(
+            mapOf("reasoning_effort" to setOf("minimal")),
+            EndpointParameterRegistry.modelRemovedOptions(endpoint = "agents", provider = "openAI", model = "gpt-6-luna"),
+        )
+        assertEquals(
+            setOf("none", "minimal"),
+            EndpointParameterRegistry.modelRemovedOptions(endpoint = "custom", model = "grok-4.7")["reasoning_effort"],
+        )
+    }
+
+    @Test
+    fun modelRemovedOptionsNeverNamesAVersionGatedValue() {
+        // `xhigh`/`max` are filtered from the options while the server version is undetected; that
+        // is a gate, not the model, so they are never "removed".
+        for ((endpoint, model) in listOf("anthropic" to "claude-opus-4-5", "openAI" to "gpt-6-sol", "custom" to "grok-4.7")) {
+            val removed = EndpointParameterRegistry.modelRemovedOptions(endpoint = endpoint, model = model).values.flatten()
+            assertFalse(removed.contains("xhigh"), "$endpoint/$model")
+            assertFalse(removed.contains("max"), "$endpoint/$model")
+        }
+        // A model with no per-model rule removes nothing.
+        assertTrue(EndpointParameterRegistry.modelRemovedOptions(endpoint = "openAI", model = "gpt-4o").isEmpty())
+    }
 }

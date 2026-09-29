@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.skills.viewmodel
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.SkillsRepository
@@ -10,6 +11,7 @@ import com.garfiec.librechat.core.model.SkillSummary
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.hasAccessStrictOrDenied
+import com.garfiec.librechat.core.model.response.SkillImportFailedResponse
 import com.garfiec.librechat.feature.skills.components.PickedDocument
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -32,6 +34,12 @@ data class SkillsListUiState(
      *  create + import affordances unless the server would allow it. */
     val canCreate: Boolean = false,
     val isImporting: Boolean = false,
+    /**
+     * The last import was refused with a per-file failure report (v0.8.8-rc4). Held apart from
+     * [error] on purpose: the list reload that follows clears [error], and the failed paths are the
+     * only place the user learns which files their archive lost.
+     */
+    val importFailure: SkillImportFailedResponse? = null,
 )
 
 class SkillsListViewModel(
@@ -98,20 +106,33 @@ class SkillsListViewModel(
      *  Server validation `issues` surface in [SkillsListUiState.error]. */
     fun importSkill(doc: PickedDocument) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isImporting = true, error = null)
+            _uiState.value = _uiState.value.copy(isImporting = true, error = null, importFailure = null)
             when (val result = skillsRepository.importSkill(doc.bytes, doc.filename, doc.mimeType)) {
                 is Result.Success -> {
                     _uiState.value = _uiState.value.copy(isImporting = false)
                     loadFirstPage()
                 }
-                is Result.Error ->
-                    _uiState.value = _uiState.value.copy(
-                        isImporting = false,
-                        error = result.message ?: "Failed to import skill",
-                    )
+                is Result.Error -> {
+                    val failure = SkillImportFailedResponse.from((result.exception as? ApiException)?.body)
+                    if (failure != null) {
+                        _uiState.value = _uiState.value.copy(isImporting = false, importFailure = failure)
+                        // A failed rollback leaves the partial skill listed server-side, and the
+                        // other two codes can change the list too; reload rather than trust it.
+                        loadFirstPage()
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            isImporting = false,
+                            error = result.message ?: "Failed to import skill",
+                        )
+                    }
+                }
                 is Result.Loading -> { /* no-op */ }
             }
         }
+    }
+
+    fun dismissImportFailure() {
+        _uiState.value = _uiState.value.copy(importFailure = null)
     }
 
     fun onSearchQueryChanged(query: String) {

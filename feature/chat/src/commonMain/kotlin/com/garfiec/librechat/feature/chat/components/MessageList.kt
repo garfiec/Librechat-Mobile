@@ -83,6 +83,8 @@ fun MessageList(
     onRegenerateMessage: (messageId: String) -> Unit,
     onCopyMessage: (messageId: String) -> Unit,
     modifier: Modifier = Modifier,
+    /** The live reply's reasoning, shown collapsed above its text. See [StreamingMessageBubble]. */
+    streamingThinking: String = "",
     activeToolCalls: List<ActiveToolCall> = emptyList(),
     streamingAttachments: List<Attachment> = emptyList(),
     onFeedback: (messageId: String, feedback: MinimalFeedback?) -> Unit = { _, _ -> },
@@ -517,6 +519,9 @@ fun MessageList(
     }
 
     val pullToRefreshState = rememberPullToRefreshState()
+    // Parsed once per list; `contentType` below runs on every measure pass.
+    val wakeups = remember(displayMessages) { wakeupsByMessageId(displayMessages) }
+
     PullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = onRefresh,
@@ -567,7 +572,13 @@ fun MessageList(
                 // keeps its scroll anchor at completion. Unique within the path (one node/level).
                 key = { _, node -> node.treeParentKey },
                 contentType = { _, node ->
-                    val role = if (node.message.isCreatedByUser) "user" else "assistant"
+                    // A wake-up is a user message that renders as a system row; its own type keeps
+                    // slot reuse from handing it a user bubble's composition, or the reverse.
+                    val role = when {
+                        !node.message.isCreatedByUser -> "assistant"
+                        wakeups.wakeupOf(node, isEditing = editingMessageId == node.message.messageId) != null -> "system"
+                        else -> "user"
+                    }
                     "${chatLayoutStyle}_$role"
                 },
             ) { index, node ->
@@ -586,6 +597,26 @@ fun MessageList(
                     LocalSuppressGroupAutoCollapse provides (node.message.messageId == justSettledMessageId),
                     LocalFeedbackEnabled provides !isStreaming,
                 ) {
+                val systemEvent = wakeups.wakeupOf(node, isEditing = editingMessageId == node.message.messageId)
+                if (systemEvent != null) {
+                    SystemEventRow(
+                        display = systemEvent,
+                        messageId = node.message.messageId,
+                        fontSizeMultiplier = fontSizeMultiplier,
+                        useKatex = useKatex,
+                        siblingIndex = node.siblingIndex,
+                        siblingCount = node.siblingCount,
+                        onSiblingNavigation = { newIndex ->
+                            lastNavigatedParentKey = node.treeParentKey
+                            onSiblingNavigation(node.treeParentKey, newIndex)
+                        },
+                        onCopy = { onCopyMessage(node.message.messageId) },
+                        onEdit = { onEditMessage(node.message.messageId) },
+                        onReadAloud = { onReadAloud(node.message.messageId) },
+                        isReading = currentlyReadingMessageId == node.message.messageId,
+                        onFork = { onFork(node.message.messageId) },
+                    )
+                } else {
                 MessageBubble(
                     message = node.message,
                     siblingIndex = node.siblingIndex,
@@ -653,6 +684,7 @@ fun MessageList(
                     },
                 )
                 }
+                }
             }
 
             if (isStreaming) {
@@ -673,6 +705,7 @@ fun MessageList(
                         showAvatars = showAvatars,
                         showBubbles = showBubbles,
                         useKatex = useKatex,
+                        streamingThinking = streamingThinking,
                     )
                 }
 

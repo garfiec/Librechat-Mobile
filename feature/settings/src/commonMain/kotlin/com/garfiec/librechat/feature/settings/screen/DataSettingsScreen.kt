@@ -287,6 +287,9 @@ fun DataSettingsContent(
             McpServerDialog(
                 editingServer = uiState.editingMcpServer,
                 oauthSecretReentryRequired = uiState.mcpOAuthSecretReentryRequired,
+                apiKeyReentryRequired = uiState.mcpApiKeyReentryRequired,
+                saveError = uiState.mcpServerDialogError,
+                isSaving = uiState.mcpServerSaving,
                 onDismiss = viewModel::dismissMcpServerDialog,
                 onSave = { name, description, url, type, apiKey, oauth ->
                     viewModel.saveMcpServer(name, description, url, type, apiKey, oauth)

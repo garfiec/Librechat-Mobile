@@ -11,6 +11,7 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.toSafeError
 import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.model.Attachment
+import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.StreamErrorCodes
 import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.error.StreamErrorType
@@ -72,6 +73,13 @@ class StreamingManagerDelegate(
     private var streamJob: Job? = null
     private var streamingUpdateJob: Job? = null
     private val streamingBuffer = StringBuilder()
+
+    /**
+     * The reply's reasoning so far, kept apart from [streamingBuffer] so the live bubble can show
+     * it in a collapsed Thinking block — the same place the persisted message renders its THINK
+     * parts — instead of as body text. Shares [streamingBufferDirty] and the flush.
+     */
+    private val thinkingBuffer = StringBuilder()
     private var streamingBufferDirty = false
     private var wasStreaming = false
 
@@ -83,6 +91,27 @@ class StreamingManagerDelegate(
      * [resumeStream]).
      */
     private var streamOriginAccountId: AccountId? = null
+
+    /**
+     * A retry-ceiling report (`RETRY_EXHAUSTED` / `STATUS_RETRY_EXHAUSTED`) on the current session,
+     * adjudicated when its flow completes (see [StreamEndReason]). Per session.
+     */
+    private var retryCeiling: RetryCeiling? = null
+
+    /**
+     * What an exhausted retry ladder reported. [networkWhenUnreachable]: whether, if the status read
+     * fails too, the end is a network error (the transport ladder — the connectivity observer can
+     * recover it) or [message] as it stands (a persistent HTTP status — something answered).
+     */
+    private class RetryCeiling(val message: String, val networkWhenUnreachable: Boolean)
+
+    /**
+     * Whether the current run already re-attached after a retry ceiling. Per run, not per session —
+     * the re-attach starts a new session — so a run the server calls active but that no connection
+     * can reach ends with an error rather than looping status check, resume, ceiling forever. Reset
+     * wherever an attach begins: [beginStreaming] for a local send, [attachToRun] for the rest.
+     */
+    private var reattachedAfterCeiling = false
 
     /** Tracks whether the last stream failure was a network error, to enable auto-reconnect. */
     private var lastErrorWasNetwork = false
@@ -103,10 +132,18 @@ class StreamingManagerDelegate(
      * with one of these; the reason decides teardown (job cancel, state write, queue policy,
      * reload) in ONE place instead of each exit path hand-copying its own subset.
      *
-     * Not covered: a flow that completes with neither Final nor Error (a clean SSE EOF or a 404 on
-     * the stream GET). That falls to the `onTerminated` safety net the caller passes to
-     * [launchStream], which clears streaming state directly without a reason. Rare, and a known
-     * gap in the chokepoint — do not treat [endStream] as the *only* teardown path.
+     * A flow that completes with neither Final nor Error is ended here too: [launchStream] as
+     * [Reconcile], [resumeStream] as [ResumeExpired]. `SseClient` completes a flow that way only
+     * when its resume got a 404 — the job is gone, so the reply, if any, is on the server — or when
+     * the account switched mid-stream, which ends nothing here: a reload then would read the
+     * conversation with the NEW account's credentials. A body that merely closes is not that:
+     * upstream sends no heartbeat, so an idle timeout closes a live run, and `SseClient` resumes it
+     * on its own retry ladder rather than ending the flow. Do not read "the flow completed" as "the
+     * run is over" anywhere else.
+     *
+     * When that ladder runs out it reports `RETRY_EXHAUSTED`, which is not an end either: the run's
+     * state is unknown, so [adjudicateRetryCeiling] asks `/chat/status` — resume if active, the
+     * same end as a 404 if not, a network error only if the server is unreachable too.
      */
     private sealed interface StreamEndReason {
         /**
@@ -154,6 +191,10 @@ class StreamingManagerDelegate(
          * v1 client cannot tell "your turn finished, here it is" from "your turn was replaced by
          * a newer one" — and auto-firing the next queued message into the second case sends it
          * against a parent that is not what the user saw.
+         *
+         * Also how [launchStream] ends a send whose flow completed with neither Final nor Error
+         * (a clean EOF, or a reconnect's resume 404 after a network drop): the same situation
+         * without the frame saying so — the job is gone and the reply is on the server.
          */
         data object Reconcile : StreamEndReason
     }
@@ -237,9 +278,11 @@ class StreamingManagerDelegate(
         // After startStreamSession: its pendingActionDelegate.clear() drops the pin.
         pendingActionDelegate.onTurnStarted(turnSpec)
         currentTurnOptimisticUserMessageId = optimisticUserMessageId
+        reattachedAfterCeiling = false
         // Capture the origin account at stream start so a post-switch finalize attributes to it.
         streamOriginAccountId = activeAccountProvider.currentAccountId()
         streamingBuffer.clear()
+        thinkingBuffer.clear()
         streamingBufferDirty = false
         subagentTraceDelegate.reset()
         officePreviewDelegate.reset()
@@ -255,6 +298,7 @@ class StreamingManagerDelegate(
             content = content.copy(
                 isStreaming = true,
                 streamingContent = "",
+                streamingThinking = "",
                 activeToolCalls = emptyList(),
                 streamingAttachments = emptyList(),
             )
@@ -264,19 +308,27 @@ class StreamingManagerDelegate(
     }
 
     /**
-     * Cancels any in-flight stream and launches collection of [flow]. [onTerminated] runs
-     * after collection completes (success, error, or normal end) — the send paths use it as
-     * a safety net for flows that end without a Final/Error event.
+     * Cancels any in-flight stream and launches collection of [flow], and ends the session if the
+     * flow completes with neither Final nor Error (see [StreamEndReason]).
      *
      * Ordering contract: callers must have called [beginStreaming]/[prepareForStreaming] first
      * (all current callers do) — that is what bumps [streamSession], so a stale [endStream]
      * from the previous stream can no longer touch this one.
      */
-    fun launchStream(flow: Flow<StreamEvent>, onTerminated: suspend () -> Unit = {}) {
+    fun launchStream(flow: Flow<StreamEvent>) {
         streamJob?.cancel()
+        val session = streamSession
         streamJob = scope.launch {
             collectStreamSafely(flow)
-            onTerminated()
+            // Ended with neither Final nor Error: the SSE client's resume found the job gone (a 404 —
+            // the run finished while the connection was down). A body that merely closed never gets
+            // here: SseClient resumes it itself. The reply is on the server, so reconcile to it.
+            // Skipped while a Stop is pending — the abort watchdog owns that ending, and nothing
+            // reloads on an abort path. This is the only end for such a flow: a reload after the
+            // send would fire exactly when this is skipped (a new chat, with no Room observer yet),
+            // racing the save the aborted frame precedes.
+            if (isResumeStale(session) || abortRequested || originAccountChanged()) return@launch
+            endUnterminatedStream(session, whenGone = StreamEndReason.Reconcile)
         }
     }
 
@@ -291,6 +343,7 @@ class StreamingManagerDelegate(
         startStreamSession()
         stopStreamingUpdater()
         streamingBuffer.clear()
+        thinkingBuffer.clear()
         streamingBufferDirty = false
     }
 
@@ -315,6 +368,7 @@ class StreamingManagerDelegate(
         // turn's optimistic id leak into it (the un-send would remove the wrong message).
         currentTurnOptimisticUserMessageId = null
         currentTurnCreated = false
+        retryCeiling = null
     }
 
     private suspend fun collectStreamSafely(stream: Flow<StreamEvent>) {
@@ -349,7 +403,7 @@ class StreamingManagerDelegate(
                 streamingBufferDirty = true
             }
             is StreamEvent.ThinkingDelta -> {
-                streamingBuffer.append(event.chunk)
+                thinkingBuffer.append(event.chunk)
                 streamingBufferDirty = true
             }
             is StreamEvent.Final -> {
@@ -367,6 +421,15 @@ class StreamingManagerDelegate(
                 // and the reload below fetches it — so it must not reach the user as an error.
                 if (event.code == StreamErrorCodes.GENERATION_RECONCILE) {
                     endStream(StreamEndReason.Reconcile)
+                } else if (event.code == StreamErrorCodes.RETRY_EXHAUSTED ||
+                    event.code == StreamErrorCodes.STATUS_RETRY_EXHAUSTED
+                ) {
+                    // Not an end: the flow completes right after, and its completion asks the
+                    // server what became of the run. See StreamEndReason.
+                    retryCeiling = RetryCeiling(
+                        message = event.message,
+                        networkWhenUnreachable = event.code == StreamErrorCodes.RETRY_EXHAUSTED,
+                    )
                 } else {
                     endStream(StreamEndReason.StreamError(event.message, event.isNetworkError))
                 }
@@ -473,11 +536,20 @@ class StreamingManagerDelegate(
                 handle.update {
                     if (content.retryInfo != null) content = content.copy(retryInfo = null)
                 }
+                // Reasoning lives in THINK parts' `think` field, not `text`, so reading `text` alone
+                // would drop it from a resumed partial entirely.
                 val textContent = event.aggregatedContent
+                    .filter { it.type != ContentType.THINK }
                     .mapNotNull { it.text }
+                    .joinToString("")
+                val thinkingContent = event.aggregatedContent
+                    .filter { it.type == ContentType.THINK }
+                    .mapNotNull { it.think ?: it.text }
                     .joinToString("")
                 streamingBuffer.clear()
                 streamingBuffer.append(textContent)
+                thinkingBuffer.clear()
+                thinkingBuffer.append(thinkingContent)
                 streamingBufferDirty = true
 
                 // Rebuild active tool calls from the snapshot's tool_call parts so an
@@ -638,6 +710,7 @@ class StreamingManagerDelegate(
                 content = content.copy(
                     isStreaming = false,
                     streamingContent = "",
+                    streamingThinking = "",
                     activeToolCalls = emptyList(),
                     streamingAttachments = emptyList(),
                 )
@@ -666,6 +739,7 @@ class StreamingManagerDelegate(
                 content = content.copy(
                     isStreaming = false,
                     streamingContent = "",
+                    streamingThinking = "",
                     activeToolCalls = emptyList(),
                     streamingAttachments = emptyList(),
                 )
@@ -699,7 +773,12 @@ class StreamingManagerDelegate(
     private fun flushStreamingBuffer() {
         if (!streamingBufferDirty) return
         streamingBufferDirty = false
-        handle.update { content = content.copy(streamingContent = streamingBuffer.toString()) }
+        handle.update {
+            content = content.copy(
+                streamingContent = streamingBuffer.toString(),
+                streamingThinking = thinkingBuffer.toString(),
+            )
+        }
     }
 
     /**
@@ -799,8 +878,8 @@ class StreamingManagerDelegate(
     /**
      * The stream-termination chokepoint for every *event-driven* end — clean or aborted Final,
      * error, failed abort, watchdog, resume-found-expired — so teardown steps can't drift apart
-     * per exit path again. The one exception is a flow that ends with neither Final nor Error,
-     * handled by the `onTerminated` safety net (see [StreamEndReason]); keep new teardown here.
+     * per exit path again. A flow that ends with neither Final nor Error comes here too, from
+     * [launchStream] and [resumeStream] (see [StreamEndReason]); keep new teardown here.
      *
      * Latched per session: runs at most once for [session], and never for a stale session
      * (see [streamSession]). [StreamEndReason.Finalized] deliberately writes no state — the
@@ -889,6 +968,7 @@ class StreamingManagerDelegate(
                     content = content.copy(
                         isStreaming = false,
                         streamingContent = partialContent,
+                        streamingThinking = thinkingBuffer.toString(),
                         retryInfo = null,
                         activeToolCalls = emptyList(),
                         streamingAttachments = emptyList(),
@@ -921,6 +1001,7 @@ class StreamingManagerDelegate(
                         content = content.copy(
                             isStreaming = false,
                             streamingContent = partialContent,
+                            streamingThinking = thinkingBuffer.toString(),
                             retryInfo = null,
                             activeToolCalls = emptyList(),
                             streamingAttachments = emptyList(),
@@ -944,6 +1025,7 @@ class StreamingManagerDelegate(
                     content = content.copy(
                         isStreaming = false,
                         streamingContent = "",
+                        streamingThinking = "",
                         retryInfo = null,
                         activeToolCalls = emptyList(),
                         streamingAttachments = emptyList(),
@@ -958,7 +1040,7 @@ class StreamingManagerDelegate(
                 streamJob?.cancel()
                 stopStreamingUpdater()
                 handle.update {
-                    content = content.copy(isStreaming = false, streamingContent = "")
+                    content = content.copy(isStreaming = false, streamingContent = "", streamingThinking = "")
                 }
                 comparisonDelegate.endStreaming(clearContent = true)
                 // Hold rather than drain: a resume gesture must never auto-fire a queued send.
@@ -1016,7 +1098,7 @@ class StreamingManagerDelegate(
                     // NO `Final` — exactly the ending the admission fence cannot retire itself.
                     status.createdAt?.let(queueDelegate::retireAdmissionsBefore)
                     handle.update { content = content.copy(isStreaming = true) }
-                    resumeStream(conversationId)
+                    attachToRun(conversationId)
                     applyStatusPendingAction(status)
                 } else {
                     // Server confirms the job is gone: safe to wipe and reload (past the persist race).
@@ -1070,17 +1152,100 @@ class StreamingManagerDelegate(
         // that survives a reconnect still resumes against the config the run was started with.
         pendingActionDelegate.onTurnStarted(currentTurnSpec)
         streamingBuffer.clear()
+        thinkingBuffer.clear()
         streamingBufferDirty = false
         startStreamingUpdater()
         streamJob?.cancel()
         val session = streamSession
         streamJob = scope.launch {
             collectStreamSafely(chatRepository.resumeStream(conversationId))
-            // A resumed stream can complete with NEITHER Final NOR Error — a clean SSE EOF, or a
-            // 404 on the stream GET when the job was cleaned up between the status read and the
-            // subscribe. endStream never runs on those, so without this the run's steer records
-            // and any pause stay live forever, and the cursor never stops.
-            if (!isResumeStale(session)) endStream(StreamEndReason.ResumeExpired, session)
+            // A resumed stream can complete with NEITHER Final NOR Error — a 404 on the stream GET
+            // when the job was cleaned up between the status read and the subscribe (a body that
+            // merely closes is resumed by SseClient instead). endStream never runs on those, so
+            // without this the run's steer records and any pause stay live forever, and the cursor
+            // never stops.
+            if (isResumeStale(session) || originAccountChanged()) return@launch
+            endUnterminatedStream(session, whenGone = StreamEndReason.ResumeExpired)
+        }
+    }
+
+    /**
+     * Attaches to a run this client did not just start or re-attach to at a ceiling: opening a
+     * conversation with a live run (including the handed-off new chat and a server-admitted queued
+     * turn), coming back to the foreground, or the network returning. Every such attach is a fresh
+     * start for the ceiling's single re-attach — the flag is otherwise reset only by
+     * [beginStreaming], so without this a run attached this way would inherit a previous turn's
+     * spent re-attach and its first ceiling would end in an error instead of resuming. Not used by the ceiling's own
+     * re-attach, which is what the flag bounds.
+     */
+    private fun attachToRun(conversationId: String) {
+        reattachedAfterCeiling = false
+        resumeStream(conversationId)
+    }
+
+    /**
+     * The account switched since this stream started. `SseClient` stops reconnecting on a switch
+     * and completes the flow, and nothing may end it with a reload: the outgoing account's
+     * conversation would be read with the incoming account's credentials.
+     */
+    private fun originAccountChanged(): Boolean {
+        val origin = streamOriginAccountId ?: return false
+        return activeAccountProvider.currentAccountId() != origin
+    }
+
+    /**
+     * Ends a flow that completed with neither Final nor Error: as [whenGone] when its resume found
+     * the job gone, or by the run's status when the retry ladder ran out first.
+     */
+    private fun endUnterminatedStream(session: Int, whenGone: StreamEndReason) {
+        val ceiling = retryCeiling
+        retryCeiling = null
+        if (ceiling == null) endStream(whenGone, session) else adjudicateRetryCeiling(ceiling, session, whenGone)
+    }
+
+    /**
+     * The retry ladder ran out, which says nothing about the run: with no heartbeat upstream, a live
+     * run behind an idle-timing proxy exhausts it while the device is online, and a "check your
+     * network" banner there is both wrong and a dead end — the connectivity observer never fires
+     * on a network that never went away. So ask, as upstream does at its ceiling: resume a run that
+     * is active, end one that is not as [whenGone] (the refetch, no banner), and report a network
+     * error only when the status read fails too.
+     */
+    private fun adjudicateRetryCeiling(ceiling: RetryCeiling, session: Int, whenGone: StreamEndReason) {
+        val message = ceiling.message
+        val unreachable = StreamEndReason.StreamError(message, isNetwork = ceiling.networkWhenUnreachable)
+        val conversationId = handle.state.conversationId
+        if (conversationId == null) {
+            endStream(unreachable, session)
+            return
+        }
+        scope.launch {
+            val status = try {
+                chatRepository.checkStreamStatus(conversationId, steeringDelegate::reclaimParked)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Logger.w(e) { "Retry ceiling: could not check stream status" }
+                null
+            }
+            // The read can take seconds: an account switch in that window must not reload or resume
+            // the outgoing account's conversation with the incoming account's credentials.
+            if (isResumeStale(session) || abortRequested || originAccountChanged()) return@launch
+            when {
+                // The status read failed too. After the transport ladder that is a real connectivity
+                // failure, which the observer recovers once the network returns; after a persistent
+                // HTTP status it is that status error, shown as is.
+                status == null -> endStream(unreachable, session)
+                !status.active -> endStream(whenGone, session)
+                // Already re-attached once this turn and still no connection reaches it.
+                reattachedAfterCeiling -> endStream(StreamEndReason.StreamError(message, isNetwork = false), session)
+                else -> {
+                    reattachedAfterCeiling = true
+                    status.createdAt?.let(queueDelegate::retireAdmissionsBefore)
+                    resumeStream(conversationId)
+                    applyStatusPendingAction(status)
+                }
+            }
         }
     }
 
@@ -1135,10 +1300,19 @@ class StreamingManagerDelegate(
         // can't race into two resumes, and a pending Stop is never overridden by a restart.
         if (abortRequested) return
         val session = streamSession
+        // An attach usually starts from an ENDED session — the previous turn finished, which is
+        // exactly when a server-admitted queued turn arrives — so "ended" cannot by itself mean
+        // stale, as it does for the callers that capture a live session. What is stale: a newer
+        // session started during the read (a local send won), or a session that was live at the
+        // start ended during it (its Final or aborted frame landed; resuming would resurrect it).
+        // Not isResumeStale: it reads the already-ended session as stale and would drop every
+        // such attach.
+        val endedAtStart = isSessionEnded()
         scope.launch {
             try {
                 val status = chatRepository.checkStreamStatus(conversationId, steeringDelegate::reclaimParked)
-                if (isResumeStale(session) || abortRequested) return@launch
+                val superseded = streamSession != session || (!endedAtStart && isSessionEnded())
+                if (superseded || abortRequested) return@launch
                 if (status.active) {
                     // The server only starts a run once the previous turn has finished, so a live
                     // one is proof every boundary before it is done. That is the only evidence the
@@ -1152,7 +1326,7 @@ class StreamingManagerDelegate(
                             screenState = ChatScreenState.ACTIVE,
                         )
                     }
-                    resumeStream(conversationId)
+                    attachToRun(conversationId)
                     applyStatusPendingAction(status)
                 } else {
                     onInactive()
@@ -1220,7 +1394,7 @@ class StreamingManagerDelegate(
                         )
                         error = null
                     }
-                    resumeStream(conversationId)
+                    attachToRun(conversationId)
                     applyStatusPendingAction(status)
                 } else {
                     // Stream expired while offline — reload conversation from server

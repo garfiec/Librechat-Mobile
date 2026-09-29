@@ -26,6 +26,14 @@ class ServerErrorCodeTest {
         // packages/api/src/mcp/errors.ts:
         //   OAUTH_SECRET_REENTRY_REQUIRED: 'MCP_OAUTH_SECRET_REENTRY_REQUIRED'
         assertEquals("MCP_OAUTH_SECRET_REENTRY_REQUIRED", ServerErrorCode.OAUTH_SECRET_REENTRY_REQUIRED)
+        //   API_KEY_REENTRY_REQUIRED: 'MCP_API_KEY_REENTRY_REQUIRED' (v0.8.8-rc4)
+        assertEquals("MCP_API_KEY_REENTRY_REQUIRED", ServerErrorCode.API_KEY_REENTRY_REQUIRED)
+    }
+
+    @Test
+    fun reads_the_api_key_reentry_code_off_the_mcp_error_body() {
+        val body = """{"error":"MCP_API_KEY_REENTRY_REQUIRED","message":"Re-enter apiKey.key when changing API key credential binding fields: url"}"""
+        assertEquals(ServerErrorCode.API_KEY_REENTRY_REQUIRED, ServerErrorCode.from(body))
     }
 
     @Test
@@ -95,5 +103,56 @@ class ServerErrorCodeTest {
         assertNull(ServerErrorCode.from("""{"message":"plain failure"}"""))
         // A non-primitive value must degrade rather than throw.
         assertNull(ServerErrorCode.from("""{"code":{"nested":"value"},"error":{"nested":"value"}}"""))
+    }
+
+    @Test
+    fun reads_the_specific_messages_off_a_validation_refusal() {
+        // The MCP write routes' schema failure: one generic headline, the real reasons under errors[].
+        val body = """{"message":"Invalid configuration","errors":[
+            {"code":"custom","path":["oauth"],"message":"OAuth client_secret with client_id requires both authorization_url and token_url"},
+            {"code":"custom","path":["oauth"],"message":"OAuth client_secret with client_id requires both authorization_url and token_url"},
+            {"code":"invalid_string","path":["url"],"message":"  "},
+            "not an issue",
+            {"code":"x","message":{"nested":true}}
+        ]}"""
+        assertEquals(
+            listOf("OAuth client_secret with client_id requires both authorization_url and token_url"),
+            ServerErrorCode.validationMessages(body),
+        )
+    }
+
+    @Test
+    fun a_body_without_issues_has_no_validation_messages() {
+        assertEquals(emptyList(), ServerErrorCode.validationMessages("""{"message":"Invalid configuration"}"""))
+        assertEquals(emptyList(), ServerErrorCode.validationMessages("""{"errors":"nope"}"""))
+        assertEquals(emptyList(), ServerErrorCode.validationMessages("<html>"))
+        assertEquals(emptyList(), ServerErrorCode.validationMessages(null))
+    }
+
+    @Test
+    fun reads_the_servers_sentence_off_a_coded_refusal() {
+        val body = """{"error":"MCP_DOMAIN_NOT_ALLOWED","message":"Domain \"http://evil.example.org\" is not allowed"}"""
+        assertEquals("Domain \"http://evil.example.org\" is not allowed", ServerErrorCode.codedMessage(body))
+    }
+
+    @Test
+    fun an_uncoded_or_messageless_body_has_no_coded_message() {
+        // No code: an arbitrary body, not the server's typed envelope.
+        assertNull(ServerErrorCode.codedMessage("""{"message":"Invalid configuration","errors":[]}"""))
+        assertNull(ServerErrorCode.codedMessage("""{"error":"MCP_DOMAIN_NOT_ALLOWED","message":"  "}"""))
+        assertNull(ServerErrorCode.codedMessage("""{"error":"MCP_DOMAIN_NOT_ALLOWED"}"""))
+        assertNull(ServerErrorCode.codedMessage("""{"error":{"type":"x"},"message":"m"}"""))
+        assertNull(ServerErrorCode.codedMessage("<html>403</html>"))
+    }
+
+    @Test
+    fun a_code_prefix_keeps_a_proxys_framework_error_out() {
+        // Same two keys as the MCP envelope, but the "code" is an HTTP reason phrase.
+        val proxy = """{"error":"Forbidden","message":"Request to https://internal.example/x?token=1 blocked"}"""
+        assertNull(ServerErrorCode.codedMessage(proxy, codePrefix = "MCP_"))
+        assertEquals(
+            "Domain is not allowed",
+            ServerErrorCode.codedMessage("""{"error":"MCP_DOMAIN_NOT_ALLOWED","message":"Domain is not allowed"}""", "MCP_"),
+        )
     }
 }

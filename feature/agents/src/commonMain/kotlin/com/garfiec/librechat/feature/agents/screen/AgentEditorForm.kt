@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -81,6 +82,28 @@ internal fun AgentEditorForm(
     onShowToolDialog: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    uiState.pendingFileRemoval?.let { pending ->
+        AlertDialog(
+            onDismissRequest = viewModel::dismissAgentFileRemoval,
+            title = {
+                Text(
+                    pending.filename?.takeIf { it.isNotBlank() }
+                        ?.let { stringResource(Res.string.agent_file_remove_confirm_title, it) }
+                        ?: stringResource(Res.string.agent_file_remove_confirm_title_generic),
+                )
+            },
+            text = { Text(stringResource(Res.string.agent_file_remove_confirm_message)) },
+            confirmButton = {
+                TextButton(onClick = viewModel::confirmAgentFileRemoval) {
+                    Text(stringResource(Res.string.remove))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissAgentFileRemoval) { Text(stringResource(Res.string.cancel)) }
+            },
+        )
+    }
+
     Column(
         modifier = modifier
             .imePadding()

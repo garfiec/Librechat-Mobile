@@ -3,6 +3,7 @@ package com.garfiec.librechat.core.data.repository
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
+import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.onApiDispatcher
 import com.garfiec.librechat.core.common.result.safeApiCall
@@ -35,14 +36,28 @@ class RoleRepositoryImpl(
         // null and never re-prime. Re-primes per account; PermissionGate's permissive default covers the
         // gap until this lands or the live fetch repopulates.
         applicationScope.launch {
+            var primed = false
             activeAccountProvider.state
                 .mapNotNull { (it as? AccountState.Resolved)?.id }
                 .distinctUntilChanged()
-                .collect { cacheDataStore.load()?.let { role -> _userPermissions.value = role } }
+                .collect {
+                    val cached = cacheDataStore.load()
+                    // On a switch the incoming account's cache replaces the role even when it has
+                    // none: priming only a non-null value would leave the OUTGOING account's
+                    // permissions gating the new one until a fetch landed (and for good if it failed). Null is
+                    // the permissive default PermissionGate already handles for the gap. The first
+                    // resolution at cold start keeps the old rule and never clears.
+                    if (primed || cached != null) _userPermissions.value = cached
+                    primed = true
+                }
         }
     }
 
     override suspend fun fetchUserRole(): Result<UserRolePermissions> {
+        // The account this fetch is for. Captured before the first suspension: a switch while it is
+        // in flight must not let the outgoing account's role gate the incoming one — nor land in the
+        // incoming account's cache slot, since the cache resolves the account when it saves.
+        val origin = activeAccountProvider.currentAccountId()
         val userResult = userRepository.getUser()
         val user = when (userResult) {
             is Result.Success -> userResult.data
@@ -54,6 +69,10 @@ class RoleRepositoryImpl(
             // Not safeApiCall: the catch below falls back to the cached role rather than mapping
             // the failure. The hop is still needed (#326).
             val role = onApiDispatcher { rolesApi.getRole(user.role) }
+            if (activeAccountProvider.currentAccountId() != origin) {
+                Logger.w { "fetchUserRole: account changed while in flight, dropping the result" }
+                return Result.Error(message = "Account changed while the role was loading")
+            }
             _userPermissions.value = role
             cacheDataStore.save(role)
             Result.Success(role)

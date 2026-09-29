@@ -229,4 +229,67 @@ class NavigatorTest {
             navigator.backStack.toList(),
         )
     }
+
+    /**
+     * An account flip must not hand the new account the old account's landing. Nav3 keeps an
+     * entry's ViewModelStore until its key leaves the back stack; a reset that put an EQUAL landing
+     * back kept the outgoing account's ChatViewModel alive — its model and another server's agents
+     * in the selector until a cold start.
+     */
+    @Test
+    fun `an account flip resets to a landing that is a different entry`() {
+        val navigator = createNavigator(NewChat(accountScope = "srv:user-a"), Chat("conv-a"))
+        val before = navigator.backStack.single { it is NewChat }
+
+        navigator.navigateToChat(accountScope = "srv:user-b")
+
+        assertEquals(listOf<NavKey>(NewChat(accountScope = "srv:user-b")), navigator.backStack.toList())
+        assertTrue(navigator.backStack.single() != before)
+    }
+
+    /** The first flip after a cold start, whose landing carries no scope yet. */
+    @Test
+    fun `an account flip from an unscoped landing is a different entry too`() {
+        val navigator = createNavigator(NewChat())
+
+        navigator.navigateToChat(accountScope = "srv:user-b")
+
+        assertTrue(navigator.backStack.single() != NewChat())
+    }
+
+    /**
+     * New chat on the landing right after a flip. The landing is scoped to the account and every
+     * New chat caller passes an unscoped NewChat(); read as a different route, the tap replaced the
+     * landing — a new entry, a new ViewModel, and the model the user had just picked was gone.
+     */
+    @Test
+    fun `New chat on a scoped landing is a no-op`() {
+        val landing = NewChat(accountScope = "srv:user-b")
+        val navigator = createNavigator(landing)
+
+        navigator.navigateToTopLevel(NewChat())
+
+        assertEquals(listOf<NavKey>(landing), navigator.backStack.toList())
+    }
+
+    /** From a conversation it pops back to the scoped landing and keeps it, not a fresh one. */
+    @Test
+    fun `New chat from a conversation returns to the scoped landing`() {
+        val landing = NewChat(accountScope = "srv:user-b")
+        val navigator = createNavigator(landing, Chat("conv-b"))
+
+        navigator.navigateToTopLevel(NewChat())
+
+        assertEquals(listOf<NavKey>(landing), navigator.backStack.toList())
+    }
+
+    /** A payload still replaces the scoped landing, as it replaces a bare one (see F2). */
+    @Test
+    fun `a payload-carrying NewChat still replaces a scoped landing`() {
+        val navigator = createNavigator(NewChat(accountScope = "srv:user-b"))
+
+        navigator.navigateToTopLevel(NewChat(agentId = "agent_X"))
+
+        assertEquals(listOf<NavKey>(NewChat(agentId = "agent_X")), navigator.backStack.toList())
+    }
 }

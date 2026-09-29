@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.common.result.FailureKind
 import com.garfiec.librechat.core.common.result.message
 import com.garfiec.librechat.core.logging.Diag
 import com.garfiec.librechat.core.logging.LogOrigin
+import com.garfiec.librechat.core.model.StreamErrorCodes
 import com.garfiec.librechat.core.model.StreamEvent
 import io.ktor.http.HttpStatusCode
 import io.ktor.utils.io.ByteChannel
@@ -78,7 +79,6 @@ class SseClient(
                     val pumpJob = launch {
                         try {
                             transport.stream(streamPath, shouldResume).collect { bytes ->
-                                attempt = 0
                                 byteChannel.writeFully(bytes)
                             }
                             byteChannel.flushAndClose()
@@ -96,8 +96,16 @@ class SseClient(
                             // frame expands to a snapshot + its buffered pendingEvents),
                             // so map to a list and emit each in order.
                             mapper.mapFrame(sseEvent).forEach { streamEvent ->
+                                // Progress is a parsed event, not a byte: a 200 that carries any
+                                // body and closes (a captive portal, a misconfigured proxy) must
+                                // climb the ladder, while a live run that answers each reconnect
+                                // with a sync frame stays attached however often it is dropped.
+                                attempt = 0
                                 emit(streamEvent)
-                                if (streamEvent is StreamEvent.Final) {
+                                // The run's own end. An in-band error is one too: the server
+                                // closes after it, and a reconnect would only resume a run that
+                                // has already reported its end.
+                                if (streamEvent is StreamEvent.Final || streamEvent is StreamEvent.Error) {
                                     done = true
                                 }
                             }
@@ -106,57 +114,86 @@ class SseClient(
                         pumpJob.cancel()
                     }
                 }
-                done = true
-            } catch (e: SseHttpStatusException) {
-                when (e.statusCode) {
-                    HttpStatusCode.NotFound.value -> {
+                if (!done) {
+                    // The body ended without the run's end. Not proof the job is gone: upstream
+                    // sends no heartbeat, so a proxy or CDN idle timeout during a long tool call or
+                    // a human-review pause closes a live stream, and the server's own `res.destroy()`
+                    // on a publication failure asks the client to reconnect. Treated like any other
+                    // drop, as upstream's transport-failure ladder does: resume, and let the resume
+                    // decide — a sync frame if the run is live, a final frame or a 404 if it is not.
+                    Diag.w(
+                        "SSE",
+                        origin = LogOrigin.NETWORK,
+                        attrs = mapOf("attempt" to attempt.toString()),
+                    ) { "SSE stream closed without a final frame" }
+                    attempt++
+                    if (attempt > maxRetries) {
+                        // Not a network error: the connections kept succeeding, so the device is
+                        // most likely online. The consumer adjudicates by the run's status.
+                        emit(
+                            StreamEvent.Error(
+                                message = "Lost the connection to the reply. Please try again.",
+                                code = StreamErrorCodes.RETRY_EXHAUSTED,
+                            ),
+                        )
                         done = true
                     }
-
-                    HttpStatusCode.Unauthorized.value -> {
-                        Diag.w(
-                            "SSE",
-                            origin = LogOrigin.SERVER,
-                            attrs = mapOf(
-                                "status" to e.statusCode.toString(),
-                                "attempt" to attempt.toString(),
-                            ),
-                        ) { "SSE 401 Unauthorized" }
-                        emit(StreamEvent.Error(message = "Unauthorized", code = "401"))
-                        done = true
-                    }
-
-                    else -> {
-                        Diag.w(
-                            "SSE",
-                            origin = LogOrigin.SERVER,
-                            attrs = mapOf(
-                                "status" to e.statusCode.toString(),
-                                "attempt" to attempt.toString(),
-                            ),
-                        ) { "SSE unexpected status" }
-                        attempt++
-                    }
-                }
-            } catch (e: SseStreamException) {
-                Diag.w(
-                    "SSE",
-                    origin = LogOrigin.NETWORK,
-                    throwable = e,
-                    attrs = mapOf("attempt" to attempt.toString()),
-                ) { "SSE I/O error" }
-                attempt++
-                if (attempt > maxRetries) {
-                    emit(StreamEvent.Error(message = "Connection lost. Please check your network and try again.", isNetworkError = true))
-                    done = true
                 }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 // Cause chain, never a type-exact `catch`: the transport reports by cancelling the
-                // byte channel, which Ktor re-throws wrapped, and which form arrives is a race.
+                // byte channel, which Ktor re-throws wrapped, and which form arrives is a race. That
+                // holds for an HTTP status, the gateway, and an I/O error alike: read type-exactly, a
+                // wrapped 404 — a resumed run that already finished — is retried as a network drop,
+                // so the stream never ends and the finished reply is never refetched.
+                val status = e.httpStatusCause()
                 val gateway = e.accessGatewayCause()
-                if (gateway != null) {
+                val ioError = e.sseStreamCause()
+                if (status != null) {
+                    when (status.statusCode) {
+                        HttpStatusCode.NotFound.value -> {
+                            done = true
+                        }
+
+                        HttpStatusCode.Unauthorized.value -> {
+                            Diag.w(
+                                "SSE",
+                                origin = LogOrigin.SERVER,
+                                attrs = mapOf(
+                                    "status" to status.statusCode.toString(),
+                                    "attempt" to attempt.toString(),
+                                ),
+                            ) { "SSE 401 Unauthorized" }
+                            emit(StreamEvent.Error(message = "Unauthorized", code = "401"))
+                            done = true
+                        }
+
+                        else -> {
+                            Diag.w(
+                                "SSE",
+                                origin = LogOrigin.SERVER,
+                                attrs = mapOf(
+                                    "status" to status.statusCode.toString(),
+                                    "attempt" to attempt.toString(),
+                                ),
+                            ) { "SSE unexpected status" }
+                            attempt++
+                            if (attempt > maxRetries) {
+                                // Something answered, so this is not a connectivity problem: no
+                                // isNetworkError, which would arm an observer that never fires.
+                                // Tagged so the consumer asks whether the run is still live first.
+                                emit(
+                                    StreamEvent.Error(
+                                        message = "The server returned an error (HTTP ${status.statusCode}). Please try again.",
+                                        code = StreamErrorCodes.STATUS_RETRY_EXHAUSTED,
+                                    ),
+                                )
+                                done = true
+                            }
+                        }
+                    }
+                } else if (gateway != null) {
                     Diag.w(
                         "SSE",
                         origin = LogOrigin.NETWORK,
@@ -166,6 +203,27 @@ class SseClient(
                     // Terminal — every remaining attempt would be rejected by the same gateway.
                     emit(StreamEvent.Error(message = FailureKind.AccessGateway.message()))
                     done = true
+                } else if (ioError != null) {
+                    Diag.w(
+                        "SSE",
+                        origin = LogOrigin.NETWORK,
+                        throwable = ioError,
+                        attrs = mapOf("attempt" to attempt.toString()),
+                    ) { "SSE I/O error" }
+                    attempt++
+                    if (attempt > maxRetries) {
+                        // Tagged as exhausted so the consumer asks the server whether the run is
+                        // still live before blaming the network; isNetworkError stays for a
+                        // consumer that cannot, since an I/O failure is the likelier offline case.
+                        emit(
+                            StreamEvent.Error(
+                                message = "Connection lost. Please check your network and try again.",
+                                code = StreamErrorCodes.RETRY_EXHAUSTED,
+                                isNetworkError = true,
+                            ),
+                        )
+                        done = true
+                    }
                 } else {
                     Diag.w(
                         "SSE",
@@ -232,6 +290,31 @@ private fun Throwable.accessGatewayCause(): AccessGatewayException? {
     repeat(CAUSE_TRAVERSAL_LIMIT) {
         val error = current ?: return null
         if (error is AccessGatewayException) return error
+        current = error.cause?.takeIf { it !== error }
+    }
+    return null
+}
+
+/**
+ * The [SseStreamException] at or beneath this throwable, or null. Same shape as [accessGatewayCause]:
+ * the iOS transport closes with one from the pump side, which can reach the loop wrapped.
+ */
+private fun Throwable.sseStreamCause(): SseStreamException? {
+    var current: Throwable? = this
+    repeat(CAUSE_TRAVERSAL_LIMIT) {
+        val error = current ?: return null
+        if (error is SseStreamException) return error
+        current = error.cause?.takeIf { it !== error }
+    }
+    return null
+}
+
+/** The [SseHttpStatusException] at or beneath this throwable, or null. Same shape as [accessGatewayCause]. */
+private fun Throwable.httpStatusCause(): SseHttpStatusException? {
+    var current: Throwable? = this
+    repeat(CAUSE_TRAVERSAL_LIMIT) {
+        val error = current ?: return null
+        if (error is SseHttpStatusException) return error
         current = error.cause?.takeIf { it !== error }
     }
     return null

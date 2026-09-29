@@ -156,7 +156,7 @@
         "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/EndpointParameterRegistry.kt",
         "symbol": "(whole file -- per-endpoint/provider/variant parameter builders)"
       },
-      "why": "Which generation parameters each endpoint, provider and Bedrock variant exposes, along with their ranges and defaults. Mirrored across the whole Kotlin registry rather than as one table, so the watch is file-level.",
+      "why": "Which generation parameters each endpoint, provider and Bedrock variant exposes, along with their ranges and defaults. Mirrored across the whole Kotlin registry rather than as one table, so the watch is file-level. Includes the model-aware pass (`applyModelAwareDefaults`), whose per-model rules return EARLY and replace the provider rules after them (rc4: Grok 4.7 effort ladder, gpt-6-sol/luna without `minimal`, Opus 5.5 hiding thinking and sampling). Not mirrored, deliberately: the gpt-6-sol/luna `useResponsesApi` rendered default, which upstream resolves from `/api/endpoints` `responsesApiRouting`.",
       "failure_mode": "A parameter is offered with a stale range or default, or a newly supported one is missing. Values outside the server's accepted range are rejected at send time."
     },
     {
@@ -278,10 +278,10 @@
       },
       "kotlin": {
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/error/ServerErrorCode.kt",
-        "symbol": "ServerErrorCode.OAUTH_SECRET_REENTRY_REQUIRED, .MCP_AUTHENTICATION_REJECTED, .MCP_AUTHENTICATION_REFRESH_FAILED"
+        "symbol": "ServerErrorCode.OAUTH_SECRET_REENTRY_REQUIRED, .API_KEY_REENTRY_REQUIRED, .MCP_AUTHENTICATION_REJECTED, .MCP_AUTHENTICATION_REFRESH_FAILED"
       },
-      "why": "Three literals transcribed out of one upstream block, so the block is what is watched. `MCP_OAUTH_SECRET_REENTRY_REQUIRED` turns a 400 on the save path into a re-enter-your-secret prompt rather than a generic failure; the wire value carries an `MCP_` prefix that upstream's TypeScript member name drops, so it cannot be derived from the member name. `MCP_AUTHENTICATION_REJECTED` and `MCP_AUTHENTICATION_REFRESH_FAILED` (v0.8.8-rc2) are what tell a lapsed OAuth authorization apart from a server that is simply down, which is what decides whether the user is offered re-authorization or an error.",
-      "failure_mode": "A renamed re-entry code makes that prompt unreachable: the save reports a plain 'could not save' and the user never learns the stored secret is what must be re-supplied, so the write keeps failing forever. A renamed authentication code degrades to the generic failure, so a server whose authorization merely lapsed is reported as broken and the one action that would fix it is never offered. Reconcile all three when this entry reports drift -- they arrive together and only one of them names itself in the Kotlin file's own comments."
+      "why": "Four literals transcribed out of one upstream block, so the block is what is watched. `MCP_OAUTH_SECRET_REENTRY_REQUIRED` and (v0.8.8-rc4) `MCP_API_KEY_REENTRY_REQUIRED` turn a 400 on the save path into a re-enter-your-secret / re-enter-your-key prompt rather than a generic failure; both wire values carry an `MCP_` prefix that upstream's TypeScript member names drop, so neither can be derived from its member name. `MCP_AUTHENTICATION_REJECTED` and `MCP_AUTHENTICATION_REFRESH_FAILED` (v0.8.8-rc2) are what tell a lapsed OAuth authorization apart from a server that is simply down, which is what decides whether the user is offered re-authorization or an error.",
+      "failure_mode": "A renamed re-entry code makes its prompt unreachable: the save reports a plain 'could not save' and the user never learns the stored secret or key is what must be re-supplied, so the write keeps failing forever. A renamed authentication code degrades to the generic failure, so a server whose authorization merely lapsed is reported as broken and the one action that would fix it is never offered. Reconcile all four when this entry reports drift -- they arrive together. Both save paths (McpViewModel and McpServerDelegate) read the re-entry codes through one classifier, feature/settings/.../viewmodel/McpSaveFailure.kt."
     },
     {
       "id": "refresh-403-rejection-bodies",
@@ -389,10 +389,23 @@
       },
       "kotlin": {
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/trace/TraceGrouping.kt",
-        "symbol": "summarizeTrace / buildRows"
+        "symbol": "summarizeTrace / groupTraceRecords / TraceGraph (parents, cycles, per-turn cost)"
       },
-      "why": "Two display rules that exist only in the web client and are never served. (1) The cost total is withheld unless something was priced AND every generation was -- a total that silently skips an unpriced model call would under-report spend and looks identical to a real one. (2) A `parentId` counts only when it names a loaded record in the SAME turn, and parent cycles are cut, so a partial page's dangling parent becomes a root rather than vanishing. Watched file-level rather than by block: both rules live inside buildTraceModel/resolveParents bodies with no smaller exported symbol around them, and the flatten/filter half of the file is deliberately not ported. Consequence: unrelated churn in the timeline or filter code reports DRIFT -- check the two rules, not the file, before investigating.",
-      "failure_mode": "The cost rule going stale is the dangerous one and it is invisible: a number still renders, it is just smaller than what was spent. The tree rule going stale drops or duplicates rows on a paged trace, which at least looks wrong."
+      "why": "Display rules that exist only in the web client and are never served. (1) Cost is withheld unless something was priced AND every generation was -- a total that silently skips an unpriced model call would under-report spend and looks identical to a real one. Since v0.8.8-rc4 a TURN's cost is also withheld when the turn is not known to be whole: it is `split` (a non-title record cites an unloaded parent) or it is the oldest loaded turn while older pages remain. (2) A `parentId` counts only when it names a loaded record in the SAME turn, and parent cycles are cut, so a partial page's dangling parent becomes a root rather than vanishing. Label-role generations count as labels, not generations. The simple view's step grouping, from the same upstream file, is watched separately by trace-step-grouping. Watched file-level rather than by block: these rules live inside buildTraceModel/resolveParents bodies, and the flatten/filter/window half of the file (timeline scales, zoom, search, chart lanes) is deliberately not ported. Consequence: churn in that half reports DRIFT -- check the rules above, not the file, before investigating.",
+      "failure_mode": "The cost rules going stale is the dangerous case and it is invisible: a number still renders, it is just smaller than what was spent. The tree rules going stale drop or duplicate rows on a paged trace, which at least looks wrong -- but only on a conversation long enough to page."
+    },
+    {
+      "id": "trace-step-grouping",
+      "upstream": {
+        "file": "client/src/components/Chat/Trace/model.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/trace/TraceSteps.kt",
+        "symbol": "TraceStepGrouping (isListed / nearestStepAncestor / stepsOf / step / laneOf / branchOf) + TraceGraph.privateWrappers in TraceGrouping.kt"
+      },
+      "why": "The v0.8.8-rc4 simple view: which records are listed (`isListed`), what each hangs under (`nearestStepAncestor`), which are step roots (`stepRoots`), and how roots group into steps (`groupSteps`) -- including the lane logic (`privateWrappers`, `laneOf`/`branchOf`, the single-waiting-model-call attribution) that keeps a page cut from misfiling steps, the per-step spend dedupe (`counted`), and the tool-round rule that counts a round's `tools` names only when it recorded no tool of its own. Split from trace-summary-and-tree-rules so a drift report names the Kotlin file these rules live in. Watched file-level for the same reason as that entry, with the same consequence: unported timeline/search churn reports DRIFT, so check these functions, not the file.",
+      "failure_mode": "Steps misfiled, duplicated or split on a paged trace, tool counts off, or a step's cost double-counted -- all of which read as plausible numbers. Only a conversation long enough to page, with parallel agents or a cut inside a model call's wrappers, shows most of it."
     },
     {
       "id": "prompt-cache-model-patterns",
@@ -489,7 +502,7 @@
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/error/StreamErrorType.kt",
         "symbol": "StreamErrorType.parse / balancedObjectAt / identifier"
       },
-      "why": "How the typed identifier is found in a stream-error message, which is NOT simply 'parse the message': rc2's terminal-run handler composes prose followed by the payload, so the payload is embedded, and the identifier arrives under `code` or `type`, at the top level or inside an `error` envelope (client/src/components/Messages/Content/Error/index.tsx reads `readString(json,'code') ?? readString(json,'type')` then unwraps `error`). The Kotlin side deliberately WIDENS upstream twice -- it walks every balanced run rather than only the first, and it skips quoted braces -- so prose braces and a `{` inside a string value cannot lose a well-formed payload. Neither divergence can classify a code `byWire` does not already name. **Watch the resolution ORDER too, not only the extraction**: upstream gates the `error` envelope on `topLevelKey == null`, so a top-level `code`/`type` it does not recognize is FINAL and degrades to the provider's own sentence. The Kotlin side mirrors that by reading the identifier as a STRING and consulting `byWire` once, at the end; resolving through the table first and searching on for a hit reports a content-filter block for an ordinary invalid-request error, and no extraction diff would show it.",
+      "why": "How the typed identifier is found in a stream-error message, which is NOT simply 'parse the message': rc2's terminal-run handler composes prose followed by the payload, so the payload is embedded, and the identifier arrives under `code` or `type`, at the top level or inside an `error` envelope (client/src/components/Messages/Content/Error/index.tsx reads `readString(json,'code') ?? readString(json,'type')` then unwraps `error`). The Kotlin side skips quoted braces, as upstream's `extractJson` also does since v0.8.8-rc4, so a `{` inside a string value cannot lose a well-formed payload; and it deliberately WIDENS upstream once -- it walks every balanced run rather than only the first, so prose braces before the payload cannot hide it. That divergence cannot classify a code `byWire` does not already name. Since rc4 the same walk also feeds `upstreamModelErrorDetail`, which reads the provider's `status`/`message` off an `upstream_model_error` payload. **Watch the resolution ORDER too, not only the extraction**: upstream gates the `error` envelope on `topLevelKey == null`, so a top-level `code`/`type` it does not recognize is FINAL and degrades to the provider's own sentence. The Kotlin side mirrors that by reading the identifier as a STRING and consulting `byWire` once, at the end; resolving through the table first and searching on for a hit reports a content-filter block for an ordinary invalid-request error, and no extraction diff would show it.",
       "failure_mode": "Upstream changes where the identifier lives, or stops prefixing prose, and a mapped error type stops classifying -- the raw JSON payload is rendered into the assistant message body and the end-of-run snackbar instead of the actionable sentence. Nothing throws: `parse` returning null IS the documented degrade path, so the regression is indistinguishable from an unrecognized code."
     },
     {
@@ -700,6 +713,173 @@
       },
       "why": "The embedded SSO WebView hardcodes the browser OAuth round-trip's shape: it loads `{server}/oauth/{provider}` and decides the round-trip is over by matching `{server}/oauth/{provider}/callback`. The mount point, the per-provider callback paths and whether a provider returns by GET or by form_post all live in this router and are never described to the client. Watched as a whole file because the shape is spread across the router rather than held in one table.",
       "failure_mode": "Silent. If upstream remounts the router or renames a callback path, the gate never arms: the post-callback page loads, the web app's silentRefresh() races the app's own refresh and rotates the token, and the loser gets a 401 that reads as a server bug. If the start path moves, the WebView opens a 404 instead of a provider. Nothing fails to decode and no request errors."
+    },
+    {
+      "id": "wakeup-background-header",
+      "upstream": {
+        "file": "packages/api/src/agents/backgroundCompletionWakeup.ts",
+        "symbol": "buildWakeupInput",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/wakeup/WakeupMessage.kt",
+        "symbol": "WakeupMessage.BACKGROUND_HEADER / backgroundTask"
+      },
+      "why": "The server resumes a run after background tool tasks settle by saving a USER message: this function's header sentence (singular and plural forms) followed by a JSON array line. The client recognizes the turn only by matching that header exactly and reading the array, so the two sentences and the line layout are transcribed into a regex. Upstream's client regex (client/src/components/Chat/Messages/Content/Parts/wakeup.ts) is itself a copy of these strings; the server is the source.",
+      "failure_mode": "A reworded header or a changed layout makes every background-task wake-up render as a user bubble containing model-facing prompt JSON the user never typed. Nothing fails to parse -- `parse` returning null is the ordinary-message path."
+    },
+    {
+      "id": "wakeup-subagent-header",
+      "upstream": {
+        "file": "packages/api/src/agents/subagentCompletionWakeup.ts",
+        "symbol": "renderWakeupInput",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/wakeup/WakeupMessage.kt",
+        "symbol": "WakeupMessage.SUBAGENT_HEADER / subagentTask"
+      },
+      "why": "The subagent counterpart of wakeup-background-header: a header naming the terminal status, then one JSON object line (background_task_id, subagent_thread_id, subagent_type, status, result). The header's status must equal the payload's, and the client checks that.",
+      "failure_mode": "Same as wakeup-background-header, for detached subagent completions: the wake-up renders as a user bubble of raw prompt text."
+    },
+    {
+      "id": "wakeup-background-payload",
+      "upstream": {
+        "file": "packages/data-provider/src/backgroundResults.ts",
+        "symbol": "backgroundResultMetadata",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/wakeup/WakeupMessage.kt",
+        "symbol": "WakeupMessage.backgroundTask"
+      },
+      "why": "The per-task field names of the background wake-up payload (background_task_id, tool_call_id, tool, status, result). The client requires every one of them, typed, before it will treat the turn as a system event.",
+      "failure_mode": "A renamed or retyped field fails the strict shape check, so every background wake-up falls back to a user bubble of raw JSON."
+    },
+    {
+      "id": "trace-record-roles",
+      "upstream": {
+        "file": "packages/data-provider/src/types/traces.ts",
+        "symbol": "TTraceRecordRole",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/trace/TraceRecord.kt",
+        "symbol": "TraceRole (+ LABEL_ROLES in TraceGrouping.kt)"
+      },
+      "why": "The v0.8.8-rc4 role literals the trace step grouping branches on: `plumbing` and `model` decide which unloaded parents are private wrappers, `tools` marks a round of tool calls, and the three label roles move a model call out of Generations into Labels. Held as raw Strings, like trace-record-kinds, so a renamed role degrades instead of failing the page -- which is also what keeps a rename from surfacing. The `origin: 'title'` literal lives in the same file's TTraceRecord and is covered by the two model.ts file watches that read it.",
+      "failure_mode": "A renamed role stops matching: label calls count as generations and start steps, tool rounds stop naming their tools, and a page cut inside a model call's wrappers misfiles its steps. Every number still renders."
+    },
+    {
+      "id": "skill-import-failure-codes",
+      "upstream": {
+        "file": "packages/data-provider/src/types/skills.ts",
+        "symbol": "TSkillImportFailedResponse",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/response/SkillResponses.kt",
+        "symbol": "SkillImportFailedResponse.INCOMPLETE / ROLLBACK_FAILED / CLEANUP_INCOMPLETE"
+      },
+      "why": "The three `error` codes a refused archive import answers with (v0.8.8-rc4). `SkillImportFailedResponse.from` accepts a body only when its code is one of them, and the report dialog picks its sentence by code.",
+      "failure_mode": "A renamed code makes `from` return null, so the import shows the generic error instead of the per-file report and skips the list reload that surfaces a partial skill left behind by a failed rollback."
+    },
+    {
+      "id": "skill-import-failure-reasons",
+      "upstream": {
+        "file": "packages/data-provider/src/types/skills.ts",
+        "symbol": "SkillImportFailureReason",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/response/SkillResponses.kt",
+        "symbol": "SkillImportFailureReason"
+      },
+      "why": "The per-file reason codes of a refused import. The dialog localizes each one (SkillImportFailureDialog.failedFileReason) and shows the size limit for the two size reasons.",
+      "failure_mode": "A renamed or added reason renders as the generic 'Could not be imported', so the user loses the one hint (which file, which limit) that tells them how to fix the archive."
+    },
+    {
+      "id": "opus-version-parse",
+      "upstream": {
+        "file": "packages/data-provider/src/bedrock.ts",
+        "symbol": "parseOpusVersion",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/EndpointParameterRegistry.kt",
+        "symbol": "OPUS_NAME_FIRST / OPUS_NUMBER_FIRST"
+      },
+      "why": "The two model-id patterns that read an Opus major/minor version, which isOpus55Model tests. parameter-settings watches parameterSettings.ts, which only imports isOpus55Model, so a change to these patterns would not show there.",
+      "failure_mode": "Upstream starts or stops treating an id as Opus 5.5 and the client does not: it keeps offering thinking and sampling controls the server now drops, or hides ones it now honours."
+    },
+    {
+      "id": "opus-55-model-predicate",
+      "upstream": {
+        "file": "packages/data-provider/src/bedrock.ts",
+        "symbol": "isOpus55Model",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/EndpointParameterRegistry.kt",
+        "symbol": "isOpus55Model"
+      },
+      "why": "The predicate over parseOpusVersion that decides which models hide thinking, thinkingBudget, temperature, topP and topK (the hidden list itself is in parameterSettings.ts, under parameter-settings).",
+      "failure_mode": "Same as opus-version-parse: the Opus 5.5 rule applies to the wrong set of models, silently."
+    },
+    {
+      "id": "mcp-server-form-api-key",
+      "upstream": {
+        "file": "client/src/components/SidePanel/MCPBuilder/MCPServerDialog/hooks/useMCPServerForm.ts",
+        "symbol": "useMCPServerForm",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/screen/McpApiKeyForm.kt",
+        "symbol": "initialApiKeySource / apiKeyConfigFrom (+ McpApi.parseApiKeyConfig source default)"
+      },
+      "why": "What an MCP server save sends for an API key: the source an edit starts from (`source || 'admin'`), `key` only for an admin-supplied, non-blank key, and `custom_header` only for the custom type. The update route replaces the stored config, so sending a different source than the stored one rewrites the server. Watched as the whole hook; drift outside the api-key defaults and submit (toasts, delete) can be skipped.",
+      "failure_mode": "An edit resends the wrong source or a key it should omit: `user` over a stored admin key discards that key with a 200, and a key sent where upstream omits it defeats the MCP_API_KEY_REENTRY_REQUIRED check."
+    },
+    {
+      "id": "error-inline-detail-predicate",
+      "upstream": {
+        "file": "client/src/components/Messages/Content/Error/parts.tsx",
+        "symbol": "ErrorWithDetail",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/StreamErrorMessages.kt",
+        "symbol": "isInlineErrorDetail"
+      },
+      "why": "Whether a provider's message under an error headline reads in place or collapses behind 'Provider response': one line up to INLINE_DETAIL_LENGTH characters is inline, anything else collapses.",
+      "failure_mode": "The thread lays a provider message out differently from the web: a long body inline, or a sentence hidden behind a toggle."
+    },
+    {
+      "id": "error-inline-detail-length",
+      "upstream": {
+        "file": "client/src/components/Messages/Content/Error/parts.tsx",
+        "symbol": "INLINE_DETAIL_LENGTH",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/StreamErrorMessages.kt",
+        "symbol": "INLINE_DETAIL_LENGTH"
+      },
+      "why": "The threshold error-inline-detail-predicate reads, declared outside ErrorWithDetail, so that entry does not see it change.",
+      "failure_mode": "Same as error-inline-detail-predicate."
+    },
+    {
+      "id": "wakeup-client-parser",
+      "upstream": {
+        "file": "client/src/components/Chat/Messages/Content/Parts/wakeup.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/wakeup/WakeupMessage.kt",
+        "symbol": "WakeupMessage.parse / subagentTask / backgroundTask / MAX_WAKEUP_TEXT_CHARS"
+      },
+      "why": "The web client's own rules for recognizing a wake-up turn, on top of the server's headers and payload fields watched by the three wakeup-* entries: the length cap, the accepted statuses, the header-equals-payload status check, and rejecting a background turn that holds a cancelled task. The whole file is the parser, so it is watched file-level.",
+      "failure_mode": "The client classifies a turn differently from the web: a wake-up renders as a user bubble of raw prompt JSON, or a user message collapses into a system row."
     }
   ]
 }

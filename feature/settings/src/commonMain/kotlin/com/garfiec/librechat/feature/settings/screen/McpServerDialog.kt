@@ -3,14 +3,21 @@ package com.garfiec.librechat.feature.settings.screen
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -24,11 +31,14 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.mcp.McpApiKeyConfig
@@ -52,6 +62,12 @@ internal fun McpServerDialog(
      * be supplied again before this server can be written.
      */
     oauthSecretReentryRequired: Boolean,
+    /** The last save was refused with `API_KEY_REENTRY_REQUIRED`: the API key must be re-typed. */
+    apiKeyReentryRequired: Boolean,
+    /** Why the last save failed; shown here because the dialog stays open and covers the screen. */
+    saveError: String?,
+    /** A save from this dialog is in flight; Save stays disabled until it answers. */
+    isSaving: Boolean,
     onDismiss: () -> Unit,
     onSave:
     (name: String, description: String?, url: String, type: McpServerType, apiKey: McpApiKeyConfig?, oauth: McpOAuthConfig?) -> Unit,
@@ -65,6 +81,9 @@ internal fun McpServerDialog(
     // Auth state
     val initialAuthMode = remember {
         when {
+            // Upstream's form gives OBO precedence over every other auth; with no OBO choice here,
+            // "none" is where an OBO server opens, and a save from it resends the stored `obo`.
+            editingServer?.obo != null -> McpAuthMode.NONE
             editingServer?.oauth != null -> McpAuthMode.OAUTH
             editingServer?.apiKey != null -> McpAuthMode.API_KEY
             else -> McpAuthMode.NONE
@@ -79,9 +98,10 @@ internal fun McpServerDialog(
     var apiKeyCustomHeader by remember {
         mutableStateOf(editingServer?.apiKey?.customHeader ?: "")
     }
-    var apiKeyValue by remember {
-        mutableStateOf(editingServer?.apiKey?.key ?: "")
-    }
+    // Never pre-filled: reads do not return the key, and a blank key on an admin edit is what
+    // asks the server to keep the stored one. See apiKeyConfigFrom.
+    var apiKeyValue by remember { mutableStateOf("") }
+    var apiKeySource by remember { mutableStateOf(initialApiKeySource(editingServer)) }
 
     // OAuth fields
     var oauthClientId by remember { mutableStateOf(editingServer?.oauth?.clientId ?: "") }
@@ -92,6 +112,9 @@ internal fun McpServerDialog(
 
     val isEditing = editingServer != null
 
+    val apiKeyFieldRequester = remember { BringIntoViewRequester() }
+    val secretFieldRequester = remember { BringIntoViewRequester() }
+
     AlertDialog(
         modifier = modifier,
         onDismissRequest = onDismiss,
@@ -99,7 +122,27 @@ internal fun McpServerDialog(
             Text(stringResource(if (isEditing) Res.string.edit_mcp_server else Res.string.add_mcp_server))
         },
         text = {
-            Column(modifier = Modifier.imePadding().verticalScroll(rememberScrollState())) {
+            // A failed save leaves the form wherever the user scrolled it — usually the bottom, next
+            // to the button they tapped — so bring the failure into view. A re-entry refusal is
+            // told once, by the red field that has to be filled in, so that field is what is
+            // brought into view; any other failure leads the form.
+            val scrollState = rememberScrollState()
+            LaunchedEffect(saveError, apiKeyReentryRequired, oauthSecretReentryRequired) {
+                when {
+                    apiKeyReentryRequired -> apiKeyFieldRequester.bringIntoView()
+                    oauthSecretReentryRequired -> secretFieldRequester.bringIntoView()
+                    saveError != null -> scrollState.animateScrollTo(0)
+                }
+            }
+            Column(modifier = Modifier.imePadding().verticalScroll(scrollState)) {
+                if (saveError != null) {
+                    Text(
+                        text = saveError,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
+                }
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -197,6 +240,28 @@ internal fun McpServerDialog(
                 // API Key fields
                 AnimatedVisibility(visible = authMode == McpAuthMode.API_KEY) {
                     Column {
+                        // Upstream's "Each user provides their own key": unchecked, the admin's key
+                        // below is shared by every user; checked, each user is asked for theirs.
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .toggleable(
+                                    value = apiKeySource == McpApiKeySource.USER,
+                                    role = Role.Checkbox,
+                                    onValueChange = { perUser ->
+                                        apiKeySource = if (perUser) McpApiKeySource.USER else McpApiKeySource.ADMIN
+                                    },
+                                ),
+                        ) {
+                            Checkbox(checked = apiKeySource == McpApiKeySource.USER, onCheckedChange = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                stringResource(Res.string.mcp_api_key_user_provides),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
                         ApiKeyAuthTypeSelector(
                             selected = apiKeyAuthType,
                             onSelect = { apiKeyAuthType = it },
@@ -214,15 +279,26 @@ internal fun McpServerDialog(
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = apiKeyValue,
-                            onValueChange = { apiKeyValue = it },
-                            label = { Text(stringResource(Res.string.mcp_api_key_label)) },
-                            singleLine = true,
-                            visualTransformation = PasswordVisualTransformation(),
-                            modifier = Modifier.fillMaxWidth(),
-                        )
+                        // Only the admin supplies a key here; a per-user server asks each user later.
+                        AnimatedVisibility(visible = apiKeySource == McpApiKeySource.ADMIN) {
+                            Column {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                OutlinedTextField(
+                                    value = apiKeyValue,
+                                    onValueChange = { apiKeyValue = it },
+                                    label = { Text(stringResource(Res.string.mcp_api_key_label)) },
+                                    singleLine = true,
+                                    visualTransformation = PasswordVisualTransformation(),
+                                    isError = apiKeyReentryRequired,
+                                    supportingText = if (apiKeyReentryRequired) {
+                                        { Text(stringResource(Res.string.mcp_api_key_reentry_required)) }
+                                    } else {
+                                        null
+                                    },
+                                    modifier = Modifier.fillMaxWidth().bringIntoViewRequester(apiKeyFieldRequester),
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -254,7 +330,7 @@ internal fun McpServerDialog(
                             } else {
                                 null
                             },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().bringIntoViewRequester(secretFieldRequester),
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         OutlinedTextField(
@@ -289,16 +365,7 @@ internal fun McpServerDialog(
             TextButton(
                 onClick = {
                     val apiKey = if (authMode == McpAuthMode.API_KEY) {
-                        McpApiKeyConfig(
-                            source = McpApiKeySource.USER,
-                            authorizationType = apiKeyAuthType,
-                            key = apiKeyValue.trim().ifBlank { null },
-                            customHeader = if (apiKeyAuthType == McpAuthorizationType.CUSTOM) {
-                                apiKeyCustomHeader.trim().ifBlank { null }
-                            } else {
-                                null
-                            },
-                        )
+                        apiKeyConfigFrom(apiKeySource, apiKeyAuthType, apiKeyValue, apiKeyCustomHeader)
                     } else {
                         null
                     }
@@ -309,13 +376,16 @@ internal fun McpServerDialog(
                             authorizationUrl = oauthAuthUrl.trim().ifBlank { null },
                             tokenUrl = oauthTokenUrl.trim().ifBlank { null },
                             scope = oauthScope.trim().ifBlank { null },
+                            // Not editable here, but carried through: the update route replaces
+                            // the stored config and treats a dropped method as a changed binding.
+                            tokenExchangeMethod = editingServer?.oauth?.tokenExchangeMethod,
                         )
                     } else {
                         null
                     }
                     onSave(name.trim(), description.trim().ifBlank { null }, url.trim(), selectedType, apiKey, oauth)
                 },
-                enabled = name.isNotBlank() && url.isNotBlank(),
+                enabled = !isSaving && name.isNotBlank() && url.isNotBlank(),
             ) {
                 Text(stringResource(if (isEditing) Res.string.action_save else Res.string.action_add))
             }

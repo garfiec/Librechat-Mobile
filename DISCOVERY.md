@@ -204,7 +204,7 @@ GET  /api/agents/chat/status/:conversationId → job status
 GET    /api/files              → user's files
 POST   /api/files              → upload (multipart)
 GET    /api/files/download/:userId/:file_id
-DELETE /api/files              → delete file(s)
+DELETE /api/files              → delete file(s)  (with agent_id: unlink on rc1–rc3, may DELETE on rc4 — see v0.8.8-rc4 sync)
 POST   /api/files/speech/stt   → speech-to-text
 POST   /api/files/speech/tts   → text-to-speech
 ```
@@ -222,7 +222,7 @@ GET    /api/skills/:id/files             → skill file tree
 POST   /api/skills/:id/files             → add file
 GET    /api/skills/:id/files/:relPath    → read file
 DELETE /api/skills/:id/files/:relPath    → delete file
-POST   /api/skills/import                → import skill
+POST   /api/skills/import                → import skill (atomic from rc4 — see v0.8.8-rc4 sync)
 GET    /api/user/settings/skills/active  → per-user active-skill states (DEFERRED)
 POST   /api/user/settings/skills/active  → set active-skill states (DEFERRED)
 PUT    /api/roles/:roleName/skills       → admin skill-permission grant (DEFERRED; admin)
@@ -1220,6 +1220,132 @@ default-OFF behaviour and led straight to "there is no problem here". The submod
 v0.8.8-rc3, so the checkout is authoritative again — but the general rule stands for any sync in
 progress: read `git show <target-tag>:<path>` inside the submodule rather than the working tree, which
 is pinned to the PREVIOUS target until the bookkeeping commit lands.
+
+### v0.8.8-rc4 sync (tag v0.8.8-rc4, commit 361553f3, 2026-09-23) — endpoint / shape changes
+```
+DELETE /api/files  (agent_id + tool_resource)
+                                          (v0.8.8-rc4, #16007) **now DESTRUCTIVE for some files.** rc1–rc3 only
+                                            unlinked the file from the agent. rc4 runs the full delete pass —
+                                            storage bytes, RAG vectors, the file record — for every attached file
+                                            the caller OWNS that no other (agent, tool_resource) pair references;
+                                            the rest are unlinked as before. Same request, same
+                                            `{ message, deletedFileIds[], failedFileIds[] }` body (an undeletable
+                                            byte blob now surfaces as a `failedFileIds` entry, since local unlink
+                                            throws on non-ENOENT). The client cannot tell ahead of time which
+                                            files will be destroyed, so the agent editor confirms a removal on a
+                                            server that carries the change — see VERSION_GATES.md. (BUILT)
+POST   /api/skills/import                 (v0.8.8-rc4, #16052) archive imports are ATOMIC. A bundled file that
+                                            cannot be persisted fails the whole import: **422**
+                                            `skill_import_incomplete` (everything rolled back), **500**
+                                            `skill_import_rollback_failed` (the partial skill could not be
+                                            removed — it is still listed, `skillId` names it) or **500**
+                                            `skill_import_cleanup_incomplete` (row gone, dependent cleanup not).
+                                            Body `{ error, message, failedFiles: [{ path, reason, limitMb? }],
+                                            skillId? }`, `reason` ∈ invalid_path | file_too_large |
+                                            archive_too_large | archive_entry_changed | persistence_failed.
+                                            Before rc4 the same archive answered 201 with a silently incomplete
+                                            skill. Mobile decodes the body, lists the failed paths with localized
+                                            reasons, and reloads the list on all three codes. (BUILT)
+DELETE /api/skills/:id                    (v0.8.8-rc4) may add `cleanupComplete: false` — the row is gone but a
+                                            dependent cleanup step needs repair. Tolerated by the decoder; not
+                                            surfaced. (NOT BUILT)
+PATCH  /api/mcp/servers/:serverName       (v0.8.8-rc4, #16136) new **400** `{ error:
+                                            'MCP_API_KEY_REENTRY_REQUIRED', message }`: an edit that changes
+                                            `url`, `type`, `proxy`, `apiKey.authorization_type` or
+                                            `apiKey.custom_header` of a server with a retained admin API key,
+                                            without re-sending `apiKey.key`. Every retry of the same body fails
+                                            the same way. Both mobile save paths keep the dialog open and mark
+                                            the API-key field. (BUILT)
+PATCH  /api/mcp/servers/:serverName       **`apiKey.source` is what decides the stored key's fate** (read from
+  (apiKey.source)                           `ServerConfigsDB.update`; the rc3 behaviour is the same apart from the
+                                            rc4 re-entry check). The body REPLACES the config — there is no merge
+                                            of `source`:
+                                            - `source: 'admin'` with no `key`, over a stored admin key → the stored
+                                              (encrypted) key is carried over. From rc4 that is refused with the
+                                              400 above when the edit also changes url/type/proxy/authorization
+                                              type/custom header.
+                                            - `source: 'admin'` with a `key` → the new key replaces it.
+                                            - `source: 'user'` → accepted with **200** and the admin key is
+                                              DISCARDED: the server becomes per-user, every user is prompted for
+                                              their own key, and the rc4 re-entry check never runs (it only
+                                              guards admin→admin). A `key` sent with `source: 'user'` is
+                                              dropped (`transformUserApiKeyConfig` strips it and templates the
+                                              header on each user's `MCP_API_KEY`); upstream's form never sends one.
+                                            Reads never return the key (`redactServerSecrets` keeps `source`,
+                                            `authorization_type`, `custom_header`), so a client cannot resend it:
+                                            an edit must resend the stored `source`, and a key only when the user
+                                            typed one. Upstream's form (`useMCPServerForm`) does exactly that,
+                                            and defaults a new server to `admin` behind an "Each user provides
+                                            their own key" checkbox. Mobile hardcoded `source: 'user'` on every
+                                            save until the rc4 sync, which silently turned every edited
+                                            admin-keyed server into a per-user one. (BUILT)
+PATCH  /api/mcp/servers/:serverName       **Replacement also deletes every field the edit omits.** Upstream's
+  (round-trip)                              form resends what it cannot edit and mobile now does the same:
+                                            `iconPath`, `oauth.token_exchange_method`, and `obo: { scopes }`
+                                            (OBO only while the save carries no API key or OAuth — upstream
+                                            drops `obo` when the user picks another auth type). **OBO lockdown**
+                                            (`updateMCPServerController`, `api/server/controllers/mcp.js`): on
+                                            a server that already has `obo`, a caller without the
+                                            `CONFIGURE_OBO` permission is refused with **403** `{ message:
+                                            'Forbidden: Insufficient permissions to configure OBO' }` if ANY
+                                            user-input field other than `title`, `description`, `iconPath`
+                                            differs from the stored config — adding, changing or removing
+                                            (`violatesOboLockdown`, JSON-compared). Adding `obo` to a server
+                                            needs the permission too. So a non-holder's rename works only
+                                            because the rest goes back byte-equal. Fields neither form carries
+                                            (`headers`, `customUserVars`, `timeout`, …) are still dropped by an
+                                            edit, on the web and here alike; on an OBO server that has any of
+                                            them, a non-holder's edit is refused on both clients. (BUILT)
+GET    /api/endpoints                     (v0.8.8-rc4, #16221) `openAI`/`azureOpenAI` entries gain
+                                            `responsesApiRouting: Record<model, {default,on,off,withWebSearch?}>`
+                                            — the server-policy default for `useResponsesApi`. Tolerated; not
+                                            read (display-only default for gpt-6-sol/luna; upload routing does
+                                            not model the Azure corner it feeds). (NOT BUILT)
+GET    /api/traces/:id/records            (v0.8.8-rc4) records gain optional `role` (run | agent | plumbing |
+                                            model | tools | stepLabel | reasoningLabel | phaseLabel), `agentId`,
+                                            `tools[]` and `origin: 'title'`; the detail gains `prompt`
+                                            ({ messages, total, omitted, tools? }) and `reply`. Mobile groups the
+                                            turn into steps from them; `prompt`/`reply` decode but are not
+                                            rendered yet. (BUILT, view deferred)
+GET    /api/openapi.json, /api/docs, /api/docs/assets/*
+                                          (v0.8.8-rc4) public Agents API spec + Swagger UI, mounted before
+                                            `apiNotFound` and 404 unless `openapi.enabled: true`. No path
+                                            collides with anything mobile calls. (UNUSED)
+
+# SSE / stream-error payloads
+error payload  upstream_model_error       (v0.8.8-rc4, #16034) now carries the provider's own text:
+                                            `"<fallback>\n{"type":"upstream_model_error","status":N,
+                                            "message":"..."}"`, withheld while a content policy is active and
+                                            capped by `endpoints.agents.maxProviderErrorChars` (default 2000).
+                                            The thread headlines the status and shows the message inline when it
+                                            is one line of at most 240 chars, collapsed otherwise. (BUILT)
+                                            **"Content policy active" is broad, and a bare "(status N)" is then
+                                            correct, not a client bug.** `createTerminalRunErrorObserver` drops
+                                            the provider text whenever `protectionEnabled !== false`
+                                            (`packages/api/src/agents/failures/terminal.ts:103`). Every caller
+                                            passes `hasModelBoundContentProtection(appConfig.filters,
+                                            appConfig.messageFilter.pii)` (`api/server/controllers/agents/
+                                            client.js:4421` send, `:5311` resume; `openai.js:391`), which is
+                                            true when ANY model-bound policy is on: legacy `messageFilter.pii`,
+                                            or `filters.messages` / `agentInstructions` / `conversationStarters`
+                                            / `skills` / `memories` / `toolArguments` / `modelParameters` /
+                                            `actionMetadata` `.pii`, or a file policy
+                                            (`packages/api/src/middleware/modelBoundContent.ts:754`). So a
+                                            server with only `filters.memories.pii` set never sends `message`,
+                                            and the error reads "The model provider couldn't complete this
+                                            request (status N)" with nothing under it. Omission also fails
+                                            closed for callers that do not pass the flag.
+FINAL / terminal events                   (v0.8.8-rc4, #16112) `fileContext`, `image_urls` and upload
+                                            `files[].text` are stripped from `requestMessage`, `responseMessage`
+                                            and `runMessages[]`. Mobile reads none of them. (NO CHANGE —
+                                            documented)
+user message text (wake-up turns)         Not new in rc4 (#15364), newly handled: a detached subagent or
+                                            background tool task settling resumes the run by saving a USER
+                                            message whose text is a fixed header line plus a JSON payload line.
+                                            Rendered as a "System" event row, not a user bubble. The header
+                                            strings and payload fields are registered in scripts/mirrors.json.
+                                            (BUILT)
+```
 
 ### Other
 ```

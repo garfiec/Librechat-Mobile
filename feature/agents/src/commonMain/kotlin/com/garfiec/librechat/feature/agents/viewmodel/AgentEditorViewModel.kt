@@ -61,6 +61,14 @@ enum class AgentFileSlot(val wire: String) {
     CONTEXT("context"),
 }
 
+/** A file removal the user has been asked to confirm. [filename] is for the prompt only. */
+@Immutable
+data class PendingAgentFileRemoval(
+    val fileId: String,
+    val slot: AgentFileSlot,
+    val filename: String?,
+)
+
 @Immutable
 data class AgentEditorUiState(
     val isEditMode: Boolean = false,
@@ -148,6 +156,16 @@ data class AgentEditorUiState(
      * user's file everywhere. False until the version is known, so an unplaced server refuses.
      */
     val isAgentFileUnlinkAvailable: Boolean = false,
+    /**
+     * Whether removing a file from this agent can destroy it (v0.8.8-rc4, landed 2026-09-17).
+     * From rc4 the route runs the full delete — bytes and embeddings — for a file the caller owns
+     * that no other agent references, and the client cannot tell ahead of time which files those
+     * are, so a removal is confirmed first. Earlier rc servers only unlink. False unless the
+     * server is known to carry the change, so older servers keep the one-tap removal.
+     */
+    val agentFileRemovalDeletes: Boolean = false,
+    /** A removal waiting on the user's confirmation; see [agentFileRemovalDeletes]. */
+    val pendingFileRemoval: PendingAgentFileRemoval? = null,
     /** `/api/config.endpointsDropParamsMap` (v0.8.8-rc3), unresolved; hides advanced-parameter
      *  controls this server strips before calling the provider. */
     val dropParamsMap: Map<String, JsonElement>? = null,
@@ -483,6 +501,10 @@ class AgentEditorViewModel(
     fun uploadAgentFile(fileRef: Any, slot: AgentFileSlot) = filesDelegate.uploadAgentFile(fileRef, slot)
 
     fun removeAgentFile(fileId: String, slot: AgentFileSlot) = filesDelegate.removeAgentFile(fileId, slot)
+
+    fun confirmAgentFileRemoval() = filesDelegate.confirmAgentFileRemoval()
+
+    fun dismissAgentFileRemoval() = filesDelegate.dismissAgentFileRemoval()
 
     // --- Sharing ---
 

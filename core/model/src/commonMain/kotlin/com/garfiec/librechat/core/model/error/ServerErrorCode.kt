@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.model.error
 
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
@@ -53,6 +54,15 @@ object ServerErrorCode {
      * (`MCPErrorCodes.OAUTH_SECRET_REENTRY_REQUIRED`) drops — see `packages/api/src/mcp/errors.ts`.
      */
     const val OAUTH_SECRET_REENTRY_REQUIRED = "MCP_OAUTH_SECRET_REENTRY_REQUIRED"
+
+    /**
+     * 400 from the MCP server update route (v0.8.8-rc4) — the API-key counterpart of
+     * [OAUTH_SECRET_REENTRY_REQUIRED]. A retained admin API key is bound to the connection it was
+     * entered for (`url`, `type`, `proxy`, `apiKey.authorization_type`, `apiKey.custom_header`);
+     * an edit that changes any of them without re-sending `apiKey.key` is refused, and keeps being
+     * refused until the key is typed again. Same wire convention: the code is under `error`.
+     */
+    const val API_KEY_REENTRY_REQUIRED = "MCP_API_KEY_REENTRY_REQUIRED"
 
     /**
      * 403 — an MCP server rejected the bearer credential for a tool invocation (v0.8.8-rc3).
@@ -108,6 +118,50 @@ object ServerErrorCode {
      */
     fun generationCodeOf(body: String?): String? =
         (objectOf(body)?.get("code") as? JsonPrimitive)?.contentOrNull
+
+    /**
+     * The specific messages under `errors[]` on a validation refusal, or empty.
+     *
+     * The MCP write routes answer a schema failure with `{ message: "Invalid configuration",
+     * errors: ZodIssue[] }` (`api/server/controllers/mcp.js`). The top-level message is the same for
+     * every mistake; each issue's `message` says which one — "OAuth client_secret with client_id
+     * requires both authorization_url and token_url". Blank and repeated messages are dropped, and a
+     * non-object issue or a non-string message is skipped rather than failing the read.
+     */
+    fun validationMessages(body: String?): List<String> {
+        val issues = objectOf(body)?.get("errors") as? JsonArray ?: return emptyList()
+        return issues
+            .mapNotNull { issue -> ((issue as? JsonObject)?.get("message") as? JsonPrimitive)?.contentOrNull }
+            .map(String::trim)
+            .filter(String::isNotEmpty)
+            .distinct()
+    }
+
+    /**
+     * The server's own sentence on a coded refusal, or null.
+     *
+     * The MCP controller answers every coded failure as `{ error: <code>, message }`
+     * (`getMCPErrorResponse`), and for a code this client has no copy of — `MCP_DOMAIN_NOT_ALLOWED`,
+     * `MCP_INSPECTION_FAILED` — the message is the only account of what went wrong. It is the
+     * specific part too: "Domain "http://evil.example.org" is not allowed" names the rejected host.
+     *
+     * Read only when the body carries a code beside the message, so this is the server's typed
+     * error envelope and not an arbitrary body. That is also why it may bypass the generic
+     * display screen, which rejects any text containing a URL: that screen exists for gateway pages
+     * and exception text built from request URLs (issue #287), not for a sentence the server wrote
+     * about the user's own input.
+     *
+     * A code alone does not prove the envelope is the server's: a proxy's framework error
+     * (`{"error":"Forbidden","message":…}`) has the same two keys. Pass [codePrefix] to accept only
+     * one controller's codes — the MCP controller's all start with `MCP_`.
+     */
+    fun codedMessage(body: String?, codePrefix: String = ""): String? {
+        val obj = objectOf(body) ?: return null
+        val code = (obj["code"] as? JsonPrimitive)?.takeIf { it.isString }?.content
+            ?: (obj["error"] as? JsonPrimitive)?.takeIf { it.isString }?.content
+        if (code.isNullOrBlank() || !code.startsWith(codePrefix)) return null
+        return (obj["message"] as? JsonPrimitive)?.takeIf { it.isString }?.content?.trim()?.ifEmpty { null }
+    }
 
     private fun objectOf(body: String?): JsonObject? {
         if (body.isNullOrBlank()) return null

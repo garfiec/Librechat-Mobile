@@ -1,6 +1,8 @@
 package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.error.StreamErrorType
 import com.garfiec.librechat.feature.chat.resources.*
@@ -65,7 +67,45 @@ internal fun localizedStreamError(raw: String): String {
  * the failure itself as `text` — for an initialization failure, the JSON of its typed payload.
  * Rendered as ordinary text that JSON is what the thread showed, where the web shows the error.
  */
-internal fun persistedTurnError(message: Message): String? {
-    if (!message.error || !message.content.isNullOrEmpty()) return null
-    return message.text.takeIf { it.isNotBlank() }?.let(StreamErrorType::markerOrText)
+internal fun persistedTurnError(message: Message): String? =
+    if (isPersistedTurnError(message)) StreamErrorType.markerOrText(message.text) else null
+
+/**
+ * Whether [message] is a persisted failed turn — the test [persistedTurnError] classifies, without
+ * classifying. The thread and search only branch on it, and search runs it for every message on
+ * every keystroke.
+ */
+internal fun isPersistedTurnError(message: Message): Boolean =
+    message.error && message.content.isNullOrEmpty() && message.text.isNotBlank()
+
+/**
+ * A stream error as it sits in the thread — the in-band `error` part and a persisted failed turn
+ * both render through here.
+ *
+ * Adds what [localizedStreamError] cannot carry through a string: for an `upstream_model_error`,
+ * the provider's status in the headline and, from v0.8.8-rc4, the provider's own message under it.
+ * A gateway or proxy rejection explains itself only there. The shared error channel (snackbar,
+ * selector banners) keeps the headline alone; the full account is in the thread.
+ */
+@Composable
+internal fun StreamErrorPart(raw: String, modifier: Modifier = Modifier) {
+    val classified = remember(raw) { StreamErrorType.markerOrText(raw) }
+    val detail = remember(raw) { StreamErrorType.upstreamModelErrorDetail(raw) }
+    val status = detail?.status
+    val headline = if (status != null) {
+        stringResource(Res.string.error_upstream_model_error_status, status)
+    } else {
+        localizedStreamError(classified)
+    }
+    ErrorContentPart(errorText = headline, detail = detail?.message, modifier = modifier)
 }
+
+/**
+ * Whether an error detail reads in place or collapses. Mirrors upstream `ErrorWithDetail`
+ * (`client/src/components/Messages/Content/Error/parts.tsx`): up to 240 characters on one line is
+ * a sentence; anything longer, or spanning lines, is a body to open.
+ */
+internal fun isInlineErrorDetail(detail: String): Boolean =
+    detail.length <= INLINE_DETAIL_LENGTH && detail.none { it == '\n' || it == '\r' }
+
+private const val INLINE_DETAIL_LENGTH = 240

@@ -13,7 +13,10 @@ data class TraceRow(
 data class TraceSummary(
     val recordCount: Int = 0,
     val turnCount: Int = 0,
+    /** Model calls of the response. Excludes [labelCount]. */
     val generationCount: Int = 0,
+    /** Model calls that wrote an activity label: spend, not work of the response (v0.8.8-rc4). */
+    val labelCount: Int = 0,
     val toolCallCount: Int = 0,
     val errorCount: Int = 0,
     val runningCount: Int = 0,
@@ -37,18 +40,27 @@ data class TraceSummary(
  * may continue on the following page**, and **their order within a turn is undefined**. Rendering
  * each page as it arrives would split one turn across two headings and show its records in
  * whatever order the backend happened to store them.
+ *
+ * [rows] is every record as recorded (upstream's `full` mode); [steps] is the same turn as model
+ * calls and the tools they ran (the `simple` mode).
  */
 data class TraceTurn(
     val messageId: String,
     val rows: List<TraceRow>,
+    val steps: List<TraceStep> = emptyList(),
+    /**
+     * Some of the response's records hang from a parent that is not loaded. Records load newest
+     * first and a run's root starts first, so this is what a page boundary leaves of a response it
+     * cut: its end.
+     */
+    val split: Boolean = false,
+    val summary: TraceSummary = summarizeTrace(rows.map { it.record }),
 ) {
     val records: List<TraceRecord> get() = rows.map { it.record }
 
     /** Earliest start in the turn, which is what orders turns against each other. */
     val startTime: String =
         rows.mapNotNull { it.record.startTime.takeIf(String::isNotEmpty) }.minOrNull().orEmpty()
-
-    val summary: TraceSummary = summarizeTrace(rows.map { it.record })
 }
 
 /**
@@ -56,25 +68,51 @@ data class TraceTurn(
  *
  * Takes everything loaded so far rather than one page: a turn that spans a page boundary is only
  * complete once both pages are in, so this must be re-run over the accumulated list on every page
- * rather than appended to.
+ * rather than appended to. [hasOlder] says older pages remain, which is what withholds the oldest
+ * loaded turn's cost (see [TraceSummary.cost] and the per-turn rule in [groupTraceRecords]).
  *
  * Ordering is by `startTime` — ISO-8601, so lexicographic order is chronological, and no date
- * parsing is needed here — with the record id as the tiebreak so two records stamped in the same
- * millisecond do not swap between renders. A record with no start sorts last among its siblings
- * rather than first, since an absent timestamp says nothing about when it ran; upstream drops such
- * a record entirely, which on a diagnostic surface hides the one row most likely to be the problem.
+ * parsing is needed here — then by kind, so a model call sorts before the tool it asked for when
+ * both are stamped in the same millisecond, with the record id as the final tiebreak so two records
+ * stamped in the same millisecond do not swap between renders. A record with no start sorts last
+ * among its siblings rather than first, since an absent timestamp says nothing about when it ran;
+ * upstream drops such a record entirely, which on a diagnostic surface hides the one row most
+ * likely to be the problem.
  *
  * **Turns are newest first, where upstream's desktop viewer is oldest first.** Deliberate: the
  * whole surface is opened to look at the turn that just settled, and on a phone oldest-first means
  * scrolling past every earlier turn to reach it. It also matches the direction the server pages in,
  * so "load older" appends at the bottom.
+ *
+ * **A turn's cost is withheld when the turn is not known to be whole** — when it is [TraceTurn.split],
+ * or it is the oldest loaded turn while [hasOlder]: a page can end between a response's traces with
+ * every loaded parent in place, and the sum of a response's newest records is not its cost. The
+ * oldest turn is the earliest DATED one; a turn with no timestamp cannot be placed against the page
+ * boundary at all, so while [hasOlder] it shows no cost either.
  */
-fun groupTraceRecords(records: List<TraceRecord>): List<TraceTurn> =
-    records
-        .distinctBy { it.id }
+fun groupTraceRecords(records: List<TraceRecord>, hasOlder: Boolean = false): List<TraceTurn> {
+    val graph = TraceGraph(records.distinctBy { it.id })
+    val turns = graph.records
         .groupBy { it.messageId }
-        .map { (messageId, turnRecords) -> TraceTurn(messageId, buildRows(turnRecords)) }
+        .map { (messageId, turnRecords) -> graph.turn(messageId, turnRecords) }
         .sortedWith(compareByDescending<TraceTurn> { it.startTime }.thenBy { it.messageId })
+    // Newest first, so the last dated turn is the oldest; undated ones sort after it.
+    val oldestDated = turns.lastOrNull { it.startTime.isNotEmpty() }
+    return turns.map { turn ->
+        val unplaceable = hasOlder && (turn === oldestDated || turn.startTime.isEmpty())
+        val partial = turn.split || unplaceable
+        if (partial && turn.summary.cost != null) turn.copy(summary = turn.summary.copy(cost = null)) else turn
+    }
+}
+
+/**
+ * The summary over every loaded turn. Sums the per-turn tool counts, which include tools a round
+ * named without recording them one by one; its cost is over every record, as upstream's is.
+ */
+fun summarizeTraceTurns(turns: List<TraceTurn>): TraceSummary {
+    val all = summarizeTrace(turns.flatMap { it.records })
+    return all.copy(toolCallCount = turns.sumOf { it.summary.toolCallCount })
+}
 
 /**
  * A record's duration in milliseconds, or null when it has not finished or the timestamps cannot
@@ -91,18 +129,21 @@ fun TraceRecord.durationMillis(parse: (String) -> Long?): Long? {
     return (end - start).takeIf { it >= 0 }
 }
 
-/** See [TraceSummary]. Counts and token totals cover generations only, as upstream's do. */
+/**
+ * See [TraceSummary]. Counts and token totals cover generations only, as upstream's do; a
+ * generation that wrote an activity label counts as a label, not a generation, but its tokens and
+ * its price still count.
+ */
 fun summarizeTrace(records: List<TraceRecord>): TraceSummary {
     var generations = 0
+    var labels = 0
     var toolCalls = 0
     var errors = 0
     var running = 0
     var input = 0L
     var output = 0L
     var total = 0L
-    var cost = 0.0
-    var priced = 0
-    var unpricedGenerations = 0
+    val spend = Spend()
 
     for (record in records) {
         when (record.status) {
@@ -111,84 +152,204 @@ fun summarizeTrace(records: List<TraceRecord>): TraceSummary {
         }
         if (record.kind == TraceRecordKind.TOOL) toolCalls++
         if (record.kind == TraceRecordKind.GENERATION) {
-            generations++
+            if (record.isLabelRecord()) labels++ else generations++
             val recordInput = record.usage?.input ?: 0
             val recordOutput = record.usage?.output ?: 0
             input += recordInput
             output += recordOutput
             total += record.usage?.total ?: (recordInput + recordOutput)
-            if (record.cost == null) unpricedGenerations++
         }
-        record.cost?.let {
-            priced++
-            cost += it
-        }
+        spend.add(record)
     }
 
     return TraceSummary(
         recordCount = records.size,
         turnCount = records.distinctBy { it.messageId }.size,
         generationCount = generations,
+        labelCount = labels,
         toolCallCount = toolCalls,
         errorCount = errors,
         runningCount = running,
         inputTokens = input,
         outputTokens = output,
         totalTokens = total,
-        cost = if (priced > 0 && unpricedGenerations == 0) cost else null,
+        cost = spend.cost,
     )
 }
 
 /**
- * Resolves one turn's records into a depth-annotated tree, flattened depth-first.
+ * Spend over a set of records. MIRRORED from upstream's `Spend`/`costOf`: a total is given only
+ * when something was priced and no model call went unpriced.
+ */
+internal class Spend {
+    private var sum = 0.0
+    private var priced = 0
+    private var unpriced = 0
+
+    fun add(record: TraceRecord) {
+        val cost = record.cost
+        if (cost != null) {
+            priced++
+            sum += cost
+        } else if (record.kind == TraceRecordKind.GENERATION) {
+            unpriced++
+        }
+    }
+
+    val cost: Double? get() = if (priced > 0 && unpriced == 0) sum else null
+}
+
+/**
+ * Every loaded record with its resolved tree: the parent each one is honoured under, the children
+ * each one has, and the saved agent each one ran under.
  *
  * A `parentId` is honoured only when it names a record that is **loaded and in this same turn** —
  * a partial page routinely cites a parent that has not arrived, and a record whose parent is
  * missing becomes a root rather than disappearing. Parent cycles are cut, which is not paranoia
  * about the server so much as about what a cycle costs here: a naive walk would not terminate.
  */
-private fun buildRows(records: List<TraceRecord>): List<TraceRow> {
-    val byId = records.associateBy { it.id }
-    val parents = records.associate { record ->
+internal class TraceGraph(val records: List<TraceRecord>) {
+    val byId: Map<String, TraceRecord> = records.associateBy { it.id }
+
+    val parentOf: Map<String, String?> = records.associate { record ->
         val parentId = record.parentId
-        record.id to parentId?.takeIf { it != record.id && byId.containsKey(it) }
-    }.toMutableMap()
+        record.id to parentId?.takeIf { it != record.id && byId[it]?.messageId == record.messageId }
+    }.toMutableMap().also(::cutCycles)
 
-    cutCycles(records, parents)
+    /** Children by parent (null = roots), each list in ledger order. */
+    val children: Map<String?, List<TraceRecord>> =
+        records.groupBy { parentOf[it.id] }.mapValues { (_, group) -> group.sortedWith(ORDER) }
 
-    val order = compareBy<TraceRecord> { it.startTime.ifEmpty { LAST } }.thenBy { it.id }
-    val children = records.groupBy { parents[it.id] }.mapValues { (_, group) -> group.sortedWith(order) }
+    /** The saved agent each record ran under: its nearest ancestor's (or its own) `agentId`. */
+    val agentOf: Map<String, String?> = resolveAgents()
 
-    val rows = ArrayList<TraceRow>(records.size)
+    /** A parent id that is cited but not loaded — a page boundary cut the record off from it. */
+    fun unloadedParentOf(id: String): String? = byId[id]?.parentId?.takeIf { it !in byId }
+
+    /**
+     * Unloaded parents that frame a single model call. The SDK wraps each model call in wrappers
+     * of its own, so an unloaded parent whose loaded children are only such wrappers and a model
+     * call is one of those; a graph is told apart by what else hangs from it, the tool rounds.
+     */
+    val privateWrappers: Set<String> = run {
+        val shared = HashSet<String>()
+        val private = HashSet<String>()
+        for (record in records) {
+            val parentId = unloadedParentOf(record.id) ?: continue
+            if (record.role == TraceRole.PLUMBING || record.role == TraceRole.MODEL) {
+                private += parentId
+            } else {
+                shared += parentId
+            }
+        }
+        private - shared
+    }
+
+    fun turn(messageId: String, turnRecords: List<TraceRecord>): TraceTurn {
+        val rows = depthFirst(children[null].orEmpty().filter { it.messageId == messageId }) { children[it.id] }
+        val stepping = TraceStepGrouping(this, messageId, turnRecords)
+        val steps = stepping.steps()
+        val split = turnRecords.any { it.origin == null && unloadedParentOf(it.id) != null }
+        val summary = summarizeTrace(turnRecords).let {
+            it.copy(toolCallCount = it.toolCallCount + stepping.namedToolCalls)
+        }
+        return TraceTurn(messageId = messageId, rows = rows, steps = steps, split = split, summary = summary)
+    }
+
+    private fun cutCycles(parents: MutableMap<String, String?>) {
+        val settled = HashSet<String>()
+        for (record in records) {
+            val path = LinkedHashSet<String>()
+            var current: String? = record.id
+            var previous: String? = null
+            while (current != null && current !in settled) {
+                if (!path.add(current)) {
+                    parents[previous ?: current] = null
+                    break
+                }
+                previous = current
+                current = parents[current]
+            }
+            settled += path
+        }
+    }
+
+    private fun resolveAgents(): Map<String, String?> {
+        val resolved = HashMap<String, String?>()
+        for (record in records) {
+            val path = ArrayList<String>()
+            var current: String? = record.id
+            var agentId: String? = null
+            while (current != null) {
+                if (resolved.containsKey(current)) {
+                    agentId = resolved[current]
+                    break
+                }
+                path += current
+                val own = byId[current]?.agentId
+                if (own != null) {
+                    agentId = own
+                    break
+                }
+                current = parentOf[current]
+            }
+            path.forEach { resolved[it] = agentId }
+        }
+        return resolved
+    }
+
+    companion object {
+        /** Ties at one timestamp are broken causally: the model call that asked before the tool. */
+        private val KIND_ORDER = mapOf(
+            TraceRecordKind.AGENT to 0,
+            TraceRecordKind.SPAN to 0,
+            TraceRecordKind.GENERATION to 1,
+            TraceRecordKind.TOOL to 2,
+            TraceRecordKind.EVENT to 3,
+        )
+
+        val ORDER: Comparator<TraceRecord> =
+            compareBy<TraceRecord> { it.startTime.ifEmpty { LAST } }
+                .thenBy { KIND_ORDER[it.kind] ?: 0 }
+                .thenBy { it.id }
+
+        /** Sorts after every real ISO-8601 timestamp. */
+        const val LAST = "￿"
+    }
+}
+
+/**
+ * Flattens [roots] and everything [childrenOf] hangs from them, depth-first, with depths.
+ *
+ * Each record appears once, at its first visit. A step's roots can include a record AND one of its
+ * descendants — a failed wrapper is listed as a root, and the model call under it rolls up to no
+ * anchor, so it is a root too — and without the dedupe a walk over the full tree reaches that
+ * model call twice and counts its price twice (upstream `groupSteps`' `counted` set).
+ */
+internal fun depthFirst(
+    roots: List<TraceRecord>,
+    childrenOf: (TraceRecord) -> List<TraceRecord>?,
+): List<TraceRow> {
+    val rows = ArrayList<TraceRow>()
+    val visited = HashSet<String>()
     val stack = ArrayDeque<TraceRow>()
-    children[null].orEmpty().asReversed().forEach { stack.addLast(TraceRow(it, 0)) }
+    roots.asReversed().forEach { stack.addLast(TraceRow(it, 0)) }
     while (stack.isNotEmpty()) {
         val row = stack.removeLast()
+        if (!visited.add(row.record.id)) continue
         rows += row
-        children[row.record.id].orEmpty().asReversed().forEach {
-            stack.addLast(TraceRow(it, row.depth + 1))
-        }
+        childrenOf(row.record).orEmpty().asReversed().forEach { stack.addLast(TraceRow(it, row.depth + 1)) }
     }
     return rows
 }
 
-private fun cutCycles(records: List<TraceRecord>, parents: MutableMap<String, String?>) {
-    val settled = HashSet<String>()
-    for (record in records) {
-        val path = LinkedHashSet<String>()
-        var current: String? = record.id
-        var previous: String? = null
-        while (current != null && current !in settled) {
-            if (!path.add(current)) {
-                parents[previous ?: current] = null
-                break
-            }
-            previous = current
-            current = parents[current]
-        }
-        settled += path
-    }
-}
+private val LABEL_ROLES = setOf(TraceRole.STEP_LABEL, TraceRole.REASONING_LABEL, TraceRole.PHASE_LABEL)
 
-/** Sorts after every real ISO-8601 timestamp. */
-private const val LAST = "￿"
+/** A model call that wrote one of the activity labels the chat shows while a response runs. */
+fun TraceRecord.isLabelRecord(): Boolean = role != null && role in LABEL_ROLES
+
+/** A model call of the response itself: it starts a step. */
+fun TraceRecord.isModelCall(): Boolean = kind == TraceRecordKind.GENERATION && !isLabelRecord()
+
+/** A tool, or the round of tool calls a host ran without recording each one. */
+fun TraceRecord.isToolWork(): Boolean = kind == TraceRecordKind.TOOL || role == TraceRole.TOOLS

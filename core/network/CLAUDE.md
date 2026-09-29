@@ -57,6 +57,18 @@ Legacy single-phase path (OpenAI Assistants): POST body is the SSE stream itself
 
 `SseConnectionManager` handles lifecycle: start, reconnect with exponential backoff (1s/2s/4s/8s, max 5 retries), abort via `POST /api/agents/chat/abort`, exposes `StateFlow<StreamingState>`. On reconnection, append `?resume=true` to get a `sync` event with `runSteps[]` + `aggregatedContent[]`.
 
+**A body that ends without a final frame is a drop, not the run's end.** Upstream sends no
+heartbeat, so an idle timeout (proxy, CDN) closes a live stream cleanly — during a human-review pause
+nothing is sent at all — and the server's own `res.destroy()` on a publication failure asks for a
+reconnect. `SseClient` resumes it on the same retry ladder as any other drop; the resume answers with
+a sync frame (live), a final frame, or a 404 (gone). Only a 404, an in-band error or a Final ends the
+loop, so a flow that completes with no event means "the job is gone" (or the account switched), never
+"the socket closed". Progress — what resets the attempt counter — is a **parsed event**, never a
+byte, so a 200 carrying no events (a captive portal) climbs the ladder instead of reconnecting forever.
+At the ceiling it emits `Error(code = RETRY_EXHAUSTED)` rather than a plain network error: running out
+of retries says nothing about the run (a live one behind an idle-timing proxy does it while online),
+so the consumer checks `/chat/status` instead of blaming the network.
+
 ### Don't use Ktor's SSE plugin
 
 The Ktor SSE plugin uses the same `NSURLSessionDataTask` code path as the regular Darwin engine, so it would have the same Layer 2 bug on iOS. The custom transport is mandatory.
@@ -121,6 +133,12 @@ is long-lived and never rotates, so an `http://` downgrade or an unknown base UR
   `ClosedByteChannelException` — which form arrives depends on whether the parse side or the pump job
   loses the race to fail the scope. A type-exact `catch` therefore works most of the time, which is
   the worst failure rate to debug: use `accessGatewayCause()`.
+  The same holds for an HTTP status on the stream GET (`httpStatusCause()`): a type-exact
+  `catch (e: SseHttpStatusException)` missed the wrapped 404 of a resume whose run had already
+  finished, retried it on the backoff ladder as a network drop, and a new chat's fast reply never
+  appeared until the conversation was reopened. `SseStreamException` is read the same way
+  (`sseStreamCause()`): wrapped, it ended without `isNetworkError`, so the stream never resumed when
+  the network returned.
 - **Nor is a 403 you cannot attribute to LibreChat** (issue #376) — the same principle, one layer out.
   The validator's ban check requires LibreChat's own `banResponse` shape (`403` + JSON whose `message`
   carries the ban wording, registered as `ban-response-message` in `scripts/mirrors.json`). It used to
@@ -212,4 +230,4 @@ deployment's mount at all. A null or pending account attaches nothing.
 - Dependencies: `:core:model`, `:core:common`, Ktor bundles, kotlinx-serialization, Timber, Koin.
 - Convention plugins: `librechat.mobile.library` + `librechat.mobile.koin` + `librechat.kotlin.serialization`.
 - API services must not contain business logic -- they are thin HTTP wrappers.
-- All `arg`-wrapped endpoints must match the backend pattern: `setBody(mapOf("arg" to mapOf(...)))`.
+- All `arg`-wrapped endpoints must match the backend pattern `{ "arg": { ... } }`. Build it as a `@Serializable` wrapper class (see `ConvoUpdateBody`) or with `buildJsonObject`, **never as a `Map<String, Any>`**. Ktor picks a map's serializer from its values, so a map that nests an object beside a string throws "Serializing collections of different element types" before the request is sent, and `safeApiCall` turns that into a generic error rather than a crash. A map is safe only when every value has one type (e.g. `mapOf("refreshToken" to token)`).

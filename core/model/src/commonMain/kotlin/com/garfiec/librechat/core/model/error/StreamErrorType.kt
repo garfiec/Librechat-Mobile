@@ -155,6 +155,45 @@ enum class StreamErrorType(val wire: String) {
         fun parse(rawMessage: String): StreamErrorType? {
             if (rawMessage.isBlank()) return null
             if (MODEL_NOT_FOUND_PATTERN.containsMatchIn(rawMessage)) return MODEL_NOT_FOUND
+            return identifiedPayload(rawMessage)?.let { (_, identifier) -> byWire[identifier] }
+        }
+
+        /**
+         * The provider's own account of an [UPSTREAM_MODEL_ERROR], or null for any other message.
+         *
+         * From v0.8.8-rc4 the payload can carry the provider's `message` next to its `status`,
+         * because a gateway or proxy rejection explains itself there and nothing generic can.
+         * Upstream withholds it while a content policy is active, and older servers never send
+         * it, so both fields are optional and a detail with neither is still returned: the
+         * `status` alone is worth a headline.
+         */
+        fun upstreamModelErrorDetail(rawMessage: String): UpstreamModelErrorDetail? {
+            // Only when [parse] agrees: a provider message quoting LangChain's MODEL_NOT_FOUND URL
+            // is classified as that, and a detail here would put the wrong headline over it.
+            if (parse(rawMessage) != UPSTREAM_MODEL_ERROR) return null
+            val (payload, _) = identifiedPayload(rawMessage) ?: return null
+            return UpstreamModelErrorDetail(
+                // A finite whole number only, as upstream's `readNumber` insists on a finite one:
+                // Double.toInt() would headline NaN as "status 0" and Infinity as Int.MAX_VALUE.
+                status = (payload["status"] as? JsonPrimitive)?.contentOrNull?.toDoubleOrNull()
+                    ?.takeIf { it.isFinite() && it == it.toInt().toDouble() }
+                    ?.toInt(),
+                message = (payload["message"] as? JsonPrimitive)
+                    ?.takeIf { it.isString }
+                    ?.content
+                    ?.takeIf { it.isNotBlank() },
+            )
+        }
+
+        /**
+         * The first payload in [rawMessage] that names an identifier, with that identifier. See
+         * [parse] for why the walk stops at the first identifying payload, mapped or not.
+         *
+         * The object returned is the one that NAMED the identifier: the `error` envelope when the
+         * top level named none, as upstream hands its renderer the envelope in that case
+         * (`payload = nestedKey != null ? envelope : json`), so its fields are read from there.
+         */
+        private fun identifiedPayload(rawMessage: String): Pair<JsonObject, String>? {
             var from = rawMessage.indexOf('{')
             while (from >= 0) {
                 val span = balancedObjectAt(rawMessage, from)
@@ -168,7 +207,7 @@ enum class StreamErrorType(val wire: String) {
                 // the present top-level key, finds no renderer, and shows the provider's own
                 // sentence, while a hit-seeking walk descends into the envelope and tells the user
                 // their message was blocked by a content filter.
-                payload?.identifier()?.let { return byWire[it] }
+                payload?.identified()?.let { return it }
                 // Past a span that PARSED, into one that did not. Re-entering a parsed object
                 // re-offers its own children as payloads; skipping a run that is not JSON at all
                 // would drop a real payload nested inside prose braces (`Run {id: 1, e:
@@ -179,16 +218,20 @@ enum class StreamErrorType(val wire: String) {
         }
 
         /**
-         * The identifier this payload names, or null — `code` then `type` at the top level, and
-         * the `error` envelope only when the top level names neither, exactly as upstream's
-         * `readString(json,'code') ?? readString(json,'type')` and its `topLevelKey == null` gate.
+         * The identifier this payload names, with the object that named it, or null — `code` then
+         * `type` at the top level, and the `error` envelope only when the top level names neither,
+         * exactly as upstream's `readString(json,'code') ?? readString(json,'type')` and its
+         * `topLevelKey == null` gate.
          *
          * Returns the raw string rather than a [StreamErrorType]: presence and recognition are
          * different questions, and collapsing them is what lets an unrecognized identifier fall
          * through to a nested one.
          */
-        private fun JsonObject.identifier(): String? =
-            ownIdentifier() ?: (this["error"] as? JsonObject)?.ownIdentifier()
+        private fun JsonObject.identified(): Pair<JsonObject, String>? {
+            ownIdentifier()?.let { return this to it }
+            val envelope = this["error"] as? JsonObject ?: return null
+            return envelope.ownIdentifier()?.let { envelope to it }
+        }
 
         private fun JsonObject.ownIdentifier(): String? {
             // Safe-cast, not `.jsonPrimitive`: that extension throws on an object or array value,
@@ -200,13 +243,15 @@ enum class StreamErrorType(val wire: String) {
         /**
          * The brace-balanced `{…}` run starting at [start], or null if it never closes.
          *
-         * **Two deliberate divergences from upstream's `extractJson`**, both widening and neither
-         * able to classify anything `byWire` does not already name:
-         * - upstream returns only the FIRST balanced run and gives up; [parse] walks every `{`
-         *   until one identifies, because prose around the payload can carry braces of its own
-         *   (`Template {placeholder} failed. {"type":…}`) and upstream would stop at the first;
-         * - quoted braces are skipped here, so a `{` inside a string value cannot end the run
-         *   early — upstream's counter has no string state and truncates such a payload.
+         * Quoted braces are skipped, so a `{` inside a string value cannot end the run early —
+         * the same string/escape awareness upstream's `extractJson` (`client/src/utils/json.ts`)
+         * gained in v0.8.8-rc4, once provider prose started riding in the payload's `message`.
+         *
+         * **One deliberate divergence remains**, widening and unable to classify anything
+         * `byWire` does not already name: upstream returns only the FIRST balanced run and gives
+         * up; [parse] walks every `{` until one identifies, because prose around the payload can
+         * carry braces of its own (`Template {placeholder} failed. {"type":…}`) and upstream would
+         * stop at the first.
          */
         private fun balancedObjectAt(raw: String, start: Int): String? {
             var depth = 0
@@ -280,3 +325,13 @@ enum class StreamErrorType(val wire: String) {
     /** The marker form of this error, for the shared string-typed error channel. */
     val marker: String get() = "$MARKER_PREFIX$wire"
 }
+
+/**
+ * What an [StreamErrorType.UPSTREAM_MODEL_ERROR] payload says beyond its type: the provider's HTTP
+ * [status] and, from v0.8.8-rc4 and only when the deployment lets provider text through, the
+ * provider's own [message]. Either may be absent.
+ */
+data class UpstreamModelErrorDetail(
+    val status: Int?,
+    val message: String?,
+)

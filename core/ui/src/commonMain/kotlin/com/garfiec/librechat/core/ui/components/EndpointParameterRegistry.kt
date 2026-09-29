@@ -32,18 +32,8 @@ object EndpointParameterRegistry {
         model: String? = null,
         dropParams: List<String> = emptyList(),
     ): List<ParameterDefinition> {
-        val key = endpoint.lowercase()
-        // Upstream resolves the settings key from `endpointType ?? provider`, which for the agents
-        // endpoint is the agent's own provider — so an Anthropic agent is subject to the same
-        // per-model rules as the Anthropic endpoint.
-        val settingsKey = if (key == "agents") provider?.lowercase() ?: key else key
-        val base = when (key) {
-            "bedrock" -> bedrockParamsForModel(model, extendedEffortSupported)
-            "agents" -> agentsParamsForProvider(provider, model, extendedEffortSupported)
-            else -> ENDPOINT_PARAMS[key] ?: ENDPOINT_PARAMS["default"]!!
-        }
-        val dropped = resolveDropParamsUIKeys(dropParams, settingsKey)
-        val filtered = if (dropped.isEmpty()) base else base.filterNot { it.key in dropped }
+        val settingsKey = settingsKeyFor(endpoint, provider)
+        val filtered = baseDefinitions(endpoint, extendedEffortSupported, provider, model, dropParams)
         val modelAware = applyModelAwareDefaults(filtered, settingsKey, model)
         if (extendedEffortSupported) return modelAware
         return modelAware.map { def ->
@@ -54,6 +44,62 @@ object EndpointParameterRegistry {
                 def
             }
         }
+    }
+
+    /**
+     * The option values a per-model rule takes away from [model], by parameter key: what the
+     * provider's list offers minus what [getDefinitions] offers for this model — effort `minimal`
+     * on gpt-6-sol/luna, `none`/`minimal` on Grok 4.7.
+     *
+     * This, not "absent from the current options", is what a stored value may be dropped for. The
+     * current options also lack values for reasons that say nothing about the model: `xhigh`/`max`
+     * are filtered while the server version is undetected (and forever on a server whose version
+     * never is), and a value a newer backend added is in no list this app knows. Dropping on
+     * absence would delete those from the server on an agent save, and omit them from a chat send.
+     * Computed with the version-gated values present on both sides, so a gate never shows up here.
+     * Keys a rule removes entirely (Opus 5.5's sampling controls) are not option-level and are
+     * not listed.
+     */
+    fun modelRemovedOptions(
+        endpoint: String,
+        provider: String? = null,
+        model: String? = null,
+        dropParams: List<String> = emptyList(),
+    ): Map<String, Set<String>> {
+        val base = baseDefinitions(endpoint, extendedEffortSupported = true, provider, model, dropParams)
+        val offered = applyModelAwareDefaults(base, settingsKeyFor(endpoint, provider), model)
+            .associateBy { it.key }
+        return base.mapNotNull { def ->
+            val before = def.options ?: return@mapNotNull null
+            val after = offered[def.key]?.options ?: return@mapNotNull null
+            (before.toSet() - after.toSet()).takeIf { it.isNotEmpty() }?.let { def.key to it }
+        }.toMap()
+    }
+
+    // Upstream resolves the settings key from `endpointType ?? provider`, which for the agents
+    // endpoint is the agent's own provider — so an Anthropic agent is subject to the same
+    // per-model rules as the Anthropic endpoint.
+    private fun settingsKeyFor(endpoint: String, provider: String?): String {
+        val key = endpoint.lowercase()
+        return if (key == "agents") provider?.lowercase() ?: key else key
+    }
+
+    /** The provider's parameter list for [endpoint], after `dropParams`, before any per-model rule. */
+    private fun baseDefinitions(
+        endpoint: String,
+        extendedEffortSupported: Boolean,
+        provider: String?,
+        model: String?,
+        dropParams: List<String>,
+    ): List<ParameterDefinition> {
+        val key = endpoint.lowercase()
+        val base = when (key) {
+            "bedrock" -> bedrockParamsForModel(model, extendedEffortSupported)
+            "agents" -> agentsParamsForProvider(provider, model, extendedEffortSupported)
+            else -> ENDPOINT_PARAMS[key] ?: ENDPOINT_PARAMS["default"]!!
+        }
+        val dropped = resolveDropParamsUIKeys(dropParams, settingsKeyFor(endpoint, provider))
+        return if (dropped.isEmpty()) base else base.filterNot { it.key in dropped }
     }
 
     /**
@@ -69,6 +115,27 @@ object EndpointParameterRegistry {
         model: String?,
     ): List<ParameterDefinition> {
         if (model.isNullOrBlank()) return definitions
+        // The three per-model rules below return early, as upstream's do: each replaces the whole
+        // model-aware pass for its model rather than composing with the provider rules after it.
+        if (GROK_4_7.containsMatchIn(model.substringAfterLast('/'))) {
+            return definitions.map { def ->
+                if (def.key == "reasoning_effort") def.copy(options = GROK_4_7_EFFORT) else def
+            }
+        }
+        if (GPT_6_SOL_LUNA.containsMatchIn(model)) {
+            // Upstream also renders a server-routed `useResponsesApi` default for these models from
+            // `/api/endpoints` `responsesApiRouting`; that display-only half is not mirrored.
+            return definitions.map { def ->
+                if (def.key == "reasoning_effort") {
+                    def.copy(options = def.options?.filterNot { it == "minimal" })
+                } else {
+                    def
+                }
+            }
+        }
+        // Opus 5.5 has always-on adaptive thinking and no sampling controls; the server drops these
+        // values, so offering the controls lets the user set values that do nothing.
+        if (isOpus55Model(model)) return definitions.filterNot { it.key in OPUS_55_HIDDEN_KEYS }
         val adjusted = if (settingsKey == "google") {
             val bounds = googleThinkingBudgetBounds(model)
             if (bounds == null) {
@@ -86,6 +153,29 @@ object EndpointParameterRegistry {
     }
 
     private val PROMPT_CACHE_KEYS = setOf("promptCache", "promptCacheTtl")
+
+    // MIRRORED from upstream `applyModelAwareDefaults` (`packages/data-provider/src/parameterSettings.ts`).
+    // Grok is matched on the last `/` segment so a gateway-prefixed id (`xai/grok-4.7`) still hits.
+    private val GROK_4_7 = Regex("""^grok-4[.-]7(?:$|[-:])""")
+    private val GROK_4_7_EFFORT = listOf("", "low", "medium", "high", "xhigh")
+    private val GPT_6_SOL_LUNA = Regex("""^gpt-6-(?:sol|luna)(?:$|-)""", RegexOption.IGNORE_CASE)
+    private val OPUS_55_HIDDEN_KEYS = setOf("thinking", "thinkingBudget", "temperature", "topP", "topK")
+
+    /**
+     * MIRRORED from upstream `isOpus55Model` / `parseOpusVersion` (`packages/data-provider/src/bedrock.ts`).
+     * Both spellings: name-first (`claude-opus-5-5`, `claude-opus-5.5`) and number-first
+     * (`claude-5-5-opus`). A missing minor reads as 0, so plain `claude-opus-5` is not 5.5, and the
+     * lookahead keeps a date suffix (`claude-opus-5-20260101`) from being read as a minor.
+     */
+    private fun isOpus55Model(model: String): Boolean {
+        val match = OPUS_NAME_FIRST.find(model) ?: OPUS_NUMBER_FIRST.find(model) ?: return false
+        val major = match.groupValues[1].toIntOrNull()
+        val minor = match.groupValues[2].ifEmpty { "0" }.toIntOrNull()
+        return major == 5 && minor == 5
+    }
+
+    private val OPUS_NAME_FIRST = Regex("""claude-opus[-.]?(\d+)(?:[-.](\d{1,2})(?!\d))?""")
+    private val OPUS_NUMBER_FIRST = Regex("""claude-(\d+)(?:[-.](\d{1,2})(?!\d))?-opus""")
 
     private fun ParameterDefinition.withGoogleThinkingBudget(bounds: ThinkingBudgetBounds) = copy(
         max = bounds.max.toDouble(),

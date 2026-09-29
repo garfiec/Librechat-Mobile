@@ -29,6 +29,17 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class SseClientActivityTest {
 
+    private companion object {
+        /**
+         * A run that ends. It must: a body that closes without the final frame is a drop the client
+         * reconnects from, and against a mock that answers every reconnect the same way that is a
+         * loop, not a test.
+         */
+        const val COMPLETE_RUN =
+            "data: {\"created\":true}\n\n" +
+                "data: {\"final\":true,\"conversation\":{\"conversationId\":\"abc\"}}\n\n"
+    }
+
     // Unconfined for the same reason as SseClientOriginBindingTest: a handler on a real thread lets
     // runTest fast-forward virtual time into the parser's stall watchdog.
     private fun client(body: String, status: HttpStatusCode = HttpStatusCode.OK): HttpClient {
@@ -54,7 +65,7 @@ class SseClientActivityTest {
     fun `an uncollected stream is not counted`() = runTest(UnconfinedTestDispatcher()) {
         val tracker = RequestActivityTracker()
 
-        sseClient(client("data: {\"created\":true}\n\n"), tracker).connect("api/agents/chat/stream/abc")
+        sseClient(client(COMPLETE_RUN), tracker).connect("api/agents/chat/stream/abc")
 
         assertThat(tracker.userInFlight.value).isEqualTo(0)
     }
@@ -64,7 +75,7 @@ class SseClientActivityTest {
         val tracker = RequestActivityTracker()
         var inFlightDuringStream = -1
 
-        sseClient(client("data: {\"created\":true}\n\n"), tracker)
+        sseClient(client(COMPLETE_RUN), tracker)
             .connect("api/agents/chat/stream/abc")
             .collect { inFlightDuringStream = tracker.userInFlight.value }
 
@@ -95,7 +106,7 @@ class SseClientActivityTest {
 
         // `first()` cancels the flow as soon as one event arrives, which is a collector going away
         // mid-stream — the path that strands a count when release is tied to completion alone.
-        sseClient(client("data: {\"created\":true}\n\n"), tracker)
+        sseClient(client(COMPLETE_RUN), tracker)
             .connect("api/agents/chat/stream/abc")
             .first()
 

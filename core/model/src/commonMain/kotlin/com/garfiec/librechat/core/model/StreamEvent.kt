@@ -289,4 +289,22 @@ object StreamErrorCodes {
      * the message text is the only signal available to a protocol-v1 client.
      */
     const val GENERATION_RECONCILE = "generation_reconcile"
+
+    /**
+     * Client-side, never on the wire: `SseClient` ran out of retries on connections that kept
+     * dropping (I/O errors, or bodies that closed without the run's end). That says nothing about
+     * the run itself — with no heartbeat upstream, a live run behind an idle-timing proxy looks
+     * exactly like this while the device is online — so the consumer asks `/chat/status` rather
+     * than reporting a network failure: resume if active, refetch if not. Mirrors upstream's
+     * retry-ceiling adjudication (`useResumableSSE.ts`, "Max reconnect attempts reached").
+     */
+    const val RETRY_EXHAUSTED = "retry_exhausted"
+
+    /**
+     * Client-side, like [RETRY_EXHAUSTED]: the retries ran out on an HTTP status the loop has no
+     * special meaning for (a proxy's 502 on every resume). Adjudicated the same way — the run may
+     * well be live behind a flapping proxy — except that when the status read fails too, what the
+     * user is shown is this status error, not a network one: something did answer.
+     */
+    const val STATUS_RETRY_EXHAUSTED = "status_retry_exhausted"
 }

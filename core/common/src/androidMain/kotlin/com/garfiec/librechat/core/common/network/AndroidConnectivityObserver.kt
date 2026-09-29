@@ -5,12 +5,24 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
-import android.net.NetworkRequest
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 
+/**
+ * Whether the device's DEFAULT network — the one the app's requests actually use — offers internet.
+ *
+ * Tracks only the default network (`registerDefaultNetworkCallback`). A plain `NetworkRequest`
+ * callback reports every matching network, each with its own verdict, so after an airplane-mode
+ * cycle — Wi-Fi and cellular both come up, then the system tears one down — the dropped network's
+ * `onLost` can arrive last and leave `false` standing while the default network is fine.
+ *
+ * Deliberately INTERNET, not VALIDATED: this app talks to the user's own server, which may sit on a
+ * LAN with no internet uplink (or behind a network that blocks the validation probe). Such a network
+ * never validates, and every consumer here waits on this flow — the SSE client blocks its retries on
+ * it — so requiring VALIDATED would stall them forever on a network that reaches the server.
+ */
 class AndroidConnectivityObserver(
     private val context: Context,
 ) : ConnectivityObserver {
@@ -21,14 +33,11 @@ class AndroidConnectivityObserver(
 
         // Emit current state
         val currentNetwork = connectivityManager.activeNetwork
-        val currentCapabilities = connectivityManager.getNetworkCapabilities(currentNetwork)
-        trySend(currentCapabilities.hasInternet())
+        trySend(connectivityManager.getNetworkCapabilities(currentNetwork).hasInternet())
 
         val callback = object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) {
-                trySend(true)
-            }
-
+            // No onAvailable: for a default-network callback it is always followed by
+            // onCapabilitiesChanged, which carries the verdict.
             override fun onLost(network: Network) {
                 trySend(false)
             }
@@ -41,11 +50,7 @@ class AndroidConnectivityObserver(
             }
         }
 
-        val request = NetworkRequest.Builder()
-            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-            .build()
-
-        connectivityManager.registerNetworkCallback(request, callback)
+        connectivityManager.registerDefaultNetworkCallback(callback)
 
         awaitClose {
             connectivityManager.unregisterNetworkCallback(callback)

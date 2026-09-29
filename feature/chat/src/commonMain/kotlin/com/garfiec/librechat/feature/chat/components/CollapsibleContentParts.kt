@@ -160,6 +160,9 @@ internal fun ThinkingContentPart(
     searchFocusedOccurrence: Int = -1,
     onFocusedOccurrencePosition: ((LayoutCoordinates, Rect) -> Unit)? = null,
     stateKey: String = "",
+    // True for the live reply's reasoning: its text changes per delta, so it must not be parsed
+    // into the settled-markdown cache (see MarkdownContent / CachedMarkdown).
+    streaming: Boolean = false,
 ) {
     // The focused occurrence index is already rebased to this part; when it falls
     // inside the thinking text, pop the card open so the match can be scrolled to.
@@ -189,6 +192,7 @@ internal fun ThinkingContentPart(
             searchQuery = searchQuery,
             searchFocusedOccurrence = searchFocusedOccurrence,
             onFocusedOccurrencePosition = onFocusedOccurrencePosition,
+            streaming = streaming,
         )
     }
 }

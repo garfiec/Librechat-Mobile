@@ -459,7 +459,13 @@ val dataModule = module {
     singleOf(::SpeechRepositoryImpl) bind SpeechRepository::class
     singleOf(::UserRepositoryImpl) bind UserRepository::class
     singleOf(::BannerRepositoryImpl) bind BannerRepository::class
-    singleOf(::FavoritesRepositoryImpl) bind FavoritesRepository::class
+    single<FavoritesRepository> {
+        FavoritesRepositoryImpl(
+            favoritesApi = get(),
+            activeAccountProvider = get(),
+            applicationScope = get<CoroutineScope>(KoinQualifiers.ApplicationScope),
+        )
+    }
     singleOf(::ToolFavoritesRepositoryImpl) bind ToolFavoritesRepository::class
     singleOf(::TraceRepositoryImpl) bind TraceRepository::class
     singleOf(::ResumePinStore)

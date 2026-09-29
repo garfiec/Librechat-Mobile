@@ -33,7 +33,9 @@ import com.garfiec.librechat.core.ui.components.isMonochromeEndpointIcon
  * (which modifies the action row in MessageBubble).
  *
  * Shows the live cursor at the end of the streaming content, or the waiting indicator before the
- * first delta. See StreamingCursor.kt.
+ * first delta. See StreamingCursor.kt. The reply's reasoning so far ([streamingThinking]) sits above
+ * it in a collapsed Thinking block, as the persisted message shows its THINK parts, rather than as
+ * body text.
  */
 @Composable
 fun StreamingMessageBubble(
@@ -47,6 +49,7 @@ fun StreamingMessageBubble(
     showAvatars: Boolean = true,
     showBubbles: Boolean = false,
     useKatex: Boolean = false,
+    streamingThinking: String = "",
 ) {
     if (chatLayoutStyle == ChatLayoutConstants.TWO_SIDED) {
         TwoSidedStreamingBubble(
@@ -58,6 +61,7 @@ fun StreamingMessageBubble(
             showAvatars = showAvatars,
             showBubbles = showBubbles,
             useKatex = useKatex,
+            streamingThinking = streamingThinking,
             modifier = modifier,
         )
     } else {
@@ -70,6 +74,7 @@ fun StreamingMessageBubble(
             showAvatars = showAvatars,
             showBubbles = showBubbles,
             useKatex = useKatex,
+            streamingThinking = streamingThinking,
             modifier = modifier,
         )
     }
@@ -85,6 +90,7 @@ private fun ThreadStreamingBubble(
     showAvatars: Boolean,
     showBubbles: Boolean,
     useKatex: Boolean,
+    streamingThinking: String,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -147,6 +153,7 @@ private fun ThreadStreamingBubble(
                     }
                 },
         ) {
+            StreamingThinking(streamingThinking, fontSizeMultiplier, useKatex)
             if (streamingContent.isNotBlank()) {
                 // Routed through TextContentPart so artifact directives render as cards while the
                 // reply streams (#302) — an unclosed artifact shows its source via IncompleteArtifact.
@@ -176,6 +183,7 @@ private fun TwoSidedStreamingBubble(
     showAvatars: Boolean,
     showBubbles: Boolean,
     useKatex: Boolean,
+    streamingThinking: String,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -239,6 +247,7 @@ private fun TwoSidedStreamingBubble(
                 },
             )
             Spacer(modifier = Modifier.height(4.dp))
+            StreamingThinking(streamingThinking, fontSizeMultiplier, useKatex)
             if (streamingContent.isNotBlank()) {
                 // Routed through TextContentPart so artifact directives render as cards while the
                 // reply streams (#302) — an unclosed artifact shows its source via IncompleteArtifact.
@@ -256,4 +265,22 @@ private fun TwoSidedStreamingBubble(
             }
         }
     }
+}
+
+/**
+ * The live reply's reasoning, collapsed, above its text. Keyed to one stable state key so a user who
+ * expands it mid-stream keeps it expanded as deltas arrive — but not across settle: the persisted
+ * THINK part has its own key and opens collapsed (an accepted limit, see feature/chat CLAUDE.md).
+ */
+@Composable
+private fun StreamingThinking(thinking: String, fontSizeMultiplier: Float, useKatex: Boolean) {
+    if (thinking.isBlank()) return
+    ThinkingContentPart(
+        thinkingText = thinking,
+        fontSizeMultiplier = fontSizeMultiplier,
+        useKatex = useKatex,
+        stateKey = "streaming",
+        streaming = true,
+    )
+    Spacer(modifier = Modifier.height(4.dp))
 }

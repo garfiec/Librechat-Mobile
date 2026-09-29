@@ -5,6 +5,7 @@ import com.garfiec.librechat.core.model.mcp.McpApiKeySource
 import com.garfiec.librechat.core.model.mcp.McpAuthorizationType
 import com.garfiec.librechat.core.model.mcp.McpConnectionStatusResponse
 import com.garfiec.librechat.core.model.mcp.McpOAuthConfig
+import com.garfiec.librechat.core.model.mcp.McpOboConfig
 import com.garfiec.librechat.core.model.mcp.McpReinitializeResponse
 import com.garfiec.librechat.core.model.mcp.McpServer
 import com.garfiec.librechat.core.model.mcp.McpServerDiscovery
@@ -23,11 +24,15 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.path
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonObject
 
 class McpApi constructor(
     private val client: HttpClient,
@@ -112,6 +117,10 @@ class McpApi constructor(
                 description = config["description"]?.jsonPrimitive?.contentOrNull,
                 apiKey = config["apiKey"]?.jsonObject?.let { parseApiKeyConfig(it) },
                 oauth = config["oauth"]?.jsonObject?.let { parseOAuthConfig(it) },
+                iconPath = (config["iconPath"] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() },
+                obo = ((config["obo"] as? JsonObject)?.get("scopes") as? JsonPrimitive)?.contentOrNull
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let(::McpOboConfig),
             )
         }
     }
@@ -123,10 +132,12 @@ class McpApi constructor(
         type: McpServerType,
         apiKey: McpApiKeyConfig? = null,
         oauth: McpOAuthConfig? = null,
+        iconPath: String? = null,
+        obo: McpOboConfig? = null,
     ): McpServer {
         val response: JsonObject = client.post {
             url { path("api/mcp/servers") }
-            setBody(mapOf("config" to serverConfigBody(name, description, url, type, apiKey, oauth)))
+            setBody(serverWriteBody(name, description, url, type, apiKey, oauth, iconPath, obo))
         }.body()
         // The create route generates the identifier and answers with it; the caller's `name` is
         // only the title it asked for.
@@ -139,6 +150,8 @@ class McpApi constructor(
             description = description,
             apiKey = apiKey,
             oauth = oauth,
+            iconPath = iconPath,
+            obo = obo,
         )
     }
 
@@ -162,10 +175,12 @@ class McpApi constructor(
         type: McpServerType,
         apiKey: McpApiKeyConfig? = null,
         oauth: McpOAuthConfig? = null,
+        iconPath: String? = null,
+        obo: McpOboConfig? = null,
     ): McpServer {
         val response: JsonObject = client.patch {
             url { path("api/mcp/servers/$serverName") }
-            setBody(mapOf("config" to serverConfigBody(name, description, url, type, apiKey, oauth)))
+            setBody(serverWriteBody(name, description, url, type, apiKey, oauth, iconPath, obo))
         }.body()
         // The update route answers with the parsed config alone — the name is the one in the path.
         return McpServer(
@@ -176,38 +191,56 @@ class McpApi constructor(
             description = description,
             apiKey = apiKey,
             oauth = oauth,
+            iconPath = iconPath,
+            obo = obo,
         )
     }
 
-    /** The `config` object both write routes validate against the same schema. */
-    private fun serverConfigBody(
+    /**
+     * `{ config: {...} }`, the body both write routes validate against the same schema.
+     *
+     * Built as a [JsonObject], never a `Map<String, Any>`: Ktor picks a serializer for a map from
+     * its values, and one that nests the `apiKey` or `oauth` object beside strings mixes element
+     * types, so serialization throws before a request is sent.
+     */
+    private fun serverWriteBody(
         name: String,
         description: String?,
         url: String,
         type: McpServerType,
         apiKey: McpApiKeyConfig?,
         oauth: McpOAuthConfig?,
-    ): Map<String, Any> = buildMap {
-        put("url", url)
-        put("type", type.serialName)
-        put("title", name)
-        if (!description.isNullOrBlank()) put("description", description)
-        if (apiKey != null) {
-            put("apiKey", buildMap {
-                put("source", apiKey.source.serialName)
-                put("authorization_type", apiKey.authorizationType.serialName)
-                if (!apiKey.key.isNullOrBlank()) put("key", apiKey.key)
-                if (!apiKey.customHeader.isNullOrBlank()) put("custom_header", apiKey.customHeader)
-            })
-        }
-        if (oauth != null) {
-            put("oauth", buildMap {
-                if (!oauth.authorizationUrl.isNullOrBlank()) put("authorization_url", oauth.authorizationUrl)
-                if (!oauth.tokenUrl.isNullOrBlank()) put("token_url", oauth.tokenUrl)
-                if (!oauth.clientId.isNullOrBlank()) put("client_id", oauth.clientId)
-                if (!oauth.clientSecret.isNullOrBlank()) put("client_secret", oauth.clientSecret)
-                if (!oauth.scope.isNullOrBlank()) put("scope", oauth.scope)
-            })
+        iconPath: String?,
+        obo: McpOboConfig?,
+    ): JsonObject = buildJsonObject {
+        putJsonObject("config") {
+            put("url", url)
+            put("type", type.serialName)
+            put("title", name)
+            if (!description.isNullOrBlank()) put("description", description)
+            // Both are resent as stored, never edited here — the route replaces the config, and
+            // on an OBO server a caller without CONFIGURE_OBO is refused with 403 for any change
+            // to obo. Same shape upstream's form sends.
+            if (!iconPath.isNullOrBlank()) put("iconPath", iconPath)
+            if (obo != null) putJsonObject("obo") { put("scopes", obo.scopes) }
+            if (apiKey != null) {
+                putJsonObject("apiKey") {
+                    put("source", apiKey.source.serialName)
+                    put("authorization_type", apiKey.authorizationType.serialName)
+                    if (!apiKey.key.isNullOrBlank()) put("key", apiKey.key)
+                    if (!apiKey.customHeader.isNullOrBlank()) put("custom_header", apiKey.customHeader)
+                }
+            }
+            if (oauth != null) {
+                putJsonObject("oauth") {
+                    if (!oauth.authorizationUrl.isNullOrBlank()) put("authorization_url", oauth.authorizationUrl)
+                    if (!oauth.tokenUrl.isNullOrBlank()) put("token_url", oauth.tokenUrl)
+                    if (!oauth.clientId.isNullOrBlank()) put("client_id", oauth.clientId)
+                    if (!oauth.clientSecret.isNullOrBlank()) put("client_secret", oauth.clientSecret)
+                    if (!oauth.scope.isNullOrBlank()) put("scope", oauth.scope)
+                    if (!oauth.tokenExchangeMethod.isNullOrBlank()) put("token_exchange_method", oauth.tokenExchangeMethod)
+                }
+            }
         }
     }
 
@@ -226,9 +259,11 @@ class McpApi constructor(
     }
 
     private fun parseApiKeyConfig(obj: JsonObject): McpApiKeyConfig = McpApiKeyConfig(
+        // Upstream's form reads `source || 'admin'`, so only an explicit "user" is per-user. The
+        // edit dialog resends this value, and resending the wrong one rewrites the server.
         source = when (obj["source"]?.jsonPrimitive?.contentOrNull) {
-            "admin" -> McpApiKeySource.ADMIN
-            else -> McpApiKeySource.USER
+            "user" -> McpApiKeySource.USER
+            else -> McpApiKeySource.ADMIN
         },
         authorizationType = when (obj["authorization_type"]?.jsonPrimitive?.contentOrNull) {
             "basic" -> McpAuthorizationType.BASIC
@@ -245,6 +280,7 @@ class McpApi constructor(
         clientId = obj["client_id"]?.jsonPrimitive?.contentOrNull,
         clientSecret = obj["client_secret"]?.jsonPrimitive?.contentOrNull,
         scope = obj["scope"]?.jsonPrimitive?.contentOrNull,
+        tokenExchangeMethod = obj["token_exchange_method"]?.jsonPrimitive?.contentOrNull,
     )
 }
 

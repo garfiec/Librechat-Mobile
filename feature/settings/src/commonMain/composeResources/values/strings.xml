@@ -39,7 +39,7 @@
     <string name="cd_edit">Edit</string>
     <string name="cd_edit_memory">Edit memory</string>
     <string name="memory_redacted_key">Hidden entry</string>
-    <string name="memory_redacted_value">This server\'s content policy hides what\'s stored here. You can still delete it.</string>
+    <string name="memory_redacted_value">This server's content policy hides what's stored here. You can still delete it.</string>
     <string name="cd_edit_server">Edit server</string>
     <string name="cd_expand_tools">Expand tools</string>
     <string name="cd_loading_profile">Loading profile</string>
@@ -442,6 +442,7 @@
     <string name="mcp_header_name_label">Header Name</string>
     <string name="mcp_header_name_placeholder">X-API-Key</string>
     <string name="mcp_api_key_label">API Key</string>
+    <string name="mcp_api_key_user_provides">Each user provides their own key</string>
     <string name="mcp_oauth_client_id">Client ID</string>
     <string name="mcp_oauth_client_secret">Client Secret</string>
     <string name="mcp_oauth_auth_url">Authorization URL</string>
@@ -503,6 +504,7 @@
     <string name="no_shared_links">No shared links</string>
     <string name="no_shared_links_desc">Share a conversation to see it here</string>
     <string name="mcp_oauth_secret_reentry_required">The OAuth endpoints changed, so the saved secret no longer applies. Enter it again.</string>
+    <string name="mcp_api_key_reentry_required">The connection settings changed, so the saved API key no longer applies. Enter it again.</string>
     <string name="cd_update_shared_link">Update shared link</string>
     <string name="dialog_title_update_shared_link">Update Shared Link</string>
     <string name="dialog_update_shared_link_message">This republishes "%1$s" with the conversation as it is now. The link stays the same, so anyone who already has it will see the updated content.</string>

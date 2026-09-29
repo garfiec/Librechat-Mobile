@@ -33,10 +33,12 @@ fun UploadRoute.toolResource(): String? = when (this) {
  * `packages/data-provider/src/schemas.ts`, including its deliberate omissions.
  *
  * `azureOpenAI` is absent upstream because it only takes documents with `useResponsesApi`
- * enabled, which upstream handles in the two menu components rather than in the set. We could
- * read that flag (it surfaces as a dynamic model parameter), but choose not to model the corner
- * — an Azure document therefore routes to text, which works, rather than to a path that depends
- * on a per-agent toggle.
+ * enabled, which upstream handles in the two menu components rather than in the set. Since
+ * v0.8.8-rc4 that input is no longer the raw toggle but a server-policy resolution
+ * (`resolveEffectiveUseResponsesApi` over `/api/endpoints` `responsesApiRouting`), so modelling it
+ * would mean mirroring that policy too. We choose not to model the corner — an Azure document
+ * therefore routes to text, which works, rather than to a path that depends on a per-agent toggle
+ * and a deployment policy.
  *
  * This set is a hardcoded mirror because the server never serves it. It has changed roughly
  * every seven weeks and is net growing, so treat it as structurally behind the server: an

@@ -4,10 +4,8 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
-import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.McpRepository
-import com.garfiec.librechat.core.model.error.ServerErrorCode
 import com.garfiec.librechat.core.model.mcp.McpApiKeyConfig
 import com.garfiec.librechat.core.model.mcp.McpOAuthConfig
 import com.garfiec.librechat.core.model.mcp.McpServer
@@ -56,6 +54,23 @@ data class McpUiState(
      * ever succeed.
      */
     val oauthSecretReentryRequired: Boolean = false,
+    /**
+     * The last save was refused with `API_KEY_REENTRY_REQUIRED` (v0.8.8-rc4): a retained admin
+     * API key is bound to the connection it was entered for, and the edit changed that connection
+     * without re-sending the key. Same prompt-for-input outcome as [oauthSecretReentryRequired].
+     */
+    val apiKeyReentryRequired: Boolean = false,
+    /**
+     * Why the last save failed, shown inside the server dialog. Kept apart from [error] because a
+     * failed save leaves the dialog open, and [error] renders as a snackbar in the screen behind
+     * it — the modal covers the snackbar, which then times out and clears itself unseen.
+     */
+    val serverDialogError: String? = null,
+    /**
+     * The open dialog's save is in flight. Disables Save: the create route names every POST
+     * afresh, so a second tap on a slow save creates the server twice.
+     */
+    val isSavingServer: Boolean = false,
 )
 
 /** A server waiting on the user to authorize it, with the provider URL to send them to. */
@@ -70,6 +85,9 @@ class McpViewModel(
 
     private val _uiState = MutableStateFlow(McpUiState())
     val uiState: StateFlow<McpUiState> = _uiState.asStateFlow()
+
+    /** Bumped whenever the server dialog opens or closes, so a save can tell its dialog is gone. */
+    private var serverDialogSession = 0
 
     init {
         loadServers()
@@ -150,15 +168,18 @@ class McpViewModel(
     }
 
     fun showAddServerDialog() {
-        _uiState.value = _uiState.value.copy(showServerDialog = true, editingServer = null)
+        serverDialogSession++
+        _uiState.value = _uiState.value.copy(showServerDialog = true, editingServer = null).withoutSaveFeedback()
     }
 
     fun showEditServerDialog(server: McpServer) {
-        _uiState.value = _uiState.value.copy(showServerDialog = true, editingServer = server)
+        serverDialogSession++
+        _uiState.value = _uiState.value.copy(showServerDialog = true, editingServer = server).withoutSaveFeedback()
     }
 
     fun dismissServerDialog() {
-        _uiState.value = _uiState.value.copy(showServerDialog = false, editingServer = null)
+        serverDialogSession++
+        _uiState.value = _uiState.value.copy(showServerDialog = false, editingServer = null).withoutSaveFeedback()
     }
 
     fun saveServer(
@@ -169,11 +190,14 @@ class McpViewModel(
         apiKey: McpApiKeyConfig? = null,
         oauth: McpOAuthConfig? = null,
     ) {
+        if (_uiState.value.isSavingServer) return
+        val session = serverDialogSession
+        // An edit addresses the stored server (PATCH), a new one does not (POST); see
+        // McpRepository.updateServer for why an edit must not be sent as a create.
+        val editing = _uiState.value.editingServer?.name
+        val preserved = preservedFieldsFor(_uiState.value.editingServer, apiKey, oauth)
+        _uiState.value = _uiState.value.withoutSaveFeedback().copy(isSavingServer = true)
         viewModelScope.launch {
-            // An edit addresses the stored server (PATCH), a new one does not (POST); see
-            // McpRepository.updateServer for why an edit must not be sent as a create.
-            val editing = _uiState.value.editingServer?.name
-            _uiState.value = _uiState.value.copy(oauthSecretReentryRequired = false)
             val result = if (editing != null) {
                 mcpRepository.updateServer(
                     serverName = editing,
@@ -183,6 +207,8 @@ class McpViewModel(
                     type = type,
                     apiKey = apiKey,
                     oauth = oauth,
+                    iconPath = preserved.iconPath,
+                    obo = preserved.obo,
                 )
             } else {
                 mcpRepository.createServer(
@@ -194,27 +220,28 @@ class McpViewModel(
                     oauth = oauth,
                 )
             }
+            // The dialog may have been closed, or reopened on another server, while this ran. Its
+            // outcome then belongs to no open dialog: a failure goes to the snackbar, and a success
+            // must not close the dialog the user has since opened.
+            val dialogStillOpen = session == serverDialogSession
             when (result) {
                 is Result.Success -> {
-                    dismissServerDialog()
+                    if (dialogStillOpen) dismissServerDialog()
                     loadServers()
                     loadConnectionStatus()
                 }
                 is Result.Error -> {
-                    // A rejected secret binding is a prompt-for-input outcome, never a retry: the
-                    // same body can only be refused again. See [oauthSecretReentryRequired].
-                    val exception = result.exception as? ApiException
-                    val reentry = exception?.statusCode == HTTP_BAD_REQUEST &&
-                        ServerErrorCode.from(exception.body) == ServerErrorCode.OAUTH_SECRET_REENTRY_REQUIRED
-                    _uiState.value = _uiState.value.copy(
-                        oauthSecretReentryRequired = reentry,
-                        error = if (reentry) {
-                            "This server's OAuth endpoints changed, so the saved client secret " +
-                                "no longer applies. Enter the client secret again to save."
-                        } else {
-                            result.message ?: "Failed to save server"
-                        },
-                    )
+                    val failure = result.toMcpSaveFailure(fallback = "Failed to save server")
+                    _uiState.value = if (dialogStillOpen) {
+                        _uiState.value.copy(
+                            isSavingServer = false,
+                            oauthSecretReentryRequired = failure.secretReentry,
+                            apiKeyReentryRequired = failure.keyReentry,
+                            serverDialogError = failure.dialogMessage,
+                        )
+                    } else {
+                        _uiState.value.copy(error = failure.snackbarMessage)
+                    }
                 }
                 is Result.Loading -> { /* no-op */ }
             }
@@ -323,8 +350,17 @@ class McpViewModel(
          * reinitialize outcome whose wording is ours rather than the server's.
          */
         const val DEFERRED_MARKER = "mcp_connection_deferred"
-
-        /** The MCP write routes report a rejected OAuth secret binding with 400. */
-        private const val HTTP_BAD_REQUEST = 400
     }
 }
+
+/**
+ * A save's feedback — the re-entry prompts, the failure message and the in-flight flag — belongs
+ * to the dialog that raised it. Carried into the next dialog, it would mark a secret or key field
+ * red, report a failure, or disable Save on a server the user never tried to save.
+ */
+private fun McpUiState.withoutSaveFeedback() = copy(
+    oauthSecretReentryRequired = false,
+    apiKeyReentryRequired = false,
+    serverDialogError = null,
+    isSavingServer = false,
+)

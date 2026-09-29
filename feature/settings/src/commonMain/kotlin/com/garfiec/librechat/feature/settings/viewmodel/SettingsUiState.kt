@@ -254,6 +254,19 @@ data class SettingsUiState(
      * so the write keeps failing until the secret is supplied again.
      */
     val mcpOAuthSecretReentryRequired: Boolean = false,
+    /**
+     * The last MCP server save was refused with `API_KEY_REENTRY_REQUIRED` (v0.8.8-rc4) — the
+     * retained admin API key was bound to the connection it was entered for and the edit changed
+     * it, so the write keeps failing until the key is supplied again.
+     */
+    val mcpApiKeyReentryRequired: Boolean = false,
+    /**
+     * Why the last MCP server save failed, shown inside the server dialog rather than through
+     * [error]: the dialog stays open on failure and would cover [error]'s snackbar.
+     */
+    val mcpServerDialogError: String? = null,
+    /** The open MCP server dialog's save is in flight; see `McpUiState.isSavingServer`. */
+    val mcpServerSaving: Boolean = false,
 )
 
 internal fun User.toDisplayData() = UserDisplayData(
