@@ -146,6 +146,35 @@ class McpViewModelSaveRouteTest {
         assertThat(vm.uiState.value.showServerDialog).isTrue()
     }
 
+    /**
+     * A re-entry prompt belongs to the save that raised it. Kept across a dismiss or a reopen, it
+     * marks the key or secret field red on the next dialog — another server's, or a blank add dialog.
+     */
+    @Test
+    fun `re-entry prompts do not survive the dialog closing or reopening`() = runTest {
+        for (code in listOf("MCP_API_KEY_REENTRY_REQUIRED", "MCP_OAUTH_SECRET_REENTRY_REQUIRED")) {
+            coEvery { mcpRepository.updateServer(any(), any(), any(), any(), any(), any(), any()) } returns
+                Result.Error(exception = ApiException(statusCode = 400, message = "x", body = """{"error":"$code"}"""))
+            val vm = McpViewModel(mcpRepository)
+            fun refused() {
+                vm.showEditServerDialog(SERVER)
+                vm.saveServer(name = "Docs", url = URL, type = McpServerType.SSE)
+                assertThat(vm.uiState.value.apiKeyReentryRequired || vm.uiState.value.oauthSecretReentryRequired)
+                    .isTrue()
+            }
+
+            refused()
+            vm.dismissServerDialog()
+            assertThat(vm.uiState.value.apiKeyReentryRequired).isFalse()
+            assertThat(vm.uiState.value.oauthSecretReentryRequired).isFalse()
+
+            refused()
+            vm.showAddServerDialog()
+            assertThat(vm.uiState.value.apiKeyReentryRequired).isFalse()
+            assertThat(vm.uiState.value.oauthSecretReentryRequired).isFalse()
+        }
+    }
+
     /** Any other refusal keeps the generic message; the secret field must not turn red for it. */
     @Test
     fun `an unrelated failure does not ask for the client secret`() = runTest {

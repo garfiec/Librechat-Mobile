@@ -506,4 +506,37 @@ class SettingsViewModelTest {
         assertThat(viewModel.uiState.value.mcpOAuthSecretReentryRequired).isFalse()
         assertThat(viewModel.uiState.value.showMcpServerDialog).isTrue()
     }
+
+    /** The Settings path's copy of the same rule: the prompt is cleared when its dialog closes or reopens. */
+    @Test
+    fun `MCP re-entry prompts do not survive the Settings dialog closing or reopening`() = runTest {
+        coEvery { mcpRepository.updateServer(any(), any(), any(), any(), any(), any(), any()) } returns
+            Result.Error(
+                exception = ApiException(
+                    statusCode = 400,
+                    message = "x",
+                    body = """{"error":"MCP_API_KEY_REENTRY_REQUIRED"}""",
+                ),
+            )
+        val server = McpServer(name = "docs_mcp", url = "https://docs.example.test/mcp", type = McpServerType.SSE)
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        fun refused() {
+            viewModel.showEditMcpServerDialog(server)
+            viewModel.saveMcpServer(name = "Docs", url = "https://moved.example.test/mcp", type = McpServerType.SSE)
+            advanceUntilIdle()
+            assertThat(viewModel.uiState.value.mcpApiKeyReentryRequired).isTrue()
+        }
+
+        refused()
+        viewModel.dismissMcpServerDialog()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.mcpApiKeyReentryRequired).isFalse()
+
+        refused()
+        viewModel.showAddMcpServerDialog()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.mcpApiKeyReentryRequired).isFalse()
+        assertThat(viewModel.uiState.value.mcpOAuthSecretReentryRequired).isFalse()
+    }
 }

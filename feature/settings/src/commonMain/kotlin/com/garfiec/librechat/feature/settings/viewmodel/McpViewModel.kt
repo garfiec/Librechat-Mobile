@@ -156,15 +156,15 @@ class McpViewModel(
     }
 
     fun showAddServerDialog() {
-        _uiState.value = _uiState.value.copy(showServerDialog = true, editingServer = null)
+        _uiState.value = _uiState.value.copy(showServerDialog = true, editingServer = null).withoutReentryPrompts()
     }
 
     fun showEditServerDialog(server: McpServer) {
-        _uiState.value = _uiState.value.copy(showServerDialog = true, editingServer = server)
+        _uiState.value = _uiState.value.copy(showServerDialog = true, editingServer = server).withoutReentryPrompts()
     }
 
     fun dismissServerDialog() {
-        _uiState.value = _uiState.value.copy(showServerDialog = false, editingServer = null)
+        _uiState.value = _uiState.value.copy(showServerDialog = false, editingServer = null).withoutReentryPrompts()
     }
 
     fun saveServer(
@@ -344,3 +344,10 @@ class McpViewModel(
         private const val HTTP_BAD_REQUEST = 400
     }
 }
+
+/**
+ * A re-entry prompt belongs to the save that raised it. Carried into the next dialog, it would mark
+ * a secret or key field red on a server the user never tried to save — or on a fresh add dialog.
+ */
+private fun McpUiState.withoutReentryPrompts() =
+    copy(oauthSecretReentryRequired = false, apiKeyReentryRequired = false)

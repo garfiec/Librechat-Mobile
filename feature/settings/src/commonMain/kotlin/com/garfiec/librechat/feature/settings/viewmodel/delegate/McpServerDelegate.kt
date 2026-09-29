@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.model.mcp.McpOAuthConfig
 import com.garfiec.librechat.core.model.mcp.McpServer
 import com.garfiec.librechat.core.model.mcp.McpServerType
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
+import com.garfiec.librechat.feature.settings.viewmodel.SettingsUiState
 import kotlinx.coroutines.launch
 
 /**
@@ -47,15 +48,15 @@ class McpServerDelegate(
     }
 
     fun showAddMcpServerDialog() {
-        stateHandle.update { copy(showMcpServerDialog = true, editingMcpServer = null) }
+        stateHandle.update { copy(showMcpServerDialog = true, editingMcpServer = null).withoutMcpReentryPrompts() }
     }
 
     fun showEditMcpServerDialog(server: McpServer) {
-        stateHandle.update { copy(showMcpServerDialog = true, editingMcpServer = server) }
+        stateHandle.update { copy(showMcpServerDialog = true, editingMcpServer = server).withoutMcpReentryPrompts() }
     }
 
     fun dismissMcpServerDialog() {
-        stateHandle.update { copy(showMcpServerDialog = false, editingMcpServer = null) }
+        stateHandle.update { copy(showMcpServerDialog = false, editingMcpServer = null).withoutMcpReentryPrompts() }
     }
 
     fun saveMcpServer(
@@ -185,3 +186,7 @@ class McpServerDelegate(
 
 /** The MCP write routes report a rejected OAuth secret binding with 400. */
 private const val HTTP_BAD_REQUEST = 400
+
+/** See `McpViewModel`'s counterpart: a re-entry prompt belongs to the save that raised it. */
+private fun SettingsUiState.withoutMcpReentryPrompts() =
+    copy(mcpOAuthSecretReentryRequired = false, mcpApiKeyReentryRequired = false)
