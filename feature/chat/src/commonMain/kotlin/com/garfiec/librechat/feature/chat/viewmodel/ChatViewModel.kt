@@ -894,14 +894,16 @@ class ChatViewModel(
                 // A handed-off new chat seeds the just-sent user message (pendingResumeUserMessage):
                 // the server persists the request only when the reply completes, so the Room read is
                 // empty mid-stream and the user's message would otherwise vanish for the whole stream.
-                // Keep that seed appended until the server's own copy arrives by id, then drop it.
-                // (finalizeChatDisplay also clears the seed at Final, covering backends that never echo
-                // the optimistic id.) Done here, off Main, so the path build stays on the Default
-                // dispatcher. The takeIf guarantees the seed id is absent from stabilized, so this is a
-                // plain append — no by-id reconcile needed.
+                // Keep that seed appended until the server's own copy arrives, then drop it. The copy
+                // is matched by content as well as id (isServerCopyOf): rc3+ re-mints the id, so an
+                // id-only match never fired, and a run ending with no Final (a resume that 404s) left
+                // the seed as a newer root sibling that hid the persisted turn. finalizeChatDisplay
+                // also clears the seed at Final. Done here, off Main, so the path build stays on the
+                // Default dispatcher. The takeIf guarantees no copy of the seed is in stabilized, so
+                // this is a plain append — no by-id reconcile needed.
                 val pending = baseline.pendingResumeUserMessage
                 val retainedPending = pending?.takeIf { seed ->
-                    stabilized.none { it.messageId == seed.messageId }
+                    stabilized.none { it.messageId == seed.messageId || it.isServerCopyOf(seed) }
                 }
                 val merged = retainedPending?.let { stabilized + it } ?: stabilized
                 MessagePathEmission(
@@ -928,7 +930,7 @@ class ChatViewModel(
                                 } else {
                                     it.content.screenState
                                 },
-                                // Null once the server echoes its own copy (or there was never a seed) →
+                                // Null once the server's copy arrives (or there was never a seed) →
                                 // a later server-side delete can then still remove the row.
                                 pendingResumeUserMessage = emission.retainedPending,
                             ),
