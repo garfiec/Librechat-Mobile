@@ -48,15 +48,15 @@ class McpServerDelegate(
     }
 
     fun showAddMcpServerDialog() {
-        stateHandle.update { copy(showMcpServerDialog = true, editingMcpServer = null).withoutMcpReentryPrompts() }
+        stateHandle.update { copy(showMcpServerDialog = true, editingMcpServer = null).withoutMcpSaveFeedback() }
     }
 
     fun showEditMcpServerDialog(server: McpServer) {
-        stateHandle.update { copy(showMcpServerDialog = true, editingMcpServer = server).withoutMcpReentryPrompts() }
+        stateHandle.update { copy(showMcpServerDialog = true, editingMcpServer = server).withoutMcpSaveFeedback() }
     }
 
     fun dismissMcpServerDialog() {
-        stateHandle.update { copy(showMcpServerDialog = false, editingMcpServer = null).withoutMcpReentryPrompts() }
+        stateHandle.update { copy(showMcpServerDialog = false, editingMcpServer = null).withoutMcpSaveFeedback() }
     }
 
     fun saveMcpServer(
@@ -71,9 +71,7 @@ class McpServerDelegate(
             // Which server the dialog was opened on decides the route, not the shape of the body:
             // an edit is a PATCH against the stored identifier. See McpRepository.updateServer.
             val editing = stateHandle.state.editingMcpServer?.name
-            stateHandle.update {
-                copy(mcpOAuthSecretReentryRequired = false, mcpApiKeyReentryRequired = false)
-            }
+            stateHandle.update { withoutMcpSaveFeedback() }
             val result = if (editing != null) {
                 mcpRepository.updateServer(
                     serverName = editing,
@@ -114,7 +112,7 @@ class McpServerDelegate(
                         copy(
                             mcpOAuthSecretReentryRequired = secretReentry,
                             mcpApiKeyReentryRequired = keyReentry,
-                            error = when {
+                            mcpServerDialogError = when {
                                 secretReentry ->
                                     "This server's OAuth endpoints changed, so the saved client " +
                                         "secret no longer applies. Enter the client secret again to save."
@@ -187,6 +185,6 @@ class McpServerDelegate(
 /** The MCP write routes report a rejected OAuth secret binding with 400. */
 private const val HTTP_BAD_REQUEST = 400
 
-/** See `McpViewModel`'s counterpart: a re-entry prompt belongs to the save that raised it. */
-private fun SettingsUiState.withoutMcpReentryPrompts() =
-    copy(mcpOAuthSecretReentryRequired = false, mcpApiKeyReentryRequired = false)
+/** See `McpViewModel`'s counterpart: a save's feedback belongs to the save that raised it. */
+private fun SettingsUiState.withoutMcpSaveFeedback() =
+    copy(mcpOAuthSecretReentryRequired = false, mcpApiKeyReentryRequired = false, mcpServerDialogError = null)

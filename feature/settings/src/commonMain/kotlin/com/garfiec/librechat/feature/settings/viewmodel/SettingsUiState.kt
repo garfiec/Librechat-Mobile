@@ -260,6 +260,11 @@ data class SettingsUiState(
      * it, so the write keeps failing until the key is supplied again.
      */
     val mcpApiKeyReentryRequired: Boolean = false,
+    /**
+     * Why the last MCP server save failed, shown inside the server dialog rather than through
+     * [error]: the dialog stays open on failure and would cover [error]'s snackbar.
+     */
+    val mcpServerDialogError: String? = null,
 )
 
 internal fun User.toDisplayData() = UserDisplayData(

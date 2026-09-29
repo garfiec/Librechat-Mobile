@@ -62,6 +62,12 @@ data class McpUiState(
      * without re-sending the key. Same prompt-for-input outcome as [oauthSecretReentryRequired].
      */
     val apiKeyReentryRequired: Boolean = false,
+    /**
+     * Why the last save failed, shown inside the server dialog. Kept apart from [error] because a
+     * failed save leaves the dialog open, and [error] renders as a snackbar in the screen behind
+     * it — the modal covers the snackbar, which then times out and clears itself unseen.
+     */
+    val serverDialogError: String? = null,
 )
 
 /** A server waiting on the user to authorize it, with the provider URL to send them to. */
@@ -156,15 +162,15 @@ class McpViewModel(
     }
 
     fun showAddServerDialog() {
-        _uiState.value = _uiState.value.copy(showServerDialog = true, editingServer = null).withoutReentryPrompts()
+        _uiState.value = _uiState.value.copy(showServerDialog = true, editingServer = null).withoutSaveFeedback()
     }
 
     fun showEditServerDialog(server: McpServer) {
-        _uiState.value = _uiState.value.copy(showServerDialog = true, editingServer = server).withoutReentryPrompts()
+        _uiState.value = _uiState.value.copy(showServerDialog = true, editingServer = server).withoutSaveFeedback()
     }
 
     fun dismissServerDialog() {
-        _uiState.value = _uiState.value.copy(showServerDialog = false, editingServer = null).withoutReentryPrompts()
+        _uiState.value = _uiState.value.copy(showServerDialog = false, editingServer = null).withoutSaveFeedback()
     }
 
     fun saveServer(
@@ -179,10 +185,7 @@ class McpViewModel(
             // An edit addresses the stored server (PATCH), a new one does not (POST); see
             // McpRepository.updateServer for why an edit must not be sent as a create.
             val editing = _uiState.value.editingServer?.name
-            _uiState.value = _uiState.value.copy(
-                oauthSecretReentryRequired = false,
-                apiKeyReentryRequired = false,
-            )
+            _uiState.value = _uiState.value.withoutSaveFeedback()
             val result = if (editing != null) {
                 mcpRepository.updateServer(
                     serverName = editing,
@@ -221,7 +224,7 @@ class McpViewModel(
                     _uiState.value = _uiState.value.copy(
                         oauthSecretReentryRequired = secretReentry,
                         apiKeyReentryRequired = keyReentry,
-                        error = when {
+                        serverDialogError = when {
                             secretReentry ->
                                 "This server's OAuth endpoints changed, so the saved client secret " +
                                     "no longer applies. Enter the client secret again to save."
@@ -346,8 +349,9 @@ class McpViewModel(
 }
 
 /**
- * A re-entry prompt belongs to the save that raised it. Carried into the next dialog, it would mark
- * a secret or key field red on a server the user never tried to save — or on a fresh add dialog.
+ * A save's feedback — the re-entry prompts and the failure message — belongs to the save that
+ * raised it. Carried into the next dialog, it would mark a secret or key field red, or report a
+ * failure, on a server the user never tried to save — or on a fresh add dialog.
  */
-private fun McpUiState.withoutReentryPrompts() =
-    copy(oauthSecretReentryRequired = false, apiKeyReentryRequired = false)
+private fun McpUiState.withoutSaveFeedback() =
+    copy(oauthSecretReentryRequired = false, apiKeyReentryRequired = false, serverDialogError = null)

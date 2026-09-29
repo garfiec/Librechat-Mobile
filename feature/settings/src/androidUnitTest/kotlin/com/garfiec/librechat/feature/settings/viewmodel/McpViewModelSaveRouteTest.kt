@@ -187,7 +187,7 @@ class McpViewModelSaveRouteTest {
 
         assertThat(vm.uiState.value.oauthSecretReentryRequired).isFalse()
         assertThat(vm.uiState.value.apiKeyReentryRequired).isFalse()
-        assertThat(vm.uiState.value.error).isEqualTo("Server unreachable")
+        assertThat(vm.uiState.value.serverDialogError).isEqualTo("Server unreachable")
     }
 
     private companion object {

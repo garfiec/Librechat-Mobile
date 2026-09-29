@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -54,6 +55,8 @@ internal fun McpServerDialog(
     oauthSecretReentryRequired: Boolean,
     /** The last save was refused with `API_KEY_REENTRY_REQUIRED`: the API key must be re-typed. */
     apiKeyReentryRequired: Boolean,
+    /** Why the last save failed; shown here because the dialog stays open and covers the screen. */
+    saveError: String?,
     onDismiss: () -> Unit,
     onSave:
     (name: String, description: String?, url: String, type: McpServerType, apiKey: McpApiKeyConfig?, oauth: McpOAuthConfig?) -> Unit,
@@ -102,6 +105,14 @@ internal fun McpServerDialog(
         },
         text = {
             Column(modifier = Modifier.imePadding().verticalScroll(rememberScrollState())) {
+                if (saveError != null) {
+                    Text(
+                        text = saveError,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
+                }
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },

@@ -539,4 +539,28 @@ class SettingsViewModelTest {
         assertThat(viewModel.uiState.value.mcpApiKeyReentryRequired).isFalse()
         assertThat(viewModel.uiState.value.mcpOAuthSecretReentryRequired).isFalse()
     }
+
+    /**
+     * A failed save keeps the MCP dialog open, and `error` is a snackbar in the screen the dialog
+     * covers: reported there, the failure times out unseen and the save looks like it did nothing.
+     */
+    @Test
+    fun `a failed MCP save is reported inside the dialog, not behind it`() = runTest {
+        coEvery { mcpRepository.createServer(any(), any(), any(), any(), any(), any()) } returns
+            Result.Error(exception = IllegalStateException("boom"), message = "Something went wrong")
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.showAddMcpServerDialog()
+
+        viewModel.saveMcpServer(name = "Docs", url = "https://docs.example.test/mcp", type = McpServerType.SSE)
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.showMcpServerDialog).isTrue()
+        assertThat(viewModel.uiState.value.mcpServerDialogError).isEqualTo("Something went wrong")
+        assertThat(viewModel.uiState.value.error).isNull()
+
+        viewModel.dismissMcpServerDialog()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.mcpServerDialogError).isNull()
+    }
 }
