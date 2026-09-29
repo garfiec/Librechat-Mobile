@@ -1302,6 +1302,22 @@ error payload  upstream_model_error       (v0.8.8-rc4, #16034) now carries the p
                                             capped by `endpoints.agents.maxProviderErrorChars` (default 2000).
                                             The thread headlines the status and shows the message inline when it
                                             is one line of at most 240 chars, collapsed otherwise. (BUILT)
+                                            **"Content policy active" is broad, and a bare "(status N)" is then
+                                            correct, not a client bug.** `createTerminalRunErrorObserver` drops
+                                            the provider text whenever `protectionEnabled !== false`
+                                            (`packages/api/src/agents/failures/terminal.ts:103`). Every caller
+                                            passes `hasModelBoundContentProtection(appConfig.filters,
+                                            appConfig.messageFilter.pii)` (`api/server/controllers/agents/
+                                            client.js:4421` send, `:5311` resume; `openai.js:391`), which is
+                                            true when ANY model-bound policy is on: legacy `messageFilter.pii`,
+                                            or `filters.messages` / `agentInstructions` / `conversationStarters`
+                                            / `skills` / `memories` / `toolArguments` / `modelParameters` /
+                                            `actionMetadata` `.pii`, or a file policy
+                                            (`packages/api/src/middleware/modelBoundContent.ts:754`). So a
+                                            server with only `filters.memories.pii` set never sends `message`,
+                                            and the error reads "The model provider couldn't complete this
+                                            request (status N)" with nothing under it. Omission also fails
+                                            closed for callers that do not pass the flag.
 FINAL / terminal events                   (v0.8.8-rc4, #16112) `fileContext`, `image_urls` and upload
                                             `files[].text` are stripped from `requestMessage`, `responseMessage`
                                             and `runMessages[]`. Mobile reads none of them. (NO CHANGE —
