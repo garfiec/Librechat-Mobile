@@ -60,7 +60,11 @@ data class SkillImportFailedResponse(
         const val CLEANUP_INCOMPLETE = "skill_import_cleanup_incomplete"
 
         private val CODES = setOf(INCOMPLETE, ROLLBACK_FAILED, CLEANUP_INCOMPLETE)
-        private val parser = Json { ignoreUnknownKeys = true; isLenient = true }
+
+        // `coerceInputValues` turns a null entry field into its default, so one malformed entry
+        // renders generically instead of failing the whole report — which would also skip the
+        // reload that surfaces a partial skill left behind by a failed rollback.
+        private val parser = Json { ignoreUnknownKeys = true; isLenient = true; coerceInputValues = true }
 
         /**
          * The failure report in an import's error body, or null when the body is anything else —
@@ -77,12 +81,14 @@ data class SkillImportFailedResponse(
 
 /**
  * One archive entry the import could not persist. [reason] is a stable code the client localizes
- * (see [SkillImportFailureReason]); [limitMb] is set when the reason names a size limit.
+ * (see [SkillImportFailureReason]); [limitMb] is set when the reason names a size limit. Both
+ * strings default to empty, which renders as the generic reason, as upstream renders each entry on
+ * its own rather than rejecting the report.
  */
 @Serializable
 data class SkillImportFailedFile(
-    val path: String,
-    val reason: String,
+    val path: String = "",
+    val reason: String = "",
     val limitMb: Double? = null,
 )
 
