@@ -219,4 +219,28 @@ class StreamingManagerRetryCeilingTest {
             assertThat(state.value.error).contains("502")
             verify(exactly = 0) { connectivityObserver.isConnected }
         }
+
+    /** The status read is in flight when the account switches: nothing may act on its answer. */
+    @Test
+    fun `an account switch during the ceiling's status read neither resumes nor reloads`() =
+        runTest(StandardTestDispatcher()) {
+            val accounts = InMemoryActiveAccountProvider(AccountState.Resolved(AccountId("srv:user-a")))
+            val statusGate = CompletableDeferred<Unit>()
+            coEvery { chatRepository.checkStreamStatus("conv-1", any()) } coAnswers {
+                statusGate.await()
+                ChatStatusResponse(active = true)
+            }
+            val (delegate, _) = delegateWith(this, accounts)
+
+            delegate.beginStreaming(isEdit = false)
+            delegate.launchStream(flowOf(StreamEvent.ContentDelta(chunk = "half an answer"), exhausted))
+            runCurrent()
+            accounts.set(AccountId("srv:user-b"))
+            statusGate.complete(Unit)
+            runCurrent()
+
+            verify(exactly = 0) { chatRepository.resumeStream(any()) }
+            verify(exactly = 0) { reloadConversation(any()) }
+            delegate.reset()
+        }
 }

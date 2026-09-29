@@ -1213,7 +1213,9 @@ class StreamingManagerDelegate(
                 Logger.w(e) { "Retry ceiling: could not check stream status" }
                 null
             }
-            if (isResumeStale(session) || abortRequested) return@launch
+            // The read can take seconds: an account switch in that window must not reload or resume
+            // the outgoing account's conversation with the incoming account's credentials.
+            if (isResumeStale(session) || abortRequested || originAccountChanged()) return@launch
             when {
                 // The status read failed too. After the transport ladder that is a real connectivity
                 // failure, which the observer recovers once the network returns; after a persistent
