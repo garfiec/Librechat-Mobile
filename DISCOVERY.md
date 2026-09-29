@@ -1256,6 +1256,29 @@ PATCH  /api/mcp/servers/:serverName       (v0.8.8-rc4, #16136) new **400** `{ er
                                             without re-sending `apiKey.key`. Every retry of the same body fails
                                             the same way. Both mobile save paths keep the dialog open and mark
                                             the API-key field. (BUILT)
+PATCH  /api/mcp/servers/:serverName       **`apiKey.source` is what decides the stored key's fate** (read from
+  (apiKey.source)                           `ServerConfigsDB.update`; the rc3 behaviour is the same apart from the
+                                            rc4 re-entry check). The body REPLACES the config — there is no merge
+                                            of `source`:
+                                            - `source: 'admin'` with no `key`, over a stored admin key → the stored
+                                              (encrypted) key is carried over. From rc4 that is refused with the
+                                              400 above when the edit also changes url/type/proxy/authorization
+                                              type/custom header.
+                                            - `source: 'admin'` with a `key` → the new key replaces it.
+                                            - `source: 'user'` → accepted with **200** and the admin key is
+                                              DISCARDED: the server becomes per-user, every user is prompted for
+                                              their own key, and the rc4 re-entry check never runs (it only
+                                              guards admin→admin). A `key` sent with `source: 'user'` is
+                                              dropped (`transformUserApiKeyConfig` strips it and templates the
+                                              header on each user's `MCP_API_KEY`); upstream's form never sends one.
+                                            Reads never return the key (`redactServerSecrets` keeps `source`,
+                                            `authorization_type`, `custom_header`), so a client cannot resend it:
+                                            an edit must resend the stored `source`, and a key only when the user
+                                            typed one. Upstream's form (`useMCPServerForm`) does exactly that,
+                                            and defaults a new server to `admin` behind an "Each user provides
+                                            their own key" checkbox. Mobile hardcoded `source: 'user'` on every
+                                            save until the rc4 sync, which silently turned every edited
+                                            admin-keyed server into a per-user one. (BUILT)
 GET    /api/endpoints                     (v0.8.8-rc4, #16221) `openAI`/`azureOpenAI` entries gain
                                             `responsesApiRouting: Record<model, {default,on,off,withWebSearch?}>`
                                             — the server-policy default for `useResponsesApi`. Tolerated; not
