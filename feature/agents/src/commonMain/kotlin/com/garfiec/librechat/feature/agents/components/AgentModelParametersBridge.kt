@@ -76,6 +76,11 @@ internal fun ModelParameters.toAgentAdvancedSettings(
         val wasInExtras = def.key in previous.extras
         when {
             value.isBlank() -> newExtras.remove(def.key)
+            // A value the current model no longer offers (effort `minimal` after a switch to
+            // gpt-6-sol, `none` on Grok 4.7) is removed, not preserved: the editor shows it as
+            // "Unset", and keeping it would save a value the provider may reject. Deliberately unlike
+            // the web, which keeps it — the same rule as the chat payload (ModelParamPayload).
+            def.options?.contains(value) == false -> newExtras.remove(def.key)
             wasInExtras || !isDefault -> newExtras[def.key] = encodeAsJsonElement(value, def.type)
             // else: untouched default value, not previously in extras — skip.
         }

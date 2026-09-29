@@ -19,6 +19,12 @@ import kotlinx.serialization.json.JsonPrimitive
  * `promptCacheTtl`, etc.). We emit only the params the user actually changed from the composer's
  * default state — so an untouched sheet sends nothing and the server keeps its own defaults, exactly
  * as before.
+ *
+ * **A value the current model does not offer is not sent** — deliberately unlike the web, which
+ * sends it. The per-model rules narrow an option list after a value was chosen: `minimal` effort
+ * saved on one model is not an option on gpt-6-sol, `none` is not one on Grok 4.7. The sheet then
+ * shows the control at its first position ("Unset"), and sending the stale value would make that
+ * display a lie and put a value on the wire the provider may reject.
  */
 object ModelParamPayload {
 
@@ -51,6 +57,7 @@ object ModelParamPayload {
             // (empty dynamicValues), so a seeded default-valued entry would otherwise be over-sent. Mere
             // presence in `dynamicValues` is not "changed": the sheet seeds default-valued entries on open.
             if (raw.isBlank() || raw == ModelParameters.DEFAULT.getValueForKey(key) || raw == definition.default) continue
+            if (definition.options?.contains(raw) == false) continue
             out[key] = encode(definition.type, raw)
         }
         return JsonObject(out)

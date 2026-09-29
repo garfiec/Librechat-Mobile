@@ -37,7 +37,11 @@ fun DynamicEnumSlider(
     if (options.isEmpty()) return
 
     val index = options.indexOf(selectedValue).let { if (it < 0) 0 else it }
-    val displayLabel = optionLabels?.get(selectedValue) ?: selectedValue.ifEmpty { options.firstOrNull().orEmpty() }
+    // Labelled by the option the thumb sits on, not the raw value: a value the model no longer offers
+    // sits at the first position and is not sent (ModelParamPayload), so its own label would describe
+    // a setting that has no effect.
+    val shown = options[index]
+    val displayLabel = optionLabels?.get(shown) ?: shown.ifEmpty { options.firstOrNull().orEmpty() }
     val sliderCd = "$label slider, value $displayLabel"
 
     Column(

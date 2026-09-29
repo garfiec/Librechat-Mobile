@@ -95,4 +95,28 @@ class ModelParamPayloadTest {
         )
         assertNull(result["temperature"])
     }
+
+    private fun effortSent(endpoint: String, model: String, effort: String) = ModelParamPayload.build(
+        endpoint = endpoint,
+        provider = null,
+        model = model,
+        extendedEffortSupported = true,
+        params = ModelParameters.DEFAULT.withUpdatedKey("reasoning_effort", effort),
+    )["reasoning_effort"]?.jsonPrimitive?.content
+
+    /**
+     * An effort chosen on one model and carried onto one that does not offer it is not sent: the
+     * sheet shows it as "Unset", so sending it would contradict what the user sees. The web sends it.
+     */
+    @Test
+    fun `a stale minimal effort is not sent for gpt-6-sol`() {
+        assertNull(effortSent("openAI", "gpt-6-sol", "minimal"))
+        assertEquals("low", effortSent("openAI", "gpt-6-sol", "low"))
+    }
+
+    @Test
+    fun `a stale none effort is not sent for grok 4-7`() {
+        assertNull(effortSent("custom", "grok-4.7", "none"))
+        assertEquals("high", effortSent("custom", "grok-4.7", "high"))
+    }
 }
