@@ -86,7 +86,9 @@ data class TraceTurn(
  *
  * **A turn's cost is withheld when the turn is not known to be whole** — when it is [TraceTurn.split],
  * or it is the oldest loaded turn while [hasOlder]: a page can end between a response's traces with
- * every loaded parent in place, and the sum of a response's newest records is not its cost.
+ * every loaded parent in place, and the sum of a response's newest records is not its cost. The
+ * oldest turn is the earliest DATED one; a turn with no timestamp cannot be placed against the page
+ * boundary at all, so while [hasOlder] it shows no cost either.
  */
 fun groupTraceRecords(records: List<TraceRecord>, hasOlder: Boolean = false): List<TraceTurn> {
     val graph = TraceGraph(records.distinctBy { it.id })
@@ -94,8 +96,11 @@ fun groupTraceRecords(records: List<TraceRecord>, hasOlder: Boolean = false): Li
         .groupBy { it.messageId }
         .map { (messageId, turnRecords) -> graph.turn(messageId, turnRecords) }
         .sortedWith(compareByDescending<TraceTurn> { it.startTime }.thenBy { it.messageId })
-    return turns.mapIndexed { index, turn ->
-        val partial = turn.split || (hasOlder && index == turns.lastIndex)
+    // Newest first, so the last dated turn is the oldest; undated ones sort after it.
+    val oldestDated = turns.lastOrNull { it.startTime.isNotEmpty() }
+    return turns.map { turn ->
+        val unplaceable = hasOlder && (turn === oldestDated || turn.startTime.isEmpty())
+        val partial = turn.split || unplaceable
         if (partial && turn.summary.cost != null) turn.copy(summary = turn.summary.copy(cost = null)) else turn
     }
 }

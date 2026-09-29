@@ -220,6 +220,29 @@ class TraceStepsTest {
         assertEquals(0.75, summarizeTraceTurns(paged).cost)
     }
 
+    /**
+     * A turn with no timestamp sorts last, so taking the last turn as "the oldest" withholds its
+     * cost and shows the real oldest turn's partial sum as though it were whole. Neither turn is
+     * known to be complete while older pages remain.
+     */
+    @Test
+    fun a_turn_with_no_start_is_not_taken_for_the_oldest_and_shows_no_cost_while_paging() {
+        clock = 0
+        val oldest = rec("old", kind = TraceRecordKind.GENERATION, cost = 0.5, messageId = "msg-old")
+        val newer = rec("new", kind = TraceRecordKind.GENERATION, cost = 0.25, messageId = "msg-new")
+        val undated = rec("nodate", kind = TraceRecordKind.GENERATION, cost = 0.1, messageId = "msg-undated")
+            .copy(startTime = "")
+
+        val paged = groupTraceRecords(listOf(oldest, newer, undated), hasOlder = true).associateBy { it.messageId }
+        assertEquals(0.25, paged.getValue("msg-new").summary.cost)
+        assertNull(paged.getValue("msg-old").summary.cost)
+        assertNull(paged.getValue("msg-undated").summary.cost)
+
+        val whole = groupTraceRecords(listOf(oldest, newer, undated), hasOlder = false).associateBy { it.messageId }
+        assertEquals(0.5, whole.getValue("msg-old").summary.cost)
+        assertEquals(0.1, whole.getValue("msg-undated").summary.cost)
+    }
+
     @Test
     fun a_tool_whose_model_call_is_on_an_older_page_leads_its_own_step() {
         clock = 0
