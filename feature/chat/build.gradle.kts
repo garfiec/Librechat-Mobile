@@ -28,6 +28,9 @@ kotlin {
         }
         getByName("androidUnitTest").dependencies {
             implementation(libs.koin.test)
+            // A real SseClient over a mocked transport, for tests of what the stream client and the
+            // ViewModel do together — a stubbed event flow cannot show how a connection ends.
+            implementation(libs.ktor.client.mock)
         }
         named("androidInstrumentedTest").dependencies {
             implementation(libs.junit)

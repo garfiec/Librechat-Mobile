@@ -103,10 +103,13 @@ class StreamingManagerDelegate(
      * with one of these; the reason decides teardown (job cancel, state write, queue policy,
      * reload) in ONE place instead of each exit path hand-copying its own subset.
      *
-     * A flow that completes with neither Final nor Error — a clean SSE EOF, or a 404 on the stream
-     * GET, which `SseClient` ends without an event — is ended here too: [launchStream] as
-     * [Reconcile], [resumeStream] as [ResumeExpired]. Either way the job is gone and the reply, if
-     * any, is on the server.
+     * A flow that completes with neither Final nor Error is ended here too: [launchStream] as
+     * [Reconcile], [resumeStream] as [ResumeExpired]. `SseClient` completes a flow that way only
+     * when its resume got a 404 — the job is gone, so the reply, if any, is on the server — or when
+     * the account switched mid-stream. A body that merely closes is not that: upstream sends no
+     * heartbeat, so an idle timeout closes a live run, and `SseClient` resumes it on its own retry
+     * ladder rather than ending the flow. Do not read "the flow completed" as "the run is over"
+     * anywhere else.
      */
     private sealed interface StreamEndReason {
         /**
@@ -281,9 +284,9 @@ class StreamingManagerDelegate(
         val session = streamSession
         streamJob = scope.launch {
             collectStreamSafely(flow)
-            // Ended with neither Final nor Error: the SSE client's own reconnect found the job gone
-            // (a 404 — the run finished while the connection was down), or the stream closed
-            // without a final frame. The reply is on the server, so reconcile to it. Without this
+            // Ended with neither Final nor Error: the SSE client's resume found the job gone (a 404 —
+            // the run finished while the connection was down). A body that merely closed never gets
+            // here: SseClient resumes it itself. The reply is on the server, so reconcile to it. Without this
             // the session never ends: the caller's safety net reloads only when no Room observer
             // is running, which in an existing conversation it always is, so the chat froze on the
             // partial. Skipped while a Stop is pending — the abort watchdog owns that ending, and
@@ -812,8 +815,8 @@ class StreamingManagerDelegate(
     /**
      * The stream-termination chokepoint for every *event-driven* end — clean or aborted Final,
      * error, failed abort, watchdog, resume-found-expired — so teardown steps can't drift apart
-     * per exit path again. The one exception is a flow that ends with neither Final nor Error,
-     * handled by the `onTerminated` safety net (see [StreamEndReason]); keep new teardown here.
+     * per exit path again. A flow that ends with neither Final nor Error comes here too, from
+     * [launchStream] and [resumeStream] (see [StreamEndReason]); keep new teardown here.
      *
      * Latched per session: runs at most once for [session], and never for a stale session
      * (see [streamSession]). [StreamEndReason.Finalized] deliberately writes no state — the
@@ -1089,10 +1092,11 @@ class StreamingManagerDelegate(
         val session = streamSession
         streamJob = scope.launch {
             collectStreamSafely(chatRepository.resumeStream(conversationId))
-            // A resumed stream can complete with NEITHER Final NOR Error — a clean SSE EOF, or a
-            // 404 on the stream GET when the job was cleaned up between the status read and the
-            // subscribe. endStream never runs on those, so without this the run's steer records
-            // and any pause stay live forever, and the cursor never stops.
+            // A resumed stream can complete with NEITHER Final NOR Error — a 404 on the stream GET
+            // when the job was cleaned up between the status read and the subscribe (a body that
+            // merely closes is resumed by SseClient instead). endStream never runs on those, so
+            // without this the run's steer records and any pause stay live forever, and the cursor
+            // never stops.
             if (!isResumeStale(session)) endStream(StreamEndReason.ResumeExpired, session)
         }
     }
