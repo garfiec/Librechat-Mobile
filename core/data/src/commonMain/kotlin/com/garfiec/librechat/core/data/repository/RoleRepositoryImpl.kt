@@ -35,10 +35,20 @@ class RoleRepositoryImpl(
         // null and never re-prime. Re-primes per account; PermissionGate's permissive default covers the
         // gap until this lands or the live fetch repopulates.
         applicationScope.launch {
+            var primed = false
             activeAccountProvider.state
                 .mapNotNull { (it as? AccountState.Resolved)?.id }
                 .distinctUntilChanged()
-                .collect { cacheDataStore.load()?.let { role -> _userPermissions.value = role } }
+                .collect {
+                    val cached = cacheDataStore.load()
+                    // On a switch the incoming account's cache replaces the role even when it has
+                    // none: priming only a non-null value left the OUTGOING account's permissions
+                    // gating the new one until a fetch landed (and for good if it failed). Null is
+                    // the permissive default PermissionGate already handles for the gap. The first
+                    // resolution at cold start keeps the old rule and never clears.
+                    if (primed || cached != null) _userPermissions.value = cached
+                    primed = true
+                }
         }
     }
 

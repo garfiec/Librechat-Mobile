@@ -189,4 +189,23 @@ class RoleRepositoryImplTest {
 
         assertThat(repo.userPermissions.value).isEqualTo(adminRole)
     }
+
+    /**
+     * A switch to an account with no cached role must not leave the previous account's permissions
+     * gating it: the prime used to apply only a non-null cache, so the old role stood until a fetch
+     * for the new account landed — and for good if that fetch failed.
+     */
+    @Test
+    fun `switching to an account with no cached role drops the previous role`() = runTest {
+        coEvery { cacheDataStore.load() } returnsMany listOf(adminRole, null)
+
+        val repo = newRepo()
+        advanceUntilIdle()
+        assertThat(repo.userPermissions.value).isEqualTo(adminRole)
+
+        activeAccountProvider.set(AccountId("srv:other"))
+        advanceUntilIdle()
+
+        assertThat(repo.userPermissions.value).isNull()
+    }
 }
