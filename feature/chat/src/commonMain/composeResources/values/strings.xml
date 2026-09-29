@@ -567,4 +567,17 @@
     <string name="during_run_queue">Add to queue</string>
     <string name="during_run_always_steer">Always steer while generating</string>
     <string name="during_run_always_queue">Always queue while generating</string>
+    <!-- System events: wake-up turns (v0.8.8-rc4 styling) -->
+    <string name="system_event_label">System</string>
+    <string name="wakeup_explainer">This durable result woke the agent to continue the conversation.</string>
+    <string name="wakeup_subagent_completed">Subagent task completed</string>
+    <string name="wakeup_subagent_failed">Subagent task failed</string>
+    <string name="wakeup_subagent_cancelled">Subagent task cancelled</string>
+    <string name="wakeup_task_finished">Background task finished</string>
+    <string name="wakeup_task_failed">Background task failed</string>
+    <string name="wakeup_tasks_finished">%1$d background tasks finished</string>
+    <string name="wakeup_status_completed">Completed</string>
+    <string name="wakeup_status_failed">Failed</string>
+    <string name="wakeup_status_cancelled">Cancelled</string>
+    <string name="wakeup_subagent_thread">Thread %1$s</string>
 </resources>

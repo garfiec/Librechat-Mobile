@@ -567,7 +567,13 @@ fun MessageList(
                 // keeps its scroll anchor at completion. Unique within the path (one node/level).
                 key = { _, node -> node.treeParentKey },
                 contentType = { _, node ->
-                    val role = if (node.message.isCreatedByUser) "user" else "assistant"
+                    // A wake-up is a user message that renders as a system row; its own type keeps
+                    // slot reuse from handing it a user bubble's composition, or the reverse.
+                    val role = when {
+                        !node.message.isCreatedByUser -> "assistant"
+                        systemEventFor(node.message, isEditing = false) != null -> "system"
+                        else -> "user"
+                    }
                     "${chatLayoutStyle}_$role"
                 },
             ) { index, node ->
@@ -586,6 +592,13 @@ fun MessageList(
                     LocalSuppressGroupAutoCollapse provides (node.message.messageId == justSettledMessageId),
                     LocalFeedbackEnabled provides !isStreaming,
                 ) {
+                val isEditingNode = editingMessageId == node.message.messageId
+                val systemEvent = remember(node.message.text, node.message.isCreatedByUser, isEditingNode) {
+                    systemEventFor(node.message, isEditingNode)
+                }
+                if (systemEvent != null) {
+                    SystemEventRow(display = systemEvent, messageId = node.message.messageId)
+                } else {
                 MessageBubble(
                     message = node.message,
                     siblingIndex = node.siblingIndex,
@@ -652,6 +665,7 @@ fun MessageList(
                         null
                     },
                 )
+                }
                 }
             }
 

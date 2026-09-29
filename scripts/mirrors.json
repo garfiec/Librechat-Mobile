@@ -700,6 +700,48 @@
       },
       "why": "The embedded SSO WebView hardcodes the browser OAuth round-trip's shape: it loads `{server}/oauth/{provider}` and decides the round-trip is over by matching `{server}/oauth/{provider}/callback`. The mount point, the per-provider callback paths and whether a provider returns by GET or by form_post all live in this router and are never described to the client. Watched as a whole file because the shape is spread across the router rather than held in one table.",
       "failure_mode": "Silent. If upstream remounts the router or renames a callback path, the gate never arms: the post-callback page loads, the web app's silentRefresh() races the app's own refresh and rotates the token, and the loser gets a 401 that reads as a server bug. If the start path moves, the WebView opens a 404 instead of a provider. Nothing fails to decode and no request errors."
+    },
+    {
+      "id": "wakeup-background-header",
+      "upstream": {
+        "file": "packages/api/src/agents/backgroundCompletionWakeup.ts",
+        "symbol": "buildWakeupInput",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/wakeup/WakeupMessage.kt",
+        "symbol": "WakeupMessage.BACKGROUND_HEADER / backgroundTask"
+      },
+      "why": "The server resumes a run after background tool tasks settle by saving a USER message: this function's header sentence (singular and plural forms) followed by a JSON array line. The client recognizes the turn only by matching that header exactly and reading the array, so the two sentences and the line layout are transcribed into a regex. Upstream's client regex (client/src/components/Chat/Messages/Content/Parts/wakeup.ts) is itself a copy of these strings; the server is the source.",
+      "failure_mode": "A reworded header or a changed layout makes every background-task wake-up render as a user bubble containing model-facing prompt JSON the user never typed. Nothing fails to parse -- `parse` returning null is the ordinary-message path."
+    },
+    {
+      "id": "wakeup-subagent-header",
+      "upstream": {
+        "file": "packages/api/src/agents/subagentCompletionWakeup.ts",
+        "symbol": "renderWakeupInput",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/wakeup/WakeupMessage.kt",
+        "symbol": "WakeupMessage.SUBAGENT_HEADER / subagentTask"
+      },
+      "why": "The subagent counterpart of wakeup-background-header: a header naming the terminal status, then one JSON object line (background_task_id, subagent_thread_id, subagent_type, status, result). The header's status must equal the payload's, and the client checks that.",
+      "failure_mode": "Same as wakeup-background-header, for detached subagent completions: the wake-up renders as a user bubble of raw prompt text."
+    },
+    {
+      "id": "wakeup-background-payload",
+      "upstream": {
+        "file": "packages/data-provider/src/backgroundResults.ts",
+        "symbol": "backgroundResultMetadata",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/wakeup/WakeupMessage.kt",
+        "symbol": "WakeupMessage.backgroundTask"
+      },
+      "why": "The per-task field names of the background wake-up payload (background_task_id, tool_call_id, tool, status, result). The client requires every one of them, typed, before it will treat the turn as a system event.",
+      "failure_mode": "A renamed or retyped field fails the strict shape check, so every background wake-up falls back to a user bubble of raw JSON."
     }
   ]
 }
