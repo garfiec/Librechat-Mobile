@@ -117,8 +117,17 @@ internal fun countPartOccurrences(
     else -> 0
 }
 
-/** Total searchable occurrences in a message, numbering the render walk 0-based. */
+/**
+ * Total searchable occurrences in a message, numbering the render walk 0-based.
+ *
+ * Two kinds of message draw none of their stored text, so they contribute nothing: a wake-up turn,
+ * which renders as a system row ([systemEventFor]), and a persisted failed turn, which renders its
+ * classified error ([persistedTurnError]). Counting their raw payloads offers matches a jump can
+ * never land on. Keep these two checks in step with the branches `MessageList` and
+ * `MessageContentAndActions` take.
+ */
 internal fun countMessageOccurrences(message: Message, query: String): Int {
+    if (systemEventFor(message, isEditing = false) != null || persistedTurnError(message) != null) return 0
     val parts = message.content
     return if (!parts.isNullOrEmpty()) {
         val consumed = findLateBatchLabelsConsumedByPhase(parts)

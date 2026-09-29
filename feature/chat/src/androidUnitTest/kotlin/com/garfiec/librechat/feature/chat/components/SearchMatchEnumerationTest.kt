@@ -249,4 +249,33 @@ class SearchMatchEnumerationTest {
         )
         assertThat(countMessageOccurrences(message(parts = parts), "beta")).isEqualTo(1)
     }
+
+    /**
+     * A wake-up renders as a system row that draws none of its text, so its payload must not be
+     * counted: a jump to a hit there has no on-screen occurrence to land on.
+     */
+    @Test
+    fun `a wake-up turn contributes nothing`() {
+        val wakeup = Message(
+            messageId = "m-w",
+            conversationId = "c-1",
+            isCreatedByUser = true,
+            text = "A background tool task has finished. Continue using its durable result below.\n" +
+                """[{"background_task_id":"bg","tool_call_id":"c","tool":"web_search","status":"completed","result":"found it"}]""",
+        )
+        assertThat(countMessageOccurrences(wakeup, "found")).isEqualTo(0)
+        assertThat(countMessageOccurrences(wakeup, "background")).isEqualTo(0)
+    }
+
+    /** A persisted failed turn renders its classified error, not the raw payload it was saved with. */
+    @Test
+    fun `a persisted failed turn contributes nothing`() {
+        val failed = Message(
+            messageId = "m-e",
+            conversationId = "c-1",
+            error = true,
+            text = """{"code":"code_workspace_unavailable","message":"workspace down"}""",
+        )
+        assertThat(countMessageOccurrences(failed, "workspace")).isEqualTo(0)
+    }
 }
