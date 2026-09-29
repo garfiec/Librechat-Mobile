@@ -7,7 +7,9 @@ import com.garfiec.librechat.core.model.SupportContact
 import com.garfiec.librechat.core.model.request.CreateAgentRequest
 import com.garfiec.librechat.core.model.request.RevertAgentRequest
 import com.garfiec.librechat.core.model.request.UpdateAgentRequest
+import com.garfiec.librechat.feature.agents.components.agentParameterDefinitions
 import com.garfiec.librechat.feature.agents.components.model.AgentVisibility
+import com.garfiec.librechat.feature.agents.components.withoutUnofferedValues
 import com.garfiec.librechat.feature.agents.viewmodel.AgentEditorEvent
 import com.garfiec.librechat.feature.agents.viewmodel.AgentEditorStateHandle
 import com.garfiec.librechat.feature.agents.viewmodel.AgentEditorUiState
@@ -118,8 +120,17 @@ class AgentSaveDelegate(
                 if (filtered.isEmpty()) null else JsonObject(filtered)
             }
 
-            // Build model_parameters from advanced settings
-            val modelParameters = buildModelParameters(state.advancedSettings)
+            // Build model_parameters from advanced settings, minus any value the current model no
+            // longer offers. Checked here and not only when the Advanced panel edits a control: a
+            // save that touched nothing in it would otherwise write the loaded values back as-is.
+            // Same definitions the panel renders (its extended-effort flag included).
+            val offered = agentParameterDefinitions(
+                provider = state.provider,
+                model = state.model,
+                extendedEffortSupported = state.isHandoffsAvailable,
+                dropParamsMap = state.dropParamsMap,
+            )
+            val modelParameters = buildModelParameters(state.advancedSettings.withoutUnofferedValues(offered))
 
             // Artifacts: upstream `ArtifactModes` enum serialized as its wire string.
             // null means "off" (omitted from the request body via encodeDefaults=false).

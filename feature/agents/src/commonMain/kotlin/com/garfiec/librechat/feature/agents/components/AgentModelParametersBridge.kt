@@ -2,6 +2,8 @@ package com.garfiec.librechat.feature.agents.components
 
 import com.garfiec.librechat.core.model.ParameterDefinition
 import com.garfiec.librechat.core.model.ParameterType
+import com.garfiec.librechat.core.model.config.EndpointDropParams
+import com.garfiec.librechat.core.ui.components.EndpointParameterRegistry
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.feature.agents.components.model.AgentAdvancedSettings
 import kotlinx.serialization.json.JsonElement
@@ -140,4 +142,40 @@ private fun encodeAsJsonElement(value: String, type: ParameterType): JsonElement
     }
     // ENUM_SLIDER and DROPDOWN values are always strings — keep as JsonPrimitive string.
     else -> JsonPrimitive(value)
+}
+
+/**
+ * The parameter definitions an agent with [provider] and [model] offers — the one list both the
+ * Advanced panel renders and a save checks values against, so the two cannot disagree.
+ */
+internal fun agentParameterDefinitions(
+    provider: String,
+    model: String,
+    extendedEffortSupported: Boolean,
+    dropParamsMap: Map<String, JsonElement>?,
+): List<ParameterDefinition> = EndpointParameterRegistry.getDefinitions(
+    endpoint = "agents",
+    extendedEffortSupported = extendedEffortSupported,
+    provider = provider.takeIf { it.isNotBlank() },
+    model = model.takeIf { it.isNotBlank() },
+    dropParams = EndpointDropParams.resolve(dropParamsMap, endpoint = "agents", provider = provider, model = model),
+)
+
+/**
+ * Drops every stored value the current model does not offer — effort `minimal` on an agent now on
+ * gpt-6-sol, `none` on Grok 4.7 — whether or not the user opened the Advanced panel.
+ *
+ * Applied at save, not only in [toAgentAdvancedSettings]: that runs when a control in the panel
+ * changes, and an agent saved after editing only its description never goes through it, so the
+ * loaded `extras` would be written back verbatim. Deliberately unlike the web, which keeps the value.
+ * Only string values are checked; a key with no definition here is left alone.
+ */
+internal fun AgentAdvancedSettings.withoutUnofferedValues(
+    definitions: List<ParameterDefinition>,
+): AgentAdvancedSettings {
+    val stale = definitions.mapNotNull { def ->
+        val value = (extras[def.key] as? JsonPrimitive)?.takeIf { it.isString }?.content
+        def.key.takeIf { value != null && def.options?.contains(value) == false }
+    }
+    return if (stale.isEmpty()) this else copy(extras = extras - stale.toSet())
 }

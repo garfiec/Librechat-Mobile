@@ -22,7 +22,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.config.EndpointDropParams
-import com.garfiec.librechat.core.ui.components.EndpointParameterRegistry
 import com.garfiec.librechat.core.ui.components.ModelParameterContent
 import com.garfiec.librechat.feature.agents.components.model.AgentAdvancedSettings
 import com.garfiec.librechat.feature.agents.resources.*
@@ -82,14 +81,8 @@ fun AgentAdvancedPanel(
 
         AnimatedVisibility(visible = expanded) {
             val parameters = remember(settings) { settings.toModelParameters() }
-            val definitions = remember(provider, model, extendedEffortSupported, dropParams) {
-                EndpointParameterRegistry.getDefinitions(
-                    endpoint = "agents",
-                    extendedEffortSupported = extendedEffortSupported,
-                    provider = provider.takeIf { it.isNotBlank() },
-                    model = model.takeIf { it.isNotBlank() },
-                    dropParams = dropParams,
-                )
+            val definitions = remember(provider, model, extendedEffortSupported, dropParamsMap) {
+                agentParameterDefinitions(provider, model, extendedEffortSupported, dropParamsMap)
             }
 
             ModelParameterContent(
