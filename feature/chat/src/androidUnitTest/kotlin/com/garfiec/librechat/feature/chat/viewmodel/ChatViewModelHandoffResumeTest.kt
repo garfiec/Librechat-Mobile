@@ -262,8 +262,61 @@ class ChatViewModelHandoffResumeTest {
         }
     }
 
+    /**
+     * The same, on a new chat — where no Room observer is running yet, which is the one case the
+     * send's old safety net reloaded in: a clean end with a Stop pending refetched the conversation
+     * while the abort was in flight, racing the save the aborted frame precedes.
+     */
+    @Test
+    fun `a new chat whose stream ends cleanly while a stop is pending does not reload`() = runTest(testDispatcher) {
+        coEvery { fixture.chatRepository.abortChat(any(), any(), any()) } returns
+            Result.Success(ChatAbortResponse())
+        var fetches = 0
+        coEvery { fixture.messageRepository.getMessages(NEW_CONVERSATION_ID) } coAnswers {
+            fetches++
+            Result.Success(emptyList())
+        }
+        val socketClosed = CompletableDeferred<Unit>()
+        every {
+            fixture.chatRepository.startChat(
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                any(),
+            )
+        } returns flow {
+            emit(StreamEvent.Created(conversationId = NEW_CONVERSATION_ID, messageId = "m1", parentMessageId = NO_PARENT))
+            emit(StreamEvent.ContentDelta(chunk = "Alpine meadows on "))
+            socketClosed.await()
+        }
+        val vm = fixture.build(defaultDispatcher = testDispatcher)
+        try {
+            advanceUntilIdle()
+            vm.onModelSelected(ENDPOINT, MODEL)
+            advanceUntilIdle()
+            vm.onInputChanged("Twenty sentences, please")
+            vm.sendMessage()
+            advanceTimeBy(STEP_MS)
+            assertThat(vm.uiState.value.isStreaming).isTrue()
+            vm.stopGeneration()
+            advanceTimeBy(STEP_MS)
+            socketClosed.complete(Unit)
+            advanceTimeBy(STEP_MS)
+            runCurrent()
+
+            assertThat(fetches).isEqualTo(0)
+            // Past the watchdog, which ends it locally — still without a reload.
+            advanceTimeBy(SETTLE_MS * 4)
+            runCurrent()
+            assertThat(vm.uiState.value.isStreaming).isFalse()
+            assertThat(fetches).isEqualTo(0)
+        } finally {
+            vm.viewModelScope.cancel()
+        }
+    }
+
     private companion object {
         const val CONVERSATION_ID = "conv-1"
+        const val NEW_CONVERSATION_ID = "conv-new"
         const val ENDPOINT = "anthropic"
         const val MODEL = "claude-haiku-4-5"
         const val SETTLE_MS = 5_000L

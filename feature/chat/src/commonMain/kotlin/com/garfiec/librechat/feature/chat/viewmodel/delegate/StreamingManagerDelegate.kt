@@ -271,28 +271,26 @@ class StreamingManagerDelegate(
     }
 
     /**
-     * Cancels any in-flight stream and launches collection of [flow]. [onTerminated] runs
-     * after collection completes (success, error, or normal end) — the send paths use it as
-     * a safety net for flows that end without a Final/Error event.
+     * Cancels any in-flight stream and launches collection of [flow], and ends the session if the
+     * flow completes with neither Final nor Error (see [StreamEndReason]).
      *
      * Ordering contract: callers must have called [beginStreaming]/[prepareForStreaming] first
      * (all current callers do) — that is what bumps [streamSession], so a stale [endStream]
      * from the previous stream can no longer touch this one.
      */
-    fun launchStream(flow: Flow<StreamEvent>, onTerminated: suspend () -> Unit = {}) {
+    fun launchStream(flow: Flow<StreamEvent>) {
         streamJob?.cancel()
         val session = streamSession
         streamJob = scope.launch {
             collectStreamSafely(flow)
             // Ended with neither Final nor Error: the SSE client's resume found the job gone (a 404 —
             // the run finished while the connection was down). A body that merely closed never gets
-            // here: SseClient resumes it itself. The reply is on the server, so reconcile to it. Without this
-            // the session never ends: the caller's safety net reloads only when no Room observer
-            // is running, which in an existing conversation it always is, so the chat froze on the
-            // partial. Skipped while a Stop is pending — the abort watchdog owns that ending, and
-            // nothing reloads on an abort path.
+            // here: SseClient resumes it itself. The reply is on the server, so reconcile to it.
+            // Skipped while a Stop is pending — the abort watchdog owns that ending, and nothing
+            // reloads on an abort path. This is the only end for such a flow: the send used to
+            // carry its own safety net after it, which reloaded exactly when this is skipped (a
+            // new chat, with no Room observer yet), racing the save the aborted frame precedes.
             if (!isResumeStale(session) && !abortRequested) endStream(StreamEndReason.Reconcile, session)
-            onTerminated()
         }
     }
 

@@ -51,7 +51,7 @@ is the only opt-in; every other caller stays network-first **deliberately**. Eac
 precisely because the server holds something the cache does not — a just-finalized turn
 (`SendCompletionDelegate`), a just-created branch (`ComparisonModeDelegate.branchFromComparison`),
 a stream that ended server-side (`StreamingManagerDelegate`'s `StreamError` / `ResumeExpired` /
-`Reconcile` / `attemptNetworkRecovery`, plus the `launchStream` safety net), or an explicit refresh
+`Reconcile` / `attemptNetworkRecovery`), or an explicit refresh
 (`refreshMessages`) — so a cache emission there serves a snapshot that predates the very thing
 being fetched. After a Final that is also the completion flash: the finalized turn is in memory
 and Room stays stale until `cacheMessages` lands, so painting the cache re-renders the pre-Final tree.
