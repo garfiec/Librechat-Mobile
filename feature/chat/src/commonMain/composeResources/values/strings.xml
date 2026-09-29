@@ -144,6 +144,7 @@
     <string name="trace_stat_turns">Turns</string>
     <string name="trace_stat_generations">Generations</string>
     <string name="trace_stat_tools">Tools</string>
+    <string name="trace_stat_labels">Labels</string>
     <string name="trace_stat_errors">Errors</string>
     <string name="trace_stat_tokens">Tokens</string>
     <string name="trace_stat_cost">Cost</string>

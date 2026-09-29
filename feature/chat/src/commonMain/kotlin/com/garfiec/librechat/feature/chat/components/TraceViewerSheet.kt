@@ -21,12 +21,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -77,6 +79,7 @@ import com.garfiec.librechat.feature.chat.resources.trace_running
 import com.garfiec.librechat.feature.chat.resources.trace_stat_cost
 import com.garfiec.librechat.feature.chat.resources.trace_stat_errors
 import com.garfiec.librechat.feature.chat.resources.trace_stat_generations
+import com.garfiec.librechat.feature.chat.resources.trace_stat_labels
 import com.garfiec.librechat.feature.chat.resources.trace_stat_tokens
 import com.garfiec.librechat.feature.chat.resources.trace_stat_tools
 import com.garfiec.librechat.feature.chat.resources.trace_stat_turns
@@ -191,6 +194,7 @@ internal fun TraceViewerSheet(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RecordList(
     stepsView: Boolean,
@@ -224,17 +228,19 @@ private fun RecordList(
 
         if (turns.isNotEmpty()) {
             SummaryRow(summary)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
-                FilterChip(
-                    selected = stepsView,
-                    onClick = { onStepsViewChange(true) },
-                    label = { Text(stringResource(Res.string.trace_view_steps)) },
-                )
-                FilterChip(
-                    selected = !stepsView,
-                    onClick = { onStepsViewChange(false) },
-                    label = { Text(stringResource(Res.string.trace_view_all)) },
-                )
+            // One choice of two, so segmented buttons (radio semantics) rather than FilterChips,
+            // which hardcode Role.Checkbox and announce two independent toggles.
+            val views = listOf(true to Res.string.trace_view_steps, false to Res.string.trace_view_all)
+            SingleChoiceSegmentedButtonRow(Modifier.padding(top = 8.dp)) {
+                views.forEachIndexed { index, (isSteps, label) ->
+                    SegmentedButton(
+                        selected = stepsView == isSteps,
+                        onClick = { onStepsViewChange(isSteps) },
+                        shape = SegmentedButtonDefaults.itemShape(index = index, count = views.size),
+                    ) {
+                        Text(stringResource(label))
+                    }
+                }
             }
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
         }
@@ -287,6 +293,11 @@ private fun SummaryRow(summary: TraceSummary, modifier: Modifier = Modifier) {
         Stat(Res.string.trace_stat_turns, summary.turnCount.toString())
         Stat(Res.string.trace_stat_generations, summary.generationCount.toString())
         Stat(Res.string.trace_stat_tools, summary.toolCallCount.toString())
+        // Label-writing model calls are not counted as Generations, but their tokens and price are
+        // in the totals below; shown on their own so the counts still reconcile, as upstream does.
+        if (summary.labelCount > 0) {
+            Stat(Res.string.trace_stat_labels, summary.labelCount.toString())
+        }
         if (summary.errorCount > 0) {
             Stat(Res.string.trace_stat_errors, summary.errorCount.toString(), isError = true)
         }
