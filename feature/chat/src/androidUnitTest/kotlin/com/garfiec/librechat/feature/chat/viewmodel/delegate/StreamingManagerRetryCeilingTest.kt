@@ -178,4 +178,45 @@ class StreamingManagerRetryCeilingTest {
         verify(exactly = 0) { reloadConversation(any()) }
         delegate.reset()
     }
+
+    private val statusExhausted = StreamEvent.Error(
+        message = "The server returned an error (HTTP 502). Please try again.",
+        code = StreamErrorCodes.STATUS_RETRY_EXHAUSTED,
+    )
+
+    /**
+     * A proxy 502 on every resume while the run is live: it used to end with the status error and a
+     * refetch, and a reply with no text yet then sat as an empty "Thinking" row until the chat was
+     * reopened. Adjudicated like the transport ladder, it resumes.
+     */
+    @Test
+    fun `a run still active at a persistent-status ceiling is resumed`() = runTest(StandardTestDispatcher()) {
+        coEvery { chatRepository.checkStreamStatus("conv-1", any()) } returns ChatStatusResponse(active = true)
+        every { chatRepository.resumeStream("conv-1") } returns flow { awaitCancellation() }
+        val (delegate, state) = delegateWith(this)
+
+        delegate.launchStream(flowOf(StreamEvent.ContentDelta(chunk = "half an answer"), statusExhausted))
+        runCurrent()
+
+        verify(exactly = 1) { chatRepository.resumeStream("conv-1") }
+        assertThat(state.value.isStreaming).isTrue()
+        assertThat(state.value.error).isNull()
+        verify(exactly = 0) { reloadConversation(any()) }
+        delegate.reset()
+    }
+
+    /** Status read fails too: the status error is what the user sees, and no observer is armed. */
+    @Test
+    fun `an unreachable status after a persistent-status ceiling shows the status error`() =
+        runTest(StandardTestDispatcher()) {
+            coEvery { chatRepository.checkStreamStatus("conv-1", any()) } throws IllegalStateException("502")
+            val (delegate, state) = delegateWith(this)
+
+            delegate.launchStream(flowOf(StreamEvent.ContentDelta(chunk = "half an answer"), statusExhausted))
+            runCurrent()
+
+            assertThat(state.value.isStreaming).isFalse()
+            assertThat(state.value.error).contains("502")
+            verify(exactly = 0) { connectivityObserver.isConnected }
+        }
 }

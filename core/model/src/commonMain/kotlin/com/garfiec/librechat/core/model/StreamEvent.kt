@@ -299,4 +299,12 @@ object StreamErrorCodes {
      * retry-ceiling adjudication (`useResumableSSE.ts`, "Max reconnect attempts reached").
      */
     const val RETRY_EXHAUSTED = "retry_exhausted"
+
+    /**
+     * Client-side, like [RETRY_EXHAUSTED]: the retries ran out on an HTTP status the loop has no
+     * special meaning for (a proxy's 502 on every resume). Adjudicated the same way — the run may
+     * well be live behind a flapping proxy — except that when the status read fails too, what the
+     * user is shown is this status error, not a network one: something did answer.
+     */
+    const val STATUS_RETRY_EXHAUSTED = "status_retry_exhausted"
 }

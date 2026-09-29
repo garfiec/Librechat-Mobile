@@ -94,6 +94,8 @@ class SseClientStatusTest {
         // Something answered: not a connectivity problem, so no connectivity observer is armed.
         assertThat(error.isNetworkError).isFalse()
         assertThat(error.message).contains("502")
+        // Tagged for the consumer to ask whether the run is still live before reporting it.
+        assertThat(error.code).isEqualTo(StreamErrorCodes.STATUS_RETRY_EXHAUSTED)
         assertThat(events.last()).isEqualTo(error)
         // The initial attempt plus five retries, and no "retrying 6 of 5" on the way out.
         assertThat(requests).isEqualTo(6)

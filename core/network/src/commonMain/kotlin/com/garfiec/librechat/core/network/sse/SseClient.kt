@@ -182,9 +182,11 @@ class SseClient(
                             if (attempt > maxRetries) {
                                 // Something answered, so this is not a connectivity problem: no
                                 // isNetworkError, which would arm an observer that never fires.
+                                // Tagged so the consumer asks whether the run is still live first.
                                 emit(
                                     StreamEvent.Error(
                                         message = "The server returned an error (HTTP ${status.statusCode}). Please try again.",
+                                        code = StreamErrorCodes.STATUS_RETRY_EXHAUSTED,
                                     ),
                                 )
                                 done = true

@@ -93,10 +93,17 @@ class StreamingManagerDelegate(
     private var streamOriginAccountId: AccountId? = null
 
     /**
-     * The message of a `RETRY_EXHAUSTED` report on the current session, adjudicated when its flow
-     * completes (see [StreamEndReason]). Per session.
+     * A retry-ceiling report (`RETRY_EXHAUSTED` / `STATUS_RETRY_EXHAUSTED`) on the current session,
+     * adjudicated when its flow completes (see [StreamEndReason]). Per session.
      */
-    private var retryCeilingMessage: String? = null
+    private var retryCeiling: RetryCeiling? = null
+
+    /**
+     * What an exhausted retry ladder reported. [networkWhenUnreachable]: whether, if the status read
+     * fails too, the end is a network error (the transport ladder — the connectivity observer can
+     * recover it) or [message] as it stands (a persistent HTTP status — something answered).
+     */
+    private class RetryCeiling(val message: String, val networkWhenUnreachable: Boolean)
 
     /**
      * Whether this turn already re-attached after a retry ceiling. Per turn, not per session — the
@@ -360,7 +367,7 @@ class StreamingManagerDelegate(
         // turn's optimistic id leak into it (the un-send would remove the wrong message).
         currentTurnOptimisticUserMessageId = null
         currentTurnCreated = false
-        retryCeilingMessage = null
+        retryCeiling = null
     }
 
     private suspend fun collectStreamSafely(stream: Flow<StreamEvent>) {
@@ -413,10 +420,15 @@ class StreamingManagerDelegate(
                 // and the reload below fetches it — so it must not reach the user as an error.
                 if (event.code == StreamErrorCodes.GENERATION_RECONCILE) {
                     endStream(StreamEndReason.Reconcile)
-                } else if (event.code == StreamErrorCodes.RETRY_EXHAUSTED) {
+                } else if (event.code == StreamErrorCodes.RETRY_EXHAUSTED ||
+                    event.code == StreamErrorCodes.STATUS_RETRY_EXHAUSTED
+                ) {
                     // Not an end: the flow completes right after, and its completion asks the
                     // server what became of the run. See StreamEndReason.
-                    retryCeilingMessage = event.message
+                    retryCeiling = RetryCeiling(
+                        message = event.message,
+                        networkWhenUnreachable = event.code == StreamErrorCodes.RETRY_EXHAUSTED,
+                    )
                 } else {
                     endStream(StreamEndReason.StreamError(event.message, event.isNetworkError))
                 }
@@ -1171,8 +1183,8 @@ class StreamingManagerDelegate(
      * the job gone, or by the run's status when the retry ladder ran out first.
      */
     private fun endUnterminatedStream(session: Int, whenGone: StreamEndReason) {
-        val ceiling = retryCeilingMessage
-        retryCeilingMessage = null
+        val ceiling = retryCeiling
+        retryCeiling = null
         if (ceiling == null) endStream(whenGone, session) else adjudicateRetryCeiling(ceiling, session, whenGone)
     }
 
@@ -1184,10 +1196,12 @@ class StreamingManagerDelegate(
      * is active, end one that is not as [whenGone] (the refetch, no banner), and report a network
      * error only when the status read fails too.
      */
-    private fun adjudicateRetryCeiling(message: String, session: Int, whenGone: StreamEndReason) {
+    private fun adjudicateRetryCeiling(ceiling: RetryCeiling, session: Int, whenGone: StreamEndReason) {
+        val message = ceiling.message
+        val unreachable = StreamEndReason.StreamError(message, isNetwork = ceiling.networkWhenUnreachable)
         val conversationId = handle.state.conversationId
         if (conversationId == null) {
-            endStream(StreamEndReason.StreamError(message, isNetwork = true), session)
+            endStream(unreachable, session)
             return
         }
         scope.launch {
@@ -1201,9 +1215,10 @@ class StreamingManagerDelegate(
             }
             if (isResumeStale(session) || abortRequested) return@launch
             when {
-                // The server is unreachable too: a real connectivity failure, and the observer is
-                // what resumes the stream once the network returns.
-                status == null -> endStream(StreamEndReason.StreamError(message, isNetwork = true), session)
+                // The status read failed too. After the transport ladder that is a real connectivity
+                // failure, which the observer recovers once the network returns; after a persistent
+                // HTTP status it is that status error, shown as is.
+                status == null -> endStream(unreachable, session)
                 !status.active -> endStream(whenGone, session)
                 // Already re-attached once this turn and still no connection reaches it.
                 reattachedAfterCeiling -> endStream(StreamEndReason.StreamError(message, isNetwork = false), session)
