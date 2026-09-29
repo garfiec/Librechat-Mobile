@@ -69,6 +69,27 @@ object EndpointParameterRegistry {
         model: String?,
     ): List<ParameterDefinition> {
         if (model.isNullOrBlank()) return definitions
+        // The three per-model rules below return early, as upstream's do: each replaces the whole
+        // model-aware pass for its model rather than composing with the provider rules after it.
+        if (GROK_4_7.containsMatchIn(model.substringAfterLast('/'))) {
+            return definitions.map { def ->
+                if (def.key == "reasoning_effort") def.copy(options = GROK_4_7_EFFORT) else def
+            }
+        }
+        if (GPT_6_SOL_LUNA.containsMatchIn(model)) {
+            // Upstream also renders a server-routed `useResponsesApi` default for these models from
+            // `/api/endpoints` `responsesApiRouting`; that display-only half is not mirrored.
+            return definitions.map { def ->
+                if (def.key == "reasoning_effort") {
+                    def.copy(options = def.options?.filterNot { it == "minimal" })
+                } else {
+                    def
+                }
+            }
+        }
+        // Opus 5.5 has always-on adaptive thinking and no sampling controls; the server drops these
+        // values, so offering the controls lets the user set values that do nothing.
+        if (isOpus55Model(model)) return definitions.filterNot { it.key in OPUS_55_HIDDEN_KEYS }
         val adjusted = if (settingsKey == "google") {
             val bounds = googleThinkingBudgetBounds(model)
             if (bounds == null) {
@@ -86,6 +107,29 @@ object EndpointParameterRegistry {
     }
 
     private val PROMPT_CACHE_KEYS = setOf("promptCache", "promptCacheTtl")
+
+    // MIRRORED from upstream `applyModelAwareDefaults` (`packages/data-provider/src/parameterSettings.ts`).
+    // Grok is matched on the last `/` segment so a gateway-prefixed id (`xai/grok-4.7`) still hits.
+    private val GROK_4_7 = Regex("""^grok-4[.-]7(?:$|[-:])""")
+    private val GROK_4_7_EFFORT = listOf("", "low", "medium", "high", "xhigh")
+    private val GPT_6_SOL_LUNA = Regex("""^gpt-6-(?:sol|luna)(?:$|-)""", RegexOption.IGNORE_CASE)
+    private val OPUS_55_HIDDEN_KEYS = setOf("thinking", "thinkingBudget", "temperature", "topP", "topK")
+
+    /**
+     * MIRRORED from upstream `isOpus55Model` / `parseOpusVersion` (`packages/data-provider/src/bedrock.ts`).
+     * Both spellings: name-first (`claude-opus-5-5`, `claude-opus-5.5`) and number-first
+     * (`claude-5-5-opus`). A missing minor reads as 0, so plain `claude-opus-5` is not 5.5, and the
+     * lookahead keeps a date suffix (`claude-opus-5-20260101`) from being read as a minor.
+     */
+    private fun isOpus55Model(model: String): Boolean {
+        val match = OPUS_NAME_FIRST.find(model) ?: OPUS_NUMBER_FIRST.find(model) ?: return false
+        val major = match.groupValues[1].toIntOrNull()
+        val minor = match.groupValues[2].ifEmpty { "0" }.toIntOrNull()
+        return major == 5 && minor == 5
+    }
+
+    private val OPUS_NAME_FIRST = Regex("""claude-opus[-.]?(\d+)(?:[-.](\d{1,2})(?!\d))?""")
+    private val OPUS_NUMBER_FIRST = Regex("""claude-(\d+)(?:[-.](\d{1,2})(?!\d))?-opus""")
 
     private fun ParameterDefinition.withGoogleThinkingBudget(bounds: ThinkingBudgetBounds) = copy(
         max = bounds.max.toDouble(),
