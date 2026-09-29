@@ -281,7 +281,7 @@
         "symbol": "ServerErrorCode.OAUTH_SECRET_REENTRY_REQUIRED, .API_KEY_REENTRY_REQUIRED, .MCP_AUTHENTICATION_REJECTED, .MCP_AUTHENTICATION_REFRESH_FAILED"
       },
       "why": "Four literals transcribed out of one upstream block, so the block is what is watched. `MCP_OAUTH_SECRET_REENTRY_REQUIRED` and (v0.8.8-rc4) `MCP_API_KEY_REENTRY_REQUIRED` turn a 400 on the save path into a re-enter-your-secret / re-enter-your-key prompt rather than a generic failure; both wire values carry an `MCP_` prefix that upstream's TypeScript member names drop, so neither can be derived from its member name. `MCP_AUTHENTICATION_REJECTED` and `MCP_AUTHENTICATION_REFRESH_FAILED` (v0.8.8-rc2) are what tell a lapsed OAuth authorization apart from a server that is simply down, which is what decides whether the user is offered re-authorization or an error.",
-      "failure_mode": "A renamed re-entry code makes its prompt unreachable: the save reports a plain 'could not save' and the user never learns the stored secret or key is what must be re-supplied, so the write keeps failing forever. A renamed authentication code degrades to the generic failure, so a server whose authorization merely lapsed is reported as broken and the one action that would fix it is never offered. Reconcile all four when this entry reports drift -- they arrive together, and both re-entry codes are read in TWO save paths (McpViewModel and McpServerDelegate)."
+      "failure_mode": "A renamed re-entry code makes its prompt unreachable: the save reports a plain 'could not save' and the user never learns the stored secret or key is what must be re-supplied, so the write keeps failing forever. A renamed authentication code degrades to the generic failure, so a server whose authorization merely lapsed is reported as broken and the one action that would fix it is never offered. Reconcile all four when this entry reports drift -- they arrive together. Both save paths (McpViewModel and McpServerDelegate) read the re-entry codes through one classifier, feature/settings/.../viewmodel/McpSaveFailure.kt."
     },
     {
       "id": "refresh-403-rejection-bodies",
@@ -755,6 +755,131 @@
       },
       "why": "The per-task field names of the background wake-up payload (background_task_id, tool_call_id, tool, status, result). The client requires every one of them, typed, before it will treat the turn as a system event.",
       "failure_mode": "A renamed or retyped field fails the strict shape check, so every background wake-up falls back to a user bubble of raw JSON."
+    },
+    {
+      "id": "trace-record-roles",
+      "upstream": {
+        "file": "packages/data-provider/src/types/traces.ts",
+        "symbol": "TTraceRecordRole",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/trace/TraceRecord.kt",
+        "symbol": "TraceRole (+ LABEL_ROLES in TraceGrouping.kt)"
+      },
+      "why": "The v0.8.8-rc4 role literals the trace step grouping branches on: `plumbing` and `model` decide which unloaded parents are private wrappers, `tools` marks a round of tool calls, and the three label roles move a model call out of Generations into Labels. Held as raw Strings, like trace-record-kinds, so a renamed role degrades instead of failing the page -- which is also what keeps a rename from surfacing. The `origin: 'title'` literal lives in the same file's TTraceRecord and is covered by the two model.ts file watches that read it.",
+      "failure_mode": "A renamed role stops matching: label calls count as generations and start steps, tool rounds stop naming their tools, and a page cut inside a model call's wrappers misfiles its steps. Every number still renders."
+    },
+    {
+      "id": "skill-import-failure-codes",
+      "upstream": {
+        "file": "packages/data-provider/src/types/skills.ts",
+        "symbol": "TSkillImportFailedResponse",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/response/SkillResponses.kt",
+        "symbol": "SkillImportFailedResponse.INCOMPLETE / ROLLBACK_FAILED / CLEANUP_INCOMPLETE"
+      },
+      "why": "The three `error` codes a refused archive import answers with (v0.8.8-rc4). `SkillImportFailedResponse.from` accepts a body only when its code is one of them, and the report dialog picks its sentence by code.",
+      "failure_mode": "A renamed code makes `from` return null, so the import shows the generic error instead of the per-file report and skips the list reload that surfaces a partial skill left behind by a failed rollback."
+    },
+    {
+      "id": "skill-import-failure-reasons",
+      "upstream": {
+        "file": "packages/data-provider/src/types/skills.ts",
+        "symbol": "SkillImportFailureReason",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/response/SkillResponses.kt",
+        "symbol": "SkillImportFailureReason"
+      },
+      "why": "The per-file reason codes of a refused import. The dialog localizes each one (SkillImportFailureDialog.failedFileReason) and shows the size limit for the two size reasons.",
+      "failure_mode": "A renamed or added reason renders as the generic 'Could not be imported', so the user loses the one hint (which file, which limit) that tells them how to fix the archive."
+    },
+    {
+      "id": "opus-version-parse",
+      "upstream": {
+        "file": "packages/data-provider/src/bedrock.ts",
+        "symbol": "parseOpusVersion",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/EndpointParameterRegistry.kt",
+        "symbol": "OPUS_NAME_FIRST / OPUS_NUMBER_FIRST"
+      },
+      "why": "The two model-id patterns that read an Opus major/minor version, which isOpus55Model tests. parameter-settings watches parameterSettings.ts, which only imports isOpus55Model, so a change to these patterns would not show there.",
+      "failure_mode": "Upstream starts or stops treating an id as Opus 5.5 and the client does not: it keeps offering thinking and sampling controls the server now drops, or hides ones it now honours."
+    },
+    {
+      "id": "opus-55-model-predicate",
+      "upstream": {
+        "file": "packages/data-provider/src/bedrock.ts",
+        "symbol": "isOpus55Model",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/EndpointParameterRegistry.kt",
+        "symbol": "isOpus55Model"
+      },
+      "why": "The predicate over parseOpusVersion that decides which models hide thinking, thinkingBudget, temperature, topP and topK (the hidden list itself is in parameterSettings.ts, under parameter-settings).",
+      "failure_mode": "Same as opus-version-parse: the Opus 5.5 rule applies to the wrong set of models, silently."
+    },
+    {
+      "id": "mcp-server-form-api-key",
+      "upstream": {
+        "file": "client/src/components/SidePanel/MCPBuilder/MCPServerDialog/hooks/useMCPServerForm.ts",
+        "symbol": "useMCPServerForm",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/screen/McpApiKeyForm.kt",
+        "symbol": "initialApiKeySource / apiKeyConfigFrom (+ McpApi.parseApiKeyConfig source default)"
+      },
+      "why": "What an MCP server save sends for an API key: the source an edit starts from (`source || 'admin'`), `key` only for an admin-supplied, non-blank key, and `custom_header` only for the custom type. The update route replaces the stored config, so sending a different source than the stored one rewrites the server. Watched as the whole hook; drift outside the api-key defaults and submit (toasts, delete) can be skipped.",
+      "failure_mode": "An edit resends the wrong source or a key it should omit: `user` over a stored admin key discards that key with a 200, and a key sent where upstream omits it defeats the MCP_API_KEY_REENTRY_REQUIRED check."
+    },
+    {
+      "id": "error-inline-detail-predicate",
+      "upstream": {
+        "file": "client/src/components/Messages/Content/Error/parts.tsx",
+        "symbol": "ErrorWithDetail",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/StreamErrorMessages.kt",
+        "symbol": "isInlineErrorDetail"
+      },
+      "why": "Whether a provider's message under an error headline reads in place or collapses behind 'Provider response': one line up to INLINE_DETAIL_LENGTH characters is inline, anything else collapses.",
+      "failure_mode": "The thread lays a provider message out differently from the web: a long body inline, or a sentence hidden behind a toggle."
+    },
+    {
+      "id": "error-inline-detail-length",
+      "upstream": {
+        "file": "client/src/components/Messages/Content/Error/parts.tsx",
+        "symbol": "INLINE_DETAIL_LENGTH",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/StreamErrorMessages.kt",
+        "symbol": "INLINE_DETAIL_LENGTH"
+      },
+      "why": "The threshold error-inline-detail-predicate reads, declared outside ErrorWithDetail, so that entry does not see it change.",
+      "failure_mode": "Same as error-inline-detail-predicate."
+    },
+    {
+      "id": "wakeup-client-parser",
+      "upstream": {
+        "file": "client/src/components/Chat/Messages/Content/Parts/wakeup.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/wakeup/WakeupMessage.kt",
+        "symbol": "WakeupMessage.parse / subagentTask / backgroundTask / MAX_WAKEUP_TEXT_CHARS"
+      },
+      "why": "The web client's own rules for recognizing a wake-up turn, on top of the server's headers and payload fields watched by the three wakeup-* entries: the length cap, the accepted statuses, the header-equals-payload status check, and rejecting a background turn that holds a cancelled task. The whole file is the parser, so it is watched file-level.",
+      "failure_mode": "The client classifies a turn differently from the web: a wake-up renders as a user bubble of raw prompt JSON, or a user message collapses into a system row."
     }
   ]
 }

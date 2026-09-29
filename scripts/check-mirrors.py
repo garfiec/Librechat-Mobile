@@ -239,8 +239,41 @@ def _function_body_start(masked: str, after_name: int) -> int | None:
     if i >= n:
         return None
 
-    brace = masked.find("{", i)
-    return brace if brace != -1 else None
+    return _body_brace_after_annotation(masked, i + 1)
+
+
+def _body_brace_after_annotation(masked: str, after_params: int) -> int | None:
+    """Index of the body `{` after a parameter list, skipping a return-type annotation's braces.
+
+    `function f(m: string): { major: number } | null {` has an object type between the `)` and
+    the body, and taking its `{` for the body collapses the block to the signature -- the same
+    inert-watch trap as everywhere else in this module (`parseOpusVersion` in bedrock.ts). A `{`
+    that follows a type position (`:`, `|`, `&`, `,`, `(`, `<`, `=>`) opens an object type and is
+    skipped whole; the first `{` after anything else -- `)`, a type name, `]`, a closing `>` or
+    `}` -- is the body. Braces inside a generic (`Promise<{ a: 1 }>`) are never the body.
+    """
+    angle, i, n = 0, after_params, len(masked)
+    while i < n:
+        c = masked[i]
+        if c == "<":
+            angle += 1
+        elif c == ">" and not masked.startswith("=>", i - 1):
+            angle = max(0, angle - 1)
+        elif c == "{" and angle == 0:
+            before = masked[after_params:i].rstrip()
+            if not before or not (before[-1] in ":|&,(<" or before.endswith("=>")):
+                return i
+            depth = 0
+            while i < n:                      # skip the object type whole
+                if masked[i] == "{":
+                    depth += 1
+                elif masked[i] == "}":
+                    depth -= 1
+                    if depth == 0:
+                        break
+                i += 1
+        i += 1
+    return None
 
 
 def _callable_body_start(masked: str, init: int) -> int | None:
@@ -521,6 +554,19 @@ export async function handleAgentQueuedTurnCancel(req: Request, res: Response): 
   res.json(outcome);
 }
 """, 4),
+    # The first `{` after the parameter list is the return type's, not the body's; counted from
+    # there the block is the signature line alone (packages/data-provider/src/bedrock.ts).
+    ("function declaration with an object return type", """
+function parseOpusVersion(model: string): { major: number; minor: number } | null {
+  const nameFirst = model.match(/claude-opus[-.]?(\\d+)/);
+  return nameFirst ? { major: 1, minor: 0 } : null;
+}
+""", 4),
+    ("function declaration returning a generic of an object type", """
+export function load(id: string): Promise<{ id: string }> {
+  return fetchIt(id);
+}
+""", 3),
     ("annotated array literal", """
 export const FEEDBACK_TAGS: TFeedbackTag[] = [
   { key: 'not_matched' },
