@@ -24,10 +24,13 @@ import io.ktor.http.path
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonObject
 
 class McpApi constructor(
     private val client: HttpClient,
@@ -126,7 +129,7 @@ class McpApi constructor(
     ): McpServer {
         val response: JsonObject = client.post {
             url { path("api/mcp/servers") }
-            setBody(mapOf("config" to serverConfigBody(name, description, url, type, apiKey, oauth)))
+            setBody(serverWriteBody(name, description, url, type, apiKey, oauth))
         }.body()
         // The create route generates the identifier and answers with it; the caller's `name` is
         // only the title it asked for.
@@ -165,7 +168,7 @@ class McpApi constructor(
     ): McpServer {
         val response: JsonObject = client.patch {
             url { path("api/mcp/servers/$serverName") }
-            setBody(mapOf("config" to serverConfigBody(name, description, url, type, apiKey, oauth)))
+            setBody(serverWriteBody(name, description, url, type, apiKey, oauth))
         }.body()
         // The update route answers with the parsed config alone — the name is the one in the path.
         return McpServer(
@@ -179,35 +182,44 @@ class McpApi constructor(
         )
     }
 
-    /** The `config` object both write routes validate against the same schema. */
-    private fun serverConfigBody(
+    /**
+     * `{ config: {...} }`, the body both write routes validate against the same schema.
+     *
+     * Built as a [JsonObject], never a `Map<String, Any>`: Ktor picks a serializer for a map from
+     * its values, and one that nests the `apiKey` or `oauth` object beside strings mixes element
+     * types, so serialization throws before a request is sent. A server with no auth has only
+     * string values, which is why that one case worked while every keyed save and edit did nothing.
+     */
+    private fun serverWriteBody(
         name: String,
         description: String?,
         url: String,
         type: McpServerType,
         apiKey: McpApiKeyConfig?,
         oauth: McpOAuthConfig?,
-    ): Map<String, Any> = buildMap {
-        put("url", url)
-        put("type", type.serialName)
-        put("title", name)
-        if (!description.isNullOrBlank()) put("description", description)
-        if (apiKey != null) {
-            put("apiKey", buildMap {
-                put("source", apiKey.source.serialName)
-                put("authorization_type", apiKey.authorizationType.serialName)
-                if (!apiKey.key.isNullOrBlank()) put("key", apiKey.key)
-                if (!apiKey.customHeader.isNullOrBlank()) put("custom_header", apiKey.customHeader)
-            })
-        }
-        if (oauth != null) {
-            put("oauth", buildMap {
-                if (!oauth.authorizationUrl.isNullOrBlank()) put("authorization_url", oauth.authorizationUrl)
-                if (!oauth.tokenUrl.isNullOrBlank()) put("token_url", oauth.tokenUrl)
-                if (!oauth.clientId.isNullOrBlank()) put("client_id", oauth.clientId)
-                if (!oauth.clientSecret.isNullOrBlank()) put("client_secret", oauth.clientSecret)
-                if (!oauth.scope.isNullOrBlank()) put("scope", oauth.scope)
-            })
+    ): JsonObject = buildJsonObject {
+        putJsonObject("config") {
+            put("url", url)
+            put("type", type.serialName)
+            put("title", name)
+            if (!description.isNullOrBlank()) put("description", description)
+            if (apiKey != null) {
+                putJsonObject("apiKey") {
+                    put("source", apiKey.source.serialName)
+                    put("authorization_type", apiKey.authorizationType.serialName)
+                    if (!apiKey.key.isNullOrBlank()) put("key", apiKey.key)
+                    if (!apiKey.customHeader.isNullOrBlank()) put("custom_header", apiKey.customHeader)
+                }
+            }
+            if (oauth != null) {
+                putJsonObject("oauth") {
+                    if (!oauth.authorizationUrl.isNullOrBlank()) put("authorization_url", oauth.authorizationUrl)
+                    if (!oauth.tokenUrl.isNullOrBlank()) put("token_url", oauth.tokenUrl)
+                    if (!oauth.clientId.isNullOrBlank()) put("client_id", oauth.clientId)
+                    if (!oauth.clientSecret.isNullOrBlank()) put("client_secret", oauth.clientSecret)
+                    if (!oauth.scope.isNullOrBlank()) put("scope", oauth.scope)
+                }
+            }
         }
     }
 

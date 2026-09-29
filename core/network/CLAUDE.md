@@ -212,4 +212,4 @@ deployment's mount at all. A null or pending account attaches nothing.
 - Dependencies: `:core:model`, `:core:common`, Ktor bundles, kotlinx-serialization, Timber, Koin.
 - Convention plugins: `librechat.mobile.library` + `librechat.mobile.koin` + `librechat.kotlin.serialization`.
 - API services must not contain business logic -- they are thin HTTP wrappers.
-- All `arg`-wrapped endpoints must match the backend pattern: `setBody(mapOf("arg" to mapOf(...)))`.
+- All `arg`-wrapped endpoints must match the backend pattern `{ "arg": { ... } }`. Build it as a `@Serializable` wrapper class (see `ConvoUpdateBody`) or with `buildJsonObject`, **never as a `Map<String, Any>`**. Ktor picks a map's serializer from its values, so a map that nests an object beside a string throws "Serializing collections of different element types" before the request is sent, and `safeApiCall` turns that into a generic error rather than a crash. A map is safe only when every value has one type (e.g. `mapOf("refreshToken" to token)`).
