@@ -201,8 +201,7 @@ class McpApi constructor(
      *
      * Built as a [JsonObject], never a `Map<String, Any>`: Ktor picks a serializer for a map from
      * its values, and one that nests the `apiKey` or `oauth` object beside strings mixes element
-     * types, so serialization throws before a request is sent. A server with no auth has only
-     * string values, which is why that one case worked while every keyed save and edit did nothing.
+     * types, so serialization throws before a request is sent.
      */
     private fun serverWriteBody(
         name: String,

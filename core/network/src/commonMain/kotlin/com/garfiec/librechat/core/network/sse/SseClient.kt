@@ -145,8 +145,8 @@ class SseClient(
                 // Cause chain, never a type-exact `catch`: the transport reports by cancelling the
                 // byte channel, which Ktor re-throws wrapped, and which form arrives is a race. That
                 // holds for an HTTP status, the gateway, and an I/O error alike: read type-exactly, a
-                // wrapped 404 — a resumed run that already finished — was retried as a network drop,
-                // so the stream never ended and the finished reply was never refetched.
+                // wrapped 404 — a resumed run that already finished — is retried as a network drop,
+                // so the stream never ends and the finished reply is never refetched.
                 val status = e.httpStatusCause()
                 val gateway = e.accessGatewayCause()
                 val ioError = e.sseStreamCause()

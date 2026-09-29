@@ -185,9 +185,9 @@ class StreamingManagerRetryCeilingTest {
     )
 
     /**
-     * A proxy 502 on every resume while the run is live: it used to end with the status error and a
-     * refetch, and a reply with no text yet then sat as an empty "Thinking" row until the chat was
-     * reopened. Adjudicated like the transport ladder, it resumes.
+     * A proxy 502 on every resume while the run is live: were it ended with the status error and a
+     * refetch, a reply with no text yet would sit as an empty "Thinking" row until the chat was reopened.
+     * Adjudicated like the transport ladder, it resumes.
      */
     @Test
     fun `a run still active at a persistent-status ceiling is resumed`() = runTest(StandardTestDispatcher()) {
@@ -247,8 +247,8 @@ class StreamingManagerRetryCeilingTest {
     /**
      * The single ceiling re-attach belongs to a run, not to whatever turn last sent. Turn A spends
      * it (re-attaches, hits the ceiling again, the status read then fails: a network error); the
-     * network comes back and recovery attaches to the run afresh. That attach used to inherit A's
-     * spent re-attach, so its first ceiling errored instead of resuming.
+     * network comes back and recovery attaches to the run afresh. That attach must not inherit A's
+     * spent re-attach, or its first ceiling errors instead of resuming.
      */
     @Test
     fun `a run attached after a spent re-attach still gets its own`() = runTest(StandardTestDispatcher()) {

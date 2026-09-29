@@ -42,8 +42,8 @@ import org.junit.Test
  * screen once the stream ends — the resume answers 404 because the job is gone, and the SSE client
  * ends such a flow with no event at all.
  *
- * Asserted on what is DISPLAYED, not on whether a fetch was made: "the refetch happened" is exactly
- * what a device showed while the chat still read the user's message alone. The message store here
+ * Asserted on what is DISPLAYED, not on whether a fetch was made: a refetch can happen while the
+ * chat still shows the user's message alone. The message store here
  * behaves like the real one — `getMessages` writes what the server returned into the flow
  * `observeMessages` reads, as the repository's Room upsert does — so a refetch that is made but
  * never rendered fails the test. And like the real server it re-mints the user message's id —
@@ -263,9 +263,9 @@ class ChatViewModelHandoffResumeTest {
     }
 
     /**
-     * The same, on a new chat — where no Room observer is running yet, which is the one case the
-     * send's old safety net reloaded in: a clean end with a Stop pending refetched the conversation
-     * while the abort was in flight, racing the save the aborted frame precedes.
+     * The same, on a new chat — where no Room observer is running yet, so a fallback reload after
+     * the send would fire here: a clean end with a Stop pending would refetch the conversation
+     * while the abort is in flight, racing the save the aborted frame precedes.
      */
     @Test
     fun `a new chat whose stream ends cleanly while a stop is pending does not reload`() = runTest(testDispatcher) {

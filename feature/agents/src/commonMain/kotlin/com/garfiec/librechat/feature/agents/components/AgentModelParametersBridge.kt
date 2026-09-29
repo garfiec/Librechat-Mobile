@@ -190,7 +190,7 @@ internal fun agentModelRemovedOptions(
  *
  * Only those values. A value merely absent from the current options is kept: `xhigh`/`max` are
  * filtered while the server version is undetected, and a value a newer backend added is in no list
- * this app knows — dropping either deleted it from the server for every client. Only string values
+ * this app knows — dropping either would delete it from the server for every client. Only string values
  * are checked.
  */
 internal fun AgentAdvancedSettings.withoutModelRemovedValues(

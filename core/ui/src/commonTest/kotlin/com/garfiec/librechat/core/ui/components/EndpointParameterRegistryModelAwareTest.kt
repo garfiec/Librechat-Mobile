@@ -163,7 +163,7 @@ class EndpointParameterRegistryModelAwareTest {
     /**
      * What a stored value may be dropped for: only what a per-model rule took away. A value missing
      * from the options for any other reason — a version gate, or a newer backend's addition — is
-     * the user's, and dropping it deleted it from the server on an agent save.
+     * the user's, and dropping it would delete it from the server on an agent save.
      */
     @Test
     fun modelRemovedOptionsNamesOnlyWhatAPerModelRuleTookAway() {

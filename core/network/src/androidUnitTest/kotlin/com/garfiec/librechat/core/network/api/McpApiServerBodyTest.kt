@@ -133,7 +133,7 @@ class McpApiServerBodyTest {
         assertThat(sentBody()).isEqualTo(oauthBody)
     }
 
-    /** The shape that always worked, pinned so the fix cannot change it: blank optionals are omitted. */
+    /** A server with no auth: blank optionals are omitted. */
     @Test
     fun `a server with no auth sends only its connection fields`() = runTest {
         api().createServer(name = "Docs", description = " ", url = "https://docs.example.test/mcp", type = McpServerType.STREAMABLE_HTTP)

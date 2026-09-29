@@ -30,7 +30,7 @@ class FavoritesRepositoryImpl(
     init {
         // A process-lifetime singleton holding one server's pins. Reset when the active account
         // changes: the incoming account's refresh replaces the list only on success, so a flaky
-        // incoming server otherwise kept rendering the outgoing account's pinned models.
+        // incoming server would otherwise keep rendering the outgoing account's pinned models.
         applicationScope.launch {
             activeAccountProvider.state
                 .mapNotNull { (it as? AccountState.Resolved)?.id }

@@ -138,7 +138,7 @@ class AgentEditorStaleParameterSaveTest {
     /**
      * `max` is filtered from the options until the server version is detected — and forever on a
      * server whose version never is. That is a version gate, not the model: the value is valid, and
-     * dropping it on "not in the options" deleted it from the server for every client.
+     * dropping it on "not in the options" would delete it from the server for every client.
      */
     @Test
     fun `a version-gated effort survives a save made before the version is detected`() {

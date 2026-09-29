@@ -324,9 +324,9 @@ class StreamingManagerDelegate(
             // the run finished while the connection was down). A body that merely closed never gets
             // here: SseClient resumes it itself. The reply is on the server, so reconcile to it.
             // Skipped while a Stop is pending — the abort watchdog owns that ending, and nothing
-            // reloads on an abort path. This is the only end for such a flow: the send used to
-            // carry its own safety net after it, which reloaded exactly when this is skipped (a
-            // new chat, with no Room observer yet), racing the save the aborted frame precedes.
+            // reloads on an abort path. This is the only end for such a flow: a reload after the
+            // send would fire exactly when this is skipped (a new chat, with no Room observer yet),
+            // racing the save the aborted frame precedes.
             if (isResumeStale(session) || abortRequested || originAccountChanged()) return@launch
             endUnterminatedStream(session, whenGone = StreamEndReason.Reconcile)
         }
@@ -537,7 +537,7 @@ class StreamingManagerDelegate(
                     if (content.retryInfo != null) content = content.copy(retryInfo = null)
                 }
                 // Reasoning lives in THINK parts' `think` field, not `text`, so reading `text` alone
-                // dropped it from a resumed partial entirely.
+                // would drop it from a resumed partial entirely.
                 val textContent = event.aggregatedContent
                     .filter { it.type != ContentType.THINK }
                     .mapNotNull { it.text }
@@ -1174,8 +1174,8 @@ class StreamingManagerDelegate(
      * conversation with a live run (including the handed-off new chat and a server-admitted queued
      * turn), coming back to the foreground, or the network returning. Every such attach is a fresh
      * start for the ceiling's single re-attach — the flag is otherwise reset only by
-     * [beginStreaming], so a run attached this way inherited a previous turn's spent re-attach and
-     * its first ceiling ended in an error instead of resuming. Not used by the ceiling's own
+     * [beginStreaming], so without this a run attached this way would inherit a previous turn's
+     * spent re-attach and its first ceiling would end in an error instead of resuming. Not used by the ceiling's own
      * re-attach, which is what the flag bounds.
      */
     private fun attachToRun(conversationId: String) {
@@ -1305,7 +1305,8 @@ class StreamingManagerDelegate(
         // stale, as it does for the callers that capture a live session. What is stale: a newer
         // session started during the read (a local send won), or a session that was live at the
         // start ended during it (its Final or aborted frame landed; resuming would resurrect it).
-        // isResumeStale read the already-ended session as stale and dropped every such attach.
+        // Not isResumeStale: it reads the already-ended session as stale and would drop every
+        // such attach.
         val endedAtStart = isSessionEnded()
         scope.launch {
             try {

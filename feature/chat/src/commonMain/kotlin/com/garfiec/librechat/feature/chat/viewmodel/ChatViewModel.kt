@@ -896,8 +896,8 @@ class ChatViewModel(
                 // empty mid-stream and the user's message would otherwise vanish for the whole stream.
                 // Keep that seed appended until the server's own copy arrives, then drop it. The copy
                 // is matched by content as well as id (isServerCopyOf): rc3+ re-mints the id, so an
-                // id-only match never fired, and a run ending with no Final (a resume that 404s) left
-                // the seed as a newer root sibling that hid the persisted turn. finalizeChatDisplay
+                // id-only match never fires, and a run ending with no Final (a resume that 404s) would
+                // leave the seed as a newer root sibling that hides the persisted turn. finalizeChatDisplay
                 // also clears the seed at Final. Done here, off Main, so the path build stays on the
                 // Default dispatcher. The takeIf guarantees no copy of the seed is in stabilized, so
                 // this is a plain append — no by-id reconcile needed.

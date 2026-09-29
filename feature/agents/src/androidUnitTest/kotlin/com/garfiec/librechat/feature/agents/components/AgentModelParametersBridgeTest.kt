@@ -49,7 +49,8 @@ class AgentModelParametersBridgeTest {
 
     /**
      * The panel path, before the server version is detected: the options lack `max` (a version
-     * gate), so any edit in the panel used to delete it. Only a per-model rule removes a value.
+     * gate), and dropping on absence would delete it on any edit in the panel. Only a per-model rule
+     * removes a value.
      */
     @Test
     fun `a version-gated effort survives a panel edit before the version is detected`() {

@@ -28,7 +28,7 @@ import kotlinx.serialization.json.JsonPrimitive
  *
  * Only such a value ([EndpointParameterRegistry.modelRemovedOptions]), not every value absent from
  * the options: those also lack `xhigh`/`max` while the server version is undetected, and anything a
- * newer backend added. Omitting those changed the run silently — the server saves the conversation's
+ * newer backend added. Omitting those would change the run silently — the server saves the conversation's
  * parameters from the request — where sending one an older server rejects fails visibly.
  */
 object ModelParamPayload {

@@ -660,7 +660,7 @@ actual fun ChatScreen(
                                 // the CURRENT offset, which is the old height. A sheet that more
                                 // than doubles while hidden (its content loading after the first
                                 // measure) is then nearer Revealed (0) than the new Hidden, and
-                                // snapped open over the composer on its own. Keep its state.
+                                // snaps open over the composer on its own. Keep its state.
                                 pullUpState.updateAnchors(
                                     DraggableAnchors {
                                         PullUpAnchor.Hidden at size.height.toFloat()

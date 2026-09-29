@@ -42,8 +42,8 @@ class RoleRepositoryImpl(
                 .collect {
                     val cached = cacheDataStore.load()
                     // On a switch the incoming account's cache replaces the role even when it has
-                    // none: priming only a non-null value left the OUTGOING account's permissions
-                    // gating the new one until a fetch landed (and for good if it failed). Null is
+                    // none: priming only a non-null value would leave the OUTGOING account's
+                    // permissions gating the new one until a fetch landed (and for good if it failed). Null is
                     // the permissive default PermissionGate already handles for the gap. The first
                     // resolution at cold start keeps the old rule and never clears.
                     if (primed || cached != null) _userPermissions.value = cached

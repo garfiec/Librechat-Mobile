@@ -55,7 +55,7 @@ object EndpointParameterRegistry {
      * current options also lack values for reasons that say nothing about the model: `xhigh`/`max`
      * are filtered while the server version is undetected (and forever on a server whose version
      * never is), and a value a newer backend added is in no list this app knows. Dropping on
-     * absence deleted those from the server on an agent save, and omitted them from a chat send.
+     * absence would delete those from the server on an agent save, and omit them from a chat send.
      * Computed with the version-gated values present on both sides, so a gate never shows up here.
      * Keys a rule removes entirely (Opus 5.5's sampling controls) are not option-level and are
      * not listed.

@@ -14,10 +14,9 @@ import kotlinx.coroutines.flow.distinctUntilChanged
  * Whether the device's DEFAULT network — the one the app's requests actually use — offers internet.
  *
  * Tracks only the default network (`registerDefaultNetworkCallback`). A plain `NetworkRequest`
- * callback reports every matching network and each callback emitted its own verdict, so after an
- * airplane-mode cycle — Wi-Fi and cellular both come up, then the system tears one down — the
- * dropped network's `onLost` arrived last and left `false` standing while the default network was
- * fine: a "No internet connection" banner for half an hour over working requests.
+ * callback reports every matching network, each with its own verdict, so after an airplane-mode
+ * cycle — Wi-Fi and cellular both come up, then the system tears one down — the dropped network's
+ * `onLost` can arrive last and leave `false` standing while the default network is fine.
  *
  * Deliberately INTERNET, not VALIDATED: this app talks to the user's own server, which may sit on a
  * LAN with no internet uplink (or behind a network that blocks the validation probe). Such a network
