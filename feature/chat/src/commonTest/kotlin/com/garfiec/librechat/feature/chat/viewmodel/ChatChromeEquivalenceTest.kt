@@ -42,6 +42,12 @@ class ChatChromeEquivalenceTest {
     }
 
     @Test
+    fun `streaming thinking flush is equivalent`() {
+        val next = streaming.withContent { copy(streamingThinking = "Considering the request") }
+        assertTrue(streaming.chromeEquivalentTo(next))
+    }
+
+    @Test
     fun `active tool call updates are equivalent`() {
         val next = streaming.withContent {
             copy(activeToolCalls = listOf(ActiveToolCall(id = "t1", name = "web_search")))
@@ -149,6 +155,7 @@ class ChatChromeEquivalenceTest {
                 copy(
                     activeToolCalls = listOf(ActiveToolCall(id = "t1", name = "web_search")),
                     streamingAttachments = listOf(Attachment(messageId = "m1")),
+                    streamingThinking = "Considering",
                 )
             }
             .copy(
@@ -160,6 +167,7 @@ class ChatChromeEquivalenceTest {
             )
         val neutral = loud.neutralizeStreamingChurn()
         assertTrue(neutral.streamingContent.isEmpty())
+        assertTrue(neutral.streamingThinking.isEmpty())
         assertTrue(neutral.activeToolCalls.isEmpty())
         assertTrue(neutral.streamingAttachments.isEmpty())
         assertTrue(neutral.comparisonState.primaryStreamingContent.isEmpty())

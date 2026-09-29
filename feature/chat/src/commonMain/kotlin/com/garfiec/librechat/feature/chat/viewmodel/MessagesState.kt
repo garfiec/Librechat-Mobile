@@ -63,6 +63,12 @@ data class MessagesState(
      */
     val isCompacting: Boolean = false,
     val streamingContent: String = "",
+    /**
+     * The live reply's reasoning, apart from [streamingContent] so the streaming bubble renders it
+     * in a collapsed Thinking block rather than as body text. Cleared with it everywhere, including
+     * in the atomic finalize, where the persisted message's THINK part takes over.
+     */
+    val streamingThinking: String = "",
     val activeToolCalls: List<ActiveToolCall> = emptyList(),
     /** Attachments received during SSE streaming (e.g., tool-generated images). Cleared when
      *  streaming ends. */

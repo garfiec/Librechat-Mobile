@@ -1864,6 +1864,7 @@ class ChatViewModel(
                 content = it.content.copy(
                     isStreaming = true,
                     streamingContent = "",
+                    streamingThinking = "",
                     activeToolCalls = emptyList(),
                     streamingAttachments = emptyList(),
                     screenState = if (isNewChat) ChatScreenState.LANDING else ChatScreenState.ACTIVE,

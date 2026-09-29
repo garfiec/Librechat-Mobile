@@ -136,6 +136,7 @@ class MessageTreeDelegate(
                 screenState = ChatScreenState.ACTIVE,
                 isStreaming = false,
                 streamingContent = "",
+                streamingThinking = "",
                 // The stream is over, so no retry can be pending. Matters for a Final that
                 // lands while a reconnect banner is up (e.g. a stop during a retry window):
                 // without this the stale banner survives the finalize.
@@ -192,6 +193,7 @@ class MessageTreeDelegate(
                 displayMessages = buildActiveMessagePath(remaining, content.activeBranches),
                 isStreaming = false,
                 streamingContent = "",
+                streamingThinking = "",
                 retryInfo = null,
                 activeToolCalls = emptyList(),
                 streamingAttachments = emptyList(),

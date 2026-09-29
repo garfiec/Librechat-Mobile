@@ -83,6 +83,8 @@ fun MessageList(
     onRegenerateMessage: (messageId: String) -> Unit,
     onCopyMessage: (messageId: String) -> Unit,
     modifier: Modifier = Modifier,
+    /** The live reply's reasoning, shown collapsed above its text. See [StreamingMessageBubble]. */
+    streamingThinking: String = "",
     activeToolCalls: List<ActiveToolCall> = emptyList(),
     streamingAttachments: List<Attachment> = emptyList(),
     onFeedback: (messageId: String, feedback: MinimalFeedback?) -> Unit = { _, _ -> },
@@ -703,6 +705,7 @@ fun MessageList(
                         showAvatars = showAvatars,
                         showBubbles = showBubbles,
                         useKatex = useKatex,
+                        streamingThinking = streamingThinking,
                     )
                 }
 

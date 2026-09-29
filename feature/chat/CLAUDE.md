@@ -130,6 +130,14 @@ Two consequences worth knowing before touching that block:
 - `ChatViewModel.sendMessage()` calls `ChatRepository.startChat()` which returns `Flow<StreamEvent>`
 - Two-phase: POST /api/agents/chat -> streamId, then GET SSE stream
 - `streamingBuffer: StringBuilder` accumulates text deltas
+- **Reasoning streams into its own buffer** (`thinkingBuffer` → `MessagesState.streamingThinking`),
+  which the streaming bubble shows in a collapsed `ThinkingContentPart` above the text — the place the
+  persisted message renders its THINK parts. It used to share `streamingBuffer`, so it streamed as
+  body text under the sender label, and a resume's sync frame (reading only `text`) dropped it; the
+  sync now restores it from THINK parts' `think`. It follows `streamingContent` everywhere: cleared
+  in the same atomic `finalizeChatDisplay` update (no duplicate, no flash), preserved with the partial
+  on the error/abort ends, and neutralized for the chrome. Comparison panes still fold reasoning into
+  their own buffers.
 - **The live bubble renders through `TextContentPart(streaming = true)`** (#302), so artifact
   detection runs on every flush — an unclosed artifact streams as its source via
   `IncompleteArtifact` instead of raw `:::artifact{…}` text. The `streaming` flag must stay

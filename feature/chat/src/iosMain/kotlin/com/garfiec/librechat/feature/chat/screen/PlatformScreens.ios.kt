@@ -618,6 +618,7 @@ private fun IosChatBody(
                 isStreaming = uiState.isStreaming,
                 justSettledMessageId = uiState.justSettledMessageId,
                 streamingContent = uiState.streamingContent,
+                streamingThinking = uiState.streamingThinking,
                 activeToolCalls = uiState.activeToolCalls,
                 streamingAttachments = uiState.streamingAttachments,
                 onSiblingNavigation = viewModel::switchBranch,

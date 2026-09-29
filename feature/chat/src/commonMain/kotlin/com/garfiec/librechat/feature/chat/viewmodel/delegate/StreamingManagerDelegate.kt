@@ -11,6 +11,7 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.toSafeError
 import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.model.Attachment
+import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.StreamErrorCodes
 import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.error.StreamErrorType
@@ -72,6 +73,13 @@ class StreamingManagerDelegate(
     private var streamJob: Job? = null
     private var streamingUpdateJob: Job? = null
     private val streamingBuffer = StringBuilder()
+
+    /**
+     * The reply's reasoning so far, kept apart from [streamingBuffer] so the live bubble can show
+     * it in a collapsed Thinking block — the same place the persisted message renders its THINK
+     * parts — instead of as body text. Shares [streamingBufferDirty] and the flush.
+     */
+    private val thinkingBuffer = StringBuilder()
     private var streamingBufferDirty = false
     private var wasStreaming = false
 
@@ -266,6 +274,7 @@ class StreamingManagerDelegate(
         // Capture the origin account at stream start so a post-switch finalize attributes to it.
         streamOriginAccountId = activeAccountProvider.currentAccountId()
         streamingBuffer.clear()
+        thinkingBuffer.clear()
         streamingBufferDirty = false
         subagentTraceDelegate.reset()
         officePreviewDelegate.reset()
@@ -281,6 +290,7 @@ class StreamingManagerDelegate(
             content = content.copy(
                 isStreaming = true,
                 streamingContent = "",
+                streamingThinking = "",
                 activeToolCalls = emptyList(),
                 streamingAttachments = emptyList(),
             )
@@ -325,6 +335,7 @@ class StreamingManagerDelegate(
         startStreamSession()
         stopStreamingUpdater()
         streamingBuffer.clear()
+        thinkingBuffer.clear()
         streamingBufferDirty = false
     }
 
@@ -384,7 +395,7 @@ class StreamingManagerDelegate(
                 streamingBufferDirty = true
             }
             is StreamEvent.ThinkingDelta -> {
-                streamingBuffer.append(event.chunk)
+                thinkingBuffer.append(event.chunk)
                 streamingBufferDirty = true
             }
             is StreamEvent.Final -> {
@@ -512,11 +523,20 @@ class StreamingManagerDelegate(
                 handle.update {
                     if (content.retryInfo != null) content = content.copy(retryInfo = null)
                 }
+                // Reasoning lives in THINK parts' `think` field, not `text`, so reading `text` alone
+                // dropped it from a resumed partial entirely.
                 val textContent = event.aggregatedContent
+                    .filter { it.type != ContentType.THINK }
                     .mapNotNull { it.text }
+                    .joinToString("")
+                val thinkingContent = event.aggregatedContent
+                    .filter { it.type == ContentType.THINK }
+                    .mapNotNull { it.think ?: it.text }
                     .joinToString("")
                 streamingBuffer.clear()
                 streamingBuffer.append(textContent)
+                thinkingBuffer.clear()
+                thinkingBuffer.append(thinkingContent)
                 streamingBufferDirty = true
 
                 // Rebuild active tool calls from the snapshot's tool_call parts so an
@@ -677,6 +697,7 @@ class StreamingManagerDelegate(
                 content = content.copy(
                     isStreaming = false,
                     streamingContent = "",
+                    streamingThinking = "",
                     activeToolCalls = emptyList(),
                     streamingAttachments = emptyList(),
                 )
@@ -705,6 +726,7 @@ class StreamingManagerDelegate(
                 content = content.copy(
                     isStreaming = false,
                     streamingContent = "",
+                    streamingThinking = "",
                     activeToolCalls = emptyList(),
                     streamingAttachments = emptyList(),
                 )
@@ -738,7 +760,12 @@ class StreamingManagerDelegate(
     private fun flushStreamingBuffer() {
         if (!streamingBufferDirty) return
         streamingBufferDirty = false
-        handle.update { content = content.copy(streamingContent = streamingBuffer.toString()) }
+        handle.update {
+            content = content.copy(
+                streamingContent = streamingBuffer.toString(),
+                streamingThinking = thinkingBuffer.toString(),
+            )
+        }
     }
 
     /**
@@ -928,6 +955,7 @@ class StreamingManagerDelegate(
                     content = content.copy(
                         isStreaming = false,
                         streamingContent = partialContent,
+                        streamingThinking = thinkingBuffer.toString(),
                         retryInfo = null,
                         activeToolCalls = emptyList(),
                         streamingAttachments = emptyList(),
@@ -960,6 +988,7 @@ class StreamingManagerDelegate(
                         content = content.copy(
                             isStreaming = false,
                             streamingContent = partialContent,
+                            streamingThinking = thinkingBuffer.toString(),
                             retryInfo = null,
                             activeToolCalls = emptyList(),
                             streamingAttachments = emptyList(),
@@ -983,6 +1012,7 @@ class StreamingManagerDelegate(
                     content = content.copy(
                         isStreaming = false,
                         streamingContent = "",
+                        streamingThinking = "",
                         retryInfo = null,
                         activeToolCalls = emptyList(),
                         streamingAttachments = emptyList(),
@@ -997,7 +1027,7 @@ class StreamingManagerDelegate(
                 streamJob?.cancel()
                 stopStreamingUpdater()
                 handle.update {
-                    content = content.copy(isStreaming = false, streamingContent = "")
+                    content = content.copy(isStreaming = false, streamingContent = "", streamingThinking = "")
                 }
                 comparisonDelegate.endStreaming(clearContent = true)
                 // Hold rather than drain: a resume gesture must never auto-fire a queued send.
@@ -1109,6 +1139,7 @@ class StreamingManagerDelegate(
         // that survives a reconnect still resumes against the config the run was started with.
         pendingActionDelegate.onTurnStarted(currentTurnSpec)
         streamingBuffer.clear()
+        thinkingBuffer.clear()
         streamingBufferDirty = false
         startStreamingUpdater()
         streamJob?.cancel()

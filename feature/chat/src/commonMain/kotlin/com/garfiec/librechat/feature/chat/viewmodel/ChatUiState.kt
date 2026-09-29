@@ -207,6 +207,7 @@ data class ChatUiState(
     val isStreaming: Boolean get() = content.isStreaming
     val isCompacting: Boolean get() = content.isCompacting
     val streamingContent: String get() = content.streamingContent
+    val streamingThinking: String get() = content.streamingThinking
     val activeToolCalls: List<ActiveToolCall> get() = content.activeToolCalls
     val streamingAttachments: List<Attachment> get() = content.streamingAttachments
     val retryInfo: RetryInfo? get() = content.retryInfo
