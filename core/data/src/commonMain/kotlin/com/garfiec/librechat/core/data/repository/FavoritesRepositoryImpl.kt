@@ -1,22 +1,44 @@
 package com.garfiec.librechat.core.data.repository
 
+import com.garfiec.librechat.core.common.identity.AccountState
+import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.safeApiCall
 import com.garfiec.librechat.core.model.FavoritesLimits
 import com.garfiec.librechat.core.model.UserFavorite
 import com.garfiec.librechat.core.network.api.FavoritesApi
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 class FavoritesRepositoryImpl(
     private val favoritesApi: FavoritesApi,
+    activeAccountProvider: ActiveAccountProvider,
+    applicationScope: CoroutineScope,
 ) : FavoritesRepository {
 
     private val _favorites = MutableStateFlow<List<UserFavorite>>(emptyList())
     override val favorites: StateFlow<List<UserFavorite>> = _favorites.asStateFlow()
+
+    init {
+        // A process-lifetime singleton holding one server's pins. Reset when the active account
+        // changes: the incoming account's refresh replaces the list only on success, so a flaky
+        // incoming server otherwise kept rendering the outgoing account's pinned models.
+        applicationScope.launch {
+            activeAccountProvider.state
+                .mapNotNull { (it as? AccountState.Resolved)?.id }
+                .distinctUntilChanged()
+                .drop(1)
+                .collect { _favorites.value = emptyList() }
+        }
+    }
 
     /**
      * Serializes write paths so two rapid pin toggles can't lose each other,
