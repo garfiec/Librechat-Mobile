@@ -15,11 +15,14 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.just
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import java.io.IOException
@@ -207,5 +210,34 @@ class RoleRepositoryImplTest {
         advanceUntilIdle()
 
         assertThat(repo.userPermissions.value).isNull()
+    }
+
+    /**
+     * A's role fetch is in flight when the user switches to B. Its result describes A: applied, A's
+     * permissions would gate B; saved, it would land in B's cache slot, because the cache resolves
+     * the account when it writes.
+     */
+    @Test
+    fun `a role fetch that lands after a switch neither applies nor caches`() = runTest {
+        coEvery { cacheDataStore.load() } returns null
+        coEvery { userRepository.getUser() } returns Result.Success(User(email = "a@b.c", role = "ADMIN"))
+        val roleGate = CompletableDeferred<Unit>()
+        coEvery { rolesApi.getRole("ADMIN") } coAnswers {
+            roleGate.await()
+            adminRole
+        }
+        val repo = newRepo()
+        advanceUntilIdle()
+
+        val fetch = async { repo.fetchUserRole() }
+        runCurrent()
+        activeAccountProvider.set(AccountId("srv:other"))
+        advanceUntilIdle()
+        roleGate.complete(Unit)
+        fetch.await()
+        advanceUntilIdle()
+
+        assertThat(repo.userPermissions.value).isNull()
+        coVerify(exactly = 0) { cacheDataStore.save(any()) }
     }
 }

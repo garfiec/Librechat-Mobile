@@ -1,7 +1,9 @@
 package com.garfiec.librechat.core.data.repository
 
+import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
+import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.safeApiCall
 import com.garfiec.librechat.core.model.FavoritesLimits
@@ -20,7 +22,7 @@ import kotlinx.coroutines.sync.withLock
 
 class FavoritesRepositoryImpl(
     private val favoritesApi: FavoritesApi,
-    activeAccountProvider: ActiveAccountProvider,
+    private val activeAccountProvider: ActiveAccountProvider,
     applicationScope: CoroutineScope,
 ) : FavoritesRepository {
 
@@ -47,10 +49,18 @@ class FavoritesRepositoryImpl(
      */
     private val writeMutex = Mutex()
 
+    /**
+     * Whether the active account is still the one a request started under. Every write below
+     * follows a suspension, and one that lands after a switch describes the outgoing account's
+     * server: publishing it would put that account's pins on the incoming one's selector.
+     */
+    private fun stillOn(origin: AccountId?): Boolean = activeAccountProvider.currentAccountId() == origin
+
     override suspend fun refresh(): Result<List<UserFavorite>> {
+        val origin = activeAccountProvider.currentAccountId()
         return when (val result = safeApiCall { favoritesApi.getFavorites() }) {
             is Result.Success -> {
-                _favorites.value = result.data
+                if (stillOn(origin)) _favorites.value = result.data
                 result
             }
             else -> result
@@ -73,6 +83,7 @@ class FavoritesRepositoryImpl(
         }
 
         return writeMutex.withLock {
+            val origin = activeAccountProvider.currentAccountId()
             // Optimistic publish so callers' star icons toggle immediately.
             // Snapshot the prior list inside the lock so a concurrent caller queued
             // behind us starts from the post-write state, not the pre-optimistic one.
@@ -81,15 +92,16 @@ class FavoritesRepositoryImpl(
 
             when (val result = safeApiCall { favoritesApi.updateFavorites(list) }) {
                 is Result.Success -> {
-                    _favorites.value = result.data
+                    if (stillOn(origin)) _favorites.value = result.data
                     result
                 }
                 is Result.Error -> {
                     // Roll back via a fresh GET so the cache reflects the server's
-                    // authoritative state rather than our stale optimistic value.
-                    when (val refetch = safeApiCall { favoritesApi.getFavorites() }) {
-                        is Result.Success -> _favorites.value = refetch.data
-                        else -> _favorites.value = previous
+                    // authoritative state rather than our stale optimistic value. Nothing is
+                    // written once the account has changed: the switch already reset the list.
+                    val refetch = safeApiCall { favoritesApi.getFavorites() }
+                    if (stillOn(origin)) {
+                        _favorites.value = (refetch as? Result.Success)?.data ?: previous
                     }
                     result
                 }

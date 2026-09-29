@@ -7,10 +7,13 @@ import com.garfiec.librechat.core.network.api.FavoritesApi
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
@@ -55,5 +58,48 @@ class FavoritesRepositoryAccountSwitchTest {
         advanceUntilIdle()
 
         assertThat(repo.favorites.value).isEqualTo(pinnedOnA)
+    }
+
+    /** A's refresh lands after the switch: B keeps its own (reset) list, not A's pins. */
+    @Test
+    fun `a refresh that lands after a switch is dropped`() = runTest {
+        val repo = FavoritesRepositoryImpl(api, accounts, CoroutineScope(StandardTestDispatcher(testScheduler)))
+        advanceUntilIdle()
+        val gate = CompletableDeferred<Unit>()
+        coEvery { api.getFavorites() } coAnswers {
+            gate.await()
+            pinnedOnA
+        }
+
+        val refresh = async { repo.refresh() }
+        runCurrent()
+        accounts.set(AccountId("srv:user-b"))
+        advanceUntilIdle()
+        gate.complete(Unit)
+        refresh.await()
+
+        assertThat(repo.favorites.value).isEmpty()
+    }
+
+    /** A failed save's rollback refetch lands after the switch: it must not restore A's pins on B. */
+    @Test
+    fun `a rollback refetch that lands after a switch is dropped`() = runTest {
+        val repo = FavoritesRepositoryImpl(api, accounts, CoroutineScope(StandardTestDispatcher(testScheduler)))
+        advanceUntilIdle()
+        val gate = CompletableDeferred<Unit>()
+        coEvery { api.updateFavorites(any()) } throws IllegalStateException("rejected")
+        coEvery { api.getFavorites() } coAnswers {
+            gate.await()
+            pinnedOnA
+        }
+
+        val save = async { repo.setFavorites(pinnedOnA) }
+        runCurrent()
+        accounts.set(AccountId("srv:user-b"))
+        advanceUntilIdle()
+        gate.complete(Unit)
+        save.await()
+
+        assertThat(repo.favorites.value).isEmpty()
     }
 }
