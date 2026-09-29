@@ -11,6 +11,7 @@ import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -231,6 +232,75 @@ class McpViewModelSaveRouteTest {
         assertThat(vm.uiState.value.oauthSecretReentryRequired).isFalse()
         assertThat(vm.uiState.value.apiKeyReentryRequired).isFalse()
         assertThat(vm.uiState.value.serverDialogError).isEqualTo("Server unreachable")
+    }
+
+    /**
+     * A save outlives its dialog when the user cancels while the server is still inspecting the MCP
+     * URL. Its failure then has no dialog to show in, so it goes to the screen's snackbar rather
+     * than into state nothing renders.
+     */
+    @Test
+    fun `a failure that lands after the dialog closed is reported as a snackbar`() = runTest {
+        val reply = CompletableDeferred<Result<McpServer>>()
+        coEvery { mcpRepository.updateServer(any(), any(), any(), any(), any(), any(), any()) } coAnswers { reply.await() }
+        val vm = McpViewModel(mcpRepository)
+        vm.showEditServerDialog(SERVER)
+        vm.saveServer(name = "Docs", url = URL, type = McpServerType.SSE)
+
+        vm.dismissServerDialog()
+        reply.complete(Result.Error(message = "Server unreachable"))
+
+        assertThat(vm.uiState.value.error).isEqualTo("Server unreachable")
+        assertThat(vm.uiState.value.serverDialogError).isNull()
+    }
+
+    /** Nor may it mark, or close, the dialog the user opened on another server in the meantime. */
+    @Test
+    fun `a late outcome leaves the dialog opened since alone`() = runTest {
+        val refusal = CompletableDeferred<Result<McpServer>>()
+        coEvery { mcpRepository.updateServer(any(), any(), any(), any(), any(), any(), any()) } coAnswers { refusal.await() }
+        val vm = McpViewModel(mcpRepository)
+        vm.showEditServerDialog(SERVER)
+        vm.saveServer(name = "Docs", url = URL, type = McpServerType.SSE)
+
+        vm.dismissServerDialog()
+        vm.showAddServerDialog()
+        refusal.complete(
+            Result.Error(exception = ApiException(statusCode = 400, message = "x", body = """{"error":"MCP_API_KEY_REENTRY_REQUIRED"}""")),
+        )
+
+        assertThat(vm.uiState.value.showServerDialog).isTrue()
+        assertThat(vm.uiState.value.apiKeyReentryRequired).isFalse()
+        assertThat(vm.uiState.value.serverDialogError).isNull()
+        assertThat(vm.uiState.value.error).isNotNull()
+
+        val success = CompletableDeferred<Result<McpServer>>()
+        coEvery { mcpRepository.updateServer(any(), any(), any(), any(), any(), any(), any()) } coAnswers { success.await() }
+        vm.dismissServerDialog()
+        vm.showEditServerDialog(SERVER)
+        vm.saveServer(name = "Docs", url = URL, type = McpServerType.SSE)
+        vm.dismissServerDialog()
+        vm.showAddServerDialog()
+        success.complete(Result.Success(SERVER))
+
+        assertThat(vm.uiState.value.showServerDialog).isTrue()
+    }
+
+    /** The create route names every POST afresh, so a second tap on a slow save would add a second server. */
+    @Test
+    fun `a second tap while a save is in flight sends nothing`() = runTest {
+        val reply = CompletableDeferred<Result<McpServer>>()
+        coEvery { mcpRepository.createServer(any(), any(), any(), any(), any(), any()) } coAnswers { reply.await() }
+        val vm = McpViewModel(mcpRepository)
+        vm.showAddServerDialog()
+
+        vm.saveServer(name = "Docs", url = URL, type = McpServerType.SSE)
+        assertThat(vm.uiState.value.isSavingServer).isTrue()
+        vm.saveServer(name = "Docs", url = URL, type = McpServerType.SSE)
+        reply.complete(Result.Success(SERVER))
+
+        coVerify(exactly = 1) { mcpRepository.createServer(any(), any(), any(), any(), any(), any()) }
+        assertThat(vm.uiState.value.isSavingServer).isFalse()
     }
 
     private companion object {

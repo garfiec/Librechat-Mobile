@@ -144,4 +144,15 @@ class ServerErrorCodeTest {
         assertNull(ServerErrorCode.codedMessage("""{"error":{"type":"x"},"message":"m"}"""))
         assertNull(ServerErrorCode.codedMessage("<html>403</html>"))
     }
+
+    @Test
+    fun a_code_prefix_keeps_a_proxys_framework_error_out() {
+        // Same two keys as the MCP envelope, but the "code" is an HTTP reason phrase.
+        val proxy = """{"error":"Forbidden","message":"Request to https://internal.example/x?token=1 blocked"}"""
+        assertNull(ServerErrorCode.codedMessage(proxy, codePrefix = "MCP_"))
+        assertEquals(
+            "Domain is not allowed",
+            ServerErrorCode.codedMessage("""{"error":"MCP_DOMAIN_NOT_ALLOWED","message":"Domain is not allowed"}""", "MCP_"),
+        )
+    }
 }

@@ -150,12 +150,16 @@ object ServerErrorCode {
      * display screen, which rejects any text containing a URL: that screen exists for gateway pages
      * and exception text built from request URLs (issue #287), not for a sentence the server wrote
      * about the user's own input.
+     *
+     * A code alone does not prove the envelope is the server's: a proxy's framework error
+     * (`{"error":"Forbidden","message":…}`) has the same two keys. Pass [codePrefix] to accept only
+     * one controller's codes — the MCP controller's all start with `MCP_`.
      */
-    fun codedMessage(body: String?): String? {
+    fun codedMessage(body: String?, codePrefix: String = ""): String? {
         val obj = objectOf(body) ?: return null
         val code = (obj["code"] as? JsonPrimitive)?.takeIf { it.isString }?.content
             ?: (obj["error"] as? JsonPrimitive)?.takeIf { it.isString }?.content
-        if (code.isNullOrBlank()) return null
+        if (code.isNullOrBlank() || !code.startsWith(codePrefix)) return null
         return (obj["message"] as? JsonPrimitive)?.takeIf { it.isString }?.content?.trim()?.ifEmpty { null }
     }
 

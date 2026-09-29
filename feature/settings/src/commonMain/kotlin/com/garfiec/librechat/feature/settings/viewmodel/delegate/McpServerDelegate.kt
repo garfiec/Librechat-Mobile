@@ -1,16 +1,15 @@
 package com.garfiec.librechat.feature.settings.viewmodel.delegate
 
 import co.touchlab.kermit.Logger
-import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.McpRepository
-import com.garfiec.librechat.core.model.error.ServerErrorCode
 import com.garfiec.librechat.core.model.mcp.McpApiKeyConfig
 import com.garfiec.librechat.core.model.mcp.McpOAuthConfig
 import com.garfiec.librechat.core.model.mcp.McpServer
 import com.garfiec.librechat.core.model.mcp.McpServerType
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsUiState
+import com.garfiec.librechat.feature.settings.viewmodel.toMcpSaveFailure
 import kotlinx.coroutines.launch
 
 /**
@@ -47,18 +46,25 @@ class McpServerDelegate(
         }
     }
 
+    /** Bumped whenever the server dialog opens or closes, so a save can tell its dialog is gone. */
+    private var mcpDialogSession = 0
+
     fun showAddMcpServerDialog() {
+        mcpDialogSession++
         stateHandle.update { copy(showMcpServerDialog = true, editingMcpServer = null).withoutMcpSaveFeedback() }
     }
 
     fun showEditMcpServerDialog(server: McpServer) {
+        mcpDialogSession++
         stateHandle.update { copy(showMcpServerDialog = true, editingMcpServer = server).withoutMcpSaveFeedback() }
     }
 
     fun dismissMcpServerDialog() {
+        mcpDialogSession++
         stateHandle.update { copy(showMcpServerDialog = false, editingMcpServer = null).withoutMcpSaveFeedback() }
     }
 
+    /** Second of the two MCP save paths; the other is McpViewModel, behind the standalone MCP screen. */
     fun saveMcpServer(
         name: String,
         description: String? = null,
@@ -67,11 +73,13 @@ class McpServerDelegate(
         apiKey: McpApiKeyConfig? = null,
         oauth: McpOAuthConfig? = null,
     ) {
+        if (stateHandle.state.mcpServerSaving) return
+        val session = mcpDialogSession
+        // Which server the dialog was opened on decides the route, not the shape of the body:
+        // an edit is a PATCH against the stored identifier. See McpRepository.updateServer.
+        val editing = stateHandle.state.editingMcpServer?.name
+        stateHandle.update { withoutMcpSaveFeedback().copy(mcpServerSaving = true) }
         stateHandle.scope.launch {
-            // Which server the dialog was opened on decides the route, not the shape of the body:
-            // an edit is a PATCH against the stored identifier. See McpRepository.updateServer.
-            val editing = stateHandle.state.editingMcpServer?.name
-            stateHandle.update { withoutMcpSaveFeedback() }
             val result = if (editing != null) {
                 mcpRepository.updateServer(
                     serverName = editing,
@@ -92,38 +100,27 @@ class McpServerDelegate(
                     oauth = oauth,
                 )
             }
+            // Same rule as McpViewModel: an outcome whose dialog has closed or moved on goes to the
+            // snackbar, and a late success does not close the dialog the user has since opened.
+            val dialogStillOpen = session == mcpDialogSession
             when (result) {
                 is Result.Success -> {
-                    dismissMcpServerDialog()
+                    if (dialogStillOpen) dismissMcpServerDialog()
                     loadMcpServers()
                 }
                 is Result.Error -> {
-                    // Second of the two MCP save paths (the other is McpViewModel, behind the
-                    // standalone MCP screen). Both reach the same update route, so both must
-                    // prompt for the secret rather than report a failure — see
-                    // SettingsUiState.mcpOAuthSecretReentryRequired.
-                    val exception = result.exception as? ApiException
-                    val code = exception?.body
-                        ?.takeIf { exception.statusCode == HTTP_BAD_REQUEST }
-                        ?.let(ServerErrorCode::from)
-                    val secretReentry = code == ServerErrorCode.OAUTH_SECRET_REENTRY_REQUIRED
-                    val keyReentry = code == ServerErrorCode.API_KEY_REENTRY_REQUIRED
+                    val failure = result.toMcpSaveFailure(fallback = "Failed to save MCP server")
                     stateHandle.update {
-                        copy(
-                            mcpOAuthSecretReentryRequired = secretReentry,
-                            mcpApiKeyReentryRequired = keyReentry,
-                            mcpServerDialogError = when {
-                                secretReentry ->
-                                    "This server's OAuth endpoints changed, so the saved client " +
-                                        "secret no longer applies. Enter the client secret again to save."
-                                keyReentry ->
-                                    "This server's connection settings changed, so the saved API " +
-                                        "key no longer applies. Enter the API key again to save."
-                                else -> ServerErrorCode.validationMessages(exception?.body).joinToString("\n").ifEmpty { null }
-                                    ?: ServerErrorCode.codedMessage(exception?.body)
-                                    ?: result.message ?: "Failed to save MCP server"
-                            },
-                        )
+                        if (dialogStillOpen) {
+                            copy(
+                                mcpServerSaving = false,
+                                mcpOAuthSecretReentryRequired = failure.secretReentry,
+                                mcpApiKeyReentryRequired = failure.keyReentry,
+                                mcpServerDialogError = failure.dialogMessage,
+                            )
+                        } else {
+                            copy(error = failure.snackbarMessage)
+                        }
                     }
                 }
                 is Result.Loading -> { /* no-op */ }
@@ -184,9 +181,10 @@ class McpServerDelegate(
     }
 }
 
-/** The MCP write routes report a rejected OAuth secret binding with 400. */
-private const val HTTP_BAD_REQUEST = 400
-
-/** See `McpViewModel`'s counterpart: a save's feedback belongs to the save that raised it. */
-private fun SettingsUiState.withoutMcpSaveFeedback() =
-    copy(mcpOAuthSecretReentryRequired = false, mcpApiKeyReentryRequired = false, mcpServerDialogError = null)
+/** See `McpViewModel`'s counterpart: a save's feedback belongs to the dialog that raised it. */
+private fun SettingsUiState.withoutMcpSaveFeedback() = copy(
+    mcpOAuthSecretReentryRequired = false,
+    mcpApiKeyReentryRequired = false,
+    mcpServerDialogError = null,
+    mcpServerSaving = false,
+)

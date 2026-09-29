@@ -265,6 +265,8 @@ data class SettingsUiState(
      * [error]: the dialog stays open on failure and would cover [error]'s snackbar.
      */
     val mcpServerDialogError: String? = null,
+    /** The open MCP server dialog's save is in flight; see `McpUiState.isSavingServer`. */
+    val mcpServerSaving: Boolean = false,
 )
 
 internal fun User.toDisplayData() = UserDisplayData(

@@ -39,6 +39,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -562,6 +563,27 @@ class SettingsViewModelTest {
         viewModel.dismissMcpServerDialog()
         advanceUntilIdle()
         assertThat(viewModel.uiState.value.mcpServerDialogError).isNull()
+    }
+
+    /** The Settings path's copy of the rule: a save whose dialog closed reports through the snackbar. */
+    @Test
+    fun `an MCP save failure after the Settings dialog closed is reported as a snackbar`() = runTest {
+        val reply = CompletableDeferred<Result<McpServer>>()
+        coEvery { mcpRepository.createServer(any(), any(), any(), any(), any(), any()) } coAnswers { reply.await() }
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.showAddMcpServerDialog()
+        viewModel.saveMcpServer(name = "Docs", url = "https://docs.example.test/mcp", type = McpServerType.SSE)
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.mcpServerSaving).isTrue()
+
+        viewModel.dismissMcpServerDialog()
+        reply.complete(Result.Error(exception = IllegalStateException("boom"), message = "Something went wrong"))
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.error).isEqualTo("Something went wrong")
+        assertThat(viewModel.uiState.value.mcpServerDialogError).isNull()
+        assertThat(viewModel.uiState.value.mcpServerSaving).isFalse()
     }
 
     /** The Settings path reads the same `errors[]` reasons as the MCP screen. */

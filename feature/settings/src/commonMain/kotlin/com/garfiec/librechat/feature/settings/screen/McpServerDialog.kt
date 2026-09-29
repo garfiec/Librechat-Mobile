@@ -64,6 +64,8 @@ internal fun McpServerDialog(
     apiKeyReentryRequired: Boolean,
     /** Why the last save failed; shown here because the dialog stays open and covers the screen. */
     saveError: String?,
+    /** A save from this dialog is in flight; Save stays disabled until it answers. */
+    isSaving: Boolean,
     onDismiss: () -> Unit,
     onSave:
     (name: String, description: String?, url: String, type: McpServerType, apiKey: McpApiKeyConfig?, oauth: McpOAuthConfig?) -> Unit,
@@ -112,16 +114,23 @@ internal fun McpServerDialog(
             Text(stringResource(if (isEditing) Res.string.edit_mcp_server else Res.string.add_mcp_server))
         },
         text = {
+            // A re-entry refusal carries no server text: it is worded here, from resources, so it
+            // is localized like the marker under the field it points at.
+            val failure = saveError ?: when {
+                apiKeyReentryRequired -> stringResource(Res.string.mcp_api_key_reentry_required)
+                oauthSecretReentryRequired -> stringResource(Res.string.mcp_oauth_secret_reentry_required)
+                else -> null
+            }
             // A failed save leaves the form wherever the user scrolled it — usually the bottom, next
             // to the button they tapped — so bring the failure, which leads the form, into view.
             val scrollState = rememberScrollState()
-            LaunchedEffect(saveError) {
-                if (saveError != null) scrollState.animateScrollTo(0)
+            LaunchedEffect(failure) {
+                if (failure != null) scrollState.animateScrollTo(0)
             }
             Column(modifier = Modifier.imePadding().verticalScroll(scrollState)) {
-                if (saveError != null) {
+                if (failure != null) {
                     Text(
-                        text = saveError,
+                        text = failure,
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(bottom = 8.dp),
@@ -360,13 +369,16 @@ internal fun McpServerDialog(
                             authorizationUrl = oauthAuthUrl.trim().ifBlank { null },
                             tokenUrl = oauthTokenUrl.trim().ifBlank { null },
                             scope = oauthScope.trim().ifBlank { null },
+                            // Not editable here, but carried through: the update route replaces
+                            // the stored config and treats a dropped method as a changed binding.
+                            tokenExchangeMethod = editingServer?.oauth?.tokenExchangeMethod,
                         )
                     } else {
                         null
                     }
                     onSave(name.trim(), description.trim().ifBlank { null }, url.trim(), selectedType, apiKey, oauth)
                 },
-                enabled = name.isNotBlank() && url.isNotBlank(),
+                enabled = !isSaving && name.isNotBlank() && url.isNotBlank(),
             ) {
                 Text(stringResource(if (isEditing) Res.string.action_save else Res.string.action_add))
             }
