@@ -1221,7 +1221,7 @@ v0.8.8-rc3, so the checkout is authoritative again — but the general rule stan
 progress: read `git show <target-tag>:<path>` inside the submodule rather than the working tree, which
 is pinned to the PREVIOUS target until the bookkeeping commit lands.
 
-### v0.8.8-rc4 sync (tag v0.8.8-rc4, commit 361553f3, 2026-09-24) — endpoint / shape changes
+### v0.8.8-rc4 sync (tag v0.8.8-rc4, commit 361553f3, 2026-09-23) — endpoint / shape changes
 ```
 DELETE /api/files  (agent_id + tool_resource)
                                           (v0.8.8-rc4, #16007) **now DESTRUCTIVE for some files.** rc1–rc3 only
