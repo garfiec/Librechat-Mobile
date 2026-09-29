@@ -22,7 +22,9 @@ import kotlin.math.roundToInt
  *
  * [selectedValue] is the current string option; [optionLabels] overrides the
  * label shown above the slider when it differs from the raw option (e.g.
- * "none" → "Unset").
+ * "none" → "Unset"). [removedValues] are the values a per-model rule took away
+ * from this model (see [EndpointParameterRegistry.modelRemovedOptions]); they
+ * are the only out-of-list values that read as the first option.
  */
 @Composable
 fun DynamicEnumSlider(
@@ -33,18 +35,13 @@ fun DynamicEnumSlider(
     modifier: Modifier = Modifier,
     description: String? = null,
     optionLabels: Map<String, String>? = null,
+    removedValues: Set<String> = emptySet(),
 ) {
     if (options.isEmpty()) return
 
+    // A value outside the options has no position; the thumb rests at the first one.
     val index = options.indexOf(selectedValue).let { if (it < 0) 0 else it }
-    // Labelled by the option the thumb sits on, not the raw value: a value a per-model rule took away
-    // sits at the first position and is not sent (ModelParamPayload), so its own label would describe
-    // a setting that has no effect. Known gap: a value absent for another reason — `xhigh`/`max`
-    // before the server version is detected, or one newer than this app — sits there too and reads
-    // "Unset", but it IS sent (EndpointParameterRegistry.modelRemovedOptions).
-    val shown = options[index]
-    // The empty option is "not set"; named as DynamicDropdown names it, so the two controls agree.
-    val displayLabel = optionLabels?.get(shown) ?: shown.ifEmpty { "Unset" }
+    val displayLabel = enumSliderLabel(selectedValue, options, optionLabels, removedValues)
     val sliderCd = "$label slider, value $displayLabel"
 
     Column(
@@ -85,4 +82,25 @@ fun DynamicEnumSlider(
             modifier = Modifier.fillMaxWidth(),
         )
     }
+}
+
+/**
+ * What the slider's value label says for [selectedValue].
+ *
+ * A value in [options] is named by its option. One outside them is named by the first option
+ * ("Unset") only when that is what the request does with it: a value a per-model rule took away
+ * ([removedValues]) is not sent (ModelParamPayload), so its own name would describe a setting with
+ * no effect. Any other out-of-list value — `xhigh`/`max` before the server version is detected, or
+ * one newer than this app — IS sent, so it is named as itself; "Unset" there would be a lie.
+ */
+internal fun enumSliderLabel(
+    selectedValue: String,
+    options: List<String>,
+    optionLabels: Map<String, String>?,
+    removedValues: Set<String>,
+): String {
+    val sentAsItself = selectedValue.isNotEmpty() && selectedValue !in options && selectedValue !in removedValues
+    val shown = if (sentAsItself || selectedValue in options) selectedValue else options.firstOrNull().orEmpty()
+    // The empty option is "not set"; named as DynamicDropdown names it, so the two controls agree.
+    return optionLabels?.get(shown) ?: shown.ifEmpty { "Unset" }
 }

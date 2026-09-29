@@ -179,6 +179,27 @@ fun ModelParameterContent(
         }
     }
 
+    // Which out-of-list values are not sent, so the slider can say "Unset" for those alone. Unknown
+    // for caller-supplied definitions, which then name every out-of-list value as itself.
+    val modelRemoved = remember(
+        selectedEndpoint,
+        dynamicParameterDefinitions,
+        selectedProvider,
+        selectedModel,
+        dropParams,
+    ) {
+        if (!dynamicParameterDefinitions.isNullOrEmpty()) {
+            emptyMap()
+        } else {
+            EndpointParameterRegistry.modelRemovedOptions(
+                endpoint = selectedEndpoint,
+                provider = selectedProvider,
+                model = selectedModel,
+                dropParams = dropParams,
+            )
+        }
+    }
+
     val scrollableModifier = if (applyVerticalScroll) {
         modifier.fillMaxWidth().verticalScroll(rememberScrollState())
     } else {
@@ -303,6 +324,7 @@ fun ModelParameterContent(
                         },
                         description = definition.description,
                         optionLabels = definition.optionLabels,
+                        removedValues = modelRemoved[definition.key].orEmpty(),
                     )
                 }
 
