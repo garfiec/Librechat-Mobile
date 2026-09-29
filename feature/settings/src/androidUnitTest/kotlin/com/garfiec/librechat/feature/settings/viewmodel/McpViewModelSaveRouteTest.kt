@@ -272,6 +272,25 @@ class McpViewModelSaveRouteTest {
         }
     }
 
+    /**
+     * A re-entry refusal is told once, by the red field that has to be filled in. A dialog-level
+     * message on top would say the same thing twice, one of the two copies scrolled out of view.
+     */
+    @Test
+    fun `a re-entry refusal is reported by its field alone`() = runTest {
+        for (code in listOf("MCP_API_KEY_REENTRY_REQUIRED", "MCP_OAUTH_SECRET_REENTRY_REQUIRED")) {
+            coEvery { mcpRepository.updateServer(any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns
+                Result.Error(exception = ApiException(statusCode = 400, message = "x", body = """{"error":"$code"}"""))
+            val vm = McpViewModel(mcpRepository)
+            vm.showEditServerDialog(SERVER)
+
+            vm.saveServer(name = "Docs", url = URL, type = McpServerType.SSE)
+
+            assertThat(vm.uiState.value.apiKeyReentryRequired || vm.uiState.value.oauthSecretReentryRequired).isTrue()
+            assertThat(vm.uiState.value.serverDialogError).isNull()
+        }
+    }
+
     /** Any other refusal keeps the generic message; the secret field must not turn red for it. */
     @Test
     fun `an unrelated failure does not ask for the client secret`() = runTest {

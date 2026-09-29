@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
@@ -110,6 +112,9 @@ internal fun McpServerDialog(
 
     val isEditing = editingServer != null
 
+    val apiKeyFieldRequester = remember { BringIntoViewRequester() }
+    val secretFieldRequester = remember { BringIntoViewRequester() }
+
     AlertDialog(
         modifier = modifier,
         onDismissRequest = onDismiss,
@@ -117,23 +122,22 @@ internal fun McpServerDialog(
             Text(stringResource(if (isEditing) Res.string.edit_mcp_server else Res.string.add_mcp_server))
         },
         text = {
-            // A re-entry refusal carries no server text: it is worded here, from resources, so it
-            // is localized like the marker under the field it points at.
-            val failure = saveError ?: when {
-                apiKeyReentryRequired -> stringResource(Res.string.mcp_api_key_reentry_required)
-                oauthSecretReentryRequired -> stringResource(Res.string.mcp_oauth_secret_reentry_required)
-                else -> null
-            }
             // A failed save leaves the form wherever the user scrolled it — usually the bottom, next
-            // to the button they tapped — so bring the failure, which leads the form, into view.
+            // to the button they tapped — so bring the failure into view. A re-entry refusal is
+            // told once, by the red field that has to be filled in, so that field is what is
+            // brought into view; any other failure leads the form.
             val scrollState = rememberScrollState()
-            LaunchedEffect(failure) {
-                if (failure != null) scrollState.animateScrollTo(0)
+            LaunchedEffect(saveError, apiKeyReentryRequired, oauthSecretReentryRequired) {
+                when {
+                    apiKeyReentryRequired -> apiKeyFieldRequester.bringIntoView()
+                    oauthSecretReentryRequired -> secretFieldRequester.bringIntoView()
+                    saveError != null -> scrollState.animateScrollTo(0)
+                }
             }
             Column(modifier = Modifier.imePadding().verticalScroll(scrollState)) {
-                if (failure != null) {
+                if (saveError != null) {
                     Text(
-                        text = failure,
+                        text = saveError,
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(bottom = 8.dp),
@@ -291,7 +295,7 @@ internal fun McpServerDialog(
                                     } else {
                                         null
                                     },
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier.fillMaxWidth().bringIntoViewRequester(apiKeyFieldRequester),
                                 )
                             }
                         }
@@ -326,7 +330,7 @@ internal fun McpServerDialog(
                             } else {
                                 null
                             },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().bringIntoViewRequester(secretFieldRequester),
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         OutlinedTextField(

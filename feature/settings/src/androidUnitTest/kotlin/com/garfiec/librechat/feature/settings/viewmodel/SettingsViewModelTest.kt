@@ -660,4 +660,25 @@ class SettingsViewModelTest {
             )
         }
     }
+
+    /** The Settings path reports a re-entry refusal by its field alone too. */
+    @Test
+    fun `a Settings MCP re-entry refusal is reported by its field alone`() = runTest {
+        for (code in listOf("MCP_API_KEY_REENTRY_REQUIRED", "MCP_OAUTH_SECRET_REENTRY_REQUIRED")) {
+            coEvery { mcpRepository.updateServer(any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns
+                Result.Error(exception = ApiException(statusCode = 400, message = "x", body = """{"error":"$code"}"""))
+            viewModel = createViewModel()
+            advanceUntilIdle()
+            viewModel.showEditMcpServerDialog(
+                McpServer(name = "docs_mcp", url = "https://docs.example.test/mcp", type = McpServerType.SSE),
+            )
+
+            viewModel.saveMcpServer(name = "Docs", url = "https://moved.example.test/mcp", type = McpServerType.SSE)
+            advanceUntilIdle()
+
+            val state = viewModel.uiState.value
+            assertThat(state.mcpApiKeyReentryRequired || state.mcpOAuthSecretReentryRequired).isTrue()
+            assertThat(state.mcpServerDialogError).isNull()
+        }
+    }
 }
