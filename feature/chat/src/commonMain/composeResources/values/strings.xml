@@ -157,6 +157,10 @@
     <string name="trace_status_warning">Warning</string>
     <string name="trace_status_error">Error</string>
     <string name="trace_running">Running</string>
+    <string name="trace_view_steps">Steps</string>
+    <string name="trace_view_all">All records</string>
+    <string name="trace_step">Step %1$d</string>
+    <string name="trace_step_title">Title</string>
     <string name="trace_partial">Showing %1$d records. Older turns have not been loaded.</string>
     <string name="trace_input">Input</string>
     <string name="trace_output">Output</string>

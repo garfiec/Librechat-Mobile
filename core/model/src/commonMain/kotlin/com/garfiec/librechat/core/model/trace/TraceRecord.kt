@@ -19,6 +19,39 @@ object TraceRecordKind {
     const val EVENT = "event"
 }
 
+/**
+ * What a record did in the run, in the application's own terms (v0.8.8-rc4), so a client never
+ * reads a tracing backend's span names. Absent on a record the backend did not describe; such a
+ * record is listed by its kind alone.
+ */
+object TraceRole {
+    /** A whole agent run. */
+    const val RUN = "run"
+
+    /** The named agent inside a run; carries [TraceRecord.agentId] when the agent was saved. */
+    const val AGENT = "agent"
+
+    /** A wrapper that only frames one model call. */
+    const val PLUMBING = "plumbing"
+
+    /** A model call of the response. */
+    const val MODEL = "model"
+
+    /** One round of tool calls; [TraceRecord.tools] names them when they were not recorded one by one. */
+    const val TOOLS = "tools"
+
+    /** The model calls that wrote the activity labels the chat shows while a response runs. */
+    const val STEP_LABEL = "stepLabel"
+    const val REASONING_LABEL = "reasoningLabel"
+    const val PHASE_LABEL = "phaseLabel"
+}
+
+/** [TraceRecord.origin] values. */
+object TraceOrigin {
+    /** The record belongs to the turn's title generation, not the response run. */
+    const val TITLE = "title"
+}
+
 object TraceStatus {
     const val OK = "ok"
     const val WARNING = "warning"
@@ -64,6 +97,14 @@ data class TraceRecord(
      * chat — so it is rendered when present and gated on nothing here. Do not add a client check.
      */
     val cost: Double? = null,
+    /** See [TraceRole]. Raw String for the same reason as [kind]. v0.8.8-rc4. */
+    val role: String? = null,
+    /** The saved agent a [TraceRole.AGENT] record ran; absent for an agent that was never saved. */
+    val agentId: String? = null,
+    /** The tools a [TraceRole.TOOLS] round called, in order, as the backend recorded the round. */
+    val tools: List<String>? = null,
+    /** [TraceOrigin.TITLE] on the title generation's records; absent on the response run itself. */
+    val origin: String? = null,
 )
 
 /**
@@ -107,12 +148,54 @@ data class TraceContent(
     val truncated: Boolean = false,
 )
 
+/** A tool an assistant message asked for, in a [TraceMessage]. */
+@Serializable
+data class TraceToolCall(
+    val name: String = "",
+    val args: TraceContent? = null,
+)
+
+/** One message of a model call's conversation, each bounded on its own (v0.8.8-rc4). */
+@Serializable
+data class TraceMessage(
+    /** `system`, `user`, `assistant` or `tool`; raw so an unknown role degrades one message. */
+    val role: String = "",
+    val text: TraceContent? = null,
+    /** The tool a `tool` message answers for. */
+    val toolName: String? = null,
+    /** The tools an `assistant` message asked for. */
+    val toolCalls: List<TraceToolCall>? = null,
+    /** Parts that are not text (an image, a file), by their type. */
+    val attachments: List<String>? = null,
+)
+
+/**
+ * What a model call was given, as a conversation (v0.8.8-rc4). A long one keeps its system message
+ * and its newest messages; [omitted] counts the older ones left out between them.
+ */
+@Serializable
+data class TracePrompt(
+    val messages: List<TraceMessage> = emptyList(),
+    /** Every message the call was given, listed or not. */
+    val total: Int = 0,
+    val omitted: Int = 0,
+    /** Names of the tools the model could call. */
+    val tools: List<String>? = null,
+)
+
 /** `GET /api/traces/:conversationId/records/:recordId?message=&source=`. */
 @Serializable
 data class TraceRecordDetail(
     val record: TraceRecord,
     /** False when the deployment withholds input, output and metadata. Not an error. */
     val contentAvailable: Boolean = false,
+    /**
+     * Set when the input is a conversation the backend could read as one; [input] stays the raw
+     * form. Decoded but not yet rendered — the detail still shows [input].
+     */
+    val prompt: TracePrompt? = null,
+    /** Set when the output is a message the backend could read as one; [output] stays the raw form. */
+    val reply: TraceMessage? = null,
     val input: TraceContent? = null,
     val output: TraceContent? = null,
     val metadata: TraceContent? = null,

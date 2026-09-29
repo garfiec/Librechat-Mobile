@@ -12,7 +12,7 @@ import com.garfiec.librechat.core.model.trace.TraceStatus
 import com.garfiec.librechat.core.model.trace.TraceSummary
 import com.garfiec.librechat.core.model.trace.TraceTurn
 import com.garfiec.librechat.core.model.trace.groupTraceRecords
-import com.garfiec.librechat.core.model.trace.summarizeTrace
+import com.garfiec.librechat.core.model.trace.summarizeTraceTurns
 import com.garfiec.librechat.core.model.trace.traceErrorCode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -232,11 +232,13 @@ class TraceViewerViewModel(
                             page.records.associate { it.id to sourceId }
                     }
                     nextCursor = page.nextCursor
-                    val turns = groupTraceRecords(records)
+                    // With older pages left, the oldest loaded turn may be missing its start, so
+                    // its cost is withheld — see groupTraceRecords.
+                    val turns = groupTraceRecords(records, hasOlder = page.nextCursor != null)
                     _uiState.update {
                         it.copy(
                             turns = turns,
-                            summary = summarizeTrace(turns.flatMap { turn -> turn.records }),
+                            summary = summarizeTraceTurns(turns),
                             isLoading = false,
                             isReading = false,
                             hasOlder = page.nextCursor != null,

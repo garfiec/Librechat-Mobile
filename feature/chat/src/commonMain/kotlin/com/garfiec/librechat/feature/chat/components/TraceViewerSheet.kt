@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,6 +36,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,6 +49,7 @@ import com.garfiec.librechat.core.model.trace.TraceErrorCode
 import com.garfiec.librechat.core.model.trace.TraceRecord
 import com.garfiec.librechat.core.model.trace.TraceRecordDetail
 import com.garfiec.librechat.core.model.trace.TraceStatus
+import com.garfiec.librechat.core.model.trace.TraceStep
 import com.garfiec.librechat.core.model.trace.TraceSummary
 import com.garfiec.librechat.core.model.trace.TraceTurn
 import com.garfiec.librechat.core.model.trace.durationMillis
@@ -77,9 +80,13 @@ import com.garfiec.librechat.feature.chat.resources.trace_stat_generations
 import com.garfiec.librechat.feature.chat.resources.trace_stat_tokens
 import com.garfiec.librechat.feature.chat.resources.trace_stat_tools
 import com.garfiec.librechat.feature.chat.resources.trace_stat_turns
+import com.garfiec.librechat.feature.chat.resources.trace_step
+import com.garfiec.librechat.feature.chat.resources.trace_step_title
 import com.garfiec.librechat.feature.chat.resources.trace_title
 import com.garfiec.librechat.feature.chat.resources.trace_tokens_detail
 import com.garfiec.librechat.feature.chat.resources.trace_truncated
+import com.garfiec.librechat.feature.chat.resources.trace_view_all
+import com.garfiec.librechat.feature.chat.resources.trace_view_steps
 import com.garfiec.librechat.feature.chat.viewmodel.TraceViewerViewModel
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -105,6 +112,8 @@ internal fun TraceViewerSheet(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    // Steps is upstream's default view; the full record tree is one tap away for diagnosis.
+    var stepsView by rememberSaveable { mutableStateOf(true) }
 
     LaunchedEffect(conversationId) { viewModel.openFor(conversationId) }
 
@@ -162,6 +171,8 @@ internal fun TraceViewerSheet(
                 )
             } else {
                 RecordList(
+                    stepsView = stepsView,
+                    onStepsViewChange = { stepsView = it },
                     turns = uiState.turns,
                     summary = uiState.summary,
                     isLoading = uiState.isLoading,
@@ -182,6 +193,8 @@ internal fun TraceViewerSheet(
 
 @Composable
 private fun RecordList(
+    stepsView: Boolean,
+    onStepsViewChange: (Boolean) -> Unit,
     turns: List<TraceTurn>,
     summary: TraceSummary,
     isLoading: Boolean,
@@ -211,14 +224,35 @@ private fun RecordList(
 
         if (turns.isNotEmpty()) {
             SummaryRow(summary)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
+                FilterChip(
+                    selected = stepsView,
+                    onClick = { onStepsViewChange(true) },
+                    label = { Text(stringResource(Res.string.trace_view_steps)) },
+                )
+                FilterChip(
+                    selected = !stepsView,
+                    onClick = { onStepsViewChange(false) },
+                    label = { Text(stringResource(Res.string.trace_view_all)) },
+                )
+            }
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
         }
 
         LazyColumn(Modifier.weight(1f, fill = false)) {
             turns.forEach { turn ->
                 item(key = "turn:${turn.messageId}") { TurnHeader(turn) }
-                items(turn.rows, key = { it.record.id }) { row ->
-                    RecordRow(record = row.record, depth = row.depth, onClick = { onSelect(row.record) })
+                if (stepsView) {
+                    turn.steps.forEach { step ->
+                        item(key = step.key) { StepHeader(step) }
+                        items(step.rows, key = { "${step.key}/${it.record.id}" }) { row ->
+                            RecordRow(record = row.record, depth = row.depth + 1, onClick = { onSelect(row.record) })
+                        }
+                    }
+                } else {
+                    items(turn.rows, key = { it.record.id }) { row ->
+                        RecordRow(record = row.record, depth = row.depth, onClick = { onSelect(row.record) })
+                    }
                 }
             }
             if (hasOlder) {
@@ -316,6 +350,42 @@ private fun TurnHeader(turn: TraceTurn, modifier: Modifier = Modifier) {
                 text = parts.joinToString(" · "),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/**
+ * A step's heading: which step, the tools it ran with how often each ran, and what it cost — the
+ * cost only when every model call in the step was priced (see `TraceStep.cost`).
+ */
+@Composable
+private fun StepHeader(step: TraceStep, modifier: Modifier = Modifier) {
+    val title = if (step.isTitle) {
+        stringResource(Res.string.trace_step_title)
+    } else {
+        stringResource(Res.string.trace_step, step.index)
+    }
+    val parts = buildList {
+        step.toolNames.entries
+            .joinToString(", ") { (name, count) -> if (count > 1) "$name ×$count" else name }
+            .takeIf { it.isNotEmpty() }
+            ?.let(::add)
+        step.cost?.let { add(formatTraceCost(it)) }
+    }
+    Row(modifier.fillMaxWidth().padding(top = 8.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelMedium,
+            color = if (step.errorCount > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+        )
+        if (parts.isNotEmpty()) {
+            Text(
+                text = " · " + parts.joinToString(" · "),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }

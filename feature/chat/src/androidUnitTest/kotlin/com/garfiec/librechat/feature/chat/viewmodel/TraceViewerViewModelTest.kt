@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.model.trace.TraceErrorCode
 import com.garfiec.librechat.core.model.trace.TracePage
 import com.garfiec.librechat.core.model.trace.TraceRecord
 import com.garfiec.librechat.core.model.trace.TraceRecordDetail
+import com.garfiec.librechat.core.model.trace.TraceRecordKind
 import com.garfiec.librechat.core.model.trace.TraceStatus
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -63,6 +64,33 @@ class TraceViewerViewModelTest {
         val turns = viewModel.uiState.value.turns
         assertThat(turns).hasSize(1)
         assertThat(turns.single().records.map { it.id }).containsExactly("r1", "r2").inOrder()
+    }
+
+    /**
+     * v0.8.8-rc4: while older pages remain, the oldest loaded turn may be missing its start, so its
+     * cost is withheld until the page that completes it arrives. The rule lives in core grouping;
+     * this pins that the ViewModel actually tells it whether older pages remain.
+     */
+    @Test
+    fun `the oldest loaded turn shows no cost until no older page remains`() = runTest {
+        fun priced(id: String, messageId: String, start: String) = record(id, messageId, start)
+            .copy(kind = TraceRecordKind.GENERATION, cost = 0.5)
+        coEvery { repository.getRecords("c1", null) } returns Result.Success(
+            TracePage(
+                records = listOf(priced("r3", "m2", "2026-09-18T10:00:00Z"), priced("r2", "m1", "2026-09-18T09:00:01Z")),
+                nextCursor = "c",
+            ),
+        )
+        coEvery { repository.getRecords("c1", "c") } returns Result.Success(
+            TracePage(records = listOf(priced("r1", "m1", "2026-09-18T09:00:00Z"))),
+        )
+
+        val viewModel = viewModel()
+        viewModel.openFor("c1")
+        assertThat(viewModel.uiState.value.turns.map { it.summary.cost }).containsExactly(0.5, null).inOrder()
+
+        viewModel.loadOlder()
+        assertThat(viewModel.uiState.value.turns.map { it.summary.cost }).containsExactly(0.5, 1.0).inOrder()
     }
 
     @Test
