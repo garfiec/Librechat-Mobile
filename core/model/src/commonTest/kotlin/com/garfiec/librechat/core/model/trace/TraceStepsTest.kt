@@ -73,6 +73,26 @@ class TraceStepsTest {
         assertEquals(7, turn.rows.size)
     }
 
+    /**
+     * A failed wrapper is listed, so it is a step root; the model call under it rolls up to no
+     * anchor and is a root too. The spend walk from both roots reaches the model call twice, and
+     * without a per-step dedupe its price is counted twice (upstream `groupSteps`' `counted` set).
+     */
+    @Test
+    fun a_price_under_a_failed_root_wrapper_is_counted_once() {
+        clock = 0
+        val turn = groupTraceRecords(
+            listOf(
+                rec("wrap", role = TraceRole.PLUMBING, status = TraceStatus.ERROR),
+                rec("gen", kind = TraceRecordKind.GENERATION, parentId = "wrap", role = TraceRole.MODEL, cost = 0.25),
+            ),
+        ).single()
+
+        val step = turn.steps.single()
+        assertEquals(0.25, step.cost)
+        assertEquals(listOf("wrap", "gen"), step.rows.map { it.record.id })
+    }
+
     @Test
     fun a_turn_with_nothing_but_wrappers_lists_them_as_one_step() {
         clock = 0

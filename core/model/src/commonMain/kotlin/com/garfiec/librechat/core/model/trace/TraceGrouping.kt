@@ -313,16 +313,25 @@ internal class TraceGraph(val records: List<TraceRecord>) {
     }
 }
 
-/** Flattens [roots] and everything [childrenOf] hangs from them, depth-first, with depths. */
+/**
+ * Flattens [roots] and everything [childrenOf] hangs from them, depth-first, with depths.
+ *
+ * Each record appears once, at its first visit. A step's roots can include a record AND one of its
+ * descendants — a failed wrapper is listed as a root, and the model call under it rolls up to no
+ * anchor, so it is a root too — and without the dedupe a walk over the full tree reaches that
+ * model call twice and counts its price twice (upstream `groupSteps`' `counted` set).
+ */
 internal fun depthFirst(
     roots: List<TraceRecord>,
     childrenOf: (TraceRecord) -> List<TraceRecord>?,
 ): List<TraceRow> {
     val rows = ArrayList<TraceRow>()
+    val visited = HashSet<String>()
     val stack = ArrayDeque<TraceRow>()
     roots.asReversed().forEach { stack.addLast(TraceRow(it, 0)) }
     while (stack.isNotEmpty()) {
         val row = stack.removeLast()
+        if (!visited.add(row.record.id)) continue
         rows += row
         childrenOf(row.record).orEmpty().asReversed().forEach { stack.addLast(TraceRow(it, row.depth + 1)) }
     }
