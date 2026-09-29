@@ -243,4 +243,43 @@ class StreamingManagerRetryCeilingTest {
             verify(exactly = 0) { reloadConversation(any()) }
             delegate.reset()
         }
+
+    /**
+     * The single ceiling re-attach belongs to a run, not to whatever turn last sent. Turn A spends
+     * it (re-attaches, hits the ceiling again, the status read then fails: a network error); the
+     * network comes back and recovery attaches to the run afresh. That attach used to inherit A's
+     * spent re-attach, so its first ceiling errored instead of resuming.
+     */
+    @Test
+    fun `a run attached after a spent re-attach still gets its own`() = runTest(StandardTestDispatcher()) {
+        val connected = MutableStateFlow(true)
+        every { connectivityObserver.isConnected } returns connected
+        var statusReads = 0
+        coEvery { chatRepository.checkStreamStatus("conv-1", any()) } coAnswers {
+            statusReads++
+            if (statusReads == 2) throw IllegalStateException("offline")
+            ChatStatusResponse(active = true)
+        }
+        every { chatRepository.resumeStream("conv-1") } returnsMany listOf(
+            flowOf(exhausted), // A's re-attach hits the ceiling again; the status read fails
+            flowOf(exhausted), // recovery's attach hits a ceiling
+            flow { awaitCancellation() }, // ...and gets its own re-attach
+        )
+        val (delegate, state) = delegateWith(this)
+        every { connectivityObserver.isConnected } returns connected
+
+        delegate.beginStreaming(isEdit = false)
+        delegate.launchStream(flowOf(StreamEvent.ContentDelta(chunk = "turn A"), exhausted))
+        advanceUntilIdle()
+        assertThat(state.value.isStreaming).isFalse()
+
+        connected.value = false
+        runCurrent()
+        connected.value = true
+        runCurrent()
+
+        verify(exactly = 3) { chatRepository.resumeStream("conv-1") }
+        assertThat(state.value.isStreaming).isTrue()
+        delegate.reset()
+    }
 }

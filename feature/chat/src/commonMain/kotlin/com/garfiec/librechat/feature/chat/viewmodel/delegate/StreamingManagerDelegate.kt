@@ -106,9 +106,10 @@ class StreamingManagerDelegate(
     private class RetryCeiling(val message: String, val networkWhenUnreachable: Boolean)
 
     /**
-     * Whether this turn already re-attached after a retry ceiling. Per turn, not per session — the
-     * re-attach starts a new session — so a run the server calls active but that no connection can
-     * reach ends with an error rather than looping status check, resume, ceiling forever.
+     * Whether the current run already re-attached after a retry ceiling. Per run, not per session —
+     * the re-attach starts a new session — so a run the server calls active but that no connection
+     * can reach ends with an error rather than looping status check, resume, ceiling forever. Reset
+     * wherever an attach begins: [beginStreaming] for a local send, [attachToRun] for the rest.
      */
     private var reattachedAfterCeiling = false
 
@@ -1097,7 +1098,7 @@ class StreamingManagerDelegate(
                     // NO `Final` — exactly the ending the admission fence cannot retire itself.
                     status.createdAt?.let(queueDelegate::retireAdmissionsBefore)
                     handle.update { content = content.copy(isStreaming = true) }
-                    resumeStream(conversationId)
+                    attachToRun(conversationId)
                     applyStatusPendingAction(status)
                 } else {
                     // Server confirms the job is gone: safe to wipe and reload (past the persist race).
@@ -1166,6 +1167,20 @@ class StreamingManagerDelegate(
             if (isResumeStale(session) || originAccountChanged()) return@launch
             endUnterminatedStream(session, whenGone = StreamEndReason.ResumeExpired)
         }
+    }
+
+    /**
+     * Attaches to a run this client did not just start or re-attach to at a ceiling: opening a
+     * conversation with a live run (including the handed-off new chat and a server-admitted queued
+     * turn), coming back to the foreground, or the network returning. Every such attach is a fresh
+     * start for the ceiling's single re-attach — the flag is otherwise reset only by
+     * [beginStreaming], so a run attached this way inherited a previous turn's spent re-attach and
+     * its first ceiling ended in an error instead of resuming. Not used by the ceiling's own
+     * re-attach, which is what the flag bounds.
+     */
+    private fun attachToRun(conversationId: String) {
+        reattachedAfterCeiling = false
+        resumeStream(conversationId)
     }
 
     /**
@@ -1302,7 +1317,7 @@ class StreamingManagerDelegate(
                             screenState = ChatScreenState.ACTIVE,
                         )
                     }
-                    resumeStream(conversationId)
+                    attachToRun(conversationId)
                     applyStatusPendingAction(status)
                 } else {
                     onInactive()
@@ -1370,7 +1385,7 @@ class StreamingManagerDelegate(
                         )
                         error = null
                     }
-                    resumeStream(conversationId)
+                    attachToRun(conversationId)
                     applyStatusPendingAction(status)
                 } else {
                     // Stream expired while offline — reload conversation from server
