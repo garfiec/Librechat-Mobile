@@ -3,6 +3,7 @@ package com.garfiec.librechat.core.network.sse
 import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
+import com.garfiec.librechat.core.model.StreamErrorCodes
 import com.garfiec.librechat.core.model.StreamEvent
 import com.google.common.truth.Truth.assertThat
 import io.ktor.client.HttpClient
@@ -115,7 +116,9 @@ class SseClientStatusTest {
             .connect("api/agents/chat/stream/abc")
             .toList()
 
-        assertThat(events.filterIsInstance<StreamEvent.Error>().single().isNetworkError).isTrue()
+        val error = events.filterIsInstance<StreamEvent.Error>().single()
+        assertThat(error.isNetworkError).isTrue()
+        assertThat(error.code).isEqualTo(StreamErrorCodes.RETRY_EXHAUSTED)
         assertThat(requests).isEqualTo(6)
     }
 }

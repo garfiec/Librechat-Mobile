@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.common.result.FailureKind
 import com.garfiec.librechat.core.common.result.message
 import com.garfiec.librechat.core.logging.Diag
 import com.garfiec.librechat.core.logging.LogOrigin
+import com.garfiec.librechat.core.model.StreamErrorCodes
 import com.garfiec.librechat.core.model.StreamEvent
 import io.ktor.http.HttpStatusCode
 import io.ktor.utils.io.ByteChannel
@@ -127,10 +128,12 @@ class SseClient(
                     ) { "SSE stream closed without a final frame" }
                     attempt++
                     if (attempt > maxRetries) {
+                        // Not a network error: the connections kept succeeding, so the device is
+                        // most likely online. The consumer adjudicates by the run's status.
                         emit(
                             StreamEvent.Error(
-                                message = "Connection lost. Please check your network and try again.",
-                                isNetworkError = true,
+                                message = "Lost the connection to the reply. Please try again.",
+                                code = StreamErrorCodes.RETRY_EXHAUSTED,
                             ),
                         )
                         done = true
@@ -207,11 +210,13 @@ class SseClient(
                     ) { "SSE I/O error" }
                     attempt++
                     if (attempt > maxRetries) {
-                        // isNetworkError is what arms the connectivity observer that resumes the
-                        // stream once the network is back.
+                        // Tagged as exhausted so the consumer asks the server whether the run is
+                        // still live before blaming the network; isNetworkError stays for a
+                        // consumer that cannot, since an I/O failure is the likelier offline case.
                         emit(
                             StreamEvent.Error(
                                 message = "Connection lost. Please check your network and try again.",
+                                code = StreamErrorCodes.RETRY_EXHAUSTED,
                                 isNetworkError = true,
                             ),
                         )

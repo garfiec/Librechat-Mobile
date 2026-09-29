@@ -84,6 +84,19 @@ class StreamingManagerDelegate(
      */
     private var streamOriginAccountId: AccountId? = null
 
+    /**
+     * The message of a `RETRY_EXHAUSTED` report on the current session, adjudicated when its flow
+     * completes (see [StreamEndReason]). Per session.
+     */
+    private var retryCeilingMessage: String? = null
+
+    /**
+     * Whether this turn already re-attached after a retry ceiling. Per turn, not per session — the
+     * re-attach starts a new session — so a run the server calls active but that no connection can
+     * reach ends with an error rather than looping status check, resume, ceiling forever.
+     */
+    private var reattachedAfterCeiling = false
+
     /** Tracks whether the last stream failure was a network error, to enable auto-reconnect. */
     private var lastErrorWasNetwork = false
 
@@ -106,10 +119,15 @@ class StreamingManagerDelegate(
      * A flow that completes with neither Final nor Error is ended here too: [launchStream] as
      * [Reconcile], [resumeStream] as [ResumeExpired]. `SseClient` completes a flow that way only
      * when its resume got a 404 — the job is gone, so the reply, if any, is on the server — or when
-     * the account switched mid-stream. A body that merely closes is not that: upstream sends no
-     * heartbeat, so an idle timeout closes a live run, and `SseClient` resumes it on its own retry
-     * ladder rather than ending the flow. Do not read "the flow completed" as "the run is over"
-     * anywhere else.
+     * the account switched mid-stream, which ends nothing here: a reload then would read the
+     * conversation with the NEW account's credentials. A body that merely closes is not that:
+     * upstream sends no heartbeat, so an idle timeout closes a live run, and `SseClient` resumes it
+     * on its own retry ladder rather than ending the flow. Do not read "the flow completed" as "the
+     * run is over" anywhere else.
+     *
+     * When that ladder runs out it reports `RETRY_EXHAUSTED`, which is not an end either: the run's
+     * state is unknown, so [adjudicateRetryCeiling] asks `/chat/status` — resume if active, the
+     * same end as a 404 if not, a network error only if the server is unreachable too.
      */
     private sealed interface StreamEndReason {
         /**
@@ -244,6 +262,7 @@ class StreamingManagerDelegate(
         // After startStreamSession: its pendingActionDelegate.clear() drops the pin.
         pendingActionDelegate.onTurnStarted(turnSpec)
         currentTurnOptimisticUserMessageId = optimisticUserMessageId
+        reattachedAfterCeiling = false
         // Capture the origin account at stream start so a post-switch finalize attributes to it.
         streamOriginAccountId = activeAccountProvider.currentAccountId()
         streamingBuffer.clear()
@@ -290,7 +309,8 @@ class StreamingManagerDelegate(
             // reloads on an abort path. This is the only end for such a flow: the send used to
             // carry its own safety net after it, which reloaded exactly when this is skipped (a
             // new chat, with no Room observer yet), racing the save the aborted frame precedes.
-            if (!isResumeStale(session) && !abortRequested) endStream(StreamEndReason.Reconcile, session)
+            if (isResumeStale(session) || abortRequested || originAccountChanged()) return@launch
+            endUnterminatedStream(session, whenGone = StreamEndReason.Reconcile)
         }
     }
 
@@ -329,6 +349,7 @@ class StreamingManagerDelegate(
         // turn's optimistic id leak into it (the un-send would remove the wrong message).
         currentTurnOptimisticUserMessageId = null
         currentTurnCreated = false
+        retryCeilingMessage = null
     }
 
     private suspend fun collectStreamSafely(stream: Flow<StreamEvent>) {
@@ -381,6 +402,10 @@ class StreamingManagerDelegate(
                 // and the reload below fetches it — so it must not reach the user as an error.
                 if (event.code == StreamErrorCodes.GENERATION_RECONCILE) {
                     endStream(StreamEndReason.Reconcile)
+                } else if (event.code == StreamErrorCodes.RETRY_EXHAUSTED) {
+                    // Not an end: the flow completes right after, and its completion asks the
+                    // server what became of the run. See StreamEndReason.
+                    retryCeilingMessage = event.message
                 } else {
                     endStream(StreamEndReason.StreamError(event.message, event.isNetworkError))
                 }
@@ -1095,7 +1120,69 @@ class StreamingManagerDelegate(
             // merely closes is resumed by SseClient instead). endStream never runs on those, so
             // without this the run's steer records and any pause stay live forever, and the cursor
             // never stops.
-            if (!isResumeStale(session)) endStream(StreamEndReason.ResumeExpired, session)
+            if (isResumeStale(session) || originAccountChanged()) return@launch
+            endUnterminatedStream(session, whenGone = StreamEndReason.ResumeExpired)
+        }
+    }
+
+    /**
+     * The account switched since this stream started. `SseClient` stops reconnecting on a switch
+     * and completes the flow, and nothing may end it with a reload: the outgoing account's
+     * conversation would be read with the incoming account's credentials.
+     */
+    private fun originAccountChanged(): Boolean {
+        val origin = streamOriginAccountId ?: return false
+        return activeAccountProvider.currentAccountId() != origin
+    }
+
+    /**
+     * Ends a flow that completed with neither Final nor Error: as [whenGone] when its resume found
+     * the job gone, or by the run's status when the retry ladder ran out first.
+     */
+    private fun endUnterminatedStream(session: Int, whenGone: StreamEndReason) {
+        val ceiling = retryCeilingMessage
+        retryCeilingMessage = null
+        if (ceiling == null) endStream(whenGone, session) else adjudicateRetryCeiling(ceiling, session, whenGone)
+    }
+
+    /**
+     * The retry ladder ran out, which says nothing about the run: with no heartbeat upstream, a live
+     * run behind an idle-timing proxy exhausts it while the device is online, and a "check your
+     * network" banner there is both wrong and a dead end — the connectivity observer never fires
+     * on a network that never went away. So ask, as upstream does at its ceiling: resume a run that
+     * is active, end one that is not as [whenGone] (the refetch, no banner), and report a network
+     * error only when the status read fails too.
+     */
+    private fun adjudicateRetryCeiling(message: String, session: Int, whenGone: StreamEndReason) {
+        val conversationId = handle.state.conversationId
+        if (conversationId == null) {
+            endStream(StreamEndReason.StreamError(message, isNetwork = true), session)
+            return
+        }
+        scope.launch {
+            val status = try {
+                chatRepository.checkStreamStatus(conversationId, steeringDelegate::reclaimParked)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Logger.w(e) { "Retry ceiling: could not check stream status" }
+                null
+            }
+            if (isResumeStale(session) || abortRequested) return@launch
+            when {
+                // The server is unreachable too: a real connectivity failure, and the observer is
+                // what resumes the stream once the network returns.
+                status == null -> endStream(StreamEndReason.StreamError(message, isNetwork = true), session)
+                !status.active -> endStream(whenGone, session)
+                // Already re-attached once this turn and still no connection reaches it.
+                reattachedAfterCeiling -> endStream(StreamEndReason.StreamError(message, isNetwork = false), session)
+                else -> {
+                    reattachedAfterCeiling = true
+                    status.createdAt?.let(queueDelegate::retireAdmissionsBefore)
+                    resumeStream(conversationId)
+                    applyStatusPendingAction(status)
+                }
+            }
         }
     }
 

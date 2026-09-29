@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.network.sse
 
+import com.garfiec.librechat.core.model.StreamErrorCodes
 import com.garfiec.librechat.core.model.StreamEvent
 import com.google.common.truth.Truth.assertThat
 import io.ktor.client.HttpClient
@@ -77,17 +78,20 @@ class SseClientCleanEndTest {
 
     /**
      * A 200 whose body carries no event at all (a captive portal's page) is no progress: it climbs
-     * the ladder and ends as a network error rather than reconnecting forever.
+     * the ladder rather than reconnecting forever, and reports the ceiling for the consumer to
+     * adjudicate — not as a network error, since every connection succeeded.
      */
     @Test
-    fun `a body with no events climbs the ladder and ends as a network error`() = runTest(UnconfinedTestDispatcher()) {
+    fun `a body with no events climbs the ladder to the retry ceiling`() = runTest(UnconfinedTestDispatcher()) {
         val requests = mutableListOf<HttpRequestData>()
         // Bounded: a client that counted bytes as progress would reconnect forever, and should fail
         // this test rather than hang it.
         val events = client(requests, "<html>sign in to the Wi-Fi</html>").connect(PATH).take(EVENT_CAP).toList()
 
         assertThat(requests).hasSize(6)
-        assertThat(events.filterIsInstance<StreamEvent.Error>().single().isNetworkError).isTrue()
+        val error = events.filterIsInstance<StreamEvent.Error>().single()
+        assertThat(error.code).isEqualTo(StreamErrorCodes.RETRY_EXHAUSTED)
+        assertThat(error.isNetworkError).isFalse()
         assertThat(events.filterIsInstance<StreamEvent.Retrying>().all { it.attempt <= it.maxAttempts }).isTrue()
     }
 

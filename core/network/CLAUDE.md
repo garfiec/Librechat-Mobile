@@ -65,6 +65,9 @@ a sync frame (live), a final frame, or a 404 (gone). Only a 404, an in-band erro
 loop, so a flow that completes with no event means "the job is gone" (or the account switched), never
 "the socket closed". Progress — what resets the attempt counter — is a **parsed event**, never a
 byte, so a 200 carrying no events (a captive portal) climbs the ladder instead of reconnecting forever.
+At the ceiling it emits `Error(code = RETRY_EXHAUSTED)` rather than a plain network error: running out
+of retries says nothing about the run (a live one behind an idle-timing proxy does it while online),
+so the consumer checks `/chat/status` instead of blaming the network.
 
 ### Don't use Ktor's SSE plugin
 
