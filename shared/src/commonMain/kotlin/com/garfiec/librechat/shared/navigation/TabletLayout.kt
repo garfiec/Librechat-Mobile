@@ -17,6 +17,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -24,6 +25,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.model.Banner
@@ -54,25 +57,34 @@ fun TabletLayout(
 ) {
     // Banner state only -- drawer state is collected inside DrawerContent itself
     val banner by navHostViewModel.banner.collectAsStateWithLifecycle()
+    val isLoggedIn by navHostViewModel.isLoggedIn.collectAsStateWithLifecycle()
+    // The sidebar is an authenticated surface, same rule as PhoneLayout's drawer gestures: a
+    // logged-out deep link (artifact viewer atop the auth base) is not in the auth flow either.
+    val showSidebar = isLoggedIn && !navigator.isInAuthFlow
 
     // Persisted sidebar state from DataStore -- single source of truth in the ViewModel.
     // Null until the persisted value resolves; treat unknown as closed for boolean callers.
     val resolvedSidebarOpen by navHostViewModel.tabletSidebarOpen.collectAsStateWithLifecycle()
     val isSidebarOpen = resolvedSidebarOpen == true
+    // Read by the gesture callbacks, which outlive recomposition (pointerInput is not restarted).
+    val currentIsSidebarOpen by rememberUpdatedState(isSidebarOpen)
 
     // Whether swipe gesture is enabled (from settings)
     val gestureEnabled by navHostViewModel.tabletSidebarGestureEnabled.collectAsStateWithLifecycle()
 
     val density = LocalDensity.current
     val sidebarWidthPx = with(density) { SidebarWidth.toPx() }
+    // Drag deltas are physical (+x = rightward) but the sidebar sits on the start edge, which RTL mirrors.
+    val dragSign = if (LocalLayoutDirection.current == LayoutDirection.Rtl) -1f else 1f
 
     // Animatable tracks sidebar reveal in pixels: 0 = closed, sidebarWidthPx = open.
     val sidebarOffset = remember { Animatable(0f) }
     var initialStateApplied by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    // Back press closes sidebar before navigating away
-    PlatformBackHandler(enabled = isSidebarOpen) {
+    // Back press closes sidebar before navigating away. Gated on the sidebar being shown: armed while
+    // hidden, it swallows back on the root auth screen and silently persists the sidebar closed.
+    PlatformBackHandler(enabled = showSidebar && isSidebarOpen) {
         navHostViewModel.setTabletSidebarOpen(false)
     }
 
@@ -105,16 +117,16 @@ fun TabletLayout(
         }
     }
 
-    if (!navigator.isInAuthFlow) {
+    if (showSidebar) {
         val swipeModifier = if (gestureEnabled) {
-            Modifier.pointerInput(Unit) {
+            Modifier.pointerInput(sidebarWidthPx, dragSign) {
                 val velocityTracker = VelocityTracker()
                 detectHorizontalDragGestures(
                     onDragStart = {
                         velocityTracker.resetTracking()
                     },
                     onDragEnd = {
-                        val velocity = velocityTracker.calculateVelocity().x
+                        val velocity = velocityTracker.calculateVelocity().x * dragSign
                         val currentOffset = sidebarOffset.value
                         val shouldOpen = when {
                             velocity > FLING_VELOCITY_THRESHOLD -> true
@@ -133,7 +145,7 @@ fun TabletLayout(
                         }
                     },
                     onDragCancel = {
-                        val target = if (isSidebarOpen) sidebarWidthPx else 0f
+                        val target = if (currentIsSidebarOpen) sidebarWidthPx else 0f
                         scope.launch {
                             sidebarOffset.animateTo(
                                 targetValue = target,
@@ -151,7 +163,7 @@ fun TabletLayout(
                             change.position,
                         )
                         scope.launch {
-                            val newOffset = (sidebarOffset.value + dragAmount)
+                            val newOffset = (sidebarOffset.value + dragAmount * dragSign)
                                 .coerceIn(0f, sidebarWidthPx)
                             sidebarOffset.snapTo(newOffset)
                         }
@@ -213,7 +225,7 @@ fun TabletLayout(
                 // Slot 1: Main content -- resizes to fill remaining space
                 MainContent(
                     navDisplay = navDisplay,
-                    isInAuthFlow = false,
+                    showBanner = true,
                     banner = banner,
                     onDismissBanner = navHostViewModel::dismissBanner,
                     onToggleDrawer = {
@@ -240,14 +252,14 @@ fun TabletLayout(
             }
         }
     } else {
-        // Auth flow -- no sidebar, just main content
+        // Auth flow or logged out -- no sidebar, just main content
         MainContent(
             navDisplay = navDisplay,
-            isInAuthFlow = true,
+            showBanner = false,
             banner = banner,
             onDismissBanner = navHostViewModel::dismissBanner,
             onToggleDrawer = {},
-            modifier = Modifier.fillMaxSize(),
+            modifier = modifier.fillMaxSize(),
         )
     }
 }
@@ -255,14 +267,14 @@ fun TabletLayout(
 @Composable
 private fun MainContent(
     navDisplay: NavDisplaySlot,
-    isInAuthFlow: Boolean,
+    showBanner: Boolean,
     banner: Banner?,
     onDismissBanner: (String) -> Unit,
     onToggleDrawer: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
-        if (!isInAuthFlow) {
+        if (showBanner) {
             BannerDisplay(
                 banner = banner,
                 onDismiss = onDismissBanner,

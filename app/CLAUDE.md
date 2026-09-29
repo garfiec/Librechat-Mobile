@@ -11,7 +11,7 @@ Single Activity architecture. `MainActivity` is the sole entry point.
   the user is not on one — see Share Intents below)
 - **Tablet layout branching** based on `WindowSizeClass`
 
-The shared module owns the core navigation: `Navigator`, `NavHostViewModel`, `MainNavDisplay`, `PhoneLayout`, sidebar/drawer composables, and all feature entry providers. See `shared/CLAUDE.md` for details.
+The shared module owns the core navigation: `Navigator`, `NavHostViewModel`, `MainNavDisplay`, `PhoneLayout`, `TabletLayout`, sidebar/drawer composables, and all feature entry providers. See `shared/CLAUDE.md` for details.
 
 ### Layout Modes
 

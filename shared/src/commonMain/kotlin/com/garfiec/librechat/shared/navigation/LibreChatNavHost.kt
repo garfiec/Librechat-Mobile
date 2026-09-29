@@ -102,7 +102,10 @@ import org.koin.compose.viewmodel.koinViewModel
  *  which means a recorded logged-out state. */
 private const val HYGIENE_UNRECORDED = "__unrecorded__"
 
-/** Width at which the sidebar stops overlaying the content and pushes it aside instead. */
+/**
+ * Width at which the sidebar stops overlaying the content and pushes it aside instead. Must match the
+ * `WindowWidthSizeClass.Medium` branch in the app module's LibreChatNavHost, or the platforms diverge.
+ */
 private val TabletMinWidth = 600.dp
 
 /**
@@ -375,7 +378,7 @@ private fun VersionMismatchDialog(
     )
 }
 
-/** Default phone layout with modal drawer sidebar. Used by iOS directly and by Android as the non-tablet path. */
+/** Phone layout with a modal drawer sidebar: the below-600dp path on both platforms. */
 @Composable
 fun PhoneLayout(
     navigator: Navigator,
