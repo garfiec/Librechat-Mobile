@@ -3,7 +3,9 @@ package com.garfiec.librechat.feature.settings.viewmodel
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.McpRepository
+import com.garfiec.librechat.core.model.mcp.McpApiKeyConfig
 import com.garfiec.librechat.core.model.mcp.McpOAuthConfig
+import com.garfiec.librechat.core.model.mcp.McpOboConfig
 import com.garfiec.librechat.core.model.mcp.McpServer
 import com.garfiec.librechat.core.model.mcp.McpServerType
 import com.garfiec.librechat.core.model.mcp.McpToolCatalog
@@ -217,6 +219,57 @@ class McpViewModelSaveRouteTest {
         assertThat(vm.uiState.value.serverDialogError).isEqualTo("Domain \"http://evil.example.org\" is not allowed")
         assertThat(vm.uiState.value.apiKeyReentryRequired).isFalse()
         assertThat(vm.uiState.value.oauthSecretReentryRequired).isFalse()
+    }
+
+    /**
+     * The update route replaces the config, so the icon and the OBO scopes — set on the web, never
+     * shown here — go back as stored. OBO stays only while the save carries no other auth, as
+     * upstream drops it when the user picks another auth type.
+     */
+    @Test
+    fun `an edit resends the stored icon and OBO scopes`() = runTest {
+        val server = McpServer(
+            name = "obo_mcp",
+            url = "https://obo.example.test/mcp",
+            type = McpServerType.STREAMABLE_HTTP,
+            title = "Obo",
+            iconPath = "https://obo.example.test/icon.png",
+            obo = McpOboConfig(scopes = "api://obo/Mcp.Tools"),
+        )
+        val vm = McpViewModel(mcpRepository)
+        vm.showEditServerDialog(server)
+        vm.saveServer(name = "Obo (renamed)", url = server.url, type = server.type)
+
+        coVerify(exactly = 1) {
+            mcpRepository.updateServer(
+                serverName = "obo_mcp",
+                name = "Obo (renamed)",
+                description = null,
+                url = server.url,
+                type = server.type,
+                apiKey = null,
+                oauth = null,
+                iconPath = "https://obo.example.test/icon.png",
+                obo = McpOboConfig(scopes = "api://obo/Mcp.Tools"),
+            )
+        }
+
+        vm.showEditServerDialog(server)
+        vm.saveServer(name = "Obo", url = server.url, type = server.type, apiKey = McpApiKeyConfig(key = "k"))
+
+        coVerify(exactly = 1) {
+            mcpRepository.updateServer(
+                serverName = "obo_mcp",
+                name = "Obo",
+                description = null,
+                url = server.url,
+                type = server.type,
+                apiKey = McpApiKeyConfig(key = "k"),
+                oauth = null,
+                iconPath = "https://obo.example.test/icon.png",
+                obo = null,
+            )
+        }
     }
 
     /** Any other refusal keeps the generic message; the secret field must not turn red for it. */

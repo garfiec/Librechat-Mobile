@@ -217,4 +217,37 @@ class McpApiServerBodyTest {
             ),
         )
     }
+
+    /**
+     * The update route replaces the stored config, so an edit resends what this app never edits.
+     * Read a server the web configured with an icon, OBO scopes and an OAuth token exchange method,
+     * then edit its title: all three must go back exactly as read, or the edit deletes them — and
+     * on an OBO server a caller without CONFIGURE_OBO is refused with 403 for dropping `obo`.
+     */
+    @Test
+    fun `an edit round-trips the icon, the OBO scopes and the token exchange method`() = runTest {
+        val listed = api(
+            """{"docs_mcp":{"type":"streamable-http","url":"https://docs.example.test/mcp","title":"Docs",
+               "iconPath":"https://docs.example.test/icon.png","obo":{"scopes":"api://docs/Mcp.Tools"},
+               "oauth":{"client_id":"c","token_exchange_method":"basic_auth_header"}}}""",
+        ).listServers().single()
+
+        api().updateServer(
+            serverName = listed.name,
+            name = "Docs (renamed)",
+            url = listed.url,
+            type = listed.type,
+            oauth = listed.oauth,
+            iconPath = listed.iconPath,
+            obo = listed.obo,
+        )
+
+        assertThat(sentBody()).isEqualTo(
+            Json.parseToJsonElement(
+                """{"config":{"url":"https://docs.example.test/mcp","type":"streamable-http","title":"Docs (renamed)",
+                   "iconPath":"https://docs.example.test/icon.png","obo":{"scopes":"api://docs/Mcp.Tools"},
+                   "oauth":{"client_id":"c","token_exchange_method":"basic_auth_header"}}}""",
+            ),
+        )
+    }
 }

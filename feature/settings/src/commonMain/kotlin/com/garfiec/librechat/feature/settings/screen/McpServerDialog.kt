@@ -79,6 +79,9 @@ internal fun McpServerDialog(
     // Auth state
     val initialAuthMode = remember {
         when {
+            // Upstream's form gives OBO precedence over every other auth; with no OBO choice here,
+            // "none" is where an OBO server opens, and a save from it resends the stored `obo`.
+            editingServer?.obo != null -> McpAuthMode.NONE
             editingServer?.oauth != null -> McpAuthMode.OAUTH
             editingServer?.apiKey != null -> McpAuthMode.API_KEY
             else -> McpAuthMode.NONE

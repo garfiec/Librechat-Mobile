@@ -27,6 +27,7 @@ import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.logging.DiagnosticLogRepository
 import com.garfiec.librechat.core.model.User
+import com.garfiec.librechat.core.model.mcp.McpOboConfig
 import com.garfiec.librechat.core.model.mcp.McpServer
 import com.garfiec.librechat.core.model.mcp.McpServerType
 import com.garfiec.librechat.core.model.speech.SpeechConfig
@@ -625,5 +626,38 @@ class SettingsViewModelTest {
 
         assertThat(viewModel.uiState.value.mcpServerDialogError)
             .isEqualTo("Domain \"http://evil.example.org\" is not allowed")
+    }
+
+    /** The Settings path resends the stored icon and OBO scopes on an edit too. */
+    @Test
+    fun `a Settings MCP edit resends the stored icon and OBO scopes`() = runTest {
+        val server = McpServer(
+            name = "obo_mcp",
+            url = "https://obo.example.test/mcp",
+            type = McpServerType.STREAMABLE_HTTP,
+            title = "Obo",
+            iconPath = "https://obo.example.test/icon.png",
+            obo = McpOboConfig(scopes = "api://obo/Mcp.Tools"),
+        )
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.showEditMcpServerDialog(server)
+
+        viewModel.saveMcpServer(name = "Obo (renamed)", url = server.url, type = server.type)
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) {
+            mcpRepository.updateServer(
+                serverName = "obo_mcp",
+                name = "Obo (renamed)",
+                description = null,
+                url = server.url,
+                type = server.type,
+                apiKey = null,
+                oauth = null,
+                iconPath = "https://obo.example.test/icon.png",
+                obo = McpOboConfig(scopes = "api://obo/Mcp.Tools"),
+            )
+        }
     }
 }

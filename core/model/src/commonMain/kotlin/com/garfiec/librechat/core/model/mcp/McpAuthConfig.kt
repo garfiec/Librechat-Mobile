@@ -49,3 +49,14 @@ data class McpOAuthConfig(
      */
     @SerialName("token_exchange_method") val tokenExchangeMethod: String? = null,
 )
+
+/**
+ * Maps to the backend `obo` object: `{ scopes }` (upstream `OboOptionsSchema`). Configuring it needs
+ * the `CONFIGURE_OBO` permission; without it, an edit of an OBO server may change only its title,
+ * description and icon, and every other field — this one included — must be resent exactly as
+ * stored, or the server answers 403.
+ */
+@Serializable
+data class McpOboConfig(
+    val scopes: String,
+)

@@ -1279,6 +1279,23 @@ PATCH  /api/mcp/servers/:serverName       **`apiKey.source` is what decides the 
                                             their own key" checkbox. Mobile hardcoded `source: 'user'` on every
                                             save until the rc4 sync, which silently turned every edited
                                             admin-keyed server into a per-user one. (BUILT)
+PATCH  /api/mcp/servers/:serverName       **Replacement also deletes every field the edit omits.** Upstream's
+  (round-trip)                              form resends what it cannot edit and mobile now does the same:
+                                            `iconPath`, `oauth.token_exchange_method`, and `obo: { scopes }`
+                                            (OBO only while the save carries no API key or OAuth — upstream
+                                            drops `obo` when the user picks another auth type). **OBO lockdown**
+                                            (`updateMCPServerController`, `api/server/controllers/mcp.js`): on
+                                            a server that already has `obo`, a caller without the
+                                            `CONFIGURE_OBO` permission is refused with **403** `{ message:
+                                            'Forbidden: Insufficient permissions to configure OBO' }` if ANY
+                                            user-input field other than `title`, `description`, `iconPath`
+                                            differs from the stored config — adding, changing or removing
+                                            (`violatesOboLockdown`, JSON-compared). Adding `obo` to a server
+                                            needs the permission too. So a non-holder's rename works only
+                                            because the rest goes back byte-equal. Fields neither form carries
+                                            (`headers`, `customUserVars`, `timeout`, …) are still dropped by an
+                                            edit, on the web and here alike; on an OBO server that has any of
+                                            them, a non-holder's edit is refused on both clients. (BUILT)
 GET    /api/endpoints                     (v0.8.8-rc4, #16221) `openAI`/`azureOpenAI` entries gain
                                             `responsesApiRouting: Record<model, {default,on,off,withWebSearch?}>`
                                             — the server-policy default for `useResponsesApi`. Tolerated; not

@@ -3,6 +3,7 @@ package com.garfiec.librechat.core.data.repository
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.model.mcp.McpApiKeyConfig
 import com.garfiec.librechat.core.model.mcp.McpOAuthConfig
+import com.garfiec.librechat.core.model.mcp.McpOboConfig
 import com.garfiec.librechat.core.model.mcp.McpReinitializeResponse
 import com.garfiec.librechat.core.model.mcp.McpServer
 import com.garfiec.librechat.core.model.mcp.McpServerStatus
@@ -19,6 +20,8 @@ interface McpRepository {
         type: McpServerType,
         apiKey: McpApiKeyConfig? = null,
         oauth: McpOAuthConfig? = null,
+        iconPath: String? = null,
+        obo: McpOboConfig? = null,
     ): Result<McpServer>
 
     /**
@@ -35,6 +38,8 @@ interface McpRepository {
         type: McpServerType,
         apiKey: McpApiKeyConfig? = null,
         oauth: McpOAuthConfig? = null,
+        iconPath: String? = null,
+        obo: McpOboConfig? = null,
     ): Result<McpServer>
     suspend fun deleteServer(serverName: String): Result<Unit>
     suspend fun reinitialize(serverName: String): Result<McpReinitializeResponse>

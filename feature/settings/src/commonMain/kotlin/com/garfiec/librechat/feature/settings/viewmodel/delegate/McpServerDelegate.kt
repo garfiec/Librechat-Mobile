@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.model.mcp.McpServer
 import com.garfiec.librechat.core.model.mcp.McpServerType
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsUiState
+import com.garfiec.librechat.feature.settings.viewmodel.preservedFieldsFor
 import com.garfiec.librechat.feature.settings.viewmodel.toMcpSaveFailure
 import kotlinx.coroutines.launch
 
@@ -78,6 +79,7 @@ class McpServerDelegate(
         // Which server the dialog was opened on decides the route, not the shape of the body:
         // an edit is a PATCH against the stored identifier. See McpRepository.updateServer.
         val editing = stateHandle.state.editingMcpServer?.name
+        val preserved = preservedFieldsFor(stateHandle.state.editingMcpServer, apiKey, oauth)
         stateHandle.update { withoutMcpSaveFeedback().copy(mcpServerSaving = true) }
         stateHandle.scope.launch {
             val result = if (editing != null) {
@@ -89,6 +91,8 @@ class McpServerDelegate(
                     type = type,
                     apiKey = apiKey,
                     oauth = oauth,
+                    iconPath = preserved.iconPath,
+                    obo = preserved.obo,
                 )
             } else {
                 mcpRepository.createServer(

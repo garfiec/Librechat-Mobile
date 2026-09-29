@@ -195,6 +195,7 @@ class McpViewModel(
         // An edit addresses the stored server (PATCH), a new one does not (POST); see
         // McpRepository.updateServer for why an edit must not be sent as a create.
         val editing = _uiState.value.editingServer?.name
+        val preserved = preservedFieldsFor(_uiState.value.editingServer, apiKey, oauth)
         _uiState.value = _uiState.value.withoutSaveFeedback().copy(isSavingServer = true)
         viewModelScope.launch {
             val result = if (editing != null) {
@@ -206,6 +207,8 @@ class McpViewModel(
                     type = type,
                     apiKey = apiKey,
                     oauth = oauth,
+                    iconPath = preserved.iconPath,
+                    obo = preserved.obo,
                 )
             } else {
                 mcpRepository.createServer(
