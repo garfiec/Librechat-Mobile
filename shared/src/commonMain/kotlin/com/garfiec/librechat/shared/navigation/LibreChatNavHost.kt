@@ -255,7 +255,9 @@ fun LibreChatNavHost(
             // Reset the stack only on an account-to-account flip; on account-to-logged-out the
             // initiating flow (or the session-expired signal) owns navigation.
             if (previous != null && current != null) {
-                navigator.navigateToChat()
+                // Scoped to the incoming account, or the landing's ViewModel would survive the
+                // flip — see Navigator.navigateToChat.
+                navigator.navigateToChat(accountScope = current)
             }
         }
         hygieneAccountId = current
@@ -513,7 +515,11 @@ fun MainNavDisplay(
                     // version — rides onAuthComplete above). Conversations-only: the login session
                     // tasks already refreshed tags, so this must not re-fetch them (double-fetch).
                     drawerViewModel.refreshConversationsAfterLogin()
-                    navigator.navigateToChat()
+                    // An add-account completion lands here over a stack whose landing belongs to the
+                    // previous account; scoping it to the now-active one discards that ViewModel.
+                    navigator.navigateToChat(
+                        accountScope = (navHostViewModel.accountState.value as? AccountState.Resolved)?.id?.value,
+                    )
                 },
             )
             chatEntries(

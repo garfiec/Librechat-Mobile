@@ -229,4 +229,31 @@ class NavigatorTest {
             navigator.backStack.toList(),
         )
     }
+
+    /**
+     * An account flip must not hand the new account the old account's landing. Nav3 keeps an
+     * entry's ViewModelStore until its key leaves the back stack; a reset that put an EQUAL landing
+     * back kept the outgoing account's ChatViewModel alive — its model and another server's agents
+     * in the selector until a cold start.
+     */
+    @Test
+    fun `an account flip resets to a landing that is a different entry`() {
+        val navigator = createNavigator(NewChat(accountScope = "srv:user-a"), Chat("conv-a"))
+        val before = navigator.backStack.single { it is NewChat }
+
+        navigator.navigateToChat(accountScope = "srv:user-b")
+
+        assertEquals(listOf<NavKey>(NewChat(accountScope = "srv:user-b")), navigator.backStack.toList())
+        assertTrue(navigator.backStack.single() != before)
+    }
+
+    /** The first flip after a cold start, whose landing carries no scope yet. */
+    @Test
+    fun `an account flip from an unscoped landing is a different entry too`() {
+        val navigator = createNavigator(NewChat())
+
+        navigator.navigateToChat(accountScope = "srv:user-b")
+
+        assertTrue(navigator.backStack.single() != NewChat())
+    }
 }

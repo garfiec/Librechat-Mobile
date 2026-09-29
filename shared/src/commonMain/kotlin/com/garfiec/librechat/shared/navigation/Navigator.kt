@@ -97,9 +97,14 @@ class Navigator(val backStack: NavBackStack<NavKey>) {
         backStack.add(route)
     }
 
-    /** Clear back stack and navigate to chat (auth complete). */
-    fun navigateToChat() {
+    /**
+     * Clear back stack and navigate to chat (auth complete, account flip). [accountScope] is the now
+     * active account: it makes the landing a different entry from the one the stack held before, so
+     * a flip discards the outgoing account's retained landing ViewModel instead of reusing it. See
+     * [NewChat.accountScope].
+     */
+    fun navigateToChat(accountScope: String? = null) {
         backStack.clear()
-        backStack.add(NewChat())
+        backStack.add(NewChat(accountScope = accountScope))
     }
 }
