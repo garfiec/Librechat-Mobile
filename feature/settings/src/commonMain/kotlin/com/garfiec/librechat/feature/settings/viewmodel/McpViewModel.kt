@@ -56,6 +56,12 @@ data class McpUiState(
      * ever succeed.
      */
     val oauthSecretReentryRequired: Boolean = false,
+    /**
+     * The last save was refused with `API_KEY_REENTRY_REQUIRED` (v0.8.8-rc4): a retained admin
+     * API key is bound to the connection it was entered for, and the edit changed that connection
+     * without re-sending the key. Same prompt-for-input outcome as [oauthSecretReentryRequired].
+     */
+    val apiKeyReentryRequired: Boolean = false,
 )
 
 /** A server waiting on the user to authorize it, with the provider URL to send them to. */
@@ -173,7 +179,10 @@ class McpViewModel(
             // An edit addresses the stored server (PATCH), a new one does not (POST); see
             // McpRepository.updateServer for why an edit must not be sent as a create.
             val editing = _uiState.value.editingServer?.name
-            _uiState.value = _uiState.value.copy(oauthSecretReentryRequired = false)
+            _uiState.value = _uiState.value.copy(
+                oauthSecretReentryRequired = false,
+                apiKeyReentryRequired = false,
+            )
             val result = if (editing != null) {
                 mcpRepository.updateServer(
                     serverName = editing,
@@ -201,18 +210,25 @@ class McpViewModel(
                     loadConnectionStatus()
                 }
                 is Result.Error -> {
-                    // A rejected secret binding is a prompt-for-input outcome, never a retry: the
-                    // same body can only be refused again. See [oauthSecretReentryRequired].
+                    // A rejected credential binding is a prompt-for-input outcome, never a retry:
+                    // the same body can only be refused again. See [oauthSecretReentryRequired].
                     val exception = result.exception as? ApiException
-                    val reentry = exception?.statusCode == HTTP_BAD_REQUEST &&
-                        ServerErrorCode.from(exception.body) == ServerErrorCode.OAUTH_SECRET_REENTRY_REQUIRED
+                    val code = exception?.body
+                        ?.takeIf { exception.statusCode == HTTP_BAD_REQUEST }
+                        ?.let(ServerErrorCode::from)
+                    val secretReentry = code == ServerErrorCode.OAUTH_SECRET_REENTRY_REQUIRED
+                    val keyReentry = code == ServerErrorCode.API_KEY_REENTRY_REQUIRED
                     _uiState.value = _uiState.value.copy(
-                        oauthSecretReentryRequired = reentry,
-                        error = if (reentry) {
-                            "This server's OAuth endpoints changed, so the saved client secret " +
-                                "no longer applies. Enter the client secret again to save."
-                        } else {
-                            result.message ?: "Failed to save server"
+                        oauthSecretReentryRequired = secretReentry,
+                        apiKeyReentryRequired = keyReentry,
+                        error = when {
+                            secretReentry ->
+                                "This server's OAuth endpoints changed, so the saved client secret " +
+                                    "no longer applies. Enter the client secret again to save."
+                            keyReentry ->
+                                "This server's connection settings changed, so the saved API key " +
+                                    "no longer applies. Enter the API key again to save."
+                            else -> result.message ?: "Failed to save server"
                         },
                     )
                 }

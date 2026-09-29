@@ -26,6 +26,14 @@ class ServerErrorCodeTest {
         // packages/api/src/mcp/errors.ts:
         //   OAUTH_SECRET_REENTRY_REQUIRED: 'MCP_OAUTH_SECRET_REENTRY_REQUIRED'
         assertEquals("MCP_OAUTH_SECRET_REENTRY_REQUIRED", ServerErrorCode.OAUTH_SECRET_REENTRY_REQUIRED)
+        //   API_KEY_REENTRY_REQUIRED: 'MCP_API_KEY_REENTRY_REQUIRED' (v0.8.8-rc4)
+        assertEquals("MCP_API_KEY_REENTRY_REQUIRED", ServerErrorCode.API_KEY_REENTRY_REQUIRED)
+    }
+
+    @Test
+    fun reads_the_api_key_reentry_code_off_the_mcp_error_body() {
+        val body = """{"error":"MCP_API_KEY_REENTRY_REQUIRED","message":"Re-enter apiKey.key when changing API key credential binding fields: url"}"""
+        assertEquals(ServerErrorCode.API_KEY_REENTRY_REQUIRED, ServerErrorCode.from(body))
     }
 
     @Test

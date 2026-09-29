@@ -52,6 +52,8 @@ internal fun McpServerDialog(
      * be supplied again before this server can be written.
      */
     oauthSecretReentryRequired: Boolean,
+    /** The last save was refused with `API_KEY_REENTRY_REQUIRED`: the API key must be re-typed. */
+    apiKeyReentryRequired: Boolean,
     onDismiss: () -> Unit,
     onSave:
     (name: String, description: String?, url: String, type: McpServerType, apiKey: McpApiKeyConfig?, oauth: McpOAuthConfig?) -> Unit,
@@ -221,6 +223,12 @@ internal fun McpServerDialog(
                             label = { Text(stringResource(Res.string.mcp_api_key_label)) },
                             singleLine = true,
                             visualTransformation = PasswordVisualTransformation(),
+                            isError = apiKeyReentryRequired,
+                            supportingText = if (apiKeyReentryRequired) {
+                                { Text(stringResource(Res.string.mcp_api_key_reentry_required)) }
+                            } else {
+                                null
+                            },
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }

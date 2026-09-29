@@ -70,7 +70,9 @@ class McpServerDelegate(
             // Which server the dialog was opened on decides the route, not the shape of the body:
             // an edit is a PATCH against the stored identifier. See McpRepository.updateServer.
             val editing = stateHandle.state.editingMcpServer?.name
-            stateHandle.update { copy(mcpOAuthSecretReentryRequired = false) }
+            stateHandle.update {
+                copy(mcpOAuthSecretReentryRequired = false, mcpApiKeyReentryRequired = false)
+            }
             val result = if (editing != null) {
                 mcpRepository.updateServer(
                     serverName = editing,
@@ -102,16 +104,23 @@ class McpServerDelegate(
                     // prompt for the secret rather than report a failure — see
                     // SettingsUiState.mcpOAuthSecretReentryRequired.
                     val exception = result.exception as? ApiException
-                    val reentry = exception?.statusCode == HTTP_BAD_REQUEST &&
-                        ServerErrorCode.from(exception.body) == ServerErrorCode.OAUTH_SECRET_REENTRY_REQUIRED
+                    val code = exception?.body
+                        ?.takeIf { exception.statusCode == HTTP_BAD_REQUEST }
+                        ?.let(ServerErrorCode::from)
+                    val secretReentry = code == ServerErrorCode.OAUTH_SECRET_REENTRY_REQUIRED
+                    val keyReentry = code == ServerErrorCode.API_KEY_REENTRY_REQUIRED
                     stateHandle.update {
                         copy(
-                            mcpOAuthSecretReentryRequired = reentry,
-                            error = if (reentry) {
-                                "This server's OAuth endpoints changed, so the saved client " +
-                                    "secret no longer applies. Enter the client secret again to save."
-                            } else {
-                                result.message ?: "Failed to save MCP server"
+                            mcpOAuthSecretReentryRequired = secretReentry,
+                            mcpApiKeyReentryRequired = keyReentry,
+                            error = when {
+                                secretReentry ->
+                                    "This server's OAuth endpoints changed, so the saved client " +
+                                        "secret no longer applies. Enter the client secret again to save."
+                                keyReentry ->
+                                    "This server's connection settings changed, so the saved API " +
+                                        "key no longer applies. Enter the API key again to save."
+                                else -> result.message ?: "Failed to save MCP server"
                             },
                         )
                     }

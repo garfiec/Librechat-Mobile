@@ -55,6 +55,15 @@ object ServerErrorCode {
     const val OAUTH_SECRET_REENTRY_REQUIRED = "MCP_OAUTH_SECRET_REENTRY_REQUIRED"
 
     /**
+     * 400 from the MCP server update route (v0.8.8-rc4) — the API-key counterpart of
+     * [OAUTH_SECRET_REENTRY_REQUIRED]. A retained admin API key is bound to the connection it was
+     * entered for (`url`, `type`, `proxy`, `apiKey.authorization_type`, `apiKey.custom_header`);
+     * an edit that changes any of them without re-sending `apiKey.key` is refused, and keeps being
+     * refused until the key is typed again. Same wire convention: the code is under `error`.
+     */
+    const val API_KEY_REENTRY_REQUIRED = "MCP_API_KEY_REENTRY_REQUIRED"
+
+    /**
      * 403 — an MCP server rejected the bearer credential for a tool invocation (v0.8.8-rc3).
      *
      * Unlike the codes above it does not come from the `/api/mcp` routes: `handleMCPError` has no

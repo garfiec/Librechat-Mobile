@@ -122,6 +122,30 @@ class McpViewModelSaveRouteTest {
         assertThat(vm.uiState.value.showServerDialog).isTrue()
     }
 
+    /**
+     * v0.8.8-rc4: a retained admin API key is bound to the connection it was entered for, so an
+     * edit that moves the URL without re-sending the key is refused the same way, every time.
+     */
+    @Test
+    fun `a refused edit asks for the API key again`() = runTest {
+        coEvery { mcpRepository.updateServer(any(), any(), any(), any(), any(), any(), any()) } returns
+            Result.Error(
+                exception = ApiException(
+                    statusCode = 400,
+                    message = "Re-enter apiKey.key",
+                    body = """{"error":"MCP_API_KEY_REENTRY_REQUIRED","message":"Re-enter apiKey.key"}""",
+                ),
+            )
+        val vm = McpViewModel(mcpRepository)
+        vm.showEditServerDialog(SERVER)
+
+        vm.saveServer(name = "Docs", url = "https://moved.example.test/mcp", type = McpServerType.SSE)
+
+        assertThat(vm.uiState.value.apiKeyReentryRequired).isTrue()
+        assertThat(vm.uiState.value.oauthSecretReentryRequired).isFalse()
+        assertThat(vm.uiState.value.showServerDialog).isTrue()
+    }
+
     /** Any other refusal keeps the generic message; the secret field must not turn red for it. */
     @Test
     fun `an unrelated failure does not ask for the client secret`() = runTest {
@@ -133,6 +157,7 @@ class McpViewModelSaveRouteTest {
         vm.saveServer(name = "Docs", url = URL, type = McpServerType.SSE)
 
         assertThat(vm.uiState.value.oauthSecretReentryRequired).isFalse()
+        assertThat(vm.uiState.value.apiKeyReentryRequired).isFalse()
         assertThat(vm.uiState.value.error).isEqualTo("Server unreachable")
     }
 
