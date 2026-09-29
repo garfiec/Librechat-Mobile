@@ -517,6 +517,9 @@ fun MessageList(
     }
 
     val pullToRefreshState = rememberPullToRefreshState()
+    // Parsed once per list; `contentType` below runs on every measure pass.
+    val wakeups = remember(displayMessages) { wakeupsByMessageId(displayMessages) }
+
     PullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = onRefresh,
@@ -571,10 +574,7 @@ fun MessageList(
                     // slot reuse from handing it a user bubble's composition, or the reverse.
                     val role = when {
                         !node.message.isCreatedByUser -> "assistant"
-                        systemEventFor(
-                            node.message,
-                            isEditing = editingMessageId == node.message.messageId,
-                        ) != null -> "system"
+                        wakeups.wakeupOf(node, isEditing = editingMessageId == node.message.messageId) != null -> "system"
                         else -> "user"
                     }
                     "${chatLayoutStyle}_$role"
@@ -595,14 +595,13 @@ fun MessageList(
                     LocalSuppressGroupAutoCollapse provides (node.message.messageId == justSettledMessageId),
                     LocalFeedbackEnabled provides !isStreaming,
                 ) {
-                val isEditingNode = editingMessageId == node.message.messageId
-                val systemEvent = remember(node.message.text, node.message.isCreatedByUser, isEditingNode) {
-                    systemEventFor(node.message, isEditingNode)
-                }
+                val systemEvent = wakeups.wakeupOf(node, isEditing = editingMessageId == node.message.messageId)
                 if (systemEvent != null) {
                     SystemEventRow(
                         display = systemEvent,
                         messageId = node.message.messageId,
+                        fontSizeMultiplier = fontSizeMultiplier,
+                        useKatex = useKatex,
                         siblingIndex = node.siblingIndex,
                         siblingCount = node.siblingCount,
                         onSiblingNavigation = { newIndex ->

@@ -67,10 +67,16 @@ internal fun localizedStreamError(raw: String): String {
  * the failure itself as `text` — for an initialization failure, the JSON of its typed payload.
  * Rendered as ordinary text that JSON is what the thread showed, where the web shows the error.
  */
-internal fun persistedTurnError(message: Message): String? {
-    if (!message.error || !message.content.isNullOrEmpty()) return null
-    return message.text.takeIf { it.isNotBlank() }?.let(StreamErrorType::markerOrText)
-}
+internal fun persistedTurnError(message: Message): String? =
+    if (isPersistedTurnError(message)) StreamErrorType.markerOrText(message.text) else null
+
+/**
+ * Whether [message] is a persisted failed turn — the test [persistedTurnError] classifies, without
+ * classifying. The thread and search only branch on it, and search runs it for every message on
+ * every keystroke.
+ */
+internal fun isPersistedTurnError(message: Message): Boolean =
+    message.error && message.content.isNullOrEmpty() && message.text.isNotBlank()
 
 /**
  * A stream error as it sits in the thread — the in-band `error` part and a persisted failed turn
@@ -83,12 +89,13 @@ internal fun persistedTurnError(message: Message): String? {
  */
 @Composable
 internal fun StreamErrorPart(raw: String, modifier: Modifier = Modifier) {
+    val classified = remember(raw) { StreamErrorType.markerOrText(raw) }
     val detail = remember(raw) { StreamErrorType.upstreamModelErrorDetail(raw) }
     val status = detail?.status
     val headline = if (status != null) {
         stringResource(Res.string.error_upstream_model_error_status, status)
     } else {
-        localizedStreamError(StreamErrorType.markerOrText(raw))
+        localizedStreamError(classified)
     }
     ErrorContentPart(errorText = headline, detail = detail?.message, modifier = modifier)
 }

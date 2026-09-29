@@ -95,6 +95,21 @@ class WakeupMessageTest {
         assertNull(WakeupMessage.parse("Look at this:\n$subagentText"))
     }
 
+    /** The header must be the whole first line: upstream's regex requires the newline right after it. */
+    @Test
+    fun rejects_a_header_line_with_anything_after_the_sentence() {
+        assertNull(WakeupMessage.parse(subagentText.replaceFirst("below.\n", "below. See above.\n")))
+        assertNull(WakeupMessage.parse(subagentHeader))
+    }
+
+    /** JavaScript's `\d` is ASCII; ICU's `\d` would admit these Arabic-Indic digits. */
+    @Test
+    fun rejects_a_task_count_in_non_ascii_digits() {
+        val text = "٢ background tool tasks have finished. Continue using their durable results below.\n" +
+            """[{"background_task_id":"bg-1","tool_call_id":"call-1","tool":"web_search","status":"completed","result":"ok"}]"""
+        assertNull(WakeupMessage.parse(text))
+    }
+
     @Test
     fun rejects_a_payload_that_is_not_json() {
         assertNull(WakeupMessage.parse("$subagentHeader\nnot json"))

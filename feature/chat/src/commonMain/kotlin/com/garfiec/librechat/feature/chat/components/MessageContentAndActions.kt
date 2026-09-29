@@ -475,7 +475,7 @@ internal fun MessageContentAndActions(
                         }
                     }
                 } else {
-                    if (persistedTurnError(message) != null) {
+                    if (isPersistedTurnError(message)) {
                         StreamErrorPart(raw = message.text)
                     } else if (message.text.isNotBlank()) {
                         MarkdownContent(

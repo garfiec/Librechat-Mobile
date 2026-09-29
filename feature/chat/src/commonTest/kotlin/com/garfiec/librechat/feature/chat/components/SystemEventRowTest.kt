@@ -5,6 +5,7 @@ import com.garfiec.librechat.core.model.wakeup.WakeupDisplay
 import com.garfiec.librechat.core.model.wakeup.WakeupKind
 import com.garfiec.librechat.core.model.wakeup.WakeupTask
 import com.garfiec.librechat.core.model.wakeup.WakeupTaskStatus
+import com.garfiec.librechat.feature.chat.util.MessageNode
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -36,6 +37,26 @@ class SystemEventRowTest {
     @Test
     fun ordinary_user_text_is_a_user_bubble() {
         assertNull(systemEventFor(message("What did the background task find?", byUser = true), isEditing = false))
+    }
+
+    /** The lists read wake-ups from one per-list parse; the edit exception still applies at the read. */
+    @Test
+    fun the_per_list_parse_agrees_with_systemEventFor() {
+        fun node(id: String, text: String, byUser: Boolean) = MessageNode(
+            message = Message(messageId = id, conversationId = "c-1", text = text, isCreatedByUser = byUser),
+            children = emptyList(),
+            siblingIndex = 0,
+            siblingCount = 1,
+        )
+        val wake = node("w", wakeupText, byUser = true)
+        val quoted = node("q", wakeupText, byUser = false)
+        val plain = node("p", "hello", byUser = true)
+        val wakeups = wakeupsByMessageId(listOf(wake, quoted, plain))
+
+        assertEquals(setOf("w"), wakeups.keys)
+        assertEquals(systemEventFor(wake.message, isEditing = false), wakeups.wakeupOf(wake, isEditing = false))
+        assertNull(wakeups.wakeupOf(wake, isEditing = true))
+        assertNull(wakeups.wakeupOf(plain, isEditing = false))
     }
 
     @Test

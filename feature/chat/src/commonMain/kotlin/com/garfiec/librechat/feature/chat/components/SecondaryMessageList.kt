@@ -54,6 +54,8 @@ fun SecondaryMessageList(
     val listState = rememberLazyListState()
     // This pane hosts no PendingActionCard, so an unanswered ask has no affordance to resolve it.
     val renderedToolCalls = remember(activeToolCalls) { activeToolCalls.withoutAnyUnansweredQuestions() }
+    // Parsed once per list; `contentType` runs on every measure pass.
+    val wakeups = remember(displayMessages) { wakeupsByMessageId(displayMessages) }
     val totalItemCount = displayMessages.size +
         (if (isStreaming) 1 else 0) +
         (if (isStreaming) renderedToolCalls.size else 0)
@@ -96,7 +98,7 @@ fun SecondaryMessageList(
                     // A wake-up renders as a system row, not a bubble; its own type keeps slot reuse
                     // from crossing the two layouts.
                     contentType = { node ->
-                        if (systemEventFor(node.message, isEditing = false) != null) "system" else "message"
+                        if (wakeups.wakeupOf(node, isEditing = false) != null) "system" else "message"
                     },
                 ) { node ->
                     CompositionLocalProvider(
@@ -109,11 +111,14 @@ fun SecondaryMessageList(
                     // Same branch as MessageList; this pane never edits. Its bubbles take no
                     // actions and no sibling navigation (their callbacks are no-ops), so neither
                     // does the row.
-                    val systemEvent = remember(node.message.text, node.message.isCreatedByUser) {
-                        systemEventFor(node.message, isEditing = false)
-                    }
+                    val systemEvent = wakeups.wakeupOf(node, isEditing = false)
                     if (systemEvent != null) {
-                        SystemEventRow(display = systemEvent, messageId = node.message.messageId)
+                        SystemEventRow(
+                            display = systemEvent,
+                            messageId = node.message.messageId,
+                            fontSizeMultiplier = fontSizeMultiplier,
+                            useKatex = useKatex,
+                        )
                     } else {
                     MessageBubble(
                         message = node.message,

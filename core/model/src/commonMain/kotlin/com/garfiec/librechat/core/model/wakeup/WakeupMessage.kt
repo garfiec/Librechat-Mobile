@@ -59,23 +59,44 @@ object WakeupMessage {
 
     fun parse(text: String?): WakeupDisplay? {
         if (text.isNullOrEmpty() || text.length > MAX_WAKEUP_TEXT_CHARS) return null
+        // Both headers are one fixed line ending in a newline, so the first line alone decides —
+        // the same answer upstream's anchored `exec` over the whole text gives. Matching only that
+        // line keeps this cheap where it runs: the lists' `contentType` and every search keystroke
+        // call it for every user message, most of which are not wake-ups.
+        val headerEnd = firstNewline(text) ?: return null
+        val header = text.substring(0, headerEnd + 1)
 
-        SUBAGENT_HEADER.find(text)?.let { header ->
-            val task = subagentTask(payloadLine(text.substring(header.range.last + 1))) ?: return null
-            if (task.status.wire != header.groupValues[1]) return null
+        SUBAGENT_HEADER.matchEntire(header)?.let { match ->
+            val task = subagentTask(payloadLine(text, headerEnd + 1)) ?: return null
+            if (task.status.wire != match.groupValues[1]) return null
             return WakeupDisplay(WakeupKind.SUBAGENT, listOf(task))
         }
 
-        val header = BACKGROUND_HEADER.find(text) ?: return null
-        val payload = payloadLine(text.substring(header.range.last + 1)) as? JsonArray ?: return null
+        if (!BACKGROUND_HEADER.matches(header)) return null
+        val payload = payloadLine(text, headerEnd + 1) as? JsonArray ?: return null
         if (payload.isEmpty()) return null
         val tasks = payload.map { backgroundTask(it) ?: return null }
         return WakeupDisplay(WakeupKind.BACKGROUND_TOOL, tasks)
     }
 
-    /** `JSON.parse` of the first line; strict, so a lenient parse cannot admit what upstream rejects. */
-    private fun payloadLine(body: String): JsonElement? =
-        runCatching { Json.parseToJsonElement(body.substringBefore('\n')) }.getOrNull()
+    /** Index of the first newline, or null when the first line is too long to be either header. */
+    private fun firstNewline(text: String): Int? {
+        val limit = minOf(text.length, MAX_HEADER_CHARS + 1)
+        for (i in 0 until limit) {
+            if (text[i] == '\n') return i
+        }
+        return null
+    }
+
+    /**
+     * The line starting at [start], parsed as `JSON.parse` would, or null. Not quite as strict:
+     * the tree parse reads an unquoted token (`oops`, `True`, `01`) as a literal where JavaScript
+     * throws. Every required field is checked as a string, so only an extra field can carry one.
+     */
+    private fun payloadLine(text: String, start: Int): JsonElement? {
+        val end = text.indexOf('\n', start).let { if (it < 0) text.length else it }
+        return runCatching { Json.parseToJsonElement(text.substring(start, end)) }.getOrNull()
+    }
 
     private fun subagentTask(payload: JsonElement?): WakeupTask? {
         val obj = payload as? JsonObject ?: return null
@@ -109,14 +130,18 @@ object WakeupMessage {
 
     private const val MAX_WAKEUP_TEXT_CHARS = 512 * 1024
 
-    // `^` without MULTILINE anchors at the start of the input, as JavaScript's does without `m`.
-    // Literal dots stay escaped; no `\b`, which ICU on Android treats differently from the JVM.
+    /** Longer than either header line with room for any task count; a longer first line is neither. */
+    private const val MAX_HEADER_CHARS = 256
+
+    // Matched against the first line alone, whole. Literal dots stay escaped; no `\b`, which ICU on
+    // Android treats differently from the JVM; `[0-9]` rather than `\d`, which ICU widens to every
+    // Unicode digit where JavaScript's is ASCII.
     private val SUBAGENT_HEADER = Regex(
-        """^A detached subagent task has (completed|error|cancelled)\. """ +
+        """A detached subagent task has (completed|error|cancelled)\. """ +
             """Continue the parent task using its durable result below\.\n""",
     )
     private val BACKGROUND_HEADER = Regex(
-        """^(?:A background tool task has finished\. Continue using its durable result below\.|""" +
-            """\d+ background tool tasks have finished\. Continue using their durable results below\.)\n""",
+        """(?:A background tool task has finished\. Continue using its durable result below\.|""" +
+            """[0-9]+ background tool tasks have finished\. Continue using their durable results below\.)\n""",
     )
 }

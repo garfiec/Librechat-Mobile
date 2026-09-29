@@ -121,8 +121,10 @@ internal fun countPartOccurrences(
  * Total searchable occurrences in a message, numbering the render walk 0-based.
  *
  * Two kinds of message are deliberately left out and contribute nothing:
- * - a persisted failed turn ([persistedTurnError]) renders its classified error, not the raw
- *   payload it was saved with, so that payload is never on screen;
+ * - a persisted failed turn ([isPersistedTurnError]) renders through the error part, which draws
+ *   no search highlight, so a match there is one the jump cannot land on. Its text can still be on
+ *   screen: an unclassified error shows the saved text as its headline, and an
+ *   `upstream_model_error` shows the provider's message under it;
  * - a wake-up turn ([systemEventFor]) renders as a system row. Collapsed, it shows none of its
  *   stored text; expanded, it does show each task's result, but that text is still not searched.
  *   A match has to be reachable whatever state the row is in, a jump cannot expand a collapsed row
@@ -131,7 +133,7 @@ internal fun countPartOccurrences(
  * Keep these two checks in step with the branches `MessageList` and `MessageContentAndActions` take.
  */
 internal fun countMessageOccurrences(message: Message, query: String): Int {
-    if (systemEventFor(message, isEditing = false) != null || persistedTurnError(message) != null) return 0
+    if (isPersistedTurnError(message) || systemEventFor(message, isEditing = false) != null) return 0
     val parts = message.content
     return if (!parts.isNullOrEmpty()) {
         val consumed = findLateBatchLabelsConsumedByPhase(parts)

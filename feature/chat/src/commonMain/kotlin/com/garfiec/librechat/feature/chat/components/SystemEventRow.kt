@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
@@ -31,6 +32,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.Message
@@ -41,6 +44,7 @@ import com.garfiec.librechat.core.model.wakeup.WakeupTask
 import com.garfiec.librechat.core.model.wakeup.WakeupTaskStatus
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.util.MessageNode
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -56,6 +60,22 @@ internal fun systemEventFor(message: Message, isEditing: Boolean): WakeupDisplay
     if (!message.isCreatedByUser || isEditing) null else WakeupMessage.parse(message.text)
 
 /**
+ * [systemEventFor] for every node of a list, parsed once per list instead of on every measure
+ * pass — a LazyColumn evaluates `contentType` for each visible item whenever it lays out. Read it
+ * through [wakeupOf] for both `contentType` and the body, so the edit exception is applied at one
+ * place.
+ */
+internal fun wakeupsByMessageId(nodes: List<MessageNode>): Map<String, WakeupDisplay> = buildMap {
+    for (node in nodes) {
+        systemEventFor(node.message, isEditing = false)?.let { put(node.message.messageId, it) }
+    }
+}
+
+/** A node's wake-up from [wakeupsByMessageId], or null while it is being edited. */
+internal fun Map<String, WakeupDisplay>.wakeupOf(node: MessageNode, isEditing: Boolean): WakeupDisplay? =
+    if (isEditing) null else this[node.message.messageId]
+
+/**
  * A host-authored wake-up turn — a detached subagent or background tool task settling and
  * resuming the run — as a system event: a "System" label, an outlined header naming what settled,
  * and the durable results behind a toggle. The web renders the same turn right-aligned and
@@ -68,11 +88,16 @@ internal fun systemEventFor(message: Message, isEditing: Boolean): WakeupDisplay
  * user-turn actions — as upstream's footer does (`MessageRender`'s `SiblingSwitch` + `HoverButtons`).
  * A branch that forks at a wake-up must stay reachable from it. The footer is always shown rather
  * than tap-revealed: a tap on this row toggles the results.
+ *
+ * [fontSizeMultiplier] and [useKatex] are the user's chat settings, required so a call site cannot
+ * render results at the defaults the bubble beside them overrides.
  */
 @Composable
 internal fun SystemEventRow(
     display: WakeupDisplay,
     messageId: String,
+    fontSizeMultiplier: Float,
+    useKatex: Boolean,
     modifier: Modifier = Modifier,
     siblingIndex: Int = 0,
     siblingCount: Int = 1,
@@ -86,6 +111,9 @@ internal fun SystemEventRow(
     var expanded by rememberSaveable(messageId) { mutableStateOf(false) }
     val anyFailed = display.tasks.any { it.status == WakeupTaskStatus.ERROR }
     val headerColor = if (anyFailed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+    // A state description, as ActivityGroup announces its own: the header's text is already its
+    // label, so a content description would read it twice.
+    val expansionState = stringResource(if (expanded) Res.string.state_expanded else Res.string.state_collapsed)
 
     Column(
         modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
@@ -106,7 +134,10 @@ internal fun SystemEventRow(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth().clickable(role = Role.Button) { expanded = !expanded },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(role = Role.Button) { expanded = !expanded }
+                    .semantics { stateDescription = expansionState },
             ) {
                 Icon(
                     if (display.kind == WakeupKind.SUBAGENT) Icons.Default.Groups else Icons.Default.Build,
@@ -150,7 +181,9 @@ internal fun SystemEventRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp),
                 )
-                display.tasks.forEach { task -> WakeupTaskCard(task = task, kind = display.kind) }
+                display.tasks.forEach { task ->
+                    WakeupTaskCard(task = task, kind = display.kind, fontSizeMultiplier = fontSizeMultiplier, useKatex = useKatex)
+                }
             }
         }
         val navigable = siblingCount > 1 && onSiblingNavigation != null
@@ -181,7 +214,7 @@ internal fun SystemEventRow(
 }
 
 @Composable
-private fun WakeupTaskCard(task: WakeupTask, kind: WakeupKind) {
+private fun WakeupTaskCard(task: WakeupTask, kind: WakeupKind, fontSizeMultiplier: Float, useKatex: Boolean) {
     val failed = task.status == WakeupTaskStatus.ERROR
     Column(
         modifier = Modifier
@@ -232,7 +265,11 @@ private fun WakeupTaskCard(task: WakeupTask, kind: WakeupKind) {
                     .heightIn(max = RESULT_MAX_HEIGHT)
                     .verticalScroll(rememberScrollState()),
             ) {
-                MarkdownContent(text = task.result)
+                // Selectable like a bubble's content, and only the result: the labels above are
+                // chrome, and the footer's Copy copies the stored prompt text, not this.
+                SelectionContainer {
+                    MarkdownContent(text = task.result, fontSizeMultiplier = fontSizeMultiplier, useKatex = useKatex)
+                }
             }
         }
     }
