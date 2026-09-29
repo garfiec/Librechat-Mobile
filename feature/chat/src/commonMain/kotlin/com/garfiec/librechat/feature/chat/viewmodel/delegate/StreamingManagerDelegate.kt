@@ -1300,10 +1300,18 @@ class StreamingManagerDelegate(
         // can't race into two resumes, and a pending Stop is never overridden by a restart.
         if (abortRequested) return
         val session = streamSession
+        // An attach usually starts from an ENDED session — the previous turn finished, which is
+        // exactly when a server-admitted queued turn arrives — so "ended" cannot by itself mean
+        // stale, as it does for the callers that capture a live session. What is stale: a newer
+        // session started during the read (a local send won), or a session that was live at the
+        // start ended during it (its Final or aborted frame landed; resuming would resurrect it).
+        // isResumeStale read the already-ended session as stale and dropped every such attach.
+        val endedAtStart = isSessionEnded()
         scope.launch {
             try {
                 val status = chatRepository.checkStreamStatus(conversationId, steeringDelegate::reclaimParked)
-                if (isResumeStale(session) || abortRequested) return@launch
+                val superseded = streamSession != session || (!endedAtStart && isSessionEnded())
+                if (superseded || abortRequested) return@launch
                 if (status.active) {
                     // The server only starts a run once the previous turn has finished, so a live
                     // one is proof every boundary before it is done. That is the only evidence the

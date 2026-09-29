@@ -910,6 +910,60 @@ class ChatViewModelQueuedTurnTest {
         return sent
     }
 
+    /**
+     * The whole point of the attach: the run this client was on FINISHES normally, then the server
+     * starts the queued turn. The delegate is not fresh here — its session has ended with the
+     * previous turn's Final — which is the state every real admission arrives in. The attach used
+     * to read that ended session as "stale" after its status check and drop itself, so the queued
+     * turn ran to completion server-side against an idle screen.
+     */
+    @Test
+    fun `a turn the server admits after the previous run finished is attached and shown`() =
+        queuedTurnTest { vm ->
+            vm.onInputChanged(TEXT)
+            vm.queueMessage()
+            runCurrent()
+            assertThat(vm.uiState.value.messageQueue.single().server).isNotNull()
+
+            // The previous run finishes normally.
+            resumedStream.emit(StreamEvent.Final())
+            runCurrent()
+            assertThat(vm.uiState.value.isStreaming).isFalse()
+
+            // The server starts the queued turn: a new generation, now live.
+            coEvery { chatRepository.checkStreamStatus(eq(CONVERSATION_ID), any()) } returns
+                ChatStatusResponse(active = true, createdAt = EPOCH + 1)
+            serverRows[0] = serverRows[0].copy(status = QueuedTurnStatus.ADMITTED)
+            advanceTimeBy(3_000)
+            runCurrent()
+
+            // Attached: a second resume, and the screen is streaming the queued turn.
+            coVerify(exactly = 2) { chatRepository.resumeStream(CONVERSATION_ID) }
+            assertThat(vm.uiState.value.isStreaming).isTrue()
+
+            // Its reply reaches the displayed messages.
+            val request = Message(
+                messageId = "user-queued",
+                conversationId = CONVERSATION_ID,
+                parentMessageId = USER_MESSAGE_ID,
+                text = TEXT,
+                isCreatedByUser = true,
+            )
+            val reply = Message(
+                messageId = "assistant-queued",
+                conversationId = CONVERSATION_ID,
+                parentMessageId = "user-queued",
+                text = "Here is the summary.",
+                isCreatedByUser = false,
+            )
+            resumedStream.emit(StreamEvent.ContentDelta(chunk = "Here is "))
+            resumedStream.emit(StreamEvent.Final(requestMessage = request, responseMessage = reply))
+            runCurrent()
+
+            assertThat(vm.uiState.value.displayMessages.map { it.message.messageId })
+                .contains("assistant-queued")
+        }
+
     private fun receiptFor(request: EnqueueQueuedTurnRequest) = AgentQueuedTurnReceipt(
         queuedTurnId = "qt-1",
         clientRequestId = request.clientRequestId,
