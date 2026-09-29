@@ -7,14 +7,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.ExpandLess
@@ -257,19 +254,14 @@ private fun WakeupTaskCard(task: WakeupTask, kind: WakeupKind, fontSizeMultiplie
             )
         }
         if (task.result.isNotBlank()) {
-            // Bounded like the web's `max-h-96`: one runaway result must not push the rest of the
-            // thread a screen away.
-            Column(
-                Modifier
-                    .padding(top = 6.dp)
-                    .heightIn(max = RESULT_MAX_HEIGHT)
-                    .verticalScroll(rememberScrollState()),
-            ) {
-                // Selectable like a bubble's content, and only the result: the labels above are
-                // chrome, and the footer's Copy copies the stored prompt text, not this.
-                SelectionContainer {
-                    MarkdownContent(text = task.result, fontSizeMultiplier = fontSizeMultiplier, useKatex = useKatex)
-                }
+            // Grows with the result, like a message does. The web caps it at `max-h-96` with an
+            // inner scroll, but a scrolling box inside the thread's own list is a nested same-
+            // direction scroll (core/ui rule 11). What keeps a long result from taking over the
+            // thread is that the row opens collapsed.
+            // Selectable like a bubble's content, and only the result: the labels above are
+            // chrome, and the footer's Copy copies the stored prompt text, not this.
+            SelectionContainer(Modifier.padding(top = 6.dp)) {
+                MarkdownContent(text = task.result, fontSizeMultiplier = fontSizeMultiplier, useKatex = useKatex)
             }
         }
     }
@@ -313,4 +305,3 @@ internal fun wakeupNameSummary(display: WakeupDisplay): String {
 
 private const val MAX_SUMMARY_NAMES = 3
 private const val COLLAPSED_WIDTH_FRACTION = 0.85f
-private val RESULT_MAX_HEIGHT = 384.dp
