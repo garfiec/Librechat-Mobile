@@ -5,7 +5,7 @@
     <string name="schedules_empty_body">Have an agent run a prompt on a schedule and file each conversation for you.</string>
     <string name="schedules_disabled_on_server">Scheduled chats are turned off on this server.</string>
     <string name="schedules_create">New schedule</string>
-    <string name="schedules_at_limit">You have reached this server\'s limit of %1$d scheduled chats. Delete one to add another.</string>
+    <string name="schedules_at_limit">You have reached this server's limit of %1$d scheduled chats. Delete one to add another.</string>
     <string name="schedule_paused">Paused</string>
     <string name="schedule_running">Running now</string>
     <string name="schedule_next_run">Next run %1$s</string>
