@@ -535,6 +535,8 @@
     <string name="error_compaction_skipped">There was nothing to compact yet. Keep chatting and try again later.</string>
     <string name="error_compaction_failed">The summary couldn\'t be generated, so the conversation is unchanged. Try again.</string>
     <string name="error_upstream_model_error">The model provider couldn\'t complete this request. Try again, or pick a different model.</string>
+    <string name="error_upstream_model_error_status">The model provider couldn\'t complete this request (status %1$d). Try again, or pick a different model.</string>
+    <string name="error_details_provider">Provider response</string>
     <string name="error_empty_messages">There was nothing left to send after this conversation was trimmed to fit the model\'s context. Start a new conversation, or switch to a model with a larger window.</string>
     <string name="error_code_workspace_unavailable">The code workspace for this conversation isn\'t available. Try again, or pick a different workspace.</string>
     <string name="error_stateful_code_environment_not_allowed">This server doesn\'t allow a persistent code environment. Turn it off in the code interpreter options and try again.</string>

@@ -21,7 +21,6 @@ import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.content.Compaction
 import com.garfiec.librechat.core.model.content.MessageContentPart
-import com.garfiec.librechat.core.model.error.StreamErrorType
 import com.garfiec.librechat.core.model.media.resolveImageFilePartUrl
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -132,7 +131,7 @@ internal fun ContentPartDispatcher(
             // a LangChain troubleshooting URL in the thread where the actionable sentence goes.
             // Anything unrecognized still shows the server's own text, unchanged.
             val raw = part.error ?: part.text.orEmpty()
-            ErrorContentPart(errorText = localizedStreamError(StreamErrorType.markerOrText(raw)), modifier = mod)
+            StreamErrorPart(raw = raw, modifier = mod)
         }
         ContentType.AGENT_UPDATE -> DisableSelection {
             val agentUpdate = part.agentUpdate

@@ -194,4 +194,43 @@ class StreamErrorTypeTest {
             assertEquals(type.wire, type.marker.removePrefix(StreamErrorType.MARKER_PREFIX))
         }
     }
+
+    @Test
+    fun upstream_model_error_detail_carries_the_provider_message_and_status() {
+        // The exact composition of packages/api/src/agents/failures/terminal.ts at v0.8.8-rc4.
+        val raw = "Something went wrong.\n" +
+            """{"type":"upstream_model_error","status":400,"message":"Gateway rejected: {bad} \"field\""}"""
+        assertEquals(
+            UpstreamModelErrorDetail(status = 400, message = "Gateway rejected: {bad} \"field\""),
+            StreamErrorType.upstreamModelErrorDetail(raw),
+        )
+        assertEquals(StreamErrorType.UPSTREAM_MODEL_ERROR, StreamErrorType.parse(raw))
+    }
+
+    @Test
+    fun upstream_model_error_detail_tolerates_a_missing_message_or_status() {
+        // Pre-rc4 servers, and rc4 with a content policy active, send no message.
+        assertEquals(
+            UpstreamModelErrorDetail(status = 503, message = null),
+            StreamErrorType.upstreamModelErrorDetail("""x\n{"type":"upstream_model_error","status":503}"""),
+        )
+        assertEquals(
+            UpstreamModelErrorDetail(status = null, message = null),
+            StreamErrorType.upstreamModelErrorDetail("""{"type":"upstream_model_error","message":"  "}"""),
+        )
+    }
+
+    @Test
+    fun upstream_model_error_detail_is_null_for_every_other_error() {
+        assertNull(StreamErrorType.upstreamModelErrorDetail("""{"type":"model_rate_limit","message":"slow down"}"""))
+        assertNull(StreamErrorType.upstreamModelErrorDetail("plain prose"))
+        assertNull(StreamErrorType.upstreamModelErrorDetail(""))
+        // Classified as model-not-found by the legacy prose check, so no provider detail either.
+        assertNull(
+            StreamErrorType.upstreamModelErrorDetail(
+                """see https://js.langchain.com/docs/troubleshooting/errors/MODEL_NOT_FOUND/ """ +
+                    """{"type":"upstream_model_error","message":"no such model"}""",
+            ),
+        )
+    }
 }

@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.chat.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -12,11 +13,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BrokenImage
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -83,19 +90,64 @@ internal fun ImageContentPart(
 
 // ─── ErrorContentPart ───────────────────────────────────────────────
 
+/**
+ * An error in the thread: [errorText] as the headline and, when the failure came with its own
+ * words, [detail] under it — in place when it reads as one sentence, collapsed under a
+ * "Provider response" toggle when it is a body of text (see [isInlineErrorDetail]).
+ */
 @Composable
 internal fun ErrorContentPart(
     errorText: String,
     modifier: Modifier = Modifier,
+    detail: String? = null,
 ) {
-    Row(
+    Column(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
             .background(MaterialTheme.colorScheme.errorContainer)
             .padding(12.dp),
-        verticalAlignment = Alignment.Top,
     ) {
         Text(errorText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onErrorContainer)
+        if (detail == null) return@Column
+        val detailColor = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = DETAIL_ALPHA)
+        if (isInlineErrorDetail(detail)) {
+            Text(
+                detail,
+                style = MaterialTheme.typography.bodySmall,
+                color = detailColor,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        } else {
+            var expanded by rememberSaveable(detail) { mutableStateOf(false) }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .padding(top = 4.dp)
+                    .clickable(role = Role.Button) { expanded = !expanded },
+            ) {
+                Text(
+                    stringResource(Res.string.error_details_provider),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                )
+                Icon(
+                    if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                )
+            }
+            if (expanded) {
+                Text(
+                    detail,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = detailColor,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+        }
     }
 }
+
+private const val DETAIL_ALPHA = 0.8f
