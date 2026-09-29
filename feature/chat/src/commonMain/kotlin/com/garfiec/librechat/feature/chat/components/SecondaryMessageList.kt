@@ -93,7 +93,11 @@ fun SecondaryMessageList(
                 items(
                     items = displayMessages,
                     key = { node -> "secondary_${node.message.messageId}" },
-                    contentType = { "message" },
+                    // A wake-up renders as a system row, not a bubble; its own type keeps slot reuse
+                    // from crossing the two layouts.
+                    contentType = { node ->
+                        if (systemEventFor(node.message, isEditing = false) != null) "system" else "message"
+                    },
                 ) { node ->
                     CompositionLocalProvider(
                         LocalSuppressGroupAutoCollapse provides
@@ -102,6 +106,13 @@ fun SecondaryMessageList(
                         // reason as the primary list so the two cannot drift.
                         LocalFeedbackEnabled provides !isStreaming,
                     ) {
+                    // Same branch as MessageList; this pane never edits.
+                    val systemEvent = remember(node.message.text, node.message.isCreatedByUser) {
+                        systemEventFor(node.message, isEditing = false)
+                    }
+                    if (systemEvent != null) {
+                        SystemEventRow(display = systemEvent, messageId = node.message.messageId)
+                    } else {
                     MessageBubble(
                         message = node.message,
                         siblingIndex = node.siblingIndex,
@@ -118,6 +129,7 @@ fun SecondaryMessageList(
                         showBubbles = showBubbles,
                         useKatex = useKatex,
                     )
+                    }
                     }
                 }
 
