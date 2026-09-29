@@ -121,6 +121,10 @@ is long-lived and never rotates, so an `http://` downgrade or an unknown base UR
   `ClosedByteChannelException` — which form arrives depends on whether the parse side or the pump job
   loses the race to fail the scope. A type-exact `catch` therefore works most of the time, which is
   the worst failure rate to debug: use `accessGatewayCause()`.
+  The same holds for an HTTP status on the stream GET (`httpStatusCause()`): a type-exact
+  `catch (e: SseHttpStatusException)` missed the wrapped 404 of a resume whose run had already
+  finished, retried it on the backoff ladder as a network drop, and a new chat's fast reply never
+  appeared until the conversation was reopened.
 - **Nor is a 403 you cannot attribute to LibreChat** (issue #376) — the same principle, one layer out.
   The validator's ban check requires LibreChat's own `banResponse` shape (`403` + JSON whose `message`
   carries the ban wording, registered as `ban-response-message` in `scripts/mirrors.json`). It used to

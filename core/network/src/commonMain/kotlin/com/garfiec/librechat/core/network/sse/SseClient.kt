@@ -107,37 +107,6 @@ class SseClient(
                     }
                 }
                 done = true
-            } catch (e: SseHttpStatusException) {
-                when (e.statusCode) {
-                    HttpStatusCode.NotFound.value -> {
-                        done = true
-                    }
-
-                    HttpStatusCode.Unauthorized.value -> {
-                        Diag.w(
-                            "SSE",
-                            origin = LogOrigin.SERVER,
-                            attrs = mapOf(
-                                "status" to e.statusCode.toString(),
-                                "attempt" to attempt.toString(),
-                            ),
-                        ) { "SSE 401 Unauthorized" }
-                        emit(StreamEvent.Error(message = "Unauthorized", code = "401"))
-                        done = true
-                    }
-
-                    else -> {
-                        Diag.w(
-                            "SSE",
-                            origin = LogOrigin.SERVER,
-                            attrs = mapOf(
-                                "status" to e.statusCode.toString(),
-                                "attempt" to attempt.toString(),
-                            ),
-                        ) { "SSE unexpected status" }
-                        attempt++
-                    }
-                }
             } catch (e: SseStreamException) {
                 Diag.w(
                     "SSE",
@@ -154,9 +123,44 @@ class SseClient(
                 throw e
             } catch (e: Exception) {
                 // Cause chain, never a type-exact `catch`: the transport reports by cancelling the
-                // byte channel, which Ktor re-throws wrapped, and which form arrives is a race.
+                // byte channel, which Ktor re-throws wrapped, and which form arrives is a race. That
+                // holds for an HTTP status as much as for the gateway: read type-exactly, a wrapped
+                // 404 — a resumed run that already finished — was retried as a network drop, so the
+                // stream never ended and the finished reply was never refetched.
+                val status = e.httpStatusCause()
                 val gateway = e.accessGatewayCause()
-                if (gateway != null) {
+                if (status != null) {
+                    when (status.statusCode) {
+                        HttpStatusCode.NotFound.value -> {
+                            done = true
+                        }
+
+                        HttpStatusCode.Unauthorized.value -> {
+                            Diag.w(
+                                "SSE",
+                                origin = LogOrigin.SERVER,
+                                attrs = mapOf(
+                                    "status" to status.statusCode.toString(),
+                                    "attempt" to attempt.toString(),
+                                ),
+                            ) { "SSE 401 Unauthorized" }
+                            emit(StreamEvent.Error(message = "Unauthorized", code = "401"))
+                            done = true
+                        }
+
+                        else -> {
+                            Diag.w(
+                                "SSE",
+                                origin = LogOrigin.SERVER,
+                                attrs = mapOf(
+                                    "status" to status.statusCode.toString(),
+                                    "attempt" to attempt.toString(),
+                                ),
+                            ) { "SSE unexpected status" }
+                            attempt++
+                        }
+                    }
+                } else if (gateway != null) {
                     Diag.w(
                         "SSE",
                         origin = LogOrigin.NETWORK,
@@ -232,6 +236,17 @@ private fun Throwable.accessGatewayCause(): AccessGatewayException? {
     repeat(CAUSE_TRAVERSAL_LIMIT) {
         val error = current ?: return null
         if (error is AccessGatewayException) return error
+        current = error.cause?.takeIf { it !== error }
+    }
+    return null
+}
+
+/** The [SseHttpStatusException] at or beneath this throwable, or null. Same shape as [accessGatewayCause]. */
+private fun Throwable.httpStatusCause(): SseHttpStatusException? {
+    var current: Throwable? = this
+    repeat(CAUSE_TRAVERSAL_LIMIT) {
+        val error = current ?: return null
+        if (error is SseHttpStatusException) return error
         current = error.cause?.takeIf { it !== error }
     }
     return null
