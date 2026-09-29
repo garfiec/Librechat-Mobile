@@ -76,4 +76,46 @@ class SseClientStatusTest {
         assertThat(events.filterIsInstance<StreamEvent.Error>().single().code).isEqualTo("401")
         assertThat(requests).isEqualTo(1)
     }
+
+    /**
+     * A status the loop has no special meaning for (a proxy's 502) is retried, and once the retries
+     * run out the stream must say so — ending silently let the caller read it as a finished run and
+     * reload without a word, over a reply that never came.
+     */
+    @Test
+    fun `an unexpected status reports an error once the retries run out`() = runTest(UnconfinedTestDispatcher()) {
+        var requests = 0
+        val events = clientThrowing({ ClosedByteChannelException(SseHttpStatusException(502)) }) { requests++ }
+            .connect("api/agents/chat/stream/abc")
+            .toList()
+
+        val error = events.filterIsInstance<StreamEvent.Error>().single()
+        // Something answered: not a connectivity problem, so no connectivity observer is armed.
+        assertThat(error.isNetworkError).isFalse()
+        assertThat(error.message).contains("502")
+        assertThat(events.last()).isEqualTo(error)
+        // The initial attempt plus five retries, and no "retrying 6 of 5" on the way out.
+        assertThat(requests).isEqualTo(6)
+        val retries = events.filterIsInstance<StreamEvent.Retrying>()
+        assertThat(retries).hasSize(5)
+        assertThat(retries.all { it.attempt <= it.maxAttempts }).isTrue()
+    }
+
+    /**
+     * An I/O failure is a network error however it arrives. The iOS transport closes with one from
+     * the pump side, which can reach the loop wrapped; read type-exactly, the wrapped form ended as a
+     * plain error, and with no isNetworkError the stream never resumed when the network came back.
+     */
+    @Test
+    fun `a wrapped stream I-O error ends as a network error`() = runTest(UnconfinedTestDispatcher()) {
+        var requests = 0
+        val events = clientThrowing({ ClosedByteChannelException(SseStreamException("network error (posix 57)")) }) {
+            requests++
+        }
+            .connect("api/agents/chat/stream/abc")
+            .toList()
+
+        assertThat(events.filterIsInstance<StreamEvent.Error>().single().isNetworkError).isTrue()
+        assertThat(requests).isEqualTo(6)
+    }
 }

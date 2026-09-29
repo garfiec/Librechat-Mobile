@@ -107,28 +107,17 @@ class SseClient(
                     }
                 }
                 done = true
-            } catch (e: SseStreamException) {
-                Diag.w(
-                    "SSE",
-                    origin = LogOrigin.NETWORK,
-                    throwable = e,
-                    attrs = mapOf("attempt" to attempt.toString()),
-                ) { "SSE I/O error" }
-                attempt++
-                if (attempt > maxRetries) {
-                    emit(StreamEvent.Error(message = "Connection lost. Please check your network and try again.", isNetworkError = true))
-                    done = true
-                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 // Cause chain, never a type-exact `catch`: the transport reports by cancelling the
                 // byte channel, which Ktor re-throws wrapped, and which form arrives is a race. That
-                // holds for an HTTP status as much as for the gateway: read type-exactly, a wrapped
-                // 404 — a resumed run that already finished — was retried as a network drop, so the
-                // stream never ended and the finished reply was never refetched.
+                // holds for an HTTP status, the gateway, and an I/O error alike: read type-exactly, a
+                // wrapped 404 — a resumed run that already finished — was retried as a network drop,
+                // so the stream never ended and the finished reply was never refetched.
                 val status = e.httpStatusCause()
                 val gateway = e.accessGatewayCause()
+                val ioError = e.sseStreamCause()
                 if (status != null) {
                     when (status.statusCode) {
                         HttpStatusCode.NotFound.value -> {
@@ -158,6 +147,16 @@ class SseClient(
                                 ),
                             ) { "SSE unexpected status" }
                             attempt++
+                            if (attempt > maxRetries) {
+                                // Something answered, so this is not a connectivity problem: no
+                                // isNetworkError, which would arm an observer that never fires.
+                                emit(
+                                    StreamEvent.Error(
+                                        message = "The server returned an error (HTTP ${status.statusCode}). Please try again.",
+                                    ),
+                                )
+                                done = true
+                            }
                         }
                     }
                 } else if (gateway != null) {
@@ -170,6 +169,25 @@ class SseClient(
                     // Terminal — every remaining attempt would be rejected by the same gateway.
                     emit(StreamEvent.Error(message = FailureKind.AccessGateway.message()))
                     done = true
+                } else if (ioError != null) {
+                    Diag.w(
+                        "SSE",
+                        origin = LogOrigin.NETWORK,
+                        throwable = ioError,
+                        attrs = mapOf("attempt" to attempt.toString()),
+                    ) { "SSE I/O error" }
+                    attempt++
+                    if (attempt > maxRetries) {
+                        // isNetworkError is what arms the connectivity observer that resumes the
+                        // stream once the network is back.
+                        emit(
+                            StreamEvent.Error(
+                                message = "Connection lost. Please check your network and try again.",
+                                isNetworkError = true,
+                            ),
+                        )
+                        done = true
+                    }
                 } else {
                     Diag.w(
                         "SSE",
@@ -236,6 +254,20 @@ private fun Throwable.accessGatewayCause(): AccessGatewayException? {
     repeat(CAUSE_TRAVERSAL_LIMIT) {
         val error = current ?: return null
         if (error is AccessGatewayException) return error
+        current = error.cause?.takeIf { it !== error }
+    }
+    return null
+}
+
+/**
+ * The [SseStreamException] at or beneath this throwable, or null. Same shape as [accessGatewayCause]:
+ * the iOS transport closes with one from the pump side, which can reach the loop wrapped.
+ */
+private fun Throwable.sseStreamCause(): SseStreamException? {
+    var current: Throwable? = this
+    repeat(CAUSE_TRAVERSAL_LIMIT) {
+        val error = current ?: return null
+        if (error is SseStreamException) return error
         current = error.cause?.takeIf { it !== error }
     }
     return null
