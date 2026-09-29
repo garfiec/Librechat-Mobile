@@ -120,6 +120,7 @@ class McpServerDelegate(
                                     "This server's connection settings changed, so the saved API " +
                                         "key no longer applies. Enter the API key again to save."
                                 else -> ServerErrorCode.validationMessages(exception?.body).joinToString("\n").ifEmpty { null }
+                                    ?: ServerErrorCode.codedMessage(exception?.body)
                                     ?: result.message ?: "Failed to save MCP server"
                             },
                         )

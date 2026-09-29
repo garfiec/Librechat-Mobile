@@ -197,6 +197,27 @@ class McpViewModelSaveRouteTest {
             .isEqualTo("OAuth client_secret with client_id requires both authorization_url and token_url")
     }
 
+    /**
+     * A coded refusal this client has no copy of still has the server's own sentence, and that is
+     * the specific part: the generic screen drops it because it contains a URL.
+     */
+    @Test
+    fun `a coded refusal shows the server's message in the dialog`() = runTest {
+        coEvery { mcpRepository.createServer(any(), any(), any(), any(), any(), any()) } returns
+            Result.Error(
+                exception = ApiException(statusCode = 403, message = "x", body = """{"error":"MCP_DOMAIN_NOT_ALLOWED","message":"Domain \"http://evil.example.org\" is not allowed"}"""),
+                message = "Something went wrong. Please try again.",
+            )
+        val vm = McpViewModel(mcpRepository)
+        vm.showAddServerDialog()
+
+        vm.saveServer(name = "Docs", url = "http://evil.example.org/mcp", type = McpServerType.SSE)
+
+        assertThat(vm.uiState.value.serverDialogError).isEqualTo("Domain \"http://evil.example.org\" is not allowed")
+        assertThat(vm.uiState.value.apiKeyReentryRequired).isFalse()
+        assertThat(vm.uiState.value.oauthSecretReentryRequired).isFalse()
+    }
+
     /** Any other refusal keeps the generic message; the secret field must not turn red for it. */
     @Test
     fun `an unrelated failure does not ask for the client secret`() = runTest {

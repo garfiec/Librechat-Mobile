@@ -137,6 +137,28 @@ object ServerErrorCode {
             .distinct()
     }
 
+    /**
+     * The server's own sentence on a coded refusal, or null.
+     *
+     * The MCP controller answers every coded failure as `{ error: <code>, message }`
+     * (`getMCPErrorResponse`), and for a code this client has no copy of — `MCP_DOMAIN_NOT_ALLOWED`,
+     * `MCP_INSPECTION_FAILED` — the message is the only account of what went wrong. It is the
+     * specific part too: "Domain "http://evil.example.org" is not allowed" names the rejected host.
+     *
+     * Read only when the body carries a code beside the message, so this is the server's typed
+     * error envelope and not an arbitrary body. That is also why it may bypass the generic
+     * display screen, which rejects any text containing a URL: that screen exists for gateway pages
+     * and exception text built from request URLs (issue #287), not for a sentence the server wrote
+     * about the user's own input.
+     */
+    fun codedMessage(body: String?): String? {
+        val obj = objectOf(body) ?: return null
+        val code = (obj["code"] as? JsonPrimitive)?.takeIf { it.isString }?.content
+            ?: (obj["error"] as? JsonPrimitive)?.takeIf { it.isString }?.content
+        if (code.isNullOrBlank()) return null
+        return (obj["message"] as? JsonPrimitive)?.takeIf { it.isString }?.content?.trim()?.ifEmpty { null }
+    }
+
     private fun objectOf(body: String?): JsonObject? {
         if (body.isNullOrBlank()) return null
         val element = runCatching { parser.parseToJsonElement(body) }.getOrNull() ?: return null

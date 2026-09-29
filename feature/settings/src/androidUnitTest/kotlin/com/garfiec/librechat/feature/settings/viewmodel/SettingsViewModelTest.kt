@@ -585,4 +585,23 @@ class SettingsViewModelTest {
 
         assertThat(viewModel.uiState.value.mcpServerDialogError).isEqualTo("url: Invalid url")
     }
+
+    /** The Settings path shows a coded refusal's own sentence too. */
+    @Test
+    fun `a coded refusal shows the server's message in the Settings dialog`() = runTest {
+        coEvery { mcpRepository.createServer(any(), any(), any(), any(), any(), any()) } returns
+            Result.Error(
+                exception = ApiException(statusCode = 403, message = "x", body = """{"error":"MCP_DOMAIN_NOT_ALLOWED","message":"Domain \"http://evil.example.org\" is not allowed"}"""),
+                message = "Something went wrong. Please try again.",
+            )
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.showAddMcpServerDialog()
+
+        viewModel.saveMcpServer(name = "Docs", url = "http://evil.example.org/mcp", type = McpServerType.SSE)
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.mcpServerDialogError)
+            .isEqualTo("Domain \"http://evil.example.org\" is not allowed")
+    }
 }

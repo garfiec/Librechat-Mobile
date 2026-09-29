@@ -128,4 +128,20 @@ class ServerErrorCodeTest {
         assertEquals(emptyList(), ServerErrorCode.validationMessages("<html>"))
         assertEquals(emptyList(), ServerErrorCode.validationMessages(null))
     }
+
+    @Test
+    fun reads_the_servers_sentence_off_a_coded_refusal() {
+        val body = """{"error":"MCP_DOMAIN_NOT_ALLOWED","message":"Domain \"http://evil.example.org\" is not allowed"}"""
+        assertEquals("Domain \"http://evil.example.org\" is not allowed", ServerErrorCode.codedMessage(body))
+    }
+
+    @Test
+    fun an_uncoded_or_messageless_body_has_no_coded_message() {
+        // No code: an arbitrary body, not the server's typed envelope.
+        assertNull(ServerErrorCode.codedMessage("""{"message":"Invalid configuration","errors":[]}"""))
+        assertNull(ServerErrorCode.codedMessage("""{"error":"MCP_DOMAIN_NOT_ALLOWED","message":"  "}"""))
+        assertNull(ServerErrorCode.codedMessage("""{"error":"MCP_DOMAIN_NOT_ALLOWED"}"""))
+        assertNull(ServerErrorCode.codedMessage("""{"error":{"type":"x"},"message":"m"}"""))
+        assertNull(ServerErrorCode.codedMessage("<html>403</html>"))
+    }
 }
