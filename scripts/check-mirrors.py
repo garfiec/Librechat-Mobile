@@ -334,13 +334,13 @@ def extract_block(text: str, symbol: str) -> str | None:
     """The full declaration of `symbol`, from its keyword to its closing delimiter.
 
     Handles `export const X = [...]`, `= new Set([...])`, `= {...}`, `export enum X {}`,
-    `export function X(...) {}` and a function assigned to a binding
+    `export function X(...) {}` (optionally `async`) and a function assigned to a binding
     (`const X = (a) => {...}`, `const X = function (a) {...}`).
     Returns None when the symbol is not declared here -- upstream renamed or moved it,
     which the caller reports as MISSING rather than passing over.
     """
     anchor = re.compile(
-        rf"^[ \t]*(?:export\s+)?(?P<kw>const|let|var|enum|type|interface|function)"
+        rf"^[ \t]*(?:export\s+)?(?:async\s+)?(?P<kw>const|let|var|enum|type|interface|function)"
         rf"\s+{re.escape(symbol)}\b",
         re.MULTILINE,
     )
@@ -513,6 +513,14 @@ export function normalizeServerName(serverName) {
   return serverName.replace(/[^a-zA-Z0-9_.-]/g, '_');
 }
 """, 3),
+    # Without `async` in the anchor this form is simply not found, so the entry reports `??`
+    # every sync and reads as a tooling hiccup rather than an unwatched mirror.
+    ("async function declaration with a return type", """
+export async function handleAgentQueuedTurnCancel(req: Request, res: Response): Promise<void> {
+  const outcome = await cancel(req);
+  res.json(outcome);
+}
+""", 4),
     ("annotated array literal", """
 export const FEEDBACK_TAGS: TFeedbackTag[] = [
   { key: 'not_matched' },
