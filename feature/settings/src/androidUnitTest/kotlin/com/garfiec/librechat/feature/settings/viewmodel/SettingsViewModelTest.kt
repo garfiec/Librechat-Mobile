@@ -563,4 +563,26 @@ class SettingsViewModelTest {
         advanceUntilIdle()
         assertThat(viewModel.uiState.value.mcpServerDialogError).isNull()
     }
+
+    /** The Settings path reads the same `errors[]` reasons as the MCP screen. */
+    @Test
+    fun `a validation refusal shows the server's specific reason in the Settings dialog`() = runTest {
+        coEvery { mcpRepository.createServer(any(), any(), any(), any(), any(), any()) } returns
+            Result.Error(
+                exception = ApiException(
+                    statusCode = 400,
+                    message = "Invalid configuration",
+                    body = """{"message":"Invalid configuration","errors":[{"message":"url: Invalid url"}]}""",
+                ),
+                message = "Invalid configuration",
+            )
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.showAddMcpServerDialog()
+
+        viewModel.saveMcpServer(name = "Docs", url = "not a url", type = McpServerType.SSE)
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.mcpServerDialogError).isEqualTo("url: Invalid url")
+    }
 }

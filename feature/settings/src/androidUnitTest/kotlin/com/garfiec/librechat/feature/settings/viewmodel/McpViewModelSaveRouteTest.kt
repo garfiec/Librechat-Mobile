@@ -175,6 +175,28 @@ class McpViewModelSaveRouteTest {
         }
     }
 
+    /** A schema refusal says which field is wrong under `errors[]`; the headline alone does not. */
+    @Test
+    fun `a validation refusal shows the server's specific reason in the dialog`() = runTest {
+        coEvery { mcpRepository.createServer(any(), any(), any(), any(), any(), any()) } returns
+            Result.Error(
+                exception = ApiException(
+                    statusCode = 400,
+                    message = "Invalid configuration",
+                    body = """{"message":"Invalid configuration","errors":[{"code":"custom","path":["oauth"],""" +
+                        """"message":"OAuth client_secret with client_id requires both authorization_url and token_url"}]}""",
+                ),
+                message = "Invalid configuration",
+            )
+        val vm = McpViewModel(mcpRepository)
+        vm.showAddServerDialog()
+
+        vm.saveServer(name = "Docs", url = URL, type = McpServerType.SSE)
+
+        assertThat(vm.uiState.value.serverDialogError)
+            .isEqualTo("OAuth client_secret with client_id requires both authorization_url and token_url")
+    }
+
     /** Any other refusal keeps the generic message; the secret field must not turn red for it. */
     @Test
     fun `an unrelated failure does not ask for the client secret`() = runTest {

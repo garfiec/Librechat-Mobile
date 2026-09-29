@@ -104,4 +104,28 @@ class ServerErrorCodeTest {
         // A non-primitive value must degrade rather than throw.
         assertNull(ServerErrorCode.from("""{"code":{"nested":"value"},"error":{"nested":"value"}}"""))
     }
+
+    @Test
+    fun reads_the_specific_messages_off_a_validation_refusal() {
+        // The MCP write routes' schema failure: one generic headline, the real reasons under errors[].
+        val body = """{"message":"Invalid configuration","errors":[
+            {"code":"custom","path":["oauth"],"message":"OAuth client_secret with client_id requires both authorization_url and token_url"},
+            {"code":"custom","path":["oauth"],"message":"OAuth client_secret with client_id requires both authorization_url and token_url"},
+            {"code":"invalid_string","path":["url"],"message":"  "},
+            "not an issue",
+            {"code":"x","message":{"nested":true}}
+        ]}"""
+        assertEquals(
+            listOf("OAuth client_secret with client_id requires both authorization_url and token_url"),
+            ServerErrorCode.validationMessages(body),
+        )
+    }
+
+    @Test
+    fun a_body_without_issues_has_no_validation_messages() {
+        assertEquals(emptyList(), ServerErrorCode.validationMessages("""{"message":"Invalid configuration"}"""))
+        assertEquals(emptyList(), ServerErrorCode.validationMessages("""{"errors":"nope"}"""))
+        assertEquals(emptyList(), ServerErrorCode.validationMessages("<html>"))
+        assertEquals(emptyList(), ServerErrorCode.validationMessages(null))
+    }
 }

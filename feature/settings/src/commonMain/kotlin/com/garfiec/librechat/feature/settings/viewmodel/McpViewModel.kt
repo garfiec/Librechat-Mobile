@@ -231,7 +231,8 @@ class McpViewModel(
                             keyReentry ->
                                 "This server's connection settings changed, so the saved API key " +
                                     "no longer applies. Enter the API key again to save."
-                            else -> result.message ?: "Failed to save server"
+                            else -> ServerErrorCode.validationMessages(exception?.body).joinToString("\n").ifEmpty { null }
+                                ?: result.message ?: "Failed to save server"
                         },
                     )
                 }

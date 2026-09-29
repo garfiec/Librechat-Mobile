@@ -29,6 +29,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -111,7 +112,13 @@ internal fun McpServerDialog(
             Text(stringResource(if (isEditing) Res.string.edit_mcp_server else Res.string.add_mcp_server))
         },
         text = {
-            Column(modifier = Modifier.imePadding().verticalScroll(rememberScrollState())) {
+            // A failed save leaves the form wherever the user scrolled it — usually the bottom, next
+            // to the button they tapped — so bring the failure, which leads the form, into view.
+            val scrollState = rememberScrollState()
+            LaunchedEffect(saveError) {
+                if (saveError != null) scrollState.animateScrollTo(0)
+            }
+            Column(modifier = Modifier.imePadding().verticalScroll(scrollState)) {
                 if (saveError != null) {
                     Text(
                         text = saveError,

@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.model.error
 
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
@@ -117,6 +118,24 @@ object ServerErrorCode {
      */
     fun generationCodeOf(body: String?): String? =
         (objectOf(body)?.get("code") as? JsonPrimitive)?.contentOrNull
+
+    /**
+     * The specific messages under `errors[]` on a validation refusal, or empty.
+     *
+     * The MCP write routes answer a schema failure with `{ message: "Invalid configuration",
+     * errors: ZodIssue[] }` (`api/server/controllers/mcp.js`). The top-level message is the same for
+     * every mistake; each issue's `message` says which one — "OAuth client_secret with client_id
+     * requires both authorization_url and token_url". Blank and repeated messages are dropped, and a
+     * non-object issue or a non-string message is skipped rather than failing the read.
+     */
+    fun validationMessages(body: String?): List<String> {
+        val issues = objectOf(body)?.get("errors") as? JsonArray ?: return emptyList()
+        return issues
+            .mapNotNull { issue -> ((issue as? JsonObject)?.get("message") as? JsonPrimitive)?.contentOrNull }
+            .map(String::trim)
+            .filter(String::isNotEmpty)
+            .distinct()
+    }
 
     private fun objectOf(body: String?): JsonObject? {
         if (body.isNullOrBlank()) return null
