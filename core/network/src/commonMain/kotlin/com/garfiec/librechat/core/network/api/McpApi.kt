@@ -218,6 +218,7 @@ class McpApi constructor(
                     if (!oauth.clientId.isNullOrBlank()) put("client_id", oauth.clientId)
                     if (!oauth.clientSecret.isNullOrBlank()) put("client_secret", oauth.clientSecret)
                     if (!oauth.scope.isNullOrBlank()) put("scope", oauth.scope)
+                    if (!oauth.tokenExchangeMethod.isNullOrBlank()) put("token_exchange_method", oauth.tokenExchangeMethod)
                 }
             }
         }
@@ -259,6 +260,7 @@ class McpApi constructor(
         clientId = obj["client_id"]?.jsonPrimitive?.contentOrNull,
         clientSecret = obj["client_secret"]?.jsonPrimitive?.contentOrNull,
         scope = obj["scope"]?.jsonPrimitive?.contentOrNull,
+        tokenExchangeMethod = obj["token_exchange_method"]?.jsonPrimitive?.contentOrNull,
     )
 }
 

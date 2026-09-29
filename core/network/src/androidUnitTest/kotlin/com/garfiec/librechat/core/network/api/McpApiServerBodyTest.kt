@@ -187,4 +187,34 @@ class McpApiServerBodyTest {
         assertThat(servers.getValue("personal").apiKey?.source).isEqualTo(McpApiKeySource.USER)
         assertThat(servers.getValue("unlabelled").apiKey?.source).isEqualTo(McpApiKeySource.ADMIN)
     }
+
+    /**
+     * The update route replaces the stored config and counts `oauth.token_exchange_method` among the
+     * fields the stored secret is bound to, so an edit that drops it is refused with
+     * `MCP_OAUTH_SECRET_REENTRY_REQUIRED` although no endpoint changed. It has to survive the read
+     * and go back out on the write.
+     */
+    @Test
+    fun `an OAuth server's token exchange method survives the read and the write`() = runTest {
+        val listed = api(
+            """{"docs_mcp":{"type":"sse","url":"https://docs.example.test/mcp",
+               "oauth":{"client_id":"client-1","token_exchange_method":"basic_auth_header"}}}""",
+        ).listServers().single()
+        assertThat(listed.oauth?.tokenExchangeMethod).isEqualTo("basic_auth_header")
+
+        api().updateServer(
+            serverName = "docs_mcp",
+            name = "Docs",
+            url = "https://docs.example.test/mcp",
+            type = McpServerType.SSE,
+            oauth = McpOAuthConfig(clientId = "client-1", tokenExchangeMethod = listed.oauth?.tokenExchangeMethod),
+        )
+
+        assertThat(sentBody()).isEqualTo(
+            Json.parseToJsonElement(
+                """{"config":{"url":"https://docs.example.test/mcp","type":"sse","title":"Docs",
+                   "oauth":{"client_id":"client-1","token_exchange_method":"basic_auth_header"}}}""",
+            ),
+        )
+    }
 }
