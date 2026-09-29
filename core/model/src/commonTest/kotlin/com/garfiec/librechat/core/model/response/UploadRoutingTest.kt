@@ -150,9 +150,10 @@ class UploadRoutingTest {
     @Test
     fun azureOpenAiIsNotTreatedAsDocumentCapable() {
         // Mirrors upstream's commented-out set entry: Azure only takes documents with
-        // `useResponsesApi`, a per-agent toggle. We could read that flag but choose not to model
-        // the corner, so an Azure document is extracted — which works — rather than sent down a
-        // path whose validity depends on a setting this router never consults.
+        // `useResponsesApi`, a per-agent toggle that rc4 resolves against server policy
+        // (`responsesApiRouting`). We choose not to model the corner, so an Azure document is
+        // extracted — which works — rather than sent down a path whose validity depends on a
+        // setting and a policy this router never consults.
         assertFalse(isProviderCapable(pdf, "azureOpenAI"))
         assertEquals(UploadRoute.TEXT, route(pdf, "azureOpenAI"))
         assertEquals(UploadRoute.PROVIDER, route(png, "azureOpenAI"))
