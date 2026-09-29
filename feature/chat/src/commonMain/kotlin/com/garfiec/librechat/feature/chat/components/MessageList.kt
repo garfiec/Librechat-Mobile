@@ -571,7 +571,10 @@ fun MessageList(
                     // slot reuse from handing it a user bubble's composition, or the reverse.
                     val role = when {
                         !node.message.isCreatedByUser -> "assistant"
-                        systemEventFor(node.message, isEditing = false) != null -> "system"
+                        systemEventFor(
+                            node.message,
+                            isEditing = editingMessageId == node.message.messageId,
+                        ) != null -> "system"
                         else -> "user"
                     }
                     "${chatLayoutStyle}_$role"
@@ -597,7 +600,21 @@ fun MessageList(
                     systemEventFor(node.message, isEditingNode)
                 }
                 if (systemEvent != null) {
-                    SystemEventRow(display = systemEvent, messageId = node.message.messageId)
+                    SystemEventRow(
+                        display = systemEvent,
+                        messageId = node.message.messageId,
+                        siblingIndex = node.siblingIndex,
+                        siblingCount = node.siblingCount,
+                        onSiblingNavigation = { newIndex ->
+                            lastNavigatedParentKey = node.treeParentKey
+                            onSiblingNavigation(node.treeParentKey, newIndex)
+                        },
+                        onCopy = { onCopyMessage(node.message.messageId) },
+                        onEdit = { onEditMessage(node.message.messageId) },
+                        onReadAloud = { onReadAloud(node.message.messageId) },
+                        isReading = currentlyReadingMessageId == node.message.messageId,
+                        onFork = { onFork(node.message.messageId) },
+                    )
                 } else {
                 MessageBubble(
                     message = node.message,

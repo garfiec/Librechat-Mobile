@@ -29,6 +29,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -46,8 +47,10 @@ import org.jetbrains.compose.resources.stringResource
  * The wake-up this message is, when it should render as a system event rather than a user bubble.
  *
  * Only a user-authored message can be one (the server saves wake-ups as user turns), and never
- * while it is being edited: upstream's `MessageRender` drops the system treatment under edit too,
- * so the edit field shows the text the user is actually changing.
+ * while it is being edited: the row's footer offers Edit, and upstream's `MessageRender` drops the
+ * system treatment under edit too, so the ordinary bubble's edit field shows the text the user is
+ * actually changing. Callers must pass the same `isEditing` to the list's `contentType` as to the
+ * body, or a slot composed for one layout is reused for the other.
  */
 internal fun systemEventFor(message: Message, isEditing: Boolean): WakeupDisplay? =
     if (!message.isCreatedByUser || isEditing) null else WakeupMessage.parse(message.text)
@@ -60,12 +63,25 @@ internal fun systemEventFor(message: Message, isEditing: Boolean): WakeupDisplay
  *
  * A subagent's thread is shown by id only. The web can open it in a side panel; this app has no
  * subagent-thread surface, so it is a label, not a link.
+ *
+ * The footer keeps what the row would have had as a user bubble — the sibling switcher and the
+ * user-turn actions — as upstream's footer does (`MessageRender`'s `SiblingSwitch` + `HoverButtons`).
+ * A branch that forks at a wake-up must stay reachable from it. The footer is always shown rather
+ * than tap-revealed: a tap on this row toggles the results.
  */
 @Composable
 internal fun SystemEventRow(
     display: WakeupDisplay,
     messageId: String,
     modifier: Modifier = Modifier,
+    siblingIndex: Int = 0,
+    siblingCount: Int = 1,
+    onSiblingNavigation: ((Int) -> Unit)? = null,
+    onCopy: (() -> Unit)? = null,
+    onEdit: (() -> Unit)? = null,
+    onReadAloud: (() -> Unit)? = null,
+    isReading: Boolean = false,
+    onFork: (() -> Unit)? = null,
 ) {
     var expanded by rememberSaveable(messageId) { mutableStateOf(false) }
     val anyFailed = display.tasks.any { it.status == WakeupTaskStatus.ERROR }
@@ -132,6 +148,30 @@ internal fun SystemEventRow(
                     modifier = Modifier.padding(top = 4.dp),
                 )
                 display.tasks.forEach { task -> WakeupTaskCard(task = task, kind = display.kind) }
+            }
+        }
+        val navigable = siblingCount > 1 && onSiblingNavigation != null
+        if (navigable || onCopy != null || onEdit != null || onReadAloud != null || onFork != null) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(top = 2.dp).testTag("message_actions"),
+            ) {
+                ActionButtons(
+                    isUser = true,
+                    onFeedback = null,
+                    currentFeedback = null,
+                    onPickFeedbackTag = {},
+                    onCopy = onCopy,
+                    onEdit = onEdit,
+                    onRegenerate = null,
+                    onReadAloud = onReadAloud,
+                    isReading = isReading,
+                    onFork = onFork,
+                )
+                // A user turn is right-aligned, so its sibling switcher sits at the outer edge.
+                onSiblingNavigation?.takeIf { navigable }?.let { navigate ->
+                    SiblingNavigator(siblingIndex = siblingIndex, siblingCount = siblingCount, onNavigate = navigate)
+                }
             }
         }
     }

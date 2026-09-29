@@ -106,7 +106,9 @@ fun SecondaryMessageList(
                         // reason as the primary list so the two cannot drift.
                         LocalFeedbackEnabled provides !isStreaming,
                     ) {
-                    // Same branch as MessageList; this pane never edits.
+                    // Same branch as MessageList; this pane never edits. Its bubbles take no
+                    // actions and no sibling navigation (their callbacks are no-ops), so neither
+                    // does the row.
                     val systemEvent = remember(node.message.text, node.message.isCreatedByUser) {
                         systemEventFor(node.message, isEditing = false)
                     }
