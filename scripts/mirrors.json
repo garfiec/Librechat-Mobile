@@ -878,7 +878,7 @@
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/wakeup/WakeupMessage.kt",
         "symbol": "WakeupMessage.parse / subagentTask / backgroundTask / MAX_WAKEUP_TEXT_CHARS"
       },
-      "why": "The web client's own rules for recognizing a wake-up turn, on top of the server's headers and payload fields watched by the three wakeup-* entries: the length cap, the accepted statuses, the header-equals-payload status check, and rejecting a background turn that holds a cancelled task. The whole file is the parser, so it is watched file-level.",
+      "why": "The web client's own rules for recognizing a wake-up turn, on top of the server's headers and payload fields watched by the three wakeup-* entries: the length cap, the accepted statuses, and the header-equals-payload status check. A cancelled task is valid for both kinds since v0.8.8 (a background tool the user stopped wakes the parent with a `cancelled` row). The whole file is the parser, so it is watched file-level.",
       "failure_mode": "The client classifies a turn differently from the web: a wake-up renders as a user bubble of raw prompt JSON, or a user message collapses into a system row."
     },
     {

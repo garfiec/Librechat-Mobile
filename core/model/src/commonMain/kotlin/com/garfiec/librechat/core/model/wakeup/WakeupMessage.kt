@@ -113,8 +113,6 @@ object WakeupMessage {
     private fun backgroundTask(payload: JsonElement?): WakeupTask? {
         val obj = payload as? JsonObject ?: return null
         val status = WakeupTaskStatus.fromWire(obj.string("status")) ?: return null
-        // A background tool cannot be cancelled into a wake-up; upstream rejects the whole turn.
-        if (status == WakeupTaskStatus.CANCELLED) return null
         return WakeupTask(
             taskId = obj.string("background_task_id") ?: return null,
             status = status,
