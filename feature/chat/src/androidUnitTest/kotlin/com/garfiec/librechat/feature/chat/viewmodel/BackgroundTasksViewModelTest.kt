@@ -30,7 +30,8 @@ class BackgroundTasksViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val repository = mockk<BackgroundTaskRepository>()
 
-    private val running = BackgroundTaskSummary(taskId = "t1", toolName = "bash_tool", toolCallId = "c", status = "running")
+    private val running =
+        BackgroundTaskSummary(taskId = "t1", toolName = "bash_tool", toolCallId = "c", status = "running")
     private val done = running.copy(status = "completed")
 
     @Before
