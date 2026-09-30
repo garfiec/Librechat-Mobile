@@ -266,7 +266,7 @@
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/error/StreamErrorType.kt",
         "symbol": "StreamErrorType"
       },
-      "why": "StreamErrorType transcribes the wire strings of upstream's ErrorTypes enum by hand -- the server never serves the table, it only sends one of its values on a stream-error payload. The enum lists only the codes with something actionable to say, so upstream ADDING a member is deliberately not drift; upstream RENAMING one of the listed values is, and nothing on this side can see it happen.",
+      "why": "StreamErrorType transcribes the wire strings of upstream's ErrorTypes enum by hand -- the server never serves the table, it only sends one of its values on a stream-error payload. The enum lists only the codes with something actionable to say, so upstream ADDING a member is deliberately not drift; upstream RENAMING one of the listed values is, and nothing on this side can see it happen. Two entries are NOT ErrorTypes members and are not watched here: MCP_AUTHENTICATION_REJECTED / MCP_AUTHENTICATION_REFRESH_FAILED are MCPErrorCodes (packages/api/src/mcp/errors.ts, under mcp-error-codes), classified only from the chat start POST's body by startFailureMarker and never by parse.",
       "failure_mode": "A renamed value stops matching, so that error silently degrades to the generic message -- the user is told something went wrong instead of being told to reattach their files or pick another model. Nothing fails to decode and nothing errors."
     },
     {
