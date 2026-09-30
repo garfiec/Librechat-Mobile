@@ -100,6 +100,18 @@ class StreamErrorTypeTest {
         assertEquals(StreamErrorType.UPSTREAM_MODEL_ERROR.marker, StreamErrorType.markerOrText(raw))
     }
 
+    /** `resolveModelStreamError` (packages/api/src/agents/errors.ts): fallback prose, then the typed payload. */
+    @Test
+    fun model_stream_closed_and_stalled_classify_off_the_prose_prefixed_payload() {
+        val closed = "The model provider closed the connection before the response finished. Try again.\n" +
+            """{"type":"model_stream_closed"}"""
+        val stalled = "The model provider stopped sending the response, and the request timed out. Try again.\n" +
+            """{"type":"model_stream_stalled"}"""
+
+        assertEquals(StreamErrorType.MODEL_STREAM_CLOSED.marker, StreamErrorType.markerOrText(closed))
+        assertEquals(StreamErrorType.MODEL_STREAM_STALLED.marker, StreamErrorType.markerOrText(stalled))
+    }
+
     /** Braces in the prose must not swallow the payload: the span is BALANCED, not outermost-pair. */
     @Test
     fun braces_in_the_prose_do_not_break_the_extraction() {

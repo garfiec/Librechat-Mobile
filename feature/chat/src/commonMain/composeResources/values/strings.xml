@@ -549,6 +549,8 @@
     <string name="error_moderation">This message was flagged by the server's moderation. Edit it, or start a new conversation.</string>
     <string name="error_stream_expired">This reply finished or expired before it could be shown. Reopen the conversation to load it.</string>
     <string name="error_model_rate_limit">The provider is rate-limiting this model. Wait a moment and try again, or pick a different model.</string>
+    <string name="error_model_stream_closed">The model provider closed the connection before the response finished. Anything already received was kept. Try again; long reasoning runs are the most likely to be cut off.</string>
+    <string name="error_model_stream_stalled">The model provider stopped sending the response, and the request timed out waiting for it. Anything already received was kept. Try again, or ask an administrator to check the provider.</string>
     <string name="error_final_context_overflow">This conversation no longer fits the model's context window. Start a new conversation, or switch to a model with a larger window.</string>
     <string name="error_compaction_skipped">There was nothing to compact yet. Keep chatting and try again later.</string>
     <string name="error_compaction_failed">The summary couldn't be generated, so the conversation is unchanged. Try again.</string>

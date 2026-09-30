@@ -528,6 +528,8 @@
     <string name="error_moderation">Ce message a été signalé par la modération du serveur. Modifiez-le ou démarrez une nouvelle conversation.</string>
     <string name="error_stream_expired">Cette réponse s'est terminée ou a expiré avant de pouvoir être affichée. Rouvrez la conversation pour la charger.</string>
     <string name="error_model_rate_limit">Le fournisseur limite le débit de ce modèle. Patientez un instant et réessayez, ou choisissez un autre modèle.</string>
+    <string name="error_model_stream_closed">Le fournisseur du modèle a fermé la connexion avant la fin de la réponse. Tout ce qui avait déjà été reçu a été conservé. Réessayez ; les longs raisonnements sont les plus susceptibles d'être interrompus.</string>
+    <string name="error_model_stream_stalled">Le fournisseur du modèle a cessé d'envoyer la réponse et la requête a expiré en l'attendant. Tout ce qui avait déjà été reçu a été conservé. Réessayez ou demandez à un administrateur de vérifier le fournisseur.</string>
     <string name="error_final_context_overflow">Cette conversation ne tient plus dans la fenêtre de contexte du modèle. Démarrez une nouvelle conversation ou choisissez un modèle avec une fenêtre plus grande.</string>
     <string name="error_compaction_skipped">Il n'y avait encore rien à compacter. Continuez la discussion et réessayez plus tard.</string>
     <string name="error_compaction_failed">Le résumé n'a pas pu être généré, la conversation est donc inchangée. Réessayez.</string>

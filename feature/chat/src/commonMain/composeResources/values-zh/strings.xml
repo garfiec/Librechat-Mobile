@@ -528,6 +528,8 @@
     <string name="error_moderation">此消息被服务器的内容审核标记。请编辑消息，或开始新对话。</string>
     <string name="error_stream_expired">此回复在显示前已完成或过期。请重新打开对话以加载。</string>
     <string name="error_model_rate_limit">提供商正在对此模型限速。请稍后再试，或选择其他模型。</string>
+    <string name="error_model_stream_closed">模型提供商在响应完成前关闭了连接。已收到的内容已保留。请重试；较长的推理过程最容易被中断。</string>
+    <string name="error_model_stream_stalled">模型提供商停止发送响应，请求在等待时超时。已收到的内容已保留。请重试，或请管理员检查提供商。</string>
     <string name="error_final_context_overflow">此对话已超出模型的上下文窗口。请开始新对话，或切换到上下文窗口更大的模型。</string>
     <string name="error_compaction_skipped">目前还没有可压缩的内容。请继续对话，稍后再试。</string>
     <string name="error_compaction_failed">无法生成摘要，对话未作更改。请重试。</string>

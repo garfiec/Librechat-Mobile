@@ -46,6 +46,12 @@ enum class StreamErrorType(val wire: String) {
     /** The provider throttled the request for exceeding a rate or spend allowance. */
     MODEL_RATE_LIMIT("model_rate_limit"),
 
+    /** The provider accepted the request, then closed the connection before the response finished. */
+    MODEL_STREAM_CLOSED("model_stream_closed"),
+
+    /** The provider accepted the request, then sent nothing for longer than the response timeout. */
+    MODEL_STREAM_STALLED("model_stream_stalled"),
+
     /** The models configuration has not loaded, so no model can be resolved yet. */
     MODELS_NOT_LOADED("models_not_loaded"),
 

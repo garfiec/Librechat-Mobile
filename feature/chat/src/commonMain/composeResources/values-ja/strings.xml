@@ -528,6 +528,8 @@
     <string name="error_moderation">このメッセージはサーバーのモデレーションによって検出されました。編集するか、新しい会話を始めてください。</string>
     <string name="error_stream_expired">この応答は表示される前に完了したか期限切れになりました。会話を開き直して読み込んでください。</string>
     <string name="error_model_rate_limit">プロバイダーがこのモデルのレート制限を行っています。しばらく待ってからもう一度お試しいただくか、別のモデルを選択してください。</string>
+    <string name="error_model_stream_closed">モデルプロバイダーが応答の完了前に接続を閉じました。受信済みの内容は保持されています。もう一度お試しください。長い推論ほど途中で切断されやすくなります。</string>
+    <string name="error_model_stream_stalled">モデルプロバイダーが応答の送信を停止し、待機中にリクエストがタイムアウトしました。受信済みの内容は保持されています。もう一度お試しいただくか、管理者にプロバイダーの確認を依頼してください。</string>
     <string name="error_final_context_overflow">この会話はモデルのコンテキストウィンドウに収まらなくなりました。新しい会話を始めるか、より大きなコンテキストウィンドウを持つモデルに切り替えてください。</string>
     <string name="error_compaction_skipped">まだ圧縮する内容がありません。会話を続けてから、後でもう一度お試しください。</string>
     <string name="error_compaction_failed">要約を生成できなかったため、会話は変更されていません。もう一度お試しください。</string>

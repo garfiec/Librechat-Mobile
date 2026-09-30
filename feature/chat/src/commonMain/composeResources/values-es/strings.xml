@@ -528,6 +528,8 @@
     <string name="error_moderation">La moderación del servidor marcó este mensaje. Edítalo o inicia una nueva conversación.</string>
     <string name="error_stream_expired">Esta respuesta terminó o caducó antes de poder mostrarse. Vuelve a abrir la conversación para cargarla.</string>
     <string name="error_model_rate_limit">El proveedor está limitando la frecuencia de este modelo. Espera un momento e inténtalo de nuevo, o elige un modelo diferente.</string>
+    <string name="error_model_stream_closed">El proveedor del modelo cerró la conexión antes de que terminara la respuesta. Se conservó todo lo ya recibido. Inténtalo de nuevo; los razonamientos largos son los que más probablemente se cortan.</string>
+    <string name="error_model_stream_stalled">El proveedor del modelo dejó de enviar la respuesta y la solicitud agotó el tiempo de espera. Se conservó todo lo ya recibido. Inténtalo de nuevo o pide a un administrador que revise el proveedor.</string>
     <string name="error_final_context_overflow">Esta conversación ya no cabe en la ventana de contexto del modelo. Inicia una nueva conversación o cambia a un modelo con una ventana mayor.</string>
     <string name="error_compaction_skipped">Aún no había nada que compactar. Sigue conversando e inténtalo más tarde.</string>
     <string name="error_compaction_failed">No se pudo generar el resumen, así que la conversación no ha cambiado. Inténtalo de nuevo.</string>
