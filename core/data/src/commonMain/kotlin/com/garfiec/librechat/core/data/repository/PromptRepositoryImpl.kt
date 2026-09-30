@@ -7,7 +7,6 @@ import com.garfiec.librechat.core.model.PromptGroup
 import com.garfiec.librechat.core.model.request.AddPromptToGroupRequest
 import com.garfiec.librechat.core.model.request.CreatePromptRequest
 import com.garfiec.librechat.core.model.request.UpdatePromptGroupRequest
-import com.garfiec.librechat.core.model.response.PromptGroupListResponse
 import com.garfiec.librechat.core.network.api.PromptsApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,12 +22,6 @@ class PromptRepositoryImpl(
     /** Inside `safeApiCall` and after the call, so a rejected mutation never announces a change. */
     private fun bumpRevision() {
         _revision.value += 1
-    }
-
-    override suspend fun getGroups(pageSize: Int, cursor: String?): Result<PromptGroupListResponse> {
-        return safeApiCall {
-            promptsApi.getPromptGroups(pageSize = pageSize, cursor = cursor)
-        }
     }
 
     override suspend fun getAllGroups(): Result<List<PromptGroup>> {

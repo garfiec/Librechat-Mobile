@@ -7,7 +7,6 @@ import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.model.Prompt
 import com.garfiec.librechat.core.model.PromptGroup
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
-import com.garfiec.librechat.core.model.response.PromptGroupListResponse
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -56,7 +55,7 @@ class PromptsViewModelLibraryRefreshTest {
     )
 
     private fun response(vararg groups: PromptGroup) =
-        Result.Success(PromptGroupListResponse(promptGroups = groups.toList()))
+        Result.Success(groups.toList())
 
     private fun newViewModel() = PromptsViewModel(promptRepository, roleRepository, permissionGate)
 
@@ -77,19 +76,19 @@ class PromptsViewModelLibraryRefreshTest {
 
     @Test
     fun aSaveInTheEditorRefreshesTheRetainedList() = runTest(testDispatcher) {
-        coEvery { promptRepository.getGroups(any(), any()) } returns response(group("g-1", "First"))
+        coEvery { promptRepository.getAllGroups() } returns response(group("g-1", "First"))
 
         val viewModel = newViewModel()
         advanceUntilIdle()
         assertEquals(listOf("First"), viewModel.uiState.value.groups.map { it.name })
 
-        coEvery { promptRepository.getGroups(any(), any()) } returns
+        coEvery { promptRepository.getAllGroups() } returns
             response(group("g-1", "First"), group("g-2", "Just authored"))
         revision.value += 1
         advanceUntilIdle()
 
         // Still in the editor: nothing fetched yet.
-        coVerify(exactly = 1) { promptRepository.getGroups(any(), any()) }
+        coVerify(exactly = 1) { promptRepository.getAllGroups() }
 
         viewModel.refreshIfStale()
         advanceUntilIdle()
@@ -102,7 +101,7 @@ class PromptsViewModelLibraryRefreshTest {
 
     @Test
     fun returningWithNothingChangedFetchesNothing() = runTest(testDispatcher) {
-        coEvery { promptRepository.getGroups(any(), any()) } returns response(group("g-1", "First"))
+        coEvery { promptRepository.getAllGroups() } returns response(group("g-1", "First"))
 
         val viewModel = newViewModel()
         advanceUntilIdle()
@@ -112,17 +111,17 @@ class PromptsViewModelLibraryRefreshTest {
 
         // Every re-entry drives this; without the revision check, backing out of the editor would
         // re-fetch the list each time even when nothing changed.
-        coVerify(exactly = 1) { promptRepository.getGroups(any(), any()) }
+        coVerify(exactly = 1) { promptRepository.getAllGroups() }
     }
 
     @Test
     fun aBackgroundReloadFailureIsNotShownToTheUser() = runTest(testDispatcher) {
-        coEvery { promptRepository.getGroups(any(), any()) } returns response(group("g-1", "First"))
+        coEvery { promptRepository.getAllGroups() } returns response(group("g-1", "First"))
 
         val viewModel = newViewModel()
         advanceUntilIdle()
 
-        coEvery { promptRepository.getGroups(any(), any()) } returns Result.Error(message = "offline")
+        coEvery { promptRepository.getAllGroups() } returns Result.Error(message = "offline")
         revision.value += 1
         viewModel.refreshIfStale()
         advanceUntilIdle()
@@ -135,12 +134,12 @@ class PromptsViewModelLibraryRefreshTest {
 
     @Test
     fun aPullToRefreshFailureIsShownToTheUser() = runTest(testDispatcher) {
-        coEvery { promptRepository.getGroups(any(), any()) } returns response(group("g-1", "First"))
+        coEvery { promptRepository.getAllGroups() } returns response(group("g-1", "First"))
 
         val viewModel = newViewModel()
         advanceUntilIdle()
 
-        coEvery { promptRepository.getGroups(any(), any()) } returns Result.Error(message = "offline")
+        coEvery { promptRepository.getAllGroups() } returns Result.Error(message = "offline")
         viewModel.refresh()
         advanceUntilIdle()
 
@@ -151,7 +150,7 @@ class PromptsViewModelLibraryRefreshTest {
 
     @Test
     fun aFailedDeleteReportsTheFailureAndKeepsTheDetailOpen() = runTest(testDispatcher) {
-        coEvery { promptRepository.getGroups(any(), any()) } returns response(group("g-1", "First"))
+        coEvery { promptRepository.getAllGroups() } returns response(group("g-1", "First"))
         coEvery { promptRepository.getGroup(any()) } returns Result.Success(group("g-1", "First"))
         coEvery { promptRepository.getPromptsByGroupId(any()) } returns Result.Success(emptyList())
 
@@ -175,7 +174,7 @@ class PromptsViewModelLibraryRefreshTest {
 
     @Test
     fun anAcceptedDeleteClosesTheDetailView() = runTest(testDispatcher) {
-        coEvery { promptRepository.getGroups(any(), any()) } returns response(group("g-1", "First"))
+        coEvery { promptRepository.getAllGroups() } returns response(group("g-1", "First"))
         coEvery { promptRepository.getGroup(any()) } returns Result.Success(group("g-1", "First"))
         coEvery { promptRepository.getPromptsByGroupId(any()) } returns Result.Success(emptyList())
 

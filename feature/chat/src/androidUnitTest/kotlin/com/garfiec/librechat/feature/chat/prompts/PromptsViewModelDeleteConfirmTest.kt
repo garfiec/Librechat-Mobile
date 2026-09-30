@@ -7,7 +7,6 @@ import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.model.Prompt
 import com.garfiec.librechat.core.model.PromptGroup
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
-import com.garfiec.librechat.core.model.response.PromptGroupListResponse
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -60,8 +59,7 @@ class PromptsViewModelDeleteConfirmTest {
         every { roleRepository.userPermissions } returns MutableStateFlow(null)
         every { promptRepository.revision } returns MutableStateFlow(0L)
         coEvery { permissionGate.awaitRole() } returns UserRolePermissions(name = "USER")
-        coEvery { promptRepository.getGroups(any(), any()) } returns
-            Result.Success(PromptGroupListResponse(promptGroups = listOf(group)))
+        coEvery { promptRepository.getAllGroups() } returns Result.Success(listOf(group))
         coEvery { promptRepository.getGroup(any()) } returns Result.Success(group)
         coEvery { promptRepository.getPromptsByGroupId(any()) } returns Result.Success(emptyList())
         coEvery { promptRepository.delete(any()) } returns Result.Success(Unit)
