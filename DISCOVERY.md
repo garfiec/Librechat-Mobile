@@ -211,16 +211,20 @@ POST   /api/files/speech/tts   → text-to-speech
 
 ### v0.8.6 endpoint surface (confirmed during sync; mobile status noted)
 ```
-# Skills family (DEFERRED — no mobile counterpart; skill tool *invocations* already
-# render via the generic tool-call path, so chatting with a skill-enabled agent works today)
+# Skills family (feature/skills: list, detail, editor, import, ACL sharing, flat file list)
 GET    /api/skills                       → list
 POST   /api/skills                       → create (perm: skills.create)
 GET    /api/skills/:id                   → detail
 PATCH  /api/skills/:id                   → update
 DELETE /api/skills/:id                   → delete
-GET    /api/skills/:id/files             → skill file tree
-POST   /api/skills/:id/files             → add file
-GET    /api/skills/:id/files/:relPath    → read file
+GET    /api/skills/:id/files             → skill file list
+POST   /api/skills/:id/files             → add file (multipart file + relativePath)
+POST   /api/skills/:id/files/*relPath    → v0.8.8: conditional replace — multipart file + relativePath (must equal
+                                            the path param) + expectedFileId; 409 SKILL_FILE_CONFLICT = reload.
+                                            A separate route so an older server 404s instead of ignoring
+                                            expectedFileId. Both POSTs 403 on an externally managed skill
+                                            (source != "inline"), so mobile offers file edits only when inline
+GET    /api/skills/:id/files/:relPath    → read file (JSON mode; v0.8.8 adds `fileId`, the revision to edit against)
 DELETE /api/skills/:id/files/:relPath    → delete file
 POST   /api/skills/import                → import skill (atomic from rc4 — see v0.8.8-rc4 sync)
 GET    /api/user/settings/skills/active  → per-user active-skill states (DEFERRED)

@@ -37,6 +37,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.feature.skills.components.SkillAclSharingSection
+import com.garfiec.librechat.feature.skills.components.SkillFileEditorDialog
 import com.garfiec.librechat.feature.skills.components.SkillFilesSection
 import com.garfiec.librechat.feature.skills.components.rememberSkillFilePicker
 import com.garfiec.librechat.feature.skills.resources.*
@@ -82,6 +83,11 @@ fun SkillDetailScreen(
         filesViewModel.load()
         // Only fetch ACL grants when the user can actually share (fail-closed).
         if (aclState.canShare) aclViewModel.load(skillId)
+    }
+
+    // Externally managed skills' files are read-only on the server (v0.8.8).
+    LaunchedEffect(uiState.skill?.id, uiState.skill?.source) {
+        if (uiState.skill != null) filesViewModel.setSkillSource(uiState.skill?.source)
     }
 
     LaunchedEffect(Unit) {
@@ -216,6 +222,7 @@ fun SkillDetailScreen(
                             state = filesState,
                             onAddFile = { filePicker.launch(emptyList()) },
                             onRemoveFile = { file -> filesViewModel.delete(file) },
+                            onOpenFile = filesViewModel::openFile,
                         )
 
                         // Sharing (ACL) — fail-CLOSED on SKILLS.SHARE.
@@ -227,6 +234,16 @@ fun SkillDetailScreen(
                 }
             }
         }
+    }
+
+    filesState.editor?.let { editor ->
+        SkillFileEditorDialog(
+            editor = editor,
+            editable = editor.isEditable(filesState.canEditFiles),
+            onSave = filesViewModel::saveEditor,
+            onReload = filesViewModel::reloadEditor,
+            onDismiss = filesViewModel::closeEditor,
+        )
     }
 
     if (uiState.showDeleteConfirm) {

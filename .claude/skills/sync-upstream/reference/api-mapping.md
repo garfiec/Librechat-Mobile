@@ -9,7 +9,7 @@ Maps official LibreChat API route files to their mobile `*Api.kt` counterparts.
 | `routes/auth.js` | `AuthApi.kt` | Login, register, refresh, logout, 2FA |
 | `routes/oauth.js` | `AuthApi.kt` | OAuth flows (shared file) |
 | `routes/config.js` | `ConfigApi.kt` | Startup config, version check |
-| `routes/convos.js` | `ConversationsApi.kt` | CRUD, archive, share, fork, duplicate |
+| `routes/convos.js` | `ConversationsApi.kt` | CRUD, archive, share, fork, duplicate; v0.8.8 per-conversation background tasks (list + cancel) |
 | `routes/messages.js` | `MessagesApi.kt` | Get messages by conversation |
 | `routes/search.js` | `SearchApi.kt` | Conversation search |
 | `routes/tags.js` | `TagsApi.kt` | Conversation tags/bookmarks |
@@ -24,6 +24,7 @@ Maps official LibreChat API route files to their mobile `*Api.kt` counterparts.
 | `routes/keys.js` | `KeysApi.kt` | User API keys |
 | `routes/mcp.js` | `McpApi.kt` | MCP server management |
 | `routes/memories.js` | `MemoriesApi.kt` | Memory/context management |
+| `routes/skills.js` | `SkillsApi.kt` | Skills CRUD, import, flat file list/upload/delete; v0.8.8 conditional per-file edit (`POST /:id/files/*relativePath` + `expectedFileId`), inline-only file writes |
 | N/A | `ChatApi.kt` | SSE streaming (POST + GET, not a standard route) |
 | N/A | `SpeechApi.kt` | Text-to-speech |
 | N/A | `ApiKeysApi.kt` | API key management |

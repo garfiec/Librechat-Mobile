@@ -13,6 +13,11 @@
     <string name="skill_files_empty">첨부된 파일이 없습니다.</string>
     <string name="skill_files_add">파일 추가</string>
     <string name="skill_files_remove">%1$s 제거</string>
+    <string name="skill_file_save">저장</string>
+    <string name="skill_file_close">닫기</string>
+    <string name="skill_file_reload">다시 불러오기</string>
+    <string name="skill_file_conflict">이 파일이 다른 곳에서 변경되었습니다. 최신 버전을 보려면 다시 불러오세요. 여기서 수정한 내용은 삭제됩니다.</string>
+    <string name="skill_file_binary">이 파일은 텍스트로 표시할 수 없습니다.</string>
 
     <!-- Detail -->
     <string name="skill_edit">편집</string>
