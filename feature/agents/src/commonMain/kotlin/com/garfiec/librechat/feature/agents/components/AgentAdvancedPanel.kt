@@ -50,6 +50,7 @@ fun AgentAdvancedPanel(
     extendedEffortSupported: Boolean,
     modifier: Modifier = Modifier,
     dropParamsMap: Map<String, JsonElement>? = null,
+    thinkingDisplayUpdatesSupported: Boolean = false,
 ) {
     val dropParams = remember(dropParamsMap, provider, model) {
         EndpointDropParams.resolve(dropParamsMap, endpoint = "agents", provider = provider, model = model)
@@ -81,8 +82,20 @@ fun AgentAdvancedPanel(
 
         AnimatedVisibility(visible = expanded) {
             val parameters = remember(settings) { settings.toModelParameters() }
-            val definitions = remember(provider, model, extendedEffortSupported, dropParamsMap) {
-                agentParameterDefinitions(provider, model, extendedEffortSupported, dropParamsMap)
+            val definitions = remember(
+                provider,
+                model,
+                extendedEffortSupported,
+                thinkingDisplayUpdatesSupported,
+                dropParamsMap,
+            ) {
+                agentParameterDefinitions(
+                    provider,
+                    model,
+                    extendedEffortSupported,
+                    dropParamsMap,
+                    thinkingDisplayUpdatesSupported,
+                )
             }
             val modelRemoved = remember(provider, model, dropParamsMap) {
                 agentModelRemovedOptions(provider, model, dropParamsMap)
@@ -98,6 +111,7 @@ fun AgentAdvancedPanel(
                 selectedModel = model.takeIf { it.isNotBlank() },
                 dropParams = dropParams,
                 extendedEffortSupported = extendedEffortSupported,
+                thinkingDisplayUpdatesSupported = thinkingDisplayUpdatesSupported,
                 showHeader = false,
                 showSaveAsPreset = false,
                 applyVerticalScroll = false,

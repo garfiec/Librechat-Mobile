@@ -17,6 +17,10 @@ object EndpointParameterRegistry {
      *   upstream v0.8.5; on older servers they are rejected at request time. Per
      *   `VERSION_GATES.md`, default to the older-server behavior when the server version
      *   is unknown.
+     * @param thinkingDisplayUpdatesSupported when false, the `updates` value is filtered out of
+     *   the `thinkingDisplay` dropdown. Upstream added it to the `ThinkingDisplay` enum in v0.8.8;
+     *   an older server's `anthropicSchema` rejects it, and its `.catch(() => ({}))` then discards
+     *   every endpoint param on the conversation, not just this one.
      * @param provider required for the `agents` endpoint to route to the underlying
      *   provider's parameter set. Ignored for other endpoints.
      * @param model required for the `bedrock` endpoint to dispatch on the model-prefix
@@ -31,15 +35,21 @@ object EndpointParameterRegistry {
         provider: String? = null,
         model: String? = null,
         dropParams: List<String> = emptyList(),
+        thinkingDisplayUpdatesSupported: Boolean = false,
     ): List<ParameterDefinition> {
         val settingsKey = settingsKeyFor(endpoint, provider)
         val filtered = baseDefinitions(endpoint, extendedEffortSupported, provider, model, dropParams)
         val modelAware = applyModelAwareDefaults(filtered, settingsKey, model)
-        if (extendedEffortSupported) return modelAware
+        if (extendedEffortSupported && thinkingDisplayUpdatesSupported) return modelAware
         return modelAware.map { def ->
+            val gated = when {
+                !extendedEffortSupported && def.key in EFFORT_KEYS -> EXTENDED_EFFORT_VALUES
+                !thinkingDisplayUpdatesSupported && def.key == THINKING_DISPLAY_KEY -> THINKING_DISPLAY_GATED_VALUES
+                else -> emptySet()
+            }
             val options = def.options
-            if (def.key in EFFORT_KEYS && options != null && options.any { it in EXTENDED_EFFORT_VALUES }) {
-                def.copy(options = options.filterNot { it in EXTENDED_EFFORT_VALUES })
+            if (options != null && options.any { it in gated }) {
+                def.copy(options = options.filterNot { it in gated })
             } else {
                 def
             }
@@ -53,7 +63,7 @@ object EndpointParameterRegistry {
      *
      * This, not "absent from the current options", is what a stored value may be dropped for. The
      * current options also lack values for reasons that say nothing about the model: `xhigh`/`max`
-     * are filtered while the server version is undetected (and forever on a server whose version
+     * and thinkingDisplay `updates` are filtered while the server version is undetected (and forever on a server whose version
      * never is), and a value a newer backend added is in no list this app knows. Dropping on
      * absence would delete those from the server on an agent save, and omit them from a chat send.
      * Computed with the version-gated values present on both sides, so a gate never shows up here.
@@ -326,6 +336,8 @@ object EndpointParameterRegistry {
 
     private val EFFORT_KEYS = setOf("reasoning_effort", "effort")
     private val EXTENDED_EFFORT_VALUES = setOf("xhigh", "max")
+    private const val THINKING_DISPLAY_KEY = "thinkingDisplay"
+    private val THINKING_DISPLAY_GATED_VALUES = setOf("updates")
 
     // Defaults mirrored from upstream `parameterSettings.ts` / `schemas.ts`. Centralized
     // here so the registry doesn't sprinkle magic numbers across each provider's params.

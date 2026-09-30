@@ -57,7 +57,12 @@ class AgentCapabilitiesDelegate(
         stateHandle.scope.launch {
             configRepository.detectedBackend.collect { detected ->
                 val deletes = BackendVersion.supportsFeature(detected, "0.8.8-rc4", "2026-09-17")
-                stateHandle.update { copy(agentFileRemovalDeletes = deletes) }
+                // thinkingDisplay `updates` (v0.8.8, upstream 40bb16ed): an older server's enum
+                // rejects it. PRESENT only, like the chat sheet.
+                val updates = BackendVersion.supportsFeature(detected, "0.8.8", "2026-09-28")
+                stateHandle.update {
+                    copy(agentFileRemovalDeletes = deletes, isThinkingDisplayUpdatesAvailable = updates)
+                }
             }
         }
     }

@@ -539,6 +539,7 @@ internal fun AgentEditorForm(
             provider = uiState.provider,
             model = uiState.model,
             extendedEffortSupported = uiState.isHandoffsAvailable,
+            thinkingDisplayUpdatesSupported = uiState.isThinkingDisplayUpdatesAvailable,
             dropParamsMap = uiState.dropParamsMap,
         )
 

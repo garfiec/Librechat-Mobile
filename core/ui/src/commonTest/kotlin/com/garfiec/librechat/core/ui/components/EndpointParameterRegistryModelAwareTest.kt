@@ -166,13 +166,37 @@ class EndpointParameterRegistryModelAwareTest {
     }
 
     @Test
-    fun thinkingDisplayOffersUpdatesOnBothAnthropicSites() {
-        val anthropicOptions = anthropic("claude-opus-4-7").single { it.key == "thinkingDisplay" }.options
-        val bedrockOptions = EndpointParameterRegistry
-            .getDefinitions(endpoint = "bedrock", model = "global.anthropic.claude-opus-4-7")
-            .single { it.key == "thinkingDisplay" }.options
-        assertEquals(listOf("auto", "summarized", "omitted", "updates"), anthropicOptions)
-        assertEquals(listOf("auto", "summarized", "omitted", "updates"), bedrockOptions)
+    fun thinkingDisplayOffersUpdatesOnBothAnthropicSitesOnlyWhenSupported() {
+        fun options(endpoint: String, provider: String?, model: String, supported: Boolean) =
+            EndpointParameterRegistry.getDefinitions(
+                endpoint = endpoint,
+                extendedEffortSupported = true,
+                provider = provider,
+                model = model,
+                thinkingDisplayUpdatesSupported = supported,
+            ).single { it.key == "thinkingDisplay" }.options
+        val sites = listOf(
+            Triple("anthropic", null, "claude-opus-4-7"),
+            Triple("bedrock", null, "global.anthropic.claude-opus-4-7"),
+            Triple("agents", "anthropic", "claude-opus-4-7"),
+        )
+        for ((endpoint, provider, model) in sites) {
+            assertEquals(
+                listOf("auto", "summarized", "omitted", "updates"),
+                options(endpoint, provider, model, supported = true),
+                endpoint,
+            )
+            assertEquals(listOf("auto", "summarized", "omitted"), options(endpoint, provider, model, supported = false), endpoint)
+        }
+    }
+
+    @Test
+    fun thinkingDisplayGateIsNotAModelRemoval() {
+        // A stored `updates` survives the gate: it is filtered from the options, never dropped.
+        assertTrue(
+            EndpointParameterRegistry.modelRemovedOptions(endpoint = "anthropic", model = "claude-opus-4-7")
+                .values.flatten().none { it == "updates" },
+        )
     }
 
     @Test

@@ -1394,8 +1394,11 @@ POST   /api/agents/chat/:endpoint (start) (v0.8.8, dd21e7fb #16323) can fail BEF
 POST   /api/agents/chat/steer (recovery)  (v0.8.8, fe8a9939 #16306) the 409 body adds `reason`. Mobile never sends
                                             `recoveredSteerId`. (NO CHANGE — inert)
 GET    /api/config                        `interface.agentSelectorLimit` (1..100, default 10; 764a4393 #16256)
-                                            caps the unsearched agent picker, and out-of-range values fall back to
-                                            10. (BUILT) `codeWorkspaceRecoveryVersion` (02492bdb #16273) and
+                                            caps the unsearched agent picker upstream, and out-of-range values fall
+                                            back to 10. (DECODED — no mobile consumer; upstream's only consumer is
+                                            the builder-side AgentSelect. The cap in ModelSelectorSheet was
+                                            deliberately not taken, so mobile has neither the cap nor the
+                                            fallback.) `codeWorkspaceRecoveryVersion` (02492bdb #16273) and
                                             `codeEnvironmentTransitionVersion` (7b2362d7 #16124) are new
                                             capability versions. Mobile has no code-environment surface.
                                             (UNUSED)
@@ -1409,8 +1412,10 @@ schedules  scheduleMCPOutcome             (v0.8.8, 6658e3b3 #16416) gains `detai
                                             there is no reconnect CTA. (BUILT)
 agent params  anthropic thinkingDisplay   (v0.8.8, 40bb16ed #16460) adds `'updates'`. Sonnet ≥ 5.5 gets a
                                             between-tools thinking floor, and Opus ≥ 5.5 plus the Mythos class
-                                            are always-on. Mobile's gates are model-name driven, not
-                                            version-gated. (BUILT)
+                                            are always-on. The Sonnet/Opus rules are model-name driven; the
+                                            `'updates'` option itself is version-gated (0.8.8, landed
+                                            2026-09-28), because a pre-0.8.8 server's schema `.catch()`
+                                            discards every endpoint param on an unknown value. (BUILT)
 
 # SSE / stream-error payloads
 error payload  model_stream_closed / model_stream_stalled

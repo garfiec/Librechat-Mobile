@@ -133,6 +133,7 @@ internal fun ChatOptionsSheetHost(
             onParametersChange = viewModel::updateModelParameters,
             selectedEndpoint = uiState.selectedEndpoint,
             extendedEffortSupported = uiState.extendedEffortSupported,
+            thinkingDisplayUpdatesSupported = uiState.thinkingDisplayUpdatesSupported,
             selectedProvider = activeAgent?.provider,
             selectedModel = activeAgent?.model ?: uiState.selectedModel,
             // Remembered: `uiState` emits per SSE delta, so an open sheet recomposes once per

@@ -677,8 +677,16 @@ class ChatViewModel(
                     minVersion = "0.8.8-rc2",
                     landedDate = "2026-08-31",
                 )
+                // thinkingDisplay `updates` (v0.8.8, upstream 40bb16ed). PRESENT only: an older
+                // server's schema .catch() drops every endpoint param when the enum rejects it.
+                val thinkingDisplayUpdates = BackendVersion.supportsFeature(
+                    detected = detected,
+                    minVersion = "0.8.8",
+                    landedDate = "2026-09-28",
+                )
                 _uiState.update {
                     it.copy(
+                        selection = it.selection.copy(thinkingDisplayUpdatesSupported = thinkingDisplayUpdates),
                         gates = it.gates.copy(
                             steeringSupported = supported,
                             subagentThreadsSupported = subagentThreads,

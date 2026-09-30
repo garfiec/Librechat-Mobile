@@ -144,6 +144,8 @@ fun ModelParameterContent(
     selectedEndpoint: String = "",
     dynamicParameterDefinitions: List<ParameterDefinition>? = null,
     extendedEffortSupported: Boolean = false,
+    /** See [EndpointParameterRegistry.getDefinitions]; offers thinkingDisplay `updates` (v0.8.8+). */
+    thinkingDisplayUpdatesSupported: Boolean = false,
     selectedProvider: String? = null,
     selectedModel: String? = null,
     /** Resolved `/api/config.endpointsDropParamsMap` entry: controls for parameters this server
@@ -162,6 +164,7 @@ fun ModelParameterContent(
         selectedEndpoint,
         dynamicParameterDefinitions,
         extendedEffortSupported,
+        thinkingDisplayUpdatesSupported,
         selectedProvider,
         selectedModel,
         dropParams,
@@ -175,6 +178,7 @@ fun ModelParameterContent(
                 provider = selectedProvider,
                 model = selectedModel,
                 dropParams = dropParams,
+                thinkingDisplayUpdatesSupported = thinkingDisplayUpdatesSupported,
             )
         }
     }
