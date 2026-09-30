@@ -25,11 +25,12 @@ import org.junit.Test
 
 /**
  * Pins the wire shapes of the two prompt routes whose request and response bodies do not match the
- * bare-object convention the rest of `PromptsApi` follows.
+ * bare-object convention the rest of `PromptsApi` follows, and of the full group list both prompt
+ * surfaces load.
  *
- * The bodies below are live captures from a v0.8.7 server. This has to live at `:core:network`: no
- * test above it can see a JSON key, so a mismatch here compiles, type-checks, and surfaces only as
- * a `Result.Error` the UI handles correctly.
+ * The add and promote bodies below are live captures from a v0.8.7 server. This has to live at
+ * `:core:network`: no test above it can see a JSON key, so a mismatch here compiles, type-checks,
+ * and surfaces only as a `Result.Error` the UI handles correctly.
  */
 class PromptsApiWireShapeTest {
 
@@ -113,5 +114,36 @@ class PromptsApiWireShapeTest {
         // MissingFieldException, turning an accepted promotion into a Result.Error — which skips
         // the repository's revision bump, leaving the `/` picker on the superseded body.
         api("""{"message":"Prompt production made successfully"}""").updatePromptProductionTag("p-2")
+    }
+
+    /**
+     * `GET /api/prompts/all`, built from the server's list projection plus the `productionPrompt`
+     * and `isPublic` it attaches (not a live capture). A bare array, not the `/groups` envelope.
+     */
+    private val allResponse = """
+        [{"_id":"6a7d506cfee2d387a18fc986","name":"Summarize","numberOfGenerations":7,
+        "oneliner":"Short summary","category":"writing","productionId":"6a7d506df4113f7e6c7140bc",
+        "author":"6a797e6b09dd4560d08b49d6","authorName":"Author",
+        "createdAt":"2026-08-13T05:04:45.855Z","updatedAt":"2026-08-14T05:04:45.855Z",
+        "productionPrompt":{"prompt":"Summarize this: {{text}}"},"isPublic":false}]
+    """.trimIndent().replace("\n", "")
+
+    @Test
+    fun `the full list decodes every field the library sorts and filters on`() = runTest {
+        val groups = api(allResponse).getAllPromptGroups()
+
+        // The library sorts by numberOfGenerations and updatedAt, filters by category, and shows
+        // productionPrompt as the body — a key renamed here breaks those silently, not loudly.
+        val group = groups.single()
+        assertThat(lastRequest.url.encodedPath).isEqualTo("/api/prompts/all")
+        assertThat(group.numberOfGenerations).isEqualTo(7)
+        assertThat(group.updatedAt).isEqualTo("2026-08-14T05:04:45.855Z")
+        assertThat(group.category).isEqualTo("writing")
+        assertThat(group.productionPrompt?.prompt).isEqualTo("Summarize this: {{text}}")
+    }
+
+    @Test
+    fun `an empty library decodes to an empty list`() = runTest {
+        assertThat(api("[]").getAllPromptGroups()).isEmpty()
     }
 }

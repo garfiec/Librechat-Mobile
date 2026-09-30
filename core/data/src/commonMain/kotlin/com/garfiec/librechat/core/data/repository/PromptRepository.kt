@@ -6,7 +6,6 @@ import com.garfiec.librechat.core.model.PromptGroup
 import com.garfiec.librechat.core.model.request.AddPromptToGroupRequest
 import com.garfiec.librechat.core.model.request.CreatePromptRequest
 import com.garfiec.librechat.core.model.request.UpdatePromptGroupRequest
-import com.garfiec.librechat.core.model.response.PromptGroupListResponse
 import kotlinx.coroutines.flow.StateFlow
 
 interface PromptRepository {
@@ -23,9 +22,7 @@ interface PromptRepository {
      */
     val revision: StateFlow<Long>
 
-    suspend fun getGroups(pageSize: Int = 10, cursor: String? = null): Result<PromptGroupListResponse>
-
-    /** Every visible prompt group in one call, for surfaces that must not truncate (the `/` picker). */
+    /** Every visible prompt group in one call, for surfaces that must not truncate. */
     suspend fun getAllGroups(): Result<List<PromptGroup>>
 
     /**

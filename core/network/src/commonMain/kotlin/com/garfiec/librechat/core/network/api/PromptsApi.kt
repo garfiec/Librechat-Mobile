@@ -7,7 +7,6 @@ import com.garfiec.librechat.core.model.request.CreatePromptRequest
 import com.garfiec.librechat.core.model.request.UpdatePromptGroupRequest
 import com.garfiec.librechat.core.model.response.AddPromptToGroupResponse
 import com.garfiec.librechat.core.model.response.CreatePromptResponse
-import com.garfiec.librechat.core.model.response.PromptGroupListResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
@@ -34,26 +33,12 @@ class PromptsApi constructor(
     private val client: HttpClient,
     private val json: Json,
 ) {
-    suspend fun getPromptGroups(
-        pageSize: Int = 10,
-        cursor: String? = null,
-        name: String? = null,
-        category: String? = null,
-    ): PromptGroupListResponse =
-        client.get {
-            url { path("api/prompts/groups") }
-            parameter("pageSize", pageSize)
-            cursor?.let { parameter("cursor", it) }
-            name?.let { parameter("name", it) }
-            category?.let { parameter("category", it) }
-        }.body()
-
     /**
-     * Every prompt group the user can see, unpaginated — what the composer's `/` picker needs so a
-     * large library isn't silently truncated to one page.
+     * Every prompt group the user can see, unpaginated, so neither the composer's `/` picker nor the
+     * library is silently truncated to one page.
      *
-     * Returns a raw JSON array, not the [PromptGroupListResponse] envelope `groups` uses. Both routes
-     * share the same ACL-aware projection, so `command` is absent here too; match on name/oneliner.
+     * A bare JSON array, with each group's production body attached as `productionPrompt`. The
+     * server's projection omits `command`, so match on name/oneliner.
      */
     suspend fun getAllPromptGroups(): List<PromptGroup> =
         client.get {

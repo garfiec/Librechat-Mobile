@@ -26,8 +26,6 @@ data class PromptsUiState(
     val isRefreshing: Boolean = false,
     val error: String? = null,
     val selectedGroup: PromptGroupDetailDisplayData? = null,
-    val totalPages: Int = 0,
-    val currentPage: Int = 1,
     // Filter and sort state
     val selectedCategory: String? = null,
     val sortOrder: PromptSortOrder = PromptSortOrder.RECENT,
@@ -104,7 +102,7 @@ class PromptsViewModel(
         }
     }
 
-    /** Fetches the first page of prompt groups once the role confirms PROMPTS.USE. Permissive on timeout. */
+    /** Fetches every prompt group once the role confirms PROMPTS.USE. Permissive on timeout. */
     private fun loadInitialGroups() {
         viewModelScope.launch {
             if (permissionGate.awaitRole()?.hasAccess(PermissionType.PROMPTS, Permission.USE) != false) {
@@ -137,10 +135,11 @@ class PromptsViewModel(
             isRefreshing = !fullSpinner,
             error = if (surfaceErrors) null else _uiState.value.error,
         )
-        when (val result = promptRepository.getGroups()) {
+        // Every group, not a page: sorting, the category filter and the category chips all run
+        // here over the whole list, and the server's paged route orders by popularity, then recency.
+        when (val result = promptRepository.getAllGroups()) {
             is Result.Success -> {
-                val response = result.data
-                val groups = response.promptGroups
+                val groups = result.data
                 rawGroups = groups
                 loadedRevision = revision
                 val categories = groups
@@ -151,8 +150,6 @@ class PromptsViewModel(
 
                 _uiState.value = _uiState.value.copy(
                     groups = groups.map { it.toDisplayData() },
-                    totalPages = if (response.hasMore) 9999 else 1,
-                    currentPage = 1,
                     isLoading = false,
                     isRefreshing = false,
                     availableCategories = categories,

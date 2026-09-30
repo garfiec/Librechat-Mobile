@@ -200,7 +200,10 @@ Two consequences worth knowing before touching that block:
 
 ## Prompts
 - `PromptsLibraryScreen` and `PromptDetailScreen` live in `chat/prompts/`
-- `PromptsViewModel` loads prompt groups from `PromptRepository`
+- `PromptsViewModel` loads **every** prompt group via `PromptRepository.getAllGroups()`. The
+  library's sort, category filter and category chips all run client-side over that list, so a
+  paged load (the server orders `/groups` by popularity, then recency) would sort and filter a slice.
+  Deliberate divergence from web's infinite scroll, which has no sort picker.
 - `handlePromptMention()` on ChatViewModel inserts prompt command text at `@` position
 - **`PromptRepository.revision` is how a mutation reaches the screens beneath it.** The editor is
   *pushed on top of* both the library and the chat entry, so their ViewModels are retained and
@@ -214,8 +217,8 @@ Two consequences worth knowing before touching that block:
   the revision (`ChatRoot`'s required `promptLibraryRevision`/`onRefreshPrompts` pair for the chat,
   a `LaunchedEffect` in `PromptsLibraryScreen` for the library) and call a `refreshIfStale`. That is
   the visibility gate: a bump while the screen is off-screen costs nothing until the user returns,
-  so an editor that bumps five times flipping through versions costs one reload — and the picker's
-  route is the deliberately unpaginated one. Keying the effect on the revision (rather than firing
+  so an editor that bumps five times flipping through versions costs one reload — and both read
+  the deliberately unpaginated `/api/prompts/all`. Keying the effect on the revision (rather than firing
   once on entry) is what keeps it correct if a screen *stays* composed: it still reloads the moment
   the revision moves, so nothing here depends on Nav3 disposing the entry underneath.
   Each consumer records the revision it loaded and the one it is fetching, so a re-entry with
