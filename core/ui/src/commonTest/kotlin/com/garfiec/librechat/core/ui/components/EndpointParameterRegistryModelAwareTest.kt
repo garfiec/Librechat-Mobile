@@ -116,9 +116,20 @@ class EndpointParameterRegistryModelAwareTest {
         ).single { it.key == "reasoning_effort" }.options
 
     @Test
-    fun opus55HidesThinkingAndSamplingControls() {
+    fun alwaysOnThinkingModelsHideThinkingAndSamplingControls() {
         val hidden = listOf("thinking", "thinkingBudget", "temperature", "topP", "topK")
-        for (model in listOf("claude-opus-5-5", "claude-opus-5.5", "claude-5-5-opus", "global.anthropic.claude-opus-5-5")) {
+        for (
+            model in listOf(
+                "claude-opus-5-5",
+                "claude-opus-5.5",
+                "claude-5-5-opus",
+                "global.anthropic.claude-opus-5-5",
+                "claude-opus-5-6",
+                "claude-opus-6",
+                "claude-fable-5",
+                "claude-mythos-5",
+            )
+        ) {
             val keys = keysOf(anthropic(model))
             hidden.forEach { assertFalse(keys.contains(it), "$model still offers $it") }
             // Only those five; the rest of the Anthropic panel stays.
@@ -133,20 +144,47 @@ class EndpointParameterRegistryModelAwareTest {
     @Test
     fun otherOpusVersionsKeepTheirControls() {
         // A missing minor is 0, and a date suffix is not a minor.
-        for (model in listOf("claude-opus-5", "claude-opus-5-20260101", "claude-opus-4-5", "claude-opus-5-55")) {
+        for (model in listOf("claude-opus-5", "claude-opus-5-20260101", "claude-opus-4-5", "claude-opus-5-4")) {
             assertTrue(keysOf(anthropic(model)).contains("temperature"), model)
         }
     }
 
     @Test
+    fun sonnet55KeepsTheThinkingToggleAsItsBetweenToolsFloor() {
+        for (model in listOf("claude-sonnet-5-5", "claude-sonnet-5.5", "claude-5-5-sonnet", "claude-sonnet-6")) {
+            val defs = anthropic(model)
+            val keys = keysOf(defs)
+            assertTrue(keys.contains("thinking"), model)
+            listOf("thinkingBudget", "temperature", "topP", "topK").forEach {
+                assertFalse(keys.contains(it), "$model still offers $it")
+            }
+            assertTrue(defs.single { it.key == "thinking" }.description.orEmpty().contains("between tool calls"), model)
+        }
+        for (model in listOf("claude-sonnet-5", "claude-sonnet-5-20260101", "claude-sonnet-4-6")) {
+            assertTrue(keysOf(anthropic(model)).contains("thinkingBudget"), model)
+        }
+    }
+
+    @Test
+    fun thinkingDisplayOffersUpdatesOnBothAnthropicSites() {
+        val anthropicOptions = anthropic("claude-opus-4-7").single { it.key == "thinkingDisplay" }.options
+        val bedrockOptions = EndpointParameterRegistry
+            .getDefinitions(endpoint = "bedrock", model = "global.anthropic.claude-opus-4-7")
+            .single { it.key == "thinkingDisplay" }.options
+        assertEquals(listOf("auto", "summarized", "omitted", "updates"), anthropicOptions)
+        assertEquals(listOf("auto", "summarized", "omitted", "updates"), bedrockOptions)
+    }
+
+    @Test
     fun gpt6SolAndLunaDropMinimalEffort() {
-        for (model in listOf("gpt-6-sol", "gpt-6-luna", "GPT-6-Sol-2026-09-01")) {
+        for (model in listOf("gpt-6-sol", "gpt-6-luna", "GPT-6-Sol-2026-09-01", "gpt-6.1-sol", "gpt-6.1-luna-2026-10-01")) {
             val options = effortOf("openAI", model)!!
             assertFalse(options.contains("minimal"), model)
             assertTrue(options.contains("none"), model)
         }
         assertTrue(effortOf("openAI", "gpt-6-astra")!!.contains("minimal"))
         assertTrue(effortOf("openAI", "gpt-6-solar")!!.contains("minimal"))
+        assertTrue(effortOf("openAI", "gpt-6.1-astra")!!.contains("minimal"))
     }
 
     @Test
