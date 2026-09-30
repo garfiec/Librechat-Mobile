@@ -25,6 +25,7 @@ import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.AgentToolsRepository
 import com.garfiec.librechat.core.data.repository.ApiKeyRepository
 import com.garfiec.librechat.core.data.repository.AuthRepository
+import com.garfiec.librechat.core.data.repository.BackgroundTaskRepository
 import com.garfiec.librechat.core.data.repository.BalanceRepository
 import com.garfiec.librechat.core.data.repository.BannerRepository
 import com.garfiec.librechat.core.data.repository.ChatRepository
@@ -196,6 +197,7 @@ class KoinGraphVerificationTest {
             AuthRepository::class,
             BalanceRepository::class,
             BannerRepository::class,
+            BackgroundTaskRepository::class,
             ChatRepository::class,
             ConfigRepository::class,
             ConversationRepository::class,
