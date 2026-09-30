@@ -1,5 +1,7 @@
 package com.garfiec.librechat.feature.chat.prompts
 
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -21,7 +23,6 @@ data class PromptEditorUiState(
     val groupId: String? = null,
     val name: String = "",
     val oneliner: String = "",
-    val command: String = "",
     val promptText: String = "",
     val variableValues: Map<String, String> = emptyMap(),
     val prompts: List<Prompt> = emptyList(),
@@ -42,6 +43,15 @@ class PromptEditorViewModel(
 
     private val _uiState = MutableStateFlow(PromptEditorUiState())
     val uiState: StateFlow<PromptEditorUiState> = _uiState.asStateFlow()
+
+    /**
+     * The `/` command, held as field state rather than a `String` in [uiState]: the field edits it
+     * through [CommandInputTransformation], which keeps the caret where it belongs when a
+     * character is normalized away. A `String` round-trip loses that.
+     */
+    val commandState = TextFieldState()
+
+    private val command: String get() = commandState.text.toString()
 
     init {
         val groupId = initialGroupId
@@ -69,11 +79,11 @@ class PromptEditorViewModel(
                     val prompts = (promptsResult as? Result.Success)?.data ?: emptyList()
                     val mergedGroup = group.copy(prompts = prompts)
                     val productionPrompt = mergedGroup.prompts.find { it.id == mergedGroup.productionId }
+                    commandState.setTextAndPlaceCursorAtEnd(mergedGroup.command ?: "")
                     _uiState.value = _uiState.value.copy(
                         groupId = mergedGroup.id,
                         name = mergedGroup.name,
                         oneliner = mergedGroup.oneliner ?: "",
-                        command = mergedGroup.command ?: "",
                         promptText = productionPrompt?.prompt ?: mergedGroup.prompts.firstOrNull()?.prompt ?: "",
                         prompts = mergedGroup.prompts,
                         productionId = mergedGroup.productionId,
@@ -97,10 +107,6 @@ class PromptEditorViewModel(
 
     fun updateOneliner(oneliner: String) {
         _uiState.value = _uiState.value.copy(oneliner = oneliner)
-    }
-
-    fun updateCommand(command: String) {
-        _uiState.value = _uiState.value.copy(command = command.removePrefix("/"))
     }
 
     fun updatePromptText(text: String) {
@@ -178,11 +184,11 @@ class PromptEditorViewModel(
                 // command the user typed is not findable by the command they will type. `groupId`
                 // is adopted either way, so a retry updates the group just created rather than
                 // minting a duplicate.
-                val metadataSaved = if (state.oneliner.isNotBlank() || state.command.isNotBlank()) {
+                val metadataSaved = if (state.oneliner.isNotBlank() || command.isNotBlank()) {
                     val updateRequest = UpdatePromptGroupRequest(
                         name = state.name,
                         oneliner = state.oneliner.ifBlank { null },
-                        command = state.command.ifBlank { null },
+                        command = command.ifBlank { null },
                     )
                     val groupId = createdGroup.id
                     groupId != null && promptRepository.update(groupId, updateRequest) is Result.Success
@@ -213,7 +219,7 @@ class PromptEditorViewModel(
         val updateRequest = UpdatePromptGroupRequest(
             name = state.name,
             oneliner = state.oneliner.ifBlank { null },
-            command = state.command.ifBlank { null },
+            command = command.ifBlank { null },
         )
         when (val result = promptRepository.update(groupId, updateRequest)) {
             is Result.Success -> {

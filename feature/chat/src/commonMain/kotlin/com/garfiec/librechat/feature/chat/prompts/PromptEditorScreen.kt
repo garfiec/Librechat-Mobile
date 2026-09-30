@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -147,11 +148,12 @@ fun PromptEditorScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             OutlinedTextField(
-                value = if (uiState.command.isNotBlank()) "/${uiState.command}" else "",
-                onValueChange = viewModel::updateCommand,
+                state = viewModel.commandState,
+                inputTransformation = CommandInputTransformation,
                 label = { Text(stringResource(Res.string.prompt_command_label)) },
-                singleLine = true,
-                placeholder = { Text("/my-command") },
+                lineLimits = TextFieldLineLimits.SingleLine,
+                prefix = { Text("/") },
+                placeholder = { Text("my-command") },
                 modifier = Modifier.fillMaxWidth(),
             )
 
