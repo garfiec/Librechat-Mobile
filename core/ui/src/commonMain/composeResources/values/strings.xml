@@ -33,4 +33,6 @@
     <string name="pdf_password_hide">Hide password</string>
     <string name="pdf_password_confirm">Decrypt and upload</string>
     <string name="pdf_password_cancel">Cancel</string>
+    <!-- Description under the thinking toggle for Claude models whose thinking cannot be fully disabled (Sonnet 5.5+) -->
+    <string name="param_thinking_between_tools_description">Enables adaptive thinking controlled by the Effort parameter. This model cannot turn thinking off entirely: switching this off uses its lowest setting, which skips extended thinking and keeps only brief notes between tool calls. Effort is capped at High while off.</string>
 </resources>

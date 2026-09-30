@@ -30,4 +30,5 @@
     <string name="pdf_password_hide">إخفاء كلمة المرور</string>
     <string name="pdf_password_confirm">فك التشفير والرفع</string>
     <string name="pdf_password_cancel">إلغاء</string>
+    <string name="param_thinking_between_tools_description">يُفعّل التفكير التكيّفي الذي يتحكم فيه معامل الجهد. لا يمكن لهذا النموذج إيقاف التفكير كليًا: إيقاف هذا الخيار يستخدم أدنى إعداد له، فيتخطى التفكير الموسّع ويُبقي فقط على ملاحظات موجزة بين استدعاءات الأدوات. يقتصر الجهد على «مرتفع» عند الإيقاف.</string>
 </resources>

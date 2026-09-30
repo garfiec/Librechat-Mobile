@@ -1,5 +1,7 @@
 package com.garfiec.librechat.core.ui.components
 
+import com.garfiec.librechat.core.ui.resources.Res
+import com.garfiec.librechat.core.ui.resources.param_thinking_between_tools_description
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -158,10 +160,14 @@ class EndpointParameterRegistryModelAwareTest {
             listOf("thinkingBudget", "temperature", "topP", "topK").forEach {
                 assertFalse(keys.contains(it), "$model still offers $it")
             }
-            assertTrue(defs.single { it.key == "thinking" }.description.orEmpty().contains("between tool calls"), model)
+            val thinking = defs.single { it.key == "thinking" }
+            assertTrue(thinking.description.orEmpty().contains("between tool calls"), model)
+            // Rendered through localizedDescription, so it must resolve to the translated string.
+            assertEquals(Res.string.param_thinking_between_tools_description, thinking.descriptionRes(), model)
         }
         for (model in listOf("claude-sonnet-5", "claude-sonnet-5-20260101", "claude-sonnet-4-6")) {
             assertTrue(keysOf(anthropic(model)).contains("thinkingBudget"), model)
+            assertNull(anthropic(model).single { it.key == "thinking" }.descriptionRes(), model)
         }
     }
 

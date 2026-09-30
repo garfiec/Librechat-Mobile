@@ -30,4 +30,5 @@
     <string name="pdf_password_hide">Passwort ausblenden</string>
     <string name="pdf_password_confirm">Entschlüsseln und hochladen</string>
     <string name="pdf_password_cancel">Abbrechen</string>
+    <string name="param_thinking_between_tools_description">Aktiviert adaptives Denken, das über den Parameter „Aufwand“ gesteuert wird. Dieses Modell kann das Denken nicht vollständig abschalten: Beim Ausschalten wird die niedrigste Stufe verwendet, die erweitertes Denken überspringt und nur kurze Notizen zwischen Tool-Aufrufen behält. Im ausgeschalteten Zustand ist der Aufwand auf „Hoch“ begrenzt.</string>
 </resources>

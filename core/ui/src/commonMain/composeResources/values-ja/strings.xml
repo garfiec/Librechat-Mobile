@@ -30,4 +30,5 @@
     <string name="pdf_password_hide">パスワードを非表示</string>
     <string name="pdf_password_confirm">復号してアップロード</string>
     <string name="pdf_password_cancel">キャンセル</string>
+    <string name="param_thinking_between_tools_description">Effort パラメーターで制御される適応型思考を有効にします。このモデルは思考を完全にはオフにできません。オフにすると最も低い設定が使われ、拡張思考は行わず、ツール呼び出しの間の短いメモだけが残ります。オフの間、Effort は High が上限になります。</string>
 </resources>

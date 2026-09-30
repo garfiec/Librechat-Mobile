@@ -30,4 +30,5 @@
     <string name="pdf_password_hide">암호 숨기기</string>
     <string name="pdf_password_confirm">복호화 후 업로드</string>
     <string name="pdf_password_cancel">취소</string>
+    <string name="param_thinking_between_tools_description">Effort 매개변수로 제어되는 적응형 사고를 활성화합니다. 이 모델은 사고를 완전히 끌 수 없습니다. 끄면 가장 낮은 설정이 사용되어 확장 사고를 건너뛰고 도구 호출 사이의 짧은 메모만 남깁니다. 꺼져 있는 동안 Effort는 High로 제한됩니다.</string>
 </resources>
