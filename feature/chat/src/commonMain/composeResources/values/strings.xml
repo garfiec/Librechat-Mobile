@@ -389,6 +389,8 @@
     <!-- Delete dialog -->
     <string name="dialog_title_delete_conversation">Delete conversation</string>
     <string name="dialog_delete_conversation_message">This will permanently delete this conversation. This cannot be undone.</string>
+    <string name="dialog_title_delete_prompt">Delete prompt?</string>
+    <string name="dialog_delete_prompt_message">“%1$s” and all of its versions will be permanently deleted. This cannot be undone.</string>
 
     <!-- Artifacts -->
     <string name="cd_open_artifact">Open artifact</string>

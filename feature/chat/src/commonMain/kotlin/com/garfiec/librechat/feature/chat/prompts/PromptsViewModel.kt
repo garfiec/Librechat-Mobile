@@ -41,6 +41,8 @@ data class PromptsUiState(
     val showVariableDialog: Boolean = false,
     val variablePromptTemplate: String = "",
     val variableNames: List<String> = emptyList(),
+    val pendingDeleteGroupId: String? = null,
+    val isDeleting: Boolean = false,
     // Role-permission gates — default permissive.
     val promptsCreateEnabled: Boolean = true,
     val promptsShareEnabled: Boolean = true,
@@ -206,7 +208,7 @@ class PromptsViewModel(
     }
 
     fun clearSelectedGroup() {
-        _uiState.value = _uiState.value.copy(selectedGroup = null)
+        _uiState.value = _uiState.value.copy(selectedGroup = null, pendingDeleteGroupId = null)
     }
 
     fun onCategorySelected(category: String?) {
@@ -247,20 +249,44 @@ class PromptsViewModel(
         _uiState.value = state.copy(filteredGroups = filtered.map { it.toDisplayData() })
     }
 
-    fun deleteGroup(groupId: String) {
+    /**
+     * Asks for confirmation before [confirmDeleteGroup] runs. The server's group delete is a hard
+     * cascade over every version with no restore, so the trash icon must never delete on its own.
+     */
+    fun requestDeleteGroup(groupId: String) {
+        if (_uiState.value.isDeleting) return
+        _uiState.value = _uiState.value.copy(pendingDeleteGroupId = groupId)
+    }
+
+    fun dismissDeleteGroup() {
+        _uiState.value = _uiState.value.copy(pendingDeleteGroupId = null)
+    }
+
+    fun confirmDeleteGroup() {
+        val groupId = _uiState.value.pendingDeleteGroupId ?: return
+        _uiState.value = _uiState.value.copy(pendingDeleteGroupId = null, isDeleting = true)
+        deleteGroup(groupId)
+    }
+
+    private fun deleteGroup(groupId: String) {
         viewModelScope.launch {
             // Close the detail view only on Success — doing it unconditionally reports a prompt as
             // gone while it is still on the server. `delete` is safeApiCall-wrapped, so failure
             // arrives as a returned Result.Error and a try/catch here would never see it.
             when (val result = promptRepository.delete(groupId)) {
-                is Result.Success -> _uiState.value = _uiState.value.copy(selectedGroup = null)
+                is Result.Success -> _uiState.value = _uiState.value.copy(
+                    // The user may have backed out and opened another prompt while this was in flight.
+                    selectedGroup = _uiState.value.selectedGroup?.takeIf { it.id != groupId },
+                    isDeleting = false,
+                )
                 is Result.Error -> {
                     Logger.e(result.exception) { "Failed to delete prompt" }
                     _uiState.value = _uiState.value.copy(
                         error = result.message ?: "Failed to delete prompt",
+                        isDeleting = false,
                     )
                 }
-                is Result.Loading -> { /* no-op */ }
+                is Result.Loading -> _uiState.value = _uiState.value.copy(isDeleting = false)
             }
         }
     }

@@ -251,6 +251,8 @@
     <!-- Delete dialog -->
     <string name="dialog_title_delete_conversation">حذف المحادثة</string>
     <string name="dialog_delete_conversation_message">سيؤدي هذا إلى حذف هذه المحادثة نهائيًا. لا يمكن التراجع عن ذلك.</string>
+    <string name="dialog_title_delete_prompt">حذف المطالبة؟</string>
+    <string name="dialog_delete_prompt_message">سيتم حذف «%1$s» وجميع إصداراتها نهائيًا. لا يمكن التراجع عن ذلك.</string>
 
     <!-- Artifacts -->
     <string name="cd_open_artifact">فتح العنصر التفاعلي</string>

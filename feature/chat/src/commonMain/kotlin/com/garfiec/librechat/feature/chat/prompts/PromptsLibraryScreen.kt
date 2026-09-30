@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,6 +35,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -88,7 +90,7 @@ fun PromptsLibraryScreen(
         PromptDetailScreen(
             group = selectedGroup,
             onBack = viewModel::clearSelectedGroup,
-            onDelete = { viewModel.deleteGroup(selectedGroup.id) },
+            onDelete = { viewModel.requestDeleteGroup(selectedGroup.id) },
             onUseInChat = { promptText ->
                 // Only user-fillable variables warrant the dialog. A prompt whose only placeholders
                 // are server-substituted specials ({{current_date}} and friends) goes straight
@@ -106,7 +108,26 @@ fun PromptsLibraryScreen(
             onShare = {
                 viewModel.showShareDialog(selectedGroup.id)
             },
+            isDeleting = uiState.isDeleting,
         )
+
+        if (uiState.pendingDeleteGroupId == selectedGroup.id) {
+            AlertDialog(
+                onDismissRequest = viewModel::dismissDeleteGroup,
+                title = { Text(stringResource(Res.string.dialog_title_delete_prompt)) },
+                text = { Text(stringResource(Res.string.dialog_delete_prompt_message, selectedGroup.name)) },
+                confirmButton = {
+                    TextButton(onClick = viewModel::confirmDeleteGroup) {
+                        Text(stringResource(Res.string.delete), color = MaterialTheme.colorScheme.error)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = viewModel::dismissDeleteGroup) {
+                        Text(stringResource(Res.string.cancel))
+                    }
+                },
+            )
+        }
 
         // Variable input dialog
         if (uiState.showVariableDialog) {
