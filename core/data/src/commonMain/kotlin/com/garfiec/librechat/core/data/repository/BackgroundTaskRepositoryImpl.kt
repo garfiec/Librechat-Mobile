@@ -61,7 +61,9 @@ class BackgroundTaskRepositoryImpl(
 
         /**
          * UTC landing day of the routes (e32e6b540ecd). Day-granular: a dev build from earlier that
-         * same day is treated as having them and costs one 404, which the latch absorbs.
+         * same day is placed PRESENT, so its 404 does not latch and every bind, run settle and sheet
+         * open repeats one 404. Harmless (the chip stays hidden); the day after would instead hide
+         * the chip from same-day builds that have the routes.
          */
         const val LANDED_DATE = "2026-09-25"
         const val HTTP_NOT_FOUND = 404

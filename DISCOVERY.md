@@ -1414,7 +1414,8 @@ agent params  anthropic thinkingDisplay   (v0.8.8, 40bb16ed #16460) adds `'updat
                                             between-tools thinking floor, and Opus ≥ 5.5 plus the Mythos class
                                             are always-on. The Sonnet/Opus rules are model-name driven; the
                                             `'updates'` option itself is version-gated (0.8.8, landed
-                                            2026-09-28), because a pre-0.8.8 server's schema `.catch()`
+                                            2026-09-28; gated from 2026-09-29 so a same-day predecessor is
+                                            never offered it), because a pre-0.8.8 server's schema `.catch()`
                                             discards every endpoint param on an unknown value. (BUILT)
 
 # SSE / stream-error payloads
