@@ -880,6 +880,33 @@
       },
       "why": "The web client's own rules for recognizing a wake-up turn, on top of the server's headers and payload fields watched by the three wakeup-* entries: the length cap, the accepted statuses, the header-equals-payload status check, and rejecting a background turn that holds a cancelled task. The whole file is the parser, so it is watched file-level.",
       "failure_mode": "The client classifies a turn differently from the web: a wake-up renders as a user bubble of raw prompt JSON, or a user message collapses into a system row."
+    },
+    {
+      "id": "prompt-command-input-sanitizer",
+      "upstream": {
+        "file": "client/src/components/Prompts/fields/Command.tsx",
+        "symbol": "handleInputChange",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/prompts/PromptEditorViewModel.kt",
+        "symbol": "sanitizeCommand"
+      },
+      "why": "How the web normalizes a prompt's slash command as it is typed: lowercase, whitespace to '-', only [a-z0-9-], capped at Constants.COMMANDS_MAX_LENGTH. Anything it lets through is rejected by the group update that carries the command.",
+      "failure_mode": "The field accepts a command the server rejects, and the prompt's save fails with a 400."
+    },
+    {
+      "id": "prompt-command-update-schema",
+      "upstream": {
+        "file": "packages/api/src/prompts/schemas.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/prompts/PromptEditorViewModel.kt",
+        "symbol": "sanitizeCommand / COMMAND_MAX_LENGTH"
+      },
+      "why": "The zod schema PATCH /api/prompts/groups/:groupId validates against: the command's ^[a-z0-9-]*$ regex and its max length. Watched file-level because the block extractor stops at updatePromptGroupSchema's type annotation and never reaches the runtime schema. COMMAND_MAX_LENGTH copies Constants.COMMANDS_MAX_LENGTH (56); the Constants enum itself is too large to watch without constant noise.",
+      "failure_mode": "Same as prompt-command-input-sanitizer."
     }
   ]
 }

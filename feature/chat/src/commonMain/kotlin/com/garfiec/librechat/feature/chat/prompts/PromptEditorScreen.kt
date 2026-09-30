@@ -29,10 +29,14 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
@@ -53,6 +57,7 @@ fun PromptEditorScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val currentOnBack by rememberUpdatedState(onBack)
+    var commandField by remember { mutableStateOf(TextFieldValue()) }
 
     LaunchedEffect(uiState.error) {
         val error = uiState.error
@@ -146,12 +151,32 @@ fun PromptEditorScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
+            // The `/` is a prefix, never part of the value. Sanitizing can drop characters
+            // (a `!` typed mid-command), and a String-valued field keeps its old caret index over
+            // the shorter text, so the next keystroke lands one place right. Recompute the caret
+            // from the sanitized text before it.
+            val commandValue = if (commandField.text == uiState.command) {
+                commandField
+            } else {
+                TextFieldValue(uiState.command, TextRange(uiState.command.length))
+            }
             OutlinedTextField(
-                value = if (uiState.command.isNotBlank()) "/${uiState.command}" else "",
-                onValueChange = viewModel::updateCommand,
+                value = commandValue,
+                onValueChange = { edited ->
+                    val sanitized = sanitizeCommand(edited.text)
+                    if (sanitized.length > COMMAND_MAX_LENGTH) return@OutlinedTextField
+                    commandField = if (sanitized == edited.text) {
+                        edited
+                    } else {
+                        val caret = sanitizeCommand(edited.text.take(edited.selection.end)).length
+                        TextFieldValue(sanitized, TextRange(caret.coerceAtMost(sanitized.length)))
+                    }
+                    viewModel.updateCommand(sanitized)
+                },
                 label = { Text(stringResource(Res.string.prompt_command_label)) },
                 singleLine = true,
-                placeholder = { Text("/my-command") },
+                prefix = { Text("/") },
+                placeholder = { Text("my-command") },
                 modifier = Modifier.fillMaxWidth(),
             )
 

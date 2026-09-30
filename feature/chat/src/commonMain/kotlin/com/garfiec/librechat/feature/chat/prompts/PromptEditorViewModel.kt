@@ -100,7 +100,9 @@ class PromptEditorViewModel(
     }
 
     fun updateCommand(command: String) {
-        _uiState.value = _uiState.value.copy(command = command.removePrefix("/"))
+        val sanitized = sanitizeCommand(command)
+        if (sanitized.length > COMMAND_MAX_LENGTH) return
+        _uiState.value = _uiState.value.copy(command = sanitized)
     }
 
     fun updatePromptText(text: String) {
@@ -270,3 +272,21 @@ class PromptEditorViewModel(
         _uiState.value = _uiState.value.copy(error = null)
     }
 }
+
+/**
+ * Upstream `Constants.COMMANDS_MAX_LENGTH`. An edit that would exceed it is ignored, as on web,
+ * rather than truncated: truncating an insert made mid-command would silently drop the last char.
+ */
+internal const val COMMAND_MAX_LENGTH = 56
+
+/**
+ * Mirrors upstream `Command.tsx`'s `handleInputChange`: lowercase, whitespace to `-`, then only
+ * `[a-z0-9-]`. The group update that carries the command rejects anything else with a 400, so
+ * input this lets through fails the whole save. Char filters rather than a `Regex`, which can
+ * parse on the JVM and still throw on Android.
+ */
+internal fun sanitizeCommand(input: String): String =
+    input.lowercase()
+        .map { if (it.isWhitespace()) '-' else it }
+        .filter { it in 'a'..'z' || it in '0'..'9' || it == '-' }
+        .joinToString("")
