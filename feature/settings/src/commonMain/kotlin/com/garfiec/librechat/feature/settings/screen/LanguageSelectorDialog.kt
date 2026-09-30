@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -91,7 +92,7 @@ internal fun LanguageSelectorDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        modifier = modifier,
+        modifier = modifier.clearFocusOnTap(),
         title = { Text(stringResource(Res.string.language)) },
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {

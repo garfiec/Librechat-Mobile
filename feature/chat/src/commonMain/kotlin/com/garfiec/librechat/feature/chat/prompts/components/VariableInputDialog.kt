@@ -21,6 +21,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.chat.prompts.substitutePromptVariables
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -40,7 +41,7 @@ fun VariableInputDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        modifier = modifier,
+        modifier = modifier.clearFocusOnTap(),
         title = { Text(stringResource(Res.string.dialog_title_fill_variables)) },
         text = {
             Column(

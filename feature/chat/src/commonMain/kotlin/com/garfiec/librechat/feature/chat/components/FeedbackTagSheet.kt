@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.FeedbackRating
 import com.garfiec.librechat.core.model.FeedbackTag
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -80,7 +81,7 @@ internal fun FeedbackTagSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         dragHandle = { LowProfileDragHandle() },
-        modifier = modifier,
+        modifier = modifier.clearFocusOnTap(),
         sheetState = sheetState,
     ) {
         Column(

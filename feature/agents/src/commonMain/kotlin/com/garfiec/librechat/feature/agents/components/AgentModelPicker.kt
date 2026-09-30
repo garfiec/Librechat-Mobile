@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.agents.resources.*
 import com.garfiec.librechat.feature.agents.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -117,6 +118,7 @@ private fun ModelPickerSheet(
     }
 
     ModalBottomSheet(
+        modifier = Modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
         dragHandle = { LowProfileDragHandle() },
         sheetState = sheetState,

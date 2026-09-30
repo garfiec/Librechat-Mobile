@@ -46,6 +46,7 @@ import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.ui.components.PdfPasswordDialog
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.chat.components.AskUserQuestionPanel
 import com.garfiec.librechat.feature.chat.components.ChatFloatingTopBar
 import com.garfiec.librechat.feature.chat.components.localizedStreamError
@@ -501,6 +502,7 @@ actual fun ChatScreen(
     if (showRenameDialog) {
         var title by remember { mutableStateOf(uiState.conversationTitle ?: "") }
         AlertDialog(
+            modifier = Modifier.clearFocusOnTap(),
             onDismissRequest = { showRenameDialog = false },
             title = { Text(stringResource(Res.string.dialog_title_rename)) },
             text = {

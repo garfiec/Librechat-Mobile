@@ -30,6 +30,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.ChatProject
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.conversations.resources.Res
 import com.garfiec.librechat.feature.conversations.resources.project_create
 import com.garfiec.librechat.feature.conversations.resources.project_new_name
@@ -57,7 +58,7 @@ fun ProjectPicker(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        modifier = modifier,
+        modifier = modifier.clearFocusOnTap(),
         dragHandle = { LowProfileDragHandle() },
     ) {
         Column(

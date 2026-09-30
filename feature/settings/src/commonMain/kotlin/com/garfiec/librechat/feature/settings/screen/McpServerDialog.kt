@@ -48,6 +48,7 @@ import com.garfiec.librechat.core.model.mcp.McpAuthorizationType
 import com.garfiec.librechat.core.model.mcp.McpOAuthConfig
 import com.garfiec.librechat.core.model.mcp.McpServer
 import com.garfiec.librechat.core.model.mcp.McpServerType
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -116,7 +117,7 @@ internal fun McpServerDialog(
     val secretFieldRequester = remember { BringIntoViewRequester() }
 
     AlertDialog(
-        modifier = modifier,
+        modifier = modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
         title = {
             Text(stringResource(if (isEditing) Res.string.edit_mcp_server else Res.string.add_mcp_server))

@@ -39,6 +39,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.artifactTypeGlyph
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.add_to_home_screen_confirm
 import com.garfiec.librechat.feature.chat.resources.add_to_home_screen_dialog_emoji_label
@@ -138,6 +139,7 @@ private fun AddArtifactToHomeScreenDialog(
     val customPending = (choice as? IconChoice.Custom)?.emoji?.isBlank() == true
 
     AlertDialog(
+        modifier = Modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.add_to_home_screen_dialog_title)) },
         text = {

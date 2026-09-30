@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.HueSlider
 import com.garfiec.librechat.core.ui.components.SaturationValuePanel
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.core.ui.components.hsvColor
 import com.garfiec.librechat.core.ui.components.parseHexColor
 import com.garfiec.librechat.core.ui.components.toHexString
@@ -77,7 +78,7 @@ internal fun AccentColorDialog(
     }
 
     AlertDialog(
-        modifier = modifier,
+        modifier = modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.accent_color)) },
         text = {

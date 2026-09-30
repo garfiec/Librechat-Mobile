@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.Memory
 import com.garfiec.librechat.core.model.MemoryKeyProblem
 import com.garfiec.librechat.core.model.memoryKeyProblem
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -60,7 +61,7 @@ internal fun MemoryEditDialog(
     }
 
     AlertDialog(
-        modifier = modifier,
+        modifier = modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
         title = {
             Text(stringResource(if (isEditing) Res.string.edit_memory else Res.string.add_memory))

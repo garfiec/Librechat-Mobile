@@ -25,6 +25,49 @@ Material 3 theme and shared Compose components used across all feature modules. 
 - `BannerDisplay` - The server banner. The server sends at most one and only ever types it
   `banner`, so there is a single visual treatment; a `persistable` banner hides the dismiss control.
 
+### Keyboard dismissal (`components/ClearFocusOnTap.kt`)
+`Modifier.clearFocusOnTap()` clears focus — dismissing the keyboard — on a tap nothing else handled.
+iOS has no Back key, so without it a focused field's keyboard cannot be dismissed at all. Applies on
+both platforms.
+
+- **Rule: every composition root that can host a text field applies it.** The app roots already do
+  (`MainActivity`'s root `Surface`, `LibreChatApp`'s root `Box`). Every `AlertDialog` /
+  `ModalBottomSheet` / `Dialog` whose content has a text field must apply it too — they render in their
+  own window (Android) / platform layer (iOS), which the app root's pointer input never sees. On
+  `AlertDialog`/`ModalBottomSheet` pass it as `modifier`; `Dialog` has none, so put it on the content root.
+- **Why `clearFocus()`, not `LocalSoftwareKeyboardController.hide()`:** hide leaves the field focused,
+  so tapping it again may not reshow the keyboard.
+- **Why not `Modifier.clickable { clearFocus() }` on a root Box** (the common snippet): full-screen
+  ripple, plus an accessibility "button" node covering the whole app.
+- **Why not `detectTapGestures`:** it cancels only when a child consumes the movement, so a drag across
+  inert space would count as a tap. The node gives up past touch slop, like a UIKit tap recognizer.
+- **Why not a native UIKit tap recognizer on the host view:** it can't hit-test Compose text fields,
+  and `endEditing` resigns CMP's hidden input view without clearing Compose focus.
+
+Behaviour, pinned by `ClearFocusOnTapInstrumentedTest` (Android; every row, with a list swipe standing in for the drag gestures) and `ClearFocusOnTapIosTest`
+(iOS simulator, `:core:ui:iosSimulatorArm64Test` — CMP's iOS text field has its own gesture code, so
+"the field consumes its own tap" must be proven there too). The one rule: a down→up within touch slop
+that no child consumed:
+
+| Gesture | Keyboard | Why |
+|---|---|---|
+| Tap on empty space | dismisses | it's a tap nothing handled |
+| Hold still on empty space, then release | dismisses | no duration cap — any still down→up is a tap |
+| Tap on message text (`SelectionContainer`) | dismisses | its clear-selection tap doesn't consume |
+| Tap on the focused field | stays | the field consumes its own tap |
+| Tap on a button (Send, attach, chips) | stays | the button consumes; the button still fires |
+| Scroll / fling / pull-to-refresh / sheet drag | stays | a drag is not a tap |
+| Drag across non-scrolling space | stays | past touch slop → gesture abandoned |
+| Tap that stops a fling | stays | the list consumes the stopping tap |
+| Long-press message text | dismisses | **not this modifier**: starting a selection moves focus to the `SelectionContainer`; same without it |
+
+**Deliberately not done — scroll-to-dismiss.** iMessage dismisses when the transcript is dragged
+(`keyboardDismissMode = .interactive`: the keyboard tracks the finger and can be dragged back). Compose
+can't reproduce the interactive variant, and the "dismiss as soon as a scroll starts" approximation is
+non-idiomatic on Android, where chat apps keep the keyboard while scrolling history. If ever wanted: iOS
+only, message list only, user-initiated scrolls only (`NestedScrollSource.UserInput`) — never the
+streaming auto-follow scroll.
+
 ### Markdown
 - core/ui does NOT provide a shared markdown renderer. Features render markdown
   directly with the `com.mikepenz` multiplatform-markdown-renderer

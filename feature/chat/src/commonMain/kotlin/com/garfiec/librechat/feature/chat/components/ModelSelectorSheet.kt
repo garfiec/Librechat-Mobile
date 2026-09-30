@@ -59,6 +59,7 @@ import com.garfiec.librechat.core.model.endpoint.KeyState
 import com.garfiec.librechat.core.ui.components.EndpointIcon
 import com.garfiec.librechat.core.ui.components.ErrorBanner
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.util.FuzzyMatch
@@ -136,7 +137,7 @@ fun ModelSelectorSheet(
         onDismissRequest = onDismiss,
         dragHandle = { LowProfileDragHandle() },
         sheetState = sheetState,
-        modifier = modifier,
+        modifier = modifier.clearFocusOnTap(),
     ) {
         ModelSelectorSheetContent(
             endpointConfigs = endpointConfigs,

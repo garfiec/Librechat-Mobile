@@ -44,6 +44,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.garfiec.librechat.core.model.ActionAuth
 import com.garfiec.librechat.core.model.ActionMetadata
 import com.garfiec.librechat.core.model.request.FunctionTool
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.agents.AgentActionDisplayData
 import com.garfiec.librechat.feature.agents.resources.*
 import com.garfiec.librechat.feature.agents.resources.Res
@@ -115,6 +116,7 @@ internal fun ActionEditorDialog(
         ),
     ) {
         Scaffold(
+            modifier = Modifier.clearFocusOnTap(),
             topBar = {
                 Surface(tonalElevation = 2.dp) {
                     Row(
