@@ -5,7 +5,6 @@ import android.content.ClipboardManager
 import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.gestures.AnchoredDraggableDefaults
 import androidx.compose.foundation.gestures.AnchoredDraggableState
 import androidx.compose.foundation.gestures.DraggableAnchors
@@ -18,7 +17,6 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,24 +24,23 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.key
-import com.garfiec.librechat.core.ui.components.PdfPasswordDialog
-import com.garfiec.librechat.feature.chat.prompts.components.VariableInputDialog
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -73,25 +70,27 @@ import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.model.response.pickerMimeTypes
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
+import com.garfiec.librechat.core.ui.components.PdfPasswordDialog
 import com.garfiec.librechat.feature.chat.components.AskUserQuestionPanel
 import com.garfiec.librechat.feature.chat.components.ChatFloatingTopBar
 import com.garfiec.librechat.feature.chat.components.ChatInput
-import com.garfiec.librechat.feature.chat.components.ChatRoot
 import com.garfiec.librechat.feature.chat.components.ChatOptionsPage
+import com.garfiec.librechat.feature.chat.components.ChatRoot
 import com.garfiec.librechat.feature.chat.components.ChatToolsSheetContent
 import com.garfiec.librechat.feature.chat.components.UploadRoutingSheet
 import com.garfiec.librechat.feature.chat.components.addToChatSelectionItem
-import com.garfiec.librechat.feature.chat.components.rememberChatOptionsSheetController
 import com.garfiec.librechat.feature.chat.components.rememberChatAttachmentActions
+import com.garfiec.librechat.feature.chat.components.rememberChatOptionsSheetController
+import com.garfiec.librechat.feature.chat.prompts.components.VariableInputDialog
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.asString
 import com.garfiec.librechat.feature.chat.viewmodel.neutralizeStreamingChurn
-import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
+import kotlin.math.roundToInt
 
 /** Anchor states for the finger-following pull-up tools sheet. */
 private enum class PullUpAnchor { Hidden, Revealed }
@@ -226,7 +225,6 @@ actual fun ChatScreen(
         viewModel = viewModel,
         snackbarHostState = snackbarHostState,
         onConversationStart = onConversationStart,
-        onNavigateToConversation = onNavigateToConversation,
         onNavigateBack = onNavigateBack,
         onNavigateToProviderKeys = onNavigateToProviderKeys,
     )

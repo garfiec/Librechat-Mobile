@@ -13,13 +13,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.UIKitView
 import com.garfiec.librechat.core.ui.theme.isSurfaceDark
+import com.garfiec.librechat.feature.chat.components.web.loadVendoredHtml
+import com.garfiec.librechat.feature.chat.components.web.rememberWebAssetBaseUrl
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.cValue
 import kotlinx.cinterop.useContents
-import platform.Foundation.NSURL
 import platform.UIKit.UIScreen
-import com.garfiec.librechat.feature.chat.components.web.loadVendoredHtml
-import com.garfiec.librechat.feature.chat.components.web.rememberWebAssetBaseUrl
 import platform.WebKit.WKWebView
 import platform.WebKit.WKWebViewConfiguration
 

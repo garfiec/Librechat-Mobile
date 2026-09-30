@@ -24,7 +24,6 @@ internal fun ChatScreenEffects(
     viewModel: ChatViewModel,
     snackbarHostState: SnackbarHostState,
     onConversationStart: ((conversationId: String, isTemporary: Boolean) -> Unit)?,
-    onNavigateToConversation: ((String) -> Unit)?,
     onNavigateBack: (() -> Unit)?,
     onNavigateToProviderKeys: (endpointName: String?) -> Unit,
 ) {
@@ -64,7 +63,6 @@ internal fun ChatScreenEffects(
         viewModel = viewModel,
         snackbarHostState = snackbarHostState,
     )
-
 
     // Navigate back after delete/archive (conversationId becomes null)
     var hadConversation by remember { mutableStateOf(uiState.conversationId != null) }

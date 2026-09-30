@@ -47,13 +47,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.viewinterop.UIKitView
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.UIKitView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.ui.platform.currentTopmostViewController
+import com.garfiec.librechat.feature.chat.components.web.loadVendoredHtml
+import com.garfiec.librechat.feature.chat.components.web.rememberWebAssetBaseUrl
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import kotlinx.cinterop.BetaInteropApi
@@ -80,8 +82,6 @@ import platform.CoreMedia.CMTimeGetSeconds
 import platform.Foundation.NSData
 import platform.Foundation.NSFileManager
 import platform.Foundation.NSTemporaryDirectory
-import com.garfiec.librechat.feature.chat.components.web.loadVendoredHtml
-import com.garfiec.librechat.feature.chat.components.web.rememberWebAssetBaseUrl
 import platform.Foundation.NSURL
 import platform.Foundation.create
 import platform.Foundation.writeToFile
