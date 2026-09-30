@@ -19,7 +19,7 @@ server during onboarding; the app has no backend of its own and ships no default
 - **Application ID:** `com.garfiec.librechat`
 - **Issue tracker:** https://github.com/garfiec/Librechat-Mobile/issues
 - **Current release:** `v<VERSION>` (versionCode `<CODE>`)
-- **minSdk / targetSdk:** 26 / 35 (compileSdk 36)
+- **minSdk / targetSdk:** 26 / 35 (compileSdk 37)
 
 ### Signing
 
@@ -120,14 +120,15 @@ Releases before those fixes are permanently unreproducible and are not offered f
 
 ### Toolchain
 
-The project builds with Gradle 9.5.1, AGP 9.2.1, Kotlin 2.4.10, JDK 21, compileSdk 36.
+The project builds with Gradle 9.5.1, AGP 9.2.1, Kotlin 2.4.10, JDK 21, compileSdk 37.
 We ran `fdroid build` against `registry.gitlab.com/fdroid/fdroidserver:buildserver` to check
 these in advance rather than leaving them for a first failed build:
 
 - **JDK 21** is the image default — no action needed.
-- **compileSdk 36 / build-tools 36.0.0** are not preinstalled (the image's provisioning list
-  stops at android-33) but install automatically during the build; the licences in
-  `/opt/android-sdk/licenses` are already accepted.
+- **compileSdk 37** is not preinstalled (the image's provisioning list stops at android-33).
+  Platform 36 and build-tools 36.0.0 installed automatically during the build, with the
+  licences in `/opt/android-sdk/licenses` already accepted; **platform 37 has not yet been
+  re-checked in the image** — rerun `fdroid build` before submitting.
 - **Gradle 9.5.1** resolves correctly from `gradle-wrapper.properties` and is present in the
   gradle-transparency-log, **but only the Python `gradle` shim in the image can use it.** The
   `gradlew-fdroid` shipped by the Debian `fdroidserver` package (2.4.2, trixie) is an older

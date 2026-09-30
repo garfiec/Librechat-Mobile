@@ -178,7 +178,7 @@ See [iosApp/README.md](iosApp/README.md) for full build and launch instructions.
 - Ktor Client (OkHttp on Android, Darwin on iOS)
 - Kotlinx Serialization
 - Room (cache), DataStore (preferences), EncryptedSharedPreferences / Keychain (tokens)
-- Kotlin 2.4.10, compileSdk 36, minSdk 26
+- Kotlin 2.4.10, compileSdk 37, minSdk 26
 
 ## Contributing
 
