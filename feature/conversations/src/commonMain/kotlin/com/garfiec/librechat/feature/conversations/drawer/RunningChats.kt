@@ -15,6 +15,10 @@ internal const val RUNNING_CHATS_GROUP = "\u0000running"
  * Search results are promoted too, pinned matches included: upstream's call site
  * (`Conversations.tsx` `groupedConversations`) passes `includePinned: isArchivedView`, not the
  * search-aware flag its date grouping uses, so only the archive skips this.
+ *
+ * Upstream's `field !== 'updatedAt' || direction !== 'desc'` guard has no counterpart because the
+ * drawer has no other ordering: `ConversationListStateHolder` requests pages with no sort and
+ * reads Room's `ORDER BY updatedAt DESC`. A sort picker added to the drawer has to add the guard.
  */
 internal fun <T> groupWithRunning(
     groups: List<Pair<String, List<T>>>,

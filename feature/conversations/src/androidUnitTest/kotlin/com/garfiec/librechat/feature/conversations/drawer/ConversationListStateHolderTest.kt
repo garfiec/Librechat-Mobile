@@ -75,6 +75,28 @@ class ConversationListStateHolderTest {
     }
 
     @Test
+    fun `a running search match is lifted into Running, pinned or not`() = runTest {
+        // Upstream Conversations.tsx passes `includePinned: isArchivedView` (not the search-aware
+        // flag) to groupConversationsWithRunning, so search still promotes live matches. Pins stay
+        // in the search results because the Pinned section is hidden while searching.
+        val pinned = convos.map { if (it.conversationId == "c2") it.copy(pinned = true) else it }
+        every { conversationRepository.observeConversations(any()) } returns
+            MutableStateFlow<Result<List<Conversation>>>(Result.Success(pinned))
+
+        val holder = ConversationListStateHolder(conversationRepository, scope, dayBoundaries = emptyFlow())
+        advanceUntilIdle()
+        assertThat(holder.groupedConversations.value.withRunningFirst(setOf("c2")).map { it.first })
+            .doesNotContain(RUNNING_CHATS_GROUP)
+
+        holder.onSearchQueryChanged("Alpha")
+        advanceUntilIdle()
+
+        val grouped = holder.groupedConversations.value.withRunningFirst(setOf("c2"))
+        assertThat(grouped.first().first).isEqualTo(RUNNING_CHATS_GROUP)
+        assertThat(grouped.first().second.map { it.conversationId }).containsExactly("c2")
+    }
+
+    @Test
     fun `rename during active drawer search updates the visible title`() = runTest {
         val roomFlow = MutableStateFlow<Result<List<Conversation>>>(Result.Success(convos))
         every { conversationRepository.observeConversations(any()) } returns roomFlow
