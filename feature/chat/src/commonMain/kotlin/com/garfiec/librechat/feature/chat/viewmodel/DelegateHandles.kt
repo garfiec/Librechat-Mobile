@@ -253,12 +253,16 @@ class PendingActionWrites internal constructor(state: ChatUiState) {
     var pendingAction: PendingAction? = state.content.pendingAction
     var isResolvingPendingAction: Boolean = state.content.isResolvingPendingAction
     var askAnswerDrafts: Map<String, AskAnswerDraft> = state.content.askAnswerDrafts
+    var askActiveQuestionId: String? = state.content.askActiveQuestionId
+    var askPanelCollapsed: Boolean = state.content.askPanelCollapsed
     var error: String? = state.error
     internal fun applyTo(s: ChatUiState) = s.copy(
         content = s.content.copy(
             pendingAction = pendingAction,
             isResolvingPendingAction = isResolvingPendingAction,
             askAnswerDrafts = askAnswerDrafts,
+            askActiveQuestionId = askActiveQuestionId,
+            askPanelCollapsed = askPanelCollapsed,
         ),
         error = error,
     )

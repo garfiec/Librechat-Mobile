@@ -218,6 +218,8 @@ data class ChatUiState(
     val pendingAction: PendingAction? get() = content.pendingAction
     val isResolvingPendingAction: Boolean get() = content.isResolvingPendingAction
     val askAnswerDrafts: Map<String, AskAnswerDraft> get() = content.askAnswerDrafts
+    val askActiveQuestionId: String? get() = content.askActiveQuestionId
+    val askPanelCollapsed: Boolean get() = content.askPanelCollapsed
     val memoryEnabled: Boolean get() = gates.memoryEnabled
     val conversationId: String? get() = conversation.conversationId
 
@@ -353,20 +355,20 @@ data class ChatUiState(
      * What the composer's send control does while a reply is generating.
      *
      * [DuringRunSendTarget.ANSWER_PAUSE] takes precedence over the user's steer/queue preference:
-     * a run parked on `ask_user_question` is waiting for exactly this text, and the composer is
-     * the input the user can actually see — the pause card carries its own field but sits at the
-     * tail of the thread. Treating that send as an ordinary queued follow-up left the pause
+     * a run parked on `ask_user_question` is waiting for exactly this text. The screens hide the
+     * composer while the question panel is up, so this is the fallback for a send that reaches the
+     * ViewModel anyway. Treating that send as an ordinary queued follow-up left the pause
      * unresolved and delivered the answer as a non-sequitur after the run expired.
      *
      * Tool-approval pauses are excluded: they take decisions, not prose, so free text there is a
      * genuine follow-up.
      *
      * A multi-question batch ([PendingAction.isComposerAnswerableAsk]) is included: the send fills
-     * the first question the card still has no answer for, into the same [askAnswerDrafts] the
-     * card's own editors write, and the batch goes up whole once the last one is in. The resume
-     * route wants one answer per id and 400s a body missing any of them, so there is no
-     * per-question submit to route to — but there is progress to make, and steer/queue would
-     * leave the run paused while the send appeared to work.
+     * the panel's active tab (else the first question still unanswered), into the same
+     * [askAnswerDrafts] the panel's own editors write, and the batch goes up whole once the last
+     * one is in. The resume route wants one answer per id and 400s a body missing any of them, so
+     * there is no per-question submit to route to — but there is progress to make, and steer/queue
+     * would leave the run paused while the send appeared to work.
      */
     val duringRunSendTarget: DuringRunSendTarget
         get() {

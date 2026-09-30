@@ -3,11 +3,13 @@ package com.garfiec.librechat.feature.chat.util
 import androidx.compose.runtime.Immutable
 import com.garfiec.librechat.core.model.AskUserQuestionLimits
 import com.garfiec.librechat.core.model.AskUserQuestionOption
+import com.garfiec.librechat.feature.chat.components.ASK_USER_DECLINED_ANSWER
 
 /**
- * One question's in-progress answer inside a batched `ask_user_question` pause.
+ * One question's in-progress answer inside an `ask_user_question` pause, keyed by the batch
+ * item's id (or the action id for a single question).
  *
- * Held in `MessagesState.askAnswerDrafts`, not in the card's own `remember` — the card's editor
+ * Held in `MessagesState.askAnswerDrafts`, not in the panel's own `remember` — the panel's editor
  * and the composer's send both write the same answer; see that field.
  *
  * Deliberately not saveable across process death — the pause itself is re-read from the server on
@@ -18,6 +20,11 @@ data class AskAnswerDraft(
     /** Option *values* picked from the question's chips, in the order the payload lists them. */
     val selectedOptions: List<String> = emptyList(),
     val freeText: String = "",
+    /**
+     * Declined individually (the compact layout's per-question Skip). Composes to upstream's
+     * declined sentinel; any edit to the question clears it.
+     */
+    val skipped: Boolean = false,
 )
 
 /**
@@ -42,10 +49,27 @@ internal fun composeAskAnswer(
 }
 
 internal fun composeAskAnswer(options: List<AskUserQuestionOption>, draft: AskAnswerDraft): String =
-    composeAskAnswer(options, draft.selectedOptions, draft.freeText)
+    if (draft.skipped) {
+        ASK_USER_DECLINED_ANSWER
+    } else {
+        composeAskAnswer(options, draft.selectedOptions, draft.freeText)
+    }
 
 /** Upstream's join for a multi-select answer, and for a chip qualified by free text. */
 private const val ASK_ANSWER_SEPARATOR = ", "
+
+/**
+ * The index of the question after [fromIndex] that still has no answer, searching forward and
+ * wrapping back round to [fromIndex] itself, or null when every question has one. Shared by the
+ * panel's own advance and the composer's send so both walk a batch in the same order.
+ */
+internal fun nextBlankQuestionIndex(
+    questionIds: List<String>,
+    answers: Map<String, String>,
+    fromIndex: Int,
+): Int? = (1..questionIds.size)
+    .map { (fromIndex + it) % questionIds.size }
+    .firstOrNull { answers[questionIds[it]].isNullOrBlank() }
 
 /**
  * How much free text an answer box may still hold without pushing the composed answer past the

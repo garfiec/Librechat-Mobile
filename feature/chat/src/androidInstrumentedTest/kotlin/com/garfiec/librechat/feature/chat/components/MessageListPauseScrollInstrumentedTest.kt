@@ -15,16 +15,18 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.garfiec.librechat.core.model.AskUserQuestionItem
-import com.garfiec.librechat.core.model.AskUserQuestionRequest
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.PendingAction
 import com.garfiec.librechat.core.model.PendingActionPayload
 import com.garfiec.librechat.core.model.PendingActionTypes
+import com.garfiec.librechat.core.model.ToolApprovalDecisions
+import com.garfiec.librechat.core.model.ToolApprovalRequest
+import com.garfiec.librechat.core.model.ToolReviewConfig
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import org.junit.Assert.assertTrue
@@ -40,9 +42,12 @@ import kotlin.math.abs
  * A pause does not end the run: `isStreaming` stays true across it, so the per-frame follower in
  * [MessageList] keeps pinning the list's tail to the bottom while the output it exists to follow
  * has stopped. That matters because the pause card is the thing that grows underneath — a long
- * question laying out, options expanding, an answer field taking a second line — and every one of
- * those pushes the tail down. A live follower chases it, so the top of the card (the question
- * itself) walks off screen while the user is reading it.
+ * tool description laying out, a decision revealing its reply field, that field taking a second
+ * line — and every one of those pushes the tail down. A live follower chases it, so the top of the
+ * card walks off screen while the user is reading it.
+ *
+ * The card here is a tool approval: an `ask_user_question` pause docks above the composer instead
+ * and leaves only a one-line marker in the list.
  *
  * Both tests apply the same stimulus — the last item grows — and differ only in whether a pause is
  * outstanding, so the control proves the measurement can actually detect chasing. Position is read
@@ -58,7 +63,7 @@ class MessageListPauseScrollInstrumentedTest {
 
     /** Grown after the first frame; recomposition feeds it back into the list. */
     private var streamingContent by mutableStateOf(SHORT_STREAM)
-    private var questionDescription by mutableStateOf(SHORT_DESCRIPTION)
+    private var toolDescription by mutableStateOf(SHORT_DESCRIPTION)
     private var paused by mutableStateOf(false)
     private var batched by mutableStateOf(false)
 
@@ -94,13 +99,13 @@ class MessageListPauseScrollInstrumentedTest {
         paused = true
         setChat()
         // Past the one-shot scroll that brings a new card into view — that one is wanted.
-        val anchorTop = settledTop(QUESTION)
+        val anchorTop = settledTop(TOOL_NAME)
 
-        composeRule.runOnUiThread { questionDescription = LONG_DESCRIPTION }
+        composeRule.runOnUiThread { toolDescription = LONG_DESCRIPTION }
         advanceFrames(CHASE_FRAMES)
 
         // Same growth, same number of frames the control needed. Nothing may move.
-        val moved = anchorTop - topOf(QUESTION)
+        val moved = anchorTop - topOf(TOOL_NAME)
         assertTrue("the follower chased the pause card by ${moved}px", abs(moved) < STILL_TOLERANCE_PX)
     }
 
@@ -119,8 +124,8 @@ class MessageListPauseScrollInstrumentedTest {
         setChat()
         advanceFrames(SETTLE_FRAMES)
 
-        // Read the card from the top, the way its author intended, and answer the first question.
-        focusAnswerField(index = 0, anchor = FIRST_QUESTION)
+        // Read the card from the top, the way its author intended, and reply to the first call.
+        focusAnswerField(index = 0, anchor = FIRST_TOOL)
 
         val before = fieldVsViewport(0)
         assertTrue("the field was already off screen before the keyboard: $before", before.isVisible)
@@ -143,7 +148,7 @@ class MessageListPauseScrollInstrumentedTest {
         setChat()
         advanceFrames(SETTLE_FRAMES)
 
-        focusAnswerField(index = BATCH.lastIndex, anchor = LAST_QUESTION)
+        focusAnswerField(index = BATCH.lastIndex, anchor = LAST_TOOL)
 
         composeRule.runOnUiThread { keyboardInset = KEYBOARD_HEIGHT }
         advanceFrames(CHASE_FRAMES)
@@ -173,7 +178,7 @@ class MessageListPauseScrollInstrumentedTest {
                         // Rebuilt on every recomposition so a growing description reaches the
                         // card, while actionId stays put — a new id would re-fire the one-shot
                         // scroll and the test would be measuring that instead of the follower.
-                        pendingAction = if (paused) askPause(questionDescription) else null,
+                        pendingAction = if (paused) toolPause(toolDescription) else null,
                     )
                     }
                 }
@@ -182,6 +187,10 @@ class MessageListPauseScrollInstrumentedTest {
     }
 
     private fun focusAnswerField(index: Int, anchor: String) {
+        // A reply field only exists once its call's decision is Respond.
+        val respondChips = composeRule.onAllNodesWithText(RESPOND_LABEL)
+        repeat(respondChips.fetchSemanticsNodes().size) { chip -> respondChips[chip].performClick() }
+        advanceFrames(FOCUS_FRAMES)
         composeRule.onNode(hasScrollAction()).performScrollToNode(hasText(anchor, substring = true))
         advanceFrames(FOCUS_FRAMES)
         composeRule.onAllNodes(hasSetTextAction())[index].performClick()
@@ -229,21 +238,39 @@ class MessageListPauseScrollInstrumentedTest {
         composeRule.waitForIdle()
     }
 
-    private fun askPause(description: String) = PendingAction(
-        actionId = "action-1",
-        conversationId = CONVO,
-        payload = PendingActionPayload(
-            type = PendingActionTypes.ASK_USER_QUESTION,
-            question = AskUserQuestionRequest(question = QUESTION, description = description),
-            // A batch renders a field per question, which is the only shape that puts a field
-            // anywhere but flush against the bottom of the card.
-            questions = if (batched) BATCH else null,
-        ),
-    )
+    private fun toolPause(description: String): PendingAction {
+        // A batch renders a field per call, which is the only shape that puts a field anywhere
+        // but flush against the bottom of the card.
+        val requests = if (batched) {
+            BATCH
+        } else {
+            listOf(ToolApprovalRequest(name = TOOL_NAME, toolCallId = "call-0", description = description))
+        }
+        return PendingAction(
+            actionId = "action-1",
+            conversationId = CONVO,
+            payload = PendingActionPayload(
+                type = PendingActionTypes.TOOL_APPROVAL,
+                actionRequests = requests,
+                reviewConfigs = requests.map {
+                    ToolReviewConfig(
+                        actionName = it.name,
+                        toolCallId = it.toolCallId,
+                        allowedDecisions = listOf(
+                            ToolApprovalDecisions.APPROVE,
+                            ToolApprovalDecisions.REJECT,
+                            ToolApprovalDecisions.RESPOND,
+                        ),
+                    )
+                },
+            ),
+        )
+    }
 
     private companion object {
         const val CONVO = "convo-1"
-        const val QUESTION = "Which region should the cluster live in?"
+        const val TOOL_NAME = "provision_cluster_in_region"
+        const val RESPOND_LABEL = "Respond"
 
         /**
          * Long enough that the thread fills the viewport and the list can actually scroll.
@@ -282,13 +309,13 @@ class MessageListPauseScrollInstrumentedTest {
 
         val KEYBOARD_HEIGHT: Dp = 340.dp
 
-        const val FIRST_QUESTION = "Which region should the cluster live in?"
-        const val LAST_QUESTION = "Follow-up question number 4?"
+        const val FIRST_TOOL = "batched_tool_number_1"
+        const val LAST_TOOL = "batched_tool_number_4"
         val BATCH = (1..4).map { index ->
-            AskUserQuestionItem(
-                id = "q$index",
-                question = if (index == 1) FIRST_QUESTION else "Follow-up question number $index?",
-                description = "Some extra detail for question $index, long enough to take a line.",
+            ToolApprovalRequest(
+                name = "batched_tool_number_$index",
+                toolCallId = "call-$index",
+                description = "Some extra detail for call $index, long enough to take a line.",
             )
         }
     }

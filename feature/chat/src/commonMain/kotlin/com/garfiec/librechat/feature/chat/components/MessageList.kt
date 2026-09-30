@@ -58,7 +58,6 @@ import com.garfiec.librechat.core.ui.theme.isSurfaceDark
 import com.garfiec.librechat.feature.chat.components.artifact.ArtifactType
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
-import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
 import com.garfiec.librechat.feature.chat.viewmodel.SearchFocusRequest
@@ -138,16 +137,13 @@ fun MessageList(
     topContentPadding: Dp = 0.dp,
     /**
      * The live human-review pause, or null. Rendered at the tail of the streaming section — the
-     * run is unfinished, so it belongs to the reply in progress, not after it. Only the callers
-     * that can resolve one pass it; the comparison panes leave it null.
+     * run is unfinished, so it belongs to the reply in progress, not after it: a tool approval as
+     * its resolve card, a question as a one-line marker pointing at the panel docked above the
+     * composer. Only the callers that can resolve one pass it; the comparison panes leave it null.
      */
     pendingAction: PendingAction? = null,
     isResolvingPendingAction: Boolean = false,
     onSubmitToolDecisions: (List<ToolApprovalResolution>) -> Unit = {},
-    onSubmitPendingAnswer: (String) -> Unit = {},
-    onSubmitPendingAnswers: (Map<String, String>) -> Unit = {},
-    askAnswerDrafts: Map<String, AskAnswerDraft> = emptyMap(),
-    onAskAnswerDraftChange: (String, AskAnswerDraft) -> Unit = { _, _ -> },
 ) {
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -161,7 +157,8 @@ fun MessageList(
     val topContentPaddingPx = with(LocalDensity.current) { topContentPadding.toPx() }
     var lastNavigatedParentKey by remember { mutableStateOf<String?>(null) }
 
-    // A live `ask_user_question` pause is rendered by PendingActionCard, not as a tool card.
+    // A live `ask_user_question` pause is rendered by the docked AskUserQuestionPanel, not as a
+    // tool card.
     // Attribution is by the pause's own tool_call_id where the server sends one, so a sibling ask
     // call that is genuinely still running keeps its card instead of being hidden by association.
     val pausedAskToolCallId = pendingAction?.payload?.toolCallId
@@ -762,16 +759,18 @@ fun MessageList(
                 // streams back into the bubble above.
                 if (pendingAction != null) {
                     item(key = "pending_action_${pendingAction.actionId}") {
-                        PendingActionCard(
-                            pendingAction = pendingAction,
-                            isResolving = isResolvingPendingAction,
-                            onSubmitToolDecisions = onSubmitToolDecisions,
-                            onSubmitAnswer = onSubmitPendingAnswer,
-                            onSubmitAnswers = onSubmitPendingAnswers,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                            askAnswerDrafts = askAnswerDrafts,
-                            onAskAnswerDraftChange = onAskAnswerDraftChange,
-                        )
+                        if (pendingAction.isAskUserQuestion) {
+                            AskUserQuestionWaitingMarker(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                            )
+                        } else {
+                            PendingActionCard(
+                                pendingAction = pendingAction,
+                                isResolving = isResolvingPendingAction,
+                                onSubmitToolDecisions = onSubmitToolDecisions,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                            )
+                        }
                     }
                 }
             }

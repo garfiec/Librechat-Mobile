@@ -450,7 +450,7 @@ internal fun isAskUserQuestionToolCall(toolNameLower: String): Boolean =
 /**
  * The streaming tool-call cards to render.
  *
- * An `ask_user_question` call is dropped while the pause card owns it. `PendingActionCard` *is*
+ * An `ask_user_question` call is dropped while the pause panel owns it. `AskUserQuestionPanel` *is*
  * the question — a second card restating it under a spinner (the call cannot complete until the
  * user replies) is both a duplicate and a lie about what is running. Once the answer arrives the
  * same call renders as the durable Q&A record, so the question is never on screen twice and never
@@ -486,7 +486,7 @@ internal fun List<ActiveToolCall>.withoutUnansweredQuestions(
 }
 
 /**
- * Drops EVERY unanswered `ask_user_question` call — for panes that host no `PendingActionCard`.
+ * Drops EVERY unanswered `ask_user_question` call — for panes that host no `AskUserQuestionPanel`.
  *
  * [withoutUnansweredQuestions] deliberately leaves a second, un-paused ask visible because the
  * primary thread renders the pause card beside it, so the user can see one question being asked

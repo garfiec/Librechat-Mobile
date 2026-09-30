@@ -106,15 +106,23 @@ data class MessagesState(
     /** A decision for [pendingAction] is in flight; the resolve controls are disabled meanwhile. */
     val isResolvingPendingAction: Boolean = false,
     /**
-     * Per-question answer drafts for a batched `ask_user_question` [pendingAction], keyed by the
-     * payload's own question ids.
+     * Per-question answer drafts for an `ask_user_question` [pendingAction], keyed by the batch
+     * item's id (the action id for a single question).
      *
-     * Hoisted out of the card because the card is not the only input: a composer send during the
-     * pause fills the first question that has no answer yet, and the card has to *show* that —
-     * both so the user can see what was recorded and so its Send enables once the rest are in.
-     * Cleared whenever the pause changes or dies; see `PendingActionDelegate`.
+     * Hoisted out of the panel because the panel is not the only input: a composer send during
+     * the pause fills the active tab's question, and the panel has to *show* that — both so the
+     * user can see what was recorded and so its Send enables once the rest are in. Cleared when
+     * the pause changes or dies, and set aside across a reconnect into the same pause; see
+     * `PendingActionDelegate`.
      */
     val askAnswerDrafts: Map<String, AskAnswerDraft> = emptyMap(),
+    /**
+     * The question tab the docked ask panel is showing, or null for the first one. Hoisted with
+     * [askAnswerDrafts] because the composer's send answers the tab the user is looking at.
+     */
+    val askActiveQuestionId: String? = null,
+    /** The docked ask panel is minimized to its header so the reply above can be read. */
+    val askPanelCollapsed: Boolean = false,
 )
 
 @Immutable

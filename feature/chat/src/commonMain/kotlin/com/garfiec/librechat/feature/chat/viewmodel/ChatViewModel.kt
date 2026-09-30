@@ -1129,28 +1129,28 @@ class ChatViewModel(
             Logger.d { "sendDuringRun: refusing — picked files are not settled yet" }
             return
         }
-        // A run paused on `ask_user_question` is waiting for exactly this text. The composer is
-        // the input the user can see — the card carries its own field but sits at the tail of the
-        // thread — so sending here must ANSWER the pause, not queue a next turn. Queueing it fails
-        // silently: the pause stays unresolved and the message arrives as a non-sequitur once the
-        // run expires.
+        // A run paused on `ask_user_question` is waiting for exactly this text, so a send that
+        // reaches here (the screens hide the composer behind the question panel) must ANSWER the
+        // pause, not queue a next turn. Queueing it fails silently: the pause stays unresolved and
+        // the message arrives as a non-sequitur once the run expires.
         when (state.duringRunSendTarget) {
             DuringRunSendTarget.ANSWER_PAUSE -> {
                 val answer = state.inputText.trim()
                 if (answer.isEmpty()) return
                 // A batched pause (one question or many) resolves through the batched channel:
                 // the route reads the PAYLOAD to pick which body it accepts, and a pause carrying
-                // `questions` rejects a bare `answer`. The delegate fills the first question the
-                // CARD still has no answer for — the drafts are shared state, so the answer shows
-                // up in that question's field — and submits the full map once the last one is in;
-                // a partial map is 400 "Answers are required for every question", so there is no
-                // per-question submit to route to. The composer is cleared only if the delegate
-                // took the text, so a send it cannot use leaves the words where the user put them.
+                // `questions` rejects a bare `answer`. The delegate fills the question on the
+                // panel's active tab (else the first one still unanswered) — the drafts are shared
+                // state, so the answer shows up in that question's field — and submits the full map
+                // once the last one is in; a partial map is 400 "Answers are required for every
+                // question", so there is no per-question submit to route to. The composer is
+                // cleared only if the delegate took the text, so a send it cannot use leaves the
+                // words where the user put them.
                 if (state.renderablePendingAction?.payload?.questions != null) {
                     if (pendingActionDelegate.answerNextBatchQuestion(answer)) clearComposer()
                 } else {
                     clearComposer()
-                    answerPendingQuestion(answer)
+                    pendingActionDelegate.submitAnswerFromComposer(answer)
                 }
             }
 
@@ -1979,9 +1979,13 @@ class ChatViewModel(
     fun answerPendingQuestions(answers: Map<String, String>) =
         pendingActionDelegate.submitAnswers(answers)
 
-    /** One batched question's editor state, hoisted out of `PendingActionCard`. */
+    /** One question's editor state, hoisted out of `AskUserQuestionPanel`. */
     fun updateAskAnswerDraft(questionId: String, draft: AskAnswerDraft) =
         pendingActionDelegate.updateAskAnswerDraft(questionId, draft)
+
+    fun selectAskQuestion(questionId: String) = pendingActionDelegate.selectAskQuestion(questionId)
+
+    fun setAskPanelCollapsed(collapsed: Boolean) = pendingActionDelegate.setAskPanelCollapsed(collapsed)
 
     fun continueGeneration() {
         if (_uiState.value.isEditingQueued) return

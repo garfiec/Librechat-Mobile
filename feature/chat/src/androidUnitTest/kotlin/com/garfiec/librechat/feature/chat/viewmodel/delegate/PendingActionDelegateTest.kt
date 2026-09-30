@@ -6,6 +6,8 @@ import com.garfiec.librechat.core.data.endpoint.EndpointDispatch
 import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.model.AskUserQuestionItem
+import com.garfiec.librechat.core.model.AskUserQuestionOption
+import com.garfiec.librechat.core.model.AskUserQuestionRequest
 import com.garfiec.librechat.core.model.PendingAction
 import com.garfiec.librechat.core.model.PendingActionPayload
 import com.garfiec.librechat.core.model.PendingActionTypes
@@ -14,6 +16,7 @@ import com.garfiec.librechat.core.model.request.ChatResumeRequest
 import com.garfiec.librechat.core.model.request.ToolApprovalResolution
 import com.garfiec.librechat.core.model.response.ChatResumeResponse
 import com.garfiec.librechat.core.ui.components.ModelParameters
+import com.garfiec.librechat.feature.chat.components.ASK_USER_DECLINED_ANSWER
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
 import com.garfiec.librechat.feature.chat.viewmodel.ChatRequestBuilder
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
@@ -211,6 +214,139 @@ class PendingActionDelegateTest {
         }
 
     @Test
+    fun `a composer send answers the panel's active tab and moves to the next blank one`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val (delegate, state) = delegateWith(this)
+            val request = slot<ChatResumeRequest>()
+            coEvery { chatRepository.resumeChat(capture(request)) } returns Result.Success(ChatResumeResponse())
+
+            delegate.onPendingAction(askBatch("topic", "depth", "format"))
+            delegate.selectAskQuestion("depth")
+
+            assertThat(delegate.answerNextBatchQuestion("very deep")).isTrue()
+            assertThat(state.value.askAnswerDrafts.keys).containsExactly("depth")
+            // Searches forward from the answered tab, then wraps back to the start.
+            assertThat(state.value.askActiveQuestionId).isEqualTo("format")
+
+            assertThat(delegate.answerNextBatchQuestion("markdown")).isTrue()
+            assertThat(state.value.askActiveQuestionId).isEqualTo("topic")
+            coVerify(exactly = 0) { chatRepository.resumeChat(any()) }
+
+            assertThat(delegate.answerNextBatchQuestion("kotlin")).isTrue()
+            coVerify(exactly = 1) { chatRepository.resumeChat(any()) }
+            assertThat(request.captured.answers)
+                .isEqualTo(mapOf("topic" to "kotlin", "depth" to "very deep", "format" to "markdown"))
+        }
+
+    @Test
+    fun `a composer send on an already answered tab fills the first blank one instead`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val (delegate, state) = delegateWith(this)
+            coEvery { chatRepository.resumeChat(any()) } returns Result.Success(ChatResumeResponse())
+
+            delegate.onPendingAction(askBatch("topic", "depth", "format"))
+            delegate.updateAskAnswerDraft("depth", AskAnswerDraft(freeText = "very deep"))
+            delegate.selectAskQuestion("depth")
+
+            assertThat(delegate.answerNextBatchQuestion("kotlin")).isTrue()
+
+            // The typed answer on the active tab is never overwritten.
+            assertThat(state.value.askAnswerDrafts["depth"]).isEqualTo(AskAnswerDraft(freeText = "very deep"))
+            assertThat(state.value.askAnswerDrafts["topic"]).isEqualTo(AskAnswerDraft(freeText = "kotlin"))
+            assertThat(state.value.askActiveQuestionId).isEqualTo("format")
+        }
+
+    @Test
+    fun `panel tab and collapse survive a re-announcement and reset on a new pause or clear`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val (delegate, state) = delegateWith(this)
+
+            delegate.onPendingAction(askBatch("topic", "depth"))
+            delegate.selectAskQuestion("depth")
+            delegate.setAskPanelCollapsed(true)
+            delegate.onPendingAction(askBatch("topic", "depth"))
+            assertThat(state.value.askActiveQuestionId).isEqualTo("depth")
+            assertThat(state.value.askPanelCollapsed).isTrue()
+
+            delegate.onPendingAction(askBatch("topic", "depth", actionId = "act-2"))
+            assertThat(state.value.askActiveQuestionId).isNull()
+            assertThat(state.value.askPanelCollapsed).isFalse()
+
+            delegate.selectAskQuestion("depth")
+            delegate.setAskPanelCollapsed(true)
+            delegate.clear()
+            assertThat(state.value.askActiveQuestionId).isNull()
+            assertThat(state.value.askPanelCollapsed).isFalse()
+        }
+
+    @Test
+    fun `a composer send on a single question keeps the option picked in the panel`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val (delegate, _) = delegateWith(this)
+            val request = slot<ChatResumeRequest>()
+            coEvery { chatRepository.resumeChat(capture(request)) } returns Result.Success(ChatResumeResponse())
+
+            delegate.onPendingAction(
+                PendingAction(
+                    actionId = "act-1",
+                    conversationId = "conv-1",
+                    payload = PendingActionPayload(
+                        type = PendingActionTypes.ASK_USER_QUESTION,
+                        question = AskUserQuestionRequest(
+                            question = "Which region?",
+                            options = listOf(AskUserQuestionOption("US East", "us-east"), AskUserQuestionOption("EU", "eu")),
+                        ),
+                    ),
+                ),
+            )
+            delegate.updateAskAnswerDraft("act-1", AskAnswerDraft(selectedOptions = listOf("eu")))
+
+            delegate.submitAnswerFromComposer("but only Frankfurt")
+
+            assertThat(request.captured.answer).isEqualTo("eu, but only Frankfurt")
+        }
+
+    @Test
+    fun `a reconnect into the same pause restores the panel's drafts`() =
+        runTest(UnconfinedTestDispatcher()) {
+            // Folding a foldable or backgrounding the app pauses and resumes the screen; the
+            // resume reconnects, and the session boundary clears the pause before the sync frame
+            // re-announces it. The user's half-filled answers must come back with it.
+            val (delegate, state) = delegateWith(this)
+
+            delegate.onPendingAction(askBatch("topic", "depth"))
+            delegate.updateAskAnswerDraft("topic", AskAnswerDraft(freeText = "kotlin"))
+            delegate.selectAskQuestion("depth")
+            delegate.setAskPanelCollapsed(true)
+
+            delegate.clear()
+            assertThat(state.value.askAnswerDrafts).isEmpty()
+
+            delegate.onPendingAction(askBatch("topic", "depth"))
+            assertThat(state.value.askAnswerDrafts["topic"]).isEqualTo(AskAnswerDraft(freeText = "kotlin"))
+            assertThat(state.value.askActiveQuestionId).isEqualTo("depth")
+            assertThat(state.value.askPanelCollapsed).isTrue()
+        }
+
+    @Test
+    fun `retained drafts never leak into a different pause`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val (delegate, state) = delegateWith(this)
+
+            delegate.onPendingAction(askBatch("topic", "depth"))
+            delegate.updateAskAnswerDraft("topic", AskAnswerDraft(freeText = "kotlin"))
+            delegate.clear()
+
+            delegate.onPendingAction(askBatch("topic", "depth", actionId = "act-2"))
+            assertThat(state.value.askAnswerDrafts).isEmpty()
+
+            // And the stash is spent: the original pause coming back later starts blank too.
+            delegate.clear()
+            delegate.onPendingAction(askBatch("topic", "depth"))
+            assertThat(state.value.askAnswerDrafts).isEmpty()
+        }
+
+    @Test
     fun `an emptied field still counts as unanswered`() =
         runTest(UnconfinedTestDispatcher()) {
             // The card writes a draft on every keystroke, so a question the user typed into and
@@ -335,9 +471,9 @@ class PendingActionDelegateTest {
             coEvery { chatRepository.resumeChat(any()) } returns
                 Result.Error(ApiException(409, "This decision targets a stale action"), "stale")
 
-            delegate.onPendingAction(toolApproval().copy(expiresAt = 5_000L))
+            delegate.onPendingAction(askQuestion().copy(expiresAt = 5_000L))
             now = 6_000L
-            delegate.submitAnswer("my answer")
+            delegate.submitAnswerFromComposer("my answer")
 
             assertThat(flow.value.pendingAction).isNull()
             assertThat(flow.value.error).isEqualTo(EXPIRED_COPY)
@@ -633,7 +769,7 @@ class PendingActionDelegateTest {
         val (delegate, flow) = delegateWith(this)
 
         delegate.onPendingAction(askQuestion())
-        delegate.submitAnswer("the blue one")
+        delegate.submitAnswerFromComposer("the blue one")
 
         assertThat(restored).containsExactly("the blue one")
         // The card stays up: the failure may be transient and it is the only route to a resume.
@@ -650,7 +786,7 @@ class PendingActionDelegateTest {
         val (delegate, flow) = delegateWith(this)
 
         delegate.onPendingAction(askQuestion())
-        delegate.submitAnswer("the blue one")
+        delegate.submitAnswerFromComposer("the blue one")
 
         assertThat(flow.value.error).isEqualTo(FINGERPRINT_REJECTED)
         assertThat(restored).containsExactly("the blue one")
@@ -668,7 +804,7 @@ class PendingActionDelegateTest {
         val (delegate, _) = delegateWith(this)
 
         delegate.onPendingAction(askQuestion())
-        delegate.submitAnswer("the blue one")
+        delegate.submitAnswerFromComposer("the blue one")
         delegate.clear() // the run ended under the POST
 
         gate.complete(Result.Error(message = "gone"))
@@ -687,7 +823,7 @@ class PendingActionDelegateTest {
             val (delegate, _) = delegateWith(this)
 
             delegate.onPendingAction(askQuestion())
-            delegate.submitAnswer("the blue one")
+            delegate.submitAnswerFromComposer("the blue one")
             delegate.clear()
 
             gate.complete(Result.Success(ChatResumeResponse()))
@@ -709,6 +845,27 @@ class PendingActionDelegateTest {
 
         assertThat(restored).isEmpty()
     }
+
+    /**
+     * The panel's own submit keeps its words in `askAnswerDrafts`, on screen, while the composer
+     * is hidden behind the panel. Re-homing them into the composer as well surfaces an answer that
+     * already went up — or, for Skip, the declined sentinel — the moment the pause resolves.
+     */
+    @Test
+    fun `a rejected panel answer stays on the panel and is not re-homed into the composer`() =
+        runTest(UnconfinedTestDispatcher()) {
+            coEvery { chatRepository.resumeChat(any()) } returns Result.Error(message = "boom")
+            val (delegate, flow) = delegateWith(this)
+
+            delegate.onPendingAction(askQuestion())
+            delegate.updateAskAnswerDraft("act-1", AskAnswerDraft(freeText = "the blue one"))
+            delegate.submitAnswer("the blue one")
+            delegate.submitAnswer(ASK_USER_DECLINED_ANSWER)
+
+            assertThat(restored).isEmpty()
+            assertThat(flow.value.askAnswerDrafts["act-1"]).isEqualTo(AskAnswerDraft(freeText = "the blue one"))
+            assertThat(flow.value.pendingAction).isNotNull()
+        }
 
     private fun askQuestion(actionId: String = "act-1") = PendingAction(
         actionId = actionId,

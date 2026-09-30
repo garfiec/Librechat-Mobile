@@ -516,13 +516,24 @@
     <string name="tool_approval_edited_arguments">Edited arguments (JSON)</string>
     <string name="tool_approval_response_text">Reply to send instead of running the tool</string>
     <string name="tool_approval_invalid_json">Enter valid JSON</string>
-    <string name="ask_user_question_title">The assistant needs your input</string>
     <string name="ask_user_question_answer_hint">Type your answer</string>
     <string name="ask_user_question_other_hint">Something else</string>
     <string name="ask_user_question_send">Send</string>
     <string name="ask_user_question_skip">Skip</string>
     <string name="ask_user_question_multi_select_hint">Pick as many as apply</string>
-    <string name="ask_user_question_batch_subtitle">Answer all %1$d questions to continue</string>
+    <string name="ask_user_question_page_of">%1$d of %2$d</string>
+    <string name="ask_user_question_skipped">Skipped</string>
+    <string name="cd_previous_ask_user_question">Previous question</string>
+    <string name="cd_next_ask_user_question">Next question</string>
+    <string name="ask_user_question_send_progress">Send (%1$d/%2$d)</string>
+    <string name="ask_user_question_next">Next</string>
+    <string name="ask_user_question_back">Back</string>
+    <string name="ask_user_question_skip_all">Skip all</string>
+    <string name="ask_user_question_tab_fallback">Question %1$d</string>
+    <string name="ask_user_question_waiting_marker">Waiting for your answer below</string>
+    <string name="cd_ask_user_question_answered">Answered</string>
+    <string name="cd_minimize_ask_user_question">Minimize questions</string>
+    <string name="cd_restore_ask_user_question">Show questions</string>
     <!-- Typed stream errors. An unrecognized code keeps the server's own text, so these cover
          only the codes with something actionable to say. -->
     <string name="error_resource_recovery_required">The files attached to this conversation could not be restored, so the assistant couldn't use them. Attach them again and retry.</string>
