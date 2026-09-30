@@ -1440,6 +1440,24 @@ HITL           edit_file approval input   (210086aa #16543) normalized to `edits
                                             replace_all? }]`. Mobile renders generic args. (NO CHANGE)
 ```
 
+Code investigations for this sync. The file:line evidence is in the local, gitignored sync artifact
+`.claude/sync-upstream/artifacts/investigations-v0.8.8.md`, which does not travel with the repo:
+- **F26** (5682f77f #16511, a failed regeneration's error branch): no gap. Mobile never builds an
+  in-tree error message. The error is a banner, and the tree reloads from the server.
+- **F27** (b04226eb #16404, user images right-aligned): FIXED for the two-sided layout. The thread
+  layout keeps every turn at the start by design.
+- **A02** stale draft after send (a9b49160 #16444): no gap. Every send, steer, queue and answer path
+  deletes the draft through `clearComposer()`. RTL split text (42568a00 #16454): no gap. Mobile
+  renders the greeting as one `Text`.
+- **A01** `@librechat/agents` 3.9.1 → 3.9.8: no gap. `ContentTypes` and `StepTypes` are unchanged.
+  `on_tool_calls_dispatched` is dropped explicitly. `on_model_response` and
+  `on_model_tools_claimed` are consumed only by the OpenAI-compatible API. The new fields are
+  additive.
+- **Schedules** `lastRun.error` outcome fallback (`readScheduleMCPOutcomes`): BUILT.
+- **Running group**: search DOES promote running matches upstream (`includePinned: isArchivedView`
+  at the call site), as mobile does. The drawer has no non-default sort, so the sort guard has
+  nothing to read.
+
 ### Other
 ```
 GET/POST/DELETE /api/presets
