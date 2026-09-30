@@ -345,6 +345,7 @@ private fun ThreadMessageBubble(
                 currentFeedback = currentFeedback,
                 userName = userName,
                 userAvatarUrl = userAvatarUrl,
+                alignImagesEnd = false,
             )
         }
     }
@@ -546,6 +547,7 @@ private fun TwoSidedMessageBubble(
                 currentFeedback = currentFeedback,
                 userName = userName,
                 userAvatarUrl = userAvatarUrl,
+                alignImagesEnd = isUser,
             )
         }
 

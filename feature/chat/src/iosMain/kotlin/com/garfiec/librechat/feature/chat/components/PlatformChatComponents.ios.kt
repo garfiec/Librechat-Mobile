@@ -316,6 +316,7 @@ private fun ThreadBubble(
                 currentFeedback = currentFeedback,
                 userName = userName,
                 userAvatarUrl = userAvatarUrl,
+                alignImagesEnd = false,
             )
         }
     }
@@ -435,6 +436,7 @@ private fun TwoSidedBubble(
                 currentFeedback = currentFeedback,
                 userName = userName,
                 userAvatarUrl = userAvatarUrl,
+                alignImagesEnd = isUser,
             )
         }
 
