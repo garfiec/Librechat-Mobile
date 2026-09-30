@@ -340,6 +340,34 @@
       "failure_mode": "Upstream retunes the allowance or a formula, and the editor either refuses a cadence the server would accept (a feature the user cannot reach) or accepts one it rejects (a 400 after submit, with the form already cleared)."
     },
     {
+      "id": "schedule-mcp-outcomes-from-error",
+      "upstream": {
+        "file": "packages/data-provider/src/types/schedules.ts",
+        "symbol": "readScheduleMCPOutcomes",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/schedule/Schedule.kt",
+        "symbol": "readScheduleMcpOutcomes / MCP_OUTCOMES_ERROR"
+      },
+      "why": "A run that fails its MCP preflight records the per-server outcomes inside lastRun.error as `<status>: [<JSON>]`. The web reads them back from that string when lastRun.mcp is absent, and the prefix regex and the slice point are client-side knowledge of how the server formats the message.",
+      "failure_mode": "Upstream changes the recorded prefix or format and the fallback finds nothing: a schedule paused for missing unattended auth shows the generic MCP-configuration reason instead of naming the administrator. Nothing errors."
+    },
+    {
+      "id": "schedule-mcp-recovery-outcomes",
+      "upstream": {
+        "file": "client/src/components/SidePanel/Schedules/errors.ts",
+        "symbol": "scheduleMCPRecoveryOutcomes",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/schedule/Schedule.kt",
+        "symbol": "mcpRecoveryOutcomes / MCP_RECOVERY_REASONS"
+      },
+      "why": "Which paused schedules read their MCP outcomes at all (the four disabled reasons that preserve MCP recovery), and that the structured lastRun.mcp wins over the error-string fallback. Consumed by pausedForUnattendedMcpAuth, the mirror of scheduleDisabledMCPLabel in the same file.",
+      "failure_mode": "Upstream widens or narrows the reason set, or changes which source wins, and the schedule list names the wrong repair for a paused schedule. Nothing errors."
+    },
+    {
       "id": "trace-record-kinds",
       "upstream": {
         "file": "packages/data-provider/src/types/traces.ts",
