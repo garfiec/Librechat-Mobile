@@ -73,7 +73,26 @@ data class ScheduleMcpOutcome(
     /** The agent whose selected tool needs this server — a handoff or subagent, when set. */
     val agentId: String? = null,
     val status: String = "",
+    /** A finer diagnosis under [status] (v0.8.8). See [ScheduleMcpDetail]. */
+    val detail: String? = null,
 )
+
+object ScheduleMcpDetail {
+    /**
+     * The server's scheduled on-behalf-of credential is missing: an administrator has to configure
+     * a renewable provider, and reconnecting in chat does not help.
+     */
+    const val UNATTENDED_AUTH_REQUIRED = "unattended_auth_required"
+}
+
+/**
+ * Upstream `scheduleDisabledMCPLabel`: a `mcp_configuration_missing` pause caused by missing
+ * unattended auth names the administrator as the repair instead of generic configuration.
+ */
+val Schedule.pausedForUnattendedMcpAuth: Boolean
+    get() = !enabled &&
+        disabledReason == ScheduleDisabledReason.MCP_CONFIGURATION_MISSING &&
+        lastRun?.mcp.orEmpty().any { it.detail == ScheduleMcpDetail.UNATTENDED_AUTH_REQUIRED }
 
 object ScheduleTarget {
     const val NEW = "new"

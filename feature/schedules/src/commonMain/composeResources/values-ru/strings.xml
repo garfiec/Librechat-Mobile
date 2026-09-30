@@ -56,6 +56,7 @@
 
     <string name="schedule_disabled_mcp_reauth">Приостановлено: подключённый инструмент требует повторного входа. Откройте агента в чате, чтобы переподключить его.</string>
     <string name="schedule_disabled_mcp_config">Приостановлено: у подключённого инструмента не хватает настроек.</string>
+    <string name="schedule_disabled_mcp_unattended_auth">Приостановлено: для подключённого инструмента не настроен автономный доступ. Его должен настроить администратор; повторное подключение в чате не поможет.</string>
     <string name="schedule_disabled_mcp_permission">Приостановлено: у вас больше нет доступа к подключённому инструменту. Восстановить его может только администратор.</string>
     <string name="schedule_disabled_failures">Приостановлено после слишком большого числа неудачных запусков.</string>
     <string name="schedule_disabled_agent">Приостановлено: используемый агент был удалён.</string>

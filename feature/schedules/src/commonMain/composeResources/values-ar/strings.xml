@@ -56,6 +56,7 @@
 
     <string name="schedule_disabled_mcp_reauth">متوقفة مؤقتًا: تحتاج إحدى الأدوات المتصلة إلى تسجيل دخولك مجددًا. افتح الوكيل في محادثة لإعادة توصيلها.</string>
     <string name="schedule_disabled_mcp_config">متوقفة مؤقتًا: إعدادات إحدى الأدوات المتصلة ناقصة.</string>
+    <string name="schedule_disabled_mcp_unattended_auth">متوقف مؤقتًا: الوصول غير المراقَب غير مُعدّ لأداة متصلة. يجب على المسؤول إعداده؛ إعادة الاتصال في محادثة لن تحل المشكلة.</string>
     <string name="schedule_disabled_mcp_permission">متوقفة مؤقتًا: لم تعد لديك صلاحية الوصول إلى إحدى الأدوات المتصلة. يجب على المسؤول استعادتها.</string>
     <string name="schedule_disabled_failures">متوقفة مؤقتًا بعد فشل عدد كبير جدًا من التشغيلات.</string>
     <string name="schedule_disabled_agent">متوقفة مؤقتًا: حُذف الوكيل الذي كانت تستخدمه.</string>

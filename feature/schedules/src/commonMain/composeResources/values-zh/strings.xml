@@ -56,6 +56,7 @@
 
     <string name="schedule_disabled_mcp_reauth">已暂停：某个已连接的工具需要你重新登录。请在聊天中打开该智能体以重新连接。</string>
     <string name="schedule_disabled_mcp_config">已暂停：某个已连接的工具缺少配置。</string>
+    <string name="schedule_disabled_mcp_unattended_auth">已暂停：某个已连接工具未设置无人值守访问。需要管理员进行配置；在聊天中重新连接无法解决此问题。</string>
     <string name="schedule_disabled_mcp_permission">已暂停：你已无权访问某个已连接的工具。需要管理员恢复权限。</string>
     <string name="schedule_disabled_failures">运行失败次数过多，已暂停。</string>
     <string name="schedule_disabled_agent">已暂停：所用的智能体已被删除。</string>

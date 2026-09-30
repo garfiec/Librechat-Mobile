@@ -56,6 +56,7 @@
 
     <string name="schedule_disabled_mcp_reauth">Paused: a connected tool needs you to sign in again. Open the agent in a chat to reconnect it.</string>
     <string name="schedule_disabled_mcp_config">Paused: a connected tool is missing configuration.</string>
+    <string name="schedule_disabled_mcp_unattended_auth">Paused: unattended access is not set up for a connected tool. An administrator has to configure it; reconnecting in a chat will not fix this.</string>
     <string name="schedule_disabled_mcp_permission">Paused: you no longer have access to a connected tool. An administrator has to restore it.</string>
     <string name="schedule_disabled_failures">Paused after too many failed runs.</string>
     <string name="schedule_disabled_agent">Paused: the agent it used was deleted.</string>

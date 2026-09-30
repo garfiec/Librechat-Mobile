@@ -56,6 +56,7 @@
 
     <string name="schedule_disabled_mcp_reauth">En pausa: una herramienta conectada necesita que vuelvas a iniciar sesión. Abre el agente en un chat para volver a conectarla.</string>
     <string name="schedule_disabled_mcp_config">En pausa: a una herramienta conectada le falta configuración.</string>
+    <string name="schedule_disabled_mcp_unattended_auth">En pausa: el acceso desatendido no está configurado para una herramienta conectada. Un administrador debe configurarlo; volver a conectarla en un chat no lo solucionará.</string>
     <string name="schedule_disabled_mcp_permission">En pausa: ya no tienes acceso a una herramienta conectada. Un administrador tiene que restaurarlo.</string>
     <string name="schedule_disabled_failures">En pausa tras demasiadas ejecuciones fallidas.</string>
     <string name="schedule_disabled_agent">En pausa: se eliminó el agente que usaba.</string>

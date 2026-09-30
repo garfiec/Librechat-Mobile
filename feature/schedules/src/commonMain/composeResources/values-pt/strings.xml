@@ -56,6 +56,7 @@
 
     <string name="schedule_disabled_mcp_reauth">Pausado: uma ferramenta conectada precisa que você entre novamente. Abra o agente em uma conversa para reconectá-la.</string>
     <string name="schedule_disabled_mcp_config">Pausado: falta configuração em uma ferramenta conectada.</string>
+    <string name="schedule_disabled_mcp_unattended_auth">Pausado: o acesso autônomo não está configurado para uma ferramenta conectada. Um administrador precisa configurá-lo; reconectar em um chat não resolverá isso.</string>
     <string name="schedule_disabled_mcp_permission">Pausado: você não tem mais acesso a uma ferramenta conectada. Um administrador precisa restaurá-lo.</string>
     <string name="schedule_disabled_failures">Pausado após muitas execuções com falha.</string>
     <string name="schedule_disabled_agent">Pausado: o agente usado foi excluído.</string>

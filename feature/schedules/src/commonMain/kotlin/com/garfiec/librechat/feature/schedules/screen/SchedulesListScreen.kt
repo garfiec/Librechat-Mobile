@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.common.extensions.formatAbsoluteTimestamp
 import com.garfiec.librechat.core.model.schedule.Schedule
 import com.garfiec.librechat.core.model.schedule.cadenceToCron
+import com.garfiec.librechat.core.model.schedule.pausedForUnattendedMcpAuth
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
 import com.garfiec.librechat.feature.schedules.components.disabledReasonLabel
 import com.garfiec.librechat.feature.schedules.resources.Res
@@ -271,7 +272,7 @@ private fun ScheduleCard(
             schedule.disabledReason?.takeIf { !schedule.enabled }?.let { reason ->
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = disabledReasonLabel(reason),
+                    text = disabledReasonLabel(reason, schedule.pausedForUnattendedMcpAuth),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                 )
