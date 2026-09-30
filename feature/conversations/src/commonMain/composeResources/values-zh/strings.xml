@@ -117,4 +117,5 @@
     <string name="remove_account">移除账户</string>
     <string name="remove_account_message">%1$s 及其数据将从此设备中移除。服务器上的账户不受影响。</string>
     <string name="remove_account_title">移除账户？</string>
+    <string name="drawer_running_chats">运行中</string>
 </resources>

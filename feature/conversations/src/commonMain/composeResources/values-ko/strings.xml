@@ -117,4 +117,5 @@
     <string name="remove_account">계정 제거</string>
     <string name="remove_account_message">%1$s 및 관련 데이터가 이 기기에서 제거됩니다. 서버의 계정에는 영향을 주지 않습니다.</string>
     <string name="remove_account_title">계정을 제거할까요?</string>
+    <string name="drawer_running_chats">실행 중</string>
 </resources>

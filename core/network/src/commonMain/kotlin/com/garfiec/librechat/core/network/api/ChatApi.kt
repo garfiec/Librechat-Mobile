@@ -5,6 +5,7 @@ import com.garfiec.librechat.core.model.request.ChatAbortRequest
 import com.garfiec.librechat.core.model.request.ChatResumeRequest
 import com.garfiec.librechat.core.model.request.SteerCancelRequest
 import com.garfiec.librechat.core.model.request.SteerRequest
+import com.garfiec.librechat.core.model.response.ActiveJobsResponse
 import com.garfiec.librechat.core.model.response.ChatAbortResponse
 import com.garfiec.librechat.core.model.response.ChatResumeResponse
 import com.garfiec.librechat.core.model.response.ChatStartResponse
@@ -151,6 +152,12 @@ class ChatApi constructor(
     suspend fun getChatStatus(conversationId: String): ChatStatusResponse =
         client.get {
             url { path("api/agents/chat/status/$conversationId") }
+        }.body()
+
+    /** GET /api/agents/chat/active — ids of the caller's conversations with a live generation job. */
+    suspend fun getActiveJobs(): ActiveJobsResponse =
+        client.get {
+            url { path("api/agents/chat/active") }
         }.body()
 
     companion object {

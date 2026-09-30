@@ -117,4 +117,5 @@
     <string name="remove_account">Quitar cuenta</string>
     <string name="remove_account_message">%1$s y sus datos se quitarán de este dispositivo. La cuenta del servidor no se verá afectada.</string>
     <string name="remove_account_title">¿Quitar cuenta?</string>
+    <string name="drawer_running_chats">En curso</string>
 </resources>

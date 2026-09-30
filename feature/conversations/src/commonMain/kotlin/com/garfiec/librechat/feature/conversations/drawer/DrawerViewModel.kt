@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.accountTransitions
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.ProjectRepository
@@ -29,6 +30,8 @@ import com.garfiec.librechat.feature.conversations.export.ExportFormat
 import com.garfiec.librechat.feature.conversations.viewmodel.ConversationListActionsDelegate
 import com.garfiec.librechat.feature.conversations.viewmodel.ConversationListEvent
 import com.garfiec.librechat.feature.conversations.viewmodel.ProjectActionsDelegate
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,11 +41,16 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.time.TimeSource
 
 /**
  * Drawer-data half of the navigation shell, split out of `NavHostViewModel` so `:shared` stays nav
@@ -61,6 +69,7 @@ class DrawerViewModel(
     private val conversationExporter: ConversationExporter,
     private val activeAccountProvider: ActiveAccountProvider,
     private val settingsDataStore: SettingsDataStore,
+    private val chatRepository: ChatRepository,
 ) : ViewModel() {
 
     private val conversationListStateHolder = ConversationListStateHolder(conversationRepository, viewModelScope)
@@ -69,6 +78,10 @@ class DrawerViewModel(
         conversationListStateHolder.recentConversations
             .map { list -> list.filter { SAVED_TAG in it.tags } }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /** Conversations with a live generation job; see [activeJobsPoll]. Account-scoped: cleared on a switch. */
+    private val _activeJobIds = MutableStateFlow<Set<String>>(emptySet())
+    private val activeJobIds: StateFlow<Set<String>> = _activeJobIds.asStateFlow()
 
     private val pinnedConversations: StateFlow<List<Conversation>> =
         conversationListStateHolder.recentConversations
@@ -201,7 +214,9 @@ class DrawerViewModel(
      * [DrawerUiState] from rows that were already mapped.
      */
     private val displayConversations: Flow<DrawerDisplaySnapshot> = combine(
-        conversationListStateHolder.groupedConversations,
+        combine(conversationListStateHolder.groupedConversations, activeJobIds) { grouped, running ->
+            grouped.withRunningFirst(running)
+        },
         favoriteConversations,
         pinnedConversations,
         conversationListStateHolder.activeConversationId,
@@ -250,6 +265,11 @@ class DrawerViewModel(
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, DrawerUiState())
 
+    private companion object {
+        const val ACTIVE_JOBS_POLL_MS = 5_000L
+        const val ACTIVE_JOBS_GRACE_MS = 30_000L
+    }
+
     private data class DrawerPermissionFlags(
         val agentsEnabled: Boolean = true,
         val bookmarksEnabled: Boolean = true,
@@ -266,7 +286,48 @@ class DrawerViewModel(
         val schedulesEnabled: Boolean = false,
     )
 
+    /**
+     * Whether a drawer surface is on screen and started. The active-jobs poll runs only then — the
+     * phone drawer's content stays composed while closed, so composition alone is not the signal.
+     */
+    private val drawerVisible = MutableStateFlow(false)
+
+    fun setDrawerVisible(visible: Boolean) {
+        drawerVisible.value = visible
+    }
+
+    /**
+     * Upstream `useActiveJobs`: poll every [ACTIVE_JOBS_POLL_MS] while anything is running and for
+     * [ACTIVE_JOBS_GRACE_MS] after the list empties (a queued successor is admitted a moment after
+     * its predecessor ends), then go quiet until the conversation list itself moves. A failed read
+     * keeps the last answer rather than dropping the group mid-run.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val activeJobsPoll: Flow<Set<String>> = drawerVisible.flatMapLatest { visible ->
+        if (!visible) {
+            emptyFlow()
+        } else {
+            flow {
+                var lastListed: TimeSource.Monotonic.ValueTimeMark? = null
+                while (true) {
+                    val ids = (chatRepository.getActiveJobIds() as? Result.Success)?.data
+                    if (ids != null) emit(ids)
+                    if (!ids.isNullOrEmpty()) lastListed = TimeSource.Monotonic.markNow()
+                    val inGrace = lastListed?.let { it.elapsedNow().inWholeMilliseconds < ACTIVE_JOBS_GRACE_MS } == true
+                    if (inGrace) {
+                        delay(ACTIVE_JOBS_POLL_MS)
+                    } else {
+                        conversationListStateHolder.recentConversations.drop(1).first()
+                    }
+                }
+            }
+        }
+    }
+
     init {
+        viewModelScope.launch {
+            activeJobsPoll.collect { _activeJobIds.value = it }
+        }
         viewModelScope.launch {
             val persisted = DrawerTab.fromString(settingsDataStore.drawerLibraryTab.first())
             _drawerLibraryTab.update { it ?: persisted }
@@ -288,6 +349,7 @@ class DrawerViewModel(
         // reactively via the active-account gate.
         viewModelScope.launch {
             activeAccountProvider.accountTransitions().collect { transition ->
+                _activeJobIds.value = emptySet()
                 _projects.value = emptyList()
                 _expandedProjectId.value = null
                 _expandedProjectChats.value = emptyList()

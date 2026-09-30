@@ -924,6 +924,19 @@
       "failure_mode": "The client classifies a turn differently from the web: a wake-up renders as a user bubble of raw prompt JSON, or a user message collapses into a system row."
     },
     {
+      "id": "running-chats-group",
+      "upstream": {
+        "file": "client/src/components/Conversations/running.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/conversations/src/commonMain/kotlin/com/garfiec/librechat/feature/conversations/drawer/RunningChats.kt",
+        "symbol": "groupWithRunning"
+      },
+      "why": "The web sidebar's rule for the Running section: which conversations are lifted out of their date groups (those in GET /api/agents/chat/active), that the group goes first, that emptied date groups are dropped, and which list orderings it applies to. The server serves only the ids; the grouping is client logic. The poll cadence (upstream ACTIVE_JOBS_POLL_MS / ACTIVE_JOBS_SUCCESSOR_GRACE_MS in client/src/data-provider/SSE/queries.ts) is copied into DrawerViewModel and is not watched here.",
+      "failure_mode": "The drawer orders chats differently from the web sidebar -- a running chat is listed twice or stays buried under its date. Nothing errors."
+    },
+    {
       "id": "prompt-command-input-sanitizer",
       "upstream": {
         "file": "client/src/components/Prompts/fields/Command.tsx",

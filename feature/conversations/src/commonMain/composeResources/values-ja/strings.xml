@@ -117,4 +117,5 @@
     <string name="remove_account">アカウントを削除</string>
     <string name="remove_account_message">%1$s とそのデータがこのデバイスから削除されます。サーバー上のアカウントには影響しません。</string>
     <string name="remove_account_title">アカウントを削除しますか？</string>
+    <string name="drawer_running_chats">実行中</string>
 </resources>
