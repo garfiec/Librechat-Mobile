@@ -251,6 +251,8 @@
     <!-- Delete dialog -->
     <string name="dialog_title_delete_conversation">会話を削除</string>
     <string name="dialog_delete_conversation_message">この会話を完全に削除します。この操作は取り消せません。</string>
+    <string name="dialog_title_delete_prompt">プロンプトを削除しますか？</string>
+    <string name="dialog_delete_prompt_message">「%1$s」とそのすべてのバージョンが完全に削除されます。この操作は取り消せません。</string>
 
     <!-- Artifacts -->
     <string name="cd_open_artifact">アーティファクトを開く</string>

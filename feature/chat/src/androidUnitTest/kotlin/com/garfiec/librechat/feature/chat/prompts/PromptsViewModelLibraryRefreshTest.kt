@@ -165,7 +165,8 @@ class PromptsViewModelLibraryRefreshTest {
         // around it sees nothing: closing the detail view here tells the user a prompt is gone
         // while it is still on the server.
         coEvery { promptRepository.delete(any()) } returns Result.Error(message = "forbidden")
-        viewModel.deleteGroup("g-1")
+        viewModel.requestDeleteGroup("g-1")
+        viewModel.confirmDeleteGroup()
         advanceUntilIdle()
 
         assertNotNull(viewModel.uiState.value.error)
@@ -184,7 +185,8 @@ class PromptsViewModelLibraryRefreshTest {
         advanceUntilIdle()
 
         coEvery { promptRepository.delete(any()) } returns Result.Success(Unit)
-        viewModel.deleteGroup("g-1")
+        viewModel.requestDeleteGroup("g-1")
+        viewModel.confirmDeleteGroup()
         advanceUntilIdle()
 
         assertNull(viewModel.uiState.value.selectedGroup)

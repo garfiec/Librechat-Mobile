@@ -251,6 +251,8 @@
     <!-- Delete dialog -->
     <string name="dialog_title_delete_conversation">Supprimer la conversation</string>
     <string name="dialog_delete_conversation_message">Ceci supprimera définitivement cette conversation. Cette action est irréversible.</string>
+    <string name="dialog_title_delete_prompt">Supprimer l'invite ?</string>
+    <string name="dialog_delete_prompt_message">« %1$s » et toutes ses versions seront définitivement supprimées. Cette action est irréversible.</string>
 
     <!-- Artifacts -->
     <string name="cd_open_artifact">Ouvrir l'artefact</string>

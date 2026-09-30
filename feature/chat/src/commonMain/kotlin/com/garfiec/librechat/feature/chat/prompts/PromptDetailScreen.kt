@@ -45,6 +45,7 @@ fun PromptDetailScreen(
     onEdit: (String) -> Unit,
     modifier: Modifier = Modifier,
     onShare: () -> Unit = {},
+    isDeleting: Boolean = false,
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -65,11 +66,15 @@ fun PromptDetailScreen(
                             contentDescription = stringResource(Res.string.cd_edit_prompt),
                         )
                     }
-                    IconButton(onClick = onDelete) {
+                    IconButton(onClick = onDelete, enabled = !isDeleting) {
                         Icon(
                             imageVector = Icons.Default.Delete,
                             contentDescription = stringResource(Res.string.cd_delete_prompt),
-                            tint = MaterialTheme.colorScheme.error,
+                            tint = if (isDeleting) {
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                            } else {
+                                MaterialTheme.colorScheme.error
+                            },
                         )
                     }
                 },

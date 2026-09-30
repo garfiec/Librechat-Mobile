@@ -251,6 +251,8 @@
     <!-- Delete dialog -->
     <string name="dialog_title_delete_conversation">Unterhaltung löschen</string>
     <string name="dialog_delete_conversation_message">Dies löscht diese Unterhaltung dauerhaft. Dies kann nicht rückgängig gemacht werden.</string>
+    <string name="dialog_title_delete_prompt">Prompt löschen?</string>
+    <string name="dialog_delete_prompt_message">„%1$s“ und alle seine Versionen werden dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.</string>
 
     <!-- Artifacts -->
     <string name="cd_open_artifact">Artefakt öffnen</string>

@@ -251,6 +251,8 @@
     <!-- Delete dialog -->
     <string name="dialog_title_delete_conversation">Eliminar conversación</string>
     <string name="dialog_delete_conversation_message">Esto eliminará permanentemente esta conversación. Esta acción no se puede deshacer.</string>
+    <string name="dialog_title_delete_prompt">¿Eliminar prompt?</string>
+    <string name="dialog_delete_prompt_message">«%1$s» y todas sus versiones se eliminarán permanentemente. Esta acción no se puede deshacer.</string>
 
     <!-- Artifacts -->
     <string name="cd_open_artifact">Abrir artefacto</string>

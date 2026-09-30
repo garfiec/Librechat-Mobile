@@ -251,6 +251,8 @@
     <!-- Delete dialog -->
     <string name="dialog_title_delete_conversation">Удалить беседу</string>
     <string name="dialog_delete_conversation_message">Это безвозвратно удалит эту беседу. Это нельзя отменить.</string>
+    <string name="dialog_title_delete_prompt">Удалить промпт?</string>
+    <string name="dialog_delete_prompt_message">«%1$s» и все его версии будут безвозвратно удалены. Это нельзя отменить.</string>
 
     <!-- Artifacts -->
     <string name="cd_open_artifact">Открыть артефакт</string>
