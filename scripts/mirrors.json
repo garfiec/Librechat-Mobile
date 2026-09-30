@@ -889,8 +889,8 @@
         "mode": "block"
       },
       "kotlin": {
-        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/prompts/PromptEditorViewModel.kt",
-        "symbol": "sanitizeCommand"
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/prompts/CommandInputTransformation.kt",
+        "symbol": "CommandInputTransformation / normalizeCommandChar"
       },
       "why": "How the web normalizes a prompt's slash command as it is typed: lowercase, whitespace to '-', only [a-z0-9-], capped at Constants.COMMANDS_MAX_LENGTH. Anything it lets through is rejected by the group update that carries the command.",
       "failure_mode": "The field accepts a command the server rejects, and the prompt's save fails with a 400."
@@ -902,8 +902,8 @@
         "mode": "file"
       },
       "kotlin": {
-        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/prompts/PromptEditorViewModel.kt",
-        "symbol": "sanitizeCommand / COMMAND_MAX_LENGTH"
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/prompts/CommandInputTransformation.kt",
+        "symbol": "normalizeCommandChar / COMMAND_MAX_LENGTH"
       },
       "why": "The zod schema PATCH /api/prompts/groups/:groupId validates against: the command's ^[a-z0-9-]*$ regex and its max length. Watched file-level because the block extractor stops at updatePromptGroupSchema's type annotation and never reaches the runtime schema. COMMAND_MAX_LENGTH copies Constants.COMMANDS_MAX_LENGTH (56); the Constants enum itself is too large to watch without constant noise.",
       "failure_mode": "Same as prompt-command-input-sanitizer."

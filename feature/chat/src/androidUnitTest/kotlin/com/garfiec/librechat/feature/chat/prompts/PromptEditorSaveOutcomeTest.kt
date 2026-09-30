@@ -1,5 +1,6 @@
 package com.garfiec.librechat.feature.chat.prompts
 
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.PromptRepository
 import com.garfiec.librechat.core.model.Prompt
@@ -72,7 +73,7 @@ class PromptEditorSaveOutcomeTest {
         val editor = newEditor()
         editor.updateName("Summarize")
         editor.updatePromptText("Summarize this: {{text}}")
-        editor.updateCommand("summarize")
+        editor.commandState.setTextAndPlaceCursorAtEnd("summarize")
         editor.save()
         advanceUntilIdle()
 
@@ -190,7 +191,7 @@ class PromptEditorSaveOutcomeTest {
         advanceUntilIdle()
         coEvery { promptRepository.update(any(), any()) } returns Result.Success(createdGroup)
 
-        editor.updateCommand("summarize")
+        editor.commandState.setTextAndPlaceCursorAtEnd("summarize")
         editor.save()
         advanceUntilIdle()
 
