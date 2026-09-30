@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="schedules">Geplante Chats</string>
+    <string name="schedules_empty_title">Keine geplanten Chats</string>
+    <string name="schedules_empty_body">Lass einen Agenten einen Prompt nach Zeitplan ausführen und jede Unterhaltung für dich ablegen.</string>
+    <string name="schedules_disabled_on_server">Geplante Chats sind auf diesem Server deaktiviert.</string>
+    <string name="schedules_create">Neuer Zeitplan</string>
+    <string name="schedules_at_limit">Du hast das Limit dieses Servers von %1$d geplanten Chats erreicht. Lösche einen, um einen weiteren hinzuzufügen.</string>
+    <string name="schedule_paused">Pausiert</string>
+    <string name="schedule_running">Wird ausgeführt</string>
+    <string name="schedule_next_run">Nächste Ausführung: %1$s</string>
+    <string name="schedule_last_run">Zuletzt ausgeführt: %1$s</string>
+    <string name="schedule_run_now">Jetzt ausführen</string>
+    <string name="schedule_delete">Löschen</string>
+    <string name="schedule_delete_confirm_title">Diesen Zeitplan löschen?</string>
+    <string name="schedule_delete_confirm_body">Er wird nicht mehr ausgeführt. Bereits erstellte Unterhaltungen bleiben erhalten.</string>
+    <string name="schedule_enable">Aktivieren</string>
+    <string name="schedule_disable">Pausieren</string>
+
+    <string name="schedule_editor_new_title">Neuer Zeitplan</string>
+    <string name="schedule_editor_edit_title">Zeitplan bearbeiten</string>
+    <string name="schedule_name">Name</string>
+    <string name="schedule_prompt">Prompt</string>
+    <string name="schedule_agent">Agent</string>
+    <string name="schedule_project">Projekt</string>
+    <string name="schedule_project_pinned">Wird in dem Projekt abgelegt, das dieser Server für Zeitpläne festlegt.</string>
+    <string name="schedule_project_needed">Erstelle ein Chat-Projekt, bevor du einen Zeitplan hinzufügst – dieser Server legt jede geplante Ausführung in einem Projekt ab.</string>
+    <string name="schedule_timezone">Zeitzone</string>
+    <string name="schedule_repeats">Wiederholung</string>
+    <string name="schedule_frequency_hourly">Stündlich</string>
+    <string name="schedule_frequency_daily">Täglich</string>
+    <string name="schedule_frequency_weekdays">Werktags</string>
+    <string name="schedule_frequency_weekly">Wöchentlich</string>
+    <string name="schedule_frequency_cron">Benutzerdefiniert (Cron)</string>
+    <string name="schedule_cron_expression">Cron-Ausdruck</string>
+    <string name="schedule_cron_hint">Fünf Felder: Minute, Stunde, Tag des Monats, Monat, Wochentag. Wird vom Server geprüft.</string>
+    <string name="schedule_cadence_preview">Läuft um %1$s</string>
+    <string name="schedule_time">Stunde</string>
+    <string name="schedule_minute">Minute</string>
+    <string name="schedule_days">Tage</string>
+    <string name="schedule_save">Speichern</string>
+    <string name="schedule_conflict">Dieser Zeitplan wurde an anderer Stelle geändert. Lade ihn neu, um die aktuelle Version zu sehen – deine Änderungen hier wurden nicht gespeichert.</string>
+    <string name="schedule_reload">Neu laden</string>
+    <string name="schedule_load_failed">Dieser Zeitplan konnte nicht geladen werden, daher gibt es hier noch nichts zu speichern. Lade ihn neu, um es erneut zu versuchen.</string>
+    <string name="schedule_cancel">Abbrechen</string>
+
+    <string name="schedule_problem_name">Gib dem Zeitplan einen Namen.</string>
+    <string name="schedule_problem_prompt">Füge den zu sendenden Prompt hinzu.</string>
+    <string name="schedule_problem_agent">Wähle einen Agenten aus.</string>
+    <string name="schedule_problem_cron">Gib fünf Cron-Felder ein, zum Beispiel 0 9 * * 1-5.</string>
+    <string name="schedule_problem_weekday">Wähle mindestens einen Tag aus.</string>
+    <string name="schedule_problem_time">Gib eine Stunde (0–23) und eine Minute (0–59) ein.</string>
+    <string name="schedule_problem_no_agents">Es sind keine Agenten verfügbar, um einen Zeitplan auszuführen.</string>
+    <string name="schedule_problem_project">Wähle ein Projekt, in dem die Ausführungen abgelegt werden.</string>
+    <string name="schedule_problem_too_frequent">Dieser Server erfordert mindestens %1$d Minuten zwischen Ausführungen.</string>
+
+    <string name="schedule_disabled_mcp_reauth">Pausiert: Ein verbundenes Tool erfordert eine erneute Anmeldung. Öffne den Agenten in einem Chat, um es neu zu verbinden.</string>
+    <string name="schedule_disabled_mcp_config">Pausiert: Einem verbundenen Tool fehlt die Konfiguration.</string>
+    <string name="schedule_disabled_mcp_permission">Pausiert: Du hast keinen Zugriff mehr auf ein verbundenes Tool. Ein Administrator muss ihn wiederherstellen.</string>
+    <string name="schedule_disabled_failures">Pausiert nach zu vielen fehlgeschlagenen Ausführungen.</string>
+    <string name="schedule_disabled_agent">Pausiert: Der verwendete Agent wurde gelöscht.</string>
+    <string name="schedule_disabled_invalid">Pausiert: Der Zeitplan hat keine gültige nächste Ausführung.</string>
+    <string name="schedule_disabled_permission">Pausiert: Deine Berechtigung zum Ausführen von Zeitplänen wurde entzogen.</string>
+    <string name="schedule_disabled_balance">Pausiert: Nicht genug Guthaben für die Ausführung.</string>
+    <string name="schedule_disabled_project">Pausiert: Das Projekt, in dem die Ausführungen abgelegt wurden, wurde gelöscht.</string>
+    <string name="schedule_disabled_project_required">Pausiert: Dieser Server erfordert jetzt ein Projekt, und dieser Zeitplan hat keins.</string>
+    <string name="schedule_disabled_unknown">Vom Server pausiert.</string>
+</resources>

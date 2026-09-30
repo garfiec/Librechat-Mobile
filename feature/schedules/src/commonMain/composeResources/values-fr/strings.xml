@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="schedules">Discussions planifiées</string>
+    <string name="schedules_empty_title">Aucune discussion planifiée</string>
+    <string name="schedules_empty_body">Faites exécuter une invite par un agent selon un planning ; chaque conversation est classée automatiquement.</string>
+    <string name="schedules_disabled_on_server">Les discussions planifiées sont désactivées sur ce serveur.</string>
+    <string name="schedules_create">Nouvelle planification</string>
+    <string name="schedules_at_limit">Vous avez atteint la limite de %1$d discussions planifiées de ce serveur. Supprimez-en une pour en ajouter une autre.</string>
+    <string name="schedule_paused">Suspendue</string>
+    <string name="schedule_running">En cours d'exécution</string>
+    <string name="schedule_next_run">Prochaine exécution : %1$s</string>
+    <string name="schedule_last_run">Dernière exécution : %1$s</string>
+    <string name="schedule_run_now">Exécuter maintenant</string>
+    <string name="schedule_delete">Supprimer</string>
+    <string name="schedule_delete_confirm_title">Supprimer cette planification ?</string>
+    <string name="schedule_delete_confirm_body">Elle ne s'exécutera plus. Les conversations déjà créées sont conservées.</string>
+    <string name="schedule_enable">Activer</string>
+    <string name="schedule_disable">Suspendre</string>
+
+    <string name="schedule_editor_new_title">Nouvelle planification</string>
+    <string name="schedule_editor_edit_title">Modifier la planification</string>
+    <string name="schedule_name">Nom</string>
+    <string name="schedule_prompt">Invite</string>
+    <string name="schedule_agent">Agent</string>
+    <string name="schedule_project">Projet</string>
+    <string name="schedule_project_pinned">Classée dans le projet que ce serveur impose aux planifications.</string>
+    <string name="schedule_project_needed">Créez un projet de discussion avant d'ajouter une planification — ce serveur classe chaque exécution planifiée dans un projet.</string>
+    <string name="schedule_timezone">Fuseau horaire</string>
+    <string name="schedule_repeats">Répétition</string>
+    <string name="schedule_frequency_hourly">Toutes les heures</string>
+    <string name="schedule_frequency_daily">Tous les jours</string>
+    <string name="schedule_frequency_weekdays">En semaine</string>
+    <string name="schedule_frequency_weekly">Chaque semaine</string>
+    <string name="schedule_frequency_cron">Personnalisé (cron)</string>
+    <string name="schedule_cron_expression">Expression cron</string>
+    <string name="schedule_cron_hint">Cinq champs : minute, heure, jour du mois, mois, jour de la semaine. Vérifiée par le serveur.</string>
+    <string name="schedule_cadence_preview">S'exécute à %1$s</string>
+    <string name="schedule_time">Heure</string>
+    <string name="schedule_minute">Minute</string>
+    <string name="schedule_days">Jours</string>
+    <string name="schedule_save">Enregistrer</string>
+    <string name="schedule_conflict">Cette planification a été modifiée ailleurs. Rechargez pour voir la version actuelle — vos modifications ici n'ont pas été enregistrées.</string>
+    <string name="schedule_reload">Recharger</string>
+    <string name="schedule_load_failed">Impossible de charger cette planification, il n'y a donc rien à enregistrer pour l'instant. Rechargez pour réessayer.</string>
+    <string name="schedule_cancel">Annuler</string>
+
+    <string name="schedule_problem_name">Donnez un nom à la planification.</string>
+    <string name="schedule_problem_prompt">Ajoutez l'invite à envoyer.</string>
+    <string name="schedule_problem_agent">Choisissez un agent.</string>
+    <string name="schedule_problem_cron">Saisissez cinq champs cron, par exemple 0 9 * * 1-5.</string>
+    <string name="schedule_problem_weekday">Choisissez au moins un jour.</string>
+    <string name="schedule_problem_time">Saisissez une heure (0–23) et une minute (0–59).</string>
+    <string name="schedule_problem_no_agents">Aucun agent n'est disponible pour exécuter une planification.</string>
+    <string name="schedule_problem_project">Choisissez un projet où classer les exécutions.</string>
+    <string name="schedule_problem_too_frequent">Ce serveur exige au moins %1$d minutes entre deux exécutions.</string>
+
+    <string name="schedule_disabled_mcp_reauth">Suspendue : un outil connecté nécessite que vous vous reconnectiez. Ouvrez l'agent dans une discussion pour le reconnecter.</string>
+    <string name="schedule_disabled_mcp_config">Suspendue : il manque la configuration d'un outil connecté.</string>
+    <string name="schedule_disabled_mcp_permission">Suspendue : vous n'avez plus accès à un outil connecté. Un administrateur doit le rétablir.</string>
+    <string name="schedule_disabled_failures">Suspendue après trop d'exécutions échouées.</string>
+    <string name="schedule_disabled_agent">Suspendue : l'agent utilisé a été supprimé.</string>
+    <string name="schedule_disabled_invalid">Suspendue : la planification n'a aucune prochaine exécution valide.</string>
+    <string name="schedule_disabled_permission">Suspendue : votre autorisation d'exécuter des planifications a été retirée.</string>
+    <string name="schedule_disabled_balance">Suspendue : solde insuffisant pour l'exécution.</string>
+    <string name="schedule_disabled_project">Suspendue : le projet dans lequel elle classait ses exécutions a été supprimé.</string>
+    <string name="schedule_disabled_project_required">Suspendue : ce serveur exige désormais un projet, et cette planification n'en a aucun.</string>
+    <string name="schedule_disabled_unknown">Suspendue par le serveur.</string>
+</resources>

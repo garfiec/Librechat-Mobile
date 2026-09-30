@@ -59,4 +59,17 @@
     <string name="skill_acl_collapse">طي</string>
     <string name="skill_acl_expand">توسيع</string>
     <string name="skill_acl_close">إغلاق</string>
+    <string name="skill_import_failed_title">فشل الاستيراد</string>
+    <string name="skill_import_incomplete">أُلغي الاستيراد: تعذّر استيراد %1$d ملف في الأرشيف. أصلح الأرشيف وارفعه مجددًا.</string>
+    <string name="skill_import_rollback_failed">فشل استيراد %1$d ملف، وتعذّرت إزالة المهارة غير المكتملة تلقائيًا. احذفها قبل المحاولة مجددًا.</string>
+    <string name="skill_import_cleanup_incomplete">فشل استيراد %1$d ملف. أُزيلت المهارة غير المكتملة، لكن التنظيف التلقائي لم يكتمل.</string>
+    <string name="skill_import_failed_files">تعذّر استيراد هذه الملفات:</string>
+    <string name="skill_import_rollback_failed_files">فشل استيراد هذه الملفات، وبقيت المهارة غير المكتملة:</string>
+    <string name="skill_import_cleanup_incomplete_files">فشل استيراد هذه الملفات؛ لم يكتمل التنظيف التلقائي:</string>
+    <string name="skill_import_reason_invalid_path">مسار ملف غير مدعوم</string>
+    <string name="skill_import_reason_file_too_large">يتجاوز حد حجم الملف البالغ %1$s ميغابايت</string>
+    <string name="skill_import_reason_archive_too_large">لم يُستورد: يتجاوز الأرشيف حد الحجم الإجمالي البالغ %1$s ميغابايت</string>
+    <string name="skill_import_reason_archive_entry_changed">تغيّر أثناء قراءة الأرشيف</string>
+    <string name="skill_import_reason_persistence_failed">تعذّر الحفظ</string>
+    <string name="skill_import_reason_unknown">تعذّر الاستيراد</string>
 </resources>

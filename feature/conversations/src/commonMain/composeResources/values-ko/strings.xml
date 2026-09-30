@@ -4,6 +4,7 @@
     <string name="rename">이름 변경</string>
     <string name="cancel">취소</string>
     <string name="delete">삭제</string>
+    <string name="save">저장</string>
     <string name="archive">보관</string>
     <string name="export">내보내기</string>
     <string name="share">공유</string>
@@ -42,6 +43,28 @@
     <!-- Conversation actions -->
     <string name="remove_bookmark">북마크 제거</string>
     <string name="bookmark">북마크</string>
+    <string name="pin">고정</string>
+    <string name="unpin">고정 해제</string>
+    <string name="move_to_project">프로젝트로 이동</string>
+    <string name="project_picker_title">프로젝트로 이동</string>
+    <string name="project_none">프로젝트 없음</string>
+    <string name="project_create">프로젝트 만들기</string>
+    <string name="project_new_name">새 프로젝트 이름</string>
+    <string name="project_empty_chats">이 프로젝트에 아직 채팅이 없습니다</string>
+    <string name="project_sort_label">정렬</string>
+    <string name="project_sort_updated">최근 업데이트순</string>
+    <string name="project_sort_created">최근 생성순</string>
+    <string name="projects_title">프로젝트</string>
+    <string name="project_rename">프로젝트 이름 변경</string>
+    <string name="project_delete">프로젝트 삭제</string>
+    <string name="project_delete_confirm">"%1$s" 프로젝트를 삭제할까요? 대화는 유지되지만 프로젝트에서 제거됩니다.</string>
+    <string name="project_open">열기</string>
+    <string name="project_unassigned">미지정</string>
+    <string name="projects_all">모든 프로젝트</string>
+    <string name="project_new">새 프로젝트</string>
+    <string name="project_name_label">프로젝트 이름</string>
+    <string name="project_count">채팅 %1$d개</string>
+    <string name="projects_empty">아직 프로젝트가 없습니다</string>
     <string name="tags">태그</string>
     <string name="rename_conversation">대화 이름 변경</string>
     <string name="rename_dialog_message">이 대화의 새 제목을 입력하세요.</string>
@@ -72,10 +95,26 @@
 
     <!-- Drawer strings (moved from :shared) -->
     <string name="agents">에이전트</string>
+    <string name="cd_collapse_section">섹션 접기</string>
+    <string name="cd_expand_section">섹션 펼치기</string>
+    <string name="chats">채팅</string>
     <string name="favorites">즐겨찾기</string>
     <string name="files">파일</string>
+    <string name="library">라이브러리</string>
     <string name="no_conversations_found">대화를 찾을 수 없습니다</string>
+    <string name="pinned">고정됨</string>
+    <string name="projects">프로젝트</string>
     <string name="search_conversations_placeholder">대화 검색…</string>
     <string name="settings">설정</string>
+    <string name="show_less">간단히 보기</string>
+    <string name="show_more">더 보기</string>
+    <string name="schedules">예약 채팅</string>
     <string name="skills">스킬</string>
+    <string name="accounts">계정</string>
+    <string name="add_account">계정 추가</string>
+    <string name="cd_active_account">활성 계정</string>
+    <string name="remove">제거</string>
+    <string name="remove_account">계정 제거</string>
+    <string name="remove_account_message">%1$s 및 관련 데이터가 이 기기에서 제거됩니다. 서버의 계정에는 영향을 주지 않습니다.</string>
+    <string name="remove_account_title">계정을 제거할까요?</string>
 </resources>

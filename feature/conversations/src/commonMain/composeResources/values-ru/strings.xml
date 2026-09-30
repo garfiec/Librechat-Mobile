@@ -4,6 +4,7 @@
     <string name="rename">Переименовать</string>
     <string name="cancel">Отмена</string>
     <string name="delete">Удалить</string>
+    <string name="save">Сохранить</string>
     <string name="archive">В архив</string>
     <string name="export">Экспорт</string>
     <string name="share">Поделиться</string>
@@ -42,6 +43,28 @@
     <!-- Conversation actions -->
     <string name="remove_bookmark">Убрать закладку</string>
     <string name="bookmark">В закладки</string>
+    <string name="pin">Закрепить</string>
+    <string name="unpin">Открепить</string>
+    <string name="move_to_project">Переместить в проект</string>
+    <string name="project_picker_title">Переместить в проект</string>
+    <string name="project_none">Без проекта</string>
+    <string name="project_create">Создать проект</string>
+    <string name="project_new_name">Новое название проекта</string>
+    <string name="project_empty_chats">В этом проекте пока нет чатов</string>
+    <string name="project_sort_label">Сортировка</string>
+    <string name="project_sort_updated">Недавно обновлённые</string>
+    <string name="project_sort_created">Недавно созданные</string>
+    <string name="projects_title">Проекты</string>
+    <string name="project_rename">Переименовать проект</string>
+    <string name="project_delete">Удалить проект</string>
+    <string name="project_delete_confirm">Удалить проект "%1$s"? Беседы сохранятся, но будут убраны из проекта.</string>
+    <string name="project_open">Открыть</string>
+    <string name="project_unassigned">Без проекта</string>
+    <string name="projects_all">Все проекты</string>
+    <string name="project_new">Новый проект</string>
+    <string name="project_name_label">Название проекта</string>
+    <string name="project_count">Чатов: %1$d</string>
+    <string name="projects_empty">Пока нет проектов</string>
     <string name="tags">Теги</string>
     <string name="rename_conversation">Переименовать беседу</string>
     <string name="rename_dialog_message">Введите новое название для этой беседы.</string>
@@ -72,10 +95,26 @@
 
     <!-- Drawer strings (moved from :shared) -->
     <string name="agents">Агенты</string>
+    <string name="cd_collapse_section">Свернуть раздел</string>
+    <string name="cd_expand_section">Развернуть раздел</string>
+    <string name="chats">Чаты</string>
     <string name="favorites">Избранное</string>
     <string name="files">Файлы</string>
+    <string name="library">Библиотека</string>
     <string name="no_conversations_found">Беседы не найдены</string>
+    <string name="pinned">Закреплённые</string>
+    <string name="projects">Проекты</string>
     <string name="search_conversations_placeholder">Поиск бесед…</string>
     <string name="settings">Настройки</string>
+    <string name="show_less">Свернуть</string>
+    <string name="show_more">Показать ещё</string>
+    <string name="schedules">Запланированные чаты</string>
     <string name="skills">Навыки</string>
+    <string name="accounts">Аккаунты</string>
+    <string name="add_account">Добавить аккаунт</string>
+    <string name="cd_active_account">Активный аккаунт</string>
+    <string name="remove">Удалить</string>
+    <string name="remove_account">Удалить аккаунт</string>
+    <string name="remove_account_message">%1$s и связанные данные будут удалены с этого устройства. Аккаунт на сервере не затрагивается.</string>
+    <string name="remove_account_title">Удалить аккаунт?</string>
 </resources>

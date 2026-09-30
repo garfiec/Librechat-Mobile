@@ -42,6 +42,17 @@
     <string name="cd_start_voice_recording">بدء التسجيل الصوتي</string>
     <string name="cd_stop_generation">إيقاف الإنشاء</string>
     <string name="cd_send_message">إرسال الرسالة</string>
+    <string name="cd_add_to_queue">إضافة الرسالة إلى قائمة الانتظار</string>
+    <string name="cd_answer_question">إرسال الإجابة</string>
+    <string name="cd_cancel_pending_send">بانتظار الرفع — اضغط لإلغاء الإرسال</string>
+    <string name="cd_cancel_queued_message">إزالة الرسالة من قائمة الانتظار</string>
+    <string name="cd_reorder_queued_message">اسحب لإعادة ترتيب الرسالة في قائمة الانتظار</string>
+    <string name="send_queued_messages">إرسال قائمة الانتظار (%1$d)</string>
+    <string name="queued_attachment_only">مرفق</string>
+    <string name="queued_turn_needs_attention">يحتاج إلى انتباه</string>
+    <string name="editing_queued_message">تعديل رسالة في قائمة الانتظار</string>
+    <string name="cd_cancel_edit">إلغاء التعديل</string>
+    <string name="cd_update_queued_message">تحديث الرسالة في قائمة الانتظار</string>
     <string name="cd_open_drawer">فتح درج التنقل</string>
     <string name="cd_edit_title">تعديل العنوان</string>
     <string name="cd_more_options">خيارات إضافية</string>
@@ -65,6 +76,7 @@
 
     <!-- Content descriptions - Images -->
     <string name="cd_close">إغلاق</string>
+    <string name="cd_image">صورة</string>
     <string name="cd_save_to_device">الحفظ في الجهاز</string>
     <string name="cd_share_image">مشاركة الصورة</string>
     <string name="cd_failed_to_load_image">فشل تحميل الصورة</string>
@@ -109,8 +121,59 @@
 
     <!-- Content descriptions - Subagent trace (subagents, v0.8.6+) -->
     <string name="label_subagent">وكيل فرعي</string>
+    <string name="subagent_threads_title">سلسلة الوكيل الفرعي</string>
+    <string name="subagent_threads_open">عرض السلسلة</string>
+    <string name="subagent_threads_back">العودة إلى السلاسل</string>
+    <string name="subagent_threads_empty">لا تحتوي هذه المحادثة على سلاسل وكلاء فرعيين.</string>
+    <string name="subagent_threads_unavailable">لا تتوفر هنا سلاسل وكلاء فرعيين.</string>
+    <string name="subagent_threads_event_origin">بدأه حدث</string>
+    <string name="subagent_threads_truncated">بعض هذا المحتوى كان أطول من أن يُعرض كاملًا.</string>
+    <string name="subagent_threads_load_older">تحميل الأقدم</string>
+    <string name="subagent_threads_older_unavailable">لم يعد السجل الأقدم متاحًا.</string>
     <string name="cd_collapse_subagent">طي الوكيل الفرعي %1$s</string>
     <string name="cd_expand_subagent">توسيع الوكيل الفرعي %1$s</string>
+    <string name="trace_title">تتبّع المحادثة</string>
+    <string name="trace_open">عرض التتبّع</string>
+    <string name="trace_refresh">تحديث</string>
+    <string name="trace_back">العودة إلى السجلات</string>
+    <string name="trace_load_older">تحميل الأقدم</string>
+    <string name="trace_retry">إعادة المحاولة</string>
+    <string name="trace_empty">لا توجد سجلات تتبّع لهذه المحادثة بعد.</string>
+    <string name="trace_stat_turns">الأدوار</string>
+    <string name="trace_stat_generations">التوليدات</string>
+    <string name="trace_stat_tools">الأدوات</string>
+    <string name="trace_stat_labels">التصنيفات</string>
+    <string name="trace_stat_errors">الأخطاء</string>
+    <string name="trace_stat_tokens">الرموز</string>
+    <string name="trace_stat_cost">التكلفة</string>
+    <string name="trace_kind_agent">وكيل</string>
+    <string name="trace_kind_generation">توليد</string>
+    <string name="trace_kind_tool">أداة</string>
+    <string name="trace_kind_span">نطاق</string>
+    <string name="trace_kind_event">حدث</string>
+    <string name="trace_kind_other">سجل</string>
+    <string name="trace_status_ok">ناجح</string>
+    <string name="trace_status_warning">تحذير</string>
+    <string name="trace_status_error">خطأ</string>
+    <string name="trace_running">قيد التشغيل</string>
+    <string name="trace_view_steps">الخطوات</string>
+    <string name="trace_view_all">كل السجلات</string>
+    <string name="trace_step">الخطوة %1$d</string>
+    <string name="trace_step_title">العنوان</string>
+    <string name="trace_partial">السجلات المعروضة: %1$d. لم تُحمَّل الأدوار الأقدم.</string>
+    <string name="trace_input">المدخلات</string>
+    <string name="trace_output">المخرجات</string>
+    <string name="trace_metadata">البيانات الوصفية</string>
+    <string name="trace_truncated">تم اقتطاعه من قِبل الخادم.</string>
+    <string name="trace_content_unavailable">لا يُرجع هذا الخادم مدخلات السجلات ومخرجاتها.</string>
+    <string name="trace_tokens_detail">المدخلات %1$d · المخرجات %2$d · الإجمالي %3$d</string>
+    <string name="trace_error_generic">تعذّرت قراءة التتبّع.</string>
+    <string name="trace_error_not_found">لم يعد هذا التتبّع متاحًا.</string>
+    <string name="trace_error_changed">تغيّر التتبّع أثناء قراءته. حدّث للبدء من جديد.</string>
+    <string name="trace_error_rate_limited">طلبات تتبّع كثيرة جدًا. حاول مرة أخرى بعد قليل.</string>
+    <string name="trace_error_timeout">لم تستجب خدمة التتبّع في الوقت المحدد.</string>
+    <string name="trace_error_unauthorized">رفضت خدمة التتبّع بيانات اعتماد هذا الخادم.</string>
+    <string name="trace_error_unsupported">لا يمكن لخدمة التتبّع في هذا الخادم إرجاع التتبّعات.</string>
 
     <!-- Office-doc preview attachments (deferred preview, v0.8.6+) -->
     <string name="office_preview_preparing">جارٍ تحضير معاينة %1$s…</string>
@@ -121,18 +184,27 @@
     <string name="cd_tool_call">استدعاء أداة</string>
     <string name="cd_collapse_tool_call">طي استدعاء الأداة %1$s</string>
     <string name="cd_expand_tool_call">توسيع استدعاء الأداة %1$s</string>
+    <string name="context_compact">ضغط المحادثة</string>
+    <string name="context_compacting">جارٍ الضغط…</string>
+    <string name="context_compact_info">يلخّص كل ما سبق في ملاحظة أقصر يواصل النموذج قراءتها، مما يحرر السياق لما يأتي لاحقًا. لا يُحذف أي شيء.</string>
     <string name="cd_tool_complete">مكتمل</string>
+    <string name="cd_tool_cancelled">متوقف</string>
+    <string name="cd_tool_failed">فشل</string>
     <string name="video_not_supported">محتوى الفيديو غير مدعوم</string>
 
     <!-- Tools bottom sheet -->
     <string name="tool_camera">الكاميرا</string>
     <string name="tool_photos">الصور</string>
     <string name="tool_files">الملفات</string>
+    <string name="tool_server_files">الخادم</string>
     <string name="tool_model">النموذج</string>
     <string name="tool_model_parameters">معاملات النموذج</string>
     <string name="tool_model_parameters_desc">ضبط درجة الحرارة والرموز والمزيد</string>
     <string name="tool_web_search">البحث على الويب</string>
     <string name="tool_web_search_desc">البحث على الويب عن المعلومات</string>
+    <string name="web_searched">تم البحث على الويب</string>
+    <string name="tool_url_context">سياق URL</string>
+    <string name="tool_url_context_desc">السماح للنموذج بقراءة عناوين URL ومقاطع YouTube التي تشير إليها</string>
     <string name="tool_code">الكود</string>
     <string name="tool_code_desc">تشغيل الكود وتحليله</string>
     <string name="tool_file_search">البحث في الملفات</string>
@@ -140,12 +212,29 @@
     <string name="tool_mcp">MCP</string>
     <string name="tool_mcp_desc">خوادم بروتوكول سياق النموذج (MCP)</string>
     <string name="cd_web_search_enabled">البحث على الويب مُفعّل</string>
+    <string name="cd_quoted_excerpt">مقتطف مقتبس</string>
+    <string name="cd_remove_quote">إزالة الاقتباس</string>
+    <string name="selection_add_to_chat">إضافة إلى المحادثة</string>
     <string name="cd_code_enabled">مفسّر الكود مُفعّل</string>
     <string name="cd_file_search_enabled">البحث في الملفات مُفعّل</string>
 
     <!-- Attachments -->
     <string name="cd_attach_file">إرفاق ملف</string>
     <string name="files_count">الملفات (%1$d)</string>
+    <string name="files_count_with_text">الملفات (%1$d) · %2$d كنص</string>
+    <string name="cd_files_attached">الملفات المرفقة: %1$d، اضغط للمعاينة</string>
+    <string name="cd_files_attached_with_text">الملفات المرفقة: %1$d، منها %2$d أُرسلت كنص، اضغط للمعاينة</string>
+    <string name="upload_routing_sheet_title">كيف تريد إرسال هذه الملفات؟</string>
+    <string name="upload_routing_sheet_title_single">كيف تريد إرسال هذا الملف؟</string>
+    <string name="upload_routing_option_provider">إلى النموذج</string>
+    <string name="upload_routing_option_text">كنص</string>
+    <string name="upload_routing_why_provider">يقرأ النموذج الملف بنفسه.</string>
+    <string name="upload_routing_why_text">يقرأ الخادم الملف ويرسل نصه.</string>
+    <string name="upload_routing_why_provider_only">لا يقبل هذا النموذج هذا الملف إلا مباشرةً.</string>
+    <string name="upload_routing_why_text_only">لا يستطيع هذا النموذج قراءة هذا الملف، لذا يُرسل نصه بدلًا منه.</string>
+    <string name="upload_routing_apply_all">استخدام للكل</string>
+    <string name="upload_routing_attach">إرفاق</string>
+    <string name="cd_upload_route_text">أُرسل كنص مستخرج</string>
     <string name="cd_attached_file">ملف مرفق: %1$s</string>
     <string name="cd_preview_file">معاينة %1$s</string>
     <string name="cd_remove_file">إزالة %1$s</string>
@@ -200,6 +289,19 @@
     <string name="cd_memory_artifact">عنصر الذاكرة: %1$s</string>
     <string name="memory_artifact_untitled">بدون عنوان</string>
     <string name="label_memory">الذاكرة</string>
+    <string name="cd_memory_artifacts">تحديثات الذاكرة: %1$d</string>
+    <string name="memory_updated">تم تحديث الذاكرة المحفوظة</string>
+    <string name="memory_error">خطأ في الذاكرة</string>
+    <string name="memory_updated_items">الذكريات المحدّثة</string>
+    <string name="memory_deleted_items">الذكريات المحذوفة</string>
+    <string name="memory_deleted">تم حذف الذاكرة</string>
+    <string name="memory_storage_full">مساحة الذاكرة ممتلئة</string>
+    <string name="memory_already_exceeded">مساحة الذاكرة ممتلئة بالفعل — تم تجاوزها بمقدار %1$d رمز. احذف ذكريات موجودة قبل إضافة ذكريات جديدة.</string>
+    <string name="memory_would_exceed">تعذّر الحفظ — سيتم تجاوز الحد بمقدار %1$d رمز. احذف ذكريات موجودة لإفساح المجال.</string>
+    <string name="files_searched">تم البحث في ملفاتك</string>
+    <string name="cd_file_search_source">مصدر البحث في الملفات: %1$s</string>
+    <string name="file_search_relevance">%1$d%%</string>
+    <string name="file_search_pages">الصفحات: %1$s</string>
 
     <!-- Mermaid diagram -->
     <string name="label_mermaid">mermaid</string>
@@ -215,6 +317,14 @@
 
     <!-- Message files -->
     <string name="file_fallback">ملف</string>
+    <string name="attachment_fallback">مرفق</string>
+    <string name="pdf_document">مستند PDF</string>
+    <string name="pdf_load_failed">تعذّر تحميل ملف PDF</string>
+    <string name="cd_share_pdf">مشاركة PDF</string>
+    <string name="cd_open_pdf">فتح PDF</string>
+    <string name="retry">إعادة المحاولة</string>
+    <string name="messages_unavailable_title">الرسائل غير متاحة</string>
+    <string name="messages_unavailable_body">تعذّر تحميل هذه المحادثة ولا توجد نسخة محفوظة للاستخدام دون اتصال على هذا الجهاز.</string>
 
     <!-- Model selector sheet -->
     <string name="cd_selected">محدد</string>
@@ -236,7 +346,25 @@
 
     <!-- Feedback dialog -->
     <string name="feedback_question">ما المشكلة في هذا الرد؟</string>
+    <string name="feedback_question_positive">ما الجيد في هذا الرد؟</string>
     <string name="hint_optional_comment">تعليق اختياري…</string>
+    <string name="feedback_tag_not_matched">لم يطابق طلبي</string>
+    <string name="feedback_tag_inaccurate">إجابة غير دقيقة أو خاطئة</string>
+    <string name="feedback_tag_bad_style">أسلوب أو نبرة سيئة</string>
+    <string name="feedback_tag_missing_image">كنت أتوقع صورة</string>
+    <string name="feedback_tag_unjustified_refusal">رفض دون سبب</string>
+    <string name="feedback_tag_not_helpful">يفتقر إلى معلومات مفيدة</string>
+    <string name="feedback_tag_other">مشكلة أخرى</string>
+    <string name="feedback_tag_accurate_reliable">دقيق وموثوق</string>
+    <string name="feedback_tag_creative_solution">حل إبداعي</string>
+    <string name="feedback_tag_clear_well_written">واضح ومكتوب جيدًا</string>
+    <string name="feedback_tag_attention_to_detail">الاهتمام بالتفاصيل</string>
+    <string name="activity_used_n_tools">الأدوات المستخدمة: %1$d</string>
+    <string name="steer_sent_during_reply">أُرسلت أثناء الرد</string>
+    <string name="state_expanded">موسّع</string>
+    <string name="state_collapsed">مطوي</string>
+    <string name="feedback_unavailable_while_generating">يمكنك إرسال هذا بعد انتهاء الرد.</string>
+    <string name="cd_feedback_unavailable">غير متاح أثناء إنشاء الرد</string>
 
     <!-- Streaming tool call -->
     <string name="tool_call_output">المخرجات:</string>
@@ -257,9 +385,22 @@
     <!-- Artifacts -->
     <string name="cd_open_artifact">فتح العنصر التفاعلي</string>
     <string name="cd_share_artifact">مشاركة العنصر التفاعلي</string>
+    <string name="cd_add_artifact_to_home_screen">إضافة إلى الشاشة الرئيسية</string>
+    <string name="add_to_home_screen_dialog_title">إضافة إلى الشاشة الرئيسية</string>
+    <string name="add_to_home_screen_dialog_name_label">الاسم</string>
+    <string name="add_to_home_screen_dialog_emoji_label">رمز تعبيري</string>
+    <string name="add_to_home_screen_icon_label">الأيقونة</string>
+    <string name="add_to_home_screen_icon_auto">تلقائي</string>
+    <string name="add_to_home_screen_icon_custom">مخصص</string>
+    <string name="cd_icon_preview">معاينة الأيقونة</string>
+    <string name="artifact_shortcut_unavailable">لم يعد هذا العنصر التفاعلي متاحًا.</string>
+    <string name="add_to_home_screen_confirm">إضافة</string>
+    <string name="artifact_shortcut_back">رجوع</string>
     <string name="cd_previous_version">الإصدار السابق</string>
     <string name="cd_next_version">الإصدار التالي</string>
     <string name="artifact_version">الإصدار %1$d/%2$d</string>
+    <string name="artifact_view_source">عرض المصدر</string>
+    <string name="artifact_view_preview">عرض المعاينة</string>
     <string name="artifact_incomplete">غير مكتمل</string>
     <!-- Prompts -->
     <string name="prompts_library">مكتبة المطالبات</string>
@@ -315,6 +456,7 @@
     <string name="provider_keys_chat_error_invalid">المفتاح المقدّم غير صالح. يرجى تقديم مفتاح صالح والمحاولة مرة أخرى.</string>
     <!-- Snackbar action label that deep-links to Settings → Provider Keys -->
     <string name="provider_keys_chat_error_cta">فتح إعدادات المفاتيح</string>
+    <string name="queued_messages_dropped_account_switch">حُذفت الرسائل في قائمة الانتظار بعد تبديل الحساب</string>
 
     <!-- Send block reasons (shown in error snackbar when send can't proceed) -->
     <string name="send_block_select_agent">اختر وكيلًا قبل إرسال رسالتك.</string>
@@ -323,4 +465,112 @@
     <string name="send_block_agent_not_available">الوكيل المحدد غير متاح على هذا الخادم. يرجى اختيار وكيل مختلف.</string>
     <string name="send_block_model_not_available">النموذج المحدد غير متاح على هذا الخادم. يرجى اختيار نموذج مختلف.</string>
     <string name="send_block_model_load_failed">تعذّر تحميل النموذج المحدد بعد. يرجى المحاولة مرة أخرى أو اختيار نموذج مختلف.</string>
+    <string name="action_show_all_media">عرض كل الوسائط</string>
+    <string name="media_gallery_title">الوسائط</string>
+    <string name="media_tab_media">الوسائط</string>
+    <string name="media_tab_files">الملفات</string>
+    <string name="media_tab_links">الروابط</string>
+    <string name="media_tab_artifacts">العناصر التفاعلية</string>
+    <string name="media_scope_whole_chat">المحادثة كاملة</string>
+    <string name="media_scope_this_branch">هذا الفرع</string>
+    <string name="media_empty_media">لا توجد وسائط في هذه المحادثة</string>
+    <string name="media_empty_files">لا توجد ملفات في هذه المحادثة</string>
+    <string name="media_empty_links">لا توجد روابط في هذه المحادثة</string>
+    <string name="media_empty_artifacts">لا توجد عناصر تفاعلية في هذه المحادثة</string>
+    <string name="context_usage_label">السياق</string>
+    <string name="context_usage_window">نافذة السياق</string>
+    <string name="context_usage_messages">الرسائل</string>
+    <string name="context_usage_tools">مخططات الأدوات</string>
+    <string name="context_usage_summary">الملخص</string>
+    <string name="context_usage_system">النظام</string>
+    <string name="context_usage_free">مساحة متاحة</string>
+    <string name="context_usage_input">المدخلات</string>
+    <string name="context_usage_output">المخرجات</string>
+    <string name="tool_approval_title">مطلوب موافقة</string>
+    <string name="tool_approval_subtitle">راجِع قبل التشغيل.</string>
+    <string name="tool_approval_arguments">الوسائط</string>
+    <string name="tool_approval_approve">موافقة</string>
+    <string name="tool_approval_reject">رفض</string>
+    <string name="tool_approval_edit">تعديل</string>
+    <string name="tool_approval_respond">الرد</string>
+    <string name="tool_approval_approve_all">الموافقة على الكل</string>
+    <string name="tool_approval_reject_all">رفض الكل</string>
+    <string name="tool_approval_submit">متابعة</string>
+    <string name="tool_approval_edited_arguments">الوسائط المعدّلة (JSON)</string>
+    <string name="tool_approval_response_text">رد يُرسل بدلًا من تشغيل الأداة</string>
+    <string name="tool_approval_invalid_json">أدخل JSON صالحًا</string>
+    <string name="ask_user_question_answer_hint">اكتب إجابتك</string>
+    <string name="ask_user_question_other_hint">شيء آخر</string>
+    <string name="ask_user_question_send">إرسال</string>
+    <string name="ask_user_question_skip">تخطي</string>
+    <string name="ask_user_question_multi_select_hint">اختر كل ما ينطبق</string>
+    <string name="ask_user_question_page_of">%1$d من %2$d</string>
+    <string name="ask_user_question_skipped">تم التخطي</string>
+    <string name="cd_previous_ask_user_question">السؤال السابق</string>
+    <string name="cd_next_ask_user_question">السؤال التالي</string>
+    <string name="ask_user_question_send_progress">إرسال (%1$d/%2$d)</string>
+    <string name="ask_user_question_next">التالي</string>
+    <string name="ask_user_question_back">رجوع</string>
+    <string name="ask_user_question_skip_all">تخطي الكل</string>
+    <string name="ask_user_question_tab_fallback">السؤال %1$d</string>
+    <string name="ask_user_question_waiting_marker">بانتظار إجابتك أدناه</string>
+    <string name="cd_ask_user_question_answered">تمت الإجابة</string>
+    <string name="cd_minimize_ask_user_question">تصغير الأسئلة</string>
+    <string name="cd_restore_ask_user_question">إظهار الأسئلة</string>
+    <string name="error_resource_recovery_required">تعذّرت استعادة الملفات المرفقة بهذه المحادثة، لذا لم يتمكن المساعد من استخدامها. أرفقها مرة أخرى وأعد المحاولة.</string>
+    <string name="error_model_not_found">النموذج المحدد غير متاح لدى هذا المزوّد. اختر نموذجًا مختلفًا، أو اطلب من المسؤول التحقق من إعدادات المزوّد.</string>
+    <string name="error_missing_model">لم يتم اختيار نموذج. اختر نموذجًا وحاول مرة أخرى.</string>
+    <string name="error_models_not_loaded">تعذّر تحميل قائمة النماذج. اسحب للتحديث وحاول مرة أخرى.</string>
+    <string name="error_endpoint_models_not_loaded">تعذّر تحميل نماذج نقطة النهاية هذه. اسحب للتحديث وحاول مرة أخرى.</string>
+    <string name="error_invalid_agent_provider">مزوّد هذا الوكيل غير مسموح به على هذا الخادم. اطلب من المسؤول تفعيله.</string>
+    <string name="error_refusal">رفض النموذج الإجابة عن هذا. قد تفيد إعادة صياغة الطلب.</string>
+    <string name="error_input_length">هذه الرسالة أطول مما يقبله النموذج. اختصرها وحاول مرة أخرى.</string>
+    <string name="error_moderation">رصد نظام الإشراف على الخادم هذه الرسالة. عدّلها، أو ابدأ محادثة جديدة.</string>
+    <string name="error_stream_expired">اكتمل هذا الرد أو انتهت صلاحيته قبل عرضه. أعد فتح المحادثة لتحميله.</string>
+    <string name="error_model_rate_limit">يقيّد المزوّد معدل استخدام هذا النموذج. انتظر قليلًا وحاول مرة أخرى، أو اختر نموذجًا مختلفًا.</string>
+    <string name="error_final_context_overflow">لم تعد هذه المحادثة تتسع في نافذة سياق النموذج. ابدأ محادثة جديدة، أو انتقل إلى نموذج بنافذة أكبر.</string>
+    <string name="error_compaction_skipped">لا يوجد ما يمكن ضغطه بعد. واصل المحادثة وحاول لاحقًا.</string>
+    <string name="error_compaction_failed">تعذّر إنشاء الملخص، لذا لم تتغير المحادثة. حاول مرة أخرى.</string>
+    <string name="error_upstream_model_error">تعذّر على مزوّد النموذج إكمال هذا الطلب. حاول مرة أخرى، أو اختر نموذجًا مختلفًا.</string>
+    <string name="error_upstream_model_error_status">تعذّر على مزوّد النموذج إكمال هذا الطلب (الحالة %1$d). حاول مرة أخرى، أو اختر نموذجًا مختلفًا.</string>
+    <string name="error_details_provider">استجابة المزوّد</string>
+    <string name="error_empty_messages">لم يتبقَّ شيء لإرساله بعد تقليص هذه المحادثة لتناسب سياق النموذج. ابدأ محادثة جديدة، أو انتقل إلى نموذج بنافذة أكبر.</string>
+    <string name="error_code_workspace_unavailable">مساحة عمل الكود لهذه المحادثة غير متاحة. حاول مرة أخرى، أو اختر مساحة عمل مختلفة.</string>
+    <string name="error_stateful_code_environment_not_allowed">لا يسمح هذا الخادم ببيئة كود دائمة. أوقفها من خيارات مفسّر الكود وحاول مرة أخرى.</string>
+    <string name="error_auth_rate_limited">محاولات تسجيل دخول كثيرة جدًا. انتظر قليلًا وحاول مرة أخرى.</string>
+    <string name="error_auth_banned">هذا الحساب أو هذه الشبكة محظوران من تسجيل الدخول. تواصل مع المسؤول.</string>
+    <string name="error_auth_cross_origin">رفض الخادم تسجيل الدخول باعتباره صادرًا من موقع آخر. أبلغ عن ذلك — إنه خلل في التطبيق وليس مشكلة في كلمة المرور.</string>
+    <string name="error_share_limit">طلبات روابط مشاركة كثيرة جدًا. انتظر قليلًا وحاول مرة أخرى.</string>
+    <string name="ask_user_question_record_asked">طُرح السؤال</string>
+    <string name="ask_user_question_record_asking">يسأل</string>
+    <string name="ask_user_question_record_answer_label">إجابتك:</string>
+    <string name="ask_user_question_record_unanswered">لم تُقدَّم إجابة</string>
+    <string name="ask_user_question_record_skipped">تخطيت هذا السؤال</string>
+    <string name="ask_user_question_record_options">الخيارات المعروضة</string>
+    <string name="ask_user_question_record_options_multi">الخيارات المعروضة (اختر كل ما ينطبق)</string>
+    <string name="ask_user_question_record_failed">لم يُعرض السؤال</string>
+    <string name="ask_user_question_record_failed_description">تعذّر على المساعد عرض هذا السؤال وقد يعيد المحاولة تلقائيًا.</string>
+    <string name="cd_expand_ask_user_question">توسيع تفاصيل السؤال</string>
+    <string name="cd_collapse_ask_user_question">طي تفاصيل السؤال</string>
+    <string name="tool_memory">الذاكرة</string>
+    <string name="tool_memory_desc">السماح للمساعد بتذكر تفاصيل من هذه المحادثة</string>
+    <string name="cd_steer_message">توجيه هذا الرد</string>
+    <string name="cd_cancel_steer">إلغاء التوجيه</string>
+    <string name="cd_during_run_options">اختر ما يفعله الإرسال الآن</string>
+    <string name="during_run_steer">توجيه هذا الرد</string>
+    <string name="during_run_queue">إضافة إلى قائمة الانتظار</string>
+    <string name="during_run_always_steer">التوجيه دائمًا أثناء الإنشاء</string>
+    <string name="during_run_always_queue">الإضافة إلى قائمة الانتظار دائمًا أثناء الإنشاء</string>
+    <string name="system_event_label">النظام</string>
+    <string name="wakeup_explainer">أيقظت هذه النتيجة الدائمة الوكيل لمواصلة المحادثة.</string>
+    <string name="wakeup_subagent_completed">اكتملت مهمة الوكيل الفرعي</string>
+    <string name="wakeup_subagent_failed">فشلت مهمة الوكيل الفرعي</string>
+    <string name="wakeup_subagent_cancelled">أُلغيت مهمة الوكيل الفرعي</string>
+    <string name="wakeup_task_finished">انتهت مهمة في الخلفية</string>
+    <string name="wakeup_task_failed">فشلت مهمة في الخلفية</string>
+    <string name="wakeup_tasks_finished">مهام الخلفية المنتهية: %1$d</string>
+    <string name="wakeup_status_completed">اكتملت</string>
+    <string name="wakeup_status_failed">فشلت</string>
+    <string name="wakeup_status_cancelled">أُلغيت</string>
+    <string name="wakeup_subagent_thread">السلسلة %1$s</string>
 </resources>

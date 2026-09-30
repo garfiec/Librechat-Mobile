@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="schedules">Запланированные чаты</string>
+    <string name="schedules_empty_title">Нет запланированных чатов</string>
+    <string name="schedules_empty_body">Пусть агент запускает промпт по расписанию и сохраняет каждую беседу за вас.</string>
+    <string name="schedules_disabled_on_server">Запланированные чаты отключены на этом сервере.</string>
+    <string name="schedules_create">Новое расписание</string>
+    <string name="schedules_at_limit">Достигнут лимит сервера на запланированные чаты: %1$d. Удалите один, чтобы добавить новый.</string>
+    <string name="schedule_paused">Приостановлено</string>
+    <string name="schedule_running">Выполняется</string>
+    <string name="schedule_next_run">Следующий запуск: %1$s</string>
+    <string name="schedule_last_run">Последний запуск: %1$s</string>
+    <string name="schedule_run_now">Запустить сейчас</string>
+    <string name="schedule_delete">Удалить</string>
+    <string name="schedule_delete_confirm_title">Удалить это расписание?</string>
+    <string name="schedule_delete_confirm_body">Оно перестанет запускаться. Уже созданные им беседы сохранятся.</string>
+    <string name="schedule_enable">Включить</string>
+    <string name="schedule_disable">Приостановить</string>
+
+    <string name="schedule_editor_new_title">Новое расписание</string>
+    <string name="schedule_editor_edit_title">Изменить расписание</string>
+    <string name="schedule_name">Название</string>
+    <string name="schedule_prompt">Промпт</string>
+    <string name="schedule_agent">Агент</string>
+    <string name="schedule_project">Проект</string>
+    <string name="schedule_project_pinned">Сохраняется в проект, закреплённый сервером за расписаниями.</string>
+    <string name="schedule_project_needed">Создайте проект чатов, прежде чем добавлять расписание — этот сервер сохраняет каждый запланированный запуск в проект.</string>
+    <string name="schedule_timezone">Часовой пояс</string>
+    <string name="schedule_repeats">Повтор</string>
+    <string name="schedule_frequency_hourly">Каждый час</string>
+    <string name="schedule_frequency_daily">Каждый день</string>
+    <string name="schedule_frequency_weekdays">По будням</string>
+    <string name="schedule_frequency_weekly">Каждую неделю</string>
+    <string name="schedule_frequency_cron">Своё (cron)</string>
+    <string name="schedule_cron_expression">Выражение cron</string>
+    <string name="schedule_cron_hint">Пять полей: минута, час, день месяца, месяц, день недели. Проверяется сервером.</string>
+    <string name="schedule_cadence_preview">Запуск: %1$s</string>
+    <string name="schedule_time">Час</string>
+    <string name="schedule_minute">Минута</string>
+    <string name="schedule_days">Дни</string>
+    <string name="schedule_save">Сохранить</string>
+    <string name="schedule_conflict">Это расписание было изменено в другом месте. Обновите, чтобы увидеть текущую версию — ваши правки здесь не сохранены.</string>
+    <string name="schedule_reload">Обновить</string>
+    <string name="schedule_load_failed">Не удалось загрузить это расписание, поэтому сохранять пока нечего. Обновите, чтобы попробовать снова.</string>
+    <string name="schedule_cancel">Отмена</string>
+
+    <string name="schedule_problem_name">Дайте расписанию название.</string>
+    <string name="schedule_problem_prompt">Добавьте промпт для отправки.</string>
+    <string name="schedule_problem_agent">Выберите агента.</string>
+    <string name="schedule_problem_cron">Введите пять полей cron, например 0 9 * * 1-5.</string>
+    <string name="schedule_problem_weekday">Выберите хотя бы один день.</string>
+    <string name="schedule_problem_time">Введите час (0–23) и минуту (0–59).</string>
+    <string name="schedule_problem_no_agents">Нет агентов, доступных для запуска по расписанию.</string>
+    <string name="schedule_problem_project">Выберите проект для сохранения запусков.</string>
+    <string name="schedule_problem_too_frequent">Этот сервер требует не менее %1$d мин. между запусками.</string>
+
+    <string name="schedule_disabled_mcp_reauth">Приостановлено: подключённый инструмент требует повторного входа. Откройте агента в чате, чтобы переподключить его.</string>
+    <string name="schedule_disabled_mcp_config">Приостановлено: у подключённого инструмента не хватает настроек.</string>
+    <string name="schedule_disabled_mcp_permission">Приостановлено: у вас больше нет доступа к подключённому инструменту. Восстановить его может только администратор.</string>
+    <string name="schedule_disabled_failures">Приостановлено после слишком большого числа неудачных запусков.</string>
+    <string name="schedule_disabled_agent">Приостановлено: используемый агент был удалён.</string>
+    <string name="schedule_disabled_invalid">Приостановлено: у расписания нет допустимого следующего запуска.</string>
+    <string name="schedule_disabled_permission">Приостановлено: у вас отозвано разрешение на запуск расписаний.</string>
+    <string name="schedule_disabled_balance">Приостановлено: недостаточно средств на балансе для запуска.</string>
+    <string name="schedule_disabled_project">Приостановлено: проект, в который сохранялись запуски, был удалён.</string>
+    <string name="schedule_disabled_project_required">Приостановлено: теперь сервер требует проект, а у этого расписания его нет.</string>
+    <string name="schedule_disabled_unknown">Приостановлено сервером.</string>
+</resources>

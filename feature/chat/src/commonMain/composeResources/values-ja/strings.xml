@@ -42,6 +42,17 @@
     <string name="cd_start_voice_recording">音声録音を開始</string>
     <string name="cd_stop_generation">生成を停止</string>
     <string name="cd_send_message">メッセージを送信</string>
+    <string name="cd_add_to_queue">メッセージをキューに追加</string>
+    <string name="cd_answer_question">回答を送信</string>
+    <string name="cd_cancel_pending_send">アップロード待ち — タップして送信をキャンセル</string>
+    <string name="cd_cancel_queued_message">キュー内のメッセージを削除</string>
+    <string name="cd_reorder_queued_message">ドラッグしてキュー内のメッセージを並べ替え</string>
+    <string name="send_queued_messages">キューを送信 (%1$d)</string>
+    <string name="queued_attachment_only">添付ファイル</string>
+    <string name="queued_turn_needs_attention">要確認</string>
+    <string name="editing_queued_message">キュー内のメッセージを編集中</string>
+    <string name="cd_cancel_edit">編集をキャンセル</string>
+    <string name="cd_update_queued_message">キュー内のメッセージを更新</string>
     <string name="cd_open_drawer">ナビゲーションドロワーを開く</string>
     <string name="cd_edit_title">タイトルを編集</string>
     <string name="cd_more_options">その他のオプション</string>
@@ -65,6 +76,7 @@
 
     <!-- Content descriptions - Images -->
     <string name="cd_close">閉じる</string>
+    <string name="cd_image">画像</string>
     <string name="cd_save_to_device">デバイスに保存</string>
     <string name="cd_share_image">画像を共有</string>
     <string name="cd_failed_to_load_image">画像の読み込みに失敗しました</string>
@@ -109,8 +121,59 @@
 
     <!-- Content descriptions - Subagent trace (subagents, v0.8.6+) -->
     <string name="label_subagent">サブエージェント</string>
+    <string name="subagent_threads_title">サブエージェントのスレッド</string>
+    <string name="subagent_threads_open">スレッドを表示</string>
+    <string name="subagent_threads_back">スレッド一覧に戻る</string>
+    <string name="subagent_threads_empty">この会話にはサブエージェントのスレッドがありません。</string>
+    <string name="subagent_threads_unavailable">ここで利用できるサブエージェントのスレッドはありません。</string>
+    <string name="subagent_threads_event_origin">イベントによって開始</string>
+    <string name="subagent_threads_truncated">一部の内容は長すぎるため、すべて表示できません。</string>
+    <string name="subagent_threads_load_older">以前の履歴を読み込む</string>
+    <string name="subagent_threads_older_unavailable">以前の履歴は利用できなくなりました。</string>
     <string name="cd_collapse_subagent">サブエージェント %1$s を折りたたむ</string>
     <string name="cd_expand_subagent">サブエージェント %1$s を展開</string>
+    <string name="trace_title">会話のトレース</string>
+    <string name="trace_open">トレースを表示</string>
+    <string name="trace_refresh">更新</string>
+    <string name="trace_back">レコード一覧に戻る</string>
+    <string name="trace_load_older">以前のレコードを読み込む</string>
+    <string name="trace_retry">再試行</string>
+    <string name="trace_empty">この会話のトレースレコードはまだありません。</string>
+    <string name="trace_stat_turns">ターン</string>
+    <string name="trace_stat_generations">生成</string>
+    <string name="trace_stat_tools">ツール</string>
+    <string name="trace_stat_labels">ラベル</string>
+    <string name="trace_stat_errors">エラー</string>
+    <string name="trace_stat_tokens">トークン</string>
+    <string name="trace_stat_cost">コスト</string>
+    <string name="trace_kind_agent">エージェント</string>
+    <string name="trace_kind_generation">生成</string>
+    <string name="trace_kind_tool">ツール</string>
+    <string name="trace_kind_span">スパン</string>
+    <string name="trace_kind_event">イベント</string>
+    <string name="trace_kind_other">レコード</string>
+    <string name="trace_status_ok">OK</string>
+    <string name="trace_status_warning">警告</string>
+    <string name="trace_status_error">エラー</string>
+    <string name="trace_running">実行中</string>
+    <string name="trace_view_steps">ステップ</string>
+    <string name="trace_view_all">すべてのレコード</string>
+    <string name="trace_step">ステップ %1$d</string>
+    <string name="trace_step_title">タイトル</string>
+    <string name="trace_partial">%1$d 件のレコードを表示中。以前のターンは読み込まれていません。</string>
+    <string name="trace_input">入力</string>
+    <string name="trace_output">出力</string>
+    <string name="trace_metadata">メタデータ</string>
+    <string name="trace_truncated">サーバーによって切り詰められました。</string>
+    <string name="trace_content_unavailable">このサーバーはレコードの入力と出力を返しません。</string>
+    <string name="trace_tokens_detail">入力 %1$d · 出力 %2$d · 合計 %3$d</string>
+    <string name="trace_error_generic">トレースを読み込めませんでした。</string>
+    <string name="trace_error_not_found">このトレースは利用できなくなりました。</string>
+    <string name="trace_error_changed">読み込み中にトレースが変更されました。更新してやり直してください。</string>
+    <string name="trace_error_rate_limited">トレースのリクエストが多すぎます。しばらくしてからもう一度お試しください。</string>
+    <string name="trace_error_timeout">トレースサービスが時間内に応答しませんでした。</string>
+    <string name="trace_error_unauthorized">トレースサービスがこのサーバーの認証情報を拒否しました。</string>
+    <string name="trace_error_unsupported">このサーバーのトレースサービスはトレースを返せません。</string>
 
     <!-- Office-doc preview attachments (deferred preview, v0.8.6+) -->
     <string name="office_preview_preparing">%1$s のプレビューを準備中…</string>
@@ -121,18 +184,27 @@
     <string name="cd_tool_call">ツール呼び出し</string>
     <string name="cd_collapse_tool_call">ツール呼び出し %1$s を折りたたむ</string>
     <string name="cd_expand_tool_call">ツール呼び出し %1$s を展開</string>
+    <string name="context_compact">会話を圧縮</string>
+    <string name="context_compacting">圧縮中…</string>
+    <string name="context_compact_info">これまでの内容を、モデルが引き続き参照する短い要約にまとめ、今後のためにコンテキストを空けます。何も削除されません。</string>
     <string name="cd_tool_complete">完了</string>
+    <string name="cd_tool_cancelled">停止済み</string>
+    <string name="cd_tool_failed">失敗</string>
     <string name="video_not_supported">動画コンテンツはサポートされていません</string>
 
     <!-- Tools bottom sheet -->
     <string name="tool_camera">カメラ</string>
     <string name="tool_photos">写真</string>
     <string name="tool_files">ファイル</string>
+    <string name="tool_server_files">サーバー</string>
     <string name="tool_model">モデル</string>
     <string name="tool_model_parameters">モデルパラメータ</string>
     <string name="tool_model_parameters_desc">温度やトークンなどを調整</string>
     <string name="tool_web_search">ウェブ検索</string>
     <string name="tool_web_search_desc">ウェブで情報を検索</string>
+    <string name="web_searched">ウェブを検索しました</string>
+    <string name="tool_url_context">URL コンテキスト</string>
+    <string name="tool_url_context_desc">参照した URL や YouTube 動画をモデルが読めるようにする</string>
     <string name="tool_code">コード</string>
     <string name="tool_code_desc">コードを実行・分析</string>
     <string name="tool_file_search">ファイル検索</string>
@@ -140,12 +212,29 @@
     <string name="tool_mcp">MCP</string>
     <string name="tool_mcp_desc">Model Context Protocolサーバー</string>
     <string name="cd_web_search_enabled">ウェブ検索が有効</string>
+    <string name="cd_quoted_excerpt">引用された抜粋</string>
+    <string name="cd_remove_quote">引用を削除</string>
+    <string name="selection_add_to_chat">チャットに追加</string>
     <string name="cd_code_enabled">コードインタープリターが有効</string>
     <string name="cd_file_search_enabled">ファイル検索が有効</string>
 
     <!-- Attachments -->
     <string name="cd_attach_file">ファイルを添付</string>
     <string name="files_count">ファイル（%1$d）</string>
+    <string name="files_count_with_text">ファイル (%1$d) · %2$d 件はテキスト</string>
+    <string name="cd_files_attached">%1$d 件のファイルが添付されています。タップしてプレビュー</string>
+    <string name="cd_files_attached_with_text">%1$d 件のファイルが添付され、%2$d 件はテキストとして送信されます。タップしてプレビュー</string>
+    <string name="upload_routing_sheet_title">これらをどのように送信しますか？</string>
+    <string name="upload_routing_sheet_title_single">これをどのように送信しますか？</string>
+    <string name="upload_routing_option_provider">モデルへ直接</string>
+    <string name="upload_routing_option_text">テキストとして</string>
+    <string name="upload_routing_why_provider">モデルがファイルを直接読み取ります。</string>
+    <string name="upload_routing_why_text">サーバーがファイルを読み取り、そのテキストを送信します。</string>
+    <string name="upload_routing_why_provider_only">このモデルはこのファイルを直接受け取ることしかできません。</string>
+    <string name="upload_routing_why_text_only">このモデルはこのファイルを読み取れないため、代わりにそのテキストを送信します。</string>
+    <string name="upload_routing_apply_all">すべてに適用</string>
+    <string name="upload_routing_attach">添付</string>
+    <string name="cd_upload_route_text">抽出したテキストとして送信</string>
     <string name="cd_attached_file">添付ファイル: %1$s</string>
     <string name="cd_preview_file">%1$s のプレビュー</string>
     <string name="cd_remove_file">%1$s を削除</string>
@@ -200,6 +289,19 @@
     <string name="cd_memory_artifact">メモリアーティファクト: %1$s</string>
     <string name="memory_artifact_untitled">無題</string>
     <string name="label_memory">メモリ</string>
+    <string name="cd_memory_artifacts">メモリの更新: %1$d</string>
+    <string name="memory_updated">保存されたメモリを更新しました</string>
+    <string name="memory_error">メモリエラー</string>
+    <string name="memory_updated_items">更新されたメモリ</string>
+    <string name="memory_deleted_items">削除されたメモリ</string>
+    <string name="memory_deleted">メモリを削除しました</string>
+    <string name="memory_storage_full">メモリの保存容量が上限に達しました</string>
+    <string name="memory_already_exceeded">メモリの保存容量はすでに上限を %1$d トークン超えています。新しいメモリを追加する前に既存のメモリを削除してください。</string>
+    <string name="memory_would_exceed">保存できません — 上限を %1$d トークン超えます。既存のメモリを削除して空きを作ってください。</string>
+    <string name="files_searched">ファイルを検索しました</string>
+    <string name="cd_file_search_source">ファイル検索のソース: %1$s</string>
+    <string name="file_search_relevance">%1$d%%</string>
+    <string name="file_search_pages">ページ: %1$s</string>
 
     <!-- Mermaid diagram -->
     <string name="label_mermaid">mermaid</string>
@@ -215,6 +317,14 @@
 
     <!-- Message files -->
     <string name="file_fallback">ファイル</string>
+    <string name="attachment_fallback">添付ファイル</string>
+    <string name="pdf_document">PDF ドキュメント</string>
+    <string name="pdf_load_failed">PDF を読み込めませんでした</string>
+    <string name="cd_share_pdf">PDF を共有</string>
+    <string name="cd_open_pdf">PDF を開く</string>
+    <string name="retry">再試行</string>
+    <string name="messages_unavailable_title">メッセージを利用できません</string>
+    <string name="messages_unavailable_body">この会話を読み込めず、このデバイスにはオフライン用のコピーも保存されていません。</string>
 
     <!-- Model selector sheet -->
     <string name="cd_selected">選択済み</string>
@@ -236,7 +346,25 @@
 
     <!-- Feedback dialog -->
     <string name="feedback_question">この応答の問題点は何でしたか？</string>
+    <string name="feedback_question_positive">この応答の良かった点は何でしたか？</string>
     <string name="hint_optional_comment">任意のコメント…</string>
+    <string name="feedback_tag_not_matched">依頼内容と合っていない</string>
+    <string name="feedback_tag_inaccurate">不正確または誤った回答</string>
+    <string name="feedback_tag_bad_style">スタイルやトーンが不適切</string>
+    <string name="feedback_tag_missing_image">画像を期待していた</string>
+    <string name="feedback_tag_unjustified_refusal">理由なく拒否された</string>
+    <string name="feedback_tag_not_helpful">有益な情報がない</string>
+    <string name="feedback_tag_other">その他の問題</string>
+    <string name="feedback_tag_accurate_reliable">正確で信頼できる</string>
+    <string name="feedback_tag_creative_solution">創造的な解決策</string>
+    <string name="feedback_tag_clear_well_written">明確でわかりやすい</string>
+    <string name="feedback_tag_attention_to_detail">細部まで丁寧</string>
+    <string name="activity_used_n_tools">%1$d 個のツールを使用</string>
+    <string name="steer_sent_during_reply">応答中に送信</string>
+    <string name="state_expanded">展開されています</string>
+    <string name="state_collapsed">折りたたまれています</string>
+    <string name="feedback_unavailable_while_generating">応答が完了すると送信できます。</string>
+    <string name="cd_feedback_unavailable">応答の生成中は利用できません</string>
 
     <!-- Streaming tool call -->
     <string name="tool_call_output">出力:</string>
@@ -257,9 +385,22 @@
     <!-- Artifacts -->
     <string name="cd_open_artifact">アーティファクトを開く</string>
     <string name="cd_share_artifact">アーティファクトを共有</string>
+    <string name="cd_add_artifact_to_home_screen">ホーム画面に追加</string>
+    <string name="add_to_home_screen_dialog_title">ホーム画面に追加</string>
+    <string name="add_to_home_screen_dialog_name_label">名前</string>
+    <string name="add_to_home_screen_dialog_emoji_label">絵文字</string>
+    <string name="add_to_home_screen_icon_label">アイコン</string>
+    <string name="add_to_home_screen_icon_auto">自動</string>
+    <string name="add_to_home_screen_icon_custom">カスタム</string>
+    <string name="cd_icon_preview">アイコンのプレビュー</string>
+    <string name="artifact_shortcut_unavailable">このアーティファクトは利用できなくなりました。</string>
+    <string name="add_to_home_screen_confirm">追加</string>
+    <string name="artifact_shortcut_back">戻る</string>
     <string name="cd_previous_version">前のバージョン</string>
     <string name="cd_next_version">次のバージョン</string>
     <string name="artifact_version">v%1$d/%2$d</string>
+    <string name="artifact_view_source">ソースを表示</string>
+    <string name="artifact_view_preview">プレビューを表示</string>
     <string name="artifact_incomplete">不完全</string>
     <!-- Prompts -->
     <string name="prompts_library">プロンプトライブラリ</string>
@@ -315,6 +456,7 @@
     <string name="provider_keys_chat_error_invalid">無効なキーが提供されました。有効なキーを入力してもう一度お試しください。</string>
     <!-- Snackbar action label that deep-links to Settings → Provider Keys -->
     <string name="provider_keys_chat_error_cta">キー設定を開く</string>
+    <string name="queued_messages_dropped_account_switch">アカウントの切り替えにより、キュー内のメッセージは破棄されました</string>
 
     <!-- Send block reasons (shown in error snackbar when send can't proceed) -->
     <string name="send_block_select_agent">メッセージを送信する前にエージェントを選択してください。</string>
@@ -323,4 +465,112 @@
     <string name="send_block_agent_not_available">選択したエージェントはこのサーバーで利用できません。別のエージェントを選択してください。</string>
     <string name="send_block_model_not_available">選択したモデルはこのサーバーで利用できません。別のモデルを選択してください。</string>
     <string name="send_block_model_load_failed">選択したモデルをまだ読み込めませんでした。もう一度お試しいただくか、別のモデルを選択してください。</string>
+    <string name="action_show_all_media">すべてのメディアを表示</string>
+    <string name="media_gallery_title">メディア</string>
+    <string name="media_tab_media">メディア</string>
+    <string name="media_tab_files">ファイル</string>
+    <string name="media_tab_links">リンク</string>
+    <string name="media_tab_artifacts">アーティファクト</string>
+    <string name="media_scope_whole_chat">チャット全体</string>
+    <string name="media_scope_this_branch">この分岐</string>
+    <string name="media_empty_media">この会話にメディアはありません</string>
+    <string name="media_empty_files">この会話にファイルはありません</string>
+    <string name="media_empty_links">この会話にリンクはありません</string>
+    <string name="media_empty_artifacts">この会話にアーティファクトはありません</string>
+    <string name="context_usage_label">コンテキスト</string>
+    <string name="context_usage_window">コンテキストウィンドウ</string>
+    <string name="context_usage_messages">メッセージ</string>
+    <string name="context_usage_tools">ツールスキーマ</string>
+    <string name="context_usage_summary">要約</string>
+    <string name="context_usage_system">システム</string>
+    <string name="context_usage_free">空き容量</string>
+    <string name="context_usage_input">入力</string>
+    <string name="context_usage_output">出力</string>
+    <string name="tool_approval_title">承認が必要です</string>
+    <string name="tool_approval_subtitle">実行前に確認してください。</string>
+    <string name="tool_approval_arguments">引数</string>
+    <string name="tool_approval_approve">承認</string>
+    <string name="tool_approval_reject">拒否</string>
+    <string name="tool_approval_edit">編集</string>
+    <string name="tool_approval_respond">返信</string>
+    <string name="tool_approval_approve_all">すべて承認</string>
+    <string name="tool_approval_reject_all">すべて拒否</string>
+    <string name="tool_approval_submit">続行</string>
+    <string name="tool_approval_edited_arguments">編集した引数 (JSON)</string>
+    <string name="tool_approval_response_text">ツールを実行する代わりに送信する返信</string>
+    <string name="tool_approval_invalid_json">有効な JSON を入力してください</string>
+    <string name="ask_user_question_answer_hint">回答を入力</string>
+    <string name="ask_user_question_other_hint">その他</string>
+    <string name="ask_user_question_send">送信</string>
+    <string name="ask_user_question_skip">スキップ</string>
+    <string name="ask_user_question_multi_select_hint">当てはまるものをすべて選択</string>
+    <string name="ask_user_question_page_of">%1$d / %2$d</string>
+    <string name="ask_user_question_skipped">スキップ済み</string>
+    <string name="cd_previous_ask_user_question">前の質問</string>
+    <string name="cd_next_ask_user_question">次の質問</string>
+    <string name="ask_user_question_send_progress">送信 (%1$d/%2$d)</string>
+    <string name="ask_user_question_next">次へ</string>
+    <string name="ask_user_question_back">戻る</string>
+    <string name="ask_user_question_skip_all">すべてスキップ</string>
+    <string name="ask_user_question_tab_fallback">質問 %1$d</string>
+    <string name="ask_user_question_waiting_marker">下で回答を待っています</string>
+    <string name="cd_ask_user_question_answered">回答済み</string>
+    <string name="cd_minimize_ask_user_question">質問を最小化</string>
+    <string name="cd_restore_ask_user_question">質問を表示</string>
+    <string name="error_resource_recovery_required">この会話に添付されたファイルを復元できなかったため、アシスタントはそれらを使用できませんでした。もう一度添付して再試行してください。</string>
+    <string name="error_model_not_found">選択したモデルはこのプロバイダーで利用できません。別のモデルを選択するか、プロバイダーの設定を確認するよう管理者に依頼してください。</string>
+    <string name="error_missing_model">モデルが選択されていません。モデルを選択してもう一度お試しください。</string>
+    <string name="error_models_not_loaded">モデル一覧を読み込めませんでした。引っ張って更新し、もう一度お試しください。</string>
+    <string name="error_endpoint_models_not_loaded">このエンドポイントのモデルを読み込めませんでした。引っ張って更新し、もう一度お試しください。</string>
+    <string name="error_invalid_agent_provider">このエージェントのプロバイダーはこのサーバーで許可されていません。有効にするよう管理者に依頼してください。</string>
+    <string name="error_refusal">モデルはこの依頼への回答を断りました。依頼の言い方を変えると回答される場合があります。</string>
+    <string name="error_input_length">このメッセージはモデルが受け付ける長さを超えています。短くしてもう一度お試しください。</string>
+    <string name="error_moderation">このメッセージはサーバーのモデレーションによって検出されました。編集するか、新しい会話を始めてください。</string>
+    <string name="error_stream_expired">この応答は表示される前に完了したか期限切れになりました。会話を開き直して読み込んでください。</string>
+    <string name="error_model_rate_limit">プロバイダーがこのモデルのレート制限を行っています。しばらく待ってからもう一度お試しいただくか、別のモデルを選択してください。</string>
+    <string name="error_final_context_overflow">この会話はモデルのコンテキストウィンドウに収まらなくなりました。新しい会話を始めるか、より大きなコンテキストウィンドウを持つモデルに切り替えてください。</string>
+    <string name="error_compaction_skipped">まだ圧縮する内容がありません。会話を続けてから、後でもう一度お試しください。</string>
+    <string name="error_compaction_failed">要約を生成できなかったため、会話は変更されていません。もう一度お試しください。</string>
+    <string name="error_upstream_model_error">モデルプロバイダーがこのリクエストを完了できませんでした。もう一度お試しいただくか、別のモデルを選択してください。</string>
+    <string name="error_upstream_model_error_status">モデルプロバイダーがこのリクエストを完了できませんでした（ステータス %1$d）。もう一度お試しいただくか、別のモデルを選択してください。</string>
+    <string name="error_details_provider">プロバイダーの応答</string>
+    <string name="error_empty_messages">モデルのコンテキストに収まるよう会話を切り詰めた結果、送信する内容が残りませんでした。新しい会話を始めるか、より大きなコンテキストウィンドウを持つモデルに切り替えてください。</string>
+    <string name="error_code_workspace_unavailable">この会話のコードワークスペースは利用できません。もう一度お試しいただくか、別のワークスペースを選択してください。</string>
+    <string name="error_stateful_code_environment_not_allowed">このサーバーでは永続的なコード環境が許可されていません。コードインタープリターのオプションでオフにして、もう一度お試しください。</string>
+    <string name="error_auth_rate_limited">サインインの試行回数が多すぎます。しばらく待ってからもう一度お試しください。</string>
+    <string name="error_auth_banned">このアカウントまたはネットワークはサインインをブロックされています。管理者に連絡してください。</string>
+    <string name="error_auth_cross_origin">別のサイトからのサインインとしてサーバーに拒否されました。これはパスワードの問題ではなくアプリのバグです。報告してください。</string>
+    <string name="error_share_limit">共有リンクのリクエストが多すぎます。しばらく待ってからもう一度お試しください。</string>
+    <string name="ask_user_question_record_asked">質問済み</string>
+    <string name="ask_user_question_record_asking">質問中</string>
+    <string name="ask_user_question_record_answer_label">あなたの回答:</string>
+    <string name="ask_user_question_record_unanswered">回答はありませんでした</string>
+    <string name="ask_user_question_record_skipped">この質問をスキップしました</string>
+    <string name="ask_user_question_record_options">提示された選択肢</string>
+    <string name="ask_user_question_record_options_multi">提示された選択肢（複数選択可）</string>
+    <string name="ask_user_question_record_failed">質問を表示できませんでした</string>
+    <string name="ask_user_question_record_failed_description">アシスタントはこの質問を表示できませんでした。自動的に再試行される場合があります。</string>
+    <string name="cd_expand_ask_user_question">質問の詳細を展開</string>
+    <string name="cd_collapse_ask_user_question">質問の詳細を折りたたむ</string>
+    <string name="tool_memory">メモリ</string>
+    <string name="tool_memory_desc">このチャットの詳細をアシスタントが記憶できるようにする</string>
+    <string name="cd_steer_message">この応答を軌道修正</string>
+    <string name="cd_cancel_steer">軌道修正をキャンセル</string>
+    <string name="cd_during_run_options">送信時の動作を選択</string>
+    <string name="during_run_steer">この応答を軌道修正</string>
+    <string name="during_run_queue">キューに追加</string>
+    <string name="during_run_always_steer">生成中は常に軌道修正</string>
+    <string name="during_run_always_queue">生成中は常にキューに追加</string>
+    <string name="system_event_label">システム</string>
+    <string name="wakeup_explainer">この永続的な結果によりエージェントが再開し、会話を続けました。</string>
+    <string name="wakeup_subagent_completed">サブエージェントのタスクが完了しました</string>
+    <string name="wakeup_subagent_failed">サブエージェントのタスクが失敗しました</string>
+    <string name="wakeup_subagent_cancelled">サブエージェントのタスクがキャンセルされました</string>
+    <string name="wakeup_task_finished">バックグラウンドタスクが完了しました</string>
+    <string name="wakeup_task_failed">バックグラウンドタスクが失敗しました</string>
+    <string name="wakeup_tasks_finished">%1$d 件のバックグラウンドタスクが完了しました</string>
+    <string name="wakeup_status_completed">完了</string>
+    <string name="wakeup_status_failed">失敗</string>
+    <string name="wakeup_status_cancelled">キャンセル済み</string>
+    <string name="wakeup_subagent_thread">スレッド %1$s</string>
 </resources>

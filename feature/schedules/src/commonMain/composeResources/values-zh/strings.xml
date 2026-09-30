@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="schedules">定时聊天</string>
+    <string name="schedules_empty_title">暂无定时聊天</string>
+    <string name="schedules_empty_body">让智能体按计划运行提示词，并自动将每次对话归入项目。</string>
+    <string name="schedules_disabled_on_server">此服务器已关闭定时聊天。</string>
+    <string name="schedules_create">新建定时任务</string>
+    <string name="schedules_at_limit">你已达到此服务器 %1$d 个定时聊天的上限。请删除一个后再添加。</string>
+    <string name="schedule_paused">已暂停</string>
+    <string name="schedule_running">正在运行</string>
+    <string name="schedule_next_run">下次运行：%1$s</string>
+    <string name="schedule_last_run">上次运行：%1$s</string>
+    <string name="schedule_run_now">立即运行</string>
+    <string name="schedule_delete">删除</string>
+    <string name="schedule_delete_confirm_title">删除此定时任务？</string>
+    <string name="schedule_delete_confirm_body">它将停止运行。已创建的对话会保留。</string>
+    <string name="schedule_enable">启用</string>
+    <string name="schedule_disable">暂停</string>
+
+    <string name="schedule_editor_new_title">新建定时任务</string>
+    <string name="schedule_editor_edit_title">编辑定时任务</string>
+    <string name="schedule_name">名称</string>
+    <string name="schedule_prompt">提示词</string>
+    <string name="schedule_agent">智能体</string>
+    <string name="schedule_project">项目</string>
+    <string name="schedule_project_pinned">归入此服务器为定时任务指定的项目。</string>
+    <string name="schedule_project_needed">添加定时任务前请先创建聊天项目——此服务器会将每次定时运行归入某个项目。</string>
+    <string name="schedule_timezone">时区</string>
+    <string name="schedule_repeats">重复</string>
+    <string name="schedule_frequency_hourly">每小时</string>
+    <string name="schedule_frequency_daily">每天</string>
+    <string name="schedule_frequency_weekdays">工作日</string>
+    <string name="schedule_frequency_weekly">每周</string>
+    <string name="schedule_frequency_cron">自定义 (cron)</string>
+    <string name="schedule_cron_expression">Cron 表达式</string>
+    <string name="schedule_cron_hint">五个字段：分钟、小时、日、月、星期。由服务器校验。</string>
+    <string name="schedule_cadence_preview">运行时间：%1$s</string>
+    <string name="schedule_time">小时</string>
+    <string name="schedule_minute">分钟</string>
+    <string name="schedule_days">星期</string>
+    <string name="schedule_save">保存</string>
+    <string name="schedule_conflict">此定时任务已在其他地方被修改。请重新加载以查看当前版本——你在此处的编辑未保存。</string>
+    <string name="schedule_reload">重新加载</string>
+    <string name="schedule_load_failed">无法加载此定时任务，因此暂无可保存的内容。请重新加载以重试。</string>
+    <string name="schedule_cancel">取消</string>
+
+    <string name="schedule_problem_name">请为定时任务命名。</string>
+    <string name="schedule_problem_prompt">请添加要发送的提示词。</string>
+    <string name="schedule_problem_agent">请选择一个智能体。</string>
+    <string name="schedule_problem_cron">请输入五个 cron 字段，例如 0 9 * * 1-5。</string>
+    <string name="schedule_problem_weekday">请至少选择一天。</string>
+    <string name="schedule_problem_time">请输入小时（0–23）和分钟（0–59）。</string>
+    <string name="schedule_problem_no_agents">没有可用于运行定时任务的智能体。</string>
+    <string name="schedule_problem_project">请选择用于归入运行记录的项目。</string>
+    <string name="schedule_problem_too_frequent">此服务器要求两次运行之间至少间隔 %1$d 分钟。</string>
+
+    <string name="schedule_disabled_mcp_reauth">已暂停：某个已连接的工具需要你重新登录。请在聊天中打开该智能体以重新连接。</string>
+    <string name="schedule_disabled_mcp_config">已暂停：某个已连接的工具缺少配置。</string>
+    <string name="schedule_disabled_mcp_permission">已暂停：你已无权访问某个已连接的工具。需要管理员恢复权限。</string>
+    <string name="schedule_disabled_failures">运行失败次数过多，已暂停。</string>
+    <string name="schedule_disabled_agent">已暂停：所用的智能体已被删除。</string>
+    <string name="schedule_disabled_invalid">已暂停：此定时任务没有有效的下次运行时间。</string>
+    <string name="schedule_disabled_permission">已暂停：你运行定时任务的权限已被移除。</string>
+    <string name="schedule_disabled_balance">已暂停：余额不足，无法运行。</string>
+    <string name="schedule_disabled_project">已暂停：用于归入运行记录的项目已被删除。</string>
+    <string name="schedule_disabled_project_required">已暂停：此服务器现在要求指定项目，而此定时任务没有项目。</string>
+    <string name="schedule_disabled_unknown">已被服务器暂停。</string>
+</resources>

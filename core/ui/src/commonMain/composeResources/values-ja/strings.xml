@@ -2,6 +2,8 @@
 <resources>
     <!-- Accessibility label for the bottom-sheet drag handle -->
     <string name="cd_drag_handle">ドラッグ ハンドル</string>
+    <string name="banner_dismiss">バナーを閉じる</string>
+    <string name="pdf_page_failed">このページを表示できませんでした</string>
     <!-- Custom per-server request headers (issue #287); shared by the pre-login
          server screen and the post-login Settings editor -->
     <string name="server_headers_title">カスタムリクエストヘッダー</string>

@@ -4,6 +4,7 @@
     <string name="rename">重命名</string>
     <string name="cancel">取消</string>
     <string name="delete">删除</string>
+    <string name="save">保存</string>
     <string name="archive">归档</string>
     <string name="export">导出</string>
     <string name="share">分享</string>
@@ -42,6 +43,28 @@
     <!-- Conversation actions -->
     <string name="remove_bookmark">取消收藏</string>
     <string name="bookmark">收藏</string>
+    <string name="pin">固定</string>
+    <string name="unpin">取消固定</string>
+    <string name="move_to_project">移至项目</string>
+    <string name="project_picker_title">移至项目</string>
+    <string name="project_none">无项目</string>
+    <string name="project_create">创建项目</string>
+    <string name="project_new_name">新项目名称</string>
+    <string name="project_empty_chats">此项目中还没有聊天</string>
+    <string name="project_sort_label">排序</string>
+    <string name="project_sort_updated">最近更新</string>
+    <string name="project_sort_created">最近创建</string>
+    <string name="projects_title">项目</string>
+    <string name="project_rename">重命名项目</string>
+    <string name="project_delete">删除项目</string>
+    <string name="project_delete_confirm">删除项目 "%1$s"？对话会保留，但会从项目中移除。</string>
+    <string name="project_open">打开</string>
+    <string name="project_unassigned">未分配</string>
+    <string name="projects_all">所有项目</string>
+    <string name="project_new">新建项目</string>
+    <string name="project_name_label">项目名称</string>
+    <string name="project_count">%1$d 个聊天</string>
+    <string name="projects_empty">暂无项目</string>
     <string name="tags">标签</string>
     <string name="rename_conversation">重命名对话</string>
     <string name="rename_dialog_message">为此对话输入新标题。</string>
@@ -72,10 +95,26 @@
 
     <!-- Drawer strings (moved from :shared) -->
     <string name="agents">智能体</string>
+    <string name="cd_collapse_section">收起分组</string>
+    <string name="cd_expand_section">展开分组</string>
+    <string name="chats">聊天</string>
     <string name="favorites">收藏</string>
     <string name="files">文件</string>
+    <string name="library">资料库</string>
     <string name="no_conversations_found">未找到对话</string>
+    <string name="pinned">已固定</string>
+    <string name="projects">项目</string>
     <string name="search_conversations_placeholder">搜索对话…</string>
     <string name="settings">设置</string>
+    <string name="show_less">收起</string>
+    <string name="show_more">显示更多</string>
+    <string name="schedules">定时聊天</string>
     <string name="skills">技能</string>
+    <string name="accounts">账户</string>
+    <string name="add_account">添加账户</string>
+    <string name="cd_active_account">当前账户</string>
+    <string name="remove">移除</string>
+    <string name="remove_account">移除账户</string>
+    <string name="remove_account_message">%1$s 及其数据将从此设备中移除。服务器上的账户不受影响。</string>
+    <string name="remove_account_title">移除账户？</string>
 </resources>

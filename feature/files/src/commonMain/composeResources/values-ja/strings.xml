@@ -22,6 +22,9 @@
     <string name="cd_delete_file">%1$s を削除</string>
     <string name="cd_thumbnail">%1$s のサムネイル</string>
     <string name="cd_close_preview">プレビューを閉じる</string>
+    <string name="cd_image">画像</string>
+    <string name="cd_save_image">デバイスに保存</string>
+    <string name="cd_share_image">画像を共有</string>
     <string name="cd_cancel_upload">アップロードをキャンセル</string>
     <string name="cd_ascending">昇順</string>
     <string name="cd_descending">降順</string>
@@ -29,6 +32,8 @@
     <!-- Selection mode -->
     <string name="select_files">ファイルを選択</string>
     <string name="selected_count">%1$d 件選択</string>
+    <string name="attach_count">添付 (%1$d)</string>
+    <string name="cd_close_picker">ピッカーを閉じる</string>
 
     <!-- Empty states -->
     <string name="no_files">ファイルがありません</string>

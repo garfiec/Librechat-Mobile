@@ -59,4 +59,17 @@
     <string name="skill_acl_collapse">Réduire</string>
     <string name="skill_acl_expand">Développer</string>
     <string name="skill_acl_close">Fermer</string>
+    <string name="skill_import_failed_title">Échec de l'importation</string>
+    <string name="skill_import_incomplete">Importation annulée : %1$d fichier(s) de l'archive n'ont pas pu être importés. Corrigez l'archive et téléversez-la à nouveau.</string>
+    <string name="skill_import_rollback_failed">Échec de l'importation de %1$d fichier(s), et la compétence incomplète n'a pas pu être supprimée automatiquement. Supprimez-la avant de réessayer.</string>
+    <string name="skill_import_cleanup_incomplete">Échec de l'importation de %1$d fichier(s). La compétence incomplète a été supprimée, mais le nettoyage automatique ne s'est pas terminé.</string>
+    <string name="skill_import_failed_files">Ces fichiers n'ont pas pu être importés :</string>
+    <string name="skill_import_rollback_failed_files">Échec de l'importation de ces fichiers, et la compétence incomplète a été laissée en place :</string>
+    <string name="skill_import_cleanup_incomplete_files">Échec de l'importation de ces fichiers ; le nettoyage automatique ne s'est pas terminé :</string>
+    <string name="skill_import_reason_invalid_path">Chemin de fichier non pris en charge</string>
+    <string name="skill_import_reason_file_too_large">Dépasse la limite de taille de fichier de %1$s Mo</string>
+    <string name="skill_import_reason_archive_too_large">Non importé : l'archive dépasse la limite de taille totale de %1$s Mo</string>
+    <string name="skill_import_reason_archive_entry_changed">Modifié pendant la lecture de l'archive</string>
+    <string name="skill_import_reason_persistence_failed">Impossible de l'enregistrer</string>
+    <string name="skill_import_reason_unknown">Impossible de l'importer</string>
 </resources>

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="schedules">スケジュールされたチャット</string>
+    <string name="schedules_empty_title">スケジュールされたチャットはありません</string>
+    <string name="schedules_empty_body">エージェントにスケジュールに沿ってプロンプトを実行させ、各会話を自動で整理します。</string>
+    <string name="schedules_disabled_on_server">このサーバーではスケジュールされたチャットが無効になっています。</string>
+    <string name="schedules_create">新しいスケジュール</string>
+    <string name="schedules_at_limit">このサーバーのスケジュールされたチャットの上限（%1$d 件）に達しました。追加するには1つ削除してください。</string>
+    <string name="schedule_paused">一時停止中</string>
+    <string name="schedule_running">実行中</string>
+    <string name="schedule_next_run">次回の実行: %1$s</string>
+    <string name="schedule_last_run">前回の実行: %1$s</string>
+    <string name="schedule_run_now">今すぐ実行</string>
+    <string name="schedule_delete">削除</string>
+    <string name="schedule_delete_confirm_title">このスケジュールを削除しますか？</string>
+    <string name="schedule_delete_confirm_body">実行は停止されます。これまでに作成された会話は残ります。</string>
+    <string name="schedule_enable">有効にする</string>
+    <string name="schedule_disable">一時停止</string>
+
+    <string name="schedule_editor_new_title">新しいスケジュール</string>
+    <string name="schedule_editor_edit_title">スケジュールを編集</string>
+    <string name="schedule_name">名前</string>
+    <string name="schedule_prompt">プロンプト</string>
+    <string name="schedule_agent">エージェント</string>
+    <string name="schedule_project">プロジェクト</string>
+    <string name="schedule_project_pinned">このサーバーがスケジュール用に固定しているプロジェクトに保存されます。</string>
+    <string name="schedule_project_needed">スケジュールを追加する前にチャットプロジェクトを作成してください。このサーバーでは、スケジュールされたすべての実行がプロジェクトに保存されます。</string>
+    <string name="schedule_timezone">タイムゾーン</string>
+    <string name="schedule_repeats">繰り返し</string>
+    <string name="schedule_frequency_hourly">毎時</string>
+    <string name="schedule_frequency_daily">毎日</string>
+    <string name="schedule_frequency_weekdays">平日</string>
+    <string name="schedule_frequency_weekly">毎週</string>
+    <string name="schedule_frequency_cron">カスタム (cron)</string>
+    <string name="schedule_cron_expression">Cron式</string>
+    <string name="schedule_cron_hint">5つのフィールド: 分、時、日、月、曜日。サーバーで検証されます。</string>
+    <string name="schedule_cadence_preview">%1$s に実行</string>
+    <string name="schedule_time">時</string>
+    <string name="schedule_minute">分</string>
+    <string name="schedule_days">曜日</string>
+    <string name="schedule_save">保存</string>
+    <string name="schedule_conflict">このスケジュールは別の場所で変更されました。再読み込みして最新の内容を確認してください。ここでの編集は保存されていません。</string>
+    <string name="schedule_reload">再読み込み</string>
+    <string name="schedule_load_failed">このスケジュールを読み込めなかったため、保存する内容がありません。再読み込みしてもう一度お試しください。</string>
+    <string name="schedule_cancel">キャンセル</string>
+
+    <string name="schedule_problem_name">スケジュールに名前を付けてください。</string>
+    <string name="schedule_problem_prompt">送信するプロンプトを追加してください。</string>
+    <string name="schedule_problem_agent">エージェントを選択してください。</string>
+    <string name="schedule_problem_cron">cronの5つのフィールドを入力してください（例: 0 9 * * 1-5）。</string>
+    <string name="schedule_problem_weekday">曜日を1つ以上選択してください。</string>
+    <string name="schedule_problem_time">時（0～23）と分（0～59）を入力してください。</string>
+    <string name="schedule_problem_no_agents">スケジュールを実行できるエージェントがありません。</string>
+    <string name="schedule_problem_project">実行結果の保存先プロジェクトを選択してください。</string>
+    <string name="schedule_problem_too_frequent">このサーバーでは実行間隔を %1$d 分以上空ける必要があります。</string>
+
+    <string name="schedule_disabled_mcp_reauth">一時停止中: 接続されたツールに再度サインインする必要があります。チャットでエージェントを開いて再接続してください。</string>
+    <string name="schedule_disabled_mcp_config">一時停止中: 接続されたツールの設定が不足しています。</string>
+    <string name="schedule_disabled_mcp_permission">一時停止中: 接続されたツールへのアクセス権がなくなりました。アクセス権を戻すには管理者の対応が必要です。</string>
+    <string name="schedule_disabled_failures">実行の失敗が続いたため一時停止しました。</string>
+    <string name="schedule_disabled_agent">一時停止中: 使用していたエージェントが削除されました。</string>
+    <string name="schedule_disabled_invalid">一時停止中: 有効な次回実行日時がありません。</string>
+    <string name="schedule_disabled_permission">一時停止中: スケジュールを実行する権限が削除されました。</string>
+    <string name="schedule_disabled_balance">一時停止中: 実行に必要な残高が不足しています。</string>
+    <string name="schedule_disabled_project">一時停止中: 実行結果の保存先プロジェクトが削除されました。</string>
+    <string name="schedule_disabled_project_required">一時停止中: このサーバーではプロジェクトが必須になりましたが、このスケジュールには設定されていません。</string>
+    <string name="schedule_disabled_unknown">サーバーにより一時停止されました。</string>
+</resources>

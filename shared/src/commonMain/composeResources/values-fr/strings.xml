@@ -11,4 +11,7 @@
     <string name="version_mismatch_message">Cette application a été conçue pour LibreChat v%1$s, mais votre serveur exécute la v%2$s. Certaines fonctionnalités pourraient ne pas fonctionner correctement.</string>
     <string name="dismiss">Ignorer</string>
     <string name="dont_warn_again">Ne plus avertir</string>
+    <string name="session_expired_title">Déconnecté</string>
+    <string name="session_expired_message">Votre session a expiré. Reconnectez-vous pour continuer.</string>
+    <string name="session_expired_message_named">Votre session pour %1$s a expiré. Reconnectez-vous pour continuer.</string>
 </resources>

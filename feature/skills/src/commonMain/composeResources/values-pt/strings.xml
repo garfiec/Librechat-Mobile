@@ -59,4 +59,17 @@
     <string name="skill_acl_collapse">Recolher</string>
     <string name="skill_acl_expand">Expandir</string>
     <string name="skill_acl_close">Fechar</string>
+    <string name="skill_import_failed_title">Falha na importação</string>
+    <string name="skill_import_incomplete">Importação cancelada: %1$d arquivo(s) do pacote não puderam ser importados. Corrija o pacote e envie-o novamente.</string>
+    <string name="skill_import_rollback_failed">Falha na importação de %1$d arquivo(s), e a habilidade incompleta não pôde ser removida automaticamente. Exclua-a antes de tentar novamente.</string>
+    <string name="skill_import_cleanup_incomplete">Falha na importação de %1$d arquivo(s). A habilidade incompleta foi removida, mas a limpeza automática não terminou.</string>
+    <string name="skill_import_failed_files">Não foi possível importar estes arquivos:</string>
+    <string name="skill_import_rollback_failed_files">Falha na importação destes arquivos, e a habilidade incompleta ficou para trás:</string>
+    <string name="skill_import_cleanup_incomplete_files">Falha na importação destes arquivos; a limpeza automática não terminou:</string>
+    <string name="skill_import_reason_invalid_path">Caminho de arquivo não suportado</string>
+    <string name="skill_import_reason_file_too_large">Excede o limite de tamanho de arquivo de %1$s MB</string>
+    <string name="skill_import_reason_archive_too_large">Não importado: o pacote excede o limite de tamanho total de %1$s MB</string>
+    <string name="skill_import_reason_archive_entry_changed">Alterado enquanto o pacote era lido</string>
+    <string name="skill_import_reason_persistence_failed">Não foi possível salvar</string>
+    <string name="skill_import_reason_unknown">Não foi possível importar</string>
 </resources>

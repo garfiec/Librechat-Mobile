@@ -59,4 +59,17 @@
     <string name="skill_acl_collapse">Einklappen</string>
     <string name="skill_acl_expand">Ausklappen</string>
     <string name="skill_acl_close">Schließen</string>
+    <string name="skill_import_failed_title">Import fehlgeschlagen</string>
+    <string name="skill_import_incomplete">Import abgebrochen: %1$d Datei(en) im Archiv konnten nicht importiert werden. Korrigiere das Archiv und lade es erneut hoch.</string>
+    <string name="skill_import_rollback_failed">Import für %1$d Datei(en) fehlgeschlagen, und der unvollständige Skill konnte nicht automatisch entfernt werden. Lösche ihn, bevor du es erneut versuchst.</string>
+    <string name="skill_import_cleanup_incomplete">Import für %1$d Datei(en) fehlgeschlagen. Der unvollständige Skill wurde entfernt, aber die automatische Bereinigung wurde nicht abgeschlossen.</string>
+    <string name="skill_import_failed_files">Diese Dateien konnten nicht importiert werden:</string>
+    <string name="skill_import_rollback_failed_files">Import für diese Dateien fehlgeschlagen, und der unvollständige Skill wurde zurückgelassen:</string>
+    <string name="skill_import_cleanup_incomplete_files">Import für diese Dateien fehlgeschlagen; die automatische Bereinigung wurde nicht abgeschlossen:</string>
+    <string name="skill_import_reason_invalid_path">Nicht unterstützter Dateipfad</string>
+    <string name="skill_import_reason_file_too_large">Überschreitet die maximale Dateigröße von %1$s MB</string>
+    <string name="skill_import_reason_archive_too_large">Nicht importiert: Das Archiv überschreitet die maximale Gesamtgröße von %1$s MB</string>
+    <string name="skill_import_reason_archive_entry_changed">Wurde geändert, während das Archiv gelesen wurde</string>
+    <string name="skill_import_reason_persistence_failed">Konnte nicht gespeichert werden</string>
+    <string name="skill_import_reason_unknown">Konnte nicht importiert werden</string>
 </resources>

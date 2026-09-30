@@ -42,6 +42,17 @@
     <string name="cd_start_voice_recording">Iniciar grabación de voz</string>
     <string name="cd_stop_generation">Detener generación</string>
     <string name="cd_send_message">Enviar mensaje</string>
+    <string name="cd_add_to_queue">Añadir mensaje a la cola</string>
+    <string name="cd_answer_question">Enviar respuesta</string>
+    <string name="cd_cancel_pending_send">Esperando la subida: toca para cancelar el envío</string>
+    <string name="cd_cancel_queued_message">Quitar mensaje en cola</string>
+    <string name="cd_reorder_queued_message">Arrastra para reordenar el mensaje en cola</string>
+    <string name="send_queued_messages">Enviar en cola (%1$d)</string>
+    <string name="queued_attachment_only">Archivo adjunto</string>
+    <string name="queued_turn_needs_attention">Requiere atención</string>
+    <string name="editing_queued_message">Editando mensaje en cola</string>
+    <string name="cd_cancel_edit">Cancelar edición</string>
+    <string name="cd_update_queued_message">Actualizar mensaje en cola</string>
     <string name="cd_open_drawer">Abrir el panel de navegación</string>
     <string name="cd_edit_title">Editar título</string>
     <string name="cd_more_options">Más opciones</string>
@@ -65,6 +76,7 @@
 
     <!-- Content descriptions - Images -->
     <string name="cd_close">Cerrar</string>
+    <string name="cd_image">Imagen</string>
     <string name="cd_save_to_device">Guardar en el dispositivo</string>
     <string name="cd_share_image">Compartir imagen</string>
     <string name="cd_failed_to_load_image">Error al cargar la imagen</string>
@@ -109,8 +121,59 @@
 
     <!-- Content descriptions - Subagent trace (subagents, v0.8.6+) -->
     <string name="label_subagent">Subagente</string>
+    <string name="subagent_threads_title">Hilo de subagente</string>
+    <string name="subagent_threads_open">Ver hilo</string>
+    <string name="subagent_threads_back">Volver a los hilos</string>
+    <string name="subagent_threads_empty">Esta conversación no tiene hilos de subagentes.</string>
+    <string name="subagent_threads_unavailable">No hay hilos de subagentes disponibles aquí.</string>
+    <string name="subagent_threads_event_origin">Iniciado por un evento</string>
+    <string name="subagent_threads_truncated">Parte de esto era demasiado largo para mostrarse completo.</string>
+    <string name="subagent_threads_load_older">Cargar anteriores</string>
+    <string name="subagent_threads_older_unavailable">El historial anterior ya no está disponible.</string>
     <string name="cd_collapse_subagent">Contraer subagente %1$s</string>
     <string name="cd_expand_subagent">Expandir subagente %1$s</string>
+    <string name="trace_title">Traza de la conversación</string>
+    <string name="trace_open">Ver traza</string>
+    <string name="trace_refresh">Actualizar</string>
+    <string name="trace_back">Volver a los registros</string>
+    <string name="trace_load_older">Cargar anteriores</string>
+    <string name="trace_retry">Reintentar</string>
+    <string name="trace_empty">Aún no hay registros de traza para esta conversación.</string>
+    <string name="trace_stat_turns">Turnos</string>
+    <string name="trace_stat_generations">Generaciones</string>
+    <string name="trace_stat_tools">Herramientas</string>
+    <string name="trace_stat_labels">Etiquetas</string>
+    <string name="trace_stat_errors">Errores</string>
+    <string name="trace_stat_tokens">Tokens</string>
+    <string name="trace_stat_cost">Coste</string>
+    <string name="trace_kind_agent">Agente</string>
+    <string name="trace_kind_generation">Generación</string>
+    <string name="trace_kind_tool">Herramienta</string>
+    <string name="trace_kind_span">Span</string>
+    <string name="trace_kind_event">Evento</string>
+    <string name="trace_kind_other">Registro</string>
+    <string name="trace_status_ok">OK</string>
+    <string name="trace_status_warning">Advertencia</string>
+    <string name="trace_status_error">Error</string>
+    <string name="trace_running">En ejecución</string>
+    <string name="trace_view_steps">Pasos</string>
+    <string name="trace_view_all">Todos los registros</string>
+    <string name="trace_step">Paso %1$d</string>
+    <string name="trace_step_title">Título</string>
+    <string name="trace_partial">Mostrando %1$d registros. No se han cargado los turnos anteriores.</string>
+    <string name="trace_input">Entrada</string>
+    <string name="trace_output">Salida</string>
+    <string name="trace_metadata">Metadatos</string>
+    <string name="trace_truncated">Truncado por el servidor.</string>
+    <string name="trace_content_unavailable">Este servidor no devuelve la entrada ni la salida de los registros.</string>
+    <string name="trace_tokens_detail">Entrada %1$d · Salida %2$d · Total %3$d</string>
+    <string name="trace_error_generic">No se pudo leer la traza.</string>
+    <string name="trace_error_not_found">Esta traza ya no está disponible.</string>
+    <string name="trace_error_changed">La traza cambió mientras se leía. Actualiza para empezar de nuevo.</string>
+    <string name="trace_error_rate_limited">Demasiadas solicitudes de traza. Inténtalo de nuevo en breve.</string>
+    <string name="trace_error_timeout">El servicio de trazas no respondió a tiempo.</string>
+    <string name="trace_error_unauthorized">El servicio de trazas rechazó las credenciales de este servidor.</string>
+    <string name="trace_error_unsupported">El servicio de trazas de este servidor no puede devolver trazas.</string>
 
     <!-- Office-doc preview attachments (deferred preview, v0.8.6+) -->
     <string name="office_preview_preparing">Preparando la vista previa de %1$s…</string>
@@ -121,18 +184,27 @@
     <string name="cd_tool_call">Llamada a herramienta</string>
     <string name="cd_collapse_tool_call">Contraer llamada a herramienta %1$s</string>
     <string name="cd_expand_tool_call">Expandir llamada a herramienta %1$s</string>
+    <string name="context_compact">Compactar conversación</string>
+    <string name="context_compacting">Compactando…</string>
+    <string name="context_compact_info">Resume todo lo anterior en una nota más corta que el modelo sigue leyendo, liberando contexto para lo que viene. No se elimina nada.</string>
     <string name="cd_tool_complete">Completada</string>
+    <string name="cd_tool_cancelled">Detenida</string>
+    <string name="cd_tool_failed">Fallida</string>
     <string name="video_not_supported">Contenido de vídeo no compatible</string>
 
     <!-- Tools bottom sheet -->
     <string name="tool_camera">Cámara</string>
     <string name="tool_photos">Fotos</string>
     <string name="tool_files">Archivos</string>
+    <string name="tool_server_files">Servidor</string>
     <string name="tool_model">Modelo</string>
     <string name="tool_model_parameters">Parámetros del modelo</string>
     <string name="tool_model_parameters_desc">Ajusta la temperatura, los tokens y más</string>
     <string name="tool_web_search">Búsqueda web</string>
     <string name="tool_web_search_desc">Busca información en la web</string>
+    <string name="web_searched">Buscó en la web</string>
+    <string name="tool_url_context">Contexto de URL</string>
+    <string name="tool_url_context_desc">Permite que el modelo lea las URL y los vídeos de YouTube que menciones</string>
     <string name="tool_code">Código</string>
     <string name="tool_code_desc">Ejecuta y analiza código</string>
     <string name="tool_file_search">Búsqueda en archivos</string>
@@ -140,12 +212,29 @@
     <string name="tool_mcp">MCP</string>
     <string name="tool_mcp_desc">Servidores de Model Context Protocol</string>
     <string name="cd_web_search_enabled">Búsqueda web activada</string>
+    <string name="cd_quoted_excerpt">Fragmento citado</string>
+    <string name="cd_remove_quote">Quitar cita</string>
+    <string name="selection_add_to_chat">Añadir al chat</string>
     <string name="cd_code_enabled">Intérprete de código activado</string>
     <string name="cd_file_search_enabled">Búsqueda en archivos activada</string>
 
     <!-- Attachments -->
     <string name="cd_attach_file">Adjuntar archivo</string>
     <string name="files_count">Archivos (%1$d)</string>
+    <string name="files_count_with_text">Archivos (%1$d) · %2$d como texto</string>
+    <string name="cd_files_attached">%1$d archivos adjuntos, toca para previsualizar</string>
+    <string name="cd_files_attached_with_text">%1$d archivos adjuntos, %2$d enviados como texto, toca para previsualizar</string>
+    <string name="upload_routing_sheet_title">¿Cómo deben enviarse?</string>
+    <string name="upload_routing_sheet_title_single">¿Cómo debe enviarse?</string>
+    <string name="upload_routing_option_provider">Al modelo</string>
+    <string name="upload_routing_option_text">Como texto</string>
+    <string name="upload_routing_why_provider">El modelo lee el archivo directamente.</string>
+    <string name="upload_routing_why_text">El servidor lee el archivo y envía su texto.</string>
+    <string name="upload_routing_why_provider_only">Este modelo solo puede recibir este archivo directamente.</string>
+    <string name="upload_routing_why_text_only">Este modelo no puede leer este archivo, así que se envía su texto.</string>
+    <string name="upload_routing_apply_all">Usar para todos</string>
+    <string name="upload_routing_attach">Adjuntar</string>
+    <string name="cd_upload_route_text">Enviado como texto extraído</string>
     <string name="cd_attached_file">Archivo adjunto: %1$s</string>
     <string name="cd_preview_file">Vista previa de %1$s</string>
     <string name="cd_remove_file">Quitar %1$s</string>
@@ -200,6 +289,19 @@
     <string name="cd_memory_artifact">Artefacto de memoria: %1$s</string>
     <string name="memory_artifact_untitled">Sin título</string>
     <string name="label_memory">Memoria</string>
+    <string name="cd_memory_artifacts">Actualizaciones de memoria: %1$d</string>
+    <string name="memory_updated">Memoria guardada actualizada</string>
+    <string name="memory_error">Error de memoria</string>
+    <string name="memory_updated_items">Memorias actualizadas</string>
+    <string name="memory_deleted_items">Memorias eliminadas</string>
+    <string name="memory_deleted">Memoria eliminada</string>
+    <string name="memory_storage_full">Almacenamiento de memoria lleno</string>
+    <string name="memory_already_exceeded">El almacenamiento de memoria ya está lleno: se ha superado en %1$d tokens. Elimina memorias existentes antes de añadir otras nuevas.</string>
+    <string name="memory_would_exceed">No se puede guardar: se superaría el límite en %1$d tokens. Elimina memorias existentes para liberar espacio.</string>
+    <string name="files_searched">Buscó en tus archivos</string>
+    <string name="cd_file_search_source">Fuente de la búsqueda en archivos: %1$s</string>
+    <string name="file_search_relevance">%1$d%%</string>
+    <string name="file_search_pages">Páginas: %1$s</string>
 
     <!-- Mermaid diagram -->
     <string name="label_mermaid">mermaid</string>
@@ -215,6 +317,14 @@
 
     <!-- Message files -->
     <string name="file_fallback">Archivo</string>
+    <string name="attachment_fallback">Archivo adjunto</string>
+    <string name="pdf_document">Documento PDF</string>
+    <string name="pdf_load_failed">No se pudo cargar el PDF</string>
+    <string name="cd_share_pdf">Compartir PDF</string>
+    <string name="cd_open_pdf">Abrir PDF</string>
+    <string name="retry">Reintentar</string>
+    <string name="messages_unavailable_title">Mensajes no disponibles</string>
+    <string name="messages_unavailable_body">No se pudo cargar esta conversación y no hay ninguna copia sin conexión guardada en este dispositivo.</string>
 
     <!-- Model selector sheet -->
     <string name="cd_selected">Seleccionado</string>
@@ -236,7 +346,25 @@
 
     <!-- Feedback dialog -->
     <string name="feedback_question">¿Cuál fue el problema con esta respuesta?</string>
+    <string name="feedback_question_positive">¿Qué fue lo bueno de esta respuesta?</string>
     <string name="hint_optional_comment">Comentario opcional…</string>
+    <string name="feedback_tag_not_matched">No se ajustó a mi solicitud</string>
+    <string name="feedback_tag_inaccurate">Respuesta imprecisa o incorrecta</string>
+    <string name="feedback_tag_bad_style">Estilo o tono inadecuado</string>
+    <string name="feedback_tag_missing_image">Esperaba una imagen</string>
+    <string name="feedback_tag_unjustified_refusal">Se negó sin motivo</string>
+    <string name="feedback_tag_not_helpful">Faltaba información útil</string>
+    <string name="feedback_tag_other">Otro problema</string>
+    <string name="feedback_tag_accurate_reliable">Precisa y fiable</string>
+    <string name="feedback_tag_creative_solution">Solución creativa</string>
+    <string name="feedback_tag_clear_well_written">Clara y bien redactada</string>
+    <string name="feedback_tag_attention_to_detail">Atención al detalle</string>
+    <string name="activity_used_n_tools">Usó %1$d herramientas</string>
+    <string name="steer_sent_during_reply">enviado durante la respuesta</string>
+    <string name="state_expanded">Expandido</string>
+    <string name="state_collapsed">Contraído</string>
+    <string name="feedback_unavailable_while_generating">Podrás enviarlo cuando termine la respuesta.</string>
+    <string name="cd_feedback_unavailable">No disponible mientras se genera una respuesta</string>
 
     <!-- Streaming tool call -->
     <string name="tool_call_output">Salida:</string>
@@ -257,9 +385,22 @@
     <!-- Artifacts -->
     <string name="cd_open_artifact">Abrir artefacto</string>
     <string name="cd_share_artifact">Compartir artefacto</string>
+    <string name="cd_add_artifact_to_home_screen">Añadir a la pantalla de inicio</string>
+    <string name="add_to_home_screen_dialog_title">Añadir a la pantalla de inicio</string>
+    <string name="add_to_home_screen_dialog_name_label">Nombre</string>
+    <string name="add_to_home_screen_dialog_emoji_label">Emoji</string>
+    <string name="add_to_home_screen_icon_label">Icono</string>
+    <string name="add_to_home_screen_icon_auto">Automático</string>
+    <string name="add_to_home_screen_icon_custom">Personalizado</string>
+    <string name="cd_icon_preview">Vista previa del icono</string>
+    <string name="artifact_shortcut_unavailable">Este artefacto ya no está disponible.</string>
+    <string name="add_to_home_screen_confirm">Añadir</string>
+    <string name="artifact_shortcut_back">Atrás</string>
     <string name="cd_previous_version">Versión anterior</string>
     <string name="cd_next_version">Versión siguiente</string>
     <string name="artifact_version">v%1$d/%2$d</string>
+    <string name="artifact_view_source">Ver código fuente</string>
+    <string name="artifact_view_preview">Ver vista previa</string>
     <string name="artifact_incomplete">Incompleto</string>
     <!-- Prompts -->
     <string name="prompts_library">Biblioteca de prompts</string>
@@ -315,6 +456,7 @@
     <string name="provider_keys_chat_error_invalid">Clave proporcionada no válida. Proporciona una clave válida e inténtalo de nuevo.</string>
     <!-- Snackbar action label that deep-links to Settings → Provider Keys -->
     <string name="provider_keys_chat_error_cta">Abrir ajustes de claves</string>
+    <string name="queued_messages_dropped_account_switch">Mensajes en cola descartados al cambiar de cuenta</string>
 
     <!-- Send block reasons (shown in error snackbar when send can't proceed) -->
     <string name="send_block_select_agent">Selecciona un agente antes de enviar tu mensaje.</string>
@@ -323,4 +465,112 @@
     <string name="send_block_agent_not_available">El agente seleccionado no está disponible en este servidor. Elige un agente diferente.</string>
     <string name="send_block_model_not_available">El modelo seleccionado no está disponible en este servidor. Elige un modelo diferente.</string>
     <string name="send_block_model_load_failed">Aún no se pudo cargar el modelo seleccionado. Inténtalo de nuevo o elige un modelo diferente.</string>
+    <string name="action_show_all_media">Ver todo el contenido multimedia</string>
+    <string name="media_gallery_title">Multimedia</string>
+    <string name="media_tab_media">Multimedia</string>
+    <string name="media_tab_files">Archivos</string>
+    <string name="media_tab_links">Enlaces</string>
+    <string name="media_tab_artifacts">Artefactos</string>
+    <string name="media_scope_whole_chat">Todo el chat</string>
+    <string name="media_scope_this_branch">Esta rama</string>
+    <string name="media_empty_media">No hay contenido multimedia en esta conversación</string>
+    <string name="media_empty_files">No hay archivos en esta conversación</string>
+    <string name="media_empty_links">No hay enlaces en esta conversación</string>
+    <string name="media_empty_artifacts">No hay artefactos en esta conversación</string>
+    <string name="context_usage_label">Contexto</string>
+    <string name="context_usage_window">Ventana de contexto</string>
+    <string name="context_usage_messages">Mensajes</string>
+    <string name="context_usage_tools">Esquemas de herramientas</string>
+    <string name="context_usage_summary">Resumen</string>
+    <string name="context_usage_system">Sistema</string>
+    <string name="context_usage_free">Espacio libre</string>
+    <string name="context_usage_input">Entrada</string>
+    <string name="context_usage_output">Salida</string>
+    <string name="tool_approval_title">Se requiere aprobación</string>
+    <string name="tool_approval_subtitle">Revísalo antes de que se ejecute.</string>
+    <string name="tool_approval_arguments">Argumentos</string>
+    <string name="tool_approval_approve">Aprobar</string>
+    <string name="tool_approval_reject">Rechazar</string>
+    <string name="tool_approval_edit">Editar</string>
+    <string name="tool_approval_respond">Responder</string>
+    <string name="tool_approval_approve_all">Aprobar todo</string>
+    <string name="tool_approval_reject_all">Rechazar todo</string>
+    <string name="tool_approval_submit">Continuar</string>
+    <string name="tool_approval_edited_arguments">Argumentos editados (JSON)</string>
+    <string name="tool_approval_response_text">Respuesta que se enviará en lugar de ejecutar la herramienta</string>
+    <string name="tool_approval_invalid_json">Introduce un JSON válido</string>
+    <string name="ask_user_question_answer_hint">Escribe tu respuesta</string>
+    <string name="ask_user_question_other_hint">Otra cosa</string>
+    <string name="ask_user_question_send">Enviar</string>
+    <string name="ask_user_question_skip">Omitir</string>
+    <string name="ask_user_question_multi_select_hint">Elige todas las que correspondan</string>
+    <string name="ask_user_question_page_of">%1$d de %2$d</string>
+    <string name="ask_user_question_skipped">Omitida</string>
+    <string name="cd_previous_ask_user_question">Pregunta anterior</string>
+    <string name="cd_next_ask_user_question">Pregunta siguiente</string>
+    <string name="ask_user_question_send_progress">Enviar (%1$d/%2$d)</string>
+    <string name="ask_user_question_next">Siguiente</string>
+    <string name="ask_user_question_back">Atrás</string>
+    <string name="ask_user_question_skip_all">Omitir todas</string>
+    <string name="ask_user_question_tab_fallback">Pregunta %1$d</string>
+    <string name="ask_user_question_waiting_marker">Esperando tu respuesta abajo</string>
+    <string name="cd_ask_user_question_answered">Respondida</string>
+    <string name="cd_minimize_ask_user_question">Minimizar preguntas</string>
+    <string name="cd_restore_ask_user_question">Mostrar preguntas</string>
+    <string name="error_resource_recovery_required">No se pudieron restaurar los archivos adjuntos a esta conversación, así que el asistente no pudo usarlos. Vuelve a adjuntarlos y reinténtalo.</string>
+    <string name="error_model_not_found">El modelo seleccionado no está disponible en este proveedor. Elige un modelo diferente o pide a un administrador que revise la configuración del proveedor.</string>
+    <string name="error_missing_model">No hay ningún modelo seleccionado. Elige un modelo e inténtalo de nuevo.</string>
+    <string name="error_models_not_loaded">No se pudo cargar la lista de modelos. Desliza hacia abajo para actualizar e inténtalo de nuevo.</string>
+    <string name="error_endpoint_models_not_loaded">No se pudieron cargar los modelos de este endpoint. Desliza hacia abajo para actualizar e inténtalo de nuevo.</string>
+    <string name="error_invalid_agent_provider">El proveedor de este agente no está permitido en este servidor. Pide a un administrador que lo habilite.</string>
+    <string name="error_refusal">El modelo se negó a responder. Reformular la solicitud puede ayudar.</string>
+    <string name="error_input_length">Este mensaje supera la longitud que acepta el modelo. Acórtalo e inténtalo de nuevo.</string>
+    <string name="error_moderation">La moderación del servidor marcó este mensaje. Edítalo o inicia una nueva conversación.</string>
+    <string name="error_stream_expired">Esta respuesta terminó o caducó antes de poder mostrarse. Vuelve a abrir la conversación para cargarla.</string>
+    <string name="error_model_rate_limit">El proveedor está limitando la frecuencia de este modelo. Espera un momento e inténtalo de nuevo, o elige un modelo diferente.</string>
+    <string name="error_final_context_overflow">Esta conversación ya no cabe en la ventana de contexto del modelo. Inicia una nueva conversación o cambia a un modelo con una ventana mayor.</string>
+    <string name="error_compaction_skipped">Aún no había nada que compactar. Sigue conversando e inténtalo más tarde.</string>
+    <string name="error_compaction_failed">No se pudo generar el resumen, así que la conversación no ha cambiado. Inténtalo de nuevo.</string>
+    <string name="error_upstream_model_error">El proveedor del modelo no pudo completar esta solicitud. Inténtalo de nuevo o elige un modelo diferente.</string>
+    <string name="error_upstream_model_error_status">El proveedor del modelo no pudo completar esta solicitud (estado %1$d). Inténtalo de nuevo o elige un modelo diferente.</string>
+    <string name="error_details_provider">Respuesta del proveedor</string>
+    <string name="error_empty_messages">No quedó nada que enviar tras recortar esta conversación para ajustarla al contexto del modelo. Inicia una nueva conversación o cambia a un modelo con una ventana mayor.</string>
+    <string name="error_code_workspace_unavailable">El espacio de trabajo de código de esta conversación no está disponible. Inténtalo de nuevo o elige otro espacio de trabajo.</string>
+    <string name="error_stateful_code_environment_not_allowed">Este servidor no permite un entorno de código persistente. Desactívalo en las opciones del intérprete de código e inténtalo de nuevo.</string>
+    <string name="error_auth_rate_limited">Demasiados intentos de inicio de sesión. Espera un momento e inténtalo de nuevo.</string>
+    <string name="error_auth_banned">Esta cuenta o red tiene bloqueado el inicio de sesión. Contacta con un administrador.</string>
+    <string name="error_auth_cross_origin">El servidor rechazó el inicio de sesión por provenir de otro sitio. Infórmalo: es un error de la app, no un problema de contraseña.</string>
+    <string name="error_share_limit">Demasiadas solicitudes de enlaces compartidos. Espera un momento e inténtalo de nuevo.</string>
+    <string name="ask_user_question_record_asked">Preguntado</string>
+    <string name="ask_user_question_record_asking">Preguntando</string>
+    <string name="ask_user_question_record_answer_label">Respondiste:</string>
+    <string name="ask_user_question_record_unanswered">No se dio ninguna respuesta</string>
+    <string name="ask_user_question_record_skipped">Omitiste esta pregunta</string>
+    <string name="ask_user_question_record_options">Opciones ofrecidas</string>
+    <string name="ask_user_question_record_options_multi">Opciones ofrecidas (elige todas las que correspondan)</string>
+    <string name="ask_user_question_record_failed">No se mostró la pregunta</string>
+    <string name="ask_user_question_record_failed_description">El asistente no pudo mostrar esta pregunta y puede que lo reintente automáticamente.</string>
+    <string name="cd_expand_ask_user_question">Expandir detalles de la pregunta</string>
+    <string name="cd_collapse_ask_user_question">Contraer detalles de la pregunta</string>
+    <string name="tool_memory">Memoria</string>
+    <string name="tool_memory_desc">Permite que el asistente recuerde detalles de este chat</string>
+    <string name="cd_steer_message">Redirigir esta respuesta</string>
+    <string name="cd_cancel_steer">Cancelar redirección</string>
+    <string name="cd_during_run_options">Elige qué hace el envío ahora</string>
+    <string name="during_run_steer">Redirigir esta respuesta</string>
+    <string name="during_run_queue">Añadir a la cola</string>
+    <string name="during_run_always_steer">Redirigir siempre durante la generación</string>
+    <string name="during_run_always_queue">Poner siempre en cola durante la generación</string>
+    <string name="system_event_label">Sistema</string>
+    <string name="wakeup_explainer">Este resultado persistente reactivó al agente para continuar la conversación.</string>
+    <string name="wakeup_subagent_completed">Tarea de subagente completada</string>
+    <string name="wakeup_subagent_failed">Tarea de subagente fallida</string>
+    <string name="wakeup_subagent_cancelled">Tarea de subagente cancelada</string>
+    <string name="wakeup_task_finished">Tarea en segundo plano finalizada</string>
+    <string name="wakeup_task_failed">Tarea en segundo plano fallida</string>
+    <string name="wakeup_tasks_finished">%1$d tareas en segundo plano finalizadas</string>
+    <string name="wakeup_status_completed">Completada</string>
+    <string name="wakeup_status_failed">Fallida</string>
+    <string name="wakeup_status_cancelled">Cancelada</string>
+    <string name="wakeup_subagent_thread">Hilo %1$s</string>
 </resources>

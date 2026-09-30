@@ -59,4 +59,17 @@
     <string name="skill_acl_collapse">접기</string>
     <string name="skill_acl_expand">펼치기</string>
     <string name="skill_acl_close">닫기</string>
+    <string name="skill_import_failed_title">가져오기 실패</string>
+    <string name="skill_import_incomplete">가져오기 취소됨: 압축 파일에서 파일 %1$d개를 가져올 수 없습니다. 압축 파일을 수정한 후 다시 업로드하세요.</string>
+    <string name="skill_import_rollback_failed">파일 %1$d개를 가져오지 못했으며, 불완전한 스킬을 자동으로 제거할 수 없습니다. 다시 시도하기 전에 삭제하세요.</string>
+    <string name="skill_import_cleanup_incomplete">파일 %1$d개를 가져오지 못했습니다. 불완전한 스킬은 제거되었지만 자동 정리가 완료되지 않았습니다.</string>
+    <string name="skill_import_failed_files">다음 파일을 가져올 수 없습니다:</string>
+    <string name="skill_import_rollback_failed_files">다음 파일을 가져오지 못했으며, 불완전한 스킬이 남아 있습니다:</string>
+    <string name="skill_import_cleanup_incomplete_files">다음 파일을 가져오지 못했으며 자동 정리가 완료되지 않았습니다:</string>
+    <string name="skill_import_reason_invalid_path">지원되지 않는 파일 경로</string>
+    <string name="skill_import_reason_file_too_large">파일 크기 한도 %1$s MB를 초과합니다</string>
+    <string name="skill_import_reason_archive_too_large">가져오지 않음: 압축 파일이 전체 크기 한도 %1$s MB를 초과합니다</string>
+    <string name="skill_import_reason_archive_entry_changed">압축 파일을 읽는 동안 변경되었습니다</string>
+    <string name="skill_import_reason_persistence_failed">저장할 수 없습니다</string>
+    <string name="skill_import_reason_unknown">가져올 수 없습니다</string>
 </resources>

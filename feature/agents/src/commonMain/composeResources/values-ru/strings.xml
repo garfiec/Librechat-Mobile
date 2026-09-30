@@ -116,8 +116,8 @@
     <string name="auth_custom">Свой</string>
     <string name="label_custom_auth_header">Свой заголовок авторизации</string>
     <string name="label_oauth_settings">Настройки OAuth</string>
-    <string name="label_client_id">Client ID</string>
-    <string name="label_client_secret">Client Secret</string>
+    <string name="label_client_id">ID клиента</string>
+    <string name="label_client_secret">Секрет клиента</string>
     <string name="label_authorization_url">URL авторизации</string>
     <string name="label_token_url">URL токена</string>
     <string name="label_scope">Область</string>
@@ -259,6 +259,9 @@
     <string name="agent_file_upload_failed">Не удалось загрузить файл</string>
     <string name="agent_file_remove_failed">Не удалось удалить файл</string>
     <string name="cd_remove_file">Удалить %1$s</string>
+    <string name="agent_file_remove_confirm_title">Удалить %1$s?</string>
+    <string name="agent_file_remove_confirm_title_generic">Удалить этот файл?</string>
+    <string name="agent_file_remove_confirm_message">Если этот файл не используется другими агентами, он будет удалён безвозвратно.</string>
 
     <!-- Skills selector (v0.8.6) -->
     <string name="label_skills">Навыки</string>
@@ -278,4 +281,30 @@
     <string name="subagents_allow_self">Разрешить порождать самого себя</string>
     <string name="add_subagent">Добавить субагента</string>
     <string name="subagents_full">Достигнуто максимальное число субагентов.</string>
+    <string name="tools_marketplace_title">Инструменты</string>
+    <string name="tools_marketplace_description">Выберите, что сможет делать этот агент</string>
+    <string name="tools_marketplace_search_hint">Поиск инструментов, серверов и навыков…</string>
+    <string name="tools_marketplace_no_matches">Нет совпадений для "%1$s"</string>
+    <string name="tools_marketplace_no_favorites">Отметьте инструмент звёздочкой, чтобы закрепить его здесь</string>
+    <string name="tools_marketplace_empty">Пока ничего нет</string>
+    <string name="tools_filter_all">Все</string>
+    <string name="tools_filter_favorites">Избранное</string>
+    <string name="tools_filter_builtin">Встроенные</string>
+    <string name="tools_filter_tools">Инструменты</string>
+    <string name="tools_filter_mcp">MCP</string>
+    <string name="tools_filter_skills">Навыки</string>
+    <string name="tools_browse">Обзор инструментов</string>
+    <string name="cd_pin_tool">Закрепить</string>
+    <string name="cd_unpin_tool">Открепить</string>
+    <string name="builtin_code_interpreter">Интерпретатор кода</string>
+    <string name="builtin_code_interpreter_desc">Выполняет код в песочнице и возвращает результат и файлы.</string>
+    <string name="builtin_file_search">Поиск по файлам</string>
+    <string name="builtin_file_search_desc">Находит фрагменты в файлах, прикреплённых к этому агенту.</string>
+    <string name="builtin_web_search">Веб-поиск</string>
+    <string name="builtin_web_search_desc">Ищет в интернете и указывает использованные источники.</string>
+    <string name="builtin_file_context">Файловый контекст</string>
+    <string name="builtin_file_context_desc">Помещает прикреплённые файлы целиком в контекст агента.</string>
+    <string name="builtin_ask_user">Вопрос пользователю</string>
+    <string name="builtin_ask_user_desc">Приостанавливает выполнение, чтобы задать вам уточняющий вопрос.</string>
+    <string name="agent_contact_title">Контакт</string>
 </resources>

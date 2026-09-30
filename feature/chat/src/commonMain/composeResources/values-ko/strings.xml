@@ -42,6 +42,17 @@
     <string name="cd_start_voice_recording">음성 녹음 시작</string>
     <string name="cd_stop_generation">생성 중지</string>
     <string name="cd_send_message">메시지 전송</string>
+    <string name="cd_add_to_queue">메시지를 대기열에 추가</string>
+    <string name="cd_answer_question">답변 보내기</string>
+    <string name="cd_cancel_pending_send">업로드 대기 중 — 탭하여 전송 취소</string>
+    <string name="cd_cancel_queued_message">대기 중인 메시지 제거</string>
+    <string name="cd_reorder_queued_message">드래그하여 대기 중인 메시지 순서 변경</string>
+    <string name="send_queued_messages">대기 중인 메시지 보내기 (%1$d)</string>
+    <string name="queued_attachment_only">첨부 파일</string>
+    <string name="queued_turn_needs_attention">확인 필요</string>
+    <string name="editing_queued_message">대기 중인 메시지 편집 중</string>
+    <string name="cd_cancel_edit">편집 취소</string>
+    <string name="cd_update_queued_message">대기 중인 메시지 업데이트</string>
     <string name="cd_open_drawer">탐색 서랍 열기</string>
     <string name="cd_edit_title">제목 편집</string>
     <string name="cd_more_options">추가 옵션</string>
@@ -65,6 +76,7 @@
 
     <!-- Content descriptions - Images -->
     <string name="cd_close">닫기</string>
+    <string name="cd_image">이미지</string>
     <string name="cd_save_to_device">기기에 저장</string>
     <string name="cd_share_image">이미지 공유</string>
     <string name="cd_failed_to_load_image">이미지를 불러오지 못했습니다</string>
@@ -109,8 +121,59 @@
 
     <!-- Content descriptions - Subagent trace (subagents, v0.8.6+) -->
     <string name="label_subagent">서브에이전트</string>
+    <string name="subagent_threads_title">서브에이전트 스레드</string>
+    <string name="subagent_threads_open">스레드 보기</string>
+    <string name="subagent_threads_back">스레드로 돌아가기</string>
+    <string name="subagent_threads_empty">이 대화에는 서브에이전트 스레드가 없습니다.</string>
+    <string name="subagent_threads_unavailable">여기에서 사용할 수 있는 서브에이전트 스레드가 없습니다.</string>
+    <string name="subagent_threads_event_origin">이벤트로 시작됨</string>
+    <string name="subagent_threads_truncated">일부 내용이 너무 길어 전체를 표시할 수 없습니다.</string>
+    <string name="subagent_threads_load_older">이전 항목 불러오기</string>
+    <string name="subagent_threads_older_unavailable">이전 기록을 더 이상 사용할 수 없습니다.</string>
     <string name="cd_collapse_subagent">서브에이전트 %1$s 접기</string>
     <string name="cd_expand_subagent">서브에이전트 %1$s 펼치기</string>
+    <string name="trace_title">대화 트레이스</string>
+    <string name="trace_open">트레이스 보기</string>
+    <string name="trace_refresh">새로고침</string>
+    <string name="trace_back">기록으로 돌아가기</string>
+    <string name="trace_load_older">이전 항목 불러오기</string>
+    <string name="trace_retry">다시 시도</string>
+    <string name="trace_empty">이 대화에 아직 트레이스 기록이 없습니다.</string>
+    <string name="trace_stat_turns">턴</string>
+    <string name="trace_stat_generations">생성</string>
+    <string name="trace_stat_tools">도구</string>
+    <string name="trace_stat_labels">레이블</string>
+    <string name="trace_stat_errors">오류</string>
+    <string name="trace_stat_tokens">토큰</string>
+    <string name="trace_stat_cost">비용</string>
+    <string name="trace_kind_agent">에이전트</string>
+    <string name="trace_kind_generation">생성</string>
+    <string name="trace_kind_tool">도구</string>
+    <string name="trace_kind_span">스팬</string>
+    <string name="trace_kind_event">이벤트</string>
+    <string name="trace_kind_other">기록</string>
+    <string name="trace_status_ok">정상</string>
+    <string name="trace_status_warning">경고</string>
+    <string name="trace_status_error">오류</string>
+    <string name="trace_running">실행 중</string>
+    <string name="trace_view_steps">단계</string>
+    <string name="trace_view_all">전체 기록</string>
+    <string name="trace_step">단계 %1$d</string>
+    <string name="trace_step_title">제목</string>
+    <string name="trace_partial">기록 %1$d개를 표시하는 중입니다. 이전 턴은 불러오지 않았습니다.</string>
+    <string name="trace_input">입력</string>
+    <string name="trace_output">출력</string>
+    <string name="trace_metadata">메타데이터</string>
+    <string name="trace_truncated">서버에서 잘렸습니다.</string>
+    <string name="trace_content_unavailable">이 서버는 기록의 입력과 출력을 반환하지 않습니다.</string>
+    <string name="trace_tokens_detail">입력 %1$d · 출력 %2$d · 합계 %3$d</string>
+    <string name="trace_error_generic">트레이스를 읽을 수 없습니다.</string>
+    <string name="trace_error_not_found">이 트레이스는 더 이상 사용할 수 없습니다.</string>
+    <string name="trace_error_changed">읽는 동안 트레이스가 변경되었습니다. 새로고침하여 다시 시작하세요.</string>
+    <string name="trace_error_rate_limited">트레이스 요청이 너무 많습니다. 잠시 후 다시 시도하세요.</string>
+    <string name="trace_error_timeout">트레이싱 서비스가 제시간에 응답하지 않았습니다.</string>
+    <string name="trace_error_unauthorized">트레이싱 서비스가 이 서버의 자격 증명을 거부했습니다.</string>
+    <string name="trace_error_unsupported">이 서버의 트레이싱 서비스는 트레이스를 반환할 수 없습니다.</string>
 
     <!-- Office-doc preview attachments (deferred preview, v0.8.6+) -->
     <string name="office_preview_preparing">%1$s 미리보기 준비 중…</string>
@@ -121,18 +184,27 @@
     <string name="cd_tool_call">도구 호출</string>
     <string name="cd_collapse_tool_call">도구 호출 %1$s 접기</string>
     <string name="cd_expand_tool_call">도구 호출 %1$s 펼치기</string>
+    <string name="context_compact">대화 압축</string>
+    <string name="context_compacting">압축 중…</string>
+    <string name="context_compact_info">지금까지의 내용을 모델이 계속 참고하는 짧은 메모로 요약하여 이후 내용을 위한 컨텍스트 공간을 확보합니다. 삭제되는 내용은 없습니다.</string>
     <string name="cd_tool_complete">완료</string>
+    <string name="cd_tool_cancelled">중지됨</string>
+    <string name="cd_tool_failed">실패</string>
     <string name="video_not_supported">동영상 콘텐츠는 지원되지 않습니다</string>
 
     <!-- Tools bottom sheet -->
     <string name="tool_camera">카메라</string>
     <string name="tool_photos">사진</string>
     <string name="tool_files">파일</string>
+    <string name="tool_server_files">서버</string>
     <string name="tool_model">모델</string>
     <string name="tool_model_parameters">모델 매개변수</string>
     <string name="tool_model_parameters_desc">온도, 토큰 등 조정</string>
     <string name="tool_web_search">웹 검색</string>
     <string name="tool_web_search_desc">웹에서 정보 검색</string>
+    <string name="web_searched">웹을 검색함</string>
+    <string name="tool_url_context">URL 컨텍스트</string>
+    <string name="tool_url_context_desc">참조한 URL과 YouTube를 모델이 읽도록 허용</string>
     <string name="tool_code">코드</string>
     <string name="tool_code_desc">코드 실행 및 분석</string>
     <string name="tool_file_search">파일 검색</string>
@@ -140,12 +212,29 @@
     <string name="tool_mcp">MCP</string>
     <string name="tool_mcp_desc">Model Context Protocol 서버</string>
     <string name="cd_web_search_enabled">웹 검색 사용</string>
+    <string name="cd_quoted_excerpt">인용된 발췌문</string>
+    <string name="cd_remove_quote">인용 제거</string>
+    <string name="selection_add_to_chat">채팅에 추가</string>
     <string name="cd_code_enabled">코드 인터프리터 사용</string>
     <string name="cd_file_search_enabled">파일 검색 사용</string>
 
     <!-- Attachments -->
     <string name="cd_attach_file">파일 첨부</string>
     <string name="files_count">파일 (%1$d)</string>
+    <string name="files_count_with_text">파일 (%1$d) · %2$d개 텍스트</string>
+    <string name="cd_files_attached">파일 %1$d개 첨부됨, 탭하여 미리보기</string>
+    <string name="cd_files_attached_with_text">파일 %1$d개 첨부됨, %2$d개는 텍스트로 전송, 탭하여 미리보기</string>
+    <string name="upload_routing_sheet_title">이 파일들을 어떻게 보낼까요?</string>
+    <string name="upload_routing_sheet_title_single">이 파일을 어떻게 보낼까요?</string>
+    <string name="upload_routing_option_provider">모델로 직접</string>
+    <string name="upload_routing_option_text">텍스트로</string>
+    <string name="upload_routing_why_provider">모델이 파일을 직접 읽습니다.</string>
+    <string name="upload_routing_why_text">서버가 파일을 읽고 텍스트를 보냅니다.</string>
+    <string name="upload_routing_why_provider_only">이 모델은 이 파일을 직접 전달받는 방식만 지원합니다.</string>
+    <string name="upload_routing_why_text_only">이 모델은 이 파일을 읽을 수 없으므로 대신 텍스트가 전송됩니다.</string>
+    <string name="upload_routing_apply_all">모두에 적용</string>
+    <string name="upload_routing_attach">첨부</string>
+    <string name="cd_upload_route_text">추출된 텍스트로 전송됨</string>
     <string name="cd_attached_file">첨부된 파일: %1$s</string>
     <string name="cd_preview_file">%1$s 미리보기</string>
     <string name="cd_remove_file">%1$s 제거</string>
@@ -200,6 +289,19 @@
     <string name="cd_memory_artifact">메모리 아티팩트: %1$s</string>
     <string name="memory_artifact_untitled">제목 없음</string>
     <string name="label_memory">메모리</string>
+    <string name="cd_memory_artifacts">메모리 업데이트: %1$d</string>
+    <string name="memory_updated">저장된 메모리 업데이트됨</string>
+    <string name="memory_error">메모리 오류</string>
+    <string name="memory_updated_items">업데이트된 메모리</string>
+    <string name="memory_deleted_items">삭제된 메모리</string>
+    <string name="memory_deleted">메모리 삭제됨</string>
+    <string name="memory_storage_full">메모리 저장 공간 가득 참</string>
+    <string name="memory_already_exceeded">메모리 저장 공간이 이미 가득 찼습니다 — %1$d 토큰 초과. 새 메모리를 추가하기 전에 기존 메모리를 삭제하세요.</string>
+    <string name="memory_would_exceed">저장할 수 없습니다 — 한도를 %1$d 토큰 초과합니다. 공간을 확보하려면 기존 메모리를 삭제하세요.</string>
+    <string name="files_searched">파일을 검색함</string>
+    <string name="cd_file_search_source">파일 검색 출처: %1$s</string>
+    <string name="file_search_relevance">%1$d%%</string>
+    <string name="file_search_pages">페이지: %1$s</string>
 
     <!-- Mermaid diagram -->
     <string name="label_mermaid">mermaid</string>
@@ -215,6 +317,14 @@
 
     <!-- Message files -->
     <string name="file_fallback">파일</string>
+    <string name="attachment_fallback">첨부 파일</string>
+    <string name="pdf_document">PDF 문서</string>
+    <string name="pdf_load_failed">PDF를 불러오지 못했습니다</string>
+    <string name="cd_share_pdf">PDF 공유</string>
+    <string name="cd_open_pdf">PDF 열기</string>
+    <string name="retry">다시 시도</string>
+    <string name="messages_unavailable_title">메시지를 사용할 수 없음</string>
+    <string name="messages_unavailable_body">이 대화를 불러올 수 없으며 이 기기에 저장된 오프라인 사본이 없습니다.</string>
 
     <!-- Model selector sheet -->
     <string name="cd_selected">선택됨</string>
@@ -236,7 +346,25 @@
 
     <!-- Feedback dialog -->
     <string name="feedback_question">이 응답의 문제점은 무엇이었나요?</string>
+    <string name="feedback_question_positive">이 응답의 어떤 점이 좋았나요?</string>
     <string name="hint_optional_comment">선택 사항 의견…</string>
+    <string name="feedback_tag_not_matched">요청과 맞지 않음</string>
+    <string name="feedback_tag_inaccurate">부정확하거나 틀린 답변</string>
+    <string name="feedback_tag_bad_style">문체나 어조가 좋지 않음</string>
+    <string name="feedback_tag_missing_image">이미지가 있어야 함</string>
+    <string name="feedback_tag_unjustified_refusal">이유 없이 거부함</string>
+    <string name="feedback_tag_not_helpful">유용한 정보가 부족함</string>
+    <string name="feedback_tag_other">기타 문제</string>
+    <string name="feedback_tag_accurate_reliable">정확하고 신뢰할 수 있음</string>
+    <string name="feedback_tag_creative_solution">창의적인 해결책</string>
+    <string name="feedback_tag_clear_well_written">명확하고 잘 작성됨</string>
+    <string name="feedback_tag_attention_to_detail">세부 사항까지 신경 씀</string>
+    <string name="activity_used_n_tools">도구 %1$d개 사용함</string>
+    <string name="steer_sent_during_reply">응답 중에 보냄</string>
+    <string name="state_expanded">펼쳐짐</string>
+    <string name="state_collapsed">접힘</string>
+    <string name="feedback_unavailable_while_generating">응답이 완료된 후 보낼 수 있습니다.</string>
+    <string name="cd_feedback_unavailable">응답 생성 중에는 사용할 수 없음</string>
 
     <!-- Streaming tool call -->
     <string name="tool_call_output">출력:</string>
@@ -257,9 +385,22 @@
     <!-- Artifacts -->
     <string name="cd_open_artifact">아티팩트 열기</string>
     <string name="cd_share_artifact">아티팩트 공유</string>
+    <string name="cd_add_artifact_to_home_screen">홈 화면에 추가</string>
+    <string name="add_to_home_screen_dialog_title">홈 화면에 추가</string>
+    <string name="add_to_home_screen_dialog_name_label">이름</string>
+    <string name="add_to_home_screen_dialog_emoji_label">이모지</string>
+    <string name="add_to_home_screen_icon_label">아이콘</string>
+    <string name="add_to_home_screen_icon_auto">자동</string>
+    <string name="add_to_home_screen_icon_custom">사용자 지정</string>
+    <string name="cd_icon_preview">아이콘 미리보기</string>
+    <string name="artifact_shortcut_unavailable">이 아티팩트는 더 이상 사용할 수 없습니다.</string>
+    <string name="add_to_home_screen_confirm">추가</string>
+    <string name="artifact_shortcut_back">뒤로</string>
     <string name="cd_previous_version">이전 버전</string>
     <string name="cd_next_version">다음 버전</string>
     <string name="artifact_version">v%1$d/%2$d</string>
+    <string name="artifact_view_source">소스 보기</string>
+    <string name="artifact_view_preview">미리보기 보기</string>
     <string name="artifact_incomplete">미완성</string>
     <!-- Prompts -->
     <string name="prompts_library">프롬프트 라이브러리</string>
@@ -315,6 +456,7 @@
     <string name="provider_keys_chat_error_invalid">유효하지 않은 키입니다. 유효한 키를 입력한 후 다시 시도하세요.</string>
     <!-- Snackbar action label that deep-links to Settings → Provider Keys -->
     <string name="provider_keys_chat_error_cta">키 설정 열기</string>
+    <string name="queued_messages_dropped_account_switch">계정 전환으로 대기 중인 메시지가 삭제되었습니다</string>
 
     <!-- Send block reasons (shown in error snackbar when send can't proceed) -->
     <string name="send_block_select_agent">메시지를 보내기 전에 에이전트를 선택하세요.</string>
@@ -323,4 +465,112 @@
     <string name="send_block_agent_not_available">선택한 에이전트를 이 서버에서 사용할 수 없습니다. 다른 에이전트를 선택하세요.</string>
     <string name="send_block_model_not_available">선택한 모델을 이 서버에서 사용할 수 없습니다. 다른 모델을 선택하세요.</string>
     <string name="send_block_model_load_failed">선택한 모델을 아직 불러올 수 없습니다. 다시 시도하거나 다른 모델을 선택하세요.</string>
+    <string name="action_show_all_media">모든 미디어 보기</string>
+    <string name="media_gallery_title">미디어</string>
+    <string name="media_tab_media">미디어</string>
+    <string name="media_tab_files">파일</string>
+    <string name="media_tab_links">링크</string>
+    <string name="media_tab_artifacts">아티팩트</string>
+    <string name="media_scope_whole_chat">전체 채팅</string>
+    <string name="media_scope_this_branch">이 분기</string>
+    <string name="media_empty_media">이 대화에 미디어가 없습니다</string>
+    <string name="media_empty_files">이 대화에 파일이 없습니다</string>
+    <string name="media_empty_links">이 대화에 링크가 없습니다</string>
+    <string name="media_empty_artifacts">이 대화에 아티팩트가 없습니다</string>
+    <string name="context_usage_label">컨텍스트</string>
+    <string name="context_usage_window">컨텍스트 창</string>
+    <string name="context_usage_messages">메시지</string>
+    <string name="context_usage_tools">도구 스키마</string>
+    <string name="context_usage_summary">요약</string>
+    <string name="context_usage_system">시스템</string>
+    <string name="context_usage_free">여유 공간</string>
+    <string name="context_usage_input">입력</string>
+    <string name="context_usage_output">출력</string>
+    <string name="tool_approval_title">승인 필요</string>
+    <string name="tool_approval_subtitle">실행하기 전에 검토하세요.</string>
+    <string name="tool_approval_arguments">인수</string>
+    <string name="tool_approval_approve">승인</string>
+    <string name="tool_approval_reject">거부</string>
+    <string name="tool_approval_edit">편집</string>
+    <string name="tool_approval_respond">응답</string>
+    <string name="tool_approval_approve_all">모두 승인</string>
+    <string name="tool_approval_reject_all">모두 거부</string>
+    <string name="tool_approval_submit">계속</string>
+    <string name="tool_approval_edited_arguments">편집된 인수 (JSON)</string>
+    <string name="tool_approval_response_text">도구를 실행하는 대신 보낼 답장</string>
+    <string name="tool_approval_invalid_json">유효한 JSON을 입력하세요</string>
+    <string name="ask_user_question_answer_hint">답변을 입력하세요</string>
+    <string name="ask_user_question_other_hint">기타</string>
+    <string name="ask_user_question_send">보내기</string>
+    <string name="ask_user_question_skip">건너뛰기</string>
+    <string name="ask_user_question_multi_select_hint">해당하는 항목을 모두 선택하세요</string>
+    <string name="ask_user_question_page_of">%1$d/%2$d</string>
+    <string name="ask_user_question_skipped">건너뜀</string>
+    <string name="cd_previous_ask_user_question">이전 질문</string>
+    <string name="cd_next_ask_user_question">다음 질문</string>
+    <string name="ask_user_question_send_progress">보내기 (%1$d/%2$d)</string>
+    <string name="ask_user_question_next">다음</string>
+    <string name="ask_user_question_back">뒤로</string>
+    <string name="ask_user_question_skip_all">모두 건너뛰기</string>
+    <string name="ask_user_question_tab_fallback">질문 %1$d</string>
+    <string name="ask_user_question_waiting_marker">아래에서 답변을 기다리는 중</string>
+    <string name="cd_ask_user_question_answered">답변함</string>
+    <string name="cd_minimize_ask_user_question">질문 최소화</string>
+    <string name="cd_restore_ask_user_question">질문 보기</string>
+    <string name="error_resource_recovery_required">이 대화에 첨부된 파일을 복원하지 못해 어시스턴트가 사용할 수 없었습니다. 파일을 다시 첨부한 후 재시도하세요.</string>
+    <string name="error_model_not_found">선택한 모델을 이 제공자에서 사용할 수 없습니다. 다른 모델을 선택하거나 관리자에게 제공자 구성을 확인해 달라고 요청하세요.</string>
+    <string name="error_missing_model">선택된 모델이 없습니다. 모델을 선택한 후 다시 시도하세요.</string>
+    <string name="error_models_not_loaded">모델 목록을 불러오지 못했습니다. 당겨서 새로고침한 후 다시 시도하세요.</string>
+    <string name="error_endpoint_models_not_loaded">이 엔드포인트의 모델을 불러오지 못했습니다. 당겨서 새로고침한 후 다시 시도하세요.</string>
+    <string name="error_invalid_agent_provider">이 에이전트의 제공자는 이 서버에서 허용되지 않습니다. 관리자에게 활성화를 요청하세요.</string>
+    <string name="error_refusal">모델이 이 요청에 대한 답변을 거부했습니다. 요청을 다르게 표현하면 도움이 될 수 있습니다.</string>
+    <string name="error_input_length">이 메시지가 모델이 허용하는 길이보다 깁니다. 줄인 후 다시 시도하세요.</string>
+    <string name="error_moderation">이 메시지가 서버의 검토 기능에 의해 차단되었습니다. 메시지를 편집하거나 새 대화를 시작하세요.</string>
+    <string name="error_stream_expired">이 응답이 표시되기 전에 완료되었거나 만료되었습니다. 대화를 다시 열어 불러오세요.</string>
+    <string name="error_model_rate_limit">제공자가 이 모델의 요청 속도를 제한하고 있습니다. 잠시 후 다시 시도하거나 다른 모델을 선택하세요.</string>
+    <string name="error_final_context_overflow">이 대화가 더 이상 모델의 컨텍스트 창에 맞지 않습니다. 새 대화를 시작하거나 컨텍스트 창이 더 큰 모델로 전환하세요.</string>
+    <string name="error_compaction_skipped">아직 압축할 내용이 없습니다. 대화를 계속한 후 나중에 다시 시도하세요.</string>
+    <string name="error_compaction_failed">요약을 생성하지 못해 대화가 변경되지 않았습니다. 다시 시도하세요.</string>
+    <string name="error_upstream_model_error">모델 제공자가 이 요청을 완료하지 못했습니다. 다시 시도하거나 다른 모델을 선택하세요.</string>
+    <string name="error_upstream_model_error_status">모델 제공자가 이 요청을 완료하지 못했습니다 (상태 %1$d). 다시 시도하거나 다른 모델을 선택하세요.</string>
+    <string name="error_details_provider">제공자 응답</string>
+    <string name="error_empty_messages">모델의 컨텍스트에 맞게 대화를 줄인 후 보낼 내용이 남지 않았습니다. 새 대화를 시작하거나 컨텍스트 창이 더 큰 모델로 전환하세요.</string>
+    <string name="error_code_workspace_unavailable">이 대화의 코드 작업 공간을 사용할 수 없습니다. 다시 시도하거나 다른 작업 공간을 선택하세요.</string>
+    <string name="error_stateful_code_environment_not_allowed">이 서버는 영구 코드 환경을 허용하지 않습니다. 코드 인터프리터 옵션에서 이를 끈 후 다시 시도하세요.</string>
+    <string name="error_auth_rate_limited">로그인 시도가 너무 많습니다. 잠시 후 다시 시도하세요.</string>
+    <string name="error_auth_banned">이 계정 또는 네트워크는 로그인이 차단되었습니다. 관리자에게 문의하세요.</string>
+    <string name="error_auth_cross_origin">서버가 다른 사이트에서 온 로그인으로 판단하여 거부했습니다. 비밀번호 문제가 아닌 앱 버그이니 신고해 주세요.</string>
+    <string name="error_share_limit">공유 링크 요청이 너무 많습니다. 잠시 후 다시 시도하세요.</string>
+    <string name="ask_user_question_record_asked">질문함</string>
+    <string name="ask_user_question_record_asking">질문 중</string>
+    <string name="ask_user_question_record_answer_label">내 답변:</string>
+    <string name="ask_user_question_record_unanswered">답변이 없습니다</string>
+    <string name="ask_user_question_record_skipped">이 질문을 건너뛰었습니다</string>
+    <string name="ask_user_question_record_options">제시된 선택지</string>
+    <string name="ask_user_question_record_options_multi">제시된 선택지 (복수 선택 가능)</string>
+    <string name="ask_user_question_record_failed">질문이 표시되지 않았습니다</string>
+    <string name="ask_user_question_record_failed_description">어시스턴트가 이 질문을 표시하지 못했으며 자동으로 다시 시도할 수 있습니다.</string>
+    <string name="cd_expand_ask_user_question">질문 세부정보 펼치기</string>
+    <string name="cd_collapse_ask_user_question">질문 세부정보 접기</string>
+    <string name="tool_memory">메모리</string>
+    <string name="tool_memory_desc">어시스턴트가 이 채팅의 세부 정보를 기억하도록 허용</string>
+    <string name="cd_steer_message">이 응답의 방향 조정</string>
+    <string name="cd_cancel_steer">방향 조정 취소</string>
+    <string name="cd_during_run_options">지금 보낼 때의 동작 선택</string>
+    <string name="during_run_steer">이 응답의 방향 조정</string>
+    <string name="during_run_queue">대기열에 추가</string>
+    <string name="during_run_always_steer">생성 중에는 항상 방향 조정</string>
+    <string name="during_run_always_queue">생성 중에는 항상 대기열에 추가</string>
+    <string name="system_event_label">시스템</string>
+    <string name="wakeup_explainer">이 지속 결과가 에이전트를 깨워 대화를 이어가게 했습니다.</string>
+    <string name="wakeup_subagent_completed">서브에이전트 작업 완료됨</string>
+    <string name="wakeup_subagent_failed">서브에이전트 작업 실패</string>
+    <string name="wakeup_subagent_cancelled">서브에이전트 작업 취소됨</string>
+    <string name="wakeup_task_finished">백그라운드 작업 완료</string>
+    <string name="wakeup_task_failed">백그라운드 작업 실패</string>
+    <string name="wakeup_tasks_finished">백그라운드 작업 %1$d개 완료</string>
+    <string name="wakeup_status_completed">완료됨</string>
+    <string name="wakeup_status_failed">실패함</string>
+    <string name="wakeup_status_cancelled">취소됨</string>
+    <string name="wakeup_subagent_thread">스레드 %1$s</string>
 </resources>

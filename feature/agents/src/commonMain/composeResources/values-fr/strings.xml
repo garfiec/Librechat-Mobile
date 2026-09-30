@@ -259,6 +259,9 @@
     <string name="agent_file_upload_failed">Échec du téléversement du fichier</string>
     <string name="agent_file_remove_failed">Échec de la suppression du fichier</string>
     <string name="cd_remove_file">Supprimer %1$s</string>
+    <string name="agent_file_remove_confirm_title">Retirer %1$s ?</string>
+    <string name="agent_file_remove_confirm_title_generic">Retirer ce fichier ?</string>
+    <string name="agent_file_remove_confirm_message">Si aucun autre agent n'utilise ce fichier, il sera définitivement supprimé.</string>
 
     <!-- Skills selector (v0.8.6) -->
     <string name="label_skills">Compétences</string>
@@ -278,4 +281,30 @@
     <string name="subagents_allow_self">Autoriser à se générer lui-même</string>
     <string name="add_subagent">Ajouter un sous-agent</string>
     <string name="subagents_full">Nombre maximal de sous-agents atteint.</string>
+    <string name="tools_marketplace_title">Outils</string>
+    <string name="tools_marketplace_description">Choisissez ce que cet agent peut faire</string>
+    <string name="tools_marketplace_search_hint">Rechercher des outils, serveurs et compétences…</string>
+    <string name="tools_marketplace_no_matches">Aucun résultat pour "%1$s"</string>
+    <string name="tools_marketplace_no_favorites">Ajoutez un outil aux favoris pour l'épingler ici</string>
+    <string name="tools_marketplace_empty">Rien de disponible pour l'instant</string>
+    <string name="tools_filter_all">Tous</string>
+    <string name="tools_filter_favorites">Favoris</string>
+    <string name="tools_filter_builtin">Intégrés</string>
+    <string name="tools_filter_tools">Outils</string>
+    <string name="tools_filter_mcp">MCP</string>
+    <string name="tools_filter_skills">Compétences</string>
+    <string name="tools_browse">Parcourir les outils</string>
+    <string name="cd_pin_tool">Épingler</string>
+    <string name="cd_unpin_tool">Désépingler</string>
+    <string name="builtin_code_interpreter">Interpréteur de code</string>
+    <string name="builtin_code_interpreter_desc">Exécute du code dans un bac à sable et renvoie sa sortie et ses fichiers.</string>
+    <string name="builtin_file_search">Recherche de fichiers</string>
+    <string name="builtin_file_search_desc">Récupère des passages des fichiers joints à cet agent.</string>
+    <string name="builtin_web_search">Recherche web</string>
+    <string name="builtin_web_search_desc">Recherche sur le web et cite ses sources.</string>
+    <string name="builtin_file_context">Contexte de fichier</string>
+    <string name="builtin_file_context_desc">Place les fichiers joints en entier dans le contexte de l'agent.</string>
+    <string name="builtin_ask_user">Demander à l'utilisateur</string>
+    <string name="builtin_ask_user_desc">Met l'exécution en pause pour vous poser une question de clarification.</string>
+    <string name="agent_contact_title">Contact</string>
 </resources>
