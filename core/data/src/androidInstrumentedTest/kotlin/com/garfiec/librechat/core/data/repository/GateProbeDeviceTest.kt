@@ -4,6 +4,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.garfiec.librechat.core.common.BackendBuildClass
 import com.garfiec.librechat.core.common.DetectedBackend
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.pdf.PdfNormalizeResult
+import com.garfiec.librechat.core.data.pdf.PdfNormalizer
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.model.response.Category
@@ -122,7 +124,14 @@ class GateProbeDeviceTest {
 
     private fun files(detected: DetectedBackend?): FileRepository {
         val c = countingClient(login())
-        return FileRepositoryImpl(FilesApi(c, librechatJson), FilesExtApi(c), FakeConfig(detected))
+        return FileRepositoryImpl(
+            FilesApi(c, librechatJson),
+            FilesExtApi(c),
+            FakeConfig(detected),
+            object : PdfNormalizer {
+                override fun normalize(bytes: ByteArray, password: String?) = PdfNormalizeResult.Unchanged
+            },
+        )
     }
 
     private fun favorites(detected: DetectedBackend?): ToolFavoritesRepository {

@@ -907,6 +907,20 @@
       },
       "why": "The zod schema PATCH /api/prompts/groups/:groupId validates against: the command's ^[a-z0-9-]*$ regex and its max length. Watched file-level because the block extractor stops at updatePromptGroupSchema's type annotation and never reaches the runtime schema. COMMAND_MAX_LENGTH copies Constants.COMMANDS_MAX_LENGTH (56); the Constants enum itself is too large to watch without constant noise.",
       "failure_mode": "Same as prompt-command-input-sanitizer."
+    },
+    {
+      "id": "anthropic-pdf-encryption-scan",
+      "upstream": {
+        "file": "packages/api/src/files/validation.ts",
+        "symbol": "validateAnthropicPdf",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/pdf/PdfNormalizer.kt",
+        "symbol": "SERVER_ENCRYPTION_NEEDLES / failsServerEncryptionScan"
+      },
+      "why": "The byte scan the server runs on every PDF sent to an Anthropic agent (`/Encrypt `, `/U (`, `/O (`). The upload path strips permission-only encryption so a copy-protected PDF passes it; the tests assert the normalized bytes clear exactly these needles.",
+      "failure_mode": "Upstream changes what it scans for, and a normalized PDF that the tests call clean is still refused at send time with \"PDF is password-protected or encrypted\" -- or upstream drops the scan and the stripping becomes an unneeded rewrite."
     }
   ]
 }

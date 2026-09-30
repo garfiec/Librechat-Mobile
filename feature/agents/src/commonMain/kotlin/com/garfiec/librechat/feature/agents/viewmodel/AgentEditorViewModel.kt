@@ -20,6 +20,7 @@ import com.garfiec.librechat.core.model.HandoffEdge
 import com.garfiec.librechat.core.model.SkillSummary
 import com.garfiec.librechat.core.model.mcp.McpTool
 import com.garfiec.librechat.core.model.request.FunctionTool
+import com.garfiec.librechat.core.ui.components.PdfPasswordPromptUi
 import com.garfiec.librechat.feature.agents.AgentActionDisplayData
 import com.garfiec.librechat.feature.agents.AgentHandoffDisplayData
 import com.garfiec.librechat.feature.agents.AgentToolDisplayData
@@ -236,6 +237,8 @@ data class AgentEditorUiState(
     val contextFiles: List<AgentFile> = emptyList(),
     /** File-id set currently uploading, keyed for spinner state in chips. */
     val uploadingSlots: Set<AgentFileSlot> = emptySet(),
+    /** A picked PDF needs its password before it can be uploaded; the screen asks for it. */
+    val pdfPasswordPrompt: PdfPasswordPromptUi? = null,
     /** Per-tool MCP options (`{ tool_name: { defer_loading: bool, programmatic:
      *  bool }, … }`). Round-tripped on every save so values set via the web
      *  client (deferred / programmatic flags) survive a mobile edit. The
@@ -499,6 +502,8 @@ class AgentEditorViewModel(
     // --- Per-capability file attachments ---
 
     fun uploadAgentFile(fileRef: Any, slot: AgentFileSlot) = filesDelegate.uploadAgentFile(fileRef, slot)
+    fun submitPdfPassword(password: String) = filesDelegate.submitPdfPassword(password)
+    fun dismissPdfPassword() = filesDelegate.dismissPdfPassword()
 
     fun removeAgentFile(fileId: String, slot: AgentFileSlot) = filesDelegate.removeAgentFile(fileId, slot)
 

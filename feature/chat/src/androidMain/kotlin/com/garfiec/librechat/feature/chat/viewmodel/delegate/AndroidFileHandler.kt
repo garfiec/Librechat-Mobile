@@ -30,4 +30,9 @@ class AndroidFileHandler(
     override fun clearAttachedFiles() = delegate.clearAttachedFiles()
     override fun restoreAttachedFiles(files: List<AttachedFile>) = delegate.restoreAttachedFiles(files)
     override fun addPreUploadedFiles(files: List<AttachedFile>) = delegate.addPreUploadedFiles(files)
+
+    override val pdfPasswordPrompts: StateFlow<List<PdfPasswordPrompt>> get() = delegate.pdfPasswordPrompts
+    override fun submitPdfPassword(prompt: PdfPasswordPrompt, password: String) =
+        delegate.submitPdfPassword(prompt, password)
+    override fun dismissPdfPassword() = delegate.dismissPdfPassword()
 }

@@ -19,4 +19,13 @@
     <string name="server_headers_error_name">올바른 헤더 이름이 아닙니다.</string>
     <string name="server_headers_error_value">이 값에는 보낼 수 없는 문자가 있습니다.</string>
     <string name="server_headers_error_reserved">이 헤더는 앱이 설정하므로 덮어쓸 수 없습니다.</string>
+    <string name="pdf_password_title">암호로 보호된 PDF</string>
+    <string name="pdf_password_explanation">‘%1$s’ 파일을 열려면 암호가 필요합니다. AI 모델에 보내기 위해 Switchboard가 이 기기에서 파일을 복호화한 뒤 복호화된 사본을 업로드합니다. 암호는 기기 밖으로 전송되지 않습니다.</string>
+    <string name="pdf_password_sensitive_warning">암호로 보호된 파일에는 민감한 정보가 담긴 경우가 많습니다. 복호화된 사본은 LibreChat 서버에 저장되고 AI 제공업체와 공유됩니다. 내용을 공유해도 괜찮은 경우에만 계속하세요.</string>
+    <string name="pdf_password_field">PDF 암호</string>
+    <string name="pdf_password_incorrect">암호가 올바르지 않습니다. 다시 시도하세요.</string>
+    <string name="pdf_password_show">암호 표시</string>
+    <string name="pdf_password_hide">암호 숨기기</string>
+    <string name="pdf_password_confirm">복호화 후 업로드</string>
+    <string name="pdf_password_cancel">취소</string>
 </resources>

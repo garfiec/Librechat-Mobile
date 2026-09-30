@@ -6,6 +6,7 @@ import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.common.extensions.formatByteSize
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.pdf.PdfPasswordProtectedException
 import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.model.response.UploadRoute
 import com.garfiec.librechat.core.model.response.effectiveFileSizeLimit
@@ -37,6 +38,9 @@ class FileAttachmentDelegate(
     private val _attachedFiles = MutableStateFlow<List<AttachedFile>>(emptyList())
     val attachedFiles: StateFlow<List<AttachedFile>> = _attachedFiles.asStateFlow()
 
+    private val pdfPrompts = PdfPasswordPrompts()
+    val pdfPasswordPrompts: StateFlow<List<PdfPasswordPrompt>> = pdfPrompts.pending
+
     /** Job that waits for pending uploads before sending a message. */
     var pendingUploadSendJob: Job? = null
 
@@ -66,7 +70,7 @@ class FileAttachmentDelegate(
 
     private fun fallbackFilename() = "file_${System.currentTimeMillis()}"
 
-    private fun uploadFile(picked: PickedFile, route: UploadRoute) {
+    private fun uploadFile(picked: PickedFile, route: UploadRoute, pdfPassword: String? = null) {
         val context = appContext
         val contentResolver = context.contentResolver
         val uri = picked.ref as Uri
@@ -224,6 +228,7 @@ class FileAttachmentDelegate(
                     width = imageWidth,
                     height = imageHeight,
                     onProgress = { pct -> updateFileProgress(uri, pct) },
+                    pdfPassword = pdfPassword,
                 )
 
                 when (result) {
@@ -249,6 +254,15 @@ class FileAttachmentDelegate(
                         }
                     }
                     is Result.Error -> {
+                        val locked = result.exception as? PdfPasswordProtectedException
+                        if (locked != null) {
+                            // Not an error to show: the chip waits while the UI asks for the password.
+                            // It stays pending, not failed, so a send parked on the upload gate
+                            // keeps waiting for the answer instead of going out without the PDF.
+                            updateFileProgress(uri, null)
+                            pdfPrompts.add(PdfPasswordPrompt(uri, picked, locked.incorrectPassword))
+                            return@launch
+                        }
                         Logger.e(result.exception) { "uploadFile: server error -- ${result.message}" }
                         // Atomically mark failed and remove from list in one update
                         _attachedFiles.update { currentList ->
@@ -278,7 +292,7 @@ class FileAttachmentDelegate(
         }
     }
 
-    private fun updateFileProgress(uri: Uri, progress: Float) {
+    private fun updateFileProgress(uri: Uri, progress: Float?) {
         _attachedFiles.update { currentList ->
             currentList.map { f ->
                 if (f.uri == uri) f.copy(uploadProgress = progress) else f
@@ -295,10 +309,12 @@ class FileAttachmentDelegate(
     }
 
     fun removeFile(file: AttachedFile) {
+        pdfPrompts.remove(file.uri)
         _attachedFiles.update { currentList -> currentList.filter { it.uri != file.uri } }
     }
 
     fun retryUpload(file: AttachedFile) {
+        pdfPrompts.remove(file.uri)
         _attachedFiles.update { currentList -> currentList.filter { it.uri != file.uri } }
         // Re-resolve the route rather than replaying `file.route`: a retry is a fresh upload
         // against whatever is selected NOW, and the user may well have switched models precisely
@@ -320,11 +336,26 @@ class FileAttachmentDelegate(
         _attachedFiles.value.any { it.fileId == null && !it.uploadFailed }
 
     fun clearAttachedFiles() {
+        pdfPrompts.clear()
         _attachedFiles.update { emptyList() }
     }
 
     fun restoreAttachedFiles(files: List<AttachedFile>) {
+        pdfPrompts.clear()
         _attachedFiles.update { files }
+    }
+
+    fun submitPdfPassword(prompt: PdfPasswordPrompt, password: String) {
+        if (!pdfPrompts.take(prompt)) return
+        val uri = prompt.chipKey as Uri
+        _attachedFiles.update { currentList -> currentList.filter { it.uri != uri } }
+        // Routed against the live selection, as a retry is (see retryUpload).
+        uploadFile(prompt.file, handle.state.uploadRouteFor(prompt.file.mimeType), pdfPassword = password)
+    }
+
+    fun dismissPdfPassword() {
+        val prompt = pdfPrompts.takeHead() ?: return
+        _attachedFiles.update { currentList -> currentList.filter { it.uri != prompt.chipKey } }
     }
 
     fun addPreUploadedFiles(files: List<AttachedFile>) {

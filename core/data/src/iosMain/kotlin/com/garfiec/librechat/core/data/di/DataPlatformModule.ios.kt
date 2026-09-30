@@ -12,6 +12,8 @@ import com.garfiec.librechat.core.data.datastore.ServerUrlKeychainFallback
 import com.garfiec.librechat.core.data.db.LibreChatDatabase
 import com.garfiec.librechat.core.data.db.migration.MIGRATION_3_4
 import com.garfiec.librechat.core.data.db.migration.MIGRATION_4_5
+import com.garfiec.librechat.core.data.pdf.PdfKitPdfNormalizer
+import com.garfiec.librechat.core.data.pdf.PdfNormalizer
 import com.garfiec.librechat.core.data.prefetch.AttachmentWarmer
 import com.garfiec.librechat.core.data.prefetch.IosPrefetchScheduler
 import com.garfiec.librechat.core.data.prefetch.NoopAttachmentWarmer
@@ -46,6 +48,7 @@ actual val dataPlatformModule: Module = module {
 
     single<AttachmentWarmer> { NoopAttachmentWarmer() }
     single<PrefetchScheduler> { IosPrefetchScheduler() }
+    single<PdfNormalizer> { PdfKitPdfNormalizer() }
 
     // --- Database ---
     single {

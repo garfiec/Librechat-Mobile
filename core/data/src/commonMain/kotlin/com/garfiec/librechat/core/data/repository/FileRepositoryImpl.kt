@@ -1,11 +1,22 @@
 package com.garfiec.librechat.core.data.repository
 
+import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.BackendVersion
 import com.garfiec.librechat.core.common.FeatureSupport
+import com.garfiec.librechat.core.common.di.ioDispatcher
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.onApiDispatcher
 import com.garfiec.librechat.core.common.result.safeApiCall
+import com.garfiec.librechat.core.data.pdf.PDF_DECRYPTION_UNAVAILABLE_MESSAGE
+import com.garfiec.librechat.core.data.pdf.PDF_INCORRECT_PASSWORD_MESSAGE
+import com.garfiec.librechat.core.data.pdf.PDF_PASSWORD_PROTECTED_MESSAGE
+import com.garfiec.librechat.core.data.pdf.PdfDecryptionUnavailableException
+import com.garfiec.librechat.core.data.pdf.PdfNormalizeResult
+import com.garfiec.librechat.core.data.pdf.PdfNormalizer
+import com.garfiec.librechat.core.data.pdf.PdfPasswordProtectedException
+import com.garfiec.librechat.core.data.pdf.hasEncryptKey
+import com.garfiec.librechat.core.data.pdf.isPdfUpload
 import com.garfiec.librechat.core.model.FileObject
 import com.garfiec.librechat.core.model.request.DeleteFileEntry
 import com.garfiec.librechat.core.model.request.DeleteFilesRequest
@@ -17,6 +28,7 @@ import com.garfiec.librechat.core.network.api.FilesApi
 import com.garfiec.librechat.core.network.api.FilesExtApi
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlin.concurrent.Volatile
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -26,6 +38,7 @@ class FileRepositoryImpl(
     private val filesApi: FilesApi,
     private val filesExtApi: FilesExtApi,
     private val configRepository: ConfigRepository,
+    private val pdfNormalizer: PdfNormalizer,
 ) : FileRepository {
 
     override suspend fun getFiles(): Result<List<FileObject>> =
@@ -40,9 +53,9 @@ class FileRepositoryImpl(
         type: String,
         onProgress: ((Float) -> Unit)?,
     ): Result<FileObject> =
-        safeApiCall {
+        withUploadBytes(bytes, filename, type, pdfPassword = null) { uploadBytes ->
             filesApi.uploadFile(
-                bytes = bytes,
+                bytes = uploadBytes,
                 filename = filename,
                 type = type,
                 // file_id and endpoint are required by the backend; provide defaults
@@ -65,10 +78,11 @@ class FileRepositoryImpl(
         width: Int?,
         height: Int?,
         onProgress: ((Float) -> Unit)?,
+        pdfPassword: String?,
     ): Result<FileObject> =
-        safeApiCall {
+        withUploadBytes(bytes, filename, type, pdfPassword) { uploadBytes ->
             filesApi.uploadFile(
-                bytes = bytes,
+                bytes = uploadBytes,
                 filename = filename,
                 type = type,
                 fileId = fileId ?: Uuid.random().toString(),
@@ -82,6 +96,84 @@ class FileRepositoryImpl(
                 onProgress = onProgress,
             )
         }
+
+    /**
+     * Uploads what the server will accept: an encrypted PDF goes up without its encryption layer,
+     * because the server refuses any encrypted PDF for Anthropic at send time.
+     *
+     * A copy-protected PDF (empty user password) is decrypted silently, and fails open — a broken
+     * normalizer must never block an upload that would otherwise work. A PDF that needs a password
+     * is refused with [PdfPasswordProtectedException] until the caller supplies [pdfPassword];
+     * with one, a failure is reported rather than uploading a file nobody can read.
+     */
+    private suspend fun withUploadBytes(
+        bytes: ByteArray,
+        filename: String,
+        type: String,
+        pdfPassword: String?,
+        upload: suspend (ByteArray) -> FileObject,
+    ): Result<FileObject> =
+        when (val prepared = withContext(ioDispatcher) { preparePdf(bytes, filename, type, pdfPassword) }) {
+            is PreparedUpload.Send -> safeApiCall { upload(prepared.bytes) }
+            is PreparedUpload.Refuse -> prepared.error
+        }
+
+    private sealed interface PreparedUpload {
+        class Send(val bytes: ByteArray) : PreparedUpload
+        class Refuse(val error: Result.Error) : PreparedUpload
+    }
+
+    // Never log pdfPassword.
+    @Suppress("TooGenericExceptionCaught")
+    private fun preparePdf(bytes: ByteArray, filename: String, type: String, pdfPassword: String?): PreparedUpload {
+        if (!isPdfUpload(type, filename, bytes) || !hasEncryptKey(bytes)) return PreparedUpload.Send(bytes)
+        val result = try {
+            pdfNormalizer.normalize(bytes, pdfPassword)
+        } catch (e: Exception) {
+            PdfNormalizeResult.Failed(e)
+        }
+        val decryptedBytes = (result as? PdfNormalizeResult.Decrypted)?.bytes?.takeUnless(::hasEncryptKey)
+        return when {
+            result == PdfNormalizeResult.Unchanged -> PreparedUpload.Send(bytes)
+            decryptedBytes != null -> {
+                Logger.i { "Removed PDF encryption from $filename (${bytes.size} -> ${decryptedBytes.size} bytes)" }
+                PreparedUpload.Send(decryptedBytes)
+            }
+            result == PdfNormalizeResult.PasswordUnsupported -> {
+                Logger.i { "PDF upload refused: $filename needs a password this device cannot decrypt with" }
+                PreparedUpload.Refuse(
+                    Result.Error(
+                        exception = PdfDecryptionUnavailableException(cause = null),
+                        message = PDF_DECRYPTION_UNAVAILABLE_MESSAGE,
+                    ),
+                )
+            }
+            result == PdfNormalizeResult.NeedsPassword -> {
+                Logger.i { "PDF upload held: $filename needs a password (retry=${pdfPassword != null})" }
+                val incorrect = pdfPassword != null
+                PreparedUpload.Refuse(
+                    Result.Error(
+                        exception = PdfPasswordProtectedException(incorrectPassword = incorrect),
+                        message = if (incorrect) PDF_INCORRECT_PASSWORD_MESSAGE else PDF_PASSWORD_PROTECTED_MESSAGE,
+                    ),
+                )
+            }
+            pdfPassword != null -> {
+                val cause = (result as? PdfNormalizeResult.Failed)?.cause
+                Logger.w { "PDF could not be decrypted with its password: $filename ($cause)" }
+                PreparedUpload.Refuse(
+                    Result.Error(
+                        exception = PdfDecryptionUnavailableException(cause),
+                        message = PDF_DECRYPTION_UNAVAILABLE_MESSAGE,
+                    ),
+                )
+            }
+            else -> {
+                Logger.w { "PDF left encrypted for $filename (${(result as? PdfNormalizeResult.Failed)?.cause}); uploading original" }
+                PreparedUpload.Send(bytes)
+            }
+        }
+    }
 
     /**
      * Deletes [files], reporting every entry the route would silently discard as a FAILURE.

@@ -2,11 +2,13 @@ package com.garfiec.librechat.feature.agents.viewmodel.delegate
 
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.pdf.PdfPasswordProtectedException
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.model.AgentFile
 import com.garfiec.librechat.core.model.FileObject
 import com.garfiec.librechat.core.model.request.DeleteFileEntry
+import com.garfiec.librechat.core.ui.components.PdfPasswordPromptUi
 import com.garfiec.librechat.feature.agents.util.ContentReader
 import com.garfiec.librechat.feature.agents.viewmodel.AgentEditorStateHandle
 import com.garfiec.librechat.feature.agents.viewmodel.AgentEditorViewModel
@@ -43,6 +45,18 @@ class AgentFilesDelegate(
      *  Without this cache, [loadAgentFiles] finishing first would read empty
      *  slot lists and produce a no-op enrichment. */
     private var loadedAgentFileObjects: List<FileObject>? = null
+
+    /**
+     * PDFs waiting on their password, oldest first; the head is [AgentEditorUiState.pdfPasswordPrompt].
+     * A queue because several slots can each be handed a locked PDF before the first is answered.
+     * Touched only from [AgentEditorStateHandle.scope], like the rest of this delegate's state.
+     */
+    private val pendingPdfs = ArrayDeque<PendingPdf>()
+    private var nextPromptId = 0L
+
+    private class PendingPdf(val fileRef: Any, val slot: AgentFileSlot, val prompt: PdfPasswordPromptUi)
+
+    private fun publishPdfPrompt() = stateHandle.update { copy(pdfPasswordPrompt = pendingPdfs.firstOrNull()?.prompt) }
 
     /**
      * Fetches `GET /api/files/agent/:id` and merges filename/bytes/type into
@@ -117,13 +131,25 @@ class AgentFilesDelegate(
         }
     }
 
+    /** Uploads the prompted PDF again into its slot, decrypting it on-device with [password]. */
+    fun submitPdfPassword(password: String) {
+        val head = pendingPdfs.removeFirstOrNull() ?: return
+        publishPdfPrompt()
+        uploadAgentFile(head.fileRef, head.slot, pdfPassword = password)
+    }
+
+    fun dismissPdfPassword() {
+        pendingPdfs.removeFirstOrNull() ?: return
+        publishPdfPrompt()
+    }
+
     /**
      * Upload a file for the given capability slot. The backend attaches the
      * file to `tool_resources.<wire>.file_ids` on the agent when both
      * `agent_id` + `tool_resource` are supplied. New (unsaved) agents can't
      * accept files yet — the user is told to save first via a snackbar.
      */
-    fun uploadAgentFile(fileRef: Any, slot: AgentFileSlot) {
+    fun uploadAgentFile(fileRef: Any, slot: AgentFileSlot, pdfPassword: String? = null) {
         val agentId = stateHandle.state.agentId
         if (agentId.isNullOrBlank()) {
             stateHandle.update {
@@ -158,6 +184,7 @@ class AgentFilesDelegate(
                     endpoint = "agents",
                     agentId = agentId,
                     toolResource = slot.wire,
+                    pdfPassword = pdfPassword,
                 )
                 stateHandle.update { copy(uploadingSlots = uploadingSlots - slot) }
                 when (result) {
@@ -176,8 +203,20 @@ class AgentFilesDelegate(
                         setFilesFor(slot, filesFor(slot) + agentFile)
                     }
                     is Result.Error -> {
-                        stateHandle.update {
-                            copy(error = result.message ?: AgentEditorViewModel.AGENT_FILE_UPLOAD_FAILED_MARKER)
+                        val locked = result.exception as? PdfPasswordProtectedException
+                        if (locked != null) {
+                            val pending = PendingPdf(
+                                fileRef,
+                                slot,
+                                PdfPasswordPromptUi(filename, locked.incorrectPassword, id = nextPromptId++),
+                            )
+                            // A wrong password re-asks straight away; a new file waits its turn.
+                            if (locked.incorrectPassword) pendingPdfs.addFirst(pending) else pendingPdfs.addLast(pending)
+                            publishPdfPrompt()
+                        } else {
+                            stateHandle.update {
+                                copy(error = result.message ?: AgentEditorViewModel.AGENT_FILE_UPLOAD_FAILED_MARKER)
+                            }
                         }
                     }
                     is Result.Loading -> { /* no-op */ }

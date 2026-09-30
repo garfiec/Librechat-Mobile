@@ -86,6 +86,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.delegate.MessageQueueDelegat
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.MessageTreeDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ModelSelectionDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.OfficePreviewDelegate
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.PdfPasswordPrompt
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PendingActionDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PickedFile
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformDelegateFactory
@@ -286,6 +287,7 @@ class ChatViewModel(
 
     // --- Delegate-owned flows exposed to the UI ---
     val attachedFiles: StateFlow<List<AttachedFile>> get() = fileDelegate.attachedFiles
+    val pdfPasswordPrompts: StateFlow<List<PdfPasswordPrompt>> get() = fileDelegate.pdfPasswordPrompts
     val shareLinkUrl: StateFlow<String?> get() = conversationActionsDelegate.shareLinkUrl
 
     /** The inputs of the feature-gate combine, named so the collector destructures readably. */
@@ -2743,6 +2745,19 @@ class ChatViewModel(
             fileDelegate.retryUpload(file)
         }
     }
+
+    /** Re-uploads the prompted PDF with its password; routed like [retryUpload], for the same reason. */
+    fun submitPdfPassword(password: String) {
+        // Bound to the prompt on screen NOW: the dialog stays up through the await, so a second
+        // tap or a Cancel in that window must not hand this password to the next queued PDF.
+        val prompt = fileDelegate.pdfPasswordPrompts.value.firstOrNull() ?: return
+        viewModelScope.launch {
+            modelDelegate.awaitSelectedAgentProvider()
+            fileDelegate.submitPdfPassword(prompt, password)
+        }
+    }
+
+    fun dismissPdfPassword() = fileDelegate.dismissPdfPassword()
 
     /**
      * Attaches already-uploaded server files (from the "From server" picker) to the composer by

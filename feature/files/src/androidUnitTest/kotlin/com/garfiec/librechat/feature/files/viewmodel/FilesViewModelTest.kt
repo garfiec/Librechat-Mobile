@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.files.viewmodel
 
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.pdf.PdfPasswordProtectedException
 import com.garfiec.librechat.core.model.response.DeleteFilesResponse
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
@@ -8,6 +9,7 @@ import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.model.FileObject
 import com.garfiec.librechat.core.model.response.FileUploadConfig
+import com.garfiec.librechat.core.ui.components.PdfPasswordPromptUi
 import com.garfiec.librechat.feature.files.platform.FileReader
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -620,5 +622,81 @@ class FilesViewModelTest {
             "application/pdf",
             "application/vnd.openxmlformats-officedocument.presentationml.template",
         )
+    }
+
+    private fun pickPdf() {
+        every { fileReader.getFileName("picked") } returns "grades.pdf"
+        every { fileReader.getMimeType("picked") } returns "application/pdf"
+        every { fileReader.readBytes("picked") } returns ByteArray(10)
+    }
+
+    private fun uploadAnswers(password: String?, result: Result<FileObject>) = coEvery {
+        fileRepository.uploadFile(
+            bytes = any(), filename = any(), type = any(), fileId = any(), endpoint = any(),
+            model = any(), agentId = any(), toolResource = any(), messageFile = any(),
+            width = any(), height = any(), onProgress = any(), pdfPassword = password,
+        )
+    } returns result
+
+    @Test
+    fun `a password-protected PDF prompts instead of showing an error`() = runTest {
+        pickPdf()
+        uploadAnswers(null, Result.Error(exception = PdfPasswordProtectedException(incorrectPassword = false), message = "x"))
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.uploadFile("picked")
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.pdfPasswordPrompt).isEqualTo(PdfPasswordPromptUi("grades.pdf", incorrectPassword = false))
+        assertThat(state.error).isNull()
+        assertThat(state.isUploading).isFalse()
+    }
+
+    @Test
+    fun `the typed password re-uploads the same file`() = runTest {
+        pickPdf()
+        uploadAnswers(null, Result.Error(exception = PdfPasswordProtectedException(incorrectPassword = false)))
+        uploadAnswers("hunter2", Result.Success(testFiles.first().copy(fileId = "new")))
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.uploadFile("picked")
+        advanceUntilIdle()
+        viewModel.submitPdfPassword("hunter2")
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.pdfPasswordPrompt).isNull()
+        assertThat(state.displayFiles.map { it.fileId }).contains("new")
+    }
+
+    @Test
+    fun `a wrong password prompts again and dismissing drops it`() = runTest {
+        pickPdf()
+        uploadAnswers(null, Result.Error(exception = PdfPasswordProtectedException(incorrectPassword = false)))
+        uploadAnswers("nope", Result.Error(exception = PdfPasswordProtectedException(incorrectPassword = true)))
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.uploadFile("picked")
+        advanceUntilIdle()
+        viewModel.submitPdfPassword("nope")
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.pdfPasswordPrompt?.incorrectPassword).isTrue()
+
+        viewModel.dismissPdfPassword()
+        advanceUntilIdle()
+        viewModel.submitPdfPassword("late")
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.pdfPasswordPrompt).isNull()
+        coVerify(exactly = 0) {
+            fileRepository.uploadFile(
+                bytes = any(), filename = any(), type = any(), fileId = any(), endpoint = any(),
+                model = any(), agentId = any(), toolResource = any(), messageFile = any(),
+                width = any(), height = any(), onProgress = any(), pdfPassword = "late",
+            )
+        }
     }
 }
