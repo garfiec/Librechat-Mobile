@@ -19,4 +19,13 @@
     <string name="server_headers_error_name">请求头名称无效。</string>
     <string name="server_headers_error_value">此值包含无法发送的字符。</string>
     <string name="server_headers_error_reserved">此请求头由应用设置，无法覆盖。</string>
+    <string name="pdf_password_title">受密码保护的 PDF</string>
+    <string name="pdf_password_explanation">“%1$s”需要密码才能打开。为了发送给 AI 模型，Switchboard 会在此设备上解密该文件并上传解密后的副本。密码不会离开你的设备。</string>
+    <string name="pdf_password_sensitive_warning">受密码保护的文件通常包含敏感信息。解密后的副本会存储在你的 LibreChat 服务器上，并与 AI 提供商共享。仅在你愿意共享其内容时继续。</string>
+    <string name="pdf_password_field">PDF 密码</string>
+    <string name="pdf_password_incorrect">密码错误，请重试。</string>
+    <string name="pdf_password_show">显示密码</string>
+    <string name="pdf_password_hide">隐藏密码</string>
+    <string name="pdf_password_confirm">解密并上传</string>
+    <string name="pdf_password_cancel">取消</string>
 </resources>

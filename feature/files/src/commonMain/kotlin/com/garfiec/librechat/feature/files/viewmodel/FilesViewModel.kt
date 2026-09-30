@@ -8,12 +8,14 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.getOrNull
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.data.pdf.PdfPasswordProtectedException
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.model.FileObject
 import com.garfiec.librechat.core.model.request.DeleteFileEntry
 import com.garfiec.librechat.core.model.response.FileUploadConfig
 import com.garfiec.librechat.core.model.response.pickerMimeTypes
+import com.garfiec.librechat.core.ui.components.PdfPasswordPromptUi
 import com.garfiec.librechat.core.ui.media.MediaItem
 import com.garfiec.librechat.core.ui.media.MediaPreviewState
 import com.garfiec.librechat.feature.files.FileDisplayData
@@ -124,6 +126,8 @@ data class FilesUiState(
      * configured no allowlist, or it configured one we can't represent faithfully.
      */
     val pickerMimeTypes: List<String> = emptyList(),
+    /** A picked PDF needs its password before it can be uploaded; the screen asks for it. */
+    val pdfPasswordPrompt: PdfPasswordPromptUi? = null,
 )
 
 class FilesViewModel(
@@ -213,6 +217,7 @@ class FilesViewModel(
             mediaPreview = transient.mediaPreview,
             hasFiles = list.hasFiles,
             viewMode = mode ?: FileViewMode.LIST,
+            pdfPasswordPrompt = transient.pdfPasswordPrompt,
             pickerMimeTypes = pickerMimeTypes,
         )
     }.stateIn(
@@ -284,12 +289,15 @@ class FilesViewModel(
 
     private var uploadJob: Job? = null
 
+    /** The picked PDF behind [FilesUiState.pdfPasswordPrompt], kept out of the UI state. */
+    private var pendingPdfRef: Any? = null
+
     /**
      * Upload a file from a platform-specific file reference.
      * On Android this is a Uri; on iOS it will be an NSURL.
      */
     @OptIn(ExperimentalUuidApi::class)
-    fun uploadFile(fileRef: Any) {
+    fun uploadFile(fileRef: Any, pdfPassword: String? = null) {
         uploadJob?.cancel()
         lateinit var thisJob: Job
         thisJob = viewModelScope.launch(ioDispatcher) {
@@ -300,6 +308,7 @@ class FilesViewModel(
                     uploadFilename = filename,
                     uploadProgress = null,
                     error = null,
+                    pdfPasswordPrompt = null,
                 )
             }
             val mimeType = fileReader.getMimeType(fileRef) ?: "application/octet-stream"
@@ -331,6 +340,7 @@ class FilesViewModel(
                 onProgress = { pct ->
                     if (thisJob.isActive) updateTransient { copy(uploadProgress = pct) }
                 },
+                pdfPassword = pdfPassword,
             )) {
                 is Result.Success -> {
                     Logger.d { "uploadFile: success -- serverFileId=${result.data.fileId}" }
@@ -344,13 +354,19 @@ class FilesViewModel(
                     }
                 }
                 is Result.Error -> {
-                    Logger.e(result.exception) { "uploadFile: server error -- ${result.message}" }
+                    val locked = result.exception as? PdfPasswordProtectedException
+                    if (locked != null) {
+                        pendingPdfRef = fileRef
+                    } else {
+                        Logger.e(result.exception) { "uploadFile: server error -- ${result.message}" }
+                    }
                     updateTransient {
                         copy(
                             isUploading = false,
                             uploadFilename = "",
                             uploadProgress = null,
-                            error = result.message ?: "Upload failed",
+                            error = if (locked != null) null else result.message ?: "Upload failed",
+                            pdfPasswordPrompt = locked?.let { PdfPasswordPromptUi(filename, it.incorrectPassword) },
                         )
                     }
                 }
@@ -358,6 +374,18 @@ class FilesViewModel(
             }
         }
         uploadJob = thisJob
+    }
+
+    /** Uploads the prompted PDF again, decrypting it on-device with [password]. */
+    fun submitPdfPassword(password: String) {
+        val fileRef = pendingPdfRef ?: return
+        pendingPdfRef = null
+        uploadFile(fileRef, pdfPassword = password)
+    }
+
+    fun dismissPdfPassword() {
+        pendingPdfRef = null
+        updateTransient { copy(pdfPasswordPrompt = null) }
     }
 
     fun cancelUpload() {
@@ -716,4 +744,5 @@ private data class TransientState(
     val selectedFileIds: Set<String> = emptySet(),
     val previewFile: FilePreviewDisplayData? = null,
     val mediaPreview: MediaPreviewState? = null,
+    val pdfPasswordPrompt: PdfPasswordPromptUi? = null,
 )

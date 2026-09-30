@@ -12,6 +12,7 @@ import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.response.UploadRoute
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.PdfPasswordPrompt
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PickedFile
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformFileHandler
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.RoutedFile
@@ -21,6 +22,7 @@ import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import io.mockk.verify
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -132,6 +134,33 @@ class ChatViewModelUploadRoutingTest {
             // The whole point of the feature: today this PDF is silently dropped server-side.
             assertThat(routes).containsExactly(UploadRoute.TEXT)
         }
+
+    /** The PDF password retry is routed like any retry, so it must wait for the agent's provider too. */
+    @Test
+    fun `a PDF password retry waits for the agent provider, then reaches the handler`() {
+        val gate = CompletableDeferred<Result<String?>>()
+        routingTest(
+            endpoint = EndpointConstants.AGENTS,
+            model = AGENT_ID,
+            agentProvider = "anthropic",
+            providerAnswer = { gate.await() },
+        ) { vm ->
+            val prompt = PdfPasswordPrompt(chipKey = "chip", file = PickedFile(ref = "ref", name = "a.pdf", mimeType = PDF), incorrectPassword = false)
+            every { fileHandler.pdfPasswordPrompts } returns MutableStateFlow(listOf(prompt))
+
+            vm.submitPdfPassword("hunter2")
+            runCurrent()
+            verify(exactly = 0) { fileHandler.submitPdfPassword(any(), any()) }
+
+            gate.complete(Result.Success("anthropic"))
+            runCurrent()
+            // Bound to the prompt that was on screen when the user answered, not whatever heads the queue later.
+            verify(exactly = 1) { fileHandler.submitPdfPassword(prompt, "hunter2") }
+
+            vm.dismissPdfPassword()
+            verify(exactly = 1) { fileHandler.dismissPdfPassword() }
+        }
+    }
 
     @Test
     fun `an agent whose provider is unresolved changes nothing from today`() =

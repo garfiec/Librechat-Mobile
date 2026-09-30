@@ -32,6 +32,11 @@ interface FileRepository {
         width: Int? = null,
         height: Int? = null,
         onProgress: ((Float) -> Unit)? = null,
+        /**
+         * Password the user typed for a PDF that the previous attempt refused with
+         * `PdfPasswordProtectedException`. The PDF is decrypted on-device with it; it is never sent.
+         */
+        pdfPassword: String? = null,
     ): Result<FileObject>
 
     /**

@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.pdf.PdfPasswordProtectedException
 import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.model.response.UploadRoute
 import com.garfiec.librechat.core.model.response.toolResource
@@ -33,6 +34,9 @@ class IosFileHandler(
     private val _attachedFiles = MutableStateFlow<List<AttachedFile>>(emptyList())
     override val attachedFiles: StateFlow<List<AttachedFile>> = _attachedFiles.asStateFlow()
     override var pendingUploadSendJob: Job? = null
+
+    private val pdfPrompts = PdfPasswordPrompts()
+    override val pdfPasswordPrompts: StateFlow<List<PdfPasswordPrompt>> = pdfPrompts.pending
 
     override fun describe(platformRefs: List<Any>): List<PickedFile> = platformRefs.mapNotNull { ref ->
         when (ref) {
@@ -139,7 +143,7 @@ class IosFileHandler(
     }
 
     @OptIn(ExperimentalUuidApi::class)
-    private fun uploadFile(fileData: IosFileData, route: UploadRoute) {
+    private fun uploadFile(fileData: IosFileData, route: UploadRoute, pdfPassword: String? = null) {
         val uniqueId = Uuid.random().toString()
 
         val pendingFile = AttachedFile(
@@ -173,6 +177,7 @@ class IosFileHandler(
                             list.map { f -> if (f.uri == uniqueId) f.copy(uploadProgress = pct) else f }
                         }
                     },
+                    pdfPassword = pdfPassword,
                 )
 
                 when (result) {
@@ -195,12 +200,21 @@ class IosFileHandler(
                         }
                     }
                     is Result.Error -> {
-                        Logger.e(result.exception) { "IosFileHandler: file upload failed -- ${result.message}" }
+                        val locked = result.exception as? PdfPasswordProtectedException
                         _attachedFiles.update { list ->
                             list.map { f ->
-                                if (f.uri == uniqueId) f.copy(uploadFailed = true, uploadProgress = null) else f
+                                if (f.uri == uniqueId) f.copy(uploadFailed = locked == null, uploadProgress = null) else f
                             }
                         }
+                        if (locked != null) {
+                            // Not an error to show: the chip waits while the UI asks for the password.
+                            // It stays pending, not failed, so a send parked on the upload gate
+                            // keeps waiting for the answer instead of going out without the PDF.
+                            val picked = PickedFile(ref = fileData, name = fileData.filename, mimeType = fileData.mimeType)
+                            pdfPrompts.add(PdfPasswordPrompt(uniqueId, picked, locked.incorrectPassword))
+                            return@launch
+                        }
+                        Logger.e(result.exception) { "IosFileHandler: file upload failed -- ${result.message}" }
                         handle.setError("Failed to upload ${fileData.filename}: ${result.message ?: "Unknown error"}")
                     }
                     is Result.Loading -> { /* unexpected */ }
@@ -220,6 +234,7 @@ class IosFileHandler(
     }
 
     override fun removeFile(file: AttachedFile) {
+        pdfPrompts.remove(file.uri)
         _attachedFiles.update { list -> list.filter { it.uri != file.uri } }
     }
 
@@ -235,11 +250,26 @@ class IosFileHandler(
         _attachedFiles.value.any { it.fileId == null && !it.uploadFailed }
 
     override fun clearAttachedFiles() {
+        pdfPrompts.clear()
         _attachedFiles.update { emptyList() }
     }
 
     override fun restoreAttachedFiles(files: List<AttachedFile>) {
+        pdfPrompts.clear()
         _attachedFiles.update { files }
+    }
+
+    override fun submitPdfPassword(prompt: PdfPasswordPrompt, password: String) {
+        if (!pdfPrompts.take(prompt)) return
+        val fileData = prompt.file.ref as? IosFileData ?: return
+        _attachedFiles.update { list -> list.filter { it.uri != prompt.chipKey } }
+        // Routed against the live selection, as the Android handler's retry is.
+        uploadFile(fileData, handle.state.uploadRouteFor(fileData.mimeType), pdfPassword = password)
+    }
+
+    override fun dismissPdfPassword() {
+        val prompt = pdfPrompts.takeHead() ?: return
+        _attachedFiles.update { list -> list.filter { it.uri != prompt.chipKey } }
     }
 
     override fun addPreUploadedFiles(files: List<AttachedFile>) {

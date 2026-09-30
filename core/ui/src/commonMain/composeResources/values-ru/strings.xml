@@ -19,4 +19,13 @@
     <string name="server_headers_error_name">Недопустимое имя заголовка.</string>
     <string name="server_headers_error_value">Значение содержит символы, которые нельзя отправить.</string>
     <string name="server_headers_error_reserved">Этот заголовок задаётся приложением и не может быть изменён.</string>
+    <string name="pdf_password_title">PDF, защищённый паролем</string>
+    <string name="pdf_password_explanation">Для открытия «%1$s» нужен пароль. Чтобы отправить файл модели ИИ, Switchboard расшифровывает его на этом устройстве и загружает расшифрованную копию. Пароль не покидает ваше устройство.</string>
+    <string name="pdf_password_sensitive_warning">Файлы, защищённые паролем, часто содержат конфиденциальные данные. Расшифрованная копия хранится на вашем сервере LibreChat и передаётся поставщику ИИ. Продолжайте, только если готовы поделиться её содержимым.</string>
+    <string name="pdf_password_field">Пароль PDF</string>
+    <string name="pdf_password_incorrect">Неверный пароль. Попробуйте ещё раз.</string>
+    <string name="pdf_password_show">Показать пароль</string>
+    <string name="pdf_password_hide">Скрыть пароль</string>
+    <string name="pdf_password_confirm">Расшифровать и загрузить</string>
+    <string name="pdf_password_cancel">Отмена</string>
 </resources>

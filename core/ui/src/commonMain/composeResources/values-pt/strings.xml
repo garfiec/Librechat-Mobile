@@ -19,4 +19,13 @@
     <string name="server_headers_error_name">Nome de cabeçalho inválido.</string>
     <string name="server_headers_error_value">Este valor contém caracteres que não podem ser enviados.</string>
     <string name="server_headers_error_reserved">Este cabeçalho é definido pelo app e não pode ser substituído.</string>
+    <string name="pdf_password_title">PDF protegido por senha</string>
+    <string name="pdf_password_explanation">“%1$s” precisa de uma senha para abrir. Para enviá-lo ao modelo de IA, o Switchboard o descriptografa neste dispositivo e envia a cópia descriptografada. A senha nunca sai do seu dispositivo.</string>
+    <string name="pdf_password_sensitive_warning">Arquivos protegidos por senha costumam conter informações sensíveis. A cópia descriptografada fica armazenada no seu servidor LibreChat e é compartilhada com o provedor de IA. Continue apenas se estiver confortável em compartilhar o conteúdo.</string>
+    <string name="pdf_password_field">Senha do PDF</string>
+    <string name="pdf_password_incorrect">Senha incorreta. Tente novamente.</string>
+    <string name="pdf_password_show">Mostrar senha</string>
+    <string name="pdf_password_hide">Ocultar senha</string>
+    <string name="pdf_password_confirm">Descriptografar e enviar</string>
+    <string name="pdf_password_cancel">Cancelar</string>
 </resources>

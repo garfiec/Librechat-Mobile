@@ -29,6 +29,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,6 +45,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
+import com.garfiec.librechat.core.ui.components.PdfPasswordDialog
 import com.garfiec.librechat.feature.chat.components.AskUserQuestionPanel
 import com.garfiec.librechat.feature.chat.components.ChatFloatingTopBar
 import com.garfiec.librechat.feature.chat.components.localizedStreamError
@@ -459,6 +461,19 @@ actual fun ChatScreen(
     }
 
     LaunchedEffect(Unit) { viewModel.consumePendingPromptInsertion() }
+
+    val pdfPasswordPrompts by viewModel.pdfPasswordPrompts.collectAsStateWithLifecycle()
+    pdfPasswordPrompts.firstOrNull()?.let { prompt ->
+        // Keyed so a re-prompt after a wrong password starts from an empty field.
+        key(prompt) {
+            PdfPasswordDialog(
+                filename = prompt.file.name,
+                incorrectPassword = prompt.incorrectPassword,
+                onSubmit = viewModel::submitPdfPassword,
+                onDismiss = viewModel::dismissPdfPassword,
+            )
+        }
+    }
 
     uiState.pendingVariablePrompt?.let { pending ->
         VariableInputDialog(

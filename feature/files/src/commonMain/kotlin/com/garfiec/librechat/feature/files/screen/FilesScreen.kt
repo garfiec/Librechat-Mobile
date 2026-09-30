@@ -61,6 +61,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -77,6 +78,7 @@ import coil3.compose.AsyncImage
 import com.garfiec.librechat.core.model.FileObject
 import com.garfiec.librechat.core.ui.components.EmptyState
 import com.garfiec.librechat.core.ui.components.ErrorBanner
+import com.garfiec.librechat.core.ui.components.PdfPasswordDialog
 import com.garfiec.librechat.core.ui.components.PlatformBackHandler
 import com.garfiec.librechat.core.ui.media.MediaActionBar
 import com.garfiec.librechat.core.ui.media.ZoomableMediaPager
@@ -138,6 +140,18 @@ fun FilesScreen(
     val filePickerLauncher = rememberFilePickerLauncher(
         onFilePick = { fileRef -> viewModel.uploadFile(fileRef) },
     )
+
+    uiState.pdfPasswordPrompt?.let { prompt ->
+        // Keyed so a re-prompt after a wrong password starts from an empty field.
+        key(prompt) {
+            PdfPasswordDialog(
+                filename = prompt.filename,
+                incorrectPassword = prompt.incorrectPassword,
+                onSubmit = viewModel::submitPdfPassword,
+                onDismiss = viewModel::dismissPdfPassword,
+            )
+        }
+    }
 
     LaunchedEffect(uiState.error) {
         val error = uiState.error ?: return@LaunchedEffect

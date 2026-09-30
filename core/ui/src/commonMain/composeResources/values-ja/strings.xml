@@ -19,4 +19,13 @@
     <string name="server_headers_error_name">ヘッダー名が正しくありません。</string>
     <string name="server_headers_error_value">この値には送信できない文字が含まれています。</string>
     <string name="server_headers_error_reserved">このヘッダーはアプリが設定するため、上書きできません。</string>
+    <string name="pdf_password_title">パスワード保護されたPDF</string>
+    <string name="pdf_password_explanation">「%1$s」を開くにはパスワードが必要です。AIモデルに送信するため、Switchboardはこのデバイス上で復号し、復号したコピーをアップロードします。パスワードがデバイスの外に送られることはありません。</string>
+    <string name="pdf_password_sensitive_warning">パスワード保護されたファイルには機密情報が含まれていることがよくあります。復号したコピーはLibreChatサーバーに保存され、AIプロバイダーと共有されます。内容を共有してもよい場合にのみ続行してください。</string>
+    <string name="pdf_password_field">PDFのパスワード</string>
+    <string name="pdf_password_incorrect">パスワードが正しくありません。もう一度お試しください。</string>
+    <string name="pdf_password_show">パスワードを表示</string>
+    <string name="pdf_password_hide">パスワードを非表示</string>
+    <string name="pdf_password_confirm">復号してアップロード</string>
+    <string name="pdf_password_cancel">キャンセル</string>
 </resources>

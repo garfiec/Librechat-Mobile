@@ -19,4 +19,13 @@
     <string name="server_headers_error_name">Nom d'en-tête non valide.</string>
     <string name="server_headers_error_value">Cette valeur contient des caractères qui ne peuvent pas être envoyés.</string>
     <string name="server_headers_error_reserved">Cet en-tête est défini par l'application et ne peut pas être remplacé.</string>
+    <string name="pdf_password_title">PDF protégé par mot de passe</string>
+    <string name="pdf_password_explanation">« %1$s » nécessite un mot de passe pour s’ouvrir. Pour l’envoyer au modèle d’IA, Switchboard le déchiffre sur cet appareil et envoie la copie déchiffrée. Le mot de passe ne quitte jamais votre appareil.</string>
+    <string name="pdf_password_sensitive_warning">Les fichiers protégés par mot de passe contiennent souvent des informations sensibles. La copie déchiffrée est enregistrée sur votre serveur LibreChat et partagée avec le fournisseur d’IA. Ne continuez que si vous acceptez d’en partager le contenu.</string>
+    <string name="pdf_password_field">Mot de passe du PDF</string>
+    <string name="pdf_password_incorrect">Mot de passe incorrect. Réessayez.</string>
+    <string name="pdf_password_show">Afficher le mot de passe</string>
+    <string name="pdf_password_hide">Masquer le mot de passe</string>
+    <string name="pdf_password_confirm">Déchiffrer et envoyer</string>
+    <string name="pdf_password_cancel">Annuler</string>
 </resources>

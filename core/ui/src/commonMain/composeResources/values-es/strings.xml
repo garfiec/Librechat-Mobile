@@ -19,4 +19,13 @@
     <string name="server_headers_error_name">No es un nombre de encabezado válido.</string>
     <string name="server_headers_error_value">Este valor contiene caracteres que no se pueden enviar.</string>
     <string name="server_headers_error_reserved">Este encabezado lo establece la aplicación y no se puede sobrescribir.</string>
+    <string name="pdf_password_title">PDF protegido con contraseña</string>
+    <string name="pdf_password_explanation">«%1$s» necesita una contraseña para abrirse. Para enviarlo al modelo de IA, Switchboard lo descifra en este dispositivo y sube la copia descifrada. La contraseña nunca sale de tu dispositivo.</string>
+    <string name="pdf_password_sensitive_warning">Los archivos protegidos con contraseña suelen contener información confidencial. La copia descifrada se guarda en tu servidor de LibreChat y se comparte con el proveedor de IA. Continúa solo si te parece bien compartir su contenido.</string>
+    <string name="pdf_password_field">Contraseña del PDF</string>
+    <string name="pdf_password_incorrect">Contraseña incorrecta. Inténtalo de nuevo.</string>
+    <string name="pdf_password_show">Mostrar contraseña</string>
+    <string name="pdf_password_hide">Ocultar contraseña</string>
+    <string name="pdf_password_confirm">Descifrar y subir</string>
+    <string name="pdf_password_cancel">Cancelar</string>
 </resources>

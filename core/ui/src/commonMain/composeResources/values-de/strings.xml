@@ -19,4 +19,13 @@
     <string name="server_headers_error_name">Kein gültiger Header-Name.</string>
     <string name="server_headers_error_value">Dieser Wert enthält Zeichen, die nicht gesendet werden können.</string>
     <string name="server_headers_error_reserved">Dieser Header wird von der App gesetzt und kann nicht überschrieben werden.</string>
+    <string name="pdf_password_title">Passwortgeschützte PDF</string>
+    <string name="pdf_password_explanation">„%1$s“ benötigt ein Passwort zum Öffnen. Damit sie an das KI-Modell gesendet werden kann, entschlüsselt Switchboard sie auf diesem Gerät und lädt die entschlüsselte Kopie hoch. Das Passwort verlässt dein Gerät nie.</string>
+    <string name="pdf_password_sensitive_warning">Passwortgeschützte Dateien enthalten oft vertrauliche Informationen. Die entschlüsselte Kopie wird auf deinem LibreChat-Server gespeichert und mit dem KI-Anbieter geteilt. Fahre nur fort, wenn du den Inhalt teilen möchtest.</string>
+    <string name="pdf_password_field">PDF-Passwort</string>
+    <string name="pdf_password_incorrect">Falsches Passwort. Versuche es erneut.</string>
+    <string name="pdf_password_show">Passwort anzeigen</string>
+    <string name="pdf_password_hide">Passwort ausblenden</string>
+    <string name="pdf_password_confirm">Entschlüsseln und hochladen</string>
+    <string name="pdf_password_cancel">Abbrechen</string>
 </resources>

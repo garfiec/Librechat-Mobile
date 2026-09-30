@@ -19,4 +19,13 @@
     <string name="server_headers_error_name">اسم الترويسة غير صالح.</string>
     <string name="server_headers_error_value">تحتوي هذه القيمة على أحرف لا يمكن إرسالها.</string>
     <string name="server_headers_error_reserved">يضبط التطبيق هذه الترويسة ولا يمكن تجاوزها.</string>
+    <string name="pdf_password_title">ملف PDF محمي بكلمة مرور</string>
+    <string name="pdf_password_explanation">يحتاج “%1$s” إلى كلمة مرور لفتحه. لإرساله إلى نموذج الذكاء الاصطناعي، يفك Switchboard تشفيره على هذا الجهاز ويرفع النسخة غير المشفرة. لا تغادر كلمة المرور جهازك أبدًا.</string>
+    <string name="pdf_password_sensitive_warning">غالبًا ما تحتوي الملفات المحمية بكلمة مرور على معلومات حساسة. تُخزَّن النسخة غير المشفرة على خادم LibreChat الخاص بك وتُشارَك مع مزوّد الذكاء الاصطناعي. لا تتابع إلا إذا كنت مرتاحًا لمشاركة محتواها.</string>
+    <string name="pdf_password_field">كلمة مرور PDF</string>
+    <string name="pdf_password_incorrect">كلمة المرور غير صحيحة. حاول مرة أخرى.</string>
+    <string name="pdf_password_show">إظهار كلمة المرور</string>
+    <string name="pdf_password_hide">إخفاء كلمة المرور</string>
+    <string name="pdf_password_confirm">فك التشفير والرفع</string>
+    <string name="pdf_password_cancel">إلغاء</string>
 </resources>
