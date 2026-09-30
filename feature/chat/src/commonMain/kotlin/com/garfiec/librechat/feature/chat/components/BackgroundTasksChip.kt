@@ -68,7 +68,9 @@ internal fun BackgroundTasksChip(
     LaunchedEffect(sheetOpen) { viewModel.setSheetOpen(sheetOpen) }
 
     val visible = conversationId != null && state.conversationId == conversationId && state.isVisible
-    if (visible) {
+    // One emitting root; the sheet is a window of its own and takes no space here.
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        if (visible) {
         val chipCd = stringResource(Res.string.background_tasks_cd_chip, state.runningCount)
         FloatingBarChip(
             modifier = Modifier.height(FloatingBarChipSize).semantics { contentDescription = chipCd },
@@ -95,14 +97,15 @@ internal fun BackgroundTasksChip(
             }
         }
         Spacer(modifier = Modifier.width(8.dp))
-    }
-    if (sheetOpen && visible) {
-        BackgroundTasksSheet(
-            state = state,
-            onStop = viewModel::stop,
-            onStopAll = viewModel::stopAll,
-            onDismiss = { sheetOpen = false },
-        )
+        }
+        if (sheetOpen && visible) {
+            BackgroundTasksSheet(
+                state = state,
+                onStop = viewModel::stop,
+                onStopAll = viewModel::stopAll,
+                onDismiss = { sheetOpen = false },
+            )
+        }
     }
 }
 

@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -241,19 +240,20 @@ private fun PolledTaskBlock(task: PolledTask) {
 
 @Composable
 private fun TaskText(label: String, text: String, isError: Boolean) {
-    Spacer(Modifier.height(6.dp))
-    Text(
-        label,
-        style = MaterialTheme.typography.labelSmall,
-        color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-    Text(
-        text,
-        style = MaterialTheme.typography.bodySmall,
-        fontFamily = FontFamily.Monospace,
-        maxLines = TASK_TEXT_MAX_LINES,
-        overflow = TextOverflow.Ellipsis,
-    )
+    Column(Modifier.padding(top = 6.dp)) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text,
+            style = MaterialTheme.typography.bodySmall,
+            fontFamily = FontFamily.Monospace,
+            maxLines = TASK_TEXT_MAX_LINES,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
 }
 
 @Composable

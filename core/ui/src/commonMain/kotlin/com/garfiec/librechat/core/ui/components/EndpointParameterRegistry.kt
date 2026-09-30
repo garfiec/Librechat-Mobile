@@ -166,6 +166,7 @@ object EndpointParameterRegistry {
     // Grok is matched on the last `/` segment so a gateway-prefixed id (`xai/grok-4.7`) still hits.
     private val GROK_4_7 = Regex("""^grok-4[.-]7(?:$|[-:])""")
     private val GROK_4_7_EFFORT = listOf("", "low", "medium", "high", "xhigh")
+
     // MIRRORED from upstream `GPT6_TIER` (`packages/data-provider/src/families.ts`): a point release
     // (`gpt-6.1-sol`) resolves to its family's tier.
     private val GPT_6_SOL_LUNA = Regex("""^gpt-6(?:\.\d+)?-(?:sol|luna)(?=-|$)""", RegexOption.IGNORE_CASE)
