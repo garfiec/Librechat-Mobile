@@ -30,7 +30,7 @@
 #
 # EVERY ENTRY NEEDS A JUSTIFICATION COMMENT above it. 'the check was noisy' is not one.
 # Note that two whole classes need no entries at all, because the detector exempts them
-# mechanically: terms no locale anywhere translated (shared literals such as Bearer,
+# mechanically: single-token terms no locale anywhere translated (shared literals such as Bearer,
 # OAuth, JSON, MCP, SSE, HTML, Markdown, LibreChat, mermaid, shadcn/ui, X-API-Key), and
 # values carrying no translatable prose (arrows, em dashes, pure format strings).
 
@@ -61,6 +61,22 @@ key	feature/settings/provider_keys_field_google_gemini_api
 # 'lowercase-kebab-case' is an input-format spec the user must literally type, not prose.
 key	feature/skills/skill_field_name_hint
 
+# 'https://your-server.com' is an example hostname in an input hint. The Latin locales swapped
+# in a native ASCII word ('dein-server.com'); non-Latin scripts cannot do that usefully,
+# because users type ASCII hostnames.
+key	feature/auth/server_url_placeholder
+
+# 'read execute' is an example OAuth scope list inside a placeholder. Scopes are wire tokens
+# the user types verbatim, so a translated example would be wrong.
+key	feature/settings/mcp_oauth_scope_placeholder
+
+# '%1$s API URL': after the provider name, the value is only the Latin acronyms API and URL,
+# which ja/ko/zh technical copy keeps (ja already writes 'ベースURL'), in an order that
+# already suits all three.
+pair	feature/settings/values-ja	provider_keys_field_api_url_for_endpoint
+pair	feature/settings/values-ko	provider_keys_field_api_url_for_endpoint
+pair	feature/settings/values-zh	provider_keys_field_api_url_for_endpoint
+
 # accent_color_hex ('Hex') is deliberately NOT suppressed: ar, ja and zh all translated it
 # ('16進数', '十六进制'), so ko and ru are genuine misses, not a convention.
 
@@ -77,6 +93,12 @@ pair	feature/skills/values-ja	skill_conflict_dismiss
 pair	feature/agents/values-zh	label_artifacts
 pair	feature/agents/values-zh	version_snapshot_artifacts
 pair	feature/settings/values-zh	section_artifacts
+pair	feature/chat/values-zh	media_tab_artifacts
+
+# 'OK' as a trace-step status (success) is conventionally kept in Latin in Japanese and
+# Russian developer UIs, as with the ja dismiss label above.
+pair	feature/chat/values-ja	trace_status_ok
+pair	feature/chat/values-ru	trace_status_ok
 
 
 # =====================================================================================
@@ -102,7 +124,7 @@ site	feature/conversations/src/commonMain/kotlin/com/garfiec/librechat/feature/c
 site	core/network/src/commonMain/kotlin/com/garfiec/librechat/core/network/api/SpeechApi.kt:44
 
 # An interpolated image URL assembled from baseUrl + filepath, not a message.
-site	feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/ToolCallParsing.kt:325
+site	feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/ToolCallParsing.kt:345
 
 # Example values shown inside input placeholders so the user can see the expected shape:
 # a header name, an OAuth scope list, and a support-address example. Translating them

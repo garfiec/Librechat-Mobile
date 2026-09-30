@@ -106,6 +106,7 @@ EXPECTED_MODULES = (
     "feature/chat",
     "feature/conversations",
     "feature/files",
+    "feature/schedules",
     "feature/settings",
     "feature/skills",
     "shared",
@@ -759,6 +760,12 @@ def is_letterless(base_value: str) -> bool:
     return LETTER_RE.search(FORMAT_SPEC_RE.sub("", base_value)) is None
 
 
+def is_single_token(base_value: str) -> bool:
+    """True when the value, format specifiers removed, is one whitespace-free token
+    (`OAuth`, `shadcn/ui`, `X-API-Key`) rather than prose."""
+    return len(FORMAT_SPEC_RE.sub("", base_value).split()) <= 1
+
+
 def key_line_numbers(rf: ResourceFile) -> dict[str, int]:
     out: dict[str, int] = {}
     for lineno, line in enumerate(rf.text.splitlines(), start=1):
@@ -801,8 +808,10 @@ def run_stubs(modules: list[Module], allowlist: Allowlist, include_latin: bool, 
             identical = [loc for loc in present if module.locales[loc].values[key] == base_value]
             translated_by = [loc for loc in present if module.locales[loc].values[key] != base_value]
 
-            # AUTO-EXEMPT A: no locale anywhere translated this term -> shared literal.
-            shared_literal = len(identical) == len(present)
+            # AUTO-EXEMPT A: no locale anywhere translated this TERM -> shared literal. Only a
+            # single token qualifies: unanimity also describes a whole section every translator
+            # skipped, and that multi-word prose must surface (as REVIEW) rather than vanish.
+            shared_literal = len(identical) == len(present) and is_single_token(base_value)
             # AUTO-EXEMPT B: nothing translatable in the value at all.
             letterless = is_letterless(base_value)
 
@@ -1411,10 +1420,11 @@ def render_text(report: dict, out) -> None:
         w("[S] UNTRANSLATED STUBS — EXACT")
         w("-" * 78)
         w("A key present in a non-Latin-script locale whose value is byte-identical to the")
-        w("English base and pure ASCII was never translated. Shared literals (no locale")
-        w("anywhere translated them) and letterless values (symbols / pure format strings)")
-        w("are auto-exempted mechanically. ERROR tier = at least 4 other locales did")
-        w("translate the key; REVIEW tier = only 1-3 did, so it may be intentional.")
+        w("English base and pure ASCII was never translated. Shared literals (a single")
+        w("token no locale anywhere translated) and letterless values (symbols / pure")
+        w("format strings) are auto-exempted mechanically. ERROR tier = at least 4 other")
+        w("locales did translate the key; REVIEW tier = only 0-3 did, so it may be")
+        w("intentional (0 = multi-word English no locale translated).")
         w("")
         sc = s["counts"]
         raw = (
@@ -1558,7 +1568,7 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=(
             "Deterministic i18n coverage checker for the Switchboard compose-resources\n"
-            "localization surface (9 modules x 9 locales)."
+            "localization surface (10 modules x 9 locales)."
         ),
         epilog="""
 DETECTORS
