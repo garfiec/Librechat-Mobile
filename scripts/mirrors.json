@@ -937,6 +937,20 @@
       "failure_mode": "The drawer orders chats differently from the web sidebar -- a running chat is listed twice or stays buried under its date. Nothing errors."
     },
     {
+      "id": "running-chats-group-call-site",
+      "upstream": {
+        "file": "client/src/components/Conversations/Conversations.tsx",
+        "symbol": "groupedConversations",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/conversations/src/commonMain/kotlin/com/garfiec/librechat/feature/conversations/drawer/DrawerViewModel.kt",
+        "symbol": "displayConversations"
+      },
+      "why": "Which sidebar lists get a Running group is decided at the call site, not in running.ts: upstream passes includePinned: isArchivedView, so the archive keeps its server order while search results (pinned matches included) are still promoted. DrawerViewModel applies withRunningFirst to the grouped list in both the recency and search states. The running-chats-group entry watches only the helper, so a change to these options would read as ok there.",
+      "failure_mode": "The drawer promotes running chats in a list the web no longer does (or stops where the web still does), e.g. during search. Nothing errors."
+    },
+    {
       "id": "background-task-output-parser",
       "upstream": {
         "file": "client/src/components/Chat/Messages/Content/Parts/background.ts",

@@ -10,6 +10,8 @@ Maps official LibreChat API route files to their mobile `*Api.kt` counterparts.
 | `routes/oauth.js` | `AuthApi.kt` | OAuth flows (shared file) |
 | `routes/config.js` | `ConfigApi.kt` | Startup config, version check |
 | `routes/convos.js` | `ConversationsApi.kt` | CRUD, archive, share, fork, duplicate; v0.8.8 per-conversation background tasks (list + cancel) |
+| `routes/convos.js` (`/:parentConversationId/subagents*`) | `SubagentsApi.kt` | v0.8.8-rc2 read-only child-thread views: index (`GET /:parentConversationId/subagents`) and thread (`GET …/subagents/:threadId`, `?taskId=` or `?cursor=`). `POST …/:threadId/control` and the per-task activity SSE (`…/tasks/:taskId/activity`) are deliberately not adopted |
+| `routes/agents/index.js` (`/chat/queued-turns*`) | `QueuedTurnsApi.kt` | v0.8.8-rc2 server-side queued turns, v1 only: `POST /chat/queued-turns`, `GET /chat/queued-turns` (reconcile poll), `DELETE /chat/queued-turns/:queuedTurnId`. `POST /chat/queued-turns/v2` is not adopted |
 | `routes/messages.js` | `MessagesApi.kt` | Get messages by conversation |
 | `routes/search.js` | `SearchApi.kt` | Conversation search |
 | `routes/tags.js` | `TagsApi.kt` | Conversation tags/bookmarks |

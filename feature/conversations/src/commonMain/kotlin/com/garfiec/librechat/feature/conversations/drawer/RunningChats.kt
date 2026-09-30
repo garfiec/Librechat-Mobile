@@ -11,6 +11,10 @@ internal const val RUNNING_CHATS_GROUP = "\u0000running"
  * job are lifted out of their date groups into one group placed first, keeping each group's order
  * and dropping any date group left empty. Applies to the drawer's recency ordering only — the
  * archive keeps its server order, and pinned chats stay in the Pinned section.
+ *
+ * Search results are promoted too, pinned matches included: upstream's call site
+ * (`Conversations.tsx` `groupedConversations`) passes `includePinned: isArchivedView`, not the
+ * search-aware flag its date grouping uses, so only the archive skips this.
  */
 internal fun <T> groupWithRunning(
     groups: List<Pair<String, List<T>>>,
