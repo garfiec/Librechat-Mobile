@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -26,21 +25,15 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
-import com.garfiec.librechat.core.model.AskUserQuestionItem
-import com.garfiec.librechat.core.model.AskUserQuestionLimits
-import com.garfiec.librechat.core.model.AskUserQuestionRequest
 import com.garfiec.librechat.core.model.PendingAction
 import com.garfiec.librechat.core.model.PendingActionPayload
 import com.garfiec.librechat.core.model.ToolApprovalDecisions
@@ -48,9 +41,6 @@ import com.garfiec.librechat.core.model.ToolApprovalRequest
 import com.garfiec.librechat.core.model.request.ToolApprovalResolution
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
-import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
-import com.garfiec.librechat.feature.chat.util.askFreeTextBudget
-import com.garfiec.librechat.feature.chat.util.composeAskAnswer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -59,64 +49,36 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * The in-thread card for a run paused on the user (v0.8.8 HITL): a tool batch awaiting approval,
- * or a clarifying question from the agent.
+ * The in-thread card for a run paused on a tool batch awaiting approval (v0.8.8 HITL).
  *
  * Rendered in place of nothing — the reply's streaming bubble stays above it, because the turn is
  * unfinished and resumes into that same bubble. Submitting posts to `/chat/resume`; the card stays
  * up (disabled) until the server accepts, since a rejected decision has nowhere else to go back to.
+ *
+ * An `ask_user_question` pause does not render here: it docks above the composer as
+ * [AskUserQuestionPanel], leaving only [AskUserQuestionWaitingMarker] in the thread.
  */
 @Composable
 fun PendingActionCard(
     pendingAction: PendingAction,
     isResolving: Boolean,
     onSubmitToolDecisions: (List<ToolApprovalResolution>) -> Unit,
-    onSubmitAnswer: (String) -> Unit,
-    onSubmitAnswers: (Map<String, String>) -> Unit,
     modifier: Modifier = Modifier,
-    askAnswerDrafts: Map<String, AskAnswerDraft> = emptyMap(),
-    onAskAnswerDraftChange: (String, AskAnswerDraft) -> Unit = { _, _ -> },
 ) {
     val payload = pendingAction.payload ?: return
-    // The batch is bounded server-side and a batch outside 1..MAX_QUESTIONS is rejected as
-    // invalid, so render at most that many rather than growing the card without limit — and drop
-    // items with no usable id, which cannot be answered at all.
-    val batch = payload.questions
-        ?.filter { it.isAnswerable }
-        ?.take(AskUserQuestionLimits.MAX_QUESTIONS)
-        .orEmpty()
+    if (!pendingAction.isToolApproval) return
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         ),
     ) {
-        when {
-            // `questions` — not `question` — is what selects the resume channel: upstream keeps
-            // `question` populated with the first item as a display fallback even on a batch, so
-            // branching on it would render one question and submit a body the route rejects.
-            pendingAction.isAskUserQuestion && batch.isNotEmpty() -> AskUserQuestionBatchSection(
-                questions = batch,
-                isResolving = isResolving,
-                drafts = askAnswerDrafts,
-                onDraftChange = onAskAnswerDraftChange,
-                onSubmitAnswers = onSubmitAnswers,
-            )
-            pendingAction.isAskUserQuestion -> AskUserQuestionSection(
-                // Key the answer editor to the action so a second question in the same turn
-                // starts blank instead of inheriting the previous answer.
-                actionId = pendingAction.actionId.orEmpty(),
-                question = payload.question ?: AskUserQuestionRequest(),
-                isResolving = isResolving,
-                onSubmitAnswer = onSubmitAnswer,
-            )
-            pendingAction.isToolApproval -> ToolApprovalSection(
-                actionId = pendingAction.actionId.orEmpty(),
-                payload = payload,
-                isResolving = isResolving,
-                onSubmit = onSubmitToolDecisions,
-            )
-        }
+        ToolApprovalSection(
+            actionId = pendingAction.actionId.orEmpty(),
+            payload = payload,
+            isResolving = isResolving,
+            onSubmit = onSubmitToolDecisions,
+        )
     }
 }
 
@@ -130,268 +92,6 @@ private fun PendingActionColumn(content: @Composable ColumnScope.() -> Unit) {
     )
 }
 
-// ── ask_user_question ─────────────────────────────────────────────────────
-
-@Composable
-private fun AskUserQuestionSection(
-    actionId: String,
-    question: AskUserQuestionRequest,
-    isResolving: Boolean,
-    onSubmitAnswer: (String) -> Unit,
-) {
-    // Saveable, not plain remember: this card is a LazyColumn item, so scrolling it out of
-    // composition drops un-saved state — and the user has to scroll to reach it in the first
-    // place. Rotation and folding a foldable do the same. Losing a half-written answer there is
-    // silent: the submit button just goes back to disabled.
-    var selected by rememberSaveable(actionId, stateSaver = StringSetSaver) {
-        mutableStateOf(emptySet())
-    }
-    var freeText by rememberSaveable(actionId) { mutableStateOf("") }
-    val answer = composeAskAnswer(question.options, selected, freeText)
-
-    PendingActionColumn {
-        PendingActionHeader(
-            title = stringResource(Res.string.ask_user_question_title),
-            subtitle = question.question.takeIf { it.isNotBlank() },
-            icon = { Icon(Icons.Default.HelpOutline, contentDescription = null, modifier = Modifier.size(20.dp)) },
-        )
-
-        question.description?.takeIf { it.isNotBlank() }?.let { description ->
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-
-        if (question.options.isNotEmpty()) {
-            if (question.multiSelect) {
-                Text(
-                    text = stringResource(Res.string.ask_user_question_multi_select_hint),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                question.options.forEach { option ->
-                    val isSelected = option.value in selected
-                    FilterChip(
-                        selected = isSelected,
-                        enabled = !isResolving,
-                        onClick = {
-                            selected = when {
-                                !question.multiSelect -> if (isSelected) emptySet() else setOf(option.value)
-                                isSelected -> selected - option.value
-                                else -> selected + option.value
-                            }
-                        },
-                        label = { Text(option.label.ifBlank { option.value }) },
-                    )
-                }
-            }
-        }
-
-        OutlinedTextField(
-            value = freeText,
-            onValueChange = { freeText = it.take(askFreeTextBudget(question.options, selected)) },
-            enabled = !isResolving,
-            modifier = Modifier.fillMaxWidth(),
-            label = {
-                Text(
-                    stringResource(
-                        if (question.options.isEmpty()) {
-                            Res.string.ask_user_question_answer_hint
-                        } else {
-                            Res.string.ask_user_question_other_hint
-                        },
-                    ),
-                )
-            },
-            minLines = 2,
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (isResolving) {
-                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-            }
-            TextButton(
-                // Skipping still RESUMES the run — a purely client-side dismiss would leave it paused
-                // until expiry, i.e. a hung turn. The model is told the user declined instead.
-                onClick = { onSubmitAnswer(ASK_USER_DECLINED_ANSWER) },
-                enabled = !isResolving,
-            ) {
-                Text(stringResource(Res.string.ask_user_question_skip))
-            }
-            Button(
-                onClick = { onSubmitAnswer(answer) },
-                enabled = !isResolving && answer.isNotBlank(),
-            ) {
-                Text(stringResource(Res.string.ask_user_question_send))
-            }
-        }
-    }
-}
-
-/**
- * A clarification the agent asked as several related questions in one call.
- *
- * The submit is all-or-nothing because the server's is: `resolveAskUserQuestionResume` requires an
- * answers map covering EVERY id in the payload and rejects both a partial map and an unknown id,
- * so there is no "answer the ones you know" path to offer. Send therefore stays disabled until
- * every question has something in it, and Skip resolves the whole batch by sending the declined
- * sentinel for each id — a purely local dismiss would leave the run paused until it expires.
- *
- * Answers are keyed by the payload's own question ids, never by field order.
- *
- * The editors are **hoisted** ([drafts] / [onDraftChange], owned by `PendingActionDelegate`)
- * rather than remembered here: a composer send during the pause answers the first still-blank
- * question and has to land in that question's field. See `MessagesState.askAnswerDrafts`.
- */
-@Composable
-private fun AskUserQuestionBatchSection(
-    questions: List<AskUserQuestionItem>,
-    isResolving: Boolean,
-    drafts: Map<String, AskAnswerDraft>,
-    onDraftChange: (String, AskAnswerDraft) -> Unit,
-    onSubmitAnswers: (Map<String, String>) -> Unit,
-) {
-    val answers = questions.associate { item ->
-        item.id to composeAskAnswer(item.options, drafts[item.id] ?: AskAnswerDraft())
-    }
-
-    PendingActionColumn {
-        PendingActionHeader(
-            title = stringResource(Res.string.ask_user_question_title),
-            subtitle = stringResource(Res.string.ask_user_question_batch_subtitle, questions.size),
-            icon = { Icon(Icons.Default.HelpOutline, contentDescription = null, modifier = Modifier.size(20.dp)) },
-        )
-
-        questions.forEachIndexed { index, item ->
-            if (index > 0) HorizontalDivider()
-            AskUserQuestionBatchItem(
-                item = item,
-                isResolving = isResolving,
-                draft = drafts[item.id] ?: AskAnswerDraft(),
-                onDraftChange = { draft -> onDraftChange(item.id, draft) },
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (isResolving) {
-                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-            }
-            TextButton(
-                onClick = {
-                    onSubmitAnswers(questions.associate { it.id to ASK_USER_DECLINED_ANSWER })
-                },
-                enabled = !isResolving,
-            ) {
-                Text(stringResource(Res.string.ask_user_question_skip))
-            }
-            Button(
-                onClick = { onSubmitAnswers(answers) },
-                enabled = !isResolving && answers.values.all { it.isNotBlank() },
-            ) {
-                Text(stringResource(Res.string.ask_user_question_send))
-            }
-        }
-    }
-}
-
-/**
- * One question of a batch: its own chips and free-text box, driven by the hoisted [draft].
- *
- * Nothing is remembered locally — the card is a LazyColumn item, so scrolling it away would drop
- * a half-written answer, whose only symptom is Send quietly going back to disabled.
- */
-@Composable
-private fun AskUserQuestionBatchItem(
-    item: AskUserQuestionItem,
-    isResolving: Boolean,
-    draft: AskAnswerDraft,
-    onDraftChange: (AskAnswerDraft) -> Unit,
-) {
-    val selected = draft.selectedOptions
-
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        item.header?.takeIf { it.isNotBlank() }?.let { header ->
-            Text(
-                text = header,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Text(
-            text = item.question,
-            style = MaterialTheme.typography.bodyMedium,
-        )
-        item.description?.takeIf { it.isNotBlank() }?.let { description ->
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-
-        if (item.options.isNotEmpty()) {
-            if (item.multiSelect) {
-                Text(
-                    text = stringResource(Res.string.ask_user_question_multi_select_hint),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                item.options.forEach { option ->
-                    val isSelected = option.value in selected
-                    FilterChip(
-                        selected = isSelected,
-                        enabled = !isResolving,
-                        onClick = {
-                            val next = when {
-                                !item.multiSelect -> if (isSelected) emptyList() else listOf(option.value)
-                                isSelected -> selected - option.value
-                                else -> selected + option.value
-                            }
-                            onDraftChange(draft.copy(selectedOptions = next))
-                        },
-                        label = { Text(option.label.ifBlank { option.value }) },
-                    )
-                }
-            }
-        }
-
-        OutlinedTextField(
-            value = draft.freeText,
-            onValueChange = { typed ->
-                onDraftChange(draft.copy(freeText = typed.take(askFreeTextBudget(item.options, selected))))
-            },
-            enabled = !isResolving,
-            modifier = Modifier.fillMaxWidth(),
-            label = {
-                Text(
-                    stringResource(
-                        if (item.options.isEmpty()) {
-                            Res.string.ask_user_question_answer_hint
-                        } else {
-                            Res.string.ask_user_question_other_hint
-                        },
-                    ),
-                )
-            },
-            minLines = 2,
-        )
-    }
-}
-
 // ── tool_approval ─────────────────────────────────────────────────────────
 
 /** One call's in-progress decision. */
@@ -399,12 +99,6 @@ private data class ToolDecisionDraft(
     val decision: String? = null,
     val editedArguments: String = "",
     val responseText: String = "",
-)
-
-/** Flattens the answer's option set for [rememberSaveable]. */
-private val StringSetSaver = listSaver<Set<String>, String>(
-    save = { it.toList() },
-    restore = { it.toSet() },
 )
 
 /**
@@ -445,7 +139,8 @@ private fun ToolApprovalSection(
     isResolving: Boolean,
     onSubmit: (List<ToolApprovalResolution>) -> Unit,
 ) {
-    // Saveable for the same reason as the answer editor above — an eight-call approval batch is
+    // Saveable: this card is a LazyColumn item, so scrolling it out of composition — or rotating,
+    // or folding a foldable — drops plain `remember` state, and an eight-call approval batch is
     // eight individual decisions to redo.
     val drafts = rememberSaveable(actionId, saver = ToolDecisionDraftMapSaver) {
         mutableStateMapOf<String, ToolDecisionDraft>()

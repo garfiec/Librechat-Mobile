@@ -52,7 +52,7 @@ fun SecondaryMessageList(
     bottomContentPadding: Dp = 160.dp,
 ) {
     val listState = rememberLazyListState()
-    // This pane hosts no PendingActionCard, so an unanswered ask has no affordance to resolve it.
+    // This pane hosts no AskUserQuestionPanel, so an unanswered ask has no affordance to resolve it.
     val renderedToolCalls = remember(activeToolCalls) { activeToolCalls.withoutAnyUnansweredQuestions() }
     // Parsed once per list; `contentType` runs on every measure pass.
     val wakeups = remember(displayMessages) { wakeupsByMessageId(displayMessages) }

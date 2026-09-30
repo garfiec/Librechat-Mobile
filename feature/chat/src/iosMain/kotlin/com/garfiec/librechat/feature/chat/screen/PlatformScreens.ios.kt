@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.chat.screen
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -43,6 +44,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
+import com.garfiec.librechat.feature.chat.components.AskUserQuestionPanel
 import com.garfiec.librechat.feature.chat.components.ChatFloatingTopBar
 import com.garfiec.librechat.feature.chat.components.localizedStreamError
 import com.garfiec.librechat.feature.chat.components.rememberChatOptionsSheetController
@@ -273,79 +275,106 @@ actual fun ChatScreen(
             val isAnyStreaming = uiState.isStreaming ||
                 uiState.comparisonState.primaryIsStreaming ||
                 uiState.comparisonState.secondaryIsStreaming
-            IosChatInput(
-                inputText = uiState.inputText,
-                isStreaming = isAnyStreaming,
-                onInputChanged = viewModel::onInputChanged,
-                onSend = {
-                    viewModel.sendMessage()
-                },
-                onStop = viewModel::stopGeneration,
-                onOpenTools = { optionsController.open() },
-                // The mid-stream send button routes through the ViewModel, which resolves
-                // steer-vs-queue; `onQueue` stays the picker's explicit "add to queue".
-                onDuringRunSend = { viewModel.sendDuringRun() },
-                onQueue = { viewModel.queueMessage() },
-                canQueue = uiState.canQueueFollowUp,
-                promptSuggestions = uiState.availablePrompts,
-                onSlashCommandSelected = viewModel::handleSlashCommand,
-                onSteer = { viewModel.steerMessage() },
-                canSteer = uiState.canSteerNow,
-                duringRunAction = uiState.effectiveDuringRunAction,
-                duringRunSendTarget = uiState.duringRunSendTarget,
-                pendingSteers = uiState.pendingSteers,
-                pendingQuotes = uiState.pendingQuotes,
-                onRemoveQuote = viewModel::removePendingQuote,
-                onCancelSteer = viewModel::cancelSteer,
-                onSetDuringRunAction = viewModel::setDuringRunAction,
-                enabledTools = uiState.effectiveEnabledTools,
-                pinnedToolKeys = uiState.pinnedToolChips,
-                onToggleTool = viewModel::toggleTool,
-                mcpServers = uiState.mcpServers,
-                selectedMcpServerNames = uiState.selectedMcpServerNames,
-                isRecording = uiState.isRecording,
-                isTranscribing = uiState.isTranscribing,
-                onStartRecording = viewModel::startRecording,
-                onStopRecording = viewModel::stopRecording,
-                selectedModelDisplay = effectiveSelectedModelDisplay,
-                isCodeInterpreterAvailable = uiState.isCodeInterpreterAvailable,
-                attachedFiles = attachedFiles,
-                onRemoveFile = viewModel::removeFile,
-                hasClipboardImage = hasClipboardImage,
-                onPasteImage = {
-                    coroutineScope.launch {
-                        val imageData = readClipboardImage()
-                        if (imageData != null) {
-                            viewModel.onFilesSelected(listOf(imageData))
-                        }
-                        // Re-check clipboard after paste
-                        hasClipboardImage = clipboardHasImage()
-                    }
-                },
-                gates = uiState.chatInputGates,
-                contextUsage = uiState.contextUsage,
-                tokenUsage = uiState.tokenUsage,
-                contextUsageEnabled = uiState.contextUsageEnabled,
-                isCompacting = uiState.isCompacting,
-                onCompact = viewModel::compactConversation.takeIf { uiState.canCompactNow },
-                contextBarPlacement = uiState.contextBarPlacement,
-                queuedPausedCount = uiState.pausedQueueCount,
-                isEditingQueued = uiState.isEditingQueued,
-                onCommitEdit = viewModel::commitQueuedEdit,
-                onCancelEdit = viewModel::cancelQueuedEdit,
-                isAwaitingUploadSend = uiState.isAwaitingUploadSend,
-                arePicksUnsettled = uiState.arePicksUnsettled,
-                onCancelPendingSend = viewModel::cancelPendingUploadSend,
-                onSendQueuedMessages = viewModel::sendQueuedNow,
-                queuedMessages = uiState.messageQueue,
-                onEditQueuedMessage = viewModel::editQueued,
-                onCancelQueuedMessage = viewModel::cancelQueued,
-                onReorderQueuedMessages = viewModel::reorderQueue,
-                fontSizeMultiplier = fontSizeMultiplier,
+            // A question pause takes the composer's place until it resolves (see
+            // AskUserQuestionPanel). Whichever is showing is measured so the list's bottom inset
+            // clears it.
+            val askPause = uiState.renderablePendingAction?.takeIf { it.isAskUserQuestion }
+            Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .onSizeChanged { inputBarHeightPx = it.height },
-            )
+            ) {
+                if (askPause != null) {
+                    AskUserQuestionPanel(
+                        pendingAction = askPause,
+                        isResolving = uiState.isResolvingPendingAction,
+                        drafts = uiState.askAnswerDrafts,
+                        activeQuestionId = uiState.askActiveQuestionId,
+                        collapsed = uiState.askPanelCollapsed,
+                        onDraftChange = viewModel::updateAskAnswerDraft,
+                        onSelectQuestion = viewModel::selectAskQuestion,
+                        onCollapsedChange = viewModel::setAskPanelCollapsed,
+                        onSubmitAnswer = viewModel::answerPendingQuestion,
+                        onSubmitAnswers = viewModel::answerPendingQuestions,
+                        // The composer's Stop is hidden with it, and the run stays live across the pause.
+                        onStop = viewModel::stopGeneration.takeIf { isAnyStreaming },
+                        modifier = Modifier
+                            .navigationBarsPadding()
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                    )
+                } else {
+                    IosChatInput(
+                        inputText = uiState.inputText,
+                        isStreaming = isAnyStreaming,
+                        onInputChanged = viewModel::onInputChanged,
+                        onSend = {
+                            viewModel.sendMessage()
+                        },
+                        onStop = viewModel::stopGeneration,
+                        onOpenTools = { optionsController.open() },
+                        // The mid-stream send button routes through the ViewModel, which resolves
+                        // steer-vs-queue; `onQueue` stays the picker's explicit "add to queue".
+                        onDuringRunSend = { viewModel.sendDuringRun() },
+                        onQueue = { viewModel.queueMessage() },
+                        canQueue = uiState.canQueueFollowUp,
+                        promptSuggestions = uiState.availablePrompts,
+                        onSlashCommandSelected = viewModel::handleSlashCommand,
+                        onSteer = { viewModel.steerMessage() },
+                        canSteer = uiState.canSteerNow,
+                        duringRunAction = uiState.effectiveDuringRunAction,
+                        duringRunSendTarget = uiState.duringRunSendTarget,
+                        pendingSteers = uiState.pendingSteers,
+                        pendingQuotes = uiState.pendingQuotes,
+                        onRemoveQuote = viewModel::removePendingQuote,
+                        onCancelSteer = viewModel::cancelSteer,
+                        onSetDuringRunAction = viewModel::setDuringRunAction,
+                        enabledTools = uiState.effectiveEnabledTools,
+                        pinnedToolKeys = uiState.pinnedToolChips,
+                        onToggleTool = viewModel::toggleTool,
+                        mcpServers = uiState.mcpServers,
+                        selectedMcpServerNames = uiState.selectedMcpServerNames,
+                        isRecording = uiState.isRecording,
+                        isTranscribing = uiState.isTranscribing,
+                        onStartRecording = viewModel::startRecording,
+                        onStopRecording = viewModel::stopRecording,
+                        selectedModelDisplay = effectiveSelectedModelDisplay,
+                        isCodeInterpreterAvailable = uiState.isCodeInterpreterAvailable,
+                        attachedFiles = attachedFiles,
+                        onRemoveFile = viewModel::removeFile,
+                        hasClipboardImage = hasClipboardImage,
+                        onPasteImage = {
+                            coroutineScope.launch {
+                                val imageData = readClipboardImage()
+                                if (imageData != null) {
+                                    viewModel.onFilesSelected(listOf(imageData))
+                                }
+                                // Re-check clipboard after paste
+                                hasClipboardImage = clipboardHasImage()
+                            }
+                        },
+                        gates = uiState.chatInputGates,
+                        contextUsage = uiState.contextUsage,
+                        tokenUsage = uiState.tokenUsage,
+                        contextUsageEnabled = uiState.contextUsageEnabled,
+                        isCompacting = uiState.isCompacting,
+                        onCompact = viewModel::compactConversation.takeIf { uiState.canCompactNow },
+                        contextBarPlacement = uiState.contextBarPlacement,
+                        queuedPausedCount = uiState.pausedQueueCount,
+                        isEditingQueued = uiState.isEditingQueued,
+                        onCommitEdit = viewModel::commitQueuedEdit,
+                        onCancelEdit = viewModel::cancelQueuedEdit,
+                        isAwaitingUploadSend = uiState.isAwaitingUploadSend,
+                        arePicksUnsettled = uiState.arePicksUnsettled,
+                        onCancelPendingSend = viewModel::cancelPendingUploadSend,
+                        onSendQueuedMessages = viewModel::sendQueuedNow,
+                        queuedMessages = uiState.messageQueue,
+                        onEditQueuedMessage = viewModel::editQueued,
+                        onCancelQueuedMessage = viewModel::cancelQueued,
+                        onReorderQueuedMessages = viewModel::reorderQueue,
+                        fontSizeMultiplier = fontSizeMultiplier,
+                    )
+                }
+            }
 
             // Floating top bar overlays the message list (drawn last so it sits above content),
             // measured so the content reserves a matching scrollable top inset.
@@ -662,10 +691,6 @@ private fun IosChatBody(
                 pendingAction = uiState.renderablePendingAction,
                 isResolvingPendingAction = uiState.isResolvingPendingAction,
                 onSubmitToolDecisions = viewModel::resolveToolApproval,
-                onSubmitPendingAnswer = viewModel::answerPendingQuestion,
-                onSubmitPendingAnswers = viewModel::answerPendingQuestions,
-                askAnswerDrafts = uiState.askAnswerDrafts,
-                onAskAnswerDraftChange = viewModel::updateAskAnswerDraft,
                 modifier = Modifier.fillMaxSize(),
             )
         }

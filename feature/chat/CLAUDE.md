@@ -252,13 +252,25 @@ Two consequences worth knowing before touching that block:
   `PromptsApiWireShapeTest` holds live captures of both; no test above `:core:network` can see a
   JSON key.
 
-## `ask_user_question`: one question, two cards (v0.8.8)
+## `ask_user_question`: one question, a panel then a card (v0.8.8)
 
 A clarifying question reaches the screen twice over its life, and the two must never overlap.
 
-- **While the run is paused** it is the interactive `PendingActionCard` — the only thing that can
-  resolve it. The same question is *also* sitting in `activeToolCalls`, because the agent called a
-  tool to ask it; `withoutUnansweredQuestions()` drops it from both streaming lists so the user is
+- **While the run is paused** it is the interactive `AskUserQuestionPanel`, which takes the
+  composer's place (both `ChatScreen` actuals hide the composer while it is up) with one tab per
+  question of a batch — the only thing that can resolve it. Below 600dp (phones, a folded Fold) it
+  is a Claude-style card with a `‹ 1 of 4 ›` pager where a pick or a per-question Skip advances
+  and the answer filling the last blank submits; at 600dp and up it is tabbed with explicit
+  Back / Next / Send. Both collapse to one line, and both carry a Stop: hiding the composer hides
+  the only other one, and a pause this client cannot resolve (a fingerprint 403 fails every answer
+  and Skip alike) would otherwise strand the user until it expires. Panel submits never re-home
+  text into the hidden composer — their words stay in the drafts, on the panel; only
+  `submitAnswerFromComposer` restores. The thread keeps only a one-line `AskUserQuestionWaitingMarker`; tool approval
+  still renders in-thread as `PendingActionCard`. The panel's drafts, active tab and collapse
+  state are hoisted into `MessagesState`; `sendDuringRun`'s answer-the-active-tab routing
+  remains as the fallback for a send that reaches the ViewModel while the composer is hidden.
+  The same question is *also* sitting in `activeToolCalls`, because the agent called a tool to
+  ask it; `withoutUnansweredQuestions()` drops it from both streaming lists so the user is
   not asked the same thing twice, once under a spinner for a "call" that cannot finish until they
   answer.
 - **Once answered** the same tool call renders as `AskUserQuestionRecordCard` — the durable record
