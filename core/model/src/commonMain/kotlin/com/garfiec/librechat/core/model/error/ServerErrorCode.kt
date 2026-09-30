@@ -65,20 +65,22 @@ object ServerErrorCode {
     const val API_KEY_REENTRY_REQUIRED = "MCP_API_KEY_REENTRY_REQUIRED"
 
     /**
-     * 403 — an MCP server rejected the bearer credential for a tool invocation (v0.8.8-rc3).
+     * 403 — an MCP server rejected the bearer credential (v0.8.8-rc3).
      *
      * Unlike the codes above it does not come from the `/api/mcp` routes: `handleMCPError` has no
-     * branch for it. It is raised inside a run and reaches the client as a run failure, and the
-     * server's own message distinguishes the two cases — the connection was refreshed and a
-     * deliberate retry may work, or the user has to sign in again. Never replay the call
-     * automatically: the tool may already have executed.
+     * branch for it. It arrives two ways. Inside a run it reaches the client as a run failure, and
+     * the server's own message distinguishes the two cases — the connection was refreshed and a
+     * deliberate retry may work, or the user has to sign in again. From v0.8.8 it can also fail
+     * the chat start POST up front, as a coded 403 body (`getAgentErrorMetadata`, when the
+     * scheduled/on-behalf-of token cannot be resolved). Never replay either automatically: the
+     * tool may already have executed, and at start there is nothing a retry changes.
      */
     const val MCP_AUTHENTICATION_REJECTED = "MCP_AUTHENTICATION_REJECTED"
 
     /**
      * 503 — the OpenID session could not refresh an MCP bearer credential (v0.8.8-rc3). Transient
-     * and retryable, which is what separates it from [MCP_AUTHENTICATION_REJECTED]. Same delivery
-     * path: raised inside a run, not answered by the MCP routes.
+     * and retryable, which is what separates it from [MCP_AUTHENTICATION_REJECTED]. Same two
+     * delivery paths: inside a run, or (v0.8.8) as the chat start POST's coded 503 body.
      */
     const val MCP_AUTHENTICATION_REFRESH_FAILED = "MCP_AUTHENTICATION_REFRESH_FAILED"
 

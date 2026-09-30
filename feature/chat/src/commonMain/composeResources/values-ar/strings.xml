@@ -530,6 +530,8 @@
     <string name="error_model_rate_limit">يقيّد المزوّد معدل استخدام هذا النموذج. انتظر قليلًا وحاول مرة أخرى، أو اختر نموذجًا مختلفًا.</string>
     <string name="error_model_stream_closed">أغلق مزوّد النموذج الاتصال قبل اكتمال الرد. تم الاحتفاظ بكل ما وصل بالفعل. حاول مرة أخرى؛ فعمليات الاستدلال الطويلة هي الأكثر عرضة للانقطاع.</string>
     <string name="error_model_stream_stalled">توقف مزوّد النموذج عن إرسال الرد، وانتهت مهلة الطلب أثناء انتظاره. تم الاحتفاظ بكل ما وصل بالفعل. حاول مرة أخرى، أو اطلب من المسؤول التحقق من المزوّد.</string>
+    <string name="error_mcp_authentication_rejected">رفض خادم MCP متصل تسجيل دخولك، لذا لم تُرسَل الرسالة. أعد توصيل الخادم (أو سجّل الدخول مجددًا)، ثم أرسلها مرة أخرى.</string>
+    <string name="error_mcp_authentication_refresh_failed">تعذّر تحديث تسجيل الدخول لخادم MCP متصل، لذا لم تُرسَل الرسالة. حاول مرة أخرى بعد قليل.</string>
     <string name="error_final_context_overflow">لم تعد هذه المحادثة تتسع في نافذة سياق النموذج. ابدأ محادثة جديدة، أو انتقل إلى نموذج بنافذة أكبر.</string>
     <string name="error_compaction_skipped">لا يوجد ما يمكن ضغطه بعد. واصل المحادثة وحاول لاحقًا.</string>
     <string name="error_compaction_failed">تعذّر إنشاء الملخص، لذا لم تتغير المحادثة. حاول مرة أخرى.</string>

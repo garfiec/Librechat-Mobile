@@ -530,6 +530,8 @@
     <string name="error_model_rate_limit">O provedor está limitando a taxa de uso deste modelo. Aguarde um momento e tente novamente, ou escolha outro modelo.</string>
     <string name="error_model_stream_closed">O provedor do modelo fechou a conexão antes de a resposta terminar. Tudo o que já havia sido recebido foi mantido. Tente novamente; raciocínios longos são os mais propensos a serem interrompidos.</string>
     <string name="error_model_stream_stalled">O provedor do modelo parou de enviar a resposta e a solicitação expirou enquanto aguardava. Tudo o que já havia sido recebido foi mantido. Tente novamente ou peça a um administrador que verifique o provedor.</string>
+    <string name="error_mcp_authentication_rejected">Um servidor MCP conectado recusou seu login, então a mensagem não foi enviada. Reconecte o servidor (ou entre novamente) e envie-a de novo.</string>
+    <string name="error_mcp_authentication_refresh_failed">Não foi possível renovar o login de um servidor MCP conectado, então a mensagem não foi enviada. Tente novamente em instantes.</string>
     <string name="error_final_context_overflow">Esta conversa não cabe mais na janela de contexto do modelo. Inicie uma nova conversa ou mude para um modelo com uma janela maior.</string>
     <string name="error_compaction_skipped">Ainda não havia nada para compactar. Continue conversando e tente novamente mais tarde.</string>
     <string name="error_compaction_failed">Não foi possível gerar o resumo, então a conversa não foi alterada. Tente novamente.</string>

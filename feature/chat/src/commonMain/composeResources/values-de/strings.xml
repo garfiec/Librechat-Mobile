@@ -530,6 +530,8 @@
     <string name="error_model_rate_limit">Der Anbieter begrenzt die Anfragen an dieses Modell. Warte einen Moment und versuche es erneut oder wähle ein anderes Modell.</string>
     <string name="error_model_stream_closed">Der Modellanbieter hat die Verbindung geschlossen, bevor die Antwort fertig war. Bereits Empfangenes wurde behalten. Versuche es erneut; lange Denkvorgänge werden am ehesten abgebrochen.</string>
     <string name="error_model_stream_stalled">Der Modellanbieter hat aufgehört, die Antwort zu senden, und die Anfrage ist beim Warten darauf abgelaufen. Bereits Empfangenes wurde behalten. Versuche es erneut oder bitte einen Administrator, den Anbieter zu prüfen.</string>
+    <string name="error_mcp_authentication_rejected">Ein verbundener MCP-Server hat deine Anmeldung abgelehnt, daher wurde die Nachricht nicht gesendet. Verbinde den Server erneut (oder melde dich erneut an) und sende sie dann noch einmal.</string>
+    <string name="error_mcp_authentication_refresh_failed">Die Anmeldung für einen verbundenen MCP-Server konnte nicht erneuert werden, daher wurde die Nachricht nicht gesendet. Versuche es gleich noch einmal.</string>
     <string name="error_final_context_overflow">Diese Unterhaltung passt nicht mehr in das Kontextfenster des Modells. Beginne eine neue Unterhaltung oder wechsle zu einem Modell mit größerem Kontextfenster.</string>
     <string name="error_compaction_skipped">Es gibt noch nichts zu komprimieren. Chatte weiter und versuche es später erneut.</string>
     <string name="error_compaction_failed">Die Zusammenfassung konnte nicht erstellt werden, daher ist die Unterhaltung unverändert. Versuche es erneut.</string>

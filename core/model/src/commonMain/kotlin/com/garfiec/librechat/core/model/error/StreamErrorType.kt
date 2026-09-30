@@ -22,7 +22,15 @@ import kotlinx.serialization.json.contentOrNull
  * [parseUserKeyError] to a snackbar with a Settings action, and duplicating them would surface the
  * same failure twice.
  */
-enum class StreamErrorType(val wire: String) {
+enum class StreamErrorType(
+    val wire: String,
+    /**
+     * False for a code that is only ever classified at one known site, never by [parse]. [parse]
+     * reads `code` as well as `type`, so listing such a code there would also swallow the
+     * server's own wording wherever the same code rides inside a run's error text.
+     */
+    private val classifiesPayload: Boolean = true,
+) {
     /**
      * Required CodeAPI files could not be restored before the model ran.
      *
@@ -130,10 +138,32 @@ enum class StreamErrorType(val wire: String) {
 
     /** A stateful code environment was asked for on a deployment that does not permit one. */
     STATEFUL_CODE_ENVIRONMENT_NOT_ALLOWED("stateful_code_environment_not_allowed"),
+
+    /**
+     * The chat start POST was refused 403 because an MCP server's credential for this user was
+     * rejected (v0.8.8, `getAgentErrorMetadata`). The user has to reconnect; never retried.
+     * Classified only from the start POST's body — see [startFailureMarker].
+     */
+    MCP_AUTHENTICATION_REJECTED(ServerErrorCode.MCP_AUTHENTICATION_REJECTED, classifiesPayload = false),
+
+    /** The start POST's 503 counterpart: the MCP credential could not be refreshed. Retryable. */
+    MCP_AUTHENTICATION_REFRESH_FAILED(ServerErrorCode.MCP_AUTHENTICATION_REFRESH_FAILED, classifiesPayload = false),
     ;
 
     companion object {
-        private val byWire = entries.associateBy { it.wire }
+        private val byWire = entries.filter { it.classifiesPayload }.associateBy { it.wire }
+
+        /**
+         * The marker for a chat start POST that failed up front with an MCP authentication code,
+         * or null for any other start failure. [body] is the raw error-response body; the code is
+         * read with [ServerErrorCode.generationCodeOf], since that route's `error` key is prose.
+         */
+        fun startFailureMarker(body: String?): String? =
+            when (ServerErrorCode.generationCodeOf(body)) {
+                ServerErrorCode.MCP_AUTHENTICATION_REJECTED -> MCP_AUTHENTICATION_REJECTED.marker
+                ServerErrorCode.MCP_AUTHENTICATION_REFRESH_FAILED -> MCP_AUTHENTICATION_REFRESH_FAILED.marker
+                else -> null
+            }
 
         /**
          * The typed error in a raw stream-error message, or null.

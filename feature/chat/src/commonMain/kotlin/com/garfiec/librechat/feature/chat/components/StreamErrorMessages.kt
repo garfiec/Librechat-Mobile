@@ -58,6 +58,9 @@ internal fun localizedStreamError(raw: String): String {
             stringResource(Res.string.error_code_workspace_unavailable)
         StreamErrorType.STATEFUL_CODE_ENVIRONMENT_NOT_ALLOWED ->
             stringResource(Res.string.error_stateful_code_environment_not_allowed)
+        StreamErrorType.MCP_AUTHENTICATION_REJECTED -> stringResource(Res.string.error_mcp_authentication_rejected)
+        StreamErrorType.MCP_AUTHENTICATION_REFRESH_FAILED ->
+            stringResource(Res.string.error_mcp_authentication_refresh_failed)
     }
 }
 

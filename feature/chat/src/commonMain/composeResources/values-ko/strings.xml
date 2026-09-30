@@ -530,6 +530,8 @@
     <string name="error_model_rate_limit">제공자가 이 모델의 요청 속도를 제한하고 있습니다. 잠시 후 다시 시도하거나 다른 모델을 선택하세요.</string>
     <string name="error_model_stream_closed">모델 제공자가 응답이 끝나기 전에 연결을 닫았습니다. 이미 받은 내용은 유지되었습니다. 다시 시도하세요. 긴 추론 작업일수록 중단되기 쉽습니다.</string>
     <string name="error_model_stream_stalled">모델 제공자가 응답 전송을 멈췄고, 기다리는 동안 요청 시간이 초과되었습니다. 이미 받은 내용은 유지되었습니다. 다시 시도하거나 관리자에게 제공자 확인을 요청하세요.</string>
+    <string name="error_mcp_authentication_rejected">연결된 MCP 서버가 로그인을 거부하여 메시지가 전송되지 않았습니다. 서버를 다시 연결(또는 다시 로그인)한 후 다시 보내세요.</string>
+    <string name="error_mcp_authentication_refresh_failed">연결된 MCP 서버의 로그인을 갱신할 수 없어 메시지가 전송되지 않았습니다. 잠시 후 다시 시도하세요.</string>
     <string name="error_final_context_overflow">이 대화가 더 이상 모델의 컨텍스트 창에 맞지 않습니다. 새 대화를 시작하거나 컨텍스트 창이 더 큰 모델로 전환하세요.</string>
     <string name="error_compaction_skipped">아직 압축할 내용이 없습니다. 대화를 계속한 후 나중에 다시 시도하세요.</string>
     <string name="error_compaction_failed">요약을 생성하지 못해 대화가 변경되지 않았습니다. 다시 시도하세요.</string>
