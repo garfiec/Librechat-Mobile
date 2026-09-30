@@ -43,19 +43,24 @@ data class ContextUsage(
     val maxContextTokens: Int get() = breakdown.maxContextTokens
 
     /**
-     * Tokens consumed of the window. Prefers the server's [remainingContextTokens]
-     * (window minus remaining); otherwise sums the breakdown's components.
+     * Tokens consumed of the window: window minus the server's [remainingContextTokens], floored at
+     * the breakdown's own instruction + summary + message total (upstream `useTokenUsage`, v0.8.8).
+     * A remaining count measured against a smaller instruction total than the snapshot publishes
+     * would otherwise put used below the shares the breakdown subtracts, hiding the Messages row.
+     *
+     * The instruction total already includes the system-message and tool-schema shares, so they
+     * are not added again.
      */
     val usedTokens: Int
-        get() = remainingContextTokens
-            ?.let { (maxContextTokens - it).coerceAtLeast(0) }
-            ?: (
-                breakdown.instructionTokens +
-                    breakdown.systemMessageTokens +
-                    breakdown.toolSchemaTokens +
-                    breakdown.summaryTokens +
-                    breakdown.messageTokens
-                )
+        get() {
+            val breakdownUsed = (effectiveInstructionTokens ?: breakdown.instructionTokens) +
+                breakdown.summaryTokens +
+                breakdown.messageTokens
+            return remainingContextTokens
+                ?.let { maxOf(maxContextTokens - it, breakdownUsed) }
+                ?.coerceAtLeast(0)
+                ?: breakdownUsed
+        }
 
     /** Fraction of the window used, clamped to 0..1. Zero when the window is unknown. */
     val usedFraction: Float
