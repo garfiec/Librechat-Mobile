@@ -182,6 +182,7 @@ object EndpointParameterRegistry {
     private val GPT_6_SOL_LUNA = Regex("""^gpt-6(?:\.\d+)?-(?:sol|luna)(?=-|$)""", RegexOption.IGNORE_CASE)
     private val ALWAYS_ON_THINKING_HIDDEN_KEYS = setOf("thinking", "thinkingBudget", "temperature", "topP", "topK")
     private val BETWEEN_TOOLS_HIDDEN_KEYS = setOf("thinkingBudget", "temperature", "topP", "topK")
+
     /** English source of `param_thinking_between_tools_description`; see [localizedDescription]. */
     internal const val BETWEEN_TOOLS_THINKING_DESCRIPTION =
         "Enables adaptive thinking controlled by the Effort parameter. This model cannot turn thinking off " +
