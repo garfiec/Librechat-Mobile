@@ -8,10 +8,10 @@ compose-multiplatform = "1.11.0-beta03"
 material3 = "1.3.1"
 activity-compose = "1.13.0"
 androidx-core = "1.18.0"
-lifecycle = "2.10.0"
-lifecycle-kmp = "2.10.0"
+lifecycle = "2.11.0"
+lifecycle-kmp = "2.11.0"
 navigation3-kmp = "1.1.1"
-lifecycle-viewmodel-nav3-kmp = "2.11.0-beta01"
+lifecycle-viewmodel-nav3-kmp = "2.11.0"
 
 # DI
 koin = "4.2.2"
@@ -38,13 +38,13 @@ paging = "3.5.0"
 # Browser
 
 # Markdown
-markdown-renderer = "0.40.2"
+markdown-renderer = "0.44.0"
 
 # Media
 media3 = "1.10.1"
 
 # Image Loading
-coil3 = "3.4.0"
+coil3 = "3.5.0"
 
 # Zoomable media viewer (KMP: Android + iOS)
 zoomimage = "1.4.0"

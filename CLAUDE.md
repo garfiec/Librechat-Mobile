@@ -9,7 +9,7 @@ Native mobile client for LibreChat (Android & iOS). Connects to existing LibreCh
 - **Network**: Ktor Client (OkHttp engine)
 - **Serialization**: Kotlinx Serialization
 - **Local Storage**: Room (cache), DataStore (prefs), EncryptedSharedPreferences (tokens)
-- **Build**: Gradle 9.5.1, AGP 9.2.1, Kotlin 2.4.10, compileSdk 36, minSdk 26
+- **Build**: Gradle 9.5.1, AGP 9.2.1, Kotlin 2.4.10, compileSdk 37, minSdk 26
 
 ## Module Layout
 
