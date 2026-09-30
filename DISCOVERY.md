@@ -1429,7 +1429,8 @@ on_tool_preparation / on_tool_calls_dispatched
                                             SseEventMapper's unknown-event path. The persisted `tool_call` gains
                                             `toolPreparationStartedAt`, `toolDispatchedAt`,
                                             `toolPreparationDurationMs`, `toolExecutionDurationMs` and
-                                            `runStepClosedAt`, which mobile now decodes. (BUILT — decode only)
+                                            `runStepClosedAt`. Mobile decodes only the last three; the two
+                                            start/dispatch stamps are NOT decoded. (BUILT — decode only)
 wake-up turns  status 'cancelled'         A background task wake-up may now settle as `cancelled`. Mobile used
                                             to reject the whole turn; it is now accepted. (BUILT)
 tool output    check_background_task      The host-shaped output (a single task, a `{ tasks[], partial }` list or

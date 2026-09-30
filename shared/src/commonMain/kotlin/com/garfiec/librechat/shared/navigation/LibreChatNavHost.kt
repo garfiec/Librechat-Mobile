@@ -24,6 +24,7 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.mutableStateOf
@@ -407,7 +408,10 @@ fun PhoneLayout(
         gesturesEnabled = isLoggedIn && !navigator.isInAuthFlow,
         drawerContent = {
             ModalDrawerSheet(drawerState = drawerState) {
+                // targetValue, not isOpen: start polling as the drawer begins to open, not after it settles.
+                val drawerOpen by remember { derivedStateOf { drawerState.targetValue == DrawerValue.Open } }
                 SidebarScaffold(
+                    isOpen = drawerOpen,
                     onNewChat = {
                         scope.launch { drawerState.close() }
                         if (navigator.currentRoute !is NewChat) {

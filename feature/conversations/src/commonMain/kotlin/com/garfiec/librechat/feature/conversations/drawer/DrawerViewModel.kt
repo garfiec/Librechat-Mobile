@@ -287,8 +287,9 @@ class DrawerViewModel(
     )
 
     /**
-     * Whether a drawer surface is on screen and started. The active-jobs poll runs only then — the
-     * phone drawer's content stays composed while closed, so composition alone is not the signal.
+     * Whether a drawer surface is open and started. The active-jobs poll runs only then — the phone
+     * drawer's content stays composed while closed, so composition alone is not the signal; the
+     * host passes its open state (drawer target value / tablet sidebar expanded) into DrawerContent.
      */
     private val drawerVisible = MutableStateFlow(false)
 

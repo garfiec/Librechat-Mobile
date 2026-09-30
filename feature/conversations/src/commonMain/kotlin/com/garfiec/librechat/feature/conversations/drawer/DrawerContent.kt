@@ -183,6 +183,9 @@ fun DrawerContent(
     // now-gone thread. Distinct from [onNewChat] because that also closes the phone drawer — here the
     // drawer stays open so the user can keep browsing (defaults to [onNewChat] if a host doesn't wire it).
     onActiveConversationDelete: () -> Unit = onNewChat,
+    // Whether the host is actually showing this surface (phone drawer open / tablet sidebar expanded).
+    // The phone drawer stays composed while closed, so the host must say so.
+    isOpen: Boolean = true,
     viewModel: DrawerViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.drawerUiState.collectAsStateWithLifecycle()
@@ -190,9 +193,9 @@ fun DrawerContent(
     val inlineProjectChats by viewModel.inlineProjectChats.collectAsStateWithLifecycle()
     val libraryTab by viewModel.drawerLibraryTab.collectAsStateWithLifecycle()
 
-    // Drives the Running group's active-jobs poll: on while this surface is composed and started.
-    LifecycleStartEffect(viewModel) {
-        viewModel.setDrawerVisible(true)
+    // Drives the Running group's active-jobs poll: on only while this surface is open and started.
+    LifecycleStartEffect(viewModel, isOpen) {
+        viewModel.setDrawerVisible(isOpen)
         onStopOrDispose { viewModel.setDrawerVisible(false) }
     }
 
