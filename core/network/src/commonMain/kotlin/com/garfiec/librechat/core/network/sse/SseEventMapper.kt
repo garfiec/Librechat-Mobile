@@ -400,6 +400,9 @@ class SseEventMapper(private val json: Json) {
             "on_reasoning_delta" -> mapReasoningDelta(data, agentId, groupId)
             "on_run_step" -> mapRunStep(data, agentId, groupId)
             "on_run_step_delta" -> null // Tool call argument streaming - not currently tracked
+            // v0.8.8 timing marks. The durations they produce are stamped onto the persisted
+            // tool call (`toolPreparationDurationMs` / `toolExecutionDurationMs`) by the server.
+            "on_tool_preparation", "on_tool_calls_dispatched" -> null
             "on_run_step_completed" -> mapRunStepCompleted(data, agentId, groupId)
             // v0.8.8-rc2: a run step reached a terminal state. The rc1 server registered no
             // handler, so this never reached the wire before.
