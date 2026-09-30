@@ -42,6 +42,17 @@
     <string name="cd_start_voice_recording">Начать запись голоса</string>
     <string name="cd_stop_generation">Остановить генерацию</string>
     <string name="cd_send_message">Отправить сообщение</string>
+    <string name="cd_add_to_queue">Добавить сообщение в очередь</string>
+    <string name="cd_answer_question">Отправить ответ</string>
+    <string name="cd_cancel_pending_send">Ожидание загрузки — нажмите, чтобы отменить отправку</string>
+    <string name="cd_cancel_queued_message">Удалить сообщение из очереди</string>
+    <string name="cd_reorder_queued_message">Перетащите, чтобы изменить порядок сообщения в очереди</string>
+    <string name="send_queued_messages">Отправить очередь (%1$d)</string>
+    <string name="queued_attachment_only">Вложение</string>
+    <string name="queued_turn_needs_attention">Требует внимания</string>
+    <string name="editing_queued_message">Изменение сообщения в очереди</string>
+    <string name="cd_cancel_edit">Отменить изменение</string>
+    <string name="cd_update_queued_message">Обновить сообщение в очереди</string>
     <string name="cd_open_drawer">Открыть панель навигации</string>
     <string name="cd_edit_title">Изменить название</string>
     <string name="cd_more_options">Дополнительно</string>
@@ -65,6 +76,7 @@
 
     <!-- Content descriptions - Images -->
     <string name="cd_close">Закрыть</string>
+    <string name="cd_image">Изображение</string>
     <string name="cd_save_to_device">Сохранить на устройство</string>
     <string name="cd_share_image">Поделиться изображением</string>
     <string name="cd_failed_to_load_image">Не удалось загрузить изображение</string>
@@ -109,8 +121,59 @@
 
     <!-- Content descriptions - Subagent trace (subagents, v0.8.6+) -->
     <string name="label_subagent">Субагент</string>
+    <string name="subagent_threads_title">Поток субагента</string>
+    <string name="subagent_threads_open">Открыть поток</string>
+    <string name="subagent_threads_back">Назад к потокам</string>
+    <string name="subagent_threads_empty">В этой беседе нет потоков субагентов.</string>
+    <string name="subagent_threads_unavailable">Здесь нет доступных потоков субагентов.</string>
+    <string name="subagent_threads_event_origin">Запущено событием</string>
+    <string name="subagent_threads_truncated">Часть содержимого слишком длинная, чтобы показать её полностью.</string>
+    <string name="subagent_threads_load_older">Загрузить более ранние</string>
+    <string name="subagent_threads_older_unavailable">Более ранняя история больше недоступна.</string>
     <string name="cd_collapse_subagent">Свернуть субагента %1$s</string>
     <string name="cd_expand_subagent">Развернуть субагента %1$s</string>
+    <string name="trace_title">Трассировка беседы</string>
+    <string name="trace_open">Открыть трассировку</string>
+    <string name="trace_refresh">Обновить</string>
+    <string name="trace_back">Назад к записям</string>
+    <string name="trace_load_older">Загрузить более ранние</string>
+    <string name="trace_retry">Повторить</string>
+    <string name="trace_empty">Для этой беседы пока нет записей трассировки.</string>
+    <string name="trace_stat_turns">Ходы</string>
+    <string name="trace_stat_generations">Генерации</string>
+    <string name="trace_stat_tools">Инструменты</string>
+    <string name="trace_stat_labels">Метки</string>
+    <string name="trace_stat_errors">Ошибки</string>
+    <string name="trace_stat_tokens">Токены</string>
+    <string name="trace_stat_cost">Стоимость</string>
+    <string name="trace_kind_agent">Агент</string>
+    <string name="trace_kind_generation">Генерация</string>
+    <string name="trace_kind_tool">Инструмент</string>
+    <string name="trace_kind_span">Интервал</string>
+    <string name="trace_kind_event">Событие</string>
+    <string name="trace_kind_other">Запись</string>
+    <string name="trace_status_ok">OK</string>
+    <string name="trace_status_warning">Предупреждение</string>
+    <string name="trace_status_error">Ошибка</string>
+    <string name="trace_running">Выполняется</string>
+    <string name="trace_view_steps">Шаги</string>
+    <string name="trace_view_all">Все записи</string>
+    <string name="trace_step">Шаг %1$d</string>
+    <string name="trace_step_title">Заголовок</string>
+    <string name="trace_partial">Показано записей: %1$d. Более ранние ходы не загружены.</string>
+    <string name="trace_input">Ввод</string>
+    <string name="trace_output">Вывод</string>
+    <string name="trace_metadata">Метаданные</string>
+    <string name="trace_truncated">Обрезано сервером.</string>
+    <string name="trace_content_unavailable">Этот сервер не возвращает ввод и вывод записей.</string>
+    <string name="trace_tokens_detail">Ввод %1$d · Вывод %2$d · Всего %3$d</string>
+    <string name="trace_error_generic">Не удалось прочитать трассировку.</string>
+    <string name="trace_error_not_found">Эта трассировка больше недоступна.</string>
+    <string name="trace_error_changed">Трассировка изменилась во время чтения. Обновите, чтобы начать заново.</string>
+    <string name="trace_error_rate_limited">Слишком много запросов трассировки. Повторите попытку чуть позже.</string>
+    <string name="trace_error_timeout">Сервис трассировки не ответил вовремя.</string>
+    <string name="trace_error_unauthorized">Сервис трассировки отклонил учётные данные этого сервера.</string>
+    <string name="trace_error_unsupported">Сервис трассировки этого сервера не может возвращать трассировки.</string>
 
     <!-- Office-doc preview attachments (deferred preview, v0.8.6+) -->
     <string name="office_preview_preparing">Подготовка предпросмотра %1$s…</string>
@@ -121,18 +184,27 @@
     <string name="cd_tool_call">Вызов инструмента</string>
     <string name="cd_collapse_tool_call">Свернуть вызов инструмента %1$s</string>
     <string name="cd_expand_tool_call">Развернуть вызов инструмента %1$s</string>
+    <string name="context_compact">Сжать беседу</string>
+    <string name="context_compacting">Сжатие…</string>
+    <string name="context_compact_info">Сводит всё сказанное в короткую заметку, которую модель продолжает читать, освобождая контекст для дальнейшего. Ничего не удаляется.</string>
     <string name="cd_tool_complete">Завершено</string>
+    <string name="cd_tool_cancelled">Остановлено</string>
+    <string name="cd_tool_failed">Ошибка</string>
     <string name="video_not_supported">Видеоконтент не поддерживается</string>
 
     <!-- Tools bottom sheet -->
     <string name="tool_camera">Камера</string>
     <string name="tool_photos">Фото</string>
     <string name="tool_files">Файлы</string>
+    <string name="tool_server_files">Сервер</string>
     <string name="tool_model">Модель</string>
     <string name="tool_model_parameters">Параметры модели</string>
     <string name="tool_model_parameters_desc">Настройте температуру, токены и другое</string>
     <string name="tool_web_search">Веб-поиск</string>
     <string name="tool_web_search_desc">Искать информацию в интернете</string>
+    <string name="web_searched">Выполнен поиск в интернете</string>
+    <string name="tool_url_context">Контекст URL</string>
+    <string name="tool_url_context_desc">Разрешить модели читать указанные вами URL и видео YouTube</string>
     <string name="tool_code">Код</string>
     <string name="tool_code_desc">Запуск и анализ кода</string>
     <string name="tool_file_search">Поиск по файлам</string>
@@ -140,12 +212,29 @@
     <string name="tool_mcp">MCP</string>
     <string name="tool_mcp_desc">Серверы Model Context Protocol</string>
     <string name="cd_web_search_enabled">Веб-поиск включён</string>
+    <string name="cd_quoted_excerpt">Цитируемый фрагмент</string>
+    <string name="cd_remove_quote">Убрать цитату</string>
+    <string name="selection_add_to_chat">Добавить в чат</string>
     <string name="cd_code_enabled">Интерпретатор кода включён</string>
     <string name="cd_file_search_enabled">Поиск по файлам включён</string>
 
     <!-- Attachments -->
     <string name="cd_attach_file">Прикрепить файл</string>
     <string name="files_count">Файлы (%1$d)</string>
+    <string name="files_count_with_text">Файлы (%1$d) · %2$d как текст</string>
+    <string name="cd_files_attached">Прикреплено файлов: %1$d. Нажмите для предпросмотра</string>
+    <string name="cd_files_attached_with_text">Прикреплено файлов: %1$d, отправлено как текст: %2$d. Нажмите для предпросмотра</string>
+    <string name="upload_routing_sheet_title">Как отправить эти файлы?</string>
+    <string name="upload_routing_sheet_title_single">Как отправить этот файл?</string>
+    <string name="upload_routing_option_provider">Напрямую в модель</string>
+    <string name="upload_routing_option_text">Как текст</string>
+    <string name="upload_routing_why_provider">Модель сама читает файл.</string>
+    <string name="upload_routing_why_text">Сервер читает файл и отправляет его текст.</string>
+    <string name="upload_routing_why_provider_only">Эта модель принимает этот файл только напрямую.</string>
+    <string name="upload_routing_why_text_only">Эта модель не может прочитать этот файл, поэтому вместо него отправляется его текст.</string>
+    <string name="upload_routing_apply_all">Для всех</string>
+    <string name="upload_routing_attach">Прикрепить</string>
+    <string name="cd_upload_route_text">Отправлено как извлечённый текст</string>
     <string name="cd_attached_file">Прикреплённый файл: %1$s</string>
     <string name="cd_preview_file">Предпросмотр %1$s</string>
     <string name="cd_remove_file">Удалить %1$s</string>
@@ -200,6 +289,19 @@
     <string name="cd_memory_artifact">Артефакт памяти: %1$s</string>
     <string name="memory_artifact_untitled">Без названия</string>
     <string name="label_memory">Память</string>
+    <string name="cd_memory_artifacts">Обновления памяти: %1$d</string>
+    <string name="memory_updated">Сохранённая память обновлена</string>
+    <string name="memory_error">Ошибка памяти</string>
+    <string name="memory_updated_items">Обновлённые воспоминания</string>
+    <string name="memory_deleted_items">Удалённые воспоминания</string>
+    <string name="memory_deleted">Воспоминание удалено</string>
+    <string name="memory_storage_full">Хранилище памяти заполнено</string>
+    <string name="memory_already_exceeded">Хранилище памяти уже заполнено — превышение на %1$d токенов. Удалите существующие воспоминания, прежде чем добавлять новые.</string>
+    <string name="memory_would_exceed">Невозможно сохранить — лимит будет превышен на %1$d токенов. Удалите существующие воспоминания, чтобы освободить место.</string>
+    <string name="files_searched">Выполнен поиск по вашим файлам</string>
+    <string name="cd_file_search_source">Источник поиска по файлам: %1$s</string>
+    <string name="file_search_relevance">%1$d%%</string>
+    <string name="file_search_pages">Страницы: %1$s</string>
 
     <!-- Mermaid diagram -->
     <string name="label_mermaid">mermaid</string>
@@ -215,6 +317,14 @@
 
     <!-- Message files -->
     <string name="file_fallback">Файл</string>
+    <string name="attachment_fallback">Вложение</string>
+    <string name="pdf_document">PDF-документ</string>
+    <string name="pdf_load_failed">Не удалось загрузить PDF</string>
+    <string name="cd_share_pdf">Поделиться PDF</string>
+    <string name="cd_open_pdf">Открыть PDF</string>
+    <string name="retry">Повторить</string>
+    <string name="messages_unavailable_title">Сообщения недоступны</string>
+    <string name="messages_unavailable_body">Не удалось загрузить эту беседу, а офлайн-копия на этом устройстве не сохранена.</string>
 
     <!-- Model selector sheet -->
     <string name="cd_selected">Выбрано</string>
@@ -236,7 +346,25 @@
 
     <!-- Feedback dialog -->
     <string name="feedback_question">В чём была проблема с этим ответом?</string>
+    <string name="feedback_question_positive">Что было хорошо в этом ответе?</string>
     <string name="hint_optional_comment">Необязательный комментарий…</string>
+    <string name="feedback_tag_not_matched">Не соответствует запросу</string>
+    <string name="feedback_tag_inaccurate">Неточный или неверный ответ</string>
+    <string name="feedback_tag_bad_style">Плохой стиль или тон</string>
+    <string name="feedback_tag_missing_image">Ожидалось изображение</string>
+    <string name="feedback_tag_unjustified_refusal">Необоснованный отказ</string>
+    <string name="feedback_tag_not_helpful">Не хватило полезной информации</string>
+    <string name="feedback_tag_other">Другая проблема</string>
+    <string name="feedback_tag_accurate_reliable">Точно и надёжно</string>
+    <string name="feedback_tag_creative_solution">Творческое решение</string>
+    <string name="feedback_tag_clear_well_written">Понятно и хорошо написано</string>
+    <string name="feedback_tag_attention_to_detail">Внимание к деталям</string>
+    <string name="activity_used_n_tools">Использовано инструментов: %1$d</string>
+    <string name="steer_sent_during_reply">отправлено во время ответа</string>
+    <string name="state_expanded">Развёрнуто</string>
+    <string name="state_collapsed">Свёрнуто</string>
+    <string name="feedback_unavailable_while_generating">Вы сможете отправить это, когда ответ завершится.</string>
+    <string name="cd_feedback_unavailable">Недоступно во время генерации ответа</string>
 
     <!-- Streaming tool call -->
     <string name="tool_call_output">Вывод:</string>
@@ -257,9 +385,22 @@
     <!-- Artifacts -->
     <string name="cd_open_artifact">Открыть артефакт</string>
     <string name="cd_share_artifact">Поделиться артефактом</string>
+    <string name="cd_add_artifact_to_home_screen">Добавить на главный экран</string>
+    <string name="add_to_home_screen_dialog_title">Добавить на главный экран</string>
+    <string name="add_to_home_screen_dialog_name_label">Название</string>
+    <string name="add_to_home_screen_dialog_emoji_label">Эмодзи</string>
+    <string name="add_to_home_screen_icon_label">Значок</string>
+    <string name="add_to_home_screen_icon_auto">Авто</string>
+    <string name="add_to_home_screen_icon_custom">Свой</string>
+    <string name="cd_icon_preview">Предпросмотр значка</string>
+    <string name="artifact_shortcut_unavailable">Этот артефакт больше недоступен.</string>
+    <string name="add_to_home_screen_confirm">Добавить</string>
+    <string name="artifact_shortcut_back">Назад</string>
     <string name="cd_previous_version">Предыдущая версия</string>
     <string name="cd_next_version">Следующая версия</string>
     <string name="artifact_version">v%1$d/%2$d</string>
+    <string name="artifact_view_source">Исходный код</string>
+    <string name="artifact_view_preview">Предпросмотр</string>
     <string name="artifact_incomplete">Не завершено</string>
     <!-- Prompts -->
     <string name="prompts_library">Библиотека промптов</string>
@@ -315,6 +456,7 @@
     <string name="provider_keys_chat_error_invalid">Указан недействительный ключ. Укажите действительный ключ и попробуйте снова.</string>
     <!-- Snackbar action label that deep-links to Settings → Provider Keys -->
     <string name="provider_keys_chat_error_cta">Открыть настройки ключей</string>
+    <string name="queued_messages_dropped_account_switch">Сообщения в очереди удалены после смены учётной записи</string>
 
     <!-- Send block reasons (shown in error snackbar when send can't proceed) -->
     <string name="send_block_select_agent">Выберите агента перед отправкой сообщения.</string>
@@ -323,4 +465,112 @@
     <string name="send_block_agent_not_available">Выбранный агент недоступен на этом сервере. Выберите другого агента.</string>
     <string name="send_block_model_not_available">Выбранная модель недоступна на этом сервере. Выберите другую модель.</string>
     <string name="send_block_model_load_failed">Пока не удалось загрузить выбранную модель. Попробуйте снова или выберите другую модель.</string>
+    <string name="action_show_all_media">Показать все медиа</string>
+    <string name="media_gallery_title">Медиа</string>
+    <string name="media_tab_media">Медиа</string>
+    <string name="media_tab_files">Файлы</string>
+    <string name="media_tab_links">Ссылки</string>
+    <string name="media_tab_artifacts">Артефакты</string>
+    <string name="media_scope_whole_chat">Весь чат</string>
+    <string name="media_scope_this_branch">Эта ветвь</string>
+    <string name="media_empty_media">В этой беседе нет медиа</string>
+    <string name="media_empty_files">В этой беседе нет файлов</string>
+    <string name="media_empty_links">В этой беседе нет ссылок</string>
+    <string name="media_empty_artifacts">В этой беседе нет артефактов</string>
+    <string name="context_usage_label">Контекст</string>
+    <string name="context_usage_window">Окно контекста</string>
+    <string name="context_usage_messages">Сообщения</string>
+    <string name="context_usage_tools">Схемы инструментов</string>
+    <string name="context_usage_summary">Сводка</string>
+    <string name="context_usage_system">Система</string>
+    <string name="context_usage_free">Свободно</string>
+    <string name="context_usage_input">Ввод</string>
+    <string name="context_usage_output">Вывод</string>
+    <string name="tool_approval_title">Требуется одобрение</string>
+    <string name="tool_approval_subtitle">Проверьте перед запуском.</string>
+    <string name="tool_approval_arguments">Аргументы</string>
+    <string name="tool_approval_approve">Одобрить</string>
+    <string name="tool_approval_reject">Отклонить</string>
+    <string name="tool_approval_edit">Изменить</string>
+    <string name="tool_approval_respond">Ответить</string>
+    <string name="tool_approval_approve_all">Одобрить все</string>
+    <string name="tool_approval_reject_all">Отклонить все</string>
+    <string name="tool_approval_submit">Продолжить</string>
+    <string name="tool_approval_edited_arguments">Изменённые аргументы (JSON)</string>
+    <string name="tool_approval_response_text">Ответ, который будет отправлен вместо запуска инструмента</string>
+    <string name="tool_approval_invalid_json">Введите корректный JSON</string>
+    <string name="ask_user_question_answer_hint">Введите ответ</string>
+    <string name="ask_user_question_other_hint">Другое</string>
+    <string name="ask_user_question_send">Отправить</string>
+    <string name="ask_user_question_skip">Пропустить</string>
+    <string name="ask_user_question_multi_select_hint">Выберите все подходящие</string>
+    <string name="ask_user_question_page_of">%1$d из %2$d</string>
+    <string name="ask_user_question_skipped">Пропущено</string>
+    <string name="cd_previous_ask_user_question">Предыдущий вопрос</string>
+    <string name="cd_next_ask_user_question">Следующий вопрос</string>
+    <string name="ask_user_question_send_progress">Отправить (%1$d/%2$d)</string>
+    <string name="ask_user_question_next">Далее</string>
+    <string name="ask_user_question_back">Назад</string>
+    <string name="ask_user_question_skip_all">Пропустить все</string>
+    <string name="ask_user_question_tab_fallback">Вопрос %1$d</string>
+    <string name="ask_user_question_waiting_marker">Ожидается ваш ответ ниже</string>
+    <string name="cd_ask_user_question_answered">Отвечено</string>
+    <string name="cd_minimize_ask_user_question">Свернуть вопросы</string>
+    <string name="cd_restore_ask_user_question">Показать вопросы</string>
+    <string name="error_resource_recovery_required">Не удалось восстановить файлы, прикреплённые к этой беседе, поэтому ассистент не смог их использовать. Прикрепите их снова и повторите попытку.</string>
+    <string name="error_model_not_found">Выбранная модель недоступна у этого провайдера. Выберите другую модель или попросите администратора проверить настройки провайдера.</string>
+    <string name="error_missing_model">Модель не выбрана. Выберите модель и попробуйте снова.</string>
+    <string name="error_models_not_loaded">Не удалось загрузить список моделей. Потяните вниз для обновления и попробуйте снова.</string>
+    <string name="error_endpoint_models_not_loaded">Не удалось загрузить модели этой конечной точки. Потяните вниз для обновления и попробуйте снова.</string>
+    <string name="error_invalid_agent_provider">Провайдер этого агента не разрешён на этом сервере. Попросите администратора включить его.</string>
+    <string name="error_refusal">Модель отказалась отвечать. Попробуйте переформулировать запрос.</string>
+    <string name="error_input_length">Это сообщение длиннее, чем допускает модель. Сократите его и попробуйте снова.</string>
+    <string name="error_moderation">Это сообщение отклонено модерацией сервера. Измените его или начните новую беседу.</string>
+    <string name="error_stream_expired">Этот ответ завершился или истёк до того, как его удалось показать. Откройте беседу заново, чтобы загрузить его.</string>
+    <string name="error_model_rate_limit">Провайдер ограничивает частоту запросов к этой модели. Подождите немного и попробуйте снова или выберите другую модель.</string>
+    <string name="error_final_context_overflow">Эта беседа больше не помещается в окно контекста модели. Начните новую беседу или выберите модель с большим окном контекста.</string>
+    <string name="error_compaction_skipped">Пока нечего сжимать. Продолжайте беседу и попробуйте позже.</string>
+    <string name="error_compaction_failed">Не удалось создать сводку, поэтому беседа не изменилась. Попробуйте снова.</string>
+    <string name="error_upstream_model_error">Провайдеру модели не удалось выполнить этот запрос. Попробуйте снова или выберите другую модель.</string>
+    <string name="error_upstream_model_error_status">Провайдеру модели не удалось выполнить этот запрос (статус %1$d). Попробуйте снова или выберите другую модель.</string>
+    <string name="error_details_provider">Ответ провайдера</string>
+    <string name="error_empty_messages">После обрезки беседы под контекст модели не осталось ничего для отправки. Начните новую беседу или выберите модель с большим окном контекста.</string>
+    <string name="error_code_workspace_unavailable">Рабочее пространство кода для этой беседы недоступно. Попробуйте снова или выберите другое рабочее пространство.</string>
+    <string name="error_stateful_code_environment_not_allowed">Этот сервер не разрешает постоянную среду выполнения кода. Отключите её в параметрах интерпретатора кода и попробуйте снова.</string>
+    <string name="error_auth_rate_limited">Слишком много попыток входа. Подождите немного и попробуйте снова.</string>
+    <string name="error_auth_banned">Вход с этой учётной записи или из этой сети заблокирован. Обратитесь к администратору.</string>
+    <string name="error_auth_cross_origin">Сервер отклонил вход как выполненный с другого сайта. Сообщите об этом — это ошибка приложения, а не проблема с паролем.</string>
+    <string name="error_share_limit">Слишком много запросов на создание общих ссылок. Подождите немного и попробуйте снова.</string>
+    <string name="ask_user_question_record_asked">Вопрос задан</string>
+    <string name="ask_user_question_record_asking">Вопрос задаётся</string>
+    <string name="ask_user_question_record_answer_label">Ваш ответ:</string>
+    <string name="ask_user_question_record_unanswered">Ответ не был дан</string>
+    <string name="ask_user_question_record_skipped">Вы пропустили этот вопрос</string>
+    <string name="ask_user_question_record_options">Предложенные варианты</string>
+    <string name="ask_user_question_record_options_multi">Предложенные варианты (можно выбрать несколько)</string>
+    <string name="ask_user_question_record_failed">Вопрос не был показан</string>
+    <string name="ask_user_question_record_failed_description">Ассистенту не удалось показать этот вопрос; он может повторить попытку автоматически.</string>
+    <string name="cd_expand_ask_user_question">Развернуть подробности вопроса</string>
+    <string name="cd_collapse_ask_user_question">Свернуть подробности вопроса</string>
+    <string name="tool_memory">Память</string>
+    <string name="tool_memory_desc">Разрешить ассистенту запоминать подробности из этого чата</string>
+    <string name="cd_steer_message">Скорректировать этот ответ</string>
+    <string name="cd_cancel_steer">Отменить корректировку</string>
+    <string name="cd_during_run_options">Выберите действие при отправке сейчас</string>
+    <string name="during_run_steer">Скорректировать этот ответ</string>
+    <string name="during_run_queue">Добавить в очередь</string>
+    <string name="during_run_always_steer">Всегда корректировать во время генерации</string>
+    <string name="during_run_always_queue">Всегда ставить в очередь во время генерации</string>
+    <string name="system_event_label">Система</string>
+    <string name="wakeup_explainer">Этот сохранённый результат пробудил агента, чтобы продолжить беседу.</string>
+    <string name="wakeup_subagent_completed">Задача субагента завершена</string>
+    <string name="wakeup_subagent_failed">Задача субагента не выполнена</string>
+    <string name="wakeup_subagent_cancelled">Задача субагента отменена</string>
+    <string name="wakeup_task_finished">Фоновая задача завершена</string>
+    <string name="wakeup_task_failed">Фоновая задача не выполнена</string>
+    <string name="wakeup_tasks_finished">Фоновых задач завершено: %1$d</string>
+    <string name="wakeup_status_completed">Завершено</string>
+    <string name="wakeup_status_failed">Ошибка</string>
+    <string name="wakeup_status_cancelled">Отменено</string>
+    <string name="wakeup_subagent_thread">Поток %1$s</string>
 </resources>

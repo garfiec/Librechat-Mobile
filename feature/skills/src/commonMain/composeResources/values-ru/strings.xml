@@ -59,4 +59,17 @@
     <string name="skill_acl_collapse">Свернуть</string>
     <string name="skill_acl_expand">Развернуть</string>
     <string name="skill_acl_close">Закрыть</string>
+    <string name="skill_import_failed_title">Ошибка импорта</string>
+    <string name="skill_import_incomplete">Импорт отменён: не удалось импортировать файлов из архива: %1$d. Исправьте архив и загрузите его снова.</string>
+    <string name="skill_import_rollback_failed">Не удалось импортировать файлов: %1$d, и незавершённый навык не удалось удалить автоматически. Удалите его, прежде чем повторить попытку.</string>
+    <string name="skill_import_cleanup_incomplete">Не удалось импортировать файлов: %1$d. Незавершённый навык удалён, но автоматическая очистка не завершилась.</string>
+    <string name="skill_import_failed_files">Не удалось импортировать эти файлы:</string>
+    <string name="skill_import_rollback_failed_files">Не удалось импортировать эти файлы, и незавершённый навык остался:</string>
+    <string name="skill_import_cleanup_incomplete_files">Не удалось импортировать эти файлы; автоматическая очистка не завершилась:</string>
+    <string name="skill_import_reason_invalid_path">Неподдерживаемый путь к файлу</string>
+    <string name="skill_import_reason_file_too_large">Превышает лимит размера файла %1$s МБ</string>
+    <string name="skill_import_reason_archive_too_large">Не импортировано: архив превышает общий лимит размера %1$s МБ</string>
+    <string name="skill_import_reason_archive_entry_changed">Изменён во время чтения архива</string>
+    <string name="skill_import_reason_persistence_failed">Не удалось сохранить</string>
+    <string name="skill_import_reason_unknown">Не удалось импортировать</string>
 </resources>

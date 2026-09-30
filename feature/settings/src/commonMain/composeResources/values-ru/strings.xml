@@ -5,6 +5,7 @@
     <string name="action_cancel">Отмена</string>
     <string name="action_clear">Очистить</string>
     <string name="action_confirm">Подтвердить</string>
+    <string name="action_copy">Копировать</string>
     <string name="action_creating">Создание…</string>
     <string name="action_create">Создать</string>
     <string name="action_delete">Удалить</string>
@@ -37,6 +38,8 @@
     <string name="cd_delete_shared_link">Удалить общую ссылку</string>
     <string name="cd_edit">Изменить</string>
     <string name="cd_edit_memory">Изменить запись памяти</string>
+    <string name="memory_redacted_key">Скрытая запись</string>
+    <string name="memory_redacted_value">Политика содержимого этого сервера скрывает сохранённые здесь данные. Удалить запись всё равно можно.</string>
     <string name="cd_edit_server">Изменить сервер</string>
     <string name="cd_expand_tools">Развернуть инструменты</string>
     <string name="cd_loading_profile">Загрузка профиля</string>
@@ -68,71 +71,71 @@
     <string name="section_language">Язык</string>
     <string name="section_layout">Макет</string>
     <string name="section_mcp_servers">Серверы MCP</string>
-    <string name="section_prefetch">Background prefetch</string>
-    <string name="prefetch_enabled">Prefetch conversations</string>
-    <string name="prefetch_enabled_desc">Load recent and pinned conversations ahead of time so they open instantly. Runs while the app is idle, and periodically while charging.</string>
-    <string name="prefetch_on_metered">Use mobile data</string>
-    <string name="prefetch_on_metered_desc">Allow prefetching on metered connections. Off by default to avoid unexpected data usage.</string>
-    <string name="prefetch_depth">Depth</string>
-    <string name="prefetch_depth_value">%1$d conversations</string>
-    <string name="prefetch_depth_desc">How many recent conversations to keep cached. Pinned conversations are always included, however old.</string>
-    <string name="prefetch_attachments">Prefetch images</string>
-    <string name="prefetch_attachments_desc">Also download images and attachments. Uses considerably more data.</string>
-    <string name="prefetch_activity">Activity</string>
-    <string name="prefetch_activity_title">Prefetch activity</string>
-    <string name="prefetch_summary_status">Status</string>
-    <string name="prefetch_summary_last_run">Last run</string>
-    <string name="prefetch_summary_last_run_never">Never</string>
-    <string name="prefetch_summary_scheduled_run">Last background run</string>
-    <string name="prefetch_run_outcome_disabled">prefetch was off</string>
-    <string name="prefetch_run_outcome_no_session">not signed in</string>
-    <string name="prefetch_run_outcome_constraints">conditions not met</string>
-    <string name="prefetch_run_outcome_budget">ran out of time</string>
-    <string name="prefetch_run_outcome_stopped">server not answering</string>
-    <string name="prefetch_run_outcome_interrupted">interrupted</string>
-    <string name="prefetch_summary_warmed">Warmed</string>
-    <string name="prefetch_summary_warmed_value">%1$d of %2$d</string>
-    <string name="prefetch_status_off">Off</string>
-    <string name="prefetch_status_working">Working…</string>
-    <string name="prefetch_status_warming">Warming conversations (%1$d of %2$d)</string>
-    <string name="prefetch_status_rate_limited">Waiting — the server asked us to slow down</string>
-    <string name="prefetch_status_stopped">Stopped — repeated request failures</string>
-    <string name="prefetch_status_up_to_date">Up to date</string>
-    <string name="prefetch_status_waiting">Idle — %1$d waiting</string>
-    <string name="prefetch_status_paused_network">Paused — waiting for Wi-Fi</string>
-    <string name="prefetch_status_paused_offline">Paused — no connection</string>
-    <string name="prefetch_condition_enabled">Prefetch enabled</string>
-    <string name="prefetch_condition_enabled_unmet">Switched off</string>
-    <string name="prefetch_condition_network_offline">No connection</string>
-    <string name="prefetch_status_paused_power">Paused — battery saver is on</string>
-    <string name="prefetch_status_paused_busy">Paused — app is busy</string>
-    <string name="prefetch_status_paused_background">Paused — app is in the background</string>
-    <string name="prefetch_conditions_header">Conditions</string>
-    <string name="prefetch_condition_app_available">App ready</string>
-    <string name="prefetch_condition_network">Network</string>
-    <string name="prefetch_condition_network_met">Connection allowed</string>
-    <string name="prefetch_condition_network_unmet">On mobile data</string>
-    <string name="prefetch_condition_power">Battery</string>
-    <string name="prefetch_condition_power_met">Not restricted</string>
-    <string name="prefetch_condition_power_unmet">Battery saver is on</string>
-    <string name="prefetch_condition_idle">App idle</string>
-    <string name="prefetch_condition_idle_met">No requests in flight</string>
-    <string name="prefetch_condition_idle_unmet">A request is in flight</string>
-    <string name="prefetch_condition_server">Server</string>
-    <string name="prefetch_condition_server_met">Responding</string>
-    <string name="prefetch_condition_server_unmet">Stopped after repeated failures</string>
-    <string name="prefetch_warm_now">Warm now</string>
-    <string name="prefetch_warm_now_desc">Run a pass immediately instead of waiting for the next idle moment.</string>
-    <string name="prefetch_warmed_header">Cached conversations</string>
-    <string name="prefetch_warmed_empty">Nothing has been prefetched yet.</string>
-    <string name="prefetch_pending_header">Waiting to be cached</string>
-    <string name="prefetch_pending_empty">Everything eligible is up to date.</string>
-    <string name="prefetch_row_never_warmed">Not cached yet</string>
-    <string name="prefetch_row_pinned">Pinned</string>
-    <string name="prefetch_cache_header">Cache</string>
-    <string name="prefetch_cache_messages">Cached messages</string>
-    <string name="prefetch_cache_messages_value">%1$d messages</string>
-    <string name="prefetch_cache_images">Images and files</string>
+    <string name="section_prefetch">Фоновая предзагрузка</string>
+    <string name="prefetch_enabled">Предзагрузка бесед</string>
+    <string name="prefetch_enabled_desc">Заранее загружать последние и закреплённые беседы, чтобы они открывались мгновенно. Работает, пока приложение не занято, и периодически во время зарядки.</string>
+    <string name="prefetch_on_metered">Использовать мобильный интернет</string>
+    <string name="prefetch_on_metered_desc">Разрешить предзагрузку через лимитные подключения. По умолчанию выключено, чтобы избежать неожиданного расхода трафика.</string>
+    <string name="prefetch_depth">Глубина</string>
+    <string name="prefetch_depth_value">Бесед: %1$d</string>
+    <string name="prefetch_depth_desc">Сколько последних бесед хранить в кэше. Закреплённые беседы включаются всегда, независимо от давности.</string>
+    <string name="prefetch_attachments">Загружать изображения</string>
+    <string name="prefetch_attachments_desc">Также скачивать изображения и вложения. Расходует заметно больше трафика.</string>
+    <string name="prefetch_activity">Журнал</string>
+    <string name="prefetch_activity_title">Журнал предзагрузки</string>
+    <string name="prefetch_summary_status">Статус</string>
+    <string name="prefetch_summary_last_run">Последний запуск</string>
+    <string name="prefetch_summary_last_run_never">Никогда</string>
+    <string name="prefetch_summary_scheduled_run">Последний фоновый запуск</string>
+    <string name="prefetch_run_outcome_disabled">предзагрузка была выключена</string>
+    <string name="prefetch_run_outcome_no_session">вход не выполнен</string>
+    <string name="prefetch_run_outcome_constraints">условия не выполнены</string>
+    <string name="prefetch_run_outcome_budget">не хватило времени</string>
+    <string name="prefetch_run_outcome_stopped">сервер не отвечает</string>
+    <string name="prefetch_run_outcome_interrupted">прервано</string>
+    <string name="prefetch_summary_warmed">В кэше</string>
+    <string name="prefetch_summary_warmed_value">%1$d из %2$d</string>
+    <string name="prefetch_status_off">Выключено</string>
+    <string name="prefetch_status_working">Выполняется…</string>
+    <string name="prefetch_status_warming">Загрузка бесед (%1$d из %2$d)</string>
+    <string name="prefetch_status_rate_limited">Ожидание — сервер попросил снизить частоту запросов</string>
+    <string name="prefetch_status_stopped">Остановлено — повторяющиеся сбои запросов</string>
+    <string name="prefetch_status_up_to_date">Всё актуально</string>
+    <string name="prefetch_status_waiting">Бездействие — в очереди: %1$d</string>
+    <string name="prefetch_status_paused_network">Приостановлено — ожидание Wi-Fi</string>
+    <string name="prefetch_status_paused_offline">Приостановлено — нет подключения</string>
+    <string name="prefetch_condition_enabled">Предзагрузка включена</string>
+    <string name="prefetch_condition_enabled_unmet">Выключено</string>
+    <string name="prefetch_condition_network_offline">Нет подключения</string>
+    <string name="prefetch_status_paused_power">Приостановлено — включена экономия заряда</string>
+    <string name="prefetch_status_paused_busy">Приостановлено — приложение занято</string>
+    <string name="prefetch_status_paused_background">Приостановлено — приложение в фоне</string>
+    <string name="prefetch_conditions_header">Условия</string>
+    <string name="prefetch_condition_app_available">Приложение готово</string>
+    <string name="prefetch_condition_network">Сеть</string>
+    <string name="prefetch_condition_network_met">Подключение разрешено</string>
+    <string name="prefetch_condition_network_unmet">Используется мобильный интернет</string>
+    <string name="prefetch_condition_power">Батарея</string>
+    <string name="prefetch_condition_power_met">Без ограничений</string>
+    <string name="prefetch_condition_power_unmet">Включена экономия заряда</string>
+    <string name="prefetch_condition_idle">Приложение не занято</string>
+    <string name="prefetch_condition_idle_met">Нет выполняемых запросов</string>
+    <string name="prefetch_condition_idle_unmet">Выполняется запрос</string>
+    <string name="prefetch_condition_server">Сервер</string>
+    <string name="prefetch_condition_server_met">Отвечает</string>
+    <string name="prefetch_condition_server_unmet">Остановлено после повторяющихся сбоев</string>
+    <string name="prefetch_warm_now">Загрузить сейчас</string>
+    <string name="prefetch_warm_now_desc">Запустить проход сразу, не дожидаясь следующего простоя.</string>
+    <string name="prefetch_warmed_header">Беседы в кэше</string>
+    <string name="prefetch_warmed_empty">Пока ничего не загружено заранее.</string>
+    <string name="prefetch_pending_header">Ожидают кэширования</string>
+    <string name="prefetch_pending_empty">Всё подходящее уже актуально.</string>
+    <string name="prefetch_row_never_warmed">Ещё не в кэше</string>
+    <string name="prefetch_row_pinned">Закреплена</string>
+    <string name="prefetch_cache_header">Кэш</string>
+    <string name="prefetch_cache_messages">Сообщения в кэше</string>
+    <string name="prefetch_cache_messages_value">Сообщений: %1$d</string>
+    <string name="prefetch_cache_images">Изображения и файлы</string>
     <string name="section_memories">Память</string>
     <string name="section_personalization">Персонализация</string>
     <string name="section_presets">Пресеты</string>
@@ -165,7 +168,7 @@
     <!-- Accent color -->
     <string name="accent_color">Акцентный цвет</string>
     <string name="accent_color_custom">Свой</string>
-    <string name="accent_color_hex">Hex</string>
+    <string name="accent_color_hex">HEX-код</string>
     <string name="use_wallpaper_colors">Использовать цвета обоев</string>
     <string name="use_wallpaper_colors_desc">Подстраивать акцент приложения под системные обои (Material You)</string>
 
@@ -193,6 +196,8 @@
     <string name="app_build_label">Сборка</string>
     <string name="server_label">Сервер</string>
     <string name="server_not_configured">Не настроено</string>
+    <string name="server_version_label">Версия сервера</string>
+    <string name="server_version_unknown">Неизвестно</string>
     <string name="server_build_commit_label">Коммит сервера</string>
     <string name="server_build_branch_label">Ветка сервера</string>
     <string name="server_build_date_label">Дата сборки сервера</string>
@@ -205,6 +210,9 @@
     <string name="token_credits">Токен-кредиты</string>
     <string name="available_balance">Доступный баланс</string>
     <string name="cd_token_balance">Баланс токенов: %1$s кредитов</string>
+    <string name="chat_group_display">Отображение</string>
+    <string name="chat_group_behavior">Поведение</string>
+    <string name="chat_group_header_context">Заголовок и контекст</string>
 
     <!-- Chat settings -->
     <string name="chat_layout">Макет чата</string>
@@ -221,9 +229,13 @@
     <string name="starred_models_off">Выключено</string>
     <string name="starred_models_grouped">Сворачиваемая группа вверху</string>
     <string name="starred_models_top">Вверху, без группировки</string>
+    <string name="chat_header_title">Заголовок чата</string>
+    <string name="chat_header_summary_format">%1$s · %2$s</string>
+    <string name="chat_header_content_label">Содержимое</string>
     <string name="chat_header_content_title_option">Название беседы</string>
     <string name="chat_header_content_model">Выбранная модель</string>
     <string name="chat_header_content_none">Ничего</string>
+    <string name="chat_header_alignment_label">Выравнивание</string>
     <string name="chat_header_alignment_left">Слева</string>
     <string name="chat_header_alignment_center">По центру</string>
     <string name="chat_header_alignment_fill">На всю ширину</string>
@@ -240,6 +252,12 @@
     <string name="auto_scroll_desc">Автоматически прокручивать к новому содержимому во время генерации ответа</string>
     <string name="show_thinking_blocks">Показывать блоки размышлений</string>
     <string name="show_thinking_blocks_desc">Отображать ход рассуждений модели, когда он доступен</string>
+    <string name="context_bar_title">Использование контекста</string>
+    <string name="context_bar_desc">Где показывать индикатор заполнения контекстного окна</string>
+    <string name="context_bar_hidden">Скрыт</string>
+    <string name="context_bar_above_input">Над полем сообщения</string>
+    <string name="context_bar_options_sheet">Меню параметров чата</string>
+    <string name="context_bar_overflow_menu">Меню верхней панели (⋮)</string>
     <string name="show_image_descriptions">Показывать описания изображений</string>
     <string name="show_image_descriptions_desc">Отображать сгенерированные ИИ описания под изображениями</string>
     <string name="dismiss_keyboard_on_send">Скрывать клавиатуру после отправки</string>
@@ -247,6 +265,14 @@
 
     <!-- Artifacts -->
     <string name="section_artifacts">Артефакты</string>
+    <string name="artifact_viewer_title">Просмотр артефактов</string>
+    <string name="artifact_viewer_desc">Как открывается артефакт при нажатии.</string>
+    <string name="artifact_mode_bottom_sheet">Нижняя панель</string>
+    <string name="artifact_mode_bottom_sheet_desc">Выдвигается снизу; смахните вниз, чтобы закрыть.</string>
+    <string name="artifact_mode_fullscreen">Полный экран</string>
+    <string name="artifact_mode_fullscreen_desc">Открывается на полноэкранной странице с большим пространством.</string>
+    <string name="artifact_inline_title">Встроенное отображение</string>
+    <string name="artifact_inline_enabled_count">Включено %1$d из %2$d</string>
     <string name="artifacts_section_desc">Отображать артефакты прямо в чате вместо карточки «нажмите, чтобы открыть». Нажмите встроенный артефакт, чтобы открыть его в полноэкранном режиме.</string>
     <string name="inline_artifact_mermaid">Диаграммы Mermaid</string>
     <string name="inline_artifact_mermaid_desc">Отображать блок-схемы и диаграммы Mermaid встроенно</string>
@@ -268,6 +294,14 @@
     <!-- 2FA setup dialog -->
     <string name="dialog_title_enable_2fa">Включить двухфакторную аутентификацию</string>
     <string name="dialog_title_disable_2fa">Отключить двухфакторную аутентификацию</string>
+    <string name="twofa_enroll_instructions">Добавьте этот аккаунт в приложение-аутентификатор, затем введите показанный в нём 6-значный код.</string>
+    <string name="action_open_authenticator">Открыть в приложении-аутентификаторе</string>
+    <string name="twofa_no_authenticator">Приложение-аутентификатор не найдено. Добавьте ключ настройки ниже вручную или отсканируйте QR-код с другого устройства.</string>
+    <string name="twofa_setup_key">Ключ настройки</string>
+    <string name="cd_copy_setup_key">Скопировать ключ настройки</string>
+    <string name="action_show_qr">Показать QR-код</string>
+    <string name="action_hide_qr">Скрыть QR-код</string>
+    <string name="cd_twofa_qr">QR-код для подключения на другом устройстве</string>
     <string name="twofa_disable_instructions">Введите код из аутентификатора, чтобы отключить 2FA.</string>
     <string name="hint_verification_code">Код подтверждения</string>
 
@@ -304,10 +338,16 @@
     <!-- Data settings -->
     <string name="clear_all_conversations">Очистить все беседы</string>
     <string name="clearing">Очистка…</string>
+    <string name="archive_all_conversations">Архивировать все беседы</string>
+    <string name="archiving_all">Архивирование…</string>
+    <string name="dialog_title_archive_all">Архивировать все беседы?</string>
+    <string name="dialog_archive_all_message">Все беседы будут перемещены в архив. Вы сможете открывать их там и в любой момент вернуть любую из них из архива.</string>
+    <string name="action_archive_all">Архивировать все</string>
+    <string name="archived_all_count">Архивировано бесед: %1$d</string>
     <string name="archived_conversations">Архивированные беседы</string>
     <string name="export_all_data">Экспортировать все данные</string>
     <string name="shared_links">Общие ссылки</string>
-    <string name="clear_cache_with_size">Clear Cache (%1$s)</string>
+    <string name="clear_cache_with_size">Очистить кэш (%1$s)</string>
     <string name="clear_cache">Очистить кэш</string>
     <string name="revoke_all_api_keys">Отозвать все API-ключи</string>
     <string name="revoking">Отзыв…</string>
@@ -374,6 +414,9 @@
     <string name="dialog_delete_memory_message">Вы уверены, что хотите удалить запись памяти "%1$s"?</string>
     <string name="memory_key_label">Ключ</string>
     <string name="memory_value_label">Значение</string>
+    <string name="memory_key_hint">Используйте только строчные буквы и подчёркивания</string>
+    <string name="memory_key_invalid">Ключ может содержать только строчные буквы и подчёркивания</string>
+    <string name="memory_key_exists">Запись памяти с таким ключом уже существует</string>
 
     <!-- MCP -->
     <string name="add_mcp_server">Добавить сервер MCP</string>
@@ -399,8 +442,9 @@
     <string name="mcp_header_name_label">Имя заголовка</string>
     <string name="mcp_header_name_placeholder">X-API-Key</string>
     <string name="mcp_api_key_label">API-ключ</string>
-    <string name="mcp_oauth_client_id">Client ID</string>
-    <string name="mcp_oauth_client_secret">Client Secret</string>
+    <string name="mcp_api_key_user_provides">Каждый пользователь указывает собственный ключ</string>
+    <string name="mcp_oauth_client_id">ID клиента</string>
+    <string name="mcp_oauth_client_secret">Секрет клиента</string>
     <string name="mcp_oauth_auth_url">URL авторизации</string>
     <string name="mcp_oauth_token_url">URL токена</string>
     <string name="mcp_oauth_scope">Область</string>
@@ -459,6 +503,13 @@
     <!-- Shared links -->
     <string name="no_shared_links">Нет общих ссылок</string>
     <string name="no_shared_links_desc">Поделитесь беседой, чтобы увидеть её здесь</string>
+    <string name="mcp_oauth_secret_reentry_required">Конечные точки OAuth изменились, поэтому сохранённый секрет больше не действует. Введите его снова.</string>
+    <string name="mcp_api_key_reentry_required">Настройки подключения изменились, поэтому сохранённый API-ключ больше не действует. Введите его снова.</string>
+    <string name="cd_update_shared_link">Обновить общую ссылку</string>
+    <string name="dialog_title_update_shared_link">Обновить общую ссылку</string>
+    <string name="dialog_update_shared_link_message">"%1$s" будет опубликована заново с текущим состоянием беседы. Ссылка не изменится, поэтому все, у кого она уже есть, увидят обновлённое содержимое.</string>
+    <string name="dialog_update_shared_link_message_new_url">"%1$s" будет опубликована заново с текущим состоянием беседы. Этот сервер выдаёт новую ссылку, поэтому все, у кого есть старая, потеряют доступ.</string>
+    <string name="action_update_shared_link">Обновить</string>
     <string name="dialog_title_delete_shared_link">Удалить общую ссылку</string>
     <string name="dialog_delete_shared_link_message">Это удалит общую ссылку для "%1$s". Никто из тех, у кого есть ссылка, больше не сможет получить к ней доступ.</string>
     <string name="visibility_public">Публичная</string>
@@ -495,9 +546,9 @@
     <string name="provider_keys_field_google_paste_only_hint">Вставьте JSON сервисного аккаунта ниже.</string>
     <string name="provider_keys_field_google_service_key_or_gemini">Ключ сервисного аккаунта Google или API-ключ Gemini</string>
 
-    <string name="provider_keys_field_bedrock_access_key_id">Access Key ID</string>
-    <string name="provider_keys_field_bedrock_secret_access_key">Secret Access Key</string>
-    <string name="provider_keys_field_bedrock_session_token">Session Token</string>
+    <string name="provider_keys_field_bedrock_access_key_id">ID ключа доступа</string>
+    <string name="provider_keys_field_bedrock_secret_access_key">Секретный ключ доступа</string>
+    <string name="provider_keys_field_bedrock_session_token">Токен сеанса</string>
     <string name="provider_keys_field_bedrock_session_token_optional_suffix">(Необязательно)</string>
 
     <string name="provider_keys_required_fields">Необходимо заполнить следующие поля: %1$s</string>
@@ -534,6 +585,10 @@
     <string name="role_skills_share">Делиться навыками</string>
     <string name="role_skills_share_public">Делиться навыками публично</string>
     <string name="role_skills_save">Сохранить</string>
+    <string name="artifact_shortcuts_title">Ярлыки на главном экране</string>
+    <string name="artifact_shortcuts_empty">На главный экран пока не закреплено ни одного артефакта.</string>
+    <string name="artifact_shortcuts_disabled_message">Этот ярлык артефакта удалён.</string>
+    <string name="cd_artifact_shortcut_delete">Удалить ярлык</string>
     <!-- Post-login editor for the active server's gateway headers (issue #287) -->
     <string name="section_server_connection">Подключение к серверу</string>
     <string name="server_headers_scope">Отправляются на %1$s</string>
@@ -544,4 +599,20 @@
     <string name="server_headers_discard_message">Несохранённые изменения заголовков будут потеряны.</string>
     <string name="server_headers_discard_confirm">Отменить</string>
     <string name="server_headers_keep_editing">Продолжить правку</string>
+    <string name="during_run_action_title">Во время генерации</string>
+    <string name="during_run_action_desc">Что происходит при отправке сообщения, пока ответ ещё пишется. В поле ввода это можно изменить для отдельного сообщения.</string>
+    <string name="during_run_action_queue">Добавить в очередь</string>
+    <string name="during_run_action_queue_desc">Отправить следующим сообщением после завершения ответа.</string>
+    <string name="during_run_action_steer">Скорректировать ответ</string>
+    <string name="during_run_action_steer_desc">Передать сообщение в пишущийся ответ, чтобы ассистент сменил направление. Нужен сервер с поддержкой корректировки; иначе сообщение ставится в очередь.</string>
+    <string name="upload_routing_title">Вложения</string>
+    <string name="upload_routing_desc">Файлы можно отправлять модели как есть или обрабатывать на сервере и отправлять в виде текста. Не каждая модель принимает все типы файлов.</string>
+    <string name="upload_routing_auto">Выбирать автоматически</string>
+    <string name="upload_routing_auto_desc">Отправлять файл модели, если она поддерживает этот тип, иначе — отправлять содержащийся в нём текст.</string>
+    <string name="upload_routing_manual">Спрашивать каждый раз</string>
+    <string name="upload_routing_manual_desc">Спрашивать перед прикреплением, когда возможны оба варианта. Изображения всегда отправляются модели.</string>
+    <string name="mcp_oauth_title">Вход в %1$s</string>
+    <string name="mcp_oauth_message">Для использования этого сервера нужно ваше разрешение. Вы будете перенаправлены к провайдеру для авторизации доступа, после чего сможете вернуться и переподключиться.</string>
+    <string name="mcp_oauth_continue">Продолжить</string>
+    <string name="mcp_connection_deferred">Подключение в фоновом режиме — инструменты появятся, когда оно будет готово.</string>
 </resources>

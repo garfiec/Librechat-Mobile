@@ -11,4 +11,7 @@
     <string name="version_mismatch_message">Diese App wurde für LibreChat v%1$s entwickelt, aber dein Server läuft mit v%2$s. Einige Funktionen funktionieren möglicherweise nicht korrekt.</string>
     <string name="dismiss">Schließen</string>
     <string name="dont_warn_again">Nicht erneut warnen</string>
+    <string name="session_expired_title">Abgemeldet</string>
+    <string name="session_expired_message">Deine Sitzung ist abgelaufen. Melde dich erneut an, um fortzufahren.</string>
+    <string name="session_expired_message_named">Deine Sitzung für %1$s ist abgelaufen. Melde dich erneut an, um fortzufahren.</string>
 </resources>

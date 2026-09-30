@@ -4,6 +4,7 @@
     <string name="rename">名前を変更</string>
     <string name="cancel">キャンセル</string>
     <string name="delete">削除</string>
+    <string name="save">保存</string>
     <string name="archive">アーカイブ</string>
     <string name="export">エクスポート</string>
     <string name="share">共有</string>
@@ -42,6 +43,28 @@
     <!-- Conversation actions -->
     <string name="remove_bookmark">ブックマークを解除</string>
     <string name="bookmark">ブックマーク</string>
+    <string name="pin">ピン留め</string>
+    <string name="unpin">ピン留めを解除</string>
+    <string name="move_to_project">プロジェクトに移動</string>
+    <string name="project_picker_title">プロジェクトに移動</string>
+    <string name="project_none">プロジェクトなし</string>
+    <string name="project_create">プロジェクトを作成</string>
+    <string name="project_new_name">新しいプロジェクト名</string>
+    <string name="project_empty_chats">このプロジェクトにはまだチャットがありません</string>
+    <string name="project_sort_label">並べ替え</string>
+    <string name="project_sort_updated">更新日が新しい順</string>
+    <string name="project_sort_created">作成日が新しい順</string>
+    <string name="projects_title">プロジェクト</string>
+    <string name="project_rename">プロジェクト名を変更</string>
+    <string name="project_delete">プロジェクトを削除</string>
+    <string name="project_delete_confirm">プロジェクト「%1$s」を削除しますか？会話は残りますが、プロジェクトからは外されます。</string>
+    <string name="project_open">開く</string>
+    <string name="project_unassigned">未割り当て</string>
+    <string name="projects_all">すべてのプロジェクト</string>
+    <string name="project_new">新しいプロジェクト</string>
+    <string name="project_name_label">プロジェクト名</string>
+    <string name="project_count">%1$d 件のチャット</string>
+    <string name="projects_empty">プロジェクトはまだありません</string>
     <string name="tags">タグ</string>
     <string name="rename_conversation">会話の名前を変更</string>
     <string name="rename_dialog_message">この会話の新しいタイトルを入力してください。</string>
@@ -72,10 +95,26 @@
 
     <!-- Drawer strings (moved from :shared) -->
     <string name="agents">エージェント</string>
+    <string name="cd_collapse_section">セクションを折りたたむ</string>
+    <string name="cd_expand_section">セクションを展開</string>
+    <string name="chats">チャット</string>
     <string name="favorites">お気に入り</string>
     <string name="files">ファイル</string>
+    <string name="library">ライブラリ</string>
     <string name="no_conversations_found">会話が見つかりません</string>
+    <string name="pinned">ピン留め済み</string>
+    <string name="projects">プロジェクト</string>
     <string name="search_conversations_placeholder">会話を検索…</string>
     <string name="settings">設定</string>
+    <string name="show_less">表示を減らす</string>
+    <string name="show_more">さらに表示</string>
+    <string name="schedules">スケジュールされたチャット</string>
     <string name="skills">スキル</string>
+    <string name="accounts">アカウント</string>
+    <string name="add_account">アカウントを追加</string>
+    <string name="cd_active_account">使用中のアカウント</string>
+    <string name="remove">削除</string>
+    <string name="remove_account">アカウントを削除</string>
+    <string name="remove_account_message">%1$s とそのデータがこのデバイスから削除されます。サーバー上のアカウントには影響しません。</string>
+    <string name="remove_account_title">アカウントを削除しますか？</string>
 </resources>

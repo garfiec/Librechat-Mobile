@@ -4,6 +4,7 @@
     <string name="rename">Umbenennen</string>
     <string name="cancel">Abbrechen</string>
     <string name="delete">Löschen</string>
+    <string name="save">Speichern</string>
     <string name="archive">Archivieren</string>
     <string name="export">Exportieren</string>
     <string name="share">Teilen</string>
@@ -42,6 +43,28 @@
     <!-- Conversation actions -->
     <string name="remove_bookmark">Lesezeichen entfernen</string>
     <string name="bookmark">Lesezeichen</string>
+    <string name="pin">Anheften</string>
+    <string name="unpin">Lösen</string>
+    <string name="move_to_project">In Projekt verschieben</string>
+    <string name="project_picker_title">In Projekt verschieben</string>
+    <string name="project_none">Kein Projekt</string>
+    <string name="project_create">Projekt erstellen</string>
+    <string name="project_new_name">Neuer Projektname</string>
+    <string name="project_empty_chats">Noch keine Chats in diesem Projekt</string>
+    <string name="project_sort_label">Sortieren</string>
+    <string name="project_sort_updated">Zuletzt aktualisiert</string>
+    <string name="project_sort_created">Zuletzt erstellt</string>
+    <string name="projects_title">Projekte</string>
+    <string name="project_rename">Projekt umbenennen</string>
+    <string name="project_delete">Projekt löschen</string>
+    <string name="project_delete_confirm">Projekt "%1$s" löschen? Die Unterhaltungen bleiben erhalten, werden aber aus dem Projekt entfernt.</string>
+    <string name="project_open">Öffnen</string>
+    <string name="project_unassigned">Nicht zugeordnet</string>
+    <string name="projects_all">Alle Projekte</string>
+    <string name="project_new">Neues Projekt</string>
+    <string name="project_name_label">Projektname</string>
+    <string name="project_count">%1$d Chats</string>
+    <string name="projects_empty">Noch keine Projekte</string>
     <string name="tags">Tags</string>
     <string name="rename_conversation">Unterhaltung umbenennen</string>
     <string name="rename_dialog_message">Gib einen neuen Titel für diese Unterhaltung ein.</string>
@@ -72,10 +95,26 @@
 
     <!-- Drawer strings (moved from :shared) -->
     <string name="agents">Agenten</string>
+    <string name="cd_collapse_section">Abschnitt einklappen</string>
+    <string name="cd_expand_section">Abschnitt ausklappen</string>
+    <string name="chats">Chats</string>
     <string name="favorites">Favoriten</string>
     <string name="files">Dateien</string>
+    <string name="library">Bibliothek</string>
     <string name="no_conversations_found">Keine Unterhaltungen gefunden</string>
+    <string name="pinned">Angeheftet</string>
+    <string name="projects">Projekte</string>
     <string name="search_conversations_placeholder">Unterhaltungen suchen…</string>
     <string name="settings">Einstellungen</string>
+    <string name="show_less">Weniger anzeigen</string>
+    <string name="show_more">Mehr anzeigen</string>
+    <string name="schedules">Geplante Chats</string>
     <string name="skills">Skills</string>
+    <string name="accounts">Konten</string>
+    <string name="add_account">Konto hinzufügen</string>
+    <string name="cd_active_account">Aktives Konto</string>
+    <string name="remove">Entfernen</string>
+    <string name="remove_account">Konto entfernen</string>
+    <string name="remove_account_message">%1$s und die zugehörigen Daten werden von diesem Gerät entfernt. Das Konto auf dem Server ist davon nicht betroffen.</string>
+    <string name="remove_account_title">Konto entfernen?</string>
 </resources>

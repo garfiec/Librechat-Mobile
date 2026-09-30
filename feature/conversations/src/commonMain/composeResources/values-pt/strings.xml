@@ -4,6 +4,7 @@
     <string name="rename">Renomear</string>
     <string name="cancel">Cancelar</string>
     <string name="delete">Excluir</string>
+    <string name="save">Salvar</string>
     <string name="archive">Arquivar</string>
     <string name="export">Exportar</string>
     <string name="share">Compartilhar</string>
@@ -42,6 +43,28 @@
     <!-- Conversation actions -->
     <string name="remove_bookmark">Remover marcador</string>
     <string name="bookmark">Marcar</string>
+    <string name="pin">Fixar</string>
+    <string name="unpin">Desafixar</string>
+    <string name="move_to_project">Mover para projeto</string>
+    <string name="project_picker_title">Mover para projeto</string>
+    <string name="project_none">Sem projeto</string>
+    <string name="project_create">Criar projeto</string>
+    <string name="project_new_name">Nome do novo projeto</string>
+    <string name="project_empty_chats">Nenhuma conversa neste projeto ainda</string>
+    <string name="project_sort_label">Ordenar</string>
+    <string name="project_sort_updated">Atualizados recentemente</string>
+    <string name="project_sort_created">Criados recentemente</string>
+    <string name="projects_title">Projetos</string>
+    <string name="project_rename">Renomear projeto</string>
+    <string name="project_delete">Excluir projeto</string>
+    <string name="project_delete_confirm">Excluir o projeto "%1$s"? As conversas são mantidas, mas removidas do projeto.</string>
+    <string name="project_open">Abrir</string>
+    <string name="project_unassigned">Sem projeto</string>
+    <string name="projects_all">Todos os projetos</string>
+    <string name="project_new">Novo projeto</string>
+    <string name="project_name_label">Nome do projeto</string>
+    <string name="project_count">%1$d conversas</string>
+    <string name="projects_empty">Nenhum projeto ainda</string>
     <string name="tags">Etiquetas</string>
     <string name="rename_conversation">Renomear conversa</string>
     <string name="rename_dialog_message">Digite um novo título para esta conversa.</string>
@@ -72,10 +95,26 @@
 
     <!-- Drawer strings (moved from :shared) -->
     <string name="agents">Agentes</string>
+    <string name="cd_collapse_section">Recolher seção</string>
+    <string name="cd_expand_section">Expandir seção</string>
+    <string name="chats">Conversas</string>
     <string name="favorites">Favoritos</string>
     <string name="files">Arquivos</string>
+    <string name="library">Biblioteca</string>
     <string name="no_conversations_found">Nenhuma conversa encontrada</string>
+    <string name="pinned">Fixadas</string>
+    <string name="projects">Projetos</string>
     <string name="search_conversations_placeholder">Buscar conversas…</string>
     <string name="settings">Configurações</string>
+    <string name="show_less">Mostrar menos</string>
+    <string name="show_more">Mostrar mais</string>
+    <string name="schedules">Conversas agendadas</string>
     <string name="skills">Habilidades</string>
+    <string name="accounts">Contas</string>
+    <string name="add_account">Adicionar conta</string>
+    <string name="cd_active_account">Conta ativa</string>
+    <string name="remove">Remover</string>
+    <string name="remove_account">Remover conta</string>
+    <string name="remove_account_message">%1$s e seus dados serão removidos deste dispositivo. A conta no servidor não é afetada.</string>
+    <string name="remove_account_title">Remover conta?</string>
 </resources>

@@ -259,6 +259,9 @@
     <string name="agent_file_upload_failed">فشل رفع الملف</string>
     <string name="agent_file_remove_failed">فشل إزالة الملف</string>
     <string name="cd_remove_file">إزالة %1$s</string>
+    <string name="agent_file_remove_confirm_title">إزالة %1$s؟</string>
+    <string name="agent_file_remove_confirm_title_generic">إزالة هذا الملف؟</string>
+    <string name="agent_file_remove_confirm_message">إذا لم يستخدم أي وكيل آخر هذا الملف، فسيُحذف نهائيًا.</string>
 
     <!-- Skills selector (v0.8.6) -->
     <string name="label_skills">المهارات</string>
@@ -278,4 +281,30 @@
     <string name="subagents_allow_self">السماح بإنشاء نسخة من نفسه</string>
     <string name="add_subagent">إضافة وكيل فرعي</string>
     <string name="subagents_full">تم الوصول إلى الحد الأقصى لعدد الوكلاء الفرعيين.</string>
+    <string name="tools_marketplace_title">الأدوات</string>
+    <string name="tools_marketplace_description">اختر ما يمكن لهذا الوكيل فعله</string>
+    <string name="tools_marketplace_search_hint">البحث في الأدوات والخوادم والمهارات…</string>
+    <string name="tools_marketplace_no_matches">لا توجد نتائج مطابقة لـ "%1$s"</string>
+    <string name="tools_marketplace_no_favorites">ضع نجمة على أداة لتثبيتها هنا</string>
+    <string name="tools_marketplace_empty">لا يوجد شيء متاح بعد</string>
+    <string name="tools_filter_all">الكل</string>
+    <string name="tools_filter_favorites">المفضلة</string>
+    <string name="tools_filter_builtin">مدمجة</string>
+    <string name="tools_filter_tools">الأدوات</string>
+    <string name="tools_filter_mcp">MCP</string>
+    <string name="tools_filter_skills">المهارات</string>
+    <string name="tools_browse">تصفّح الأدوات</string>
+    <string name="cd_pin_tool">تثبيت</string>
+    <string name="cd_unpin_tool">إلغاء التثبيت</string>
+    <string name="builtin_code_interpreter">مفسّر الكود</string>
+    <string name="builtin_code_interpreter_desc">يشغّل الكود في بيئة معزولة ويعيد مخرجاته وملفاته.</string>
+    <string name="builtin_file_search">البحث في الملفات</string>
+    <string name="builtin_file_search_desc">يسترجع مقاطع من الملفات المرفقة بهذا الوكيل.</string>
+    <string name="builtin_web_search">البحث على الويب</string>
+    <string name="builtin_web_search_desc">يبحث على الويب ويستشهد بالمصادر التي استخدمها.</string>
+    <string name="builtin_file_context">سياق الملفات</string>
+    <string name="builtin_file_context_desc">يضع الملفات المرفقة كاملة في سياق الوكيل.</string>
+    <string name="builtin_ask_user">سؤال المستخدم</string>
+    <string name="builtin_ask_user_desc">يوقف التشغيل مؤقتًا ليطرح عليك سؤالًا توضيحيًا.</string>
+    <string name="agent_contact_title">جهة الاتصال</string>
 </resources>

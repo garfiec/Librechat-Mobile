@@ -11,4 +11,7 @@
     <string name="version_mismatch_message">تم إنشاء هذا التطبيق لـ LibreChat v%1$s، لكن خادمك يعمل بالإصدار v%2$s. قد لا تعمل بعض الميزات بشكل صحيح.</string>
     <string name="dismiss">تجاهل</string>
     <string name="dont_warn_again">عدم التحذير مرة أخرى</string>
+    <string name="session_expired_title">تم تسجيل الخروج</string>
+    <string name="session_expired_message">انتهت صلاحية جلستك. سجّل الدخول مجددًا للمتابعة.</string>
+    <string name="session_expired_message_named">انتهت صلاحية جلستك على %1$s. سجّل الدخول مجددًا للمتابعة.</string>
 </resources>

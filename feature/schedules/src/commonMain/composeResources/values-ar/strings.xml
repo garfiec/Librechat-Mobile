@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="schedules">المحادثات المجدولة</string>
+    <string name="schedules_empty_title">لا توجد محادثات مجدولة</string>
+    <string name="schedules_empty_body">دع وكيلًا يشغّل مطالبة وفق جدول زمني ويحفظ كل محادثة لك.</string>
+    <string name="schedules_disabled_on_server">المحادثات المجدولة معطّلة على هذا الخادم.</string>
+    <string name="schedules_create">جدولة جديدة</string>
+    <string name="schedules_at_limit">لقد بلغت حد هذا الخادم البالغ %1$d محادثة مجدولة. احذف واحدة لإضافة أخرى.</string>
+    <string name="schedule_paused">متوقفة مؤقتًا</string>
+    <string name="schedule_running">قيد التشغيل الآن</string>
+    <string name="schedule_next_run">التشغيل التالي %1$s</string>
+    <string name="schedule_last_run">آخر تشغيل %1$s</string>
+    <string name="schedule_run_now">تشغيل الآن</string>
+    <string name="schedule_delete">حذف</string>
+    <string name="schedule_delete_confirm_title">حذف هذه الجدولة؟</string>
+    <string name="schedule_delete_confirm_body">ستتوقف عن العمل. سيُحتفظ بالمحادثات التي أنشأتها بالفعل.</string>
+    <string name="schedule_enable">تفعيل</string>
+    <string name="schedule_disable">إيقاف مؤقت</string>
+
+    <string name="schedule_editor_new_title">جدولة جديدة</string>
+    <string name="schedule_editor_edit_title">تعديل الجدولة</string>
+    <string name="schedule_name">الاسم</string>
+    <string name="schedule_prompt">المطالبة</string>
+    <string name="schedule_agent">الوكيل</string>
+    <string name="schedule_project">المشروع</string>
+    <string name="schedule_project_pinned">تُحفظ ضمن المشروع الذي يخصصه هذا الخادم للجدولات.</string>
+    <string name="schedule_project_needed">أنشئ مشروع محادثات قبل إضافة جدولة — يحفظ هذا الخادم كل تشغيل مجدول ضمن مشروع.</string>
+    <string name="schedule_timezone">المنطقة الزمنية</string>
+    <string name="schedule_repeats">التكرار</string>
+    <string name="schedule_frequency_hourly">كل ساعة</string>
+    <string name="schedule_frequency_daily">كل يوم</string>
+    <string name="schedule_frequency_weekdays">أيام العمل</string>
+    <string name="schedule_frequency_weekly">أسبوعيًا</string>
+    <string name="schedule_frequency_cron">مخصص (cron)</string>
+    <string name="schedule_cron_expression">تعبير Cron</string>
+    <string name="schedule_cron_hint">خمسة حقول: الدقيقة، الساعة، يوم الشهر، الشهر، يوم الأسبوع. يتحقق منها الخادم.</string>
+    <string name="schedule_cadence_preview">يعمل في %1$s</string>
+    <string name="schedule_time">الساعة</string>
+    <string name="schedule_minute">الدقيقة</string>
+    <string name="schedule_days">الأيام</string>
+    <string name="schedule_save">حفظ</string>
+    <string name="schedule_conflict">تم تغيير هذه الجدولة في مكان آخر. أعد التحميل لرؤية الإصدار الحالي — لم تُحفظ تعديلاتك هنا.</string>
+    <string name="schedule_reload">إعادة التحميل</string>
+    <string name="schedule_load_failed">تعذّر تحميل هذه الجدولة، لذا لا يوجد ما يمكن حفظه بعد. أعد التحميل للمحاولة مجددًا.</string>
+    <string name="schedule_cancel">إلغاء</string>
+
+    <string name="schedule_problem_name">أدخل اسمًا للجدولة.</string>
+    <string name="schedule_problem_prompt">أضف المطالبة المراد إرسالها.</string>
+    <string name="schedule_problem_agent">اختر وكيلًا.</string>
+    <string name="schedule_problem_cron">أدخل خمسة حقول cron، مثل 0 9 * * 1-5.</string>
+    <string name="schedule_problem_weekday">اختر يومًا واحدًا على الأقل.</string>
+    <string name="schedule_problem_time">أدخل ساعة (0–23) ودقيقة (0–59).</string>
+    <string name="schedule_problem_no_agents">لا يوجد وكلاء متاحون لتشغيل جدولة.</string>
+    <string name="schedule_problem_project">اختر مشروعًا لحفظ التشغيلات فيه.</string>
+    <string name="schedule_problem_too_frequent">يتطلب هذا الخادم %1$d دقيقة على الأقل بين التشغيلات.</string>
+
+    <string name="schedule_disabled_mcp_reauth">متوقفة مؤقتًا: تحتاج إحدى الأدوات المتصلة إلى تسجيل دخولك مجددًا. افتح الوكيل في محادثة لإعادة توصيلها.</string>
+    <string name="schedule_disabled_mcp_config">متوقفة مؤقتًا: إعدادات إحدى الأدوات المتصلة ناقصة.</string>
+    <string name="schedule_disabled_mcp_permission">متوقفة مؤقتًا: لم تعد لديك صلاحية الوصول إلى إحدى الأدوات المتصلة. يجب على المسؤول استعادتها.</string>
+    <string name="schedule_disabled_failures">متوقفة مؤقتًا بعد فشل عدد كبير جدًا من التشغيلات.</string>
+    <string name="schedule_disabled_agent">متوقفة مؤقتًا: حُذف الوكيل الذي كانت تستخدمه.</string>
+    <string name="schedule_disabled_invalid">متوقفة مؤقتًا: لا يوجد تشغيل تالٍ صالح للجدولة.</string>
+    <string name="schedule_disabled_permission">متوقفة مؤقتًا: أُزيل إذنك بتشغيل الجدولات.</string>
+    <string name="schedule_disabled_balance">متوقفة مؤقتًا: الرصيد غير كافٍ للتشغيل.</string>
+    <string name="schedule_disabled_project">متوقفة مؤقتًا: حُذف المشروع الذي كانت تُحفظ فيه التشغيلات.</string>
+    <string name="schedule_disabled_project_required">متوقفة مؤقتًا: يتطلب هذا الخادم الآن مشروعًا، ولا مشروع لهذه الجدولة.</string>
+    <string name="schedule_disabled_unknown">أوقفها الخادم مؤقتًا.</string>
+</resources>

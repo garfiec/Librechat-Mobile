@@ -22,6 +22,9 @@
     <string name="cd_delete_file">حذف %1$s</string>
     <string name="cd_thumbnail">صورة مصغّرة لـ %1$s</string>
     <string name="cd_close_preview">إغلاق المعاينة</string>
+    <string name="cd_image">صورة</string>
+    <string name="cd_save_image">حفظ على الجهاز</string>
+    <string name="cd_share_image">مشاركة الصورة</string>
     <string name="cd_cancel_upload">إلغاء الرفع</string>
     <string name="cd_ascending">تصاعدي</string>
     <string name="cd_descending">تنازلي</string>
@@ -29,6 +32,8 @@
     <!-- Selection mode -->
     <string name="select_files">تحديد الملفات</string>
     <string name="selected_count">%1$d محدد</string>
+    <string name="attach_count">إرفاق (%1$d)</string>
+    <string name="cd_close_picker">إغلاق المنتقي</string>
 
     <!-- Empty states -->
     <string name="no_files">لا توجد ملفات</string>

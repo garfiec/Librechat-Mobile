@@ -42,6 +42,17 @@
     <string name="cd_start_voice_recording">开始录音</string>
     <string name="cd_stop_generation">停止生成</string>
     <string name="cd_send_message">发送消息</string>
+    <string name="cd_add_to_queue">将消息加入队列</string>
+    <string name="cd_answer_question">发送回答</string>
+    <string name="cd_cancel_pending_send">正在等待上传——点击以取消发送</string>
+    <string name="cd_cancel_queued_message">移除排队的消息</string>
+    <string name="cd_reorder_queued_message">拖动以重新排列排队的消息</string>
+    <string name="send_queued_messages">发送排队消息（%1$d）</string>
+    <string name="queued_attachment_only">附件</string>
+    <string name="queued_turn_needs_attention">需要处理</string>
+    <string name="editing_queued_message">正在编辑排队的消息</string>
+    <string name="cd_cancel_edit">取消编辑</string>
+    <string name="cd_update_queued_message">更新排队的消息</string>
     <string name="cd_open_drawer">打开导航抽屉</string>
     <string name="cd_edit_title">编辑标题</string>
     <string name="cd_more_options">更多选项</string>
@@ -65,6 +76,7 @@
 
     <!-- Content descriptions - Images -->
     <string name="cd_close">关闭</string>
+    <string name="cd_image">图片</string>
     <string name="cd_save_to_device">保存到设备</string>
     <string name="cd_share_image">分享图片</string>
     <string name="cd_failed_to_load_image">图片加载失败</string>
@@ -109,8 +121,59 @@
 
     <!-- Content descriptions - Subagent trace (subagents, v0.8.6+) -->
     <string name="label_subagent">子智能体</string>
+    <string name="subagent_threads_title">子智能体线程</string>
+    <string name="subagent_threads_open">查看线程</string>
+    <string name="subagent_threads_back">返回线程列表</string>
+    <string name="subagent_threads_empty">此对话没有子智能体线程。</string>
+    <string name="subagent_threads_unavailable">此处没有可用的子智能体线程。</string>
+    <string name="subagent_threads_event_origin">由事件启动</string>
+    <string name="subagent_threads_truncated">部分内容过长，无法完整显示。</string>
+    <string name="subagent_threads_load_older">加载更早内容</string>
+    <string name="subagent_threads_older_unavailable">更早的历史记录已不可用。</string>
     <string name="cd_collapse_subagent">收起子智能体 %1$s</string>
     <string name="cd_expand_subagent">展开子智能体 %1$s</string>
+    <string name="trace_title">对话追踪</string>
+    <string name="trace_open">查看追踪</string>
+    <string name="trace_refresh">刷新</string>
+    <string name="trace_back">返回记录列表</string>
+    <string name="trace_load_older">加载更早内容</string>
+    <string name="trace_retry">重试</string>
+    <string name="trace_empty">此对话暂无追踪记录。</string>
+    <string name="trace_stat_turns">轮次</string>
+    <string name="trace_stat_generations">生成次数</string>
+    <string name="trace_stat_tools">工具</string>
+    <string name="trace_stat_labels">标签</string>
+    <string name="trace_stat_errors">错误</string>
+    <string name="trace_stat_tokens">Token</string>
+    <string name="trace_stat_cost">费用</string>
+    <string name="trace_kind_agent">智能体</string>
+    <string name="trace_kind_generation">生成</string>
+    <string name="trace_kind_tool">工具</string>
+    <string name="trace_kind_span">跨度</string>
+    <string name="trace_kind_event">事件</string>
+    <string name="trace_kind_other">记录</string>
+    <string name="trace_status_ok">正常</string>
+    <string name="trace_status_warning">警告</string>
+    <string name="trace_status_error">错误</string>
+    <string name="trace_running">运行中</string>
+    <string name="trace_view_steps">步骤</string>
+    <string name="trace_view_all">全部记录</string>
+    <string name="trace_step">步骤 %1$d</string>
+    <string name="trace_step_title">标题</string>
+    <string name="trace_partial">显示 %1$d 条记录。更早的轮次尚未加载。</string>
+    <string name="trace_input">输入</string>
+    <string name="trace_output">输出</string>
+    <string name="trace_metadata">元数据</string>
+    <string name="trace_truncated">已被服务器截断。</string>
+    <string name="trace_content_unavailable">此服务器不返回记录的输入和输出。</string>
+    <string name="trace_tokens_detail">输入 %1$d · 输出 %2$d · 总计 %3$d</string>
+    <string name="trace_error_generic">无法读取追踪记录。</string>
+    <string name="trace_error_not_found">此追踪记录已不可用。</string>
+    <string name="trace_error_changed">读取期间追踪记录发生了变化。请刷新以重新开始。</string>
+    <string name="trace_error_rate_limited">追踪请求过多。请稍后再试。</string>
+    <string name="trace_error_timeout">追踪服务未及时响应。</string>
+    <string name="trace_error_unauthorized">追踪服务拒绝了此服务器的凭据。</string>
+    <string name="trace_error_unsupported">此服务器的追踪服务无法返回追踪记录。</string>
 
     <!-- Office-doc preview attachments (deferred preview, v0.8.6+) -->
     <string name="office_preview_preparing">正在准备 %1$s 的预览…</string>
@@ -121,18 +184,27 @@
     <string name="cd_tool_call">工具调用</string>
     <string name="cd_collapse_tool_call">收起工具调用 %1$s</string>
     <string name="cd_expand_tool_call">展开工具调用 %1$s</string>
+    <string name="context_compact">压缩对话</string>
+    <string name="context_compacting">正在压缩…</string>
+    <string name="context_compact_info">将目前为止的全部内容总结为一段较短的摘要供模型继续读取，为后续内容腾出上下文空间。不会删除任何内容。</string>
     <string name="cd_tool_complete">已完成</string>
+    <string name="cd_tool_cancelled">已停止</string>
+    <string name="cd_tool_failed">失败</string>
     <string name="video_not_supported">不支持视频内容</string>
 
     <!-- Tools bottom sheet -->
     <string name="tool_camera">相机</string>
     <string name="tool_photos">照片</string>
     <string name="tool_files">文件</string>
+    <string name="tool_server_files">服务器</string>
     <string name="tool_model">模型</string>
     <string name="tool_model_parameters">模型参数</string>
     <string name="tool_model_parameters_desc">调整温度、token 等参数</string>
     <string name="tool_web_search">网络搜索</string>
     <string name="tool_web_search_desc">在网络上搜索信息</string>
+    <string name="web_searched">已搜索网络</string>
+    <string name="tool_url_context">URL 上下文</string>
+    <string name="tool_url_context_desc">让模型读取你引用的 URL 和 YouTube 视频</string>
     <string name="tool_code">代码</string>
     <string name="tool_code_desc">运行和分析代码</string>
     <string name="tool_file_search">文件搜索</string>
@@ -140,12 +212,29 @@
     <string name="tool_mcp">MCP</string>
     <string name="tool_mcp_desc">Model Context Protocol 服务器</string>
     <string name="cd_web_search_enabled">已启用网络搜索</string>
+    <string name="cd_quoted_excerpt">引用的摘录</string>
+    <string name="cd_remove_quote">移除引用</string>
+    <string name="selection_add_to_chat">添加到对话</string>
     <string name="cd_code_enabled">已启用代码解释器</string>
     <string name="cd_file_search_enabled">已启用文件搜索</string>
 
     <!-- Attachments -->
     <string name="cd_attach_file">附加文件</string>
     <string name="files_count">文件（%1$d）</string>
+    <string name="files_count_with_text">文件（%1$d）· %2$d 个为文本</string>
+    <string name="cd_files_attached">已附加 %1$d 个文件，点击以预览</string>
+    <string name="cd_files_attached_with_text">已附加 %1$d 个文件，其中 %2$d 个以文本发送，点击以预览</string>
+    <string name="upload_routing_sheet_title">这些文件要如何发送？</string>
+    <string name="upload_routing_sheet_title_single">此文件要如何发送？</string>
+    <string name="upload_routing_option_provider">直接交给模型</string>
+    <string name="upload_routing_option_text">作为文本</string>
+    <string name="upload_routing_why_provider">由模型直接读取文件。</string>
+    <string name="upload_routing_why_text">由服务器读取文件并发送其文本。</string>
+    <string name="upload_routing_why_provider_only">此模型只能直接接收此文件。</string>
+    <string name="upload_routing_why_text_only">此模型无法读取此文件，因此改为发送其文本。</string>
+    <string name="upload_routing_apply_all">全部应用</string>
+    <string name="upload_routing_attach">附加</string>
+    <string name="cd_upload_route_text">已作为提取的文本发送</string>
     <string name="cd_attached_file">已附加文件：%1$s</string>
     <string name="cd_preview_file">%1$s 的预览</string>
     <string name="cd_remove_file">移除 %1$s</string>
@@ -200,6 +289,19 @@
     <string name="cd_memory_artifact">记忆 artifact：%1$s</string>
     <string name="memory_artifact_untitled">无标题</string>
     <string name="label_memory">记忆</string>
+    <string name="cd_memory_artifacts">记忆更新：%1$d</string>
+    <string name="memory_updated">已更新保存的记忆</string>
+    <string name="memory_error">记忆错误</string>
+    <string name="memory_updated_items">已更新的记忆</string>
+    <string name="memory_deleted_items">已删除的记忆</string>
+    <string name="memory_deleted">记忆已删除</string>
+    <string name="memory_storage_full">记忆存储已满</string>
+    <string name="memory_already_exceeded">记忆存储已满——已超出 %1$d 个 token。请先删除现有记忆再添加新记忆。</string>
+    <string name="memory_would_exceed">无法保存——将超出限制 %1$d 个 token。请删除现有记忆以腾出空间。</string>
+    <string name="files_searched">已搜索你的文件</string>
+    <string name="cd_file_search_source">文件搜索来源：%1$s</string>
+    <string name="file_search_relevance">%1$d%%</string>
+    <string name="file_search_pages">页码：%1$s</string>
 
     <!-- Mermaid diagram -->
     <string name="label_mermaid">mermaid</string>
@@ -215,6 +317,14 @@
 
     <!-- Message files -->
     <string name="file_fallback">文件</string>
+    <string name="attachment_fallback">附件</string>
+    <string name="pdf_document">PDF 文档</string>
+    <string name="pdf_load_failed">无法加载 PDF</string>
+    <string name="cd_share_pdf">分享 PDF</string>
+    <string name="cd_open_pdf">打开 PDF</string>
+    <string name="retry">重试</string>
+    <string name="messages_unavailable_title">消息不可用</string>
+    <string name="messages_unavailable_body">无法加载此对话，且此设备上没有保存离线副本。</string>
 
     <!-- Model selector sheet -->
     <string name="cd_selected">已选择</string>
@@ -236,7 +346,25 @@
 
     <!-- Feedback dialog -->
     <string name="feedback_question">这条回复有什么问题？</string>
+    <string name="feedback_question_positive">这条回复有哪些优点？</string>
     <string name="hint_optional_comment">可选评论…</string>
+    <string name="feedback_tag_not_matched">与我的请求不符</string>
+    <string name="feedback_tag_inaccurate">回答不准确或错误</string>
+    <string name="feedback_tag_bad_style">风格或语气不佳</string>
+    <string name="feedback_tag_missing_image">应包含图片</string>
+    <string name="feedback_tag_unjustified_refusal">无故拒绝</string>
+    <string name="feedback_tag_not_helpful">缺少有用信息</string>
+    <string name="feedback_tag_other">其他问题</string>
+    <string name="feedback_tag_accurate_reliable">准确可靠</string>
+    <string name="feedback_tag_creative_solution">解决方案有创意</string>
+    <string name="feedback_tag_clear_well_written">清晰且文笔流畅</string>
+    <string name="feedback_tag_attention_to_detail">注重细节</string>
+    <string name="activity_used_n_tools">使用了 %1$d 个工具</string>
+    <string name="steer_sent_during_reply">在回复期间发送</string>
+    <string name="state_expanded">已展开</string>
+    <string name="state_collapsed">已收起</string>
+    <string name="feedback_unavailable_while_generating">回复完成后即可发送。</string>
+    <string name="cd_feedback_unavailable">回复生成期间不可用</string>
 
     <!-- Streaming tool call -->
     <string name="tool_call_output">输出：</string>
@@ -257,9 +385,22 @@
     <!-- Artifacts -->
     <string name="cd_open_artifact">打开 artifact</string>
     <string name="cd_share_artifact">分享 artifact</string>
+    <string name="cd_add_artifact_to_home_screen">添加到主屏幕</string>
+    <string name="add_to_home_screen_dialog_title">添加到主屏幕</string>
+    <string name="add_to_home_screen_dialog_name_label">名称</string>
+    <string name="add_to_home_screen_dialog_emoji_label">表情符号</string>
+    <string name="add_to_home_screen_icon_label">图标</string>
+    <string name="add_to_home_screen_icon_auto">自动</string>
+    <string name="add_to_home_screen_icon_custom">自定义</string>
+    <string name="cd_icon_preview">图标预览</string>
+    <string name="artifact_shortcut_unavailable">此 artifact 已不可用。</string>
+    <string name="add_to_home_screen_confirm">添加</string>
+    <string name="artifact_shortcut_back">返回</string>
     <string name="cd_previous_version">上一个版本</string>
     <string name="cd_next_version">下一个版本</string>
     <string name="artifact_version">v%1$d/%2$d</string>
+    <string name="artifact_view_source">查看源代码</string>
+    <string name="artifact_view_preview">查看预览</string>
     <string name="artifact_incomplete">未完成</string>
     <!-- Prompts -->
     <string name="prompts_library">提示词库</string>
@@ -315,6 +456,7 @@
     <string name="provider_keys_chat_error_invalid">提供的密钥无效。请提供有效的密钥后重试。</string>
     <!-- Snackbar action label that deep-links to Settings → Provider Keys -->
     <string name="provider_keys_chat_error_cta">打开密钥设置</string>
+    <string name="queued_messages_dropped_account_switch">切换账号后，排队的消息已被丢弃</string>
 
     <!-- Send block reasons (shown in error snackbar when send can't proceed) -->
     <string name="send_block_select_agent">发送消息前请先选择一个智能体。</string>
@@ -323,4 +465,112 @@
     <string name="send_block_agent_not_available">所选智能体在此服务器上不可用。请选择其他智能体。</string>
     <string name="send_block_model_not_available">所选模型在此服务器上不可用。请选择其他模型。</string>
     <string name="send_block_model_load_failed">尚无法加载所选模型。请重试或选择其他模型。</string>
+    <string name="action_show_all_media">显示全部媒体</string>
+    <string name="media_gallery_title">媒体</string>
+    <string name="media_tab_media">媒体</string>
+    <string name="media_tab_files">文件</string>
+    <string name="media_tab_links">链接</string>
+    <string name="media_tab_artifacts">Artifacts</string>
+    <string name="media_scope_whole_chat">整个对话</string>
+    <string name="media_scope_this_branch">当前分支</string>
+    <string name="media_empty_media">此对话中没有媒体</string>
+    <string name="media_empty_files">此对话中没有文件</string>
+    <string name="media_empty_links">此对话中没有链接</string>
+    <string name="media_empty_artifacts">此对话中没有 artifact</string>
+    <string name="context_usage_label">上下文</string>
+    <string name="context_usage_window">上下文窗口</string>
+    <string name="context_usage_messages">消息</string>
+    <string name="context_usage_tools">工具定义</string>
+    <string name="context_usage_summary">摘要</string>
+    <string name="context_usage_system">系统</string>
+    <string name="context_usage_free">剩余空间</string>
+    <string name="context_usage_input">输入</string>
+    <string name="context_usage_output">输出</string>
+    <string name="tool_approval_title">需要批准</string>
+    <string name="tool_approval_subtitle">运行前请先审核。</string>
+    <string name="tool_approval_arguments">参数</string>
+    <string name="tool_approval_approve">批准</string>
+    <string name="tool_approval_reject">拒绝</string>
+    <string name="tool_approval_edit">编辑</string>
+    <string name="tool_approval_respond">回复</string>
+    <string name="tool_approval_approve_all">全部批准</string>
+    <string name="tool_approval_reject_all">全部拒绝</string>
+    <string name="tool_approval_submit">继续</string>
+    <string name="tool_approval_edited_arguments">编辑后的参数（JSON）</string>
+    <string name="tool_approval_response_text">发送此回复以代替运行工具</string>
+    <string name="tool_approval_invalid_json">请输入有效的 JSON</string>
+    <string name="ask_user_question_answer_hint">输入你的回答</string>
+    <string name="ask_user_question_other_hint">其他</string>
+    <string name="ask_user_question_send">发送</string>
+    <string name="ask_user_question_skip">跳过</string>
+    <string name="ask_user_question_multi_select_hint">可多选</string>
+    <string name="ask_user_question_page_of">%1$d / %2$d</string>
+    <string name="ask_user_question_skipped">已跳过</string>
+    <string name="cd_previous_ask_user_question">上一个问题</string>
+    <string name="cd_next_ask_user_question">下一个问题</string>
+    <string name="ask_user_question_send_progress">发送（%1$d/%2$d）</string>
+    <string name="ask_user_question_next">下一步</string>
+    <string name="ask_user_question_back">上一步</string>
+    <string name="ask_user_question_skip_all">全部跳过</string>
+    <string name="ask_user_question_tab_fallback">问题 %1$d</string>
+    <string name="ask_user_question_waiting_marker">请在下方回答</string>
+    <string name="cd_ask_user_question_answered">已回答</string>
+    <string name="cd_minimize_ask_user_question">最小化问题</string>
+    <string name="cd_restore_ask_user_question">显示问题</string>
+    <string name="error_resource_recovery_required">无法恢复此对话附加的文件，助手因此无法使用它们。请重新附加后重试。</string>
+    <string name="error_model_not_found">该提供商无法提供所选模型。请选择其他模型，或请管理员检查提供商配置。</string>
+    <string name="error_missing_model">未选择模型。请选择一个模型后重试。</string>
+    <string name="error_models_not_loaded">无法加载模型列表。请下拉刷新后重试。</string>
+    <string name="error_endpoint_models_not_loaded">无法加载此端点的模型。请下拉刷新后重试。</string>
+    <string name="error_invalid_agent_provider">此服务器不允许使用该智能体的提供商。请联系管理员启用。</string>
+    <string name="error_refusal">模型拒绝回答此问题。换一种说法可能会有帮助。</string>
+    <string name="error_input_length">此消息超出了模型可接受的长度。请缩短后重试。</string>
+    <string name="error_moderation">此消息被服务器的内容审核标记。请编辑消息，或开始新对话。</string>
+    <string name="error_stream_expired">此回复在显示前已完成或过期。请重新打开对话以加载。</string>
+    <string name="error_model_rate_limit">提供商正在对此模型限速。请稍后再试，或选择其他模型。</string>
+    <string name="error_final_context_overflow">此对话已超出模型的上下文窗口。请开始新对话，或切换到上下文窗口更大的模型。</string>
+    <string name="error_compaction_skipped">目前还没有可压缩的内容。请继续对话，稍后再试。</string>
+    <string name="error_compaction_failed">无法生成摘要，对话未作更改。请重试。</string>
+    <string name="error_upstream_model_error">模型提供商无法完成此请求。请重试，或选择其他模型。</string>
+    <string name="error_upstream_model_error_status">模型提供商无法完成此请求（状态码 %1$d）。请重试，或选择其他模型。</string>
+    <string name="error_details_provider">提供商响应</string>
+    <string name="error_empty_messages">为适应模型上下文而裁剪此对话后，已没有可发送的内容。请开始新对话，或切换到上下文窗口更大的模型。</string>
+    <string name="error_code_workspace_unavailable">此对话的代码工作区不可用。请重试，或选择其他工作区。</string>
+    <string name="error_stateful_code_environment_not_allowed">此服务器不允许使用持久代码环境。请在代码解释器选项中关闭后重试。</string>
+    <string name="error_auth_rate_limited">登录尝试次数过多。请稍后再试。</string>
+    <string name="error_auth_banned">此账号或网络已被禁止登录。请联系管理员。</string>
+    <string name="error_auth_cross_origin">服务器认为此登录请求来自其他站点并予以拒绝。请报告此问题——这是应用的 bug，而非密码问题。</string>
+    <string name="error_share_limit">共享链接请求过多。请稍后再试。</string>
+    <string name="ask_user_question_record_asked">已提问</string>
+    <string name="ask_user_question_record_asking">正在提问</string>
+    <string name="ask_user_question_record_answer_label">你的回答：</string>
+    <string name="ask_user_question_record_unanswered">未作回答</string>
+    <string name="ask_user_question_record_skipped">你跳过了此问题</string>
+    <string name="ask_user_question_record_options">提供的选项</string>
+    <string name="ask_user_question_record_options_multi">提供的选项（可多选）</string>
+    <string name="ask_user_question_record_failed">问题未能显示</string>
+    <string name="ask_user_question_record_failed_description">助手无法显示此问题，可能会自动重试。</string>
+    <string name="cd_expand_ask_user_question">展开问题详情</string>
+    <string name="cd_collapse_ask_user_question">收起问题详情</string>
+    <string name="tool_memory">记忆</string>
+    <string name="tool_memory_desc">让助手记住此对话中的细节</string>
+    <string name="cd_steer_message">引导此回复</string>
+    <string name="cd_cancel_steer">取消引导</string>
+    <string name="cd_during_run_options">选择现在发送的方式</string>
+    <string name="during_run_steer">引导此回复</string>
+    <string name="during_run_queue">加入队列</string>
+    <string name="during_run_always_steer">生成时始终引导</string>
+    <string name="during_run_always_queue">生成时始终加入队列</string>
+    <string name="system_event_label">系统</string>
+    <string name="wakeup_explainer">此持久结果唤醒了智能体以继续对话。</string>
+    <string name="wakeup_subagent_completed">子智能体任务已完成</string>
+    <string name="wakeup_subagent_failed">子智能体任务失败</string>
+    <string name="wakeup_subagent_cancelled">子智能体任务已取消</string>
+    <string name="wakeup_task_finished">后台任务已完成</string>
+    <string name="wakeup_task_failed">后台任务失败</string>
+    <string name="wakeup_tasks_finished">%1$d 个后台任务已完成</string>
+    <string name="wakeup_status_completed">已完成</string>
+    <string name="wakeup_status_failed">失败</string>
+    <string name="wakeup_status_cancelled">已取消</string>
+    <string name="wakeup_subagent_thread">线程 %1$s</string>
 </resources>

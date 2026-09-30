@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="schedules">Chats programados</string>
+    <string name="schedules_empty_title">No hay chats programados</string>
+    <string name="schedules_empty_body">Haz que un agente ejecute un prompt de forma programada y guarde cada conversación por ti.</string>
+    <string name="schedules_disabled_on_server">Los chats programados están desactivados en este servidor.</string>
+    <string name="schedules_create">Nueva programación</string>
+    <string name="schedules_at_limit">Has alcanzado el límite de %1$d chats programados de este servidor. Elimina uno para añadir otro.</string>
+    <string name="schedule_paused">En pausa</string>
+    <string name="schedule_running">En ejecución</string>
+    <string name="schedule_next_run">Próxima ejecución %1$s</string>
+    <string name="schedule_last_run">Última ejecución %1$s</string>
+    <string name="schedule_run_now">Ejecutar ahora</string>
+    <string name="schedule_delete">Eliminar</string>
+    <string name="schedule_delete_confirm_title">¿Eliminar esta programación?</string>
+    <string name="schedule_delete_confirm_body">Dejará de ejecutarse. Las conversaciones que ya creó se conservan.</string>
+    <string name="schedule_enable">Activar</string>
+    <string name="schedule_disable">Pausar</string>
+
+    <string name="schedule_editor_new_title">Nueva programación</string>
+    <string name="schedule_editor_edit_title">Editar programación</string>
+    <string name="schedule_name">Nombre</string>
+    <string name="schedule_prompt">Prompt</string>
+    <string name="schedule_agent">Agente</string>
+    <string name="schedule_project">Proyecto</string>
+    <string name="schedule_project_pinned">Se guarda en el proyecto al que este servidor asigna las programaciones.</string>
+    <string name="schedule_project_needed">Crea un proyecto de chat antes de añadir una programación; este servidor guarda cada ejecución programada en uno.</string>
+    <string name="schedule_timezone">Zona horaria</string>
+    <string name="schedule_repeats">Repetición</string>
+    <string name="schedule_frequency_hourly">Cada hora</string>
+    <string name="schedule_frequency_daily">Cada día</string>
+    <string name="schedule_frequency_weekdays">Días laborables</string>
+    <string name="schedule_frequency_weekly">Semanal</string>
+    <string name="schedule_frequency_cron">Personalizada (cron)</string>
+    <string name="schedule_cron_expression">Expresión cron</string>
+    <string name="schedule_cron_hint">Cinco campos: minuto, hora, día del mes, mes, día de la semana. Los valida el servidor.</string>
+    <string name="schedule_cadence_preview">Se ejecuta a las %1$s</string>
+    <string name="schedule_time">Hora</string>
+    <string name="schedule_minute">Minuto</string>
+    <string name="schedule_days">Días</string>
+    <string name="schedule_save">Guardar</string>
+    <string name="schedule_conflict">Esta programación se cambió en otro lugar. Recarga para ver la versión actual; tus cambios aquí no se guardaron.</string>
+    <string name="schedule_reload">Recargar</string>
+    <string name="schedule_load_failed">No se pudo cargar esta programación, así que aún no hay nada que guardar. Recarga para intentarlo de nuevo.</string>
+    <string name="schedule_cancel">Cancelar</string>
+
+    <string name="schedule_problem_name">Ponle un nombre a la programación.</string>
+    <string name="schedule_problem_prompt">Añade el prompt que se enviará.</string>
+    <string name="schedule_problem_agent">Elige un agente.</string>
+    <string name="schedule_problem_cron">Introduce cinco campos cron, por ejemplo 0 9 * * 1-5.</string>
+    <string name="schedule_problem_weekday">Elige al menos un día.</string>
+    <string name="schedule_problem_time">Introduce una hora (0–23) y un minuto (0–59).</string>
+    <string name="schedule_problem_no_agents">No hay agentes disponibles para ejecutar una programación.</string>
+    <string name="schedule_problem_project">Elige un proyecto en el que guardar las ejecuciones.</string>
+    <string name="schedule_problem_too_frequent">Este servidor requiere al menos %1$d minutos entre ejecuciones.</string>
+
+    <string name="schedule_disabled_mcp_reauth">En pausa: una herramienta conectada necesita que vuelvas a iniciar sesión. Abre el agente en un chat para volver a conectarla.</string>
+    <string name="schedule_disabled_mcp_config">En pausa: a una herramienta conectada le falta configuración.</string>
+    <string name="schedule_disabled_mcp_permission">En pausa: ya no tienes acceso a una herramienta conectada. Un administrador tiene que restaurarlo.</string>
+    <string name="schedule_disabled_failures">En pausa tras demasiadas ejecuciones fallidas.</string>
+    <string name="schedule_disabled_agent">En pausa: se eliminó el agente que usaba.</string>
+    <string name="schedule_disabled_invalid">En pausa: la programación no tiene una próxima ejecución válida.</string>
+    <string name="schedule_disabled_permission">En pausa: se retiró tu permiso para ejecutar programaciones.</string>
+    <string name="schedule_disabled_balance">En pausa: no hay saldo suficiente para ejecutarla.</string>
+    <string name="schedule_disabled_project">En pausa: se eliminó el proyecto donde se guardaban sus ejecuciones.</string>
+    <string name="schedule_disabled_project_required">En pausa: este servidor ahora requiere un proyecto y esta programación no tiene ninguno.</string>
+    <string name="schedule_disabled_unknown">Pausada por el servidor.</string>
+</resources>

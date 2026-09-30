@@ -4,6 +4,7 @@
     <string name="rename">إعادة تسمية</string>
     <string name="cancel">إلغاء</string>
     <string name="delete">حذف</string>
+    <string name="save">حفظ</string>
     <string name="archive">أرشفة</string>
     <string name="export">تصدير</string>
     <string name="share">مشاركة</string>
@@ -42,6 +43,28 @@
     <!-- Conversation actions -->
     <string name="remove_bookmark">إزالة الإشارة المرجعية</string>
     <string name="bookmark">إشارة مرجعية</string>
+    <string name="pin">تثبيت</string>
+    <string name="unpin">إلغاء التثبيت</string>
+    <string name="move_to_project">نقل إلى مشروع</string>
+    <string name="project_picker_title">نقل إلى مشروع</string>
+    <string name="project_none">بلا مشروع</string>
+    <string name="project_create">إنشاء مشروع</string>
+    <string name="project_new_name">اسم المشروع الجديد</string>
+    <string name="project_empty_chats">لا توجد محادثات في هذا المشروع بعد</string>
+    <string name="project_sort_label">الترتيب</string>
+    <string name="project_sort_updated">الأحدث تحديثًا</string>
+    <string name="project_sort_created">الأحدث إنشاءً</string>
+    <string name="projects_title">المشاريع</string>
+    <string name="project_rename">إعادة تسمية المشروع</string>
+    <string name="project_delete">حذف المشروع</string>
+    <string name="project_delete_confirm">حذف المشروع "%1$s"؟ ستبقى المحادثات، لكنها ستُزال من المشروع.</string>
+    <string name="project_open">فتح</string>
+    <string name="project_unassigned">غير مُسندة</string>
+    <string name="projects_all">جميع المشاريع</string>
+    <string name="project_new">مشروع جديد</string>
+    <string name="project_name_label">اسم المشروع</string>
+    <string name="project_count">%1$d محادثة</string>
+    <string name="projects_empty">لا توجد مشاريع بعد</string>
     <string name="tags">الوسوم</string>
     <string name="rename_conversation">إعادة تسمية المحادثة</string>
     <string name="rename_dialog_message">أدخل عنوانًا جديدًا لهذه المحادثة.</string>
@@ -72,10 +95,26 @@
 
     <!-- Drawer strings (moved from :shared) -->
     <string name="agents">الوكلاء</string>
+    <string name="cd_collapse_section">طي القسم</string>
+    <string name="cd_expand_section">توسيع القسم</string>
+    <string name="chats">المحادثات</string>
     <string name="favorites">المفضلة</string>
     <string name="files">الملفات</string>
+    <string name="library">المكتبة</string>
     <string name="no_conversations_found">لم يتم العثور على محادثات</string>
+    <string name="pinned">المثبتة</string>
+    <string name="projects">المشاريع</string>
     <string name="search_conversations_placeholder">البحث في المحادثات…</string>
     <string name="settings">الإعدادات</string>
+    <string name="show_less">عرض أقل</string>
+    <string name="show_more">عرض المزيد</string>
+    <string name="schedules">المحادثات المجدولة</string>
     <string name="skills">المهارات</string>
+    <string name="accounts">الحسابات</string>
+    <string name="add_account">إضافة حساب</string>
+    <string name="cd_active_account">الحساب النشط</string>
+    <string name="remove">إزالة</string>
+    <string name="remove_account">إزالة الحساب</string>
+    <string name="remove_account_message">سيُزال %1$s وبياناته من هذا الجهاز. لن يتأثر الحساب على الخادم.</string>
+    <string name="remove_account_title">إزالة الحساب؟</string>
 </resources>

@@ -59,4 +59,17 @@
     <string name="skill_acl_collapse">Contraer</string>
     <string name="skill_acl_expand">Expandir</string>
     <string name="skill_acl_close">Cerrar</string>
+    <string name="skill_import_failed_title">Error al importar</string>
+    <string name="skill_import_incomplete">Importación cancelada: no se pudieron importar %1$d archivo(s) del archivo comprimido. Corrige el archivo comprimido y vuelve a subirlo.</string>
+    <string name="skill_import_rollback_failed">La importación falló para %1$d archivo(s) y no se pudo eliminar automáticamente la habilidad incompleta. Elimínala antes de volver a intentarlo.</string>
+    <string name="skill_import_cleanup_incomplete">La importación falló para %1$d archivo(s). Se eliminó la habilidad incompleta, pero la limpieza automática no terminó.</string>
+    <string name="skill_import_failed_files">No se pudieron importar estos archivos:</string>
+    <string name="skill_import_rollback_failed_files">La importación falló para estos archivos y la habilidad incompleta se quedó sin eliminar:</string>
+    <string name="skill_import_cleanup_incomplete_files">La importación falló para estos archivos; la limpieza automática no terminó:</string>
+    <string name="skill_import_reason_invalid_path">Ruta de archivo no admitida</string>
+    <string name="skill_import_reason_file_too_large">Supera el límite de tamaño de archivo de %1$s MB</string>
+    <string name="skill_import_reason_archive_too_large">No importado: el archivo comprimido supera el límite de tamaño total de %1$s MB</string>
+    <string name="skill_import_reason_archive_entry_changed">Cambió mientras se leía el archivo comprimido</string>
+    <string name="skill_import_reason_persistence_failed">No se pudo guardar</string>
+    <string name="skill_import_reason_unknown">No se pudo importar</string>
 </resources>

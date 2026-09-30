@@ -59,4 +59,17 @@
     <string name="skill_acl_collapse">收起</string>
     <string name="skill_acl_expand">展开</string>
     <string name="skill_acl_close">关闭</string>
+    <string name="skill_import_failed_title">导入失败</string>
+    <string name="skill_import_incomplete">导入已取消：压缩包中有 %1$d 个文件无法导入。请修复压缩包后重新上传。</string>
+    <string name="skill_import_rollback_failed">%1$d 个文件导入失败，且不完整的技能无法自动移除。请先将其删除再重试。</string>
+    <string name="skill_import_cleanup_incomplete">%1$d 个文件导入失败。不完整的技能已被移除，但自动清理未完成。</string>
+    <string name="skill_import_failed_files">以下文件无法导入：</string>
+    <string name="skill_import_rollback_failed_files">以下文件导入失败，且留下了不完整的技能：</string>
+    <string name="skill_import_cleanup_incomplete_files">以下文件导入失败；自动清理未完成：</string>
+    <string name="skill_import_reason_invalid_path">不支持的文件路径</string>
+    <string name="skill_import_reason_file_too_large">超出 %1$s MB 的文件大小限制</string>
+    <string name="skill_import_reason_archive_too_large">未导入：压缩包超出 %1$s MB 的总大小限制</string>
+    <string name="skill_import_reason_archive_entry_changed">读取压缩包时发生了更改</string>
+    <string name="skill_import_reason_persistence_failed">无法保存</string>
+    <string name="skill_import_reason_unknown">无法导入</string>
 </resources>

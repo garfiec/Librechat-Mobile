@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="schedules">Conversas agendadas</string>
+    <string name="schedules_empty_title">Nenhuma conversa agendada</string>
+    <string name="schedules_empty_body">Faça um agente executar um prompt de forma agendada e arquivar cada conversa para você.</string>
+    <string name="schedules_disabled_on_server">As conversas agendadas estão desativadas neste servidor.</string>
+    <string name="schedules_create">Novo agendamento</string>
+    <string name="schedules_at_limit">Você atingiu o limite de %1$d conversas agendadas deste servidor. Exclua uma para adicionar outra.</string>
+    <string name="schedule_paused">Pausado</string>
+    <string name="schedule_running">Em execução</string>
+    <string name="schedule_next_run">Próxima execução %1$s</string>
+    <string name="schedule_last_run">Última execução %1$s</string>
+    <string name="schedule_run_now">Executar agora</string>
+    <string name="schedule_delete">Excluir</string>
+    <string name="schedule_delete_confirm_title">Excluir este agendamento?</string>
+    <string name="schedule_delete_confirm_body">Ele deixará de ser executado. As conversas já criadas por ele são mantidas.</string>
+    <string name="schedule_enable">Ativar</string>
+    <string name="schedule_disable">Pausar</string>
+
+    <string name="schedule_editor_new_title">Novo agendamento</string>
+    <string name="schedule_editor_edit_title">Editar agendamento</string>
+    <string name="schedule_name">Nome</string>
+    <string name="schedule_prompt">Prompt</string>
+    <string name="schedule_agent">Agente</string>
+    <string name="schedule_project">Projeto</string>
+    <string name="schedule_project_pinned">Arquivado no projeto definido por este servidor para agendamentos.</string>
+    <string name="schedule_project_needed">Crie um projeto de conversas antes de adicionar um agendamento — este servidor arquiva cada execução agendada em um projeto.</string>
+    <string name="schedule_timezone">Fuso horário</string>
+    <string name="schedule_repeats">Repetição</string>
+    <string name="schedule_frequency_hourly">A cada hora</string>
+    <string name="schedule_frequency_daily">Todos os dias</string>
+    <string name="schedule_frequency_weekdays">Dias úteis</string>
+    <string name="schedule_frequency_weekly">Semanalmente</string>
+    <string name="schedule_frequency_cron">Personalizado (cron)</string>
+    <string name="schedule_cron_expression">Expressão cron</string>
+    <string name="schedule_cron_hint">Cinco campos: minuto, hora, dia do mês, mês, dia da semana. Verificado pelo servidor.</string>
+    <string name="schedule_cadence_preview">Executa em %1$s</string>
+    <string name="schedule_time">Hora</string>
+    <string name="schedule_minute">Minuto</string>
+    <string name="schedule_days">Dias</string>
+    <string name="schedule_save">Salvar</string>
+    <string name="schedule_conflict">Este agendamento foi alterado em outro lugar. Recarregue para ver a versão atual — suas edições aqui não foram salvas.</string>
+    <string name="schedule_reload">Recarregar</string>
+    <string name="schedule_load_failed">Não foi possível carregar este agendamento, então ainda não há nada para salvar aqui. Recarregue para tentar novamente.</string>
+    <string name="schedule_cancel">Cancelar</string>
+
+    <string name="schedule_problem_name">Dê um nome ao agendamento.</string>
+    <string name="schedule_problem_prompt">Adicione o prompt a ser enviado.</string>
+    <string name="schedule_problem_agent">Escolha um agente.</string>
+    <string name="schedule_problem_cron">Digite cinco campos cron, por exemplo 0 9 * * 1-5.</string>
+    <string name="schedule_problem_weekday">Escolha pelo menos um dia.</string>
+    <string name="schedule_problem_time">Digite uma hora (0–23) e um minuto (0–59).</string>
+    <string name="schedule_problem_no_agents">Nenhum agente disponível para executar um agendamento.</string>
+    <string name="schedule_problem_project">Escolha um projeto para arquivar as execuções.</string>
+    <string name="schedule_problem_too_frequent">Este servidor exige pelo menos %1$d minutos entre execuções.</string>
+
+    <string name="schedule_disabled_mcp_reauth">Pausado: uma ferramenta conectada precisa que você entre novamente. Abra o agente em uma conversa para reconectá-la.</string>
+    <string name="schedule_disabled_mcp_config">Pausado: falta configuração em uma ferramenta conectada.</string>
+    <string name="schedule_disabled_mcp_permission">Pausado: você não tem mais acesso a uma ferramenta conectada. Um administrador precisa restaurá-lo.</string>
+    <string name="schedule_disabled_failures">Pausado após muitas execuções com falha.</string>
+    <string name="schedule_disabled_agent">Pausado: o agente usado foi excluído.</string>
+    <string name="schedule_disabled_invalid">Pausado: o agendamento não tem uma próxima execução válida.</string>
+    <string name="schedule_disabled_permission">Pausado: sua permissão para executar agendamentos foi removida.</string>
+    <string name="schedule_disabled_balance">Pausado: saldo insuficiente para executar.</string>
+    <string name="schedule_disabled_project">Pausado: o projeto em que as execuções eram arquivadas foi excluído.</string>
+    <string name="schedule_disabled_project_required">Pausado: este servidor agora exige um projeto, e este agendamento não tem nenhum.</string>
+    <string name="schedule_disabled_unknown">Pausado pelo servidor.</string>
+</resources>

@@ -2,6 +2,8 @@
 <resources>
     <!-- Accessibility label for the bottom-sheet drag handle -->
     <string name="cd_drag_handle">Ziehpunkt</string>
+    <string name="banner_dismiss">Banner schließen</string>
+    <string name="pdf_page_failed">Diese Seite konnte nicht dargestellt werden</string>
     <!-- Custom per-server request headers (issue #287); shared by the pre-login
          server screen and the post-login Settings editor -->
     <string name="server_headers_title">Benutzerdefinierte Anfrage-Header</string>

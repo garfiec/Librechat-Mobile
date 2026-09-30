@@ -2,6 +2,8 @@
 <resources>
     <!-- Accessibility label for the bottom-sheet drag handle -->
     <string name="cd_drag_handle">드래그 핸들</string>
+    <string name="banner_dismiss">배너 닫기</string>
+    <string name="pdf_page_failed">이 페이지를 렌더링할 수 없습니다</string>
     <!-- Custom per-server request headers (issue #287); shared by the pre-login
          server screen and the post-login Settings editor -->
     <string name="server_headers_title">사용자 지정 요청 헤더</string>
