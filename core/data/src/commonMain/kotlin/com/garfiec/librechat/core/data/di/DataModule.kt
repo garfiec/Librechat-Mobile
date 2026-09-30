@@ -36,6 +36,8 @@ import com.garfiec.librechat.core.data.repository.ArtifactShortcutRepository
 import com.garfiec.librechat.core.data.repository.ArtifactShortcutRepositoryImpl
 import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.AuthRepositoryImpl
+import com.garfiec.librechat.core.data.repository.BackgroundTaskRepository
+import com.garfiec.librechat.core.data.repository.BackgroundTaskRepositoryImpl
 import com.garfiec.librechat.core.data.repository.BalanceRepository
 import com.garfiec.librechat.core.data.repository.BalanceRepositoryImpl
 import com.garfiec.librechat.core.data.repository.BannerRepository
@@ -456,6 +458,7 @@ val dataModule = module {
     singleOf(::ShareRepositoryImpl) bind ShareRepository::class
     singleOf(::SkillsRepositoryImpl) bind SkillsRepository::class
     singleOf(::SubagentRepositoryImpl) bind SubagentRepository::class
+    singleOf(::BackgroundTaskRepositoryImpl) bind BackgroundTaskRepository::class
     singleOf(::SpeechRepositoryImpl) bind SpeechRepository::class
     singleOf(::UserRepositoryImpl) bind UserRepository::class
     singleOf(::BannerRepositoryImpl) bind BannerRepository::class

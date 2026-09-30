@@ -155,6 +155,11 @@ internal fun ChatFloatingTopBar(
             }
             Spacer(modifier = Modifier.width(8.dp))
 
+            // Temporary chats are never persisted, so they have no server-side task list.
+            if (!uiState.isTemporaryChat) {
+                BackgroundTasksChip(conversationId = conversationId, isStreaming = uiState.isStreaming)
+            }
+
             if (showTempChatToggle) {
                 FloatingBarChip(modifier = Modifier.size(FloatingBarChipSize)) {
                     TempChatToggle(

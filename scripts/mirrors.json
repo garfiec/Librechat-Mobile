@@ -937,6 +937,32 @@
       "failure_mode": "The drawer orders chats differently from the web sidebar -- a running chat is listed twice or stays buried under its date. Nothing errors."
     },
     {
+      "id": "background-task-output-parser",
+      "upstream": {
+        "file": "client/src/components/Chat/Messages/Content/Parts/background.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/background/BackgroundTaskOutput.kt",
+        "symbol": "BackgroundTaskOutput.parse / outcome, PolledTaskStatus"
+      },
+      "why": "The web client's rules for turning a check_background_task result into a card: which shapes are host-shaped (one task, a {tasks[], partial} list, a {status, message} notice), the accepted task statuses and the cancellation_requested -> stopping rewrite, and which outcomes read as failed or cancelled despite a successful run step. The tool output is model-facing JSON; the server serves no display contract. formatBackgroundCodeOutput in the same file is not ported.",
+      "failure_mode": "A status or shape upstream adds is refused, so the call falls back to the raw JSON card; or a failed poll reads as a success because the outcome table drifted. Nothing errors."
+    },
+    {
+      "id": "background-task-guidance",
+      "upstream": {
+        "file": "client/src/components/Chat/Messages/Content/Parts/guidance.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/BackgroundTaskGuidance.kt",
+        "symbol": "BackgroundTaskGuidance (NOTES / MESSAGES / NOTICES / noticeKey)"
+      },
+      "why": "The exact English notes, messages and notice statuses the poll tool emits, matched verbatim to localized copy. backgroundListGuidanceKeys is not ported (the card points at raw details instead).",
+      "failure_mode": "A reworded server sentence stops matching and the card says 'More information in raw task details.' instead of the specific guidance. Nothing errors."
+    },
+    {
       "id": "prompt-command-input-sanitizer",
       "upstream": {
         "file": "client/src/components/Prompts/fields/Command.tsx",

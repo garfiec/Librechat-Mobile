@@ -14,6 +14,7 @@ import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.AuthRepository
+import com.garfiec.librechat.core.data.repository.BackgroundTaskRepository
 import com.garfiec.librechat.core.data.repository.BannerRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.EndpointTokenRepository
@@ -60,6 +61,7 @@ class NavHostViewModel(
     private val endpointTokenRepository: EndpointTokenRepository,
     private val toolFavoritesRepository: ToolFavoritesRepository,
     private val fileRepository: FileRepository,
+    private val backgroundTaskRepository: BackgroundTaskRepository,
     private val resumePinStore: ResumePinStore,
     private val activeAccountProvider: ActiveAccountProvider,
     private val accountRoster: AccountRoster,
@@ -232,6 +234,8 @@ class NavHostViewModel(
                 // being left, and carrying its 404 over suppresses the queued-attachment TTL touch
                 // on the incoming one, whose files the reaper then collects out from under a send.
                 fileRepository.clear()
+                // Same again for the background-tasks route: its latched 404 is the old server's.
+                backgroundTaskRepository.clear()
                 // A resume pin names another account's run; keeping it would replay that
                 // account's agent/tool config into a resume on this one.
                 resumePinStore.clear()
