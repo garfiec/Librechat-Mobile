@@ -36,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.agents.AgentHandoffDisplayData
 import com.garfiec.librechat.feature.agents.resources.*
 import com.garfiec.librechat.feature.agents.resources.Res
@@ -162,6 +163,7 @@ private fun AddChainAgentDialog(
     var selectedAgent by remember { mutableStateOf<AgentHandoffDisplayData?>(null) }
 
     AlertDialog(
+        modifier = Modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.add_chain_agent)) },
         text = {

@@ -37,6 +37,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.OTP_LENGTH
 import com.garfiec.librechat.core.ui.components.OtpCodeInput
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.core.ui.components.sanitizeOtpInput
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
@@ -70,6 +71,7 @@ internal fun TwoFactorSetupDialog(
     LaunchedEffect(isLoading) { if (!isLoading) submitted = false }
 
     AlertDialog(
+        modifier = Modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.dialog_title_enable_2fa)) },
         text = {
@@ -223,6 +225,7 @@ internal fun TwoFactorCodeDialog(
     var code by remember { mutableStateOf("") }
 
     AlertDialog(
+        modifier = Modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {

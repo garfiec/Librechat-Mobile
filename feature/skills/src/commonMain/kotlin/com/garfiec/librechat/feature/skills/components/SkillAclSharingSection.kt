@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.AccessRole
 import com.garfiec.librechat.core.model.Principal
 import com.garfiec.librechat.core.model.PrincipalType
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.skills.resources.*
 import com.garfiec.librechat.feature.skills.resources.Res
 import com.garfiec.librechat.feature.skills.viewmodel.SkillAclViewModel
@@ -270,6 +271,7 @@ private fun GrantAccessDialog(
     var roleMenu by remember { mutableStateOf(false) }
 
     AlertDialog(
+        modifier = Modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.skill_acl_grant_dialog_title)) },
         text = {

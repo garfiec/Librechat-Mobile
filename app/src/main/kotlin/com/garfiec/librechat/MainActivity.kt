@@ -49,6 +49,7 @@ import com.garfiec.librechat.core.common.network.ConnectivityObserver
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.ThemeDataStore
 import com.garfiec.librechat.core.data.datastore.ThemeMode
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
 import com.garfiec.librechat.feature.chat.ShareIntentConsumer
 import com.garfiec.librechat.feature.chat.SharedContent
@@ -149,6 +150,7 @@ class MainActivity : ComponentActivity() {
                     Surface(
                         modifier = Modifier
                             .fillMaxSize()
+                            .clearFocusOnTap()
                             .semantics { testTagsAsResourceId = true },
                     ) {
                         Column(modifier = Modifier.fillMaxSize()) {

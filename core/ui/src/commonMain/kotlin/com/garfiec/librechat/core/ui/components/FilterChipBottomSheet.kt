@@ -70,7 +70,7 @@ fun <T : Any> FilterChipBottomSheet(
             onSelectionChange(currentSelection)
             onDismiss()
         },
-        modifier = modifier,
+        modifier = modifier.clearFocusOnTap(),
         sheetState = sheetState,
         dragHandle = { LowProfileDragHandle() },
     ) {

@@ -46,6 +46,7 @@ import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.core.ui.components.ModelParameterContent
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.core.ui.components.PlatformBackHandler
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_back
@@ -187,7 +188,7 @@ fun ChatOptionsBottomSheet(
 
     ModalBottomSheet(
         onDismissRequest = dismiss,
-        modifier = modifier,
+        modifier = modifier.clearFocusOnTap(),
         sheetState = sheetState,
         dragHandle = { LowProfileDragHandle() },
     ) {

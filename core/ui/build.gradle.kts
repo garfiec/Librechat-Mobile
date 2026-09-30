@@ -31,6 +31,9 @@ kotlin {
             implementation(libs.activity.compose)
             implementation(libs.kermit)
         }
+        iosTest.dependencies {
+            implementation(libs.compose.multiplatform.ui.test)
+        }
         named("androidInstrumentedTest").dependencies {
             implementation(libs.junit)
             implementation(libs.android.test.runner)

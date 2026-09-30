@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.common.speech.sttEngineSelectsRecognizer
 import com.garfiec.librechat.core.common.speech.sttSupportsLiveRecognition
 import com.garfiec.librechat.core.model.speech.SttEngine
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -71,6 +72,7 @@ internal fun SttDetailDialog(
     }
 
     AlertDialog(
+        modifier = Modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.speech_to_text_settings)) },
         text = {
@@ -280,6 +282,7 @@ internal fun TtsDetailDialog(
     val sourceOptions = listOf("device" to deviceLabel, "server" to serverLabel)
 
     AlertDialog(
+        modifier = Modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.text_to_speech_settings)) },
         text = {

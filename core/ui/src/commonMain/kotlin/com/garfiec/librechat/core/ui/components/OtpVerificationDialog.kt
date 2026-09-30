@@ -72,6 +72,7 @@ fun OtpVerificationDialog(
     }
 
     AlertDialog(
+        modifier = Modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {

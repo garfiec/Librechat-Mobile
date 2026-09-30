@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.AccessRole
 import com.garfiec.librechat.core.model.Principal
 import com.garfiec.librechat.core.model.PrincipalType
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.agents.resources.Res
 import com.garfiec.librechat.feature.agents.resources.acl_add_principal
 import com.garfiec.librechat.feature.agents.resources.acl_grant_dialog_title
@@ -292,6 +293,7 @@ private fun GrantAccessDialog(
     var roleMenu by remember { mutableStateOf(false) }
 
     androidx.compose.material3.AlertDialog(
+        modifier = Modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.acl_grant_dialog_title)) },
         text = {

@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.agents.components.model.MarketplaceBuiltinLabel
 import com.garfiec.librechat.feature.agents.components.model.MarketplaceItem
 import com.garfiec.librechat.feature.agents.components.model.MarketplaceKind
@@ -123,7 +124,7 @@ fun ToolsMarketplaceDialog(
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         Surface(
-            modifier = modifier.fillMaxSize().imePadding().padding(16.dp),
+            modifier = modifier.fillMaxSize().imePadding().padding(16.dp).clearFocusOnTap(),
             shape = RoundedCornerShape(16.dp),
             tonalElevation = 6.dp,
         ) {

@@ -20,6 +20,7 @@ import com.garfiec.librechat.core.network.client.HeaderRejection
 import com.garfiec.librechat.core.ui.components.CustomHeaderRow
 import com.garfiec.librechat.core.ui.components.CustomHeaderRowError
 import com.garfiec.librechat.core.ui.components.CustomHeadersEditor
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.core.ui.resources.server_headers_load_error
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.resources.action_cancel
@@ -80,7 +81,7 @@ fun ServerHeadersDialog(
 
     AlertDialog(
         onDismissRequest = requestClose,
-        modifier = modifier,
+        modifier = modifier.clearFocusOnTap(),
         title = { Text(stringResource(Res.string.section_server_connection)) },
         text = {
             // AlertDialog clips its content instead of scrolling it, so a handful of header rows

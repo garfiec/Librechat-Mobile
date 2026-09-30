@@ -1,10 +1,13 @@
 package com.garfiec.librechat.shared.app
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import coil3.ImageLoader
 import coil3.compose.setSingletonImageLoaderFactory
@@ -15,6 +18,7 @@ import coil3.svg.SvgDecoder
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.ThemeDataStore
 import com.garfiec.librechat.core.data.datastore.ThemeMode
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
 import com.garfiec.librechat.shared.navigation.LibreChatNavHost
 import io.ktor.client.HttpClient
@@ -31,7 +35,7 @@ import org.koin.compose.koinInject
  * auth graph is shown as the start destination.
  */
 @Composable
-fun LibreChatApp() {
+fun LibreChatApp(modifier: Modifier = Modifier) {
     val httpClient = koinInject<HttpClient>()
     val imageLoaderFactory = remember(httpClient) {
         { context: coil3.PlatformContext ->
@@ -81,7 +85,9 @@ fun LibreChatApp() {
             accentColor = Color(accentColorArgb),
             useDynamicColor = useDynamicColor,
         ) {
-            LibreChatNavHost(appLocaleTag = appLocale)
+            Box(modifier.fillMaxSize().clearFocusOnTap()) {
+                LibreChatNavHost(appLocaleTag = appLocale)
+            }
         }
     }
 }
