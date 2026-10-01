@@ -32,6 +32,7 @@ import com.garfiec.librechat.feature.chat.model.PresetDisplayData
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
 import com.garfiec.librechat.feature.chat.util.MessageNode
+import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 
 /**
  * The agents endpoint capability that enables server-side text extraction (`tool_resource=context`).
@@ -221,6 +222,9 @@ data class ChatUiState(
     val askAnswerDrafts: Map<String, AskAnswerDraft> get() = content.askAnswerDrafts
     val askActiveQuestionId: String? get() = content.askActiveQuestionId
     val askPanelCollapsed: Boolean get() = content.askPanelCollapsed
+    val toolDecisionDrafts: Map<String, ToolDecisionDraft> get() = content.toolDecisionDrafts
+    val toolActiveCallId: String? get() = content.toolActiveCallId
+    val toolPanelCollapsed: Boolean get() = content.toolPanelCollapsed
     val memoryEnabled: Boolean get() = gates.memoryEnabled
     val conversationId: String? get() = conversation.conversationId
 

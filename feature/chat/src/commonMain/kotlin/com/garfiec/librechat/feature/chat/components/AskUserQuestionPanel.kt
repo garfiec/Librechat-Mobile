@@ -2,7 +2,6 @@ package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -15,7 +14,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -26,12 +24,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Button
@@ -47,8 +41,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.ScrollableTabRow
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -62,11 +54,8 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -215,7 +204,7 @@ fun AskUserQuestionPanel(
         // Cap the question body so a long description or option list can't push the card off
         // screen; the header and the action row stay pinned around it.
         val bodyMaxHeight = if (maxHeight == Dp.Infinity) FALLBACK_BODY_MAX_HEIGHT else maxHeight * BODY_HEIGHT_FRACTION
-        val isWide = maxWidth >= WIDE_LAYOUT_MIN_WIDTH
+        val isWide = maxWidth >= PAUSE_PANEL_WIDE_MIN_WIDTH
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
@@ -293,33 +282,14 @@ private fun CompactAskLayout(
                         .padding(vertical = 12.dp),
                 )
                 if (state.questions.size > 1) {
-                    IconButton(
-                        onClick = { actions.onSelect(state.activeIndex - 1) },
-                        enabled = !state.collapsed && state.activeIndex > 0,
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                            contentDescription = stringResource(Res.string.cd_previous_ask_user_question),
-                        )
-                    }
-                    Text(
-                        text = stringResource(
-                            Res.string.ask_user_question_page_of,
-                            state.activeIndex + 1,
-                            state.questions.size,
-                        ),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    PausePanelPager(
+                        index = state.activeIndex,
+                        count = state.questions.size,
+                        enabled = !state.collapsed,
+                        onSelect = actions.onSelect,
+                        previousLabel = stringResource(Res.string.cd_previous_ask_user_question),
+                        nextLabel = stringResource(Res.string.cd_next_ask_user_question),
                     )
-                    IconButton(
-                        onClick = { actions.onSelect(state.activeIndex + 1) },
-                        enabled = !state.collapsed && !state.isLast,
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                            contentDescription = stringResource(Res.string.cd_next_ask_user_question),
-                        )
-                    }
                 }
                 actions.onStop?.let { StopRunButton(onStop = it) }
                 CollapseToggle(collapsed = state.collapsed, onCollapsedChange = actions.onCollapsedChange)
@@ -372,7 +342,7 @@ private fun CompactAskLayout(
                                         val from = active.id
                                         val picked = composeAskAnswer(active.options, updated)
                                         coroutineScope.launch {
-                                            delay(AUTO_ADVANCE_DELAY_MS)
+                                            delay(PAUSE_PANEL_AUTO_ADVANCE_DELAY_MS)
                                             // Decided on what is recorded NOW, not at the tap: a re-pick,
                                             // a deselect or a typed qualifier inside the beat means the
                                             // user is still editing, and the tap-time answers would submit
@@ -607,7 +577,7 @@ private fun WideAskLayout(
                             if (!state.isLast) {
                                 val from = active.id
                                 coroutineScope.launch {
-                                    delay(AUTO_ADVANCE_DELAY_MS)
+                                    delay(PAUSE_PANEL_AUTO_ADVANCE_DELAY_MS)
                                     if (currentActiveId == from) actions.onSelect(state.activeIndex + 1)
                                 }
                             }
@@ -680,42 +650,18 @@ private fun AskQuestionTabs(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    ScrollableTabRow(
-        selectedTabIndex = activeIndex,
-        edgePadding = 0.dp,
-        containerColor = Color.Transparent,
-        divider = {},
+    PausePanelTabs(
+        labels = questions.mapIndexed { index, item ->
+            item.header?.takeIf { it.isNotBlank() }
+                ?: stringResource(Res.string.ask_user_question_tab_fallback, index + 1)
+        },
+        done = questions.map { isAnswered(it.id) },
+        activeIndex = activeIndex,
+        onSelect = onSelect,
+        doneLabel = stringResource(Res.string.cd_ask_user_question_answered),
         modifier = modifier,
-    ) {
-        questions.forEachIndexed { index, item ->
-            Tab(
-                selected = index == activeIndex,
-                onClick = { onSelect(index) },
-                enabled = enabled,
-                // Rounds the hover/press highlight to match the rest of the app.
-                modifier = Modifier.clip(MaterialTheme.shapes.medium),
-                text = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (isAnswered(item.id)) {
-                            Icon(
-                                Icons.Default.Check,
-                                contentDescription = stringResource(Res.string.cd_ask_user_question_answered),
-                                modifier = Modifier.size(16.dp),
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                        }
-                        Text(
-                            text = item.header?.takeIf { it.isNotBlank() }
-                                ?: stringResource(Res.string.ask_user_question_tab_fallback, index + 1),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.widthIn(max = MAX_TAB_LABEL_WIDTH),
-                        )
-                    }
-                },
-            )
-        }
-    }
+        enabled = enabled,
+    )
 }
 
 /** One question: prompt, description, numbered option rows and the free-text box. */
@@ -822,20 +768,9 @@ private fun AskQuestionBody(
     }
 }
 
-/**
- * Laid over a collapsed panel so the whole card is one target that expands it. The controls
- * underneath are inert while collapsed (switching to a question you can't see is meaningless),
- * and a tap that lands on one should still open the panel rather than do nothing.
- */
 @Composable
 private fun BoxScope.ExpandCollapsedOverlay(onExpand: () -> Unit) {
-    val restoreLabel = stringResource(Res.string.cd_restore_ask_user_question)
-    Box(
-        modifier = Modifier
-            .matchParentSize()
-            .clickable(onClickLabel = restoreLabel, role = Role.Button, onClick = onExpand)
-            .semantics { contentDescription = restoreLabel },
-    )
+    PausePanelExpandOverlay(restoreLabel = stringResource(Res.string.cd_restore_ask_user_question), onExpand = onExpand)
 }
 
 private fun toggledSelection(selected: List<String>, value: String, multiSelect: Boolean): List<String> = when {
@@ -858,14 +793,12 @@ private fun StopRunButton(onStop: () -> Unit) {
 
 @Composable
 private fun CollapseToggle(collapsed: Boolean, onCollapsedChange: (Boolean) -> Unit) {
-    IconButton(onClick = { onCollapsedChange(!collapsed) }) {
-        Icon(
-            imageVector = if (collapsed) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-            contentDescription = stringResource(
-                if (collapsed) Res.string.cd_restore_ask_user_question else Res.string.cd_minimize_ask_user_question,
-            ),
-        )
-    }
+    PausePanelCollapseToggle(
+        collapsed = collapsed,
+        onCollapsedChange = onCollapsedChange,
+        minimizeLabel = stringResource(Res.string.cd_minimize_ask_user_question),
+        restoreLabel = stringResource(Res.string.cd_restore_ask_user_question),
+    )
 }
 
 /**
@@ -874,28 +807,13 @@ private fun CollapseToggle(collapsed: Boolean, onCollapsedChange: (Boolean) -> U
  */
 @Composable
 fun AskUserQuestionWaitingMarker(modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            Icons.Default.HelpOutline,
-            contentDescription = null,
-            modifier = Modifier.size(16.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(
-            text = stringResource(Res.string.ask_user_question_waiting_marker),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
+    PausePanelWaitingMarker(
+        text = stringResource(Res.string.ask_user_question_waiting_marker),
+        icon = Icons.Default.HelpOutline,
+        modifier = modifier,
+    )
 }
 
-/** Same breakpoint the comparison panes use to go side by side. */
-private val WIDE_LAYOUT_MIN_WIDTH = 600.dp
 private const val BODY_HEIGHT_FRACTION = 0.45f
 
 /**
@@ -905,5 +823,3 @@ private const val BODY_HEIGHT_FRACTION = 0.45f
  */
 private const val HEADER_TO_BODY_HEIGHT_RATIO = 0.5f
 private val FALLBACK_BODY_MAX_HEIGHT = 320.dp
-private val MAX_TAB_LABEL_WIDTH = 140.dp
-private const val AUTO_ADVANCE_DELAY_MS = 250L

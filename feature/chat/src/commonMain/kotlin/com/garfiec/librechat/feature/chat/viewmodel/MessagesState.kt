@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.model.usage.TokenUsage
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
 import com.garfiec.librechat.feature.chat.util.MessageNode
+import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 
 enum class ChatScreenState { LANDING, LOADING, ACTIVE }
 
@@ -123,6 +124,16 @@ data class MessagesState(
     val askActiveQuestionId: String? = null,
     /** The docked ask panel is minimized to its header so the reply above can be read. */
     val askPanelCollapsed: Boolean = false,
+    /**
+     * Per-call decision drafts for a `tool_approval` [pendingAction], keyed by `tool_call_id`.
+     * Hoisted for the same reasons as [askAnswerDrafts]: the docked panel swaps layouts on a fold
+     * or rotation, and a reconnect into the same pause must not cost the user their decisions.
+     */
+    val toolDecisionDrafts: Map<String, ToolDecisionDraft> = emptyMap(),
+    /** The paused call the docked tool-approval panel is showing, or null for the first one. */
+    val toolActiveCallId: String? = null,
+    /** The docked tool-approval panel is minimized to its header. */
+    val toolPanelCollapsed: Boolean = false,
 )
 
 @Immutable

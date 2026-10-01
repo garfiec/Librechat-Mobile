@@ -18,6 +18,7 @@ import com.garfiec.librechat.core.model.response.ChatResumeResponse
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.feature.chat.components.ASK_USER_DECLINED_ANSWER
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
+import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 import com.garfiec.librechat.feature.chat.viewmodel.ChatRequestBuilder
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
@@ -872,6 +873,56 @@ class PendingActionDelegateTest {
         conversationId = "conv-1",
         payload = PendingActionPayload(type = PendingActionTypes.ASK_USER_QUESTION),
     )
+
+    @Test
+    fun `a reconnect into the same tool pause restores the panel's decisions`() =
+        runTest(UnconfinedTestDispatcher()) {
+            // The tool-approval panel docks like the ask panel, so the same session boundary
+            // (a fold, backgrounding) must not cost the user the calls they already decided.
+            val (delegate, state) = delegateWith(this)
+            val approve = ToolDecisionDraft(decision = ToolApprovalDecisions.APPROVE)
+
+            delegate.onPendingAction(toolApproval())
+            delegate.updateToolDecisionDraft("call-1", approve)
+            delegate.selectToolCall("call-2")
+            delegate.setToolPanelCollapsed(true)
+
+            delegate.clear()
+            assertThat(state.value.toolDecisionDrafts).isEmpty()
+            assertThat(state.value.toolActiveCallId).isNull()
+
+            delegate.onPendingAction(toolApproval())
+            assertThat(state.value.toolDecisionDrafts).containsExactly("call-1", approve)
+            assertThat(state.value.toolActiveCallId).isEqualTo("call-2")
+            assertThat(state.value.toolPanelCollapsed).isTrue()
+        }
+
+    @Test
+    fun `tool panel state resets on a different pause and once the batch is accepted`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val (delegate, state) = delegateWith(this)
+            coEvery { chatRepository.resumeChat(any()) } returns Result.Success(ChatResumeResponse())
+
+            delegate.onPendingAction(toolApproval())
+            delegate.updateToolDecisionDraft("call-1", ToolDecisionDraft(decision = ToolApprovalDecisions.REJECT))
+            delegate.selectToolCall("call-1")
+            // A re-announcement of the same pause keeps everything.
+            delegate.onPendingAction(toolApproval())
+            assertThat(state.value.toolDecisionDrafts).isNotEmpty()
+
+            delegate.onPendingAction(toolApproval(actionId = "act-2"))
+            assertThat(state.value.toolDecisionDrafts).isEmpty()
+            assertThat(state.value.toolActiveCallId).isNull()
+
+            delegate.updateToolDecisionDraft("call-1", ToolDecisionDraft(decision = ToolApprovalDecisions.APPROVE))
+            delegate.setToolPanelCollapsed(true)
+            delegate.submitToolDecisions(
+                listOf(ToolApprovalResolution(toolCallId = "call-1", decision = ToolApprovalDecisions.APPROVE)),
+            )
+            assertThat(state.value.pendingAction).isNull()
+            assertThat(state.value.toolDecisionDrafts).isEmpty()
+            assertThat(state.value.toolPanelCollapsed).isFalse()
+        }
 
     private companion object {
         const val FINGERPRINT_REJECTED = "started with a different setup"

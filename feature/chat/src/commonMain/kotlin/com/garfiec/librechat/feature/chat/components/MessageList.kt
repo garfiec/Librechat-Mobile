@@ -53,7 +53,6 @@ import com.garfiec.librechat.core.common.ChatLayoutConstants
 import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.MinimalFeedback
 import com.garfiec.librechat.core.model.PendingAction
-import com.garfiec.librechat.core.model.request.ToolApprovalResolution
 import com.garfiec.librechat.core.ui.theme.isSurfaceDark
 import com.garfiec.librechat.feature.chat.components.artifact.ArtifactType
 import com.garfiec.librechat.feature.chat.resources.*
@@ -142,8 +141,6 @@ fun MessageList(
      * composer. Only the callers that can resolve one pass it; the comparison panes leave it null.
      */
     pendingAction: PendingAction? = null,
-    isResolvingPendingAction: Boolean = false,
-    onSubmitToolDecisions: (List<ToolApprovalResolution>) -> Unit = {},
 ) {
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -182,7 +179,7 @@ fun MessageList(
     // follower's own mid-growth scroll as intent and latches, silently killing the follow.
     var programmaticScroll by remember { mutableStateOf(false) }
 
-    // True while the focus sits on something inside the list — an answer field on a pause card.
+    // True while the focus sits on something inside the list — an inline message edit.
     // The keyboard handler below stands down for those; foundation brings a focused node into
     // view on its own, and unlike this file it knows which node that is.
     var listHasFocus by remember { mutableStateOf(false) }
@@ -354,8 +351,8 @@ fun MessageList(
 
     // A run pausing for human review changes NOTHING the other scroll effects key on:
     // displayMessages.size, streamingContent and isStreaming are all unchanged. Without this the
-    // card is appended below the viewport and the user is left looking at a live cursor on a run
-    // that will never produce another token.
+    // waiting marker is appended below the viewport and the user is left looking at a live cursor
+    // on a run that will never produce another token.
     LaunchedEffect(pendingAction?.actionId) {
         if (pendingAction?.actionId != null) {
             userScrolledUp = false
@@ -397,10 +394,10 @@ fun MessageList(
                     //
                     // A pause for human review hands it back too. The run stays open across the
                     // pause, so isStreaming alone keeps this loop pinning the tail every frame
-                    // while the one thing it exists to follow — output — has stopped. The card is
-                    // brought into view once by its own effect above; after that the list is the
-                    // user's, to read a long question or reach a field, and a follower still
-                    // running would undo every scroll the instant their finger lifts.
+                    // while the one thing it exists to follow — output — has stopped. The pause
+                    // marker is brought into view once by its own effect above; after that the
+                    // list is the user's, to read the reply they are being asked about, and a
+                    // follower still running would undo every scroll the instant their finger lifts.
                     if (isTouching || userScrolledUp || isAwaitingHumanReview) {
                         programmaticScroll = false
                         continue
@@ -478,8 +475,8 @@ fun MessageList(
     // It runs ONLY while nothing inside the list holds focus. This
     // exists for the composer, which sits outside the list, so the
     // list learns about the keyboard from nothing but its own
-    // shrinking viewport. A field INSIDE the list — an answer field
-    // on a pause card — needs no help: foundation scrolls a newly
+    // shrinking viewport. A field INSIDE the list — an inline message
+    // edit — needs no help: foundation scrolls a newly
     // focused node into view by itself, and it knows where the focus
     // is, which this does not. Both running means this one wins and
     // jumps to the tail of the last item, scrolling the user off the
@@ -754,22 +751,17 @@ fun MessageList(
                     }
                 }
 
-                // Human-review pause (v0.8.8): the run is waiting on the user, so the resolve
-                // controls sit at the tail of the still-unfinished reply — the continuation
-                // streams back into the bubble above.
+                // Human-review pause (v0.8.8): the run is waiting on the user, whose controls are
+                // docked by the composer (AskUserQuestionPanel, ToolApprovalPanel). The tail of the
+                // still-unfinished reply keeps a one-line marker so it reads as waiting rather than
+                // stalled; the continuation streams back into the bubble above.
                 if (pendingAction != null) {
                     item(key = "pending_action_${pendingAction.actionId}") {
+                        val markerModifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                         if (pendingAction.isAskUserQuestion) {
-                            AskUserQuestionWaitingMarker(
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                            )
+                            AskUserQuestionWaitingMarker(modifier = markerModifier)
                         } else {
-                            PendingActionCard(
-                                pendingAction = pendingAction,
-                                isResolving = isResolvingPendingAction,
-                                onSubmitToolDecisions = onSubmitToolDecisions,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                            )
+                            ToolApprovalWaitingMarker(modifier = markerModifier)
                         }
                     }
                 }

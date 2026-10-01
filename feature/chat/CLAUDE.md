@@ -268,8 +268,8 @@ A clarifying question reaches the screen twice over its life, and the two must n
   the only other one, and a pause this client cannot resolve (a fingerprint 403 fails every answer
   and Skip alike) would otherwise strand the user until it expires. Panel submits never re-home
   text into the hidden composer — their words stay in the drafts, on the panel; only
-  `submitAnswerFromComposer` restores. The thread keeps only a one-line `AskUserQuestionWaitingMarker`; tool approval
-  still renders in-thread as `PendingActionCard`. The panel's drafts, active tab and collapse
+  `submitAnswerFromComposer` restores. The thread keeps only a one-line `AskUserQuestionWaitingMarker`
+  (tool approval docks too; see the next section). The panel's drafts, active tab and collapse
   state are hoisted into `MessagesState`; `sendDuringRun`'s answer-the-active-tab routing
   remains as the fallback for a send that reaches the ViewModel while the composer is hidden.
   The same question is *also* sitting in `activeToolCalls`, because the agent called a tool to
@@ -295,6 +295,29 @@ made. Skip posts upstream's `ASK_USER_DECLINED_ANSWER` sentinel (the run must re
 which reads back as "skipped" rather than as a sentence the user typed. A call whose args failed
 schema validation carries `inputValidationError` and says so — it was never put to the user, so
 rendering it as unanswered would be a lie.
+
+## Tool approval: one call at a time, above the composer (v0.8.8)
+
+A run paused on a `tool_approval` batch shows `ToolApprovalPanel` docked **above** the composer
+(both `ChatScreen` actuals stack it over `ChatInput` in the measured bottom box), and the thread
+keeps a one-line `ToolApprovalWaitingMarker`. Above rather than in place of the composer, unlike
+the ask panel: a decision does not compete with the composer, which keeps its Stop and queue — so
+this panel carries no Stop of its own.
+
+It pages through the batch the way the ask panel does, sharing its chrome (`PausePanelChrome.kt`:
+pager, tabs, collapse toggle, collapsed overlay, waiting marker, the 600dp split and the
+auto-advance beat). Below 600dp a `‹ 1 of 3 ›` pager, where an Approve or Reject on a call not yet
+decided moves on and the decision completing the batch submits it; at 600dp and up one tab per
+call with Back / Next / Continue (n/N). Edit and Respond reveal their field and never advance on
+their own. Approve all / Reject all appear only when every call's policy permits that decision,
+and submit immediately.
+
+The resume is all-or-nothing (`toolBatchResolutions` returns null until every call is decided and
+complete — the route 400s a partial batch and an edit/respond without its payload). Allowed
+decisions join by `tool_call_id`, never position. Drafts, the active call and the collapse state
+live in `MessagesState` (`toolDecisionDrafts`, `toolActiveCallId`, `toolPanelCollapsed`) and ride
+`PendingActionDelegate`'s reconnect retention with the ask panel's, so a fold or backgrounding
+doesn't cost the user their decisions.
 
 ## During-run send: queue vs steer (v0.8.8)
 Two different things can happen when the user sends while a reply is generating, and they are not

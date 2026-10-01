@@ -12,11 +12,13 @@ import com.garfiec.librechat.core.model.request.ChatResumeRequest
 import com.garfiec.librechat.core.model.request.EphemeralAgent
 import com.garfiec.librechat.core.model.request.ToolApprovalResolution
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
+import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 import com.garfiec.librechat.feature.chat.util.askFreeTextBudget
 import com.garfiec.librechat.feature.chat.util.composeAskAnswer
 import com.garfiec.librechat.feature.chat.util.nextBlankQuestionIndex
 import com.garfiec.librechat.feature.chat.viewmodel.ChatRequestBuilder
 import com.garfiec.librechat.feature.chat.viewmodel.PendingActionHandle
+import com.garfiec.librechat.feature.chat.viewmodel.PendingActionWrites
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -122,22 +124,26 @@ class PendingActionDelegate(
     private var expiryJob: Job? = null
 
     /**
-     * The ask panel's editor state as [clear] found it, keyed by the pause it belonged to.
+     * The docked panel's editor state (ask answers or tool decisions) as [clear] found it, keyed
+     * by the pause it belonged to.
      *
      * [clear] runs at every stream session boundary, including a reconnect into the SAME run —
      * and a reconnect is routine: backgrounding the app, or folding/unfolding a foldable (which
      * recreates the Activity and so pauses and resumes the screen). The sync frame or status read
-     * then re-announces the very same pause, and without this the user's half-filled answers
-     * would be gone. Restored only by a pause with the same action id; dropped once that pause
+     * then re-announces the very same pause, and without this the user's half-filled answers or
+     * decisions would be gone. Restored only by a pause with the same action id; dropped once that pause
      * is resolved or expires.
      */
-    private var retainedAsk: RetainedAsk? = null
+    private var retainedPanel: RetainedPanel? = null
 
-    private data class RetainedAsk(
+    private data class RetainedPanel(
         val actionId: String,
-        val drafts: Map<String, AskAnswerDraft>,
-        val activeQuestionId: String?,
-        val collapsed: Boolean,
+        val askDrafts: Map<String, AskAnswerDraft>,
+        val askActiveQuestionId: String?,
+        val askCollapsed: Boolean,
+        val toolDrafts: Map<String, ToolDecisionDraft>,
+        val toolActiveCallId: String?,
+        val toolCollapsed: Boolean,
     )
 
     private data class PinnedTurnConfig(
@@ -235,16 +241,19 @@ class PendingActionDelegate(
         // A re-announcement of the SAME pause must keep the drafts — the user may have been
         // typing into the panel through a reconnect. A different pause starts blank.
         val isSameAction = handle.state.pendingAction?.actionId == pendingAction.actionId
-        // The same pause coming back after a session boundary cleared it (see [retainedAsk]).
-        val restored = retainedAsk?.takeIf { !isSameAction && it.actionId == pendingAction.actionId }
-        retainedAsk = null
+        // The same pause coming back after a session boundary cleared it (see [retainedPanel]).
+        val restored = retainedPanel?.takeIf { !isSameAction && it.actionId == pendingAction.actionId }
+        retainedPanel = null
         handle.update {
             this.pendingAction = pendingAction
             if (!isSameActionMidSubmit) isResolvingPendingAction = false
             if (!isSameAction) {
-                askAnswerDrafts = restored?.drafts.orEmpty()
-                askActiveQuestionId = restored?.activeQuestionId
-                askPanelCollapsed = restored?.collapsed ?: false
+                askAnswerDrafts = restored?.askDrafts.orEmpty()
+                askActiveQuestionId = restored?.askActiveQuestionId
+                askPanelCollapsed = restored?.askCollapsed ?: false
+                toolDecisionDrafts = restored?.toolDrafts.orEmpty()
+                toolActiveCallId = restored?.toolActiveCallId
+                toolPanelCollapsed = restored?.toolCollapsed ?: false
             }
         }
         scheduleExpiry(pendingAction)
@@ -287,7 +296,7 @@ class PendingActionDelegate(
         // inside the timer's own coroutine is safe (the remaining writes are non-suspending).
         expiryJob?.cancel()
         expiryJob = null
-        retainedAsk = null
+        retainedPanel = null
         pinnedTurn = null
         generationCreatedAt = null
         // Invalidate any in-flight resume: its continuation then restores the typed answer
@@ -300,6 +309,7 @@ class PendingActionDelegate(
             askAnswerDrafts = emptyMap()
             askActiveQuestionId = null
             askPanelCollapsed = false
+            resetToolPanel()
             error = pauseExpiredMessage()
         }
     }
@@ -308,7 +318,7 @@ class PendingActionDelegate(
      * Drops any pause without resolving it. Called at every stream end: whatever ended the run
      * (final frame, error, abort, expiry) has already made the pause unresolvable, and leaving
      * the card up would offer controls that can only 409. Also called at a reconnect into the
-     * same run, which is why the panel's drafts are set aside in [retainedAsk] rather than lost.
+     * same run, which is why the panel's drafts are set aside in [retainedPanel] rather than lost.
      */
     fun clear() {
         expiryJob?.cancel()
@@ -319,11 +329,15 @@ class PendingActionDelegate(
         inFlightActionId = null
         if (handle.state.pendingAction == null && !handle.state.isResolvingPendingAction) return
         handle.state.pendingAction?.actionId?.takeIf { it.isNotEmpty() }?.let { actionId ->
-            retainedAsk = RetainedAsk(
+            val state = handle.state
+            retainedPanel = RetainedPanel(
                 actionId = actionId,
-                drafts = handle.state.askAnswerDrafts,
-                activeQuestionId = handle.state.askActiveQuestionId,
-                collapsed = handle.state.askPanelCollapsed,
+                askDrafts = state.askAnswerDrafts,
+                askActiveQuestionId = state.askActiveQuestionId,
+                askCollapsed = state.askPanelCollapsed,
+                toolDrafts = state.toolDecisionDrafts,
+                toolActiveCallId = state.toolActiveCallId,
+                toolCollapsed = state.toolPanelCollapsed,
             )
         }
         handle.update {
@@ -332,6 +346,7 @@ class PendingActionDelegate(
             askAnswerDrafts = emptyMap()
             askActiveQuestionId = null
             askPanelCollapsed = false
+            resetToolPanel()
         }
     }
 
@@ -405,6 +420,29 @@ class PendingActionDelegate(
     fun setAskPanelCollapsed(collapsed: Boolean) {
         if (handle.state.askPanelCollapsed == collapsed) return
         handle.update { askPanelCollapsed = collapsed }
+    }
+
+    /** The tool-approval panel's per-call editor, writing the draft the batch is submitted from. */
+    fun updateToolDecisionDraft(toolCallId: String, draft: ToolDecisionDraft) {
+        if (toolCallId.isEmpty()) return
+        if (handle.state.toolDecisionDrafts[toolCallId] == draft) return
+        handle.update { toolDecisionDrafts = toolDecisionDrafts + (toolCallId to draft) }
+    }
+
+    fun selectToolCall(toolCallId: String) {
+        if (handle.state.toolActiveCallId == toolCallId) return
+        handle.update { toolActiveCallId = toolCallId }
+    }
+
+    fun setToolPanelCollapsed(collapsed: Boolean) {
+        if (handle.state.toolPanelCollapsed == collapsed) return
+        handle.update { toolPanelCollapsed = collapsed }
+    }
+
+    private fun PendingActionWrites.resetToolPanel() {
+        toolDecisionDrafts = emptyMap()
+        toolActiveCallId = null
+        toolPanelCollapsed = false
     }
 
     /**
@@ -524,7 +562,7 @@ class PendingActionDelegate(
             inFlightActionId = null
             when (result) {
                 is Result.Success -> {
-                    retainedAsk = null
+                    retainedPanel = null
                     pinnedTurn = null
                     resumePinStore.remove(conversationId)
                     handle.update {
@@ -533,6 +571,7 @@ class PendingActionDelegate(
                         askAnswerDrafts = emptyMap()
                         askActiveQuestionId = null
                         askPanelCollapsed = false
+                        resetToolPanel()
                     }
                 }
                 is Result.Error -> {

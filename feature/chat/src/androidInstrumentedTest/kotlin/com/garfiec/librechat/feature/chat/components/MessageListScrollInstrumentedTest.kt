@@ -13,20 +13,18 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
-import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.PendingAction
 import com.garfiec.librechat.core.model.PendingActionPayload
 import com.garfiec.librechat.core.model.PendingActionTypes
-import com.garfiec.librechat.core.model.ToolApprovalDecisions
 import com.garfiec.librechat.core.model.ToolApprovalRequest
-import com.garfiec.librechat.core.model.ToolReviewConfig
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import org.junit.Assert.assertTrue
@@ -37,35 +35,36 @@ import org.junit.runner.RunWith
 import kotlin.math.abs
 
 /**
- * The streaming follower must stand down while a run is paused for human review.
+ * Two things [MessageList] does to the scroll position on its own, and when it must not.
  *
- * A pause does not end the run: `isStreaming` stays true across it, so the per-frame follower in
- * [MessageList] keeps pinning the list's tail to the bottom while the output it exists to follow
- * has stopped. That matters because the pause card is the thing that grows underneath — a long
- * tool description laying out, a decision revealing its reply field, that field taking a second
- * line — and every one of those pushes the tail down. A live follower chases it, so the top of the
- * card walks off screen while the user is reading it.
+ * **The streaming follower must stand down while a run is paused for human review.** A pause
+ * does not end the run: `isStreaming` stays true across it, so the per-frame follower keeps
+ * pinning the list's tail to the bottom. The pause's controls are docked by the composer, and the
+ * thread keeps only a one-line marker — the user reading the paused reply above it must be able to
+ * scroll without the follower dragging them back. The pair below applies the same stimulus (the
+ * reply grows) and differs only in whether a pause is outstanding, so the control proves the
+ * measurement can actually detect chasing.
  *
- * The card here is a tool approval: an `ask_user_question` pause docks above the composer instead
- * and leaves only a one-line marker in the list.
+ * **The keyboard must not cost the user the field they just tapped.** The viewport-shrink handler
+ * jumps to the tail of the last item, which would scroll an inline message edit out of sight the
+ * moment the keyboard came up — so it stands down while the focus is inside the list, and leaves
+ * bringing the field into view to foundation.
  *
- * Both tests apply the same stimulus — the last item grows — and differ only in whether a pause is
- * outstanding, so the control proves the measurement can actually detect chasing. Position is read
- * from the anchor's own bounds rather than from `LazyListState`, which [MessageList] owns
- * internally and does not expose; the anchor stays composed either way because a LazyColumn item
- * composes whole while any part of it is on screen.
+ * Position is read from the anchor's own bounds rather than from `LazyListState`, which
+ * [MessageList] owns internally and does not expose; the anchor stays composed either way because a
+ * LazyColumn item composes whole while any part of it is on screen.
  */
 @RunWith(AndroidJUnit4::class)
-class MessageListPauseScrollInstrumentedTest {
+class MessageListScrollInstrumentedTest {
 
     @get:Rule
     val composeRule = createComposeRule()
 
     /** Grown after the first frame; recomposition feeds it back into the list. */
     private var streamingContent by mutableStateOf(SHORT_STREAM)
-    private var toolDescription by mutableStateOf(SHORT_DESCRIPTION)
+    private var isStreaming by mutableStateOf(true)
     private var paused by mutableStateOf(false)
-    private var batched by mutableStateOf(false)
+    private var editingMessageId by mutableStateOf<String?>(null)
 
     /** Stands in for the Scaffold's imePadding: raising it shrinks the list's viewport. */
     private var keyboardInset by mutableStateOf(0.dp)
@@ -95,65 +94,53 @@ class MessageListPauseScrollInstrumentedTest {
     }
 
     @Test
-    fun aPauseStopsTheFollowerChasingTheCardAsItGrows() {
-        paused = true
+    fun aPauseStopsTheFollowerChasingAGrowingTail() {
+        // A pause arrives mid-run, onto a list the follower has already brought to its tail.
         setChat()
-        // Past the one-shot scroll that brings a new card into view — that one is wanted.
-        val anchorTop = settledTop(TOOL_NAME)
+        advanceFrames(SETTLE_FRAMES)
+        composeRule.runOnUiThread { paused = true }
+        // Past the one-shot scroll that brings the pause marker into view — that one is wanted.
+        val anchorTop = settledTop(SHORT_STREAM)
 
-        composeRule.runOnUiThread { toolDescription = LONG_DESCRIPTION }
+        composeRule.runOnUiThread { streamingContent = LONG_STREAM }
         advanceFrames(CHASE_FRAMES)
 
         // Same growth, same number of frames the control needed. Nothing may move.
-        val moved = anchorTop - topOf(TOOL_NAME)
-        assertTrue("the follower chased the pause card by ${moved}px", abs(moved) < STILL_TOLERANCE_PX)
+        val moved = anchorTop - topOf(SHORT_STREAM)
+        assertTrue("the follower chased the paused reply by ${moved}px", abs(moved) < STILL_TOLERANCE_PX)
     }
 
     /**
-     * The keyboard must not cost the user the field they just tapped.
-     *
-     * The viewport-shrink handler jumped to the tail of the last item, which during a pause is the
-     * card — so focusing any field but the last one scrolled it out of sight the moment the
-     * keyboard came up. The inset is raised directly rather than by summoning a real IME, because
-     * the handler keys on the viewport shrinking and nothing else.
+     * Editing a message above the tail: the handler's jump to the last item would carry the field
+     * off screen. The inset is raised directly rather than by summoning a real IME, because the
+     * handler keys on the viewport shrinking and nothing else.
      */
     @Test
-    fun theKeyboardLeavesTheFocusedAnswerFieldOnScreen() {
-        paused = true
-        batched = true
-        setChat()
-        advanceFrames(SETTLE_FRAMES)
+    fun theKeyboardLeavesTheFocusedEditFieldOnScreen() {
+        startEditing(EARLIER_MESSAGE)
 
-        // Read the card from the top, the way its author intended, and reply to the first call.
-        focusAnswerField(index = 0, anchor = FIRST_TOOL)
-
-        val before = fieldVsViewport(0)
+        val before = fieldVsViewport()
         assertTrue("the field was already off screen before the keyboard: $before", before.isVisible)
 
         composeRule.runOnUiThread { keyboardInset = KEYBOARD_HEIGHT }
         advanceFrames(CHASE_FRAMES)
 
-        val after = fieldVsViewport(0)
+        val after = fieldVsViewport()
         assertTrue("the keyboard pushed the focused field off screen: $after", after.isVisible)
     }
 
     /**
      * The other half of leaving this to foundation: a field low enough that the keyboard really
-     * does cover it still has to be lifted clear, and nothing in this file does that any more.
+     * does cover it still has to be lifted clear, and nothing in [MessageList] does that.
      */
     @Test
-    fun theKeyboardLiftsTheLastAnswerFieldClear() {
-        paused = true
-        batched = true
-        setChat()
-        advanceFrames(SETTLE_FRAMES)
-
-        focusAnswerField(index = BATCH.lastIndex, anchor = LAST_TOOL)
+    fun theKeyboardLiftsTheLastEditFieldClear() {
+        startEditing(LAST_MESSAGE)
 
         composeRule.runOnUiThread { keyboardInset = KEYBOARD_HEIGHT }
         advanceFrames(CHASE_FRAMES)
 
-        val after = fieldVsViewport(BATCH.lastIndex)
+        val after = fieldVsViewport()
         assertTrue("the keyboard covered the focused field: $after", after.isVisible)
     }
 
@@ -167,34 +154,40 @@ class MessageListPauseScrollInstrumentedTest {
             CompositionLocalProvider(LocalParsedMarkdownCache provides markdownCache) {
                 LibreChatTheme {
                     Box(Modifier.fillMaxSize().padding(bottom = keyboardInset)) {
-                    MessageList(
-                        displayMessages = buildActiveMessagePath(THREAD),
-                        isStreaming = true,
-                        streamingContent = streamingContent,
-                        onSiblingNavigation = { _, _ -> },
-                        onEditMessage = {},
-                        onRegenerateMessage = {},
-                        onCopyMessage = {},
-                        // Rebuilt on every recomposition so a growing description reaches the
-                        // card, while actionId stays put — a new id would re-fire the one-shot
-                        // scroll and the test would be measuring that instead of the follower.
-                        pendingAction = if (paused) toolPause(toolDescription) else null,
-                    )
+                        MessageList(
+                            displayMessages = buildActiveMessagePath(THREAD),
+                            isStreaming = isStreaming,
+                            streamingContent = if (isStreaming) streamingContent else "",
+                            onSiblingNavigation = { _, _ -> },
+                            onEditMessage = {},
+                            onRegenerateMessage = {},
+                            onCopyMessage = {},
+                            pendingAction = if (paused) TOOL_PAUSE else null,
+                            editingMessageId = editingMessageId,
+                            editingText = editingMessageId?.let { id -> "Edited text for $id" }.orEmpty(),
+                            onEditTextChange = {},
+                            onEditSaveAndSubmit = {},
+                            onEditSaveOnly = {},
+                            onEditCancel = {},
+                        )
                     }
                 }
             }
         }
     }
 
-    private fun focusAnswerField(index: Int, anchor: String) {
-        // A reply field only exists once its call's decision is Respond.
-        val respondChips = composeRule.onAllNodesWithText(RESPOND_LABEL)
-        repeat(respondChips.fetchSemanticsNodes().size) { chip -> respondChips[chip].performClick() }
-        advanceFrames(FOCUS_FRAMES)
-        scrollIntoView(anchor)
-        composeRule.onAllNodes(hasSetTextAction())[index].performClick()
+    /** Opens [messageId] for inline edit — a settled thread, since editing is gated on no run — and focuses its field. */
+    private fun startEditing(messageId: String) {
+        isStreaming = false
+        editingMessageId = messageId
+        setChat()
+        advanceFrames(SETTLE_FRAMES)
+        scrollIntoView(editAnchor(messageId))
+        composeRule.onNode(hasSetTextAction()).performClick()
         advanceFrames(FOCUS_FRAMES)
     }
+
+    private fun editAnchor(messageId: String) = "Edited text for $messageId"
 
     /**
      * `performScrollToNode` can't be used here: it loops scroll-then-wait until the node shows
@@ -208,7 +201,7 @@ class MessageListPauseScrollInstrumentedTest {
                 .fetchSemanticsNodes()
                 .map { it.boundsInRoot }
                 .firstOrNull { it.height > 0f }
-            // Not composed yet means it is further down the card, which is the list's tail.
+            // Not composed yet means it is further down, toward the list's tail.
             val delta = when {
                 target == null -> list.height / 2
                 target.top < list.top -> target.top - list.top
@@ -223,9 +216,9 @@ class MessageListPauseScrollInstrumentedTest {
         error("\"$anchor\" never scrolled into view")
     }
 
-    /** Where the focused answer field sits relative to the list's own (clipping) bounds. */
-    private fun fieldVsViewport(index: Int): Placement {
-        val field = composeRule.onAllNodes(hasSetTextAction())[index].fetchSemanticsNode().boundsInRoot
+    /** Where the focused edit field sits relative to the list's own (clipping) bounds. */
+    private fun fieldVsViewport(): Placement {
+        val field = composeRule.onNode(hasSetTextAction()).fetchSemanticsNode().boundsInRoot
         val list = composeRule.onNode(hasScrollAction()).fetchSemanticsNode().boundsInRoot
         return Placement(field.top, field.bottom, list.top, list.bottom)
     }
@@ -251,8 +244,8 @@ class MessageListPauseScrollInstrumentedTest {
      * The anchor's position once the opening scroll is done.
      *
      * Both cases open with a scroll of their own — the jump that arms a run, the animation that
-     * brings a new pause card into view — and a baseline read mid-flight would score that opening
-     * scroll as the chase under test.
+     * brings a new pause marker into view — and a baseline read mid-flight would score that
+     * opening scroll as the chase under test.
      */
     private fun settledTop(text: String): Float {
         advanceFrames(SETTLE_FRAMES)
@@ -264,39 +257,8 @@ class MessageListPauseScrollInstrumentedTest {
         composeRule.waitForIdle()
     }
 
-    private fun toolPause(description: String): PendingAction {
-        // A batch renders a field per call, which is the only shape that puts a field anywhere
-        // but flush against the bottom of the card.
-        val requests = if (batched) {
-            BATCH
-        } else {
-            listOf(ToolApprovalRequest(name = TOOL_NAME, toolCallId = "call-0", description = description))
-        }
-        return PendingAction(
-            actionId = "action-1",
-            conversationId = CONVO,
-            payload = PendingActionPayload(
-                type = PendingActionTypes.TOOL_APPROVAL,
-                actionRequests = requests,
-                reviewConfigs = requests.map {
-                    ToolReviewConfig(
-                        actionName = it.name,
-                        toolCallId = it.toolCallId,
-                        allowedDecisions = listOf(
-                            ToolApprovalDecisions.APPROVE,
-                            ToolApprovalDecisions.REJECT,
-                            ToolApprovalDecisions.RESPOND,
-                        ),
-                    )
-                },
-            ),
-        )
-    }
-
     private companion object {
         const val CONVO = "convo-1"
-        const val TOOL_NAME = "provision_cluster_in_region"
-        const val RESPOND_LABEL = "Respond"
 
         /**
          * Long enough that the thread fills the viewport and the list can actually scroll.
@@ -316,11 +278,21 @@ class MessageListPauseScrollInstrumentedTest {
             )
         }
 
+        /** Two turns above the tail: the shape the handler's jump-to-last would scroll away. */
+        const val EARLIER_MESSAGE = "m10"
+        const val LAST_MESSAGE = "m12"
+
+        val TOOL_PAUSE = PendingAction(
+            actionId = "action-1",
+            conversationId = CONVO,
+            payload = PendingActionPayload(
+                type = PendingActionTypes.TOOL_APPROVAL,
+                actionRequests = listOf(ToolApprovalRequest(name = "provision_cluster", toolCallId = "call-0")),
+            ),
+        )
+
         const val SHORT_STREAM = "Working on it"
         val LONG_STREAM = SHORT_STREAM + (1..60).joinToString("") { "\nreply line $it" }
-
-        const val SHORT_DESCRIPTION = "Pick one."
-        val LONG_DESCRIPTION = SHORT_DESCRIPTION + (1..60).joinToString("") { "\ndetail line $it" }
 
         /** Well past a single eased step, so a follower that runs at all clears it. */
         const val CHASE_SLACK_PX = 40f
@@ -335,15 +307,5 @@ class MessageListPauseScrollInstrumentedTest {
         const val MAX_SCROLL_STEPS = 8
 
         val KEYBOARD_HEIGHT: Dp = 340.dp
-
-        const val FIRST_TOOL = "batched_tool_number_1"
-        const val LAST_TOOL = "batched_tool_number_4"
-        val BATCH = (1..4).map { index ->
-            ToolApprovalRequest(
-                name = "batched_tool_number_$index",
-                toolCallId = "call-$index",
-                description = "Some extra detail for call $index, long enough to take a line.",
-            )
-        }
     }
 }
