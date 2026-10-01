@@ -487,7 +487,6 @@
     <string name="context_usage_input">Eingabe</string>
     <string name="context_usage_output">Ausgabe</string>
     <string name="tool_approval_title">Genehmigung erforderlich</string>
-    <string name="tool_approval_subtitle">Vor der Ausführung prüfen.</string>
     <string name="tool_approval_arguments">Argumente</string>
     <string name="tool_approval_approve">Genehmigen</string>
     <string name="tool_approval_reject">Ablehnen</string>
@@ -517,6 +516,14 @@
     <string name="cd_ask_user_question_answered">Beantwortet</string>
     <string name="cd_minimize_ask_user_question">Fragen minimieren</string>
     <string name="cd_restore_ask_user_question">Fragen anzeigen</string>
+    <string name="tool_approval_waiting_marker">Wartet unten auf deine Freigabe</string>
+    <string name="tool_approval_submit_progress">Weiter (%1$d/%2$d)</string>
+    <string name="tool_approval_tab_fallback">Tool %1$d</string>
+    <string name="cd_previous_tool_call">Vorheriger Tool-Aufruf</string>
+    <string name="cd_next_tool_call">Nächster Tool-Aufruf</string>
+    <string name="cd_tool_call_decided">Entschieden</string>
+    <string name="cd_minimize_tool_approval">Freigaben minimieren</string>
+    <string name="cd_restore_tool_approval">Freigaben anzeigen</string>
     <string name="error_resource_recovery_required">Die an diese Unterhaltung angehängten Dateien konnten nicht wiederhergestellt werden, daher konnte der Assistent sie nicht verwenden. Hänge sie erneut an und versuche es noch einmal.</string>
     <string name="error_model_not_found">Das ausgewählte Modell ist bei diesem Anbieter nicht verfügbar. Wähle ein anderes Modell oder bitte einen Administrator, die Anbieterkonfiguration zu prüfen.</string>
     <string name="error_missing_model">Es ist kein Modell ausgewählt. Wähle ein Modell und versuche es erneut.</string>

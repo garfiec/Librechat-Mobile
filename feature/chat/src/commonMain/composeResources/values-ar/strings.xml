@@ -487,7 +487,6 @@
     <string name="context_usage_input">المدخلات</string>
     <string name="context_usage_output">المخرجات</string>
     <string name="tool_approval_title">مطلوب موافقة</string>
-    <string name="tool_approval_subtitle">راجِع قبل التشغيل.</string>
     <string name="tool_approval_arguments">الوسائط</string>
     <string name="tool_approval_approve">موافقة</string>
     <string name="tool_approval_reject">رفض</string>
@@ -517,6 +516,14 @@
     <string name="cd_ask_user_question_answered">تمت الإجابة</string>
     <string name="cd_minimize_ask_user_question">تصغير الأسئلة</string>
     <string name="cd_restore_ask_user_question">إظهار الأسئلة</string>
+    <string name="tool_approval_waiting_marker">بانتظار موافقتك أدناه</string>
+    <string name="tool_approval_submit_progress">متابعة (%1$d/%2$d)</string>
+    <string name="tool_approval_tab_fallback">الأداة %1$d</string>
+    <string name="cd_previous_tool_call">استدعاء الأداة السابق</string>
+    <string name="cd_next_tool_call">استدعاء الأداة التالي</string>
+    <string name="cd_tool_call_decided">تم القرار</string>
+    <string name="cd_minimize_tool_approval">تصغير الموافقات</string>
+    <string name="cd_restore_tool_approval">إظهار الموافقات</string>
     <string name="error_resource_recovery_required">تعذّرت استعادة الملفات المرفقة بهذه المحادثة، لذا لم يتمكن المساعد من استخدامها. أرفقها مرة أخرى وأعد المحاولة.</string>
     <string name="error_model_not_found">النموذج المحدد غير متاح لدى هذا المزوّد. اختر نموذجًا مختلفًا، أو اطلب من المسؤول التحقق من إعدادات المزوّد.</string>
     <string name="error_missing_model">لم يتم اختيار نموذج. اختر نموذجًا وحاول مرة أخرى.</string>

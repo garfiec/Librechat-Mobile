@@ -227,8 +227,6 @@ private fun ChatMessageListPane(
         bottomContentPadding = bottomContentPadding,
         topContentPadding = topContentPadding,
         pendingAction = uiState.renderablePendingAction,
-        isResolvingPendingAction = uiState.isResolvingPendingAction,
-        onSubmitToolDecisions = viewModel::resolveToolApproval,
         modifier = modifier,
     )
 }

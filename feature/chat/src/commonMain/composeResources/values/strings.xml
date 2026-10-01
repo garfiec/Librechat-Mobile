@@ -506,7 +506,6 @@
 
     <!-- Human-in-the-loop pauses (v0.8.8): tool approval + ask_user_question -->
     <string name="tool_approval_title">Approval needed</string>
-    <string name="tool_approval_subtitle">Review before this runs.</string>
     <string name="tool_approval_arguments">Arguments</string>
     <string name="tool_approval_approve">Approve</string>
     <string name="tool_approval_reject">Reject</string>
@@ -536,6 +535,14 @@
     <string name="cd_ask_user_question_answered">Answered</string>
     <string name="cd_minimize_ask_user_question">Minimize questions</string>
     <string name="cd_restore_ask_user_question">Show questions</string>
+    <string name="tool_approval_waiting_marker">Waiting for your approval below</string>
+    <string name="tool_approval_submit_progress">Continue (%1$d/%2$d)</string>
+    <string name="tool_approval_tab_fallback">Tool %1$d</string>
+    <string name="cd_previous_tool_call">Previous tool call</string>
+    <string name="cd_next_tool_call">Next tool call</string>
+    <string name="cd_tool_call_decided">Decided</string>
+    <string name="cd_minimize_tool_approval">Minimize approvals</string>
+    <string name="cd_restore_tool_approval">Show approvals</string>
     <!-- Typed stream errors. An unrecognized code keeps the server's own text, so these cover
          only the codes with something actionable to say. -->
     <string name="error_resource_recovery_required">The files attached to this conversation could not be restored, so the assistant couldn't use them. Attach them again and retry.</string>

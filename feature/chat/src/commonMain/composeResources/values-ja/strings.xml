@@ -487,7 +487,6 @@
     <string name="context_usage_input">入力</string>
     <string name="context_usage_output">出力</string>
     <string name="tool_approval_title">承認が必要です</string>
-    <string name="tool_approval_subtitle">実行前に確認してください。</string>
     <string name="tool_approval_arguments">引数</string>
     <string name="tool_approval_approve">承認</string>
     <string name="tool_approval_reject">拒否</string>
@@ -517,6 +516,14 @@
     <string name="cd_ask_user_question_answered">回答済み</string>
     <string name="cd_minimize_ask_user_question">質問を最小化</string>
     <string name="cd_restore_ask_user_question">質問を表示</string>
+    <string name="tool_approval_waiting_marker">下で承認を待っています</string>
+    <string name="tool_approval_submit_progress">続行 (%1$d/%2$d)</string>
+    <string name="tool_approval_tab_fallback">ツール %1$d</string>
+    <string name="cd_previous_tool_call">前のツール呼び出し</string>
+    <string name="cd_next_tool_call">次のツール呼び出し</string>
+    <string name="cd_tool_call_decided">決定済み</string>
+    <string name="cd_minimize_tool_approval">承認を最小化</string>
+    <string name="cd_restore_tool_approval">承認を表示</string>
     <string name="error_resource_recovery_required">この会話に添付されたファイルを復元できなかったため、アシスタントはそれらを使用できませんでした。もう一度添付して再試行してください。</string>
     <string name="error_model_not_found">選択したモデルはこのプロバイダーで利用できません。別のモデルを選択するか、プロバイダーの設定を確認するよう管理者に依頼してください。</string>
     <string name="error_missing_model">モデルが選択されていません。モデルを選択してもう一度お試しください。</string>

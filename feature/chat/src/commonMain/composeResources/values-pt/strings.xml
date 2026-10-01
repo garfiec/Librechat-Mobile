@@ -487,7 +487,6 @@
     <string name="context_usage_input">Entrada</string>
     <string name="context_usage_output">Saída</string>
     <string name="tool_approval_title">Aprovação necessária</string>
-    <string name="tool_approval_subtitle">Revise antes de executar.</string>
     <string name="tool_approval_arguments">Argumentos</string>
     <string name="tool_approval_approve">Aprovar</string>
     <string name="tool_approval_reject">Rejeitar</string>
@@ -517,6 +516,14 @@
     <string name="cd_ask_user_question_answered">Respondida</string>
     <string name="cd_minimize_ask_user_question">Minimizar perguntas</string>
     <string name="cd_restore_ask_user_question">Mostrar perguntas</string>
+    <string name="tool_approval_waiting_marker">Aguardando sua aprovação abaixo</string>
+    <string name="tool_approval_submit_progress">Continuar (%1$d/%2$d)</string>
+    <string name="tool_approval_tab_fallback">Ferramenta %1$d</string>
+    <string name="cd_previous_tool_call">Chamada de ferramenta anterior</string>
+    <string name="cd_next_tool_call">Próxima chamada de ferramenta</string>
+    <string name="cd_tool_call_decided">Decidida</string>
+    <string name="cd_minimize_tool_approval">Minimizar aprovações</string>
+    <string name="cd_restore_tool_approval">Mostrar aprovações</string>
     <string name="error_resource_recovery_required">Não foi possível restaurar os arquivos anexados a esta conversa, então o assistente não conseguiu usá-los. Anexe-os novamente e tente outra vez.</string>
     <string name="error_model_not_found">O modelo selecionado não está disponível neste provedor. Escolha outro modelo ou peça a um administrador para verificar a configuração do provedor.</string>
     <string name="error_missing_model">Nenhum modelo está selecionado. Escolha um modelo e tente novamente.</string>

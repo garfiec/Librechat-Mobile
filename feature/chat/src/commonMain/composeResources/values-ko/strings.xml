@@ -487,7 +487,6 @@
     <string name="context_usage_input">입력</string>
     <string name="context_usage_output">출력</string>
     <string name="tool_approval_title">승인 필요</string>
-    <string name="tool_approval_subtitle">실행하기 전에 검토하세요.</string>
     <string name="tool_approval_arguments">인수</string>
     <string name="tool_approval_approve">승인</string>
     <string name="tool_approval_reject">거부</string>
@@ -517,6 +516,14 @@
     <string name="cd_ask_user_question_answered">답변함</string>
     <string name="cd_minimize_ask_user_question">질문 최소화</string>
     <string name="cd_restore_ask_user_question">질문 보기</string>
+    <string name="tool_approval_waiting_marker">아래에서 승인을 기다리는 중</string>
+    <string name="tool_approval_submit_progress">계속 (%1$d/%2$d)</string>
+    <string name="tool_approval_tab_fallback">도구 %1$d</string>
+    <string name="cd_previous_tool_call">이전 도구 호출</string>
+    <string name="cd_next_tool_call">다음 도구 호출</string>
+    <string name="cd_tool_call_decided">결정됨</string>
+    <string name="cd_minimize_tool_approval">승인 최소화</string>
+    <string name="cd_restore_tool_approval">승인 보기</string>
     <string name="error_resource_recovery_required">이 대화에 첨부된 파일을 복원하지 못해 어시스턴트가 사용할 수 없었습니다. 파일을 다시 첨부한 후 재시도하세요.</string>
     <string name="error_model_not_found">선택한 모델을 이 제공자에서 사용할 수 없습니다. 다른 모델을 선택하거나 관리자에게 제공자 구성을 확인해 달라고 요청하세요.</string>
     <string name="error_missing_model">선택된 모델이 없습니다. 모델을 선택한 후 다시 시도하세요.</string>

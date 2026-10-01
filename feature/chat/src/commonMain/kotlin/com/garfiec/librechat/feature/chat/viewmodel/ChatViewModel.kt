@@ -68,6 +68,7 @@ import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.util.NEW_CHAT_DRAFT_KEY
+import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import com.garfiec.librechat.feature.chat.util.extractBranchMedia
 import com.garfiec.librechat.feature.chat.util.hasParallelParts
@@ -1996,6 +1997,13 @@ class ChatViewModel(
     fun selectAskQuestion(questionId: String) = pendingActionDelegate.selectAskQuestion(questionId)
 
     fun setAskPanelCollapsed(collapsed: Boolean) = pendingActionDelegate.setAskPanelCollapsed(collapsed)
+
+    fun updateToolDecisionDraft(toolCallId: String, draft: ToolDecisionDraft) =
+        pendingActionDelegate.updateToolDecisionDraft(toolCallId, draft)
+
+    fun selectToolCall(toolCallId: String) = pendingActionDelegate.selectToolCall(toolCallId)
+
+    fun setToolPanelCollapsed(collapsed: Boolean) = pendingActionDelegate.setToolPanelCollapsed(collapsed)
 
     fun continueGeneration() {
         if (_uiState.value.isEditingQueued) return

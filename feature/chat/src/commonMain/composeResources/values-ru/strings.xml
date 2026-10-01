@@ -487,7 +487,6 @@
     <string name="context_usage_input">Ввод</string>
     <string name="context_usage_output">Вывод</string>
     <string name="tool_approval_title">Требуется одобрение</string>
-    <string name="tool_approval_subtitle">Проверьте перед запуском.</string>
     <string name="tool_approval_arguments">Аргументы</string>
     <string name="tool_approval_approve">Одобрить</string>
     <string name="tool_approval_reject">Отклонить</string>
@@ -517,6 +516,14 @@
     <string name="cd_ask_user_question_answered">Отвечено</string>
     <string name="cd_minimize_ask_user_question">Свернуть вопросы</string>
     <string name="cd_restore_ask_user_question">Показать вопросы</string>
+    <string name="tool_approval_waiting_marker">Ожидается ваше одобрение ниже</string>
+    <string name="tool_approval_submit_progress">Продолжить (%1$d/%2$d)</string>
+    <string name="tool_approval_tab_fallback">Инструмент %1$d</string>
+    <string name="cd_previous_tool_call">Предыдущий вызов инструмента</string>
+    <string name="cd_next_tool_call">Следующий вызов инструмента</string>
+    <string name="cd_tool_call_decided">Решено</string>
+    <string name="cd_minimize_tool_approval">Свернуть запросы на одобрение</string>
+    <string name="cd_restore_tool_approval">Показать запросы на одобрение</string>
     <string name="error_resource_recovery_required">Не удалось восстановить файлы, прикреплённые к этой беседе, поэтому ассистент не смог их использовать. Прикрепите их снова и повторите попытку.</string>
     <string name="error_model_not_found">Выбранная модель недоступна у этого провайдера. Выберите другую модель или попросите администратора проверить настройки провайдера.</string>
     <string name="error_missing_model">Модель не выбрана. Выберите модель и попробуйте снова.</string>

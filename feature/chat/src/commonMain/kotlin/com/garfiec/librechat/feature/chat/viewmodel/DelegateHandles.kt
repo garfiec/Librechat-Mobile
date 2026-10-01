@@ -4,6 +4,7 @@ import com.garfiec.librechat.core.model.PendingAction
 import com.garfiec.librechat.core.model.endpoint.KeyState
 import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
+import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 
@@ -255,6 +256,9 @@ class PendingActionWrites internal constructor(state: ChatUiState) {
     var askAnswerDrafts: Map<String, AskAnswerDraft> = state.content.askAnswerDrafts
     var askActiveQuestionId: String? = state.content.askActiveQuestionId
     var askPanelCollapsed: Boolean = state.content.askPanelCollapsed
+    var toolDecisionDrafts: Map<String, ToolDecisionDraft> = state.content.toolDecisionDrafts
+    var toolActiveCallId: String? = state.content.toolActiveCallId
+    var toolPanelCollapsed: Boolean = state.content.toolPanelCollapsed
     var error: String? = state.error
     internal fun applyTo(s: ChatUiState) = s.copy(
         content = s.content.copy(
@@ -263,6 +267,9 @@ class PendingActionWrites internal constructor(state: ChatUiState) {
             askAnswerDrafts = askAnswerDrafts,
             askActiveQuestionId = askActiveQuestionId,
             askPanelCollapsed = askPanelCollapsed,
+            toolDecisionDrafts = toolDecisionDrafts,
+            toolActiveCallId = toolActiveCallId,
+            toolPanelCollapsed = toolPanelCollapsed,
         ),
         error = error,
     )

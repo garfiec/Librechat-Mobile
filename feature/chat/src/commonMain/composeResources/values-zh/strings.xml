@@ -487,7 +487,6 @@
     <string name="context_usage_input">输入</string>
     <string name="context_usage_output">输出</string>
     <string name="tool_approval_title">需要批准</string>
-    <string name="tool_approval_subtitle">运行前请先审核。</string>
     <string name="tool_approval_arguments">参数</string>
     <string name="tool_approval_approve">批准</string>
     <string name="tool_approval_reject">拒绝</string>
@@ -517,6 +516,14 @@
     <string name="cd_ask_user_question_answered">已回答</string>
     <string name="cd_minimize_ask_user_question">最小化问题</string>
     <string name="cd_restore_ask_user_question">显示问题</string>
+    <string name="tool_approval_waiting_marker">请在下方批准</string>
+    <string name="tool_approval_submit_progress">继续（%1$d/%2$d）</string>
+    <string name="tool_approval_tab_fallback">工具 %1$d</string>
+    <string name="cd_previous_tool_call">上一个工具调用</string>
+    <string name="cd_next_tool_call">下一个工具调用</string>
+    <string name="cd_tool_call_decided">已决定</string>
+    <string name="cd_minimize_tool_approval">最小化审批</string>
+    <string name="cd_restore_tool_approval">显示审批</string>
     <string name="error_resource_recovery_required">无法恢复此对话附加的文件，助手因此无法使用它们。请重新附加后重试。</string>
     <string name="error_model_not_found">该提供商无法提供所选模型。请选择其他模型，或请管理员检查提供商配置。</string>
     <string name="error_missing_model">未选择模型。请选择一个模型后重试。</string>

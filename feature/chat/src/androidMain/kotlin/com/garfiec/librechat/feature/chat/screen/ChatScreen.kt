@@ -77,6 +77,7 @@ import com.garfiec.librechat.feature.chat.components.ChatInput
 import com.garfiec.librechat.feature.chat.components.ChatOptionsPage
 import com.garfiec.librechat.feature.chat.components.ChatRoot
 import com.garfiec.librechat.feature.chat.components.ChatToolsSheetContent
+import com.garfiec.librechat.feature.chat.components.ToolApprovalPanel
 import com.garfiec.librechat.feature.chat.components.UploadRoutingSheet
 import com.garfiec.librechat.feature.chat.components.addToChatSelectionItem
 import com.garfiec.librechat.feature.chat.components.rememberChatAttachmentActions
@@ -501,114 +502,131 @@ actual fun ChatScreen(
                 uiState.comparisonState.primaryIsStreaming ||
                 uiState.comparisonState.secondaryIsStreaming
             // A question pause takes the composer's place until it resolves (see
-            // AskUserQuestionPanel). Whichever is showing is measured so the list's bottom inset
-            // clears it.
+            // AskUserQuestionPanel); a tool-approval pause docks above it (see ToolApprovalPanel).
+            // Everything here is measured together so the list's bottom inset clears it.
             val askPause = uiState.renderablePendingAction?.takeIf { it.isAskUserQuestion }
+            val toolPause = uiState.renderablePendingAction?.takeIf { it.isToolApproval }
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .onSizeChanged { inputBarHeightPx = it.height },
             ) {
-                if (askPause != null) {
-                    AskUserQuestionPanel(
-                        pendingAction = askPause,
-                        isResolving = uiState.isResolvingPendingAction,
-                        drafts = uiState.askAnswerDrafts,
-                        activeQuestionId = uiState.askActiveQuestionId,
-                        collapsed = uiState.askPanelCollapsed,
-                        onDraftChange = viewModel::updateAskAnswerDraft,
-                        onSelectQuestion = viewModel::selectAskQuestion,
-                        onCollapsedChange = viewModel::setAskPanelCollapsed,
-                        onSubmitAnswer = viewModel::answerPendingQuestion,
-                        onSubmitAnswers = viewModel::answerPendingQuestions,
-                        // The composer's Stop is hidden with it, and the run stays live across the pause.
-                        onStop = viewModel::stopGeneration.takeIf { isAnyStreaming },
-                        modifier = Modifier
-                            .navigationBarsPadding()
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                    )
-                } else {
-                    ChatInput(
-                        inputText = uiState.inputText,
-                        isStreaming = isAnyStreaming,
-                        onInputChanged = viewModel::onInputChanged,
-                        onSend = {
-                            viewModel.sendMessage()
-                            if (dismissKeyboardOnSend) {
-                                keyboardController?.hide()
-                            }
-                        },
-                        onStop = viewModel::stopGeneration,
-                        onOpenTools = { optionsController.open() },
-                        // The mid-stream send button: the ViewModel resolves steer-vs-queue from the
-                        // user's preference and what this run can actually take, so the composer never
-                        // has to. `onQueue` stays the picker's explicit "add to queue".
-                        onDuringRunSend = {
-                            viewModel.sendDuringRun()
-                            if (dismissKeyboardOnSend) {
-                                keyboardController?.hide()
-                            }
-                        },
-                        onQueue = {
-                            viewModel.queueMessage()
-                            if (dismissKeyboardOnSend) {
-                                keyboardController?.hide()
-                            }
-                        },
-                        canQueue = uiState.canQueueFollowUp,
-                        // Explicit "steer this one", from the during-run picker or the send button when
-                        // steering is the standing default.
-                        onSteer = {
-                            viewModel.steerMessage()
-                            if (dismissKeyboardOnSend) {
-                                keyboardController?.hide()
-                            }
-                        },
-                        canSteer = uiState.canSteerNow,
-                        duringRunAction = uiState.effectiveDuringRunAction,
-                        duringRunSendTarget = uiState.duringRunSendTarget,
-                        pendingSteers = uiState.pendingSteers,
-                        pendingQuotes = uiState.pendingQuotes,
-                        onRemoveQuote = viewModel::removePendingQuote,
-                        onCancelSteer = viewModel::cancelSteer,
-                        onSetDuringRunAction = viewModel::setDuringRunAction,
-                        attachedFiles = attachedFiles,
-                        onRemoveFile = viewModel::removeFile,
-                        promptSuggestions = uiState.availablePrompts,
-                        onSlashCommandSelected = viewModel::handleSlashCommand,
-                        isRecording = uiState.isRecording,
-                        isTranscribing = uiState.isTranscribing,
-                        onStartRecording = onStartRecordingWithPermission,
-                        onStopRecording = viewModel::stopRecording,
-                        enabledTools = uiState.effectiveEnabledTools,
-                        pinnedToolKeys = uiState.pinnedToolChips,
-                        onToggleTool = viewModel::toggleTool,
-                        mcpServers = uiState.mcpServers,
-                        selectedMcpServerNames = uiState.selectedMcpServerNames,
-                        selectedModelDisplay = effectiveSelectedModelDisplay,
-                        isCodeInterpreterAvailable = uiState.isCodeInterpreterAvailable,
-                        gates = uiState.chatInputGates,
-                        contextUsage = uiState.contextUsage,
-                        tokenUsage = uiState.tokenUsage,
-                        contextUsageEnabled = uiState.contextUsageEnabled,
-                        isCompacting = uiState.isCompacting,
-                        onCompact = viewModel::compactConversation.takeIf { uiState.canCompactNow },
-                        contextBarPlacement = uiState.contextBarPlacement,
-                        // After a Stop/error pause, the queue waits for an explicit nudge.
-                        queuedPausedCount = uiState.pausedQueueCount,
-                        onSendQueuedMessages = viewModel::sendQueuedNow,
-                        isEditingQueued = uiState.isEditingQueued,
-                        onCommitEdit = viewModel::commitQueuedEdit,
-                        onCancelEdit = viewModel::cancelQueuedEdit,
-                        isAwaitingUploadSend = uiState.isAwaitingUploadSend,
-                        arePicksUnsettled = uiState.arePicksUnsettled,
-                        onCancelPendingSend = viewModel::cancelPendingUploadSend,
-                        queuedMessages = uiState.messageQueue,
-                        onEditQueuedMessage = viewModel::editQueued,
-                        onCancelQueuedMessage = viewModel::cancelQueued,
-                        onReorderQueuedMessages = viewModel::reorderQueue,
-                        fontSizeMultiplier = fontSizeMultiplier,
-                    )
+                Column {
+                    toolPause?.let { pause ->
+                        ToolApprovalPanel(
+                            pendingAction = pause,
+                            isResolving = uiState.isResolvingPendingAction,
+                            drafts = uiState.toolDecisionDrafts,
+                            activeCallId = uiState.toolActiveCallId,
+                            collapsed = uiState.toolPanelCollapsed,
+                            onDraftChange = viewModel::updateToolDecisionDraft,
+                            onSelectCall = viewModel::selectToolCall,
+                            onCollapsedChange = viewModel::setToolPanelCollapsed,
+                            onSubmit = viewModel::resolveToolApproval,
+                            modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp),
+                        )
+                    }
+                    if (askPause != null) {
+                        AskUserQuestionPanel(
+                            pendingAction = askPause,
+                            isResolving = uiState.isResolvingPendingAction,
+                            drafts = uiState.askAnswerDrafts,
+                            activeQuestionId = uiState.askActiveQuestionId,
+                            collapsed = uiState.askPanelCollapsed,
+                            onDraftChange = viewModel::updateAskAnswerDraft,
+                            onSelectQuestion = viewModel::selectAskQuestion,
+                            onCollapsedChange = viewModel::setAskPanelCollapsed,
+                            onSubmitAnswer = viewModel::answerPendingQuestion,
+                            onSubmitAnswers = viewModel::answerPendingQuestions,
+                            // The composer's Stop is hidden with it, and the run stays live across the pause.
+                            onStop = viewModel::stopGeneration.takeIf { isAnyStreaming },
+                            modifier = Modifier
+                                .navigationBarsPadding()
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                        )
+                    } else {
+                        ChatInput(
+                            inputText = uiState.inputText,
+                            isStreaming = isAnyStreaming,
+                            onInputChanged = viewModel::onInputChanged,
+                            onSend = {
+                                viewModel.sendMessage()
+                                if (dismissKeyboardOnSend) {
+                                    keyboardController?.hide()
+                                }
+                            },
+                            onStop = viewModel::stopGeneration,
+                            onOpenTools = { optionsController.open() },
+                            // The mid-stream send button: the ViewModel resolves steer-vs-queue from the
+                            // user's preference and what this run can actually take, so the composer never
+                            // has to. `onQueue` stays the picker's explicit "add to queue".
+                            onDuringRunSend = {
+                                viewModel.sendDuringRun()
+                                if (dismissKeyboardOnSend) {
+                                    keyboardController?.hide()
+                                }
+                            },
+                            onQueue = {
+                                viewModel.queueMessage()
+                                if (dismissKeyboardOnSend) {
+                                    keyboardController?.hide()
+                                }
+                            },
+                            canQueue = uiState.canQueueFollowUp,
+                            // Explicit "steer this one", from the during-run picker or the send button when
+                            // steering is the standing default.
+                            onSteer = {
+                                viewModel.steerMessage()
+                                if (dismissKeyboardOnSend) {
+                                    keyboardController?.hide()
+                                }
+                            },
+                            canSteer = uiState.canSteerNow,
+                            duringRunAction = uiState.effectiveDuringRunAction,
+                            duringRunSendTarget = uiState.duringRunSendTarget,
+                            pendingSteers = uiState.pendingSteers,
+                            pendingQuotes = uiState.pendingQuotes,
+                            onRemoveQuote = viewModel::removePendingQuote,
+                            onCancelSteer = viewModel::cancelSteer,
+                            onSetDuringRunAction = viewModel::setDuringRunAction,
+                            attachedFiles = attachedFiles,
+                            onRemoveFile = viewModel::removeFile,
+                            promptSuggestions = uiState.availablePrompts,
+                            onSlashCommandSelected = viewModel::handleSlashCommand,
+                            isRecording = uiState.isRecording,
+                            isTranscribing = uiState.isTranscribing,
+                            onStartRecording = onStartRecordingWithPermission,
+                            onStopRecording = viewModel::stopRecording,
+                            enabledTools = uiState.effectiveEnabledTools,
+                            pinnedToolKeys = uiState.pinnedToolChips,
+                            onToggleTool = viewModel::toggleTool,
+                            mcpServers = uiState.mcpServers,
+                            selectedMcpServerNames = uiState.selectedMcpServerNames,
+                            selectedModelDisplay = effectiveSelectedModelDisplay,
+                            isCodeInterpreterAvailable = uiState.isCodeInterpreterAvailable,
+                            gates = uiState.chatInputGates,
+                            contextUsage = uiState.contextUsage,
+                            tokenUsage = uiState.tokenUsage,
+                            contextUsageEnabled = uiState.contextUsageEnabled,
+                            isCompacting = uiState.isCompacting,
+                            onCompact = viewModel::compactConversation.takeIf { uiState.canCompactNow },
+                            contextBarPlacement = uiState.contextBarPlacement,
+                            // After a Stop/error pause, the queue waits for an explicit nudge.
+                            queuedPausedCount = uiState.pausedQueueCount,
+                            onSendQueuedMessages = viewModel::sendQueuedNow,
+                            isEditingQueued = uiState.isEditingQueued,
+                            onCommitEdit = viewModel::commitQueuedEdit,
+                            onCancelEdit = viewModel::cancelQueuedEdit,
+                            isAwaitingUploadSend = uiState.isAwaitingUploadSend,
+                            arePicksUnsettled = uiState.arePicksUnsettled,
+                            onCancelPendingSend = viewModel::cancelPendingUploadSend,
+                            queuedMessages = uiState.messageQueue,
+                            onEditQueuedMessage = viewModel::editQueued,
+                            onCancelQueuedMessage = viewModel::cancelQueued,
+                            onReorderQueuedMessages = viewModel::reorderQueue,
+                            fontSizeMultiplier = fontSizeMultiplier,
+                        )
+                    }
                 }
             }
 
