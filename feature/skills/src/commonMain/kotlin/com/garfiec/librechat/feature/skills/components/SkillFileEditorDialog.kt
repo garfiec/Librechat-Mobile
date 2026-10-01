@@ -19,6 +19,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.skills.resources.*
 import com.garfiec.librechat.feature.skills.resources.Res
 import com.garfiec.librechat.feature.skills.viewmodel.SkillFileEditorState
@@ -43,6 +44,7 @@ fun SkillFileEditorDialog(
     }
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = Modifier.clearFocusOnTap(),
         title = { Text(editor.relativePath) },
         text = {
             Column {
