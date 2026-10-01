@@ -31,6 +31,12 @@ class ConversationMediaExtractorTest {
     }
 
     @Test
+    fun `skips artifacts in a user's own message text`() {
+        val user = Message(messageId = "m1", conversationId = "c1", text = artifact("a"), isCreatedByUser = true)
+        assertEquals(emptyList<Any>(), extractConversationArtifacts(listOf(user)))
+    }
+
+    @Test
     fun `groups versions of the same identifier across messages`() {
         val groups = extractConversationArtifacts(
             listOf(

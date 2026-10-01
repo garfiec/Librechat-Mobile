@@ -411,6 +411,11 @@ existing upload/usage path already handles them.
   and take partial content off screen, and half-written markup in a WebView is a blank box. An
   unclosed directive with **no** opening fence is *not* emitted at all — that's a prose mention, and
   emitting it would swallow the rest of the reply.
+- **A message with no content parts still gets the artifact split** when it is the assistant's
+  (`Message.textFallbackSplitsArtifacts`): replies saved before LibreChat v0.7.9 by the classic
+  endpoints have no `content`, so their artifacts live only in `text`. A user's own text is never
+  split, as on web. The renderer, `countMessageOccurrences` and the Artifacts tab all read that one
+  predicate.
 - **While streaming, complete artifacts are gated to `ArtifactButton`** even when an inline pref is
   on (`shouldRenderInlineArtifact`): the segment subtree recomposes per delta, and an inline preview
   reloads its WebView on every content change (mermaid recreates its view outright). The real

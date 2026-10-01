@@ -487,14 +487,28 @@ internal fun MessageContentAndActions(
                     if (isPersistedTurnError(message)) {
                         StreamErrorPart(raw = message.text)
                     } else if (message.text.isNotBlank()) {
-                        MarkdownContent(
-                            text = message.text,
-                            fontSizeMultiplier = fontSizeMultiplier,
-                            useKatex = useKatex,
-                            searchQuery = if (isSearchMatch) searchQuery else null,
-                            searchFocusedOccurrence = if (isCurrentSearchMatch) searchFocusedOccurrence else -1,
-                            onFocusedOccurrencePosition = if (isCurrentSearchMatch) onFocusedOccurrencePosition else null,
-                        )
+                        val query = if (isSearchMatch) searchQuery else null
+                        val focused = if (isCurrentSearchMatch) searchFocusedOccurrence else -1
+                        val onFocused = if (isCurrentSearchMatch) onFocusedOccurrencePosition else null
+                        if (message.textFallbackSplitsArtifacts()) {
+                            TextContentPart(
+                                text = message.text,
+                                fontSizeMultiplier = fontSizeMultiplier,
+                                useKatex = useKatex,
+                                searchQuery = query,
+                                searchFocusedOccurrence = focused,
+                                onFocusedOccurrencePosition = onFocused,
+                            )
+                        } else {
+                            MarkdownContent(
+                                text = message.text,
+                                fontSizeMultiplier = fontSizeMultiplier,
+                                useKatex = useKatex,
+                                searchQuery = query,
+                                searchFocusedOccurrence = focused,
+                                onFocusedOccurrencePosition = onFocused,
+                            )
+                        }
                     }
                 }
 

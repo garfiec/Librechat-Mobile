@@ -3,6 +3,8 @@ package com.garfiec.librechat.feature.chat.components
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.content.MessageContentPart
+import com.garfiec.librechat.feature.chat.components.artifact.ArtifactSegment
+import com.garfiec.librechat.feature.chat.components.artifact.detectArtifacts
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
@@ -14,21 +16,22 @@ import org.junit.Test
  */
 class SearchMatchEnumerationTest {
 
-    private fun message(text: String = "", parts: List<MessageContentPart>? = null) = Message(
+    private fun message(
+        text: String = "",
+        parts: List<MessageContentPart>? = null,
+        isCreatedByUser: Boolean = false,
+    ) = Message(
         messageId = "m1",
         conversationId = "c1",
         text = text,
         content = parts,
+        isCreatedByUser = isCreatedByUser,
     )
 
     private fun textPart(text: String) = MessageContentPart(type = ContentType.TEXT, text = text)
     private fun thinkPart(think: String) = MessageContentPart(type = ContentType.THINK, think = think)
 
     // --- artifacts (see the render-order contract in SearchMatchEnumeration.kt) ---
-
-    // NB: these must go through a TEXT *part*. A message with no content parts renders
-    // message.text via MarkdownContent with no artifact split at all (clause 1 of the contract) —
-    // that gap is #304, tracked separately.
 
     @Test
     fun `complete artifact content is not counted`() {
@@ -60,6 +63,65 @@ class SearchMatchEnumerationTest {
             ),
         )
         assertThat(countMessageOccurrences(msg, "match")).isEqualTo(3)
+    }
+
+    // --- artifacts in a message without parts (legacy pre-v0.7.9 replies keep them in text) ---
+
+    private val completeArtifact =
+        "before match\n\n" +
+            ":::artifact{identifier=\"a\" type=\"text/html\" title=\"A\"}\n" +
+            "```html\n<p>match match match</p>\n```\n:::\n\nafter match"
+
+    private val incompleteArtifact =
+        "before match\n\n" +
+            ":::artifact{identifier=\"a\" type=\"text/html\" title=\"A\"}\n" +
+            "```html\n<p>match match</p>"
+
+    /** The renderer's walk: TextContentPart's per-segment offset table, summed. */
+    private fun rendererWalk(text: String, query: String): Int =
+        detectArtifacts(text).sumOf { segment ->
+            when (segment) {
+                is ArtifactSegment.Text -> countMarkdownOccurrences(segment.text, query)
+                is ArtifactSegment.ArtifactReference -> countArtifactOccurrences(segment.artifact, query)
+            }
+        }
+
+    @Test
+    fun `only assistant text falls back to the artifact split`() {
+        assertThat(message().textFallbackSplitsArtifacts()).isTrue()
+        assertThat(message(isCreatedByUser = true).textFallbackSplitsArtifacts()).isFalse()
+    }
+
+    @Test
+    fun `no-parts assistant message excludes complete artifact content`() {
+        assertThat(countMessageOccurrences(message(text = completeArtifact), "match")).isEqualTo(2)
+    }
+
+    @Test
+    fun `no-parts assistant message counts incomplete artifact content`() {
+        assertThat(countMessageOccurrences(message(text = incompleteArtifact), "match")).isEqualTo(3)
+    }
+
+    @Test
+    fun `no-parts assistant message matches the renderer walk`() {
+        for (text in listOf(completeArtifact, incompleteArtifact)) {
+            assertThat(countMessageOccurrences(message(text = text), "match"))
+                .isEqualTo(rendererWalk(text, "match"))
+        }
+    }
+
+    @Test
+    fun `no-parts assistant message leaves an unfenced directive mention as prose`() {
+        val text = "Use :::artifact{identifier=\"a\" type=\"text/html\"} to match match"
+        assertThat(countMessageOccurrences(message(text = text), "match"))
+            .isEqualTo(countMarkdownOccurrences(text, "match"))
+    }
+
+    @Test
+    fun `no-parts user message is never split on artifacts`() {
+        val msg = message(text = completeArtifact, isCreatedByUser = true)
+        assertThat(countMessageOccurrences(msg, "match")).isEqualTo(countMarkdownOccurrences(completeArtifact, "match"))
+        assertThat(countMessageOccurrences(msg, "match")).isEqualTo(5)
     }
 
     // --- plain text / fallback (no parts) ---

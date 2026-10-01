@@ -20,8 +20,8 @@ import com.garfiec.librechat.feature.chat.util.steerText
 //
 // Render-order contract (mirrors MessageContentAndActions → ContentPartDispatcher):
 //  1. Content parts in list order; only TEXT/TEXT_DELTA (part.text) and THINK (part.think)
-//     render searchable text. Messages without parts render message.text via
-//     MarkdownContent directly (no artifact split).
+//     render searchable text. Messages without parts render message.text as one TEXT part
+//     (clause 2) when [textFallbackSplitsArtifacts], else via MarkdownContent directly.
 //  2. TEXT parts split on artifact directives first (TextContentPart). Plain Text segments are
 //     enumerated. Artifact segments depend on Artifact.isComplete:
 //       - complete   -> contributes 0. Content is highlighted but not navigable, because whether it
@@ -63,6 +63,17 @@ internal fun countMarkdownOccurrences(text: String, query: String): Int {
     if (text.isBlank() || query.isBlank() || !text.contains(query, ignoreCase = true)) return 0
     return parseMarkdownSegments(text).sumOf { countSegmentOccurrences(it, query) }
 }
+
+/**
+ * Whether a message without content parts renders its `text` with the artifact split, as a TEXT part
+ * would. Assistant replies saved before LibreChat v0.7.9 by the classic endpoints have no `content`,
+ * so their artifacts live only in `text`; user text is never split, as on web.
+ *
+ * The renderer (`MessageContentAndActions`), [countMessageOccurrences] and the Artifacts tab
+ * (`extractConversationArtifacts`) must all branch on this, or search prev/next drifts from what is
+ * on screen and the tab lists artifacts the thread never draws.
+ */
+internal fun Message.textFallbackSplitsArtifacts(): Boolean = !isCreatedByUser
 
 /**
  * Occurrences contributed by one artifact segment (see contract above). Shared by both walks —
@@ -140,6 +151,8 @@ internal fun countMessageOccurrences(message: Message, query: String): Int {
         parts.withIndex().sumOf { (index, part) ->
             countPartOccurrences(part, query, consumedLateBatchLabel = index in consumed)
         }
+    } else if (message.textFallbackSplitsArtifacts()) {
+        countTextPartOccurrences(message.text, query)
     } else {
         countMarkdownOccurrences(message.text, query)
     }
