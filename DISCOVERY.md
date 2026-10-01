@@ -1351,10 +1351,14 @@ user message text (wake-up turns)         Not new in rc4 (#15364), newly handled
                                             (BUILT)
 ```
 
-### v0.8.8 sync (release commit 6a1d30ca "🚀 v0.8.8", 2026-09-29) — endpoint / shape changes
-`UPSTREAM_VERSION` records `tag=v0.8.8`, but the tag had not been published when this sync ran: the
-release PR merged into `dev` and `git fetch origin tag v0.8.8` found no such ref. The pin is the
-commit, whose `package.json` reports `v0.8.8`. Re-check the tag against `commit=` once it exists.
+### v0.8.8 sync (release commit 6a1d30ca "🚀 v0.8.8", 2026-09-29; re-pinned to the v0.8.8 tag e8f3be08) — endpoint / shape changes
+The sync ran before the tag was published, against the release commit 6a1d30ca. The tag later
+landed on e8f3be08, 14 commits on, and the pin moved there. The listing below covers 361553f3 →
+6a1d30ca. Between 6a1d30ca and e8f3be08 no route was added or removed, and the `@librechat/agents` 3.9.8 → 4.0.1
+bump changes no streamed event shape. The only wire change is that
+`/api/auth/2fa/{enable,verify,confirm,disable,backup/regenerate}` now share a per-user limiter
+(`rateLimits.twoFactorManagement.requestsPerFiveMinutes`, default 7, min 3). Over budget, they answer
+`429 {code: "TWO_FACTOR_RATE_LIMITED", message}`, and successful calls count toward the budget too.
 
 **Removed endpoints: none.** No route registration was removed between 361553f3 and 6a1d30ca.
 ```
