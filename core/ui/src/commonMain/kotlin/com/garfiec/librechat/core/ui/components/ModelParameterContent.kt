@@ -144,6 +144,8 @@ fun ModelParameterContent(
     selectedEndpoint: String = "",
     dynamicParameterDefinitions: List<ParameterDefinition>? = null,
     extendedEffortSupported: Boolean = false,
+    /** See [EndpointParameterRegistry.getDefinitions]; offers thinkingDisplay `updates` (v0.8.8+). */
+    thinkingDisplayUpdatesSupported: Boolean = false,
     selectedProvider: String? = null,
     selectedModel: String? = null,
     /** Resolved `/api/config.endpointsDropParamsMap` entry: controls for parameters this server
@@ -162,6 +164,7 @@ fun ModelParameterContent(
         selectedEndpoint,
         dynamicParameterDefinitions,
         extendedEffortSupported,
+        thinkingDisplayUpdatesSupported,
         selectedProvider,
         selectedModel,
         dropParams,
@@ -175,6 +178,7 @@ fun ModelParameterContent(
                 provider = selectedProvider,
                 model = selectedModel,
                 dropParams = dropParams,
+                thinkingDisplayUpdatesSupported = thinkingDisplayUpdatesSupported,
             )
         }
     }
@@ -239,7 +243,7 @@ fun ModelParameterContent(
                         placeholder = definition.placeholder
                             ?: definition.default?.ifEmpty { "Default" }
                             ?: "Default",
-                        description = definition.description,
+                        description = definition.localizedDescription(),
                     )
                 }
 
@@ -252,7 +256,7 @@ fun ModelParameterContent(
                         },
                         placeholder = definition.placeholder
                             ?: definition.default?.ifEmpty { null },
-                        description = definition.description,
+                        description = definition.localizedDescription(),
                     )
                 }
 
@@ -271,7 +275,7 @@ fun ModelParameterContent(
                         min = min,
                         max = max,
                         step = step,
-                        description = definition.description,
+                        description = definition.localizedDescription(),
                     )
                 }
 
@@ -285,7 +289,7 @@ fun ModelParameterContent(
                         onCheckedChange = { newChecked ->
                             onParametersChange(parameters.withUpdatedKey(definition.key, newChecked.toString()))
                         },
-                        description = definition.description,
+                        description = definition.localizedDescription(),
                     )
                 }
 
@@ -303,7 +307,7 @@ fun ModelParameterContent(
                         onValueChange = { newValue ->
                             onParametersChange(parameters.withUpdatedKey(definition.key, newValue))
                         },
-                        description = definition.description,
+                        description = definition.localizedDescription(),
                         optionLabels = definition.optionLabels,
                     )
                 }
@@ -322,7 +326,7 @@ fun ModelParameterContent(
                         onValueChange = { newValue ->
                             onParametersChange(parameters.withUpdatedKey(definition.key, newValue))
                         },
-                        description = definition.description,
+                        description = definition.localizedDescription(),
                         optionLabels = definition.optionLabels,
                         removedValues = modelRemoved[definition.key].orEmpty(),
                     )
@@ -343,7 +347,7 @@ fun ModelParameterContent(
                                 parameters.withUpdatedKey(definition.key, newTags.joinToString("\n")),
                             )
                         },
-                        description = definition.description,
+                        description = definition.localizedDescription(),
                         maxTags = definition.max?.toInt() ?: 4,
                     )
                 }

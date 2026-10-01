@@ -56,6 +56,7 @@
 
     <string name="schedule_disabled_mcp_reauth">一時停止中: 接続されたツールに再度サインインする必要があります。チャットでエージェントを開いて再接続してください。</string>
     <string name="schedule_disabled_mcp_config">一時停止中: 接続されたツールの設定が不足しています。</string>
+    <string name="schedule_disabled_mcp_unattended_auth">一時停止中: 接続されたツールの無人アクセスが設定されていません。管理者による設定が必要です。チャットで再接続しても解決しません。</string>
     <string name="schedule_disabled_mcp_permission">一時停止中: 接続されたツールへのアクセス権がなくなりました。アクセス権を戻すには管理者の対応が必要です。</string>
     <string name="schedule_disabled_failures">実行の失敗が続いたため一時停止しました。</string>
     <string name="schedule_disabled_agent">一時停止中: 使用していたエージェントが削除されました。</string>

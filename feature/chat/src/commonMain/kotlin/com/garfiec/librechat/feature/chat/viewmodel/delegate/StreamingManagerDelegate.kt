@@ -6,6 +6,7 @@ import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.common.network.ConnectivityObserver
+import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.FailureKind
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.toSafeError
@@ -383,9 +384,12 @@ class StreamingManagerDelegate(
             // redirect would put its `meta=` JWT in the error banner. The kind also drives
             // isNetwork, which is what arms the connectivity observer that resumes the stream.
             val safe = e.toSafeError()
+            // A start POST refused for MCP authentication says which of two different repairs
+            // applies; the prose under `error` does not.
+            val mcpAuthMarker = (e as? ApiException)?.let { StreamErrorType.startFailureMarker(it.body) }
             endStream(
                 StreamEndReason.StreamError(
-                    safe.message ?: "Chat request failed",
+                    mcpAuthMarker ?: safe.message ?: "Chat request failed",
                     isNetwork = safe.kind == FailureKind.Network,
                 ),
             )

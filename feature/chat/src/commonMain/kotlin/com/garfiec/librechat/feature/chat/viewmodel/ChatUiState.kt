@@ -105,6 +105,7 @@ data class ChatUiState(
     val mcpServers: List<McpServerDisplayData> get() = selection.mcpServers
     val selectedMcpServerNames: Set<String> get() = selection.selectedMcpServerNames
     val extendedEffortSupported: Boolean get() = selection.extendedEffortSupported
+    val thinkingDisplayUpdatesSupported: Boolean get() = selection.thinkingDisplayUpdatesSupported
     val inputText: String get() = composer.inputText
     val sendBlockReason: SendBlockReason? get() = composer.sendBlockReason
     val editingQueuedItem: QueuedEditSession? get() = composer.editingQueuedItem

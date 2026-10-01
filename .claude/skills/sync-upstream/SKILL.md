@@ -66,7 +66,7 @@ Working directory is already the mobile repo root — do **not** `cd` elsewhere;
 Fail LOUD on any ambiguity below — never guess a baseline or target for the user.
 
 1. **Submodule.** `git submodule status`. If `upstream/` missing:
-   `git submodule add https://github.com/danny-avila/LibreChat.git upstream && git submodule update --init`.
+   `git submodule add https://github.com/LibreChat-AI/LibreChat.git upstream && git submodule update --init`.
 2. **Version file.** `cat UPSTREAM_VERSION`. If missing, create from `version.properties`
    `backendTargetVersion` + submodule HEAD (`tag=v<version>`, `commit=<HEAD>`, `date=$(date +%Y-%m-%d)`).
 3. **Clean tree.** `git status --porcelain`. If dirty → **ask the user** to commit/stash; wait.

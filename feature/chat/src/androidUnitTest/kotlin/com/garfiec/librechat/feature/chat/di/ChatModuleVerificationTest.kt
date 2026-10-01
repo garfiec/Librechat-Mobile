@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.common.network.ConnectivityObserver
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.AgentRepository
+import com.garfiec.librechat.core.data.repository.BackgroundTaskRepository
 import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
@@ -51,6 +52,7 @@ class ChatModuleVerificationTest {
                 Context::class,
                 Application::class,
                 AgentRepository::class,
+                BackgroundTaskRepository::class,
                 ChatRepository::class,
                 MessageRepository::class,
                 ConfigRepository::class,

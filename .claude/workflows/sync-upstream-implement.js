@@ -43,7 +43,7 @@ const A = args || {}
 // were also called Switchboard — the old product name happened to carry the backend's identity for
 // free, and the rename took that away. State the relationship once, explicitly, per prompt.
 const CONTEXT = `CONTEXT: Switchboard is a third-party native mobile client for LibreChat.
-"Upstream" always means the official LibreChat server repo (danny-avila/LibreChat), vendored
+"Upstream" always means the official LibreChat server repo (LibreChat-AI/LibreChat), vendored
 read-only at ./upstream. Switchboard is the client, never the upstream.`
 
 const MAX_BUILD_FIX_ROUNDS = 3

@@ -117,4 +117,5 @@
     <string name="remove_account">إزالة الحساب</string>
     <string name="remove_account_message">سيُزال %1$s وبياناته من هذا الجهاز. لن يتأثر الحساب على الخادم.</string>
     <string name="remove_account_title">إزالة الحساب؟</string>
+    <string name="drawer_running_chats">قيد التشغيل</string>
 </resources>

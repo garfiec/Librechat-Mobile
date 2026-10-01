@@ -86,6 +86,104 @@ class ScheduleWireTest {
         assertEquals(ScheduleDisabledReason.MCP_REAUTH_REQUIRED, schedule.disabledReason)
         assertEquals(ScheduleMcpStatus.REAUTH_REQUIRED, schedule.lastRun?.mcp?.single()?.status)
         assertEquals("github", schedule.lastRun?.mcp?.single()?.server)
+        assertEquals(false, schedule.pausedForUnattendedMcpAuth)
+    }
+
+    @Test
+    fun a_configuration_pause_with_unattended_auth_detail_names_the_administrator() {
+        fun decode(reason: String, detail: String?) = json.decodeFromString<Schedule>(
+            """
+            {"id": "sched_4", "name": "n", "prompt": "p", "agent_id": "a",
+             "cadence": {"frequency": "daily", "hour": 9, "minute": 0},
+             "timezone": "UTC", "enabled": false, "disabledReason": "$reason",
+             "lastRun": {"status": "error",
+                         "mcp": [{"server": "graph", "status": "mcp_configuration_missing"
+                                  ${detail?.let { """, "detail": "$it"""" } ?: ""}}]}}
+            """.trimIndent(),
+        )
+
+        val unattended = decode(ScheduleDisabledReason.MCP_CONFIGURATION_MISSING, ScheduleMcpDetail.UNATTENDED_AUTH_REQUIRED)
+        assertEquals(ScheduleMcpDetail.UNATTENDED_AUTH_REQUIRED, unattended.lastRun?.mcp?.single()?.detail)
+        assertEquals(true, unattended.pausedForUnattendedMcpAuth)
+        assertEquals(false, decode(ScheduleDisabledReason.MCP_CONFIGURATION_MISSING, null).pausedForUnattendedMcpAuth)
+        assertEquals(
+            false,
+            decode(ScheduleDisabledReason.TOO_MANY_FAILURES, ScheduleMcpDetail.UNATTENDED_AUTH_REQUIRED)
+                .pausedForUnattendedMcpAuth,
+        )
+    }
+
+    private fun pausedWith(reason: String, lastRun: String) = json.decodeFromString<Schedule>(
+        """
+        {"id": "sched_5", "name": "n", "prompt": "p", "agent_id": "a",
+         "cadence": {"frequency": "daily", "hour": 9, "minute": 0},
+         "timezone": "UTC", "enabled": false, "disabledReason": "$reason",
+         "lastRun": $lastRun}
+        """.trimIndent(),
+    )
+
+    private val unattendedError =
+        """mcp_configuration_missing: [{\"server\":\"docs\",\"status\":\"mcp_configuration_missing\",""" +
+            """\"detail\":\"unattended_auth_required\"}]"""
+
+    @Test
+    fun without_a_structured_mcp_list_the_outcomes_are_read_from_the_error_string() {
+        val schedule = pausedWith(
+            ScheduleDisabledReason.MCP_CONFIGURATION_MISSING,
+            """{"status": "error", "error": "$unattendedError"}""",
+        )
+
+        val outcome = schedule.mcpRecoveryOutcomes().single()
+        assertEquals("docs", outcome.server)
+        assertEquals(ScheduleMcpDetail.UNATTENDED_AUTH_REQUIRED, outcome.detail)
+        assertEquals(true, schedule.pausedForUnattendedMcpAuth)
+    }
+
+    @Test
+    fun a_structured_mcp_list_wins_over_the_error_string() {
+        val schedule = pausedWith(
+            ScheduleDisabledReason.MCP_CONFIGURATION_MISSING,
+            """{"status": "error", "error": "$unattendedError",
+                "mcp": [{"server": "graph", "status": "mcp_configuration_missing"}]}""",
+        )
+
+        assertEquals("graph", schedule.mcpRecoveryOutcomes().single().server)
+        assertEquals(false, schedule.pausedForUnattendedMcpAuth)
+    }
+
+    @Test
+    fun a_structured_list_with_an_unknown_status_falls_back_to_the_error_string() {
+        val schedule = pausedWith(
+            ScheduleDisabledReason.MCP_CONFIGURATION_MISSING,
+            """{"status": "error", "error": "$unattendedError",
+                "mcp": [{"server": "graph", "status": "mcp_something_new"}]}""",
+        )
+
+        assertEquals("docs", schedule.mcpRecoveryOutcomes().single().server)
+        assertEquals(true, schedule.pausedForUnattendedMcpAuth)
+    }
+
+    @Test
+    fun the_error_fallback_accepts_only_the_recorded_preflight_form() {
+        val outcome = """[{"server":"docs","status":"mcp_configuration_missing"}]"""
+        assertEquals(1, readScheduleMcpOutcomes("mcp_unavailable: $outcome").size)
+        assertTrue(readScheduleMcpOutcomes(null).isEmpty())
+        assertTrue(readScheduleMcpOutcomes("Agent run failed: $outcome").isEmpty())
+        assertTrue(readScheduleMcpOutcomes("prefix mcp_unavailable: $outcome").isEmpty())
+        assertTrue(readScheduleMcpOutcomes("mcp_unavailable: [not json").isEmpty())
+        assertTrue(readScheduleMcpOutcomes("""mcp_unavailable: [{"server":"docs","status":"odd"}]""").isEmpty())
+        assertTrue(readScheduleMcpOutcomes("""mcp_unavailable: [{"server":"docs"}]""").isEmpty())
+    }
+
+    @Test
+    fun only_a_paused_schedule_with_a_recoverable_reason_reads_outcomes() {
+        val lastRun = """{"status": "error", "error": "$unattendedError"}"""
+
+        assertTrue(pausedWith(ScheduleDisabledReason.AGENT_DELETED, lastRun).mcpRecoveryOutcomes().isEmpty())
+        assertEquals(1, pausedWith(ScheduleDisabledReason.TOO_MANY_FAILURES, lastRun).mcpRecoveryOutcomes().size)
+        val enabled = pausedWith(ScheduleDisabledReason.MCP_CONFIGURATION_MISSING, lastRun).copy(enabled = true)
+        assertTrue(enabled.mcpRecoveryOutcomes().isEmpty())
+        assertEquals(false, enabled.pausedForUnattendedMcpAuth)
     }
 
     @Test

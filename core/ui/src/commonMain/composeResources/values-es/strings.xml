@@ -30,4 +30,5 @@
     <string name="pdf_password_hide">Ocultar contraseña</string>
     <string name="pdf_password_confirm">Descifrar y subir</string>
     <string name="pdf_password_cancel">Cancelar</string>
+    <string name="param_thinking_between_tools_description">Activa el razonamiento adaptativo controlado por el parámetro Esfuerzo. Este modelo no puede desactivar el razonamiento por completo: al desactivarlo se usa su nivel más bajo, que omite el razonamiento extendido y conserva solo breves notas entre llamadas a herramientas. Con esta opción desactivada, el esfuerzo se limita a Alto.</string>
 </resources>

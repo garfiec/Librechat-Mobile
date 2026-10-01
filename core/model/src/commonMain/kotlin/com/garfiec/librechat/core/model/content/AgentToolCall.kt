@@ -41,9 +41,53 @@ data class AgentToolCall(
      */
     val runStepStatus: RunStepStatus? = null,
     /**
-     * Wall-clock milliseconds the run step took, from the same event. Absent means "not
+     * Wall-clock milliseconds the run step lived, from the same event: its TOTAL lifetime, which
+     * includes argument generation, not the tool's own execution time (upstream labels it "Total
+     * elapsed" and shows it only when neither split below was measured). Absent means "not
      * derivable" — the server only writes it when both timestamps were present and ordered —
      * never "instant".
      */
     val runStepDurationMs: Long? = null,
+    /** Host-reported close time of the run step, epoch milliseconds (v0.8.8). Absent on older content. */
+    val runStepClosedAt: Long? = null,
+    /**
+     * From the first observed argument fragment to the SDK's handoff to execution (v0.8.8,
+     * `on_tool_preparation` → `on_tool_calls_dispatched`). Omitted by the server rather than
+     * reported when either stamp is missing or the two disagree in order.
+     */
+    val toolPreparationDurationMs: Long? = null,
+    /**
+     * From the SDK's handoff to this call's result (v0.8.8) — the tool's own time, not the MCP
+     * round trip or database time. Same omission rule as [toolPreparationDurationMs].
+     */
+    val toolExecutionDurationMs: Long? = null,
+    /**
+     * Stamped when a detached task's final output replaced the dispatch handle in [output]: the
+     * only durable signal that the call ran in the background. Upstream reads it to keep treating
+     * [runStepDurationMs] as dispatch time rather than the task's runtime; this client shows no
+     * durations, so it is carried for that reader only.
+     */
+    val backgrounded: Boolean? = null,
+    /** The settled background task behind this call. See [BackgroundToolTask]. */
+    val backgroundTask: BackgroundToolTask? = null,
+) {
+    /**
+     * The step's verdict as a card should show it: a background task the user stopped reads as
+     * cancelled even though its run step closed cleanly (upstream `Part.tsx`).
+     */
+    val effectiveRunStepStatus: RunStepStatus?
+        get() = if (backgroundTask?.cancelled == true) RunStepStatus.CANCELLED else runStepStatus
+}
+
+/**
+ * The result record of a background task, kept beside the call that dispatched it
+ * (`PartMetadata.backgroundTask`). Only [cancelled] drives a decision here; it is additive and
+ * absent on servers that predate it.
+ */
+@Serializable
+data class BackgroundToolTask(
+    val taskId: String? = null,
+    val toolName: String? = null,
+    val status: String? = null,
+    val cancelled: Boolean? = null,
 )

@@ -165,6 +165,8 @@ data class AgentEditorUiState(
      * server is known to carry the change, so older servers keep the one-tap removal.
      */
     val agentFileRemovalDeletes: Boolean = false,
+    /** Whether thinkingDisplay `updates` may be offered (v0.8.8+); see AgentCapabilitiesDelegate. */
+    val isThinkingDisplayUpdatesAvailable: Boolean = false,
     /** A removal waiting on the user's confirmation; see [agentFileRemovalDeletes]. */
     val pendingFileRemoval: PendingAgentFileRemoval? = null,
     /** `/api/config.endpointsDropParamsMap` (v0.8.8-rc3), unresolved; hides advanced-parameter

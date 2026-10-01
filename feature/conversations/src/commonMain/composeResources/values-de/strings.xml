@@ -117,4 +117,5 @@
     <string name="remove_account">Konto entfernen</string>
     <string name="remove_account_message">%1$s und die zugehörigen Daten werden von diesem Gerät entfernt. Das Konto auf dem Server ist davon nicht betroffen.</string>
     <string name="remove_account_title">Konto entfernen?</string>
+    <string name="drawer_running_chats">Läuft</string>
 </resources>

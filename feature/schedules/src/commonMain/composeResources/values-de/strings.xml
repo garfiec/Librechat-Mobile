@@ -56,6 +56,7 @@
 
     <string name="schedule_disabled_mcp_reauth">Pausiert: Ein verbundenes Tool erfordert eine erneute Anmeldung. Öffne den Agenten in einem Chat, um es neu zu verbinden.</string>
     <string name="schedule_disabled_mcp_config">Pausiert: Einem verbundenen Tool fehlt die Konfiguration.</string>
+    <string name="schedule_disabled_mcp_unattended_auth">Pausiert: Für ein verbundenes Tool ist kein unbeaufsichtigter Zugriff eingerichtet. Ein Administrator muss ihn konfigurieren; ein erneutes Verbinden im Chat behebt das nicht.</string>
     <string name="schedule_disabled_mcp_permission">Pausiert: Du hast keinen Zugriff mehr auf ein verbundenes Tool. Ein Administrator muss ihn wiederherstellen.</string>
     <string name="schedule_disabled_failures">Pausiert nach zu vielen fehlgeschlagenen Ausführungen.</string>
     <string name="schedule_disabled_agent">Pausiert: Der verwendete Agent wurde gelöscht.</string>

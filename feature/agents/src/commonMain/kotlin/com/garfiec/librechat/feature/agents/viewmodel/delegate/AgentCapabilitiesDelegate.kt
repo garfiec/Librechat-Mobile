@@ -57,7 +57,12 @@ class AgentCapabilitiesDelegate(
         stateHandle.scope.launch {
             configRepository.detectedBackend.collect { detected ->
                 val deletes = BackendVersion.supportsFeature(detected, "0.8.8-rc4", "2026-09-17")
-                stateHandle.update { copy(agentFileRemovalDeletes = deletes) }
+                // thinkingDisplay `updates`: the same gate as ChatViewModel's, kept in step with it;
+                // see VERSION_GATES.md.
+                val updates = BackendVersion.supportsFeature(detected, "0.8.8", "2026-09-29")
+                stateHandle.update {
+                    copy(agentFileRemovalDeletes = deletes, isThinkingDisplayUpdatesAvailable = updates)
+                }
             }
         }
     }

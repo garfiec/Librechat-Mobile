@@ -210,7 +210,8 @@ class IosFileHandler(
                             // Not an error to show: the chip waits while the UI asks for the password.
                             // It stays pending, not failed, so a send parked on the upload gate
                             // keeps waiting for the answer instead of going out without the PDF.
-                            val picked = PickedFile(ref = fileData, name = fileData.filename, mimeType = fileData.mimeType)
+                            val picked =
+                                PickedFile(ref = fileData, name = fileData.filename, mimeType = fileData.mimeType)
                             pdfPrompts.add(PdfPasswordPrompt(uniqueId, picked, locked.incorrectPassword))
                             return@launch
                         }

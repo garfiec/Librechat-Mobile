@@ -9,12 +9,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasSetTextAction
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -191,10 +191,36 @@ class MessageListPauseScrollInstrumentedTest {
         val respondChips = composeRule.onAllNodesWithText(RESPOND_LABEL)
         repeat(respondChips.fetchSemanticsNodes().size) { chip -> respondChips[chip].performClick() }
         advanceFrames(FOCUS_FRAMES)
-        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText(anchor, substring = true))
-        advanceFrames(FOCUS_FRAMES)
+        scrollIntoView(anchor)
         composeRule.onAllNodes(hasSetTextAction())[index].performClick()
         advanceFrames(FOCUS_FRAMES)
+    }
+
+    /**
+     * `performScrollToNode` can't be used here: it loops scroll-then-wait until the node shows
+     * up, and on the hand-driven clock no frame ever applies the scroll, so it spins forever.
+     * This issues one semantics scroll per step and advances the frames that apply it.
+     */
+    private fun scrollIntoView(anchor: String) {
+        repeat(MAX_SCROLL_STEPS) {
+            val list = composeRule.onNode(hasScrollAction()).fetchSemanticsNode().boundsInRoot
+            val target = composeRule.onAllNodesWithText(anchor, substring = true)
+                .fetchSemanticsNodes()
+                .map { it.boundsInRoot }
+                .firstOrNull { it.height > 0f }
+            // Not composed yet means it is further down the card, which is the list's tail.
+            val delta = when {
+                target == null -> list.height / 2
+                target.top < list.top -> target.top - list.top
+                target.bottom > list.bottom -> target.bottom - list.bottom
+                else -> return
+            }
+            composeRule.onNode(hasScrollAction()).performSemanticsAction(SemanticsActions.ScrollBy) {
+                it(0f, delta)
+            }
+            advanceFrames(FOCUS_FRAMES)
+        }
+        error("\"$anchor\" never scrolled into view")
     }
 
     /** Where the focused answer field sits relative to the list's own (clipping) bounds. */
@@ -306,6 +332,7 @@ class MessageListPauseScrollInstrumentedTest {
         const val SETTLE_FRAMES = 150
         const val CHASE_FRAMES = 150
         const val FOCUS_FRAMES = 60
+        const val MAX_SCROLL_STEPS = 8
 
         val KEYBOARD_HEIGHT: Dp = 340.dp
 

@@ -179,6 +179,7 @@ fun TabletLayout(
                 // Slot 0: Sidebar -- always 320dp, slides from off-screen left to x=0
                 Row(modifier = Modifier.fillMaxHeight()) {
                     SidebarScaffold(
+                        isOpen = isSidebarOpen,
                         onNewChat = {
                             if (navigator.currentRoute !is NewChat) {
                                 navigator.navigateToTopLevel(NewChat())

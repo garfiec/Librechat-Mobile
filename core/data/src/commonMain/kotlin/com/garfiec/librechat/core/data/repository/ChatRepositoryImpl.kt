@@ -187,6 +187,10 @@ class ChatRepositoryImpl(
         return status.copy(unrecoveredSteers = emptyList())
     }
 
+    override suspend fun getActiveJobIds(): Result<Set<String>> = safeApiCall {
+        chatApi.getActiveJobs().activeJobIds.toSet()
+    }
+
     override fun resumeStream(conversationId: String): Flow<StreamEvent> = flow {
         val streamUrl = "api/agents/chat/stream/$conversationId"
         emitAll(sseClient.connect(streamUrl, resume = true, connectivityFlow = connectivityObserver.isConnected))

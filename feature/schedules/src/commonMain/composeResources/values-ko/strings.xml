@@ -56,6 +56,7 @@
 
     <string name="schedule_disabled_mcp_reauth">일시정지됨: 연결된 도구에 다시 로그인해야 합니다. 채팅에서 에이전트를 열어 다시 연결하세요.</string>
     <string name="schedule_disabled_mcp_config">일시정지됨: 연결된 도구의 구성이 누락되었습니다.</string>
+    <string name="schedule_disabled_mcp_unattended_auth">일시 중지됨: 연결된 도구에 무인 액세스가 설정되지 않았습니다. 관리자가 설정해야 하며, 채팅에서 다시 연결해도 해결되지 않습니다.</string>
     <string name="schedule_disabled_mcp_permission">일시정지됨: 연결된 도구에 더 이상 접근할 수 없습니다. 관리자가 권한을 복구해야 합니다.</string>
     <string name="schedule_disabled_failures">실행 실패가 너무 많아 일시정지되었습니다.</string>
     <string name="schedule_disabled_agent">일시정지됨: 사용하던 에이전트가 삭제되었습니다.</string>

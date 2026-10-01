@@ -677,8 +677,16 @@ class ChatViewModel(
                     minVersion = "0.8.8-rc2",
                     landedDate = "2026-08-31",
                 )
+                // thinkingDisplay `updates` (40bb16ed, landed 2026-09-28): PRESENT only, dated the day
+                // AFTER landing. Keep in step with AgentCapabilitiesDelegate; see VERSION_GATES.md.
+                val thinkingDisplayUpdates = BackendVersion.supportsFeature(
+                    detected = detected,
+                    minVersion = "0.8.8",
+                    landedDate = "2026-09-29",
+                )
                 _uiState.update {
                     it.copy(
+                        selection = it.selection.copy(thinkingDisplayUpdatesSupported = thinkingDisplayUpdates),
                         gates = it.gates.copy(
                             steeringSupported = supported,
                             subagentThreadsSupported = subagentThreads,

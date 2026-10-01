@@ -40,6 +40,7 @@ fun SkillFilesSection(
     onAddFile: () -> Unit,
     onRemoveFile: (SkillFile) -> Unit,
     modifier: Modifier = Modifier,
+    onOpenFile: (SkillFile) -> Unit = {},
 ) {
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -59,6 +60,7 @@ fun SkillFilesSection(
                     file = file,
                     canRemove = state.canEditFiles,
                     onRemove = { onRemoveFile(file) },
+                    onOpen = { onOpenFile(file) },
                 )
             }
         }
@@ -90,8 +92,10 @@ private fun SkillFileRow(
     file: SkillFile,
     canRemove: Boolean,
     onRemove: () -> Unit,
+    onOpen: () -> Unit,
 ) {
     Surface(
+        onClick = onOpen,
         shape = RoundedCornerShape(8.dp),
         color = MaterialTheme.colorScheme.surfaceVariant,
         modifier = Modifier.fillMaxWidth(),

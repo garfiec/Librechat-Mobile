@@ -23,8 +23,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.garfiec.librechat.feature.chat.components.web.rememberWebAssetBaseUrl
 import co.touchlab.kermit.Logger
+import com.garfiec.librechat.feature.chat.components.web.rememberWebAssetBaseUrl
 
 /**
  * Escapes a LaTeX string for safe embedding inside a JavaScript string literal.

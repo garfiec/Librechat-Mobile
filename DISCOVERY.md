@@ -211,16 +211,20 @@ POST   /api/files/speech/tts   → text-to-speech
 
 ### v0.8.6 endpoint surface (confirmed during sync; mobile status noted)
 ```
-# Skills family (DEFERRED — no mobile counterpart; skill tool *invocations* already
-# render via the generic tool-call path, so chatting with a skill-enabled agent works today)
+# Skills family (feature/skills: list, detail, editor, import, ACL sharing, flat file list)
 GET    /api/skills                       → list
 POST   /api/skills                       → create (perm: skills.create)
 GET    /api/skills/:id                   → detail
 PATCH  /api/skills/:id                   → update
 DELETE /api/skills/:id                   → delete
-GET    /api/skills/:id/files             → skill file tree
-POST   /api/skills/:id/files             → add file
-GET    /api/skills/:id/files/:relPath    → read file
+GET    /api/skills/:id/files             → skill file list
+POST   /api/skills/:id/files             → add file (multipart file + relativePath)
+POST   /api/skills/:id/files/*relPath    → v0.8.8: conditional replace — multipart file + relativePath (must equal
+                                            the path param) + expectedFileId; 409 SKILL_FILE_CONFLICT = reload.
+                                            A separate route so an older server 404s instead of ignoring
+                                            expectedFileId. Both POSTs 403 on an externally managed skill
+                                            (source != "inline"), so mobile offers file edits only when inline
+GET    /api/skills/:id/files/:relPath    → read file (JSON mode; v0.8.8 adds `fileId`, the revision to edit against)
 DELETE /api/skills/:id/files/:relPath    → delete file
 POST   /api/skills/import                → import skill (atomic from rc4 — see v0.8.8-rc4 sync)
 GET    /api/user/settings/skills/active  → per-user active-skill states (DEFERRED)
@@ -1346,6 +1350,113 @@ user message text (wake-up turns)         Not new in rc4 (#15364), newly handled
                                             strings and payload fields are registered in scripts/mirrors.json.
                                             (BUILT)
 ```
+
+### v0.8.8 sync (release commit 6a1d30ca "🚀 v0.8.8", 2026-09-29) — endpoint / shape changes
+`UPSTREAM_VERSION` records `tag=v0.8.8`, but the tag had not been published when this sync ran: the
+release PR merged into `dev` and `git fetch origin tag v0.8.8` found no such ref. The pin is the
+commit, whose `package.json` reports `v0.8.8`. Re-check the tag against `commit=` once it exists.
+
+**Removed endpoints: none.** No route registration was removed between 361553f3 and 6a1d30ca.
+```
+# Added
+GET    /api/convos/:conversationId/background-tasks
+                                          (v0.8.8, e32e6b54 #16348; `delivery` 048816ac #16363) →
+                                            `{ conversationId, tasks: [{ taskId, toolName, toolCallId, messageId?,
+                                            stepId?, status, cancellationRequested, startedAt, settledAt?,
+                                            delivery? }], complete, cancellable }`. 404 for a missing user or a
+                                            malformed id. Header chip + sheet, probe-and-latch gated — see
+                                            VERSION_GATES.md. (BUILT)
+POST   /api/convos/:conversationId/background-tasks/cancel
+                                          (v0.8.8) body `{ taskIds?: string[] }` (≤ 64; omitted = all) →
+                                            `{ results: [{ taskId, status }] }`. **403** unless
+                                            `endpoints.agents.backgroundTasks.ordinaryToolCancellation` is on,
+                                            **503** when that policy cannot be read. Mobile offers Stop only when
+                                            the index reports `cancellable`. (BUILT)
+POST   /api/agents/chat/queued-turns/v2   (v0.8.8, 163c1ad9 #16326) accepts `codeApprovalMode`; the receipt echoes
+                                            it and the capability gains `protocolVersion: 2`. v1 answers **409**
+                                            `QUEUED_TURN_PROTOCOL_REQUIRED` only when `codeApprovalMode` is sent.
+                                            The enqueue 500 code is renamed `QUEUED_TURN_FAILED` →
+                                            `QUEUED_TURN_ENQUEUE_FAILED`. Mobile stays on v1, sends no
+                                            `codeApprovalMode` and matches neither 500 code. (NOT BUILT — inert)
+POST   /api/skills/:id/files/*relativePath
+                                          (v0.8.8, 7caa98ff #16362) conditional per-file replace. See the Skills
+                                            family block above for the contract; offered only when the read
+                                            returned a `fileId` and the skill is inline. (BUILT)
+
+# Revised request / response shapes
+GET    /api/skills/:id/files/:relPath     JSON mode gains `fileId`; serialized `skill.source` now defaults to
+                                            `'inline'`. Both skill-file POSTs **403** "Externally managed skill
+                                            files are read-only" when `source != 'inline'`. (BUILT)
+POST   /api/agents/chat/:endpoint (start) (v0.8.8, dd21e7fb #16323) can fail BEFORE the stream with **403**
+                                            `MCP_AUTHENTICATION_REJECTED` (never auto-retried; reconnect copy) or
+                                            **503** `MCP_AUTHENTICATION_REFRESH_FAILED` + `retryable` (try-again
+                                            copy). Read via `generationCodeOf(body)`. (BUILT)
+POST   /api/agents/chat/steer (recovery)  (v0.8.8, fe8a9939 #16306) the 409 body adds `reason`. Mobile never sends
+                                            `recoveredSteerId`. (NO CHANGE — inert)
+GET    /api/config                        `interface.agentSelectorLimit` (1..100, default 10; 764a4393 #16256)
+                                            caps the unsearched agent picker upstream, and out-of-range values fall
+                                            back to 10. (DECODED — no mobile consumer; upstream's only consumer is
+                                            the builder-side AgentSelect. The cap in ModelSelectorSheet was
+                                            deliberately not taken, so mobile has neither the cap nor the
+                                            fallback.) `codeWorkspaceRecoveryVersion` (02492bdb #16273) and
+                                            `codeEnvironmentTransitionVersion` (7b2362d7 #16124) are new
+                                            capability versions. Mobile has no code-environment surface.
+                                            (UNUSED)
+GET    /api/agents/chat/active            Not new: the route dates to 0ae3b87b (2025-12), below the minimum
+                                            supported v0.8.4, so it is called ungated. Newly consumed: the
+                                            drawer pins conversations with a live job into a "Running" group
+                                            (updatedAt-desc sort only, not the archive). (BUILT)
+schedules  scheduleMCPOutcome             (v0.8.8, 6658e3b3 #16416) gains `detail: 'unattended_auth_required'`
+                                            (status stays `mcp_configuration_missing`). Mobile shows
+                                            administrator-needed copy instead of the generic MCP-config reason;
+                                            there is no reconnect CTA. (BUILT)
+agent params  anthropic thinkingDisplay   (v0.8.8, 40bb16ed #16460) adds `'updates'`. Sonnet ≥ 5.5 gets a
+                                            between-tools thinking floor, and Opus ≥ 5.5 plus the Mythos class
+                                            are always-on. The Sonnet/Opus rules are model-name driven; the
+                                            `'updates'` option itself is version-gated (0.8.8, landed
+                                            2026-09-28; gated from 2026-09-29 so a same-day predecessor is
+                                            never offered it), because a pre-0.8.8 server's schema `.catch()`
+                                            discards every endpoint param on an unknown value. (BUILT)
+
+# SSE / stream-error payloads
+error payload  model_stream_closed / model_stream_stalled
+                                          (v0.8.8, 8ec632ff #16415) `"<fallback>\n{"type":"model_stream_closed"}"`
+                                            when a provider stream dies mid-response; `upstream_model_error`
+                                            metadata can also carry `stream_closed` / `stream_stalled`. Before
+                                            this sync the raw JSON tail showed. (BUILT — localized)
+on_tool_preparation / on_tool_calls_dispatched
+                                          (v0.8.8, a7662d2d #16455) new events, replayed on resume. Dropped by
+                                            SseEventMapper's unknown-event path. The persisted `tool_call` gains
+                                            `toolPreparationStartedAt`, `toolDispatchedAt`,
+                                            `toolPreparationDurationMs`, `toolExecutionDurationMs` and
+                                            `runStepClosedAt`. Mobile decodes only the last three; the two
+                                            start/dispatch stamps are NOT decoded. (BUILT — decode only)
+wake-up turns  status 'cancelled'         A background task wake-up may now settle as `cancelled`. Mobile used
+                                            to reject the whole turn; it is now accepted. (BUILT)
+tool output    check_background_task      The host-shaped output (a single task, a `{ tasks[], partial }` list or
+                                            a `{ status, message }` notice) renders as a native card, with raw
+                                            output as the fallback. (BUILT)
+HITL           edit_file approval input   (210086aa #16543) normalized to `edits: [{ old_text, new_text,
+                                            replace_all? }]`. Mobile renders generic args. (NO CHANGE)
+```
+
+Code investigations for this sync. The file:line evidence is in the local, gitignored sync artifact
+`.claude/sync-upstream/artifacts/investigations-v0.8.8.md`, which does not travel with the repo:
+- **F26** (5682f77f #16511, a failed regeneration's error branch): no gap. Mobile never builds an
+  in-tree error message. The error is a banner, and the tree reloads from the server.
+- **F27** (b04226eb #16404, user images right-aligned): FIXED for the two-sided layout. The thread
+  layout keeps every turn at the start by design.
+- **A02** stale draft after send (a9b49160 #16444): no gap. Every send, steer, queue and answer path
+  deletes the draft through `clearComposer()`. RTL split text (42568a00 #16454): no gap. Mobile
+  renders the greeting as one `Text`.
+- **A01** `@librechat/agents` 3.9.1 → 3.9.8: no gap. `ContentTypes` and `StepTypes` are unchanged.
+  `on_tool_calls_dispatched` is dropped explicitly. `on_model_response` and
+  `on_model_tools_claimed` are consumed only by the OpenAI-compatible API. The new fields are
+  additive.
+- **Schedules** `lastRun.error` outcome fallback (`readScheduleMCPOutcomes`): BUILT.
+- **Running group**: search DOES promote running matches upstream (`includePinned: isArchivedView`
+  at the call site), as mobile does. The drawer has no non-default sort, so the sort guard has
+  nothing to read.
 
 ### Other
 ```

@@ -140,13 +140,29 @@ class WakeupMessageTest {
     }
 
     @Test
-    fun rejects_an_empty_background_payload_and_a_cancelled_background_task() {
+    fun rejects_an_empty_background_payload() {
         assertNull(WakeupMessage.parse("$backgroundHeader\n[]"))
-        assertNull(
-            WakeupMessage.parse(
-                "$backgroundHeader\n" +
-                    """[{"background_task_id":"b","tool_call_id":"c","tool":"t","status":"cancelled","result":""}]""",
+    }
+
+    @Test
+    fun parses_a_cancelled_background_tool_wakeup() {
+        val text = "$backgroundHeader\n" +
+            """[{"background_task_id":"bg-2","tool_call_id":"call-2","tool":"bash_tool","status":"cancelled",""" +
+            """"result":"Cancelled by the user."}]"""
+        assertEquals(
+            WakeupDisplay(
+                kind = WakeupKind.BACKGROUND_TOOL,
+                tasks = listOf(
+                    WakeupTask(
+                        taskId = "bg-2",
+                        status = WakeupTaskStatus.CANCELLED,
+                        result = "Cancelled by the user.",
+                        toolCallId = "call-2",
+                        toolName = "bash_tool",
+                    ),
+                ),
             ),
+            WakeupMessage.parse(text),
         )
     }
 }

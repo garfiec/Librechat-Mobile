@@ -13,6 +13,11 @@
     <string name="skill_files_empty">لا توجد ملفات مرفقة.</string>
     <string name="skill_files_add">إضافة ملف</string>
     <string name="skill_files_remove">إزالة %1$s</string>
+    <string name="skill_file_save">حفظ</string>
+    <string name="skill_file_close">إغلاق</string>
+    <string name="skill_file_reload">إعادة التحميل</string>
+    <string name="skill_file_conflict">تم تغيير هذا الملف في مكان آخر. أعد التحميل لرؤية أحدث إصدار؛ سيتم تجاهل تعديلاتك هنا.</string>
+    <string name="skill_file_binary">لا يمكن عرض هذا الملف كنص.</string>
 
     <!-- Detail -->
     <string name="skill_edit">تعديل</string>

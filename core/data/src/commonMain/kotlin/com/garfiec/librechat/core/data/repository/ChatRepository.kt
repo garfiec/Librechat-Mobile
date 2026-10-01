@@ -113,4 +113,7 @@ interface ChatRepository {
     ): ChatStatusResponse
 
     fun resumeStream(conversationId: String): Flow<StreamEvent>
+
+    /** Conversations with a live generation job for the signed-in user (running or paused for review). */
+    suspend fun getActiveJobIds(): Result<Set<String>>
 }

@@ -56,6 +56,7 @@
 
     <string name="schedule_disabled_mcp_reauth">Suspendue : un outil connecté nécessite que vous vous reconnectiez. Ouvrez l'agent dans une discussion pour le reconnecter.</string>
     <string name="schedule_disabled_mcp_config">Suspendue : il manque la configuration d'un outil connecté.</string>
+    <string name="schedule_disabled_mcp_unattended_auth">En pause : l'accès sans surveillance n'est pas configuré pour un outil connecté. Un administrateur doit le configurer ; le reconnecter dans une conversation ne réglera pas le problème.</string>
     <string name="schedule_disabled_mcp_permission">Suspendue : vous n'avez plus accès à un outil connecté. Un administrateur doit le rétablir.</string>
     <string name="schedule_disabled_failures">Suspendue après trop d'exécutions échouées.</string>
     <string name="schedule_disabled_agent">Suspendue : l'agent utilisé a été supprimé.</string>

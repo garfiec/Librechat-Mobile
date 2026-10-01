@@ -13,6 +13,11 @@
     <string name="skill_files_empty">Нет прикреплённых файлов.</string>
     <string name="skill_files_add">Добавить файл</string>
     <string name="skill_files_remove">Удалить %1$s</string>
+    <string name="skill_file_save">Сохранить</string>
+    <string name="skill_file_close">Закрыть</string>
+    <string name="skill_file_reload">Перезагрузить</string>
+    <string name="skill_file_conflict">Этот файл был изменён в другом месте. Перезагрузите, чтобы увидеть последнюю версию; ваши правки здесь будут отброшены.</string>
+    <string name="skill_file_binary">Этот файл нельзя показать как текст.</string>
 
     <!-- Detail -->
     <string name="skill_edit">Изменить</string>

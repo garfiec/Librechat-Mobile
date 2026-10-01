@@ -66,9 +66,9 @@ Use these paths when generating focused diffs between the current baseline commi
 GitHub Releases often explicitly flag breaking changes and migrations that diffs hide.
 For every stable or rc tag between current baseline and target (inclusive; untagged partial targets have no release notes — scan merged PRs and commit subjects instead):
 ```bash
-gh api repos/danny-avila/LibreChat/releases/tags/{tag} --jq .body
+gh api repos/LibreChat-AI/LibreChat/releases/tags/{tag} --jq .body
 ```
-Falls back to `WebFetch` on `https://github.com/danny-avila/LibreChat/releases/tag/{tag}`.
+Falls back to `WebFetch` on `https://github.com/LibreChat-AI/LibreChat/releases/tag/{tag}`.
 
 Upstream has no repo-root `CHANGELOG.md` — release notes on GitHub are the canonical changelog.
 

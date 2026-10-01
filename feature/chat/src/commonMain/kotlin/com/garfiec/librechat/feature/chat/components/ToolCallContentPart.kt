@@ -40,6 +40,8 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.RunStepStatus
+import com.garfiec.librechat.core.model.background.BackgroundTaskOutput
+import com.garfiec.librechat.core.model.background.CHECK_BACKGROUND_TASK_TOOL
 import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -178,7 +180,7 @@ internal fun ToolCallDispatcher(
                 if (results.isNotEmpty()) {
                     WebSearchSourcesCard(results = results, modifier = cardModifier)
                 } else {
-                    GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.runStepStatus)
+                    GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.effectiveRunStepStatus)
                 }
             }
             isFileSearchToolCall(toolNameLower) -> {
@@ -194,7 +196,7 @@ internal fun ToolCallDispatcher(
                         stateKey = cardKey,
                     )
                 } else {
-                    GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.runStepStatus)
+                    GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.effectiveRunStepStatus)
                 }
             }
             isCodeExecutionToolCall(toolNameLower) -> {
@@ -206,7 +208,7 @@ internal fun ToolCallDispatcher(
                 if (result != null) {
                     CodeExecutionCard(result = result, modifier = cardModifier)
                 } else {
-                    GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.runStepStatus)
+                    GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.effectiveRunStepStatus)
                 }
             }
             toolNameLower.contains(ToolConstants.MEMORY) -> {
@@ -222,7 +224,7 @@ internal fun ToolCallDispatcher(
                         MemoryArtifactCard(artifact = artifact, modifier = cardModifier)
                     }
                 } else {
-                    GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.runStepStatus)
+                    GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.effectiveRunStepStatus)
                 }
             }
             toolNameLower.contains("mcp") -> {
@@ -230,7 +232,7 @@ internal fun ToolCallDispatcher(
                 if (resources.isNotEmpty()) {
                     McpResourceCarousel(resources = resources, modifier = cardModifier)
                 } else {
-                    GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.runStepStatus)
+                    GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.effectiveRunStepStatus)
                 }
             }
             isImageGen -> {
@@ -244,12 +246,27 @@ internal fun ToolCallDispatcher(
                     modifier = cardModifier,
                 )
             }
+            toolNameLower == CHECK_BACKGROUND_TASK_TOOL -> {
+                val display = remember(output) { BackgroundTaskOutput.parse(output) }
+                if (display != null) {
+                    BackgroundTaskCallCard(
+                        display = display,
+                        output = output.orEmpty(),
+                        intent = intent,
+                        closedStatus = toolCall?.effectiveRunStepStatus,
+                        modifier = cardModifier,
+                        stateKey = cardKey,
+                    )
+                } else {
+                    GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.effectiveRunStepStatus)
+                }
+            }
             toolNameLower.contains("log") -> {
                 val logContent = remember(toolCall) { parseLogContent(toolCall) }
                 LogContentCard(log = logContent, modifier = cardModifier)
             }
             else -> {
-                GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.runStepStatus)
+                GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.effectiveRunStepStatus)
             }
         }
 

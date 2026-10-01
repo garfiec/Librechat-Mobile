@@ -30,4 +30,5 @@
     <string name="pdf_password_hide">Ocultar senha</string>
     <string name="pdf_password_confirm">Descriptografar e enviar</string>
     <string name="pdf_password_cancel">Cancelar</string>
+    <string name="param_thinking_between_tools_description">Ativa o raciocínio adaptativo controlado pelo parâmetro Esforço. Este modelo não pode desativar o raciocínio por completo: desativá-lo usa a configuração mais baixa, que ignora o raciocínio estendido e mantém apenas breves notas entre chamadas de ferramentas. Com a opção desativada, o esforço fica limitado a Alto.</string>
 </resources>

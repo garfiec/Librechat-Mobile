@@ -13,6 +13,11 @@
     <string name="skill_files_empty">No files attached.</string>
     <string name="skill_files_add">Add file</string>
     <string name="skill_files_remove">Remove %1$s</string>
+    <string name="skill_file_save">Save</string>
+    <string name="skill_file_close">Close</string>
+    <string name="skill_file_reload">Reload</string>
+    <string name="skill_file_conflict">This file was changed somewhere else. Reload to see the latest version; your edits here will be discarded.</string>
+    <string name="skill_file_binary">This file cannot be shown as text.</string>
 
     <!-- Detail -->
     <string name="skill_edit">Edit</string>

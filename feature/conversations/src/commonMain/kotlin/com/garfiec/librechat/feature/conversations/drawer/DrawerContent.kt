@@ -87,6 +87,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.common.extensions.toRelativeTimeString
 import com.garfiec.librechat.core.model.ChatProject
@@ -113,6 +114,7 @@ import com.garfiec.librechat.feature.conversations.resources.cd_conversation_act
 import com.garfiec.librechat.feature.conversations.resources.cd_expand_section
 import com.garfiec.librechat.feature.conversations.resources.cd_search
 import com.garfiec.librechat.feature.conversations.resources.chats
+import com.garfiec.librechat.feature.conversations.resources.drawer_running_chats
 import com.garfiec.librechat.feature.conversations.resources.favorites
 import com.garfiec.librechat.feature.conversations.resources.files
 import com.garfiec.librechat.feature.conversations.resources.library
@@ -181,12 +183,21 @@ fun DrawerContent(
     // now-gone thread. Distinct from [onNewChat] because that also closes the phone drawer — here the
     // drawer stays open so the user can keep browsing (defaults to [onNewChat] if a host doesn't wire it).
     onActiveConversationDelete: () -> Unit = onNewChat,
+    // Whether the host is actually showing this surface (phone drawer open / tablet sidebar expanded).
+    // The phone drawer stays composed while closed, so the host must say so.
+    isOpen: Boolean = true,
     viewModel: DrawerViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.drawerUiState.collectAsStateWithLifecycle()
     val projects by viewModel.projects.collectAsStateWithLifecycle()
     val inlineProjectChats by viewModel.inlineProjectChats.collectAsStateWithLifecycle()
     val libraryTab by viewModel.drawerLibraryTab.collectAsStateWithLifecycle()
+
+    // Drives the Running group's active-jobs poll: on only while this surface is open and started.
+    LifecycleStartEffect(viewModel, isOpen) {
+        viewModel.setDrawerVisible(isOpen)
+        onStopOrDispose { viewModel.setDrawerVisible(false) }
+    }
 
     // Account switcher: the header chip opens the roster sheet; remove asks for confirmation.
     // Switch/add callbacks come from the host (they also close the drawer); remove goes straight to
@@ -733,7 +744,11 @@ fun DrawerContent(
                     uiState.groupedConversations.forEach { (dateGroup, displayItems) ->
                         stickyHeader(key = "header_$dateGroup") {
                             Text(
-                                text = dateGroup,
+                                text = if (dateGroup == RUNNING_CHATS_GROUP) {
+                                    stringResource(Res.string.drawer_running_chats)
+                                } else {
+                                    dateGroup
+                                },
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier

@@ -35,6 +35,8 @@ internal fun localizedStreamError(raw: String): String {
         StreamErrorType.RESOURCE_RECOVERY_REQUIRED -> stringResource(Res.string.error_resource_recovery_required)
         StreamErrorType.MODEL_NOT_FOUND -> stringResource(Res.string.error_model_not_found)
         StreamErrorType.MODEL_RATE_LIMIT -> stringResource(Res.string.error_model_rate_limit)
+        StreamErrorType.MODEL_STREAM_CLOSED -> stringResource(Res.string.error_model_stream_closed)
+        StreamErrorType.MODEL_STREAM_STALLED -> stringResource(Res.string.error_model_stream_stalled)
         StreamErrorType.MISSING_MODEL -> stringResource(Res.string.error_missing_model)
         StreamErrorType.MODELS_NOT_LOADED -> stringResource(Res.string.error_models_not_loaded)
         StreamErrorType.ENDPOINT_MODELS_NOT_LOADED -> stringResource(Res.string.error_endpoint_models_not_loaded)
@@ -56,6 +58,9 @@ internal fun localizedStreamError(raw: String): String {
             stringResource(Res.string.error_code_workspace_unavailable)
         StreamErrorType.STATEFUL_CODE_ENVIRONMENT_NOT_ALLOWED ->
             stringResource(Res.string.error_stateful_code_environment_not_allowed)
+        StreamErrorType.MCP_AUTHENTICATION_REJECTED -> stringResource(Res.string.error_mcp_authentication_rejected)
+        StreamErrorType.MCP_AUTHENTICATION_REFRESH_FAILED ->
+            stringResource(Res.string.error_mcp_authentication_refresh_failed)
     }
 }
 

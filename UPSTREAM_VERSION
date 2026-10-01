@@ -5,6 +5,6 @@
 #          for a PARTIAL sync (untagged target) it is PAST the tag, and
 #          version.properties' backendTargetVersion carries a +dev.<sha> suffix pinning it.
 #          Diffs for the next sync are computed from commit=, not tag=.
-tag=v0.8.8-rc4
-commit=361553f3322d7b9bb547d0a9c2c5aaefc2934901
-date=2026-09-23
+tag=v0.8.8
+commit=6a1d30cac33c2bd701899cdbc682b50e6269f416
+date=2026-09-30

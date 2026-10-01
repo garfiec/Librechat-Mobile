@@ -78,6 +78,16 @@ data class InterfaceConfig(
      * absent-cases differ, and so does `{}`.
      */
     val traceViewer: JsonElement? = null,
+    // --- v0.8.8 ---
+    /**
+     * Pre-search cap on the web agent BUILDER's agent dropdown (1..100, default 10). Decoded only:
+     * mobile has no builder-side picker, and the chat model selector is deliberately NOT capped by
+     * it (web's is not either).
+     *
+     * Raw JSON rather than `Int?`: upstream notes unparsed yaml and admin overrides reach the
+     * client unvalidated, and a non-integer here must not fail the whole `/api/config` decode.
+     */
+    val agentSelectorLimit: JsonElement? = null,
 )
 
 /**

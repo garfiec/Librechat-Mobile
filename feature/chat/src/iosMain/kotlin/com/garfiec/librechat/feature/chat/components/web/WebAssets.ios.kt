@@ -2,7 +2,6 @@ package com.garfiec.librechat.feature.chat.components.web
 
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.feature.chat.resources.Res
-import kotlin.concurrent.Volatile
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
@@ -25,6 +24,7 @@ import platform.Foundation.create
 import platform.Foundation.stringWithContentsOfFile
 import platform.Foundation.writeToFile
 import platform.WebKit.WKWebView
+import kotlin.concurrent.Volatile
 
 private const val CACHE_DIR_NAME = "webassets"
 private const val MANIFEST_NAME = ".manifest"

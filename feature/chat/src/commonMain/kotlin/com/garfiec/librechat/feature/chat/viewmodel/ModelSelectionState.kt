@@ -54,4 +54,6 @@ data class ModelSelectionState(
      * older or unknown servers (per VERSION_GATES.md guideline #2).
      */
     val extendedEffortSupported: Boolean = false,
+    /** Whether thinkingDisplay `updates` may be offered (v0.8.8); see `EndpointParameterRegistry.getDefinitions`. */
+    val thinkingDisplayUpdatesSupported: Boolean = false,
 )

@@ -5,6 +5,7 @@ import android.content.Context
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.MessageRepository
@@ -25,6 +26,7 @@ class ConversationsModuleVerificationTest {
                 Context::class,
                 Application::class,
                 ConversationRepository::class,
+                ChatRepository::class,
                 MessageRepository::class,
                 TagRepository::class,
                 ShareRepository::class,

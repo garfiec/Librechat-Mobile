@@ -54,6 +54,9 @@ import org.jetbrains.compose.resources.stringResource
  *
  * This mirrors the official LibreChat web app's `Files` component which renders
  * `message.files` above the message text for user messages.
+ *
+ * [alignImagesEnd] puts the image previews at the end edge while the file chips stay at the start,
+ * as upstream does for a user turn (`Image`'s `alignRight`).
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -61,6 +64,7 @@ fun MessageFiles(
     files: List<FileReference>,
     modifier: Modifier = Modifier,
     baseUrl: String = "",
+    alignImagesEnd: Boolean = false,
 ) {
     if (files.isEmpty()) return
 
@@ -97,6 +101,7 @@ fun MessageFiles(
                 MessageImagePreview(
                     imageUrl = imageUrl,
                     altText = file.filename ?: "Attached image",
+                    modifier = if (alignImagesEnd) Modifier.align(Alignment.End) else Modifier,
                 )
                 Spacer(modifier = Modifier.height(8.dp))
             }

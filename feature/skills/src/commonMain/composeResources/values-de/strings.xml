@@ -13,6 +13,11 @@
     <string name="skill_files_empty">Keine Dateien angehängt.</string>
     <string name="skill_files_add">Datei hinzufügen</string>
     <string name="skill_files_remove">%1$s entfernen</string>
+    <string name="skill_file_save">Speichern</string>
+    <string name="skill_file_close">Schließen</string>
+    <string name="skill_file_reload">Neu laden</string>
+    <string name="skill_file_conflict">Diese Datei wurde an anderer Stelle geändert. Lade neu, um die neueste Version zu sehen; deine Änderungen hier werden verworfen.</string>
+    <string name="skill_file_binary">Diese Datei kann nicht als Text angezeigt werden.</string>
 
     <!-- Detail -->
     <string name="skill_edit">Bearbeiten</string>

@@ -11,6 +11,7 @@ import com.garfiec.librechat.feature.schedules.resources.schedule_disabled_inval
 import com.garfiec.librechat.feature.schedules.resources.schedule_disabled_mcp_config
 import com.garfiec.librechat.feature.schedules.resources.schedule_disabled_mcp_permission
 import com.garfiec.librechat.feature.schedules.resources.schedule_disabled_mcp_reauth
+import com.garfiec.librechat.feature.schedules.resources.schedule_disabled_mcp_unattended_auth
 import com.garfiec.librechat.feature.schedules.resources.schedule_disabled_permission
 import com.garfiec.librechat.feature.schedules.resources.schedule_disabled_project
 import com.garfiec.librechat.feature.schedules.resources.schedule_disabled_project_required
@@ -40,7 +41,14 @@ import org.jetbrains.compose.resources.stringResource
  * still says the server paused it rather than rendering blank.
  */
 @Composable
-fun disabledReasonLabel(reason: String?): String = when (reason) {
+fun disabledReasonLabel(reason: String?, unattendedMcpAuth: Boolean = false): String = when {
+    reason == ScheduleDisabledReason.MCP_CONFIGURATION_MISSING && unattendedMcpAuth ->
+        stringResource(Res.string.schedule_disabled_mcp_unattended_auth)
+    else -> serverPauseLabel(reason)
+}
+
+@Composable
+private fun serverPauseLabel(reason: String?): String = when (reason) {
     ScheduleDisabledReason.MCP_REAUTH_REQUIRED -> stringResource(Res.string.schedule_disabled_mcp_reauth)
     ScheduleDisabledReason.MCP_CONFIGURATION_MISSING -> stringResource(Res.string.schedule_disabled_mcp_config)
     ScheduleDisabledReason.MCP_PERMISSION_DENIED -> stringResource(Res.string.schedule_disabled_mcp_permission)

@@ -31,10 +31,9 @@ import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
-import com.garfiec.librechat.feature.chat.util.MessageNode
+import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import kotlinx.coroutines.awaitCancellation
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -117,6 +116,15 @@ class MessageSelectionInstrumentedTest {
         override fun close() = Unit
     }
 
+    /**
+     * Records every write, and passes it through to the system clipboard.
+     *
+     * The pass-through is not optional: add-to-chat only accepts a clip whose description timestamp
+     * is at least the tap time. The system clipboard stamps that timestamp on every clip; a clip
+     * held only in memory keeps a timestamp of 0 and reads as a copy that never landed. Reads
+     * prefer the system copy for the same reason, and fall back to the recorded one when the
+     * platform refuses the read (it does for an unfocused app on API 29+).
+     */
     class RecordingClipboard : Clipboard {
         var lastEntry: ClipEntry? = null
 
@@ -125,10 +133,14 @@ class MessageSelectionInstrumentedTest {
                 (0 until clip.itemCount).joinToString("") { clip.getItemAt(it).text?.toString().orEmpty() }
             }
 
-        override suspend fun getClipEntry(): ClipEntry? = lastEntry
+        override suspend fun getClipEntry(): ClipEntry? =
+            runCatching { nativeClipboard.primaryClip }.getOrNull()?.let(::ClipEntry) ?: lastEntry
 
         override suspend fun setClipEntry(clipEntry: ClipEntry?) {
             lastEntry = clipEntry
+            runCatching {
+                if (clipEntry != null) nativeClipboard.setPrimaryClip(clipEntry.clipData) else nativeClipboard.clearPrimaryClip()
+            }
         }
 
         override val nativeClipboard: ClipboardManager
@@ -177,7 +189,9 @@ class MessageSelectionInstrumentedTest {
                 LibreChatTheme {
                     val list: @Composable () -> Unit = {
                         MessageList(
-                            displayMessages = messages.map { MessageNode(it, emptyList(), 0, 1) },
+                            // The list keys items by tree parent, so a multi-message thread must be
+                            // a real chain; hand-built nodes would all share the NO_PARENT key.
+                            displayMessages = buildActiveMessagePath(messages.toList()),
                             isStreaming = isStreaming,
                             streamingContent = streamingContent,
                             onSiblingNavigation = { _, _ -> },
@@ -395,21 +409,44 @@ class MessageSelectionInstrumentedTest {
     }
 
 
+    /**
+     * Runs on the hand-driven clock: while streaming, MessageList's follower loops on
+     * `withFrameNanos`, which keeps Compose non-idle forever, so every idle sync on the automatic
+     * clock times out.
+     *
+     * The settled reply above the stream is the control. The same long-press on it must raise the
+     * toolbar, which proves the gesture reaches the selection stack on this clock at all. Without
+     * that, a long-press that never registered would pass the streaming half.
+     */
     @Test
     fun streamingBubbleIsNotSelectable() {
+        composeRule.mainClock.autoAdvance = false
         setChat(
-            userMessage("m1", "A question."),
+            assistantMessage("m1", "Settled reply words here."),
+            userMessage("m2", "A question.").copy(parentMessageId = "m1"),
             isStreaming = true,
             streamingContent = "Streaming reply body still growing",
         )
 
-        longPressText("Streaming reply body")
-        // Asserting the counter straight away would race the show: every positive test in this
-        // file waits seconds for the same signal. Give it a comparable window to stay at zero.
-        val toolbarAppeared = runCatching {
-            composeRule.waitUntil(timeoutMillis = 3_000) { menuProvider.shownCount > 0 }
-        }.isSuccess
-        assertFalse("selection toolbar must not appear on the streaming bubble", toolbarAppeared)
+        longPressOnManualClock("Streaming reply body")
+        assertEquals("selection toolbar must not appear on the streaming bubble", 0, menuProvider.shownCount)
+
+        longPressOnManualClock("Settled reply words")
+        assertTrue("control: a long-press on a settled reply raised no toolbar", menuProvider.shownCount > 0)
+    }
+
+    private fun longPressOnManualClock(text: String) {
+        val found = (0 until MANUAL_FRAME_BUDGET).any {
+            composeRule.mainClock.advanceTimeByFrame()
+            composeRule.onAllNodes(hasText(text, substring = true), useUnmergedTree = true)
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        assertTrue("\"$text\" never rendered", found)
+        composeRule.onNodeWithText(text, substring = true, useUnmergedTree = true)
+            .performTouchInput { longClick() }
+        // Comparable to the window every positive test waits for the toolbar to show.
+        composeRule.mainClock.advanceTimeBy(TOOLBAR_WINDOW_MS)
+        composeRule.waitForIdle()
     }
 
     /**
@@ -464,5 +501,7 @@ class MessageSelectionInstrumentedTest {
         const val CONVO = "convo-1"
         const val SENDER = "TestBot"
         const val USER_NAME = "TestUser"
+        const val MANUAL_FRAME_BUDGET = 600
+        const val TOOLBAR_WINDOW_MS = 3_000L
     }
 }

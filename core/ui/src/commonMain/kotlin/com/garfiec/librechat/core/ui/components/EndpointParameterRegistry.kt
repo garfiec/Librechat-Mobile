@@ -17,6 +17,10 @@ object EndpointParameterRegistry {
      *   upstream v0.8.5; on older servers they are rejected at request time. Per
      *   `VERSION_GATES.md`, default to the older-server behavior when the server version
      *   is unknown.
+     * @param thinkingDisplayUpdatesSupported when false, the `updates` value is filtered out of
+     *   the `thinkingDisplay` dropdown. Upstream added it to the `ThinkingDisplay` enum in v0.8.8;
+     *   an older server's `anthropicSchema` rejects it, and its `.catch(() => ({}))` then discards
+     *   every endpoint param on the conversation, not just this one.
      * @param provider required for the `agents` endpoint to route to the underlying
      *   provider's parameter set. Ignored for other endpoints.
      * @param model required for the `bedrock` endpoint to dispatch on the model-prefix
@@ -31,15 +35,21 @@ object EndpointParameterRegistry {
         provider: String? = null,
         model: String? = null,
         dropParams: List<String> = emptyList(),
+        thinkingDisplayUpdatesSupported: Boolean = false,
     ): List<ParameterDefinition> {
         val settingsKey = settingsKeyFor(endpoint, provider)
         val filtered = baseDefinitions(endpoint, extendedEffortSupported, provider, model, dropParams)
         val modelAware = applyModelAwareDefaults(filtered, settingsKey, model)
-        if (extendedEffortSupported) return modelAware
+        if (extendedEffortSupported && thinkingDisplayUpdatesSupported) return modelAware
         return modelAware.map { def ->
+            val gated = when {
+                !extendedEffortSupported && def.key in EFFORT_KEYS -> EXTENDED_EFFORT_VALUES
+                !thinkingDisplayUpdatesSupported && def.key == THINKING_DISPLAY_KEY -> THINKING_DISPLAY_GATED_VALUES
+                else -> emptySet()
+            }
             val options = def.options
-            if (def.key in EFFORT_KEYS && options != null && options.any { it in EXTENDED_EFFORT_VALUES }) {
-                def.copy(options = options.filterNot { it in EXTENDED_EFFORT_VALUES })
+            if (options != null && options.any { it in gated }) {
+                def.copy(options = options.filterNot { it in gated })
             } else {
                 def
             }
@@ -53,8 +63,9 @@ object EndpointParameterRegistry {
      *
      * This, not "absent from the current options", is what a stored value may be dropped for. The
      * current options also lack values for reasons that say nothing about the model: `xhigh`/`max`
-     * are filtered while the server version is undetected (and forever on a server whose version
-     * never is), and a value a newer backend added is in no list this app knows. Dropping on
+     * and thinkingDisplay `updates` are filtered while the server version is undetected (and
+     * forever on a server whose version never is), and a value a newer backend added is in no list
+     * this app knows. Dropping on
      * absence would delete those from the server on an agent save, and omit them from a chat send.
      * Computed with the version-gated values present on both sides, so a gate never shows up here.
      * Keys a rule removes entirely (Opus 5.5's sampling controls) are not option-level and are
@@ -133,9 +144,17 @@ object EndpointParameterRegistry {
                 }
             }
         }
-        // Opus 5.5 has always-on adaptive thinking and no sampling controls; the server drops these
-        // values, so offering the controls lets the user set values that do nothing.
-        if (isOpus55Model(model)) return definitions.filterNot { it.key in OPUS_55_HIDDEN_KEYS }
+        // Opus 5.5+ and the Mythos class run thinking always on with no sampling controls; the
+        // server drops these values, so offering the controls lets the user set values that do nothing.
+        if (hasAlwaysOnThinking(model)) return definitions.filterNot { it.key in ALWAYS_ON_THINKING_HIDDEN_KEYS }
+        // Sonnet 5.5+ keeps the toggle: "off" maps to its `between_tools` floor.
+        if (hasBetweenToolsThinkingFloor(model)) {
+            return definitions
+                .filterNot { it.key in BETWEEN_TOOLS_HIDDEN_KEYS }
+                .map { def ->
+                    if (def.key == "thinking") def.copy(description = BETWEEN_TOOLS_THINKING_DESCRIPTION) else def
+                }
+        }
         val adjusted = if (settingsKey == "google") {
             val bounds = googleThinkingBudgetBounds(model)
             if (bounds == null) {
@@ -158,24 +177,54 @@ object EndpointParameterRegistry {
     // Grok is matched on the last `/` segment so a gateway-prefixed id (`xai/grok-4.7`) still hits.
     private val GROK_4_7 = Regex("""^grok-4[.-]7(?:$|[-:])""")
     private val GROK_4_7_EFFORT = listOf("", "low", "medium", "high", "xhigh")
-    private val GPT_6_SOL_LUNA = Regex("""^gpt-6-(?:sol|luna)(?:$|-)""", RegexOption.IGNORE_CASE)
-    private val OPUS_55_HIDDEN_KEYS = setOf("thinking", "thinkingBudget", "temperature", "topP", "topK")
+
+    // MIRRORED from upstream `GPT6_TIER` (`packages/data-provider/src/families.ts`): a point release
+    // (`gpt-6.1-sol`) resolves to its family's tier.
+    private val GPT_6_SOL_LUNA = Regex("""^gpt-6(?:\.\d+)?-(?:sol|luna)(?=-|$)""", RegexOption.IGNORE_CASE)
+    private val ALWAYS_ON_THINKING_HIDDEN_KEYS = setOf("thinking", "thinkingBudget", "temperature", "topP", "topK")
+    private val BETWEEN_TOOLS_HIDDEN_KEYS = setOf("thinkingBudget", "temperature", "topP", "topK")
+
+    /** English source of `param_thinking_between_tools_description`; see [localizedDescription]. */
+    internal const val BETWEEN_TOOLS_THINKING_DESCRIPTION =
+        "Enables adaptive thinking controlled by the Effort parameter. This model cannot turn thinking off " +
+            "entirely: switching this off uses its lowest setting, which skips extended thinking and keeps only " +
+            "brief notes between tool calls. Effort is capped at High while off."
 
     /**
-     * MIRRORED from upstream `isOpus55Model` / `parseOpusVersion` (`packages/data-provider/src/bedrock.ts`).
-     * Both spellings: name-first (`claude-opus-5-5`, `claude-opus-5.5`) and number-first
-     * (`claude-5-5-opus`). A missing minor reads as 0, so plain `claude-opus-5` is not 5.5, and the
-     * lookahead keeps a date suffix (`claude-opus-5-20260101`) from being read as a minor.
+     * MIRRORED from upstream `hasAlwaysOnThinking` (`packages/data-provider/src/bedrock.ts`): Opus 5.5
+     * and later, and the Mythos class, reject both `disabled` and `between_tools`.
      */
-    private fun isOpus55Model(model: String): Boolean {
-        val match = OPUS_NAME_FIRST.find(model) ?: OPUS_NUMBER_FIRST.find(model) ?: return false
-        val major = match.groupValues[1].toIntOrNull()
-        val minor = match.groupValues[2].ifEmpty { "0" }.toIntOrNull()
-        return major == 5 && minor == 5
+    private fun hasAlwaysOnThinking(model: String): Boolean =
+        isAtLeast(claudeVersion(model, OPUS_NAME_FIRST, OPUS_NUMBER_FIRST), 5, 5) ||
+            MYTHOS_CLASS.containsMatchIn(model)
+
+    /** MIRRORED from upstream `hasBetweenToolsThinkingFloor`: Sonnet 5.5 and later. */
+    private fun hasBetweenToolsThinkingFloor(model: String): Boolean =
+        isAtLeast(claudeVersion(model, SONNET_NAME_FIRST, SONNET_NUMBER_FIRST), 5, 5)
+
+    /**
+     * MIRRORED from upstream `parseOpusVersion` / `parseSonnetVersion`. Both spellings: name-first
+     * (`claude-opus-5-5`, `claude-opus-5.5`) and number-first (`claude-5-5-opus`). A missing minor
+     * reads as 0, and the lookahead keeps a date suffix (`claude-opus-5-20260101`) from being read
+     * as a minor.
+     */
+    private fun claudeVersion(model: String, nameFirst: Regex, numberFirst: Regex): Pair<Int, Int>? {
+        val match = nameFirst.find(model) ?: numberFirst.find(model) ?: return null
+        val major = match.groupValues[1].toIntOrNull() ?: return null
+        val minor = match.groupValues[2].ifEmpty { "0" }.toIntOrNull() ?: return null
+        return major to minor
     }
+
+    private fun isAtLeast(version: Pair<Int, Int>?, major: Int, minor: Int): Boolean =
+        version != null && (version.first > major || (version.first == major && version.second >= minor))
 
     private val OPUS_NAME_FIRST = Regex("""claude-opus[-.]?(\d+)(?:[-.](\d{1,2})(?!\d))?""")
     private val OPUS_NUMBER_FIRST = Regex("""claude-(\d+)(?:[-.](\d{1,2})(?!\d))?-opus""")
+    private val SONNET_NAME_FIRST = Regex("""claude-sonnet[-.]?(\d+)(?:[-.](\d{1,2})(?!\d))?""")
+    private val SONNET_NUMBER_FIRST = Regex("""claude-(\d+)(?:[-.](\d{1,2})(?!\d))?-sonnet""")
+
+    // MYTHOS_CLASS_FAMILIES — new top-level Claude classes, peers of opus/sonnet/haiku.
+    private val MYTHOS_CLASS = Regex("""claude-(?:fable|mythos)[-.]?\d""")
 
     private fun ParameterDefinition.withGoogleThinkingBudget(bounds: ThinkingBudgetBounds) = copy(
         max = bounds.max.toDouble(),
@@ -224,8 +273,7 @@ object EndpointParameterRegistry {
         Regex("""claude-3-(?:sonnet|haiku|opus)?"""),
         Regex("""claude-(?:sonnet|opus|haiku)[-.]?(?:[4-9]|\d{2,})"""),
         Regex("""claude-(?:[4-9]|\d{2,})(?:[-.](?:sonnet|opus|haiku))?"""),
-        // MYTHOS_CLASS_FAMILIES — new top-level Claude classes, peers of opus/sonnet/haiku.
-        Regex("""claude-(?:fable|mythos)[-.]?\d"""),
+        MYTHOS_CLASS,
     )
 
     /**
@@ -291,6 +339,8 @@ object EndpointParameterRegistry {
 
     private val EFFORT_KEYS = setOf("reasoning_effort", "effort")
     private val EXTENDED_EFFORT_VALUES = setOf("xhigh", "max")
+    private const val THINKING_DISPLAY_KEY = "thinkingDisplay"
+    private val THINKING_DISPLAY_GATED_VALUES = setOf("updates")
 
     // Defaults mirrored from upstream `parameterSettings.ts` / `schemas.ts`. Centralized
     // here so the registry doesn't sprinkle magic numbers across each provider's params.
@@ -539,7 +589,7 @@ object EndpointParameterRegistry {
             key = "thinkingDisplay",
             label = "Reasoning Visibility",
             type = ParameterType.ENUM_SLIDER,
-            options = listOf("auto", "summarized", "omitted"),
+            options = listOf("auto", "summarized", "omitted", "updates"),
             default = "auto",
             description = "Controls whether reasoning tokens are streamed to the client (Claude Opus 4.7+).",
         ),
@@ -909,7 +959,7 @@ object EndpointParameterRegistry {
             key = "thinkingDisplay",
             label = "Reasoning Visibility",
             type = ParameterType.ENUM_SLIDER,
-            options = listOf("auto", "summarized", "omitted"),
+            options = listOf("auto", "summarized", "omitted", "updates"),
             default = "auto",
             description = "Controls whether reasoning tokens are streamed to the client (Claude Opus 4.7+).",
         ),

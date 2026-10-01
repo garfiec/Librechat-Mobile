@@ -11,6 +11,7 @@ import com.garfiec.librechat.core.model.request.UpdateSkillRequest
 import com.garfiec.librechat.core.model.response.DeleteSkillFileResponse
 import com.garfiec.librechat.core.model.response.DeleteSkillResponse
 import com.garfiec.librechat.core.model.response.SkillConflictResponse
+import com.garfiec.librechat.core.model.response.SkillFileContentResponse
 import com.garfiec.librechat.core.model.response.SkillListResponse
 import com.garfiec.librechat.core.model.response.SkillValidationErrorResponse
 import com.garfiec.librechat.core.network.api.SkillsApi
@@ -104,6 +105,36 @@ class SkillsRepositoryImpl(
 
     override suspend fun deleteSkillFile(skillId: String, relativePath: String): Result<DeleteSkillFileResponse> =
         safeApiCall { skillsApi.deleteSkillFile(skillId, relativePath) }
+
+    override suspend fun getSkillFileContent(
+        skillId: String,
+        relativePath: String,
+    ): Result<SkillFileContentResponse> = safeApiCall { skillsApi.getSkillFileContent(skillId, relativePath) }
+
+    override suspend fun editSkillFile(
+        skillId: String,
+        relativePath: String,
+        expectedFileId: String,
+        content: String,
+        filename: String,
+        mimeType: String,
+    ): SkillFileEditResult = try {
+        SkillFileEditResult.Saved(
+            onApiDispatcher {
+                skillsApi.editSkillFile(skillId, relativePath, expectedFileId, content.encodeToByteArray(), filename, mimeType)
+            },
+        )
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: ApiException) {
+        if (e.statusCode == HTTP_CONFLICT) {
+            SkillFileEditResult.Conflict
+        } else {
+            SkillFileEditResult.Failed(validationMessage(e) ?: e.message)
+        }
+    } catch (e: Exception) {
+        SkillFileEditResult.Failed(e.message)
+    }
 
     override suspend fun importSkill(bytes: ByteArray, filename: String, mimeType: String): Result<Skill> {
         return try {

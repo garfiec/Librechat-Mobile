@@ -246,6 +246,9 @@ internal fun MessageContentAndActions(
     // Identity for a mid-run steer, which renders as the user's own turn inside the response.
     userName: String?,
     userAvatarUrl: String?,
+    // Only the two-sided layout, where a user turn sits at the end. The thread layout lines every
+    // turn up at the start, so pushing images to the end there would split them from their text.
+    alignImagesEnd: Boolean,
 ) {
     // The picker is hosted here — one site for both layouts on both platforms — rather than in
     // ActionButtons, whose action row auto-hides on a timer and would take an open sheet with it.
@@ -279,6 +282,7 @@ internal fun MessageContentAndActions(
             MessageFiles(
                 files = messageFiles,
                 baseUrl = baseUrl,
+                alignImagesEnd = alignImagesEnd,
                 modifier = Modifier.padding(bottom = 4.dp),
             )
         }
@@ -318,7 +322,12 @@ internal fun MessageContentAndActions(
                         MessageFiles(
                             files = messageFiles,
                             baseUrl = baseUrl,
-                            modifier = Modifier.padding(bottom = 4.dp),
+                            alignImagesEnd = alignImagesEnd,
+                            // Aligned across the whole bubble, not just the files block, or a line of
+                            // text wider than the image holds it at the start.
+                            modifier = Modifier
+                                .padding(bottom = 4.dp)
+                                .then(if (alignImagesEnd) Modifier.align(Alignment.End) else Modifier),
                         )
                     }
                 }

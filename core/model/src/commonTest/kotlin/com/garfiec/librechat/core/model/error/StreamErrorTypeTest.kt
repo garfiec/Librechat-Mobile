@@ -100,6 +100,33 @@ class StreamErrorTypeTest {
         assertEquals(StreamErrorType.UPSTREAM_MODEL_ERROR.marker, StreamErrorType.markerOrText(raw))
     }
 
+    /** `resolveModelStreamError` (packages/api/src/agents/errors.ts): fallback prose, then the typed payload. */
+    @Test
+    fun model_stream_closed_and_stalled_classify_off_the_prose_prefixed_payload() {
+        val closed = "The model provider closed the connection before the response finished. Try again.\n" +
+            """{"type":"model_stream_closed"}"""
+        val stalled = "The model provider stopped sending the response, and the request timed out. Try again.\n" +
+            """{"type":"model_stream_stalled"}"""
+
+        assertEquals(StreamErrorType.MODEL_STREAM_CLOSED.marker, StreamErrorType.markerOrText(closed))
+        assertEquals(StreamErrorType.MODEL_STREAM_STALLED.marker, StreamErrorType.markerOrText(stalled))
+    }
+
+    /** `getInitializationFailure` + `getAgentErrorMetadata` (api/server/controllers/agents/request.js). */
+    @Test
+    fun a_start_post_refused_for_mcp_auth_maps_to_its_marker_only_at_that_site() {
+        val rejected = """{"status":403,"code":"MCP_AUTHENTICATION_REJECTED","retryable":false,"error":"denied"}"""
+        val refresh = """{"status":503,"code":"MCP_AUTHENTICATION_REFRESH_FAILED","retryable":true,"error":"later"}"""
+
+        assertEquals(StreamErrorType.MCP_AUTHENTICATION_REJECTED.marker, StreamErrorType.startFailureMarker(rejected))
+        assertEquals(StreamErrorType.MCP_AUTHENTICATION_REFRESH_FAILED.marker, StreamErrorType.startFailureMarker(refresh))
+        assertNull(StreamErrorType.startFailureMarker("""{"code":"RUN_REPLACED"}"""))
+        assertNull(StreamErrorType.startFailureMarker("""{"error":"MCP_AUTHENTICATION_REJECTED"}"""))
+        assertNull(StreamErrorType.startFailureMarker(null))
+        // In a run's error text the server's own sentence is the useful part; parse leaves it alone.
+        assertNull(StreamErrorType.parse("Reconnect GitHub. $rejected"))
+    }
+
     /** Braces in the prose must not swallow the payload: the span is BALANCED, not outermost-pair. */
     @Test
     fun braces_in_the_prose_do_not_break_the_extraction() {

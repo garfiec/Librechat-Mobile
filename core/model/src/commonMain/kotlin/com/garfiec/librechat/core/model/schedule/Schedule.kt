@@ -2,6 +2,8 @@ package com.garfiec.librechat.core.model.schedule
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.Json
 
 /**
  * A scheduled chat (v0.8.8-rc2): a prompt the SERVER sends to an agent on a recurring cadence,
@@ -73,7 +75,85 @@ data class ScheduleMcpOutcome(
     /** The agent whose selected tool needs this server — a handoff or subagent, when set. */
     val agentId: String? = null,
     val status: String = "",
+    /** A finer diagnosis under [status] (v0.8.8). See [ScheduleMcpDetail]. */
+    val detail: String? = null,
 )
+
+object ScheduleMcpDetail {
+    /**
+     * The server's scheduled on-behalf-of credential is missing: an administrator has to configure
+     * a renewable provider, and reconnecting in chat does not help.
+     */
+    const val UNATTENDED_AUTH_REQUIRED = "unattended_auth_required"
+}
+
+/**
+ * Upstream `scheduleDisabledMCPLabel` over `scheduleMCPRecoveryOutcomes`: a
+ * `mcp_configuration_missing` pause caused by missing unattended auth names the administrator as
+ * the repair instead of generic configuration.
+ */
+val Schedule.pausedForUnattendedMcpAuth: Boolean
+    get() = disabledReason == ScheduleDisabledReason.MCP_CONFIGURATION_MISSING &&
+        mcpRecoveryOutcomes().any { it.detail == ScheduleMcpDetail.UNATTENDED_AUTH_REQUIRED }
+
+private val MCP_RECOVERY_REASONS = setOf(
+    ScheduleDisabledReason.MCP_REAUTH_REQUIRED,
+    ScheduleDisabledReason.MCP_CONFIGURATION_MISSING,
+    ScheduleDisabledReason.MCP_PERMISSION_DENIED,
+    ScheduleDisabledReason.TOO_MANY_FAILURES,
+)
+
+/**
+ * MIRRORED from upstream `scheduleMCPRecoveryOutcomes`
+ * (`client/src/components/SidePanel/Schedules/errors.ts`): the per-server outcomes a paused
+ * schedule's recovery reads. The structured `lastRun.mcp` wins; without it they are recovered from
+ * `lastRun.error`, the string a run that failed its MCP preflight records them in.
+ *
+ * Upstream also falls back when `mcp` is present but fails its schema. An element with an unknown
+ * status or detail is treated the same way here, but an `mcp` that is not an array at all fails
+ * the whole [Schedule] decode instead.
+ */
+fun Schedule.mcpRecoveryOutcomes(): List<ScheduleMcpOutcome> {
+    if (enabled || disabledReason !in MCP_RECOVERY_REASONS) return emptyList()
+    val persisted = lastRun?.mcp
+    if (persisted != null && persisted.all { it.isKnownShape() }) return persisted
+    return readScheduleMcpOutcomes(lastRun?.error)
+}
+
+/**
+ * MIRRORED from upstream `readScheduleMCPOutcomes` (`packages/data-provider/src/types/schedules.ts`):
+ * parses `"<status>: [<outcomes JSON>]"`, the form a preflight failure is recorded in. Anything
+ * else — another prefix, JSON that does not decode, an outcome of an unknown status — yields nothing.
+ */
+fun readScheduleMcpOutcomes(error: String?): List<ScheduleMcpOutcome> {
+    if (error == null || !MCP_OUTCOMES_ERROR.containsMatchIn(error)) return emptyList()
+    val outcomes = try {
+        outcomesJson.decodeFromString<List<ScheduleMcpOutcome>>(error.substring(error.indexOf(": ") + 2))
+    } catch (_: SerializationException) {
+        return emptyList()
+    } catch (_: IllegalArgumentException) {
+        return emptyList()
+    }
+    return if (outcomes.all { it.isKnownShape() }) outcomes else emptyList()
+}
+
+private val MCP_OUTCOMES_ERROR =
+    Regex("""^mcp_(reauth_required|configuration_missing|permission_denied|unavailable): \[""")
+
+private val KNOWN_MCP_STATUSES = setOf(
+    ScheduleMcpStatus.READY,
+    ScheduleMcpStatus.REAUTH_REQUIRED,
+    ScheduleMcpStatus.CONFIGURATION_MISSING,
+    ScheduleMcpStatus.PERMISSION_DENIED,
+    ScheduleMcpStatus.UNAVAILABLE,
+)
+
+// Upstream's schema requires `server` and `status`; the data class defaults both to "", so a blank
+// status is what a missing one decodes to and fails the known-status check like any other.
+private fun ScheduleMcpOutcome.isKnownShape(): Boolean =
+    status in KNOWN_MCP_STATUSES && (detail == null || detail == ScheduleMcpDetail.UNATTENDED_AUTH_REQUIRED)
+
+private val outcomesJson = Json { ignoreUnknownKeys = true }
 
 object ScheduleTarget {
     const val NEW = "new"

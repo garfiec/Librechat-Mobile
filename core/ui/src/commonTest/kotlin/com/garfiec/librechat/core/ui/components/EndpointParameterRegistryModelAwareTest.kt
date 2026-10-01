@@ -1,5 +1,7 @@
 package com.garfiec.librechat.core.ui.components
 
+import com.garfiec.librechat.core.ui.resources.Res
+import com.garfiec.librechat.core.ui.resources.param_thinking_between_tools_description
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -116,9 +118,20 @@ class EndpointParameterRegistryModelAwareTest {
         ).single { it.key == "reasoning_effort" }.options
 
     @Test
-    fun opus55HidesThinkingAndSamplingControls() {
+    fun alwaysOnThinkingModelsHideThinkingAndSamplingControls() {
         val hidden = listOf("thinking", "thinkingBudget", "temperature", "topP", "topK")
-        for (model in listOf("claude-opus-5-5", "claude-opus-5.5", "claude-5-5-opus", "global.anthropic.claude-opus-5-5")) {
+        for (
+            model in listOf(
+                "claude-opus-5-5",
+                "claude-opus-5.5",
+                "claude-5-5-opus",
+                "global.anthropic.claude-opus-5-5",
+                "claude-opus-5-6",
+                "claude-opus-6",
+                "claude-fable-5",
+                "claude-mythos-5",
+            )
+        ) {
             val keys = keysOf(anthropic(model))
             hidden.forEach { assertFalse(keys.contains(it), "$model still offers $it") }
             // Only those five; the rest of the Anthropic panel stays.
@@ -133,20 +146,75 @@ class EndpointParameterRegistryModelAwareTest {
     @Test
     fun otherOpusVersionsKeepTheirControls() {
         // A missing minor is 0, and a date suffix is not a minor.
-        for (model in listOf("claude-opus-5", "claude-opus-5-20260101", "claude-opus-4-5", "claude-opus-5-55")) {
+        for (model in listOf("claude-opus-5", "claude-opus-5-20260101", "claude-opus-4-5", "claude-opus-5-4")) {
             assertTrue(keysOf(anthropic(model)).contains("temperature"), model)
         }
     }
 
     @Test
+    fun sonnet55KeepsTheThinkingToggleAsItsBetweenToolsFloor() {
+        for (model in listOf("claude-sonnet-5-5", "claude-sonnet-5.5", "claude-5-5-sonnet", "claude-sonnet-6")) {
+            val defs = anthropic(model)
+            val keys = keysOf(defs)
+            assertTrue(keys.contains("thinking"), model)
+            listOf("thinkingBudget", "temperature", "topP", "topK").forEach {
+                assertFalse(keys.contains(it), "$model still offers $it")
+            }
+            val thinking = defs.single { it.key == "thinking" }
+            assertTrue(thinking.description.orEmpty().contains("between tool calls"), model)
+            // Rendered through localizedDescription, so it must resolve to the translated string.
+            assertEquals(Res.string.param_thinking_between_tools_description, thinking.descriptionRes(), model)
+        }
+        for (model in listOf("claude-sonnet-5", "claude-sonnet-5-20260101", "claude-sonnet-4-6")) {
+            assertTrue(keysOf(anthropic(model)).contains("thinkingBudget"), model)
+            assertNull(anthropic(model).single { it.key == "thinking" }.descriptionRes(), model)
+        }
+    }
+
+    @Test
+    fun thinkingDisplayOffersUpdatesOnBothAnthropicSitesOnlyWhenSupported() {
+        fun options(endpoint: String, provider: String?, model: String, supported: Boolean) =
+            EndpointParameterRegistry.getDefinitions(
+                endpoint = endpoint,
+                extendedEffortSupported = true,
+                provider = provider,
+                model = model,
+                thinkingDisplayUpdatesSupported = supported,
+            ).single { it.key == "thinkingDisplay" }.options
+        val sites = listOf(
+            Triple("anthropic", null, "claude-opus-4-7"),
+            Triple("bedrock", null, "global.anthropic.claude-opus-4-7"),
+            Triple("agents", "anthropic", "claude-opus-4-7"),
+        )
+        for ((endpoint, provider, model) in sites) {
+            assertEquals(
+                listOf("auto", "summarized", "omitted", "updates"),
+                options(endpoint, provider, model, supported = true),
+                endpoint,
+            )
+            assertEquals(listOf("auto", "summarized", "omitted"), options(endpoint, provider, model, supported = false), endpoint)
+        }
+    }
+
+    @Test
+    fun thinkingDisplayGateIsNotAModelRemoval() {
+        // A stored `updates` survives the gate: it is filtered from the options, never dropped.
+        assertTrue(
+            EndpointParameterRegistry.modelRemovedOptions(endpoint = "anthropic", model = "claude-opus-4-7")
+                .values.flatten().none { it == "updates" },
+        )
+    }
+
+    @Test
     fun gpt6SolAndLunaDropMinimalEffort() {
-        for (model in listOf("gpt-6-sol", "gpt-6-luna", "GPT-6-Sol-2026-09-01")) {
+        for (model in listOf("gpt-6-sol", "gpt-6-luna", "GPT-6-Sol-2026-09-01", "gpt-6.1-sol", "gpt-6.1-luna-2026-10-01")) {
             val options = effortOf("openAI", model)!!
             assertFalse(options.contains("minimal"), model)
             assertTrue(options.contains("none"), model)
         }
         assertTrue(effortOf("openAI", "gpt-6-astra")!!.contains("minimal"))
         assertTrue(effortOf("openAI", "gpt-6-solar")!!.contains("minimal"))
+        assertTrue(effortOf("openAI", "gpt-6.1-astra")!!.contains("minimal"))
     }
 
     @Test
