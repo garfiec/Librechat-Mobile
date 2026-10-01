@@ -54,9 +54,6 @@ data class ModelSelectionState(
      * older or unknown servers (per VERSION_GATES.md guideline #2).
      */
     val extendedEffortSupported: Boolean = false,
-    /**
-     * Whether the detected backend accepts thinkingDisplay `updates` (v0.8.8). An older server's
-     * Anthropic schema rejects the value and discards every endpoint param with it. PRESENT only.
-     */
+    /** Whether thinkingDisplay `updates` may be offered (v0.8.8); see `EndpointParameterRegistry.getDefinitions`. */
     val thinkingDisplayUpdatesSupported: Boolean = false,
 )

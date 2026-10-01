@@ -71,32 +71,32 @@ internal fun BackgroundTasksChip(
     // One emitting root; the sheet is a window of its own and takes no space here.
     Row(verticalAlignment = Alignment.CenterVertically) {
         if (visible) {
-        val chipCd = stringResource(Res.string.background_tasks_cd_chip, state.runningCount)
-        FloatingBarChip(
-            modifier = Modifier.height(FloatingBarChipSize).semantics { contentDescription = chipCd },
-            onClick = { sheetOpen = true },
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
+            val chipCd = stringResource(Res.string.background_tasks_cd_chip, state.runningCount)
+            FloatingBarChip(
+                modifier = Modifier.height(FloatingBarChipSize).semantics { contentDescription = chipCd },
+                onClick = { sheetOpen = true },
             ) {
-                Icon(
-                    Icons.Default.HourglassTop,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = if (state.failedDeliveryCount > 0 || state.incomplete) {
-                        MaterialTheme.colorScheme.error
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    },
-                )
-                if (state.runningCount > 0) {
-                    Spacer(Modifier.width(6.dp))
-                    Text(state.runningCount.toString(), style = MaterialTheme.typography.labelLarge)
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        Icons.Default.HourglassTop,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = if (state.failedDeliveryCount > 0 || state.incomplete) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
+                    )
+                    if (state.runningCount > 0) {
+                        Spacer(Modifier.width(6.dp))
+                        Text(state.runningCount.toString(), style = MaterialTheme.typography.labelLarge)
+                    }
                 }
             }
-        }
-        Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(8.dp))
         }
         if (sheetOpen && visible) {
             BackgroundTasksSheet(

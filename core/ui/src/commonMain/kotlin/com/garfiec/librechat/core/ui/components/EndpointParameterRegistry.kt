@@ -63,8 +63,9 @@ object EndpointParameterRegistry {
      *
      * This, not "absent from the current options", is what a stored value may be dropped for. The
      * current options also lack values for reasons that say nothing about the model: `xhigh`/`max`
-     * and thinkingDisplay `updates` are filtered while the server version is undetected (and forever on a server whose version
-     * never is), and a value a newer backend added is in no list this app knows. Dropping on
+     * and thinkingDisplay `updates` are filtered while the server version is undetected (and
+     * forever on a server whose version never is), and a value a newer backend added is in no list
+     * this app knows. Dropping on
      * absence would delete those from the server on an agent save, and omit them from a chat send.
      * Computed with the version-gated values present on both sides, so a gate never shows up here.
      * Keys a rule removes entirely (Opus 5.5's sampling controls) are not option-level and are

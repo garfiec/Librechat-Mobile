@@ -323,8 +323,8 @@ internal fun MessageContentAndActions(
                             files = messageFiles,
                             baseUrl = baseUrl,
                             alignImagesEnd = alignImagesEnd,
-                            // Across the whole bubble, not just the files block: a line of text
-                            // wider than the image is what left it stranded at the start.
+                            // Aligned across the whole bubble, not just the files block, or a line of
+                            // text wider than the image holds it at the start.
                             modifier = Modifier
                                 .padding(bottom = 4.dp)
                                 .then(if (alignImagesEnd) Modifier.align(Alignment.End) else Modifier),

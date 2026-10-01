@@ -141,7 +141,6 @@ class SkillFilesViewModel(
         }
     }
 
-    /** The skill's `source`, once it loads. */
     fun setSkillSource(source: String?) {
         _uiState.value = _uiState.value.copy(isInlineSkill = (source ?: INLINE_SOURCE) == INLINE_SOURCE)
     }

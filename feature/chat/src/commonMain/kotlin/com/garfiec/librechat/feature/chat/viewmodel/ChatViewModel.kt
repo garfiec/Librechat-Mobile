@@ -677,9 +677,8 @@ class ChatViewModel(
                     minVersion = "0.8.8-rc2",
                     landedDate = "2026-08-31",
                 )
-                // thinkingDisplay `updates` (v0.8.8, upstream 40bb16ed, landed 2026-09-28). PRESENT
-                // only: an older server's schema .catch() drops every endpoint param when the enum
-                // rejects it. Dated the day AFTER landing so a same-day predecessor is never offered it.
+                // thinkingDisplay `updates` (40bb16ed, landed 2026-09-28): PRESENT only, dated the day
+                // AFTER landing. Keep in step with AgentCapabilitiesDelegate; see VERSION_GATES.md.
                 val thinkingDisplayUpdates = BackendVersion.supportsFeature(
                     detected = detected,
                     minVersion = "0.8.8",
