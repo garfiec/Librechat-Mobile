@@ -96,6 +96,8 @@ fun EntryProviderScope<NavKey>.chatEntries(
     onNavigateToProviderKeys: (endpointName: String?) -> Unit,
     /** Navigates to the server-file picker; wired by the host to `navigator.navigate(FilesPicker)`. */
     onAttachFromServer: () -> Unit,
+    /** Opens What's new (owned by settings) from the update banner on an empty chat. */
+    onOpenWhatsNew: () -> Unit = {},
 ) {
     entry<NewChat> { key ->
         NewChatScreen(
@@ -109,6 +111,7 @@ fun EntryProviderScope<NavKey>.chatEntries(
             onNavigateToPromptsLibrary = { onNavigate(PromptsLibrary) },
             onNavigateToProviderKeys = onNavigateToProviderKeys,
             onAttachFromServer = onAttachFromServer,
+            onOpenWhatsNew = onOpenWhatsNew,
         )
     }
     entry<Chat> { key ->
@@ -127,6 +130,7 @@ fun EntryProviderScope<NavKey>.chatEntries(
                 onShowAllMedia = key.conversationId?.let { id -> { onNavigate(ConversationMedia(id)) } },
                 onNavigateToProviderKeys = onNavigateToProviderKeys,
                 onAttachFromServer = onAttachFromServer,
+                onOpenWhatsNew = onOpenWhatsNew,
             )
         }
     }

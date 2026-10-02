@@ -28,10 +28,12 @@ import com.garfiec.librechat.core.data.repository.SpeechRepository
 import com.garfiec.librechat.core.data.repository.SubagentRepository
 import com.garfiec.librechat.core.data.repository.TraceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
+import com.garfiec.librechat.core.data.update.AppUpdateRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.feature.chat.prompts.PromptsViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.SubagentThreadsViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.TraceViewerViewModel
+import com.garfiec.librechat.feature.chat.viewmodel.UpdateBannerViewModel
 import io.mockk.mockk
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.serialization.json.Json
@@ -78,6 +80,7 @@ class ChatModuleVerificationTest {
                 ActiveAccountProvider::class,
                 ServerDataStore::class,
                 SettingsDataStore::class,
+                AppUpdateRepository::class,
                 // Dispatchers are supplied via Koin qualifiers in explicit blocks; verify()
                 // can't see qualifiers, so whitelist the type as externally provided.
                 CoroutineDispatcher::class,
@@ -100,6 +103,7 @@ class ChatModuleVerificationTest {
                     single<PromptRepository> { mockk(relaxed = true) }
                     single<SubagentRepository> { mockk(relaxed = true) }
                     single<TraceRepository> { mockk(relaxed = true) }
+                    single<AppUpdateRepository> { mockk(relaxed = true) }
                 },
             )
         }.koin
@@ -107,6 +111,7 @@ class ChatModuleVerificationTest {
         assertTrue(koin.hasDefinitionFor { koin.get<PromptsViewModel>() }, "PromptsViewModel")
         assertTrue(koin.hasDefinitionFor { koin.get<SubagentThreadsViewModel>() }, "SubagentThreadsViewModel")
         assertTrue(koin.hasDefinitionFor { koin.get<TraceViewerViewModel>() }, "TraceViewerViewModel")
+        assertTrue(koin.hasDefinitionFor { koin.get<UpdateBannerViewModel>() }, "UpdateBannerViewModel")
     }
 
     /**

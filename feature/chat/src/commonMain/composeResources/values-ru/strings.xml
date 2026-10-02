@@ -626,4 +626,9 @@
     <string name="background_tasks_pending_delivery_note">Результат ожидает доставки. Он ещё может прийти новым ходом; запросите его, чтобы получить раньше.</string>
     <string name="background_tasks_failed_delivery_note">Автоматическая доставка не удалась. Запросите эту задачу, чтобы получить результат; новым ходом он не придёт.</string>
     <string name="background_tasks_cancellation_requested">Отмена запрошена. Задача может ещё выполняться; проверьте её итоговый статус позже.</string>
+
+    <!-- App update banner -->
+    <string name="update_banner_title">Доступен Switchboard %1$s</string>
+    <string name="update_banner_action">Что нового</string>
+    <string name="cd_dismiss_update">Скрыть уведомление об обновлении</string>
 </resources>

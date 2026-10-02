@@ -626,4 +626,9 @@
     <string name="background_tasks_pending_delivery_note">Ergebnis wartet auf Zustellung. Es kann noch als neuer Beitrag ankommen; frage es ab, um es früher zu erhalten.</string>
     <string name="background_tasks_failed_delivery_note">Automatische Zustellung fehlgeschlagen. Frage diese Aufgabe ab, um ihr Ergebnis zu erhalten; es kommt nicht als neuer Beitrag an.</string>
     <string name="background_tasks_cancellation_requested">Abbruch angefordert. Die Aufgabe läuft möglicherweise noch; sieh erneut nach ihrem endgültigen Status.</string>
+
+    <!-- App update banner -->
+    <string name="update_banner_title">Switchboard %1$s ist verfügbar</string>
+    <string name="update_banner_action">Neuerungen ansehen</string>
+    <string name="cd_dismiss_update">Update-Hinweis schließen</string>
 </resources>

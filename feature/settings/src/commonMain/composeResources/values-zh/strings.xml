@@ -202,6 +202,27 @@
     <string name="server_build_branch_label">服务器分支</string>
     <string name="server_build_date_label">服务器构建日期</string>
 
+    <!-- App updates -->
+    <string name="update_check">检查更新</string>
+    <string name="update_check_desc">在 GitHub 上查找新版本</string>
+    <string name="update_checking">正在检查…</string>
+    <string name="update_up_to_date">已是最新版本</string>
+    <string name="update_available">版本 %1$s 可用</string>
+    <string name="update_see_whats_new">查看新功能</string>
+    <string name="update_check_failed">无法连接 GitHub</string>
+    <string name="update_auto_check">每天检查更新</string>
+    <string name="update_auto_check_desc">应用打开时每天在 GitHub 上检查一次新版本。GitHub 会看到你的 IP 地址。</string>
+    <string name="whats_new_title">新功能</string>
+    <string name="whats_new_installed">当前版本 %1$s</string>
+    <string name="whats_new_full_changelog">完整更新日志</string>
+    <string name="whats_new_download_apk">下载 APK</string>
+    <string name="whats_new_view_on_github">在 GitHub 上查看</string>
+    <string name="whats_new_open_obtainium">打开 Obtainium</string>
+    <string name="whats_new_open_fdroid">打开 F-Droid</string>
+    <string name="whats_new_hint_obtainium">此应用由 Obtainium 安装，并由它提供更新。</string>
+    <string name="whats_new_hint_fdroid">此应用由 F-Droid 安装，并由它提供更新。新版本可能需要几天才会出现在 F-Droid 上。</string>
+    <string name="whats_new_error">无法加载发布说明</string>
+
     <!-- Tablet settings -->
     <string name="sidebar_swipe_gesture">侧边栏滑动手势</string>
     <string name="sidebar_swipe_gesture_desc">在平板布局中从左侧边缘滑动以打开侧边栏</string>

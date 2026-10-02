@@ -202,6 +202,27 @@
     <string name="server_build_branch_label">서버 브랜치</string>
     <string name="server_build_date_label">서버 빌드 날짜</string>
 
+    <!-- App updates -->
+    <string name="update_check">업데이트 확인</string>
+    <string name="update_check_desc">GitHub에서 새 릴리스 확인</string>
+    <string name="update_checking">확인 중…</string>
+    <string name="update_up_to_date">최신 버전을 사용 중입니다</string>
+    <string name="update_available">버전 %1$s을(를) 사용할 수 있습니다</string>
+    <string name="update_see_whats_new">새로운 기능 보기</string>
+    <string name="update_check_failed">GitHub에 연결할 수 없습니다</string>
+    <string name="update_auto_check">매일 업데이트 확인</string>
+    <string name="update_auto_check_desc">앱이 열려 있는 동안 하루에 한 번 GitHub에서 새 릴리스를 확인합니다. GitHub에 IP 주소가 표시됩니다.</string>
+    <string name="whats_new_title">새로운 기능</string>
+    <string name="whats_new_installed">현재 버전 %1$s</string>
+    <string name="whats_new_full_changelog">전체 변경 내역</string>
+    <string name="whats_new_download_apk">APK 다운로드</string>
+    <string name="whats_new_view_on_github">GitHub에서 보기</string>
+    <string name="whats_new_open_obtainium">Obtainium 열기</string>
+    <string name="whats_new_open_fdroid">F-Droid 열기</string>
+    <string name="whats_new_hint_obtainium">이 앱은 Obtainium으로 설치되었으며 업데이트도 Obtainium이 제공합니다.</string>
+    <string name="whats_new_hint_fdroid">이 앱은 F-Droid로 설치되었으며 업데이트도 F-Droid가 제공합니다. 새 릴리스가 F-Droid에 표시되기까지 며칠이 걸릴 수 있습니다.</string>
+    <string name="whats_new_error">릴리스 노트를 불러올 수 없습니다</string>
+
     <!-- Tablet settings -->
     <string name="sidebar_swipe_gesture">사이드바 스와이프 제스처</string>
     <string name="sidebar_swipe_gesture_desc">태블릿 레이아웃에서 왼쪽 가장자리를 스와이프하여 사이드바 열기</string>

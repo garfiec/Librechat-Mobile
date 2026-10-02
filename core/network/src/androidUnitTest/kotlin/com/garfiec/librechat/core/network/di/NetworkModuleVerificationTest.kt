@@ -2,6 +2,7 @@ package com.garfiec.librechat.core.network.di
 
 import android.app.Application
 import android.content.Context
+import com.garfiec.librechat.core.common.AppInfo
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.network.RequestActivityTracker
 import com.garfiec.librechat.core.network.client.AccountReadyGate
@@ -37,6 +38,8 @@ class NetworkModuleVerificationTest {
                 // The idle signal is bound in :core:common; both the main client and SseClient
                 // report to it.
                 RequestActivityTracker::class,
+                // The external client's User-Agent carries the app version, bound in :core:common.
+                AppInfo::class,
             ),
         )
     }

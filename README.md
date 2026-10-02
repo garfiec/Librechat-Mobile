@@ -72,6 +72,8 @@ Release-candidate builds (versions like `2026.07.1-rc1`) are published as GitHub
 
 Download the latest `switchboard-vYYYY.MM.P.apk` from [Releases](https://github.com/garfiec/Librechat-Mobile/releases) and open it on your device (you may need to allow installs from your browser/file manager).
 
+To hear about new releases without Obtainium, turn on **Settings → General → Check for updates daily**. It is off by default; when on, the app asks GitHub for the release list once a day while it is open.
+
 ### Verifying the signing key
 
 All releases are signed with the same key, so updates install in place. Verify a downloaded APK matches the published certificate:

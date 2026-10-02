@@ -202,6 +202,27 @@
     <string name="server_build_branch_label">فرع الخادم</string>
     <string name="server_build_date_label">تاريخ بناء الخادم</string>
 
+    <!-- App updates -->
+    <string name="update_check">التحقق من وجود تحديثات</string>
+    <string name="update_check_desc">البحث عن إصدار أحدث على GitHub</string>
+    <string name="update_checking">جارٍ التحقق…</string>
+    <string name="update_up_to_date">أنت تستخدم أحدث إصدار</string>
+    <string name="update_available">الإصدار %1$s متاح</string>
+    <string name="update_see_whats_new">عرض الجديد</string>
+    <string name="update_check_failed">تعذّر الوصول إلى GitHub</string>
+    <string name="update_auto_check">التحقق من التحديثات يوميًا</string>
+    <string name="update_auto_check_desc">يبحث عن إصدارات جديدة على GitHub مرة يوميًا أثناء فتح التطبيق. يرى GitHub عنوان IP الخاص بك.</string>
+    <string name="whats_new_title">ما الجديد</string>
+    <string name="whats_new_installed">لديك الإصدار %1$s</string>
+    <string name="whats_new_full_changelog">سجل التغييرات الكامل</string>
+    <string name="whats_new_download_apk">تنزيل APK</string>
+    <string name="whats_new_view_on_github">عرض على GitHub</string>
+    <string name="whats_new_open_obtainium">فتح Obtainium</string>
+    <string name="whats_new_open_fdroid">فتح F-Droid</string>
+    <string name="whats_new_hint_obtainium">ثبّت Obtainium هذا التطبيق ويوفّر تحديثاته.</string>
+    <string name="whats_new_hint_fdroid">ثبّت F-Droid هذا التطبيق ويوفّر تحديثاته. قد يستغرق ظهور الإصدار الجديد هناك بضعة أيام.</string>
+    <string name="whats_new_error">تعذّر تحميل ملاحظات الإصدار</string>
+
     <!-- Tablet settings -->
     <string name="sidebar_swipe_gesture">إيماءة السحب للشريط الجانبي</string>
     <string name="sidebar_swipe_gesture_desc">اسحب من الحافة اليسرى لفتح الشريط الجانبي في تخطيطات الأجهزة اللوحية</string>

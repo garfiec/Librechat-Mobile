@@ -202,6 +202,27 @@
     <string name="server_build_branch_label">サーバーのブランチ</string>
     <string name="server_build_date_label">サーバーのビルド日</string>
 
+    <!-- App updates -->
+    <string name="update_check">アップデートを確認</string>
+    <string name="update_check_desc">GitHub で新しいリリースを確認します</string>
+    <string name="update_checking">確認中…</string>
+    <string name="update_up_to_date">最新バージョンを使用しています</string>
+    <string name="update_available">バージョン %1$s が利用可能です</string>
+    <string name="update_see_whats_new">新機能を見る</string>
+    <string name="update_check_failed">GitHub に接続できませんでした</string>
+    <string name="update_auto_check">毎日アップデートを確認</string>
+    <string name="update_auto_check_desc">アプリを開いている間、1 日 1 回 GitHub で新しいリリースを確認します。GitHub にはあなたの IP アドレスが送信されます。</string>
+    <string name="whats_new_title">新機能</string>
+    <string name="whats_new_installed">インストール済み: バージョン %1$s</string>
+    <string name="whats_new_full_changelog">すべての変更履歴</string>
+    <string name="whats_new_download_apk">APK をダウンロード</string>
+    <string name="whats_new_view_on_github">GitHub で見る</string>
+    <string name="whats_new_open_obtainium">Obtainium を開く</string>
+    <string name="whats_new_open_fdroid">F-Droid を開く</string>
+    <string name="whats_new_hint_obtainium">このアプリは Obtainium でインストールされ、アップデートも Obtainium から配信されます。</string>
+    <string name="whats_new_hint_fdroid">このアプリは F-Droid でインストールされ、アップデートも F-Droid から配信されます。新しいリリースが F-Droid に表示されるまで数日かかる場合があります。</string>
+    <string name="whats_new_error">リリースノートを読み込めませんでした</string>
+
     <!-- Tablet settings -->
     <string name="sidebar_swipe_gesture">サイドバーのスワイプ操作</string>
     <string name="sidebar_swipe_gesture_desc">タブレットレイアウトで左端からスワイプしてサイドバーを開きます</string>

@@ -202,6 +202,27 @@
     <string name="server_build_branch_label">Branch do servidor</string>
     <string name="server_build_date_label">Data de build do servidor</string>
 
+    <!-- App updates -->
+    <string name="update_check">Procurar atualizações</string>
+    <string name="update_check_desc">Procurar uma versão mais recente no GitHub</string>
+    <string name="update_checking">Procurando…</string>
+    <string name="update_up_to_date">Você está na versão mais recente</string>
+    <string name="update_available">A versão %1$s está disponível</string>
+    <string name="update_see_whats_new">Ver novidades</string>
+    <string name="update_check_failed">Não foi possível acessar o GitHub</string>
+    <string name="update_auto_check">Procurar atualizações diariamente</string>
+    <string name="update_auto_check_desc">Procura novas versões no GitHub uma vez por dia enquanto o app está aberto. O GitHub vê seu endereço IP.</string>
+    <string name="whats_new_title">Novidades</string>
+    <string name="whats_new_installed">Você tem a versão %1$s</string>
+    <string name="whats_new_full_changelog">Registro completo de alterações</string>
+    <string name="whats_new_download_apk">Baixar APK</string>
+    <string name="whats_new_view_on_github">Ver no GitHub</string>
+    <string name="whats_new_open_obtainium">Abrir Obtainium</string>
+    <string name="whats_new_open_fdroid">Abrir F-Droid</string>
+    <string name="whats_new_hint_obtainium">O Obtainium instalou este app e entrega as atualizações dele.</string>
+    <string name="whats_new_hint_fdroid">O F-Droid instalou este app e entrega as atualizações dele. Uma nova versão pode levar alguns dias para aparecer lá.</string>
+    <string name="whats_new_error">Não foi possível carregar as notas da versão</string>
+
     <!-- Tablet settings -->
     <string name="sidebar_swipe_gesture">Gesto de deslizar da barra lateral</string>
     <string name="sidebar_swipe_gesture_desc">Deslize a partir da borda esquerda para abrir a barra lateral em layouts de tablet</string>

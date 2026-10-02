@@ -89,6 +89,7 @@ import com.garfiec.librechat.feature.files.navigation.filesEntries
 import com.garfiec.librechat.feature.schedules.navigation.SchedulesList
 import com.garfiec.librechat.feature.schedules.navigation.schedulesEntries
 import com.garfiec.librechat.feature.settings.navigation.SettingsTabbed
+import com.garfiec.librechat.feature.settings.navigation.WhatsNew
 import com.garfiec.librechat.feature.settings.navigation.mcpServersEntry
 import com.garfiec.librechat.feature.settings.navigation.memoriesEntry
 import com.garfiec.librechat.feature.settings.navigation.settingsEntries
@@ -632,6 +633,7 @@ fun MainNavDisplay(
                     val launchingId = (navigator.currentRoute as? Chat)?.conversationId
                     navigator.navigate(FilesPicker(targetConversationId = launchingId))
                 },
+                onOpenWhatsNew = { navigator.navigate(WhatsNew) },
             )
             conversationsEntries(
                 onConversationClick = { navigator.navigateToChat(it) },

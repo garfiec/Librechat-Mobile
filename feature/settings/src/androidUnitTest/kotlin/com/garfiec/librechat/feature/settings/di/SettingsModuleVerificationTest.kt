@@ -24,6 +24,8 @@ import com.garfiec.librechat.core.data.repository.ServerRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
 import com.garfiec.librechat.core.data.repository.SpeechRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
+import com.garfiec.librechat.core.data.update.AppInstallSource
+import com.garfiec.librechat.core.data.update.AppUpdateRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.logging.DiagnosticLogRepository
 import com.garfiec.librechat.feature.settings.util.ContentReader
@@ -67,6 +69,8 @@ class SettingsModuleVerificationTest {
                 PlatformCacheCleaner::class,
                 SpeechSettingsFactory::class,
                 DiagnosticLogRepository::class,
+                AppUpdateRepository::class,
+                AppInstallSource::class,
                 // Provided by core:common CommonModule via KoinQualifiers.IO.
                 CoroutineDispatcher::class,
             ),

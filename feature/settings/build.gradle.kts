@@ -15,6 +15,8 @@ kotlin {
             implementation(libs.coil3.network.ktor)
             implementation(libs.kermit)
             implementation(libs.qrose)
+            // Release notes on What's new.
+            implementation(libs.markdown.renderer.m3)
         }
         androidMain.dependencies {
             implementation(libs.koin.android)
