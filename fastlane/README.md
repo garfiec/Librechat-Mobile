@@ -8,11 +8,19 @@ not a tool dependency.
 - `short_description.txt` — one line, **80 characters maximum**.
 - `full_description.txt` — the listing body. Keep it accurate about what leaves the device;
   it is the first thing an F-Droid reviewer reads against the code.
-- `changelogs/<versionCode>.txt` — shown for that release. The name must be the **versionCode**
-  (`version.properties`), not the versionName: `2026.08.4` → `20260804`. Nothing writes these
-  automatically; add one before dispatching a release, so it lands in the tagged commit
-  (see `docs/RELEASING.md`). Note an `-rcN` and the stable it is promoted to share a
-  versionCode, so they also share this file.
+- `changelogs/next.txt` — **write the changelog here**, when the work lands, not at release
+  time. `.github/workflows/release.yml` renames it to `<versionCode>.txt` once the code is known
+  and stages it into the release commit, and it **fails the release** if neither file is present.
+  Do not hand-name `<versionCode>.txt`: the code is derived from the UTC date at dispatch
+  (`2026.08.4` → `20260804`), so a name written in advance goes stale the moment a cut slips into
+  the next month — that is how `2026.10.0` shipped with no changelog at all.
+  The one exception is an rc train: an `-rcN` and the stable it is promoted to share a
+  versionCode, so the candidate's run has already created `<versionCode>.txt` — append any
+  further lines **there**, because `next.txt` and `<versionCode>.txt` existing together is an
+  ambiguity the workflow refuses to guess at. See `docs/RELEASING.md`.
+- `images/icon.png` — the 512x512 listing icon F-Droid's App-inclusion checklist asks for (the
+  launcher icon comes from the APK's adaptive icon instead). Generated from the logo master by
+  `scripts/make-fdroid-icon.py`; regenerate, do not edit.
 - `images/phoneScreenshots/` and `images/tenInchScreenshots/` — sorted by filename, hence the
   numeric prefixes. PNG only.
 

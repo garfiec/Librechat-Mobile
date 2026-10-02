@@ -32,7 +32,8 @@
 #
 # Output:
 #   - prints the new version name to stdout
-#   - when running in GitHub Actions, also writes version_name and tag -> $GITHUB_OUTPUT
+#   - when running in GitHub Actions, also writes version_name, version_code and tag
+#     -> $GITHUB_OUTPUT
 #
 set -euo pipefail
 
@@ -176,6 +177,8 @@ echo "$new_name"
 if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
   {
     echo "version_name=${new_name}"
+    # release.yml's changelog guard resolves fastlane changelogs/<version_code>.txt from this.
+    echo "version_code=${new_code}"
     echo "tag=${tag}"
   } >> "$GITHUB_OUTPUT"
 fi
