@@ -11,14 +11,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -31,6 +26,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.model.endpoint.KeyState
+import com.garfiec.librechat.core.ui.components.AdaptiveAssistChip
+import com.garfiec.librechat.core.ui.components.AdaptiveButton
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.settings.resources.Res
@@ -95,7 +95,7 @@ fun SetProviderKeyDialog(
         }
     }
 
-    ModalBottomSheet(
+    AdaptiveModalBottomSheet(
         modifier = Modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
         dragHandle = { LowProfileDragHandle() },
@@ -154,7 +154,7 @@ fun SetProviderKeyDialog(
             ) {
                 val canRevoke = (state.currentKeyState is KeyState.Set ||
                     state.currentKeyState is KeyState.Expired) && !state.isRevoking
-                OutlinedButton(
+                AdaptiveOutlinedButton(
                     onClick = viewModel::revoke,
                     enabled = canRevoke,
                     colors = ButtonDefaults.outlinedButtonColors(
@@ -162,7 +162,7 @@ fun SetProviderKeyDialog(
                     ),
                 ) {
                     if (state.isRevoking) {
-                        CircularProgressIndicator(
+                        AdaptiveCircularProgressIndicator(
                             modifier = Modifier.height(18.dp),
                             strokeWidth = 2.dp,
                         )
@@ -171,16 +171,16 @@ fun SetProviderKeyDialog(
                     Text(stringResource(Res.string.provider_keys_revoke))
                 }
                 Spacer(modifier = Modifier.width(8.dp))
-                OutlinedButton(onClick = onDismiss) {
+                AdaptiveOutlinedButton(onClick = onDismiss) {
                     Text(stringResource(Res.string.action_cancel))
                 }
                 Spacer(modifier = Modifier.width(8.dp))
-                Button(
+                AdaptiveButton(
                     onClick = viewModel::save,
                     enabled = !state.isSaving,
                 ) {
                     if (state.isSaving) {
-                        CircularProgressIndicator(
+                        AdaptiveCircularProgressIndicator(
                             modifier = Modifier.height(18.dp),
                             strokeWidth = 2.dp,
                         )
@@ -209,7 +209,7 @@ private fun ExpiryRow(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             ProviderKeyExpiry.entries.forEach { entry ->
-                AssistChip(
+                AdaptiveAssistChip(
                     onClick = { onSelect(entry) },
                     label = { Text(stringResource(entry.label)) },
                     colors = if (entry == selected) {

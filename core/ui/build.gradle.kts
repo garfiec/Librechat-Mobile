@@ -25,10 +25,14 @@ kotlin {
             implementation(libs.zoomimage.compose.coil3.core)
             implementation(libs.material.kolor)
             implementation(libs.compose.ui.backhandler)
+            implementation(libs.kyant.backdrop)
         }
         androidMain.dependencies {
             // Runtime-permission launcher for saving images to the gallery (API < 29).
             implementation(libs.activity.compose)
+            implementation(libs.kermit)
+        }
+        iosMain.dependencies {
             implementation(libs.kermit)
         }
         iosTest.dependencies {

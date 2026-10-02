@@ -22,7 +22,6 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.TableChart
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -43,6 +42,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_file_search_source
 import com.garfiec.librechat.feature.chat.resources.file_search_pages
@@ -139,7 +139,7 @@ fun FileSearchSourcesCard(
                 citations.forEachIndexed { index, citation ->
                     CitationRow(citation = citation, stateKey = "$stateKey:${citation.fileId}")
                     if (index < citations.lastIndex) {
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        AdaptiveDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     }
                 }
             }

@@ -9,18 +9,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -32,6 +23,15 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.garfiec.librechat.core.ui.components.AdaptiveButton
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
+import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
+import com.garfiec.librechat.core.ui.components.topbar.BarIcons
+import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
+import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.feature.auth.resources.*
 import com.garfiec.librechat.feature.auth.resources.Res
 import com.garfiec.librechat.feature.auth.viewmodel.TermsViewModel
@@ -57,19 +57,15 @@ fun TermsScreen(
         }
     }
 
-    Scaffold(
+    AdaptiveScaffold(
         modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(Res.string.terms_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(Res.string.back),
-                        )
-                    }
-                },
+            AdaptiveTopBar(
+                spec = AdaptiveTopBarSpec(
+                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.back), onBack),
+                    title = BarTitle(stringResource(Res.string.terms_title)),
+                    actions = emptyList(),
+                ),
             )
         },
     ) { innerPadding ->
@@ -86,7 +82,7 @@ fun TermsScreen(
                             .weight(1f),
                         contentAlignment = Alignment.Center,
                     ) {
-                        CircularProgressIndicator()
+                        AdaptiveCircularProgressIndicator()
                     }
                 }
                 uiState.error != null && uiState.termsText.isEmpty() -> {
@@ -107,7 +103,7 @@ fun TermsScreen(
                                 textAlign = TextAlign.Center,
                             )
                             Spacer(modifier = Modifier.height(16.dp))
-                            OutlinedButton(onClick = viewModel::loadTerms) {
+                            AdaptiveOutlinedButton(onClick = viewModel::loadTerms) {
                                 Text(stringResource(Res.string.retry))
                             }
                         }
@@ -142,7 +138,7 @@ fun TermsScreen(
                         )
                     }
 
-                    Button(
+                    AdaptiveButton(
                         onClick = viewModel::acceptTerms,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -150,7 +146,7 @@ fun TermsScreen(
                         enabled = !uiState.isLoading,
                     ) {
                         if (uiState.isLoading) {
-                            CircularProgressIndicator(
+                            AdaptiveCircularProgressIndicator(
                                 modifier = Modifier.height(20.dp),
                                 color = MaterialTheme.colorScheme.onPrimary,
                                 strokeWidth = 2.dp,

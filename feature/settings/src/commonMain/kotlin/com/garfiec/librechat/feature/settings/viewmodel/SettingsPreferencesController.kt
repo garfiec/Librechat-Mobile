@@ -17,6 +17,9 @@ import com.garfiec.librechat.core.data.datastore.ThemeDataStore
 import com.garfiec.librechat.core.data.datastore.ThemeMode
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
 import com.garfiec.librechat.core.data.prefetch.PrefetchDepth
+import com.garfiec.librechat.core.model.ui.UiStyle
+import com.garfiec.librechat.core.ui.theme.glassCapability
+import com.garfiec.librechat.core.ui.theme.platformDefaultUiStyle
 import com.garfiec.librechat.core.ui.theme.supportsDynamicColor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
@@ -34,6 +37,7 @@ private data class DataStorePreferences(
     val showThinkingBlocks: Boolean,
     val accentColor: Int = ThemeDataStore.DEFAULT_ACCENT_COLOR,
     val useDynamicColor: Boolean = false,
+    val uiStyle: UiStyle? = null,
 )
 
 /** Extra DataStore preferences (separate combine since Kotlin combine maxes at 5). */
@@ -96,6 +100,9 @@ class SettingsPreferencesController(
     baseState: StateFlow<SettingsUiState>,
     private val scope: CoroutineScope,
 ) {
+    /** Queried once, as the theme does: on iOS it asks the OS version and accessibility settings. */
+    private val glassCapability = glassCapability()
+
     /** Combined DataStore preferences flow. */
     private val dataStorePreferences: StateFlow<DataStorePreferences> = combine(
         themeDataStore.themeMode,
@@ -115,6 +122,8 @@ class SettingsPreferencesController(
         prefs.copy(accentColor = accent)
     }.combine(themeDataStore.useDynamicColor) { prefs, dynamic ->
         prefs.copy(useDynamicColor = dynamic)
+    }.combine(themeDataStore.uiStyle) { prefs, uiStyle ->
+        prefs.copy(uiStyle = uiStyle)
     }.stateIn(scope, SharingStarted.Eagerly, DataStorePreferences(
         themeMode = ThemeMode.SYSTEM,
         serverUrl = "",
@@ -255,6 +264,8 @@ class SettingsPreferencesController(
             accentColor = prefs.accentColor,
             useDynamicColor = prefs.useDynamicColor,
             dynamicColorSupported = supportsDynamicColor(),
+            uiStyle = prefs.uiStyle ?: platformDefaultUiStyle(),
+            glassCapability = glassCapability,
             serverUrl = prefs.serverUrl,
             chatFontSize = prefs.chatFontSize,
             autoScrollEnabled = prefs.autoScrollEnabled,
@@ -308,6 +319,14 @@ class SettingsPreferencesController(
 
     fun setUseDynamicColor(enabled: Boolean) {
         scope.launch { themeDataStore.setUseDynamicColor(enabled) }
+    }
+
+    /**
+     * Choosing the platform default clears the stored value instead of writing it, so the user keeps
+     * following the OS idiom rather than being pinned to whatever that idiom was when they chose it.
+     */
+    fun setUiStyle(style: UiStyle) {
+        scope.launch { themeDataStore.setUiStyle(style.takeIf { it != platformDefaultUiStyle() }) }
     }
 
     fun setChatFontSize(size: ChatFontSize) {

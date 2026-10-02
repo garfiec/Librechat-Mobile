@@ -12,11 +12,9 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -62,7 +60,7 @@ fun DynamicTagsInput(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 tags.forEach { tag ->
-                    AssistChip(
+                    AdaptiveAssistChip(
                         onClick = {},
                         label = { Text(tag) },
                         trailingIcon = {
@@ -84,7 +82,7 @@ fun DynamicTagsInput(
         }
 
         if (tags.size < maxTags) {
-            OutlinedTextField(
+            AdaptiveOutlinedTextField(
                 value = inputText,
                 onValueChange = { inputText = it },
                 modifier = Modifier.fillMaxWidth(),

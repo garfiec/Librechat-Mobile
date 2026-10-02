@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,7 +20,6 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Palette
@@ -27,16 +27,10 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Tablet
 import androidx.compose.material.icons.filled.Wallpaper
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -46,14 +40,29 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.data.datastore.ThemeMode
 import com.garfiec.librechat.core.model.config.BuildInfo
+import com.garfiec.librechat.core.model.ui.GlassCapability
+import com.garfiec.librechat.core.model.ui.UiStyle
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
+import com.garfiec.librechat.core.ui.components.AdaptiveRadioButton
+import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
+import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
+import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
+import com.garfiec.librechat.core.ui.components.adaptiveRowColor
+import com.garfiec.librechat.core.ui.components.adaptiveSection
 import com.garfiec.librechat.core.ui.components.toHexString
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
+import com.garfiec.librechat.core.ui.components.topbar.BarIcons
+import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
+import com.garfiec.librechat.core.ui.components.topbar.BarTitle
+import com.garfiec.librechat.core.ui.glass.ReducedGlassNote
+import com.garfiec.librechat.core.ui.glass.reducedEffectNote
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsViewModel
@@ -69,19 +78,15 @@ fun GeneralSettingsScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Scaffold(
+    AdaptiveScaffold(
         modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(Res.string.title_general)) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(Res.string.cd_back),
-                        )
-                    }
-                },
+            AdaptiveTopBar(
+                spec = AdaptiveTopBarSpec(
+                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.cd_back), onNavigateBack),
+                    title = BarTitle(stringResource(Res.string.title_general)),
+                    actions = emptyList(),
+                ),
             )
         },
     ) { innerPadding ->
@@ -100,100 +105,115 @@ fun GeneralSettingsScreen(
 @Composable
 fun GeneralSettingsContent(
     modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(),
     viewModel: SettingsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column(modifier = modifier) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            // Appearance section
-            item(key = "appearance_header") {
-                SectionHeader(stringResource(Res.string.section_appearance))
-            }
-            item(key = "theme_selector") {
-                ThemeSelector(
-                    selected = uiState.themeMode,
-                    onSelect = viewModel::setThemeMode,
-                )
-            }
-            item(key = "accent_color_row") {
-                AccentColorRow(
-                    color = uiState.accentColor,
-                    enabled = !uiState.useDynamicColor,
-                    onClick = viewModel::showAccentColorDialog,
-                )
-            }
-            if (uiState.dynamicColorSupported) {
-                item(key = "dynamic_color_toggle") {
-                    DynamicColorToggle(
-                        enabled = uiState.useDynamicColor,
-                        onEnabledChange = viewModel::setUseDynamicColor,
-                    )
+        AdaptiveGroupedPage(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = contentPadding,
+            ) {
+                item(key = "appearance_header") {
+                    AdaptiveSectionHeader(stringResource(Res.string.section_appearance))
                 }
-            }
+                adaptiveSection {
+                    row(key = "theme_selector") {
+                        ThemeSelector(
+                            selected = uiState.themeMode,
+                            onSelect = viewModel::setThemeMode,
+                        )
+                    }
+                    row(key = "ui_style_selector") {
+                        UiStyleSelector(
+                            selected = uiState.uiStyle,
+                            capability = uiState.glassCapability,
+                            onSelect = viewModel::setUiStyle,
+                        )
+                    }
+                    row(key = "accent_color_row") {
+                        AccentColorRow(
+                            color = uiState.accentColor,
+                            enabled = !uiState.useDynamicColor,
+                            onClick = viewModel::showAccentColorDialog,
+                        )
+                    }
+                    if (uiState.dynamicColorSupported) {
+                        row(key = "dynamic_color_toggle") {
+                            DynamicColorToggle(
+                                enabled = uiState.useDynamicColor,
+                                onEnabledChange = viewModel::setUseDynamicColor,
+                            )
+                        }
+                    }
+                }
 
-            // Language
-            item(key = "general_header") {
-                SectionHeader(stringResource(Res.string.section_language))
-            }
-            item(key = "language_row") {
-                GeneralSettingsRow(
-                    icon = Icons.Default.Language,
-                    title = stringResource(Res.string.language),
-                    subtitle = languageDisplayName(
-                        uiState.selectedLanguage,
-                        stringResource(Res.string.language_system_default),
-                    ),
-                    onClick = viewModel::showLanguageDialog,
-                )
-            }
+                item(key = "general_header") {
+                    AdaptiveSectionHeader(stringResource(Res.string.section_language))
+                }
+                adaptiveSection {
+                    row(key = "language_row") {
+                        GeneralSettingsRow(
+                            icon = Icons.Default.Language,
+                            title = stringResource(Res.string.language),
+                            subtitle = languageDisplayName(
+                                uiState.selectedLanguage,
+                                stringResource(Res.string.language_system_default),
+                            ),
+                            onClick = viewModel::showLanguageDialog,
+                        )
+                    }
+                }
 
-            // Tablet section
-            item(key = "tablet_header") {
-                SectionHeader(stringResource(Res.string.section_layout))
-            }
-            item(key = "tablet_sidebar_gesture") {
-                TabletSidebarGestureToggle(
-                    gestureEnabled = uiState.tabletSidebarGestureEnabled,
-                    onGestureEnabledChange = viewModel::setTabletSidebarGestureEnabled,
-                )
-            }
+                item(key = "tablet_header") {
+                    AdaptiveSectionHeader(stringResource(Res.string.section_layout))
+                }
+                adaptiveSection {
+                    row(key = "tablet_sidebar_gesture") {
+                        TabletSidebarGestureToggle(
+                            gestureEnabled = uiState.tabletSidebarGestureEnabled,
+                            onGestureEnabledChange = viewModel::setTabletSidebarGestureEnabled,
+                        )
+                    }
+                }
 
-            // Personalization
-            item(key = "personalization_header") {
-                SectionHeader(stringResource(Res.string.section_personalization))
-            }
-            item(key = "personalization_row") {
-                GeneralSettingsRow(
-                    icon = Icons.Default.Person,
-                    title = stringResource(Res.string.personalization),
-                    subtitle = if (uiState.personalizationEnabled) {
-                        stringResource(Res.string.status_enabled)
-                    } else {
-                        stringResource(Res.string.status_disabled)
-                    },
-                    onClick = viewModel::showPersonalizationDialog,
-                )
-            }
+                item(key = "personalization_header") {
+                    AdaptiveSectionHeader(stringResource(Res.string.section_personalization))
+                }
+                adaptiveSection {
+                    row(key = "personalization_row") {
+                        GeneralSettingsRow(
+                            icon = Icons.Default.Person,
+                            title = stringResource(Res.string.personalization),
+                            subtitle = if (uiState.personalizationEnabled) {
+                                stringResource(Res.string.status_enabled)
+                            } else {
+                                stringResource(Res.string.status_disabled)
+                            },
+                            onClick = viewModel::showPersonalizationDialog,
+                        )
+                    }
+                }
 
-            // About section
-            item(key = "about_header") {
-                SectionHeader(stringResource(Res.string.section_about))
-            }
-            item(key = "about_info") {
-                AboutInfo(
-                    serverUrl = uiState.serverUrl,
-                    appVersion = uiState.appVersion,
-                    gitSha = uiState.gitSha,
-                    serverVersion = uiState.serverVersion,
-                    buildInfo = uiState.buildInfo,
-                )
-            }
+                item(key = "about_header") {
+                    AdaptiveSectionHeader(stringResource(Res.string.section_about))
+                }
+                adaptiveSection {
+                    row(key = "about_info") {
+                        AboutInfo(
+                            serverUrl = uiState.serverUrl,
+                            appVersion = uiState.appVersion,
+                            gitSha = uiState.gitSha,
+                            serverVersion = uiState.serverVersion,
+                            buildInfo = uiState.buildInfo,
+                        )
+                    }
+                }
 
-            // Bottom spacing
-            item { Spacer(modifier = Modifier.height(32.dp)) }
+                item { Spacer(modifier = Modifier.height(32.dp)) }
+            }
         }
 
         // Language selector dialog
@@ -230,18 +250,6 @@ fun GeneralSettingsContent(
 }
 
 @Composable
-private fun SectionHeader(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-            .semantics { heading() },
-    )
-}
-
-@Composable
 private fun ThemeSelector(
     selected: ThemeMode,
     onSelect: (ThemeMode) -> Unit,
@@ -262,7 +270,7 @@ private fun ThemeSelector(
                         .padding(vertical = 8.dp, horizontal = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    RadioButton(
+                    AdaptiveRadioButton(
                         selected = selected == mode,
                         onClick = null,
                     )
@@ -278,7 +286,66 @@ private fun ThemeSelector(
                 }
             }
         }
-        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+        AdaptiveDivider(modifier = Modifier.padding(top = 8.dp))
+    }
+}
+
+@Composable
+private fun UiStyleSelector(
+    selected: UiStyle,
+    capability: GlassCapability,
+    onSelect: (UiStyle) -> Unit,
+) {
+    Column {
+        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+            Text(
+                text = stringResource(Res.string.ui_style),
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp, start = 4.dp),
+            )
+            UiStyle.entries.forEach { style ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .selectable(
+                            selected = selected == style,
+                            onClick = { onSelect(style) },
+                            role = Role.RadioButton,
+                        )
+                        .padding(vertical = 8.dp, horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    AdaptiveRadioButton(
+                        selected = selected == style,
+                        onClick = null,
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = when (style) {
+                            UiStyle.MATERIAL -> stringResource(Res.string.ui_style_material)
+                            UiStyle.LIQUID_GLASS -> stringResource(Res.string.ui_style_liquid_glass)
+                        },
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
+            }
+            // Shown whichever style is selected, so the reduced effect is known before choosing it.
+            capability.reducedEffectNote()?.let { note ->
+                Text(
+                    text = when (note) {
+                        ReducedGlassNote.SIMULATED -> stringResource(Res.string.ui_style_note_simulated)
+                        ReducedGlassNote.BLUR_ONLY -> stringResource(Res.string.ui_style_note_blur_only)
+                        ReducedGlassNote.FLAT -> stringResource(Res.string.ui_style_note_flat)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 4.dp),
+                )
+            }
+        }
+        AdaptiveDivider(modifier = Modifier.padding(top = 8.dp))
     }
 }
 
@@ -317,13 +384,13 @@ private fun TabletSidebarGestureToggle(
                     )
                 }
                 Spacer(modifier = Modifier.width(16.dp))
-                Switch(
+                AdaptiveSwitch(
                     checked = gestureEnabled,
                     onCheckedChange = onGestureEnabledChange,
                 )
             }
         }
-        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+        AdaptiveDivider(modifier = Modifier.padding(top = 8.dp))
     }
 }
 
@@ -338,6 +405,7 @@ private fun AccentColorRow(
         Surface(
             modifier = Modifier.fillMaxWidth(),
             onClick = onClick,
+            color = adaptiveRowColor,
             enabled = enabled,
         ) {
             Row(
@@ -374,7 +442,7 @@ private fun AccentColorRow(
                 )
             }
         }
-        HorizontalDivider()
+        AdaptiveDivider()
     }
 }
 
@@ -410,12 +478,12 @@ private fun DynamicColorToggle(
                 )
             }
             Spacer(modifier = Modifier.width(16.dp))
-            Switch(
+            AdaptiveSwitch(
                 checked = enabled,
                 onCheckedChange = onEnabledChange,
             )
         }
-        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+        AdaptiveDivider(modifier = Modifier.padding(top = 8.dp))
     }
 }
 
@@ -504,7 +572,7 @@ private fun AboutInfo(
                 AboutRow(stringResource(Res.string.server_build_date_label), buildDate)
             }
         }
-        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+        AdaptiveDivider(modifier = Modifier.padding(top = 8.dp))
     }
 }
 
@@ -541,6 +609,7 @@ private fun GeneralSettingsRow(
         Surface(
             modifier = Modifier.fillMaxWidth(),
             onClick = onClick,
+            color = adaptiveRowColor,
         ) {
             Row(
                 modifier = Modifier
@@ -574,6 +643,6 @@ private fun GeneralSettingsRow(
                 )
             }
         }
-        HorizontalDivider()
+        AdaptiveDivider()
     }
 }

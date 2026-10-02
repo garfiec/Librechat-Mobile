@@ -8,10 +8,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,6 +23,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.data.prefetch.PrefetchDepth
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.resources.prefetch_activity
 import com.garfiec.librechat.feature.settings.resources.prefetch_attachments
@@ -107,7 +107,7 @@ fun PrefetchSettingsSection(
             enabled = prefetchEnabled,
         )
 
-        HorizontalDivider()
+        AdaptiveDivider()
 
         SummaryRow(
             label = stringResource(Res.string.prefetch_summary_status),
@@ -125,7 +125,7 @@ fun PrefetchSettingsSection(
             enabled = prefetchEnabled,
         )
 
-        OutlinedButton(
+        AdaptiveOutlinedButton(
             onClick = onActivityClick,
             enabled = prefetchEnabled,
             modifier = Modifier.fillMaxWidth(),

@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
@@ -21,12 +20,8 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -37,6 +32,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveInputChip
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.agents.AgentHandoffDisplayData
 import com.garfiec.librechat.feature.agents.resources.*
@@ -92,7 +92,7 @@ fun AgentSubagentsSection(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Switch(checked = enabled, onCheckedChange = onToggle)
+                AdaptiveSwitch(checked = enabled, onCheckedChange = onToggle)
             }
 
             if (enabled) {
@@ -107,7 +107,7 @@ fun AgentSubagentsSection(
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f),
                     )
-                    Switch(checked = allowSelf, onCheckedChange = onAllowSelfToggle)
+                    AdaptiveSwitch(checked = allowSelf, onCheckedChange = onAllowSelfToggle)
                 }
 
                 if (selectedSubagentIds.isNotEmpty()) {
@@ -118,7 +118,7 @@ fun AgentSubagentsSection(
                     ) {
                         selectedSubagentIds.forEach { id ->
                             val label = nameOf(id)
-                            InputChip(
+                            AdaptiveInputChip(
                                 selected = false,
                                 onClick = {},
                                 label = { Text(label) },
@@ -146,7 +146,7 @@ fun AgentSubagentsSection(
                 }
 
                 Spacer(modifier = Modifier.padding(top = 4.dp))
-                OutlinedButton(
+                AdaptiveOutlinedButton(
                     onClick = { showPicker = true },
                     enabled = !atCap,
                     modifier = Modifier.fillMaxWidth(),
@@ -183,7 +183,7 @@ private fun AddSubagentDialog(
     var dropdownExpanded by remember { mutableStateOf(false) }
     var selectedAgent by remember { mutableStateOf<AgentHandoffDisplayData?>(null) }
 
-    AlertDialog(
+    AdaptiveAlertDialog(
         modifier = Modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.add_subagent)) },
@@ -201,7 +201,7 @@ private fun AddSubagentDialog(
                         onExpandedChange = { dropdownExpanded = it },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        OutlinedTextField(
+                        AdaptiveOutlinedTextField(
                             value = selectedAgent?.name ?: "",
                             onValueChange = {},
                             readOnly = true,

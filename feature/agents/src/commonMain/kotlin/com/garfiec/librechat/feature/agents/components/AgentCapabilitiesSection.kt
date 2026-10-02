@@ -9,11 +9,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -21,6 +16,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.ArtifactsMode
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.AdaptiveSegmentedChoice
+import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
 import com.garfiec.librechat.feature.agents.components.model.AgentCapabilities
 import com.garfiec.librechat.feature.agents.resources.*
 import com.garfiec.librechat.feature.agents.resources.Res
@@ -90,7 +88,7 @@ fun AgentCapabilitiesSection(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(modifier = Modifier.height(4.dp))
-            OutlinedTextField(
+            AdaptiveOutlinedTextField(
                 value = capabilities.recursionLimit.toString(),
                 onValueChange = { newValue ->
                     val filtered = newValue.filter { it.isDigit() }
@@ -120,17 +118,12 @@ private fun ArtifactsModePicker(
         ArtifactsMode.SHADCN_UI to stringResource(Res.string.artifacts_mode_shadcnui),
         ArtifactsMode.CUSTOM to stringResource(Res.string.artifacts_mode_custom),
     )
-    SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth()) {
-        options.forEachIndexed { index, (mode, label) ->
-            SegmentedButton(
-                selected = selected == mode,
-                onClick = { onSelect(mode) },
-                shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
-            ) {
-                Text(label)
-            }
-        }
-    }
+    AdaptiveSegmentedChoice(
+        options = options.map { it.second },
+        selectedIndex = options.indexOfFirst { it.first == selected },
+        onSelect = { onSelect(options[it].first) },
+        modifier = modifier.fillMaxWidth(),
+    )
 }
 
 @Composable
@@ -159,7 +152,7 @@ private fun CapabilityToggle(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Switch(
+        AdaptiveSwitch(
             checked = checked,
             onCheckedChange = onCheckedChange,
         )

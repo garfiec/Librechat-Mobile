@@ -83,4 +83,12 @@ dependencies {
     // input via InputManager.getInstance, which no longer exists on API 36+.
     androidTestImplementation(libs.espresso.core)
     debugImplementation(libs.compose.ui.test.manifest)
+
+    constraints {
+        // espresso 3.7.0 needs concurrent-futures 1.2.0, but under compose 1.12 the app's runtime
+        // resolves 1.1.0, and AGP holds the test APK to the app's versions: the two are a hard
+        // conflict that fails :app:lint. Raising the app's copy lets both agree.
+        implementation(libs.androidx.concurrent.futures)
+        implementation(libs.androidx.concurrent.futures.ktx)
+    }
 }

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -22,13 +23,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
+import com.garfiec.librechat.core.ui.glass.glassSurface
+import com.garfiec.librechat.core.ui.glass.rememberGlassStyle
 
 /**
  * The diameter of a circular floating top-bar control chip. Shared so the bar's height
@@ -44,16 +47,27 @@ internal val FloatingBarChipSize = 44.dp
 @Composable
 internal fun FloatingBarChip(
     modifier: Modifier = Modifier,
-    shape: Shape = CircleShape,
+    shape: CornerBasedShape = CircleShape,
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
-    val color = ChatInputDefaults.containerColor
-    val border = BorderStroke(1.dp, ChatInputDefaults.borderColor)
+    val glass = rememberGlassStyle()
+    val color = if (glass != null) Color.Transparent else ChatInputDefaults.containerColor
+    val border = if (glass != null) null else BorderStroke(1.dp, ChatInputDefaults.borderColor)
+    val contentColor = MaterialTheme.colorScheme.onSurface
+    val modifier = if (glass != null) modifier.glassSurface(glass, shape, LocalGlassBackdrop.current) else modifier
     if (onClick != null) {
-        Surface(onClick = onClick, shape = shape, color = color, border = border, modifier = modifier, content = content)
+        Surface(
+            onClick = onClick,
+            shape = shape,
+            color = color,
+            contentColor = contentColor,
+            border = border,
+            modifier = modifier,
+            content = content,
+        )
     } else {
-        Surface(shape = shape, color = color, border = border, modifier = modifier, content = content)
+        Surface(shape = shape, color = color, contentColor = contentColor, border = border, modifier = modifier, content = content)
     }
 }
 
@@ -145,20 +159,6 @@ internal fun FloatingBarIconButton(
                 tint = tint,
                 modifier = Modifier.size(22.dp),
             )
-        }
-    }
-}
-
-/**
- * Absorbs pointer events that land in the floating bar's empty regions (the scrim gaps between
- * chips) so taps and drags there don't fall through to chat content scrolling behind the bar.
- * Chips inside the bar still receive their own events — children are dispatched first, so only
- * events they leave unconsumed are swallowed here.
- */
-internal fun Modifier.consumeFloatingBarTouches(): Modifier = pointerInput(Unit) {
-    awaitPointerEventScope {
-        while (true) {
-            awaitPointerEvent().changes.forEach { it.consume() }
         }
     }
 }

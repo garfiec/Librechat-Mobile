@@ -9,15 +9,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -38,7 +38,7 @@ internal fun DataExtraActions(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             // Shared Links
-            OutlinedButton(
+            AdaptiveOutlinedButton(
                 onClick = onSharedLinksClick,
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -57,7 +57,7 @@ internal fun DataExtraActions(
             }
 
             // Clear cache
-            OutlinedButton(
+            AdaptiveOutlinedButton(
                 onClick = onClearCacheClick,
                 enabled = !isCacheClearing,
                 modifier = Modifier.fillMaxWidth(),
@@ -66,7 +66,7 @@ internal fun DataExtraActions(
             }
 
             // Revoke API keys
-            OutlinedButton(
+            AdaptiveOutlinedButton(
                 onClick = onRevokeKeysClick,
                 enabled = !isKeyRevoking,
                 modifier = Modifier.fillMaxWidth(),
@@ -77,6 +77,6 @@ internal fun DataExtraActions(
                 Text(stringResource(if (isKeyRevoking) Res.string.revoking else Res.string.revoke_all_api_keys))
             }
         }
-        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+        AdaptiveDivider(modifier = Modifier.padding(top = 8.dp))
     }
 }

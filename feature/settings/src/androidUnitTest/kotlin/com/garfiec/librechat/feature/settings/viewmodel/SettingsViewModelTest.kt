@@ -27,6 +27,7 @@ import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.logging.DiagnosticLogRepository
 import com.garfiec.librechat.core.model.User
+import com.garfiec.librechat.core.model.ui.UiStyle
 import com.garfiec.librechat.core.model.mcp.McpOboConfig
 import com.garfiec.librechat.core.model.mcp.McpServer
 import com.garfiec.librechat.core.model.mcp.McpServerType
@@ -301,6 +302,47 @@ class SettingsViewModelTest {
         advanceUntilIdle()
 
         coVerify { themeDataStore.setThemeMode(ThemeMode.DARK) }
+    }
+
+    @Test
+    fun `setUiStyle to the platform default clears the stored choice`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        // Android's platform default is Material: storing it would pin the user to today's
+        // default instead of following the platform.
+        viewModel.setUiStyle(UiStyle.MATERIAL)
+        advanceUntilIdle()
+
+        coVerify { themeDataStore.setUiStyle(null) }
+    }
+
+    @Test
+    fun `setUiStyle away from the platform default stores it`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.setUiStyle(UiStyle.LIQUID_GLASS)
+        advanceUntilIdle()
+
+        coVerify { themeDataStore.setUiStyle(UiStyle.LIQUID_GLASS) }
+    }
+
+    @Test
+    fun `uiState resolves an unset style to the platform default and a stored one as stored`() = runTest {
+        // Every theme flow must emit: the preferences state is one combine chain.
+        val stored = MutableStateFlow<UiStyle?>(null)
+        every { themeDataStore.accentColor } returns MutableStateFlow(ThemeDataStore.DEFAULT_ACCENT_COLOR)
+        every { themeDataStore.useDynamicColor } returns MutableStateFlow(false)
+        every { themeDataStore.uiStyle } returns stored
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.uiStyle).isEqualTo(UiStyle.MATERIAL)
+
+        stored.value = UiStyle.LIQUID_GLASS
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.uiStyle).isEqualTo(UiStyle.LIQUID_GLASS)
     }
 
     @Test

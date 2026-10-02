@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.settings.screen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,22 +12,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -35,10 +28,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
+import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
+import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
+import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
+import com.garfiec.librechat.core.ui.components.adaptiveSection
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
+import com.garfiec.librechat.core.ui.components.topbar.BarIcons
+import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
+import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.feature.settings.platform.LogFileSaver
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
@@ -59,20 +63,16 @@ fun DataSettingsScreen(
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
 
-    Scaffold(
+    AdaptiveScaffold(
         modifier = modifier,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(Res.string.title_data)) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(Res.string.cd_back),
-                        )
-                    }
-                },
+            AdaptiveTopBar(
+                spec = AdaptiveTopBarSpec(
+                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.cd_back), onNavigateBack),
+                    title = BarTitle(stringResource(Res.string.title_data)),
+                    actions = emptyList(),
+                ),
             )
         },
     ) { innerPadding ->
@@ -100,6 +100,7 @@ fun DataSettingsContent(
     onNavigateToArtifactShortcuts: () -> Unit,
     onNavigateToPrefetchActivity: () -> Unit,
     modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(),
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     viewModel: SettingsViewModel = koinViewModel(),
     prefetchViewModel: PrefetchActivityViewModel = koinViewModel(),
@@ -175,63 +176,68 @@ fun DataSettingsContent(
         viewModel.dismissMcpReinitializeMessage()
     }
 
-    Column(modifier = modifier) {
+    AdaptiveGroupedPage(modifier = modifier) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
+            contentPadding = contentPadding,
         ) {
             // Conversations section
             item(key = "conversations_header") {
-                SectionHeader(stringResource(Res.string.section_conversations))
+                AdaptiveSectionHeader(stringResource(Res.string.section_conversations))
             }
-            item(key = "data_settings") {
-                DataSettingsSection(
-                    archivedCount = uiState.archivedCount,
-                    isClearing = uiState.isClearing,
-                    onClearAllChats = viewModel::clearAllChats,
-                    archiveAllSupported = uiState.archiveAllSupported,
-                    isArchivingAll = uiState.isArchivingAll,
-                    onArchiveAllChats = viewModel::archiveAllChats,
-                    onViewArchive = onNavigateToArchive,
-                    onExportAllData = viewModel::exportAllData,
-                    logsBufferBytes = uiState.logsBufferBytes,
-                    isLogsExporting = uiState.isLogsExporting,
-                    isLogsClearing = uiState.isLogsClearing,
-                    onExportLogs = viewModel::exportLogs,
-                    onClearLogs = viewModel::clearLogs,
-                )
-            }
-            item(key = "data_extra_actions") {
-                DataExtraActions(
-                    onSharedLinksClick = onNavigateToSharedLinks,
-                    onArtifactShortcutsClick = onNavigateToArtifactShortcuts,
-                    onClearCacheClick = { showClearCacheDialog = true },
-                    isCacheClearing = uiState.isCacheClearing,
-                    cacheSizeBytes = uiState.cacheSizeBytes,
-                    onRevokeKeysClick = { showRevokeKeysDialog = true },
-                    isKeyRevoking = uiState.isKeyRevoking,
-                )
+            adaptiveSection {
+                row(key = "data_settings") {
+                    DataSettingsSection(
+                        archivedCount = uiState.archivedCount,
+                        isClearing = uiState.isClearing,
+                        onClearAllChats = viewModel::clearAllChats,
+                        archiveAllSupported = uiState.archiveAllSupported,
+                        isArchivingAll = uiState.isArchivingAll,
+                        onArchiveAllChats = viewModel::archiveAllChats,
+                        onViewArchive = onNavigateToArchive,
+                        onExportAllData = viewModel::exportAllData,
+                        logsBufferBytes = uiState.logsBufferBytes,
+                        isLogsExporting = uiState.isLogsExporting,
+                        isLogsClearing = uiState.isLogsClearing,
+                        onExportLogs = viewModel::exportLogs,
+                        onClearLogs = viewModel::clearLogs,
+                    )
+                }
+                row(key = "data_extra_actions") {
+                    DataExtraActions(
+                        onSharedLinksClick = onNavigateToSharedLinks,
+                        onArtifactShortcutsClick = onNavigateToArtifactShortcuts,
+                        onClearCacheClick = { showClearCacheDialog = true },
+                        isCacheClearing = uiState.isCacheClearing,
+                        cacheSizeBytes = uiState.cacheSizeBytes,
+                        onRevokeKeysClick = { showRevokeKeysDialog = true },
+                        isKeyRevoking = uiState.isKeyRevoking,
+                    )
+                }
             }
 
             item(key = "prefetch_header") {
-                SectionHeader(stringResource(Res.string.section_prefetch))
+                AdaptiveSectionHeader(stringResource(Res.string.section_prefetch))
             }
-            item(key = "prefetch_settings") {
-                PrefetchSettingsSection(
-                    prefetchEnabled = uiState.prefetchEnabled,
-                    prefetchOnMeteredEnabled = uiState.prefetchOnMeteredEnabled,
-                    prefetchAttachmentsEnabled = uiState.prefetchAttachmentsEnabled,
-                    prefetchAttachmentsSupported = uiState.prefetchAttachmentsSupported,
-                    onPrefetchEnabledChange = viewModel::setPrefetchEnabled,
-                    onPrefetchOnMeteredChange = viewModel::setPrefetchOnMeteredEnabled,
-                    onPrefetchAttachmentsChange = viewModel::setPrefetchAttachmentsEnabled,
-                    prefetchDepth = uiState.prefetchDepth,
-                    onPrefetchDepthChange = viewModel::setPrefetchDepth,
-                    status = prefetchState.status,
-                    warmedCount = prefetchState.warmedCount,
-                    eligibleCount = prefetchState.eligibleCount,
-                    lastRunLabel = prefetchState.lastWarmedAt?.relativeLabel(timeReference),
-                    onActivityClick = onNavigateToPrefetchActivity,
-                )
+            adaptiveSection {
+                row(key = "prefetch_settings") {
+                    PrefetchSettingsSection(
+                        prefetchEnabled = uiState.prefetchEnabled,
+                        prefetchOnMeteredEnabled = uiState.prefetchOnMeteredEnabled,
+                        prefetchAttachmentsEnabled = uiState.prefetchAttachmentsEnabled,
+                        prefetchAttachmentsSupported = uiState.prefetchAttachmentsSupported,
+                        onPrefetchEnabledChange = viewModel::setPrefetchEnabled,
+                        onPrefetchOnMeteredChange = viewModel::setPrefetchOnMeteredEnabled,
+                        onPrefetchAttachmentsChange = viewModel::setPrefetchAttachmentsEnabled,
+                        prefetchDepth = uiState.prefetchDepth,
+                        onPrefetchDepthChange = viewModel::setPrefetchDepth,
+                        status = prefetchState.status,
+                        warmedCount = prefetchState.warmedCount,
+                        eligibleCount = prefetchState.eligibleCount,
+                        lastRunLabel = prefetchState.lastWarmedAt?.relativeLabel(timeReference),
+                        onActivityClick = onNavigateToPrefetchActivity,
+                    )
+                }
             }
 
             // Memories section — hidden entirely when the server's MEMORIES.USE role
@@ -239,43 +245,47 @@ fun DataSettingsContent(
             // independent and only hides the list inside this section.
             if (uiState.serverMemoriesEnabled) {
                 item(key = "memories_header") {
-                    SectionHeader(stringResource(Res.string.section_memories))
+                    AdaptiveSectionHeader(stringResource(Res.string.section_memories))
                 }
-                item(key = "memories_settings") {
-                    MemoriesSettingsSection(
-                        memories = uiState.memories,
-                        memoriesEnabled = uiState.memoriesEnabled,
-                        showMemoryDialog = uiState.showMemoryDialog,
-                        editingMemory = uiState.editingMemory,
-                        enforceKeyPattern = uiState.memoryKeyPatternEnforced,
-                        onToggleEnable = viewModel::toggleMemoriesEnabled,
-                        onAddMemory = viewModel::showAddMemoryDialog,
-                        onEditMemory = viewModel::showEditMemoryDialog,
-                        onDeleteMemory = viewModel::deleteMemory,
-                        onDismissDialog = viewModel::dismissMemoryDialog,
-                        onSaveMemory = viewModel::saveMemory,
-                    )
+                adaptiveSection {
+                    row(key = "memories_settings") {
+                        MemoriesSettingsSection(
+                            memories = uiState.memories,
+                            memoriesEnabled = uiState.memoriesEnabled,
+                            showMemoryDialog = uiState.showMemoryDialog,
+                            editingMemory = uiState.editingMemory,
+                            enforceKeyPattern = uiState.memoryKeyPatternEnforced,
+                            onToggleEnable = viewModel::toggleMemoriesEnabled,
+                            onAddMemory = viewModel::showAddMemoryDialog,
+                            onEditMemory = viewModel::showEditMemoryDialog,
+                            onDeleteMemory = viewModel::deleteMemory,
+                            onDismissDialog = viewModel::dismissMemoryDialog,
+                            onSaveMemory = viewModel::saveMemory,
+                        )
+                    }
                 }
             }
 
             // MCP section — always shown, but the section body degrades to
             // "not available" and the "+ Add" button disappears when role denies.
             item(key = "mcp_header") {
-                SectionHeader(stringResource(Res.string.section_mcp_servers))
+                AdaptiveSectionHeader(stringResource(Res.string.section_mcp_servers))
             }
-            item(key = "mcp_settings") {
-                McpSettingsSection(
-                    servers = uiState.mcpServers,
-                    connectionStatus = uiState.mcpConnectionStatus,
-                    reinitializingServers = uiState.mcpReinitializingServers,
-                    error = uiState.mcpError,
-                    mcpServersEnabled = uiState.mcpServersEnabled,
-                    mcpServersCreateEnabled = uiState.mcpServersCreateEnabled,
-                    onAddServer = viewModel::showAddMcpServerDialog,
-                    onEditServer = viewModel::showEditMcpServerDialog,
-                    onDeleteServer = viewModel::deleteMcpServer,
-                    onReinitialize = viewModel::reinitializeMcpServer,
-                )
+            adaptiveSection {
+                row(key = "mcp_settings") {
+                    McpSettingsSection(
+                        servers = uiState.mcpServers,
+                        connectionStatus = uiState.mcpConnectionStatus,
+                        reinitializingServers = uiState.mcpReinitializingServers,
+                        error = uiState.mcpError,
+                        mcpServersEnabled = uiState.mcpServersEnabled,
+                        mcpServersCreateEnabled = uiState.mcpServersCreateEnabled,
+                        onAddServer = viewModel::showAddMcpServerDialog,
+                        onEditServer = viewModel::showEditMcpServerDialog,
+                        onDeleteServer = viewModel::deleteMcpServer,
+                        onReinitialize = viewModel::reinitializeMcpServer,
+                    )
+                }
             }
 
             // Bottom spacing
@@ -299,7 +309,7 @@ fun DataSettingsContent(
 
         // Clear cache confirmation
         if (showClearCacheDialog) {
-            AlertDialog(
+            AdaptiveAlertDialog(
                 onDismissRequest = { showClearCacheDialog = false },
                 title = { Text(stringResource(Res.string.dialog_title_clear_cache)) },
                 text = { Text(stringResource(Res.string.dialog_clear_cache_message)) },
@@ -323,7 +333,7 @@ fun DataSettingsContent(
 
         // Revoke keys confirmation
         if (showRevokeKeysDialog) {
-            AlertDialog(
+            AdaptiveAlertDialog(
                 onDismissRequest = { showRevokeKeysDialog = false },
                 title = { Text(stringResource(Res.string.dialog_title_revoke_keys)) },
                 text = { Text(stringResource(Res.string.dialog_revoke_keys_message)) },
@@ -347,19 +357,7 @@ fun DataSettingsContent(
                 },
             )
         }
-    } // Column
-}
-
-@Composable
-private fun SectionHeader(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-            .semantics { heading() },
-    )
+    }
 }
 
 @Composable
@@ -380,7 +378,7 @@ private fun DataExtraActions(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             // Shared Links
-            OutlinedButton(
+            AdaptiveOutlinedButton(
                 onClick = onSharedLinksClick,
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -399,7 +397,7 @@ private fun DataExtraActions(
             }
 
             // Home-screen artifact shortcuts
-            OutlinedButton(
+            AdaptiveOutlinedButton(
                 onClick = onArtifactShortcutsClick,
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -419,7 +417,7 @@ private fun DataExtraActions(
 
             // Clear cache. The size is only shown once read and non-zero — a "(0 B)" on a cache that
             // simply hasn't been measured yet reads as a broken feature rather than an empty one.
-            OutlinedButton(
+            AdaptiveOutlinedButton(
                 onClick = onClearCacheClick,
                 enabled = !isCacheClearing,
                 modifier = Modifier.fillMaxWidth(),
@@ -437,7 +435,7 @@ private fun DataExtraActions(
             }
 
             // Revoke API keys
-            OutlinedButton(
+            AdaptiveOutlinedButton(
                 onClick = onRevokeKeysClick,
                 enabled = !isKeyRevoking,
                 modifier = Modifier.fillMaxWidth(),
@@ -448,6 +446,6 @@ private fun DataExtraActions(
                 Text(stringResource(if (isKeyRevoking) Res.string.revoking else Res.string.revoke_all_api_keys))
             }
         }
-        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+        AdaptiveDivider(modifier = Modifier.padding(top = 8.dp))
     }
 }

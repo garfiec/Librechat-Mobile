@@ -35,10 +35,9 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -57,6 +56,10 @@ import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.model.usage.TokenUsage
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
+import com.garfiec.librechat.core.ui.glass.glassSurface
+import com.garfiec.librechat.core.ui.glass.rememberGlassStyle
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -198,17 +201,26 @@ fun CommonChatInputCore(
     textFieldContent: @Composable RowScope.() -> Unit,
 ) {
     val surfaceColor = MaterialTheme.colorScheme.surface
+    // Liquid Glass drops Material's fade: the glass capsule already separates the composer.
+    val glass = rememberGlassStyle()
+    val glassBackdrop = LocalGlassBackdrop.current
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color.Transparent,
-                        surfaceColor.copy(alpha = 0.7f),
-                        surfaceColor.copy(alpha = 0.95f),
-                    ),
-                ),
+            .then(
+                if (glass != null) {
+                    Modifier
+                } else {
+                    Modifier.background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                surfaceColor.copy(alpha = 0.7f),
+                                surfaceColor.copy(alpha = 0.95f),
+                            ),
+                        ),
+                    )
+                },
             ),
     ) {
         Column(
@@ -315,7 +327,15 @@ fun CommonChatInputCore(
             )
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(
+                        if (glass != null) {
+                            Modifier.glassSurface(glass, GlassComposerShape, glassBackdrop).padding(4.dp)
+                        } else {
+                            Modifier
+                        },
+                    ),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 leadingButtons()
@@ -361,6 +381,8 @@ fun CommonChatInputCore(
         bottomContent()
     }
 }
+
+private val GlassComposerShape = RoundedCornerShape(28.dp)
 
 /** Visual mode of the trailing composer button. */
 internal enum class SendButtonMode { SEND, STOP, QUEUE, STEER, ANSWER, UPDATE, AWAITING }
@@ -467,19 +489,9 @@ fun SendStopButton(
                 onClick = onUpdate,
                 modifier = Modifier.size(56.dp),
                 enabled = canSend,
-                colors = IconButtonDefaults.iconButtonColors(
-                    containerColor = if (canSend) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.surfaceContainer
-                    },
-                    contentColor = if (canSend) {
-                        MaterialTheme.colorScheme.onPrimary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                    disabledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                colors = ChatInputDefaults.sendButtonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                 ),
             ) {
                 Icon(
@@ -491,17 +503,17 @@ fun SendStopButton(
             SendButtonMode.AWAITING -> IconButton(
                 onClick = onCancelPendingSend,
                 modifier = Modifier.size(56.dp),
-                colors = IconButtonDefaults.iconButtonColors(
+                colors = ChatInputDefaults.sendButtonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
                 ),
             ) {
                 // Spinner (upload still in flight) with a small ✕ so it reads as "tap to cancel".
                 Box(contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(
+                    AdaptiveCircularProgressIndicator(
                         modifier = Modifier.size(28.dp),
                         strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary,
+                        color = LocalContentColor.current,
                     )
                     Icon(
                         imageVector = Icons.Default.Close,
@@ -514,27 +526,23 @@ fun SendStopButton(
             SendButtonMode.STOP -> IconButton(
                 onClick = onStop,
                 modifier = Modifier.size(56.dp),
-                colors = IconButtonDefaults.iconButtonColors(
+                colors = ChatInputDefaults.sendButtonColors(
                     containerColor = MaterialTheme.colorScheme.error,
                     contentColor = MaterialTheme.colorScheme.onError,
+                    glassContentColor = MaterialTheme.colorScheme.error,
                 ),
             ) {
                 Icon(
                     imageVector = Icons.Default.Stop,
                     contentDescription = stringResource(Res.string.cd_stop_generation),
-                    modifier = Modifier
-                        .size(28.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.error,
-                            shape = CircleShape,
-                        ),
+                    modifier = Modifier.size(28.dp),
                 )
             }
 
             SendButtonMode.QUEUE -> IconButton(
                 onClick = onQueue,
                 modifier = Modifier.size(56.dp),
-                colors = IconButtonDefaults.iconButtonColors(
+                colors = ChatInputDefaults.sendButtonColors(
                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
                     contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                 ),
@@ -548,7 +556,7 @@ fun SendStopButton(
             SendButtonMode.STEER -> IconButton(
                 onClick = onQueue,
                 modifier = Modifier.size(56.dp),
-                colors = IconButtonDefaults.iconButtonColors(
+                colors = ChatInputDefaults.sendButtonColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 ),
@@ -565,7 +573,7 @@ fun SendStopButton(
             SendButtonMode.ANSWER -> IconButton(
                 onClick = onQueue,
                 modifier = Modifier.size(56.dp),
-                colors = IconButtonDefaults.iconButtonColors(
+                colors = ChatInputDefaults.sendButtonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
                 ),
@@ -580,19 +588,9 @@ fun SendStopButton(
                 onClick = onSend,
                 modifier = Modifier.size(56.dp),
                 enabled = canSend,
-                colors = IconButtonDefaults.iconButtonColors(
-                    containerColor = if (canSend) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.surfaceContainer
-                    },
-                    contentColor = if (canSend) {
-                        MaterialTheme.colorScheme.onPrimary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                    disabledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                colors = ChatInputDefaults.sendButtonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                 ),
             ) {
                 Icon(
@@ -656,7 +654,7 @@ fun VoiceMicIndicator(
     modifier: Modifier = Modifier,
 ) {
     if (isTranscribing) {
-        CircularProgressIndicator(
+        AdaptiveCircularProgressIndicator(
             modifier = modifier.size(20.dp),
             strokeWidth = 2.dp,
             color = MaterialTheme.colorScheme.primary,

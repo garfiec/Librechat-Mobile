@@ -11,13 +11,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Archive
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -28,6 +24,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveButton
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -61,7 +61,7 @@ internal fun DataSettingsSection(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Clear all conversations
-            Button(
+            AdaptiveButton(
                 onClick = { showClearDialog = true },
                 enabled = !isClearing,
                 modifier = Modifier.fillMaxWidth(),
@@ -74,7 +74,7 @@ internal fun DataSettingsSection(
             }
 
             if (archiveAllSupported) {
-                OutlinedButton(
+                AdaptiveOutlinedButton(
                     onClick = { showArchiveAllDialog = true },
                     enabled = !isArchivingAll,
                     modifier = Modifier.fillMaxWidth(),
@@ -88,7 +88,7 @@ internal fun DataSettingsSection(
             }
 
             // Archived conversations
-            OutlinedButton(
+            AdaptiveOutlinedButton(
                 onClick = onViewArchive,
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -129,7 +129,7 @@ internal fun DataSettingsSection(
             }
 
             // Export all data
-            OutlinedButton(
+            AdaptiveOutlinedButton(
                 onClick = onExportAllData,
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -137,7 +137,7 @@ internal fun DataSettingsSection(
             }
 
             // Export diagnostic logs (issue #96). Label includes the buffer size when known.
-            OutlinedButton(
+            AdaptiveOutlinedButton(
                 onClick = onExportLogs,
                 enabled = !isLogsExporting,
                 modifier = Modifier.fillMaxWidth(),
@@ -155,7 +155,7 @@ internal fun DataSettingsSection(
             }
 
             // Clear diagnostic logs (destructive)
-            OutlinedButton(
+            AdaptiveOutlinedButton(
                 onClick = { showClearLogsDialog = true },
                 enabled = !isLogsClearing,
                 modifier = Modifier.fillMaxWidth(),
@@ -168,11 +168,11 @@ internal fun DataSettingsSection(
 
             Spacer(modifier = Modifier.height(0.dp))
         }
-        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+        AdaptiveDivider(modifier = Modifier.padding(top = 8.dp))
 
         // Clear all chats confirmation dialog
         if (showClearDialog) {
-            AlertDialog(
+            AdaptiveAlertDialog(
                 onDismissRequest = { showClearDialog = false },
                 title = { Text(stringResource(Res.string.dialog_title_clear_conversations)) },
                 text = {
@@ -202,7 +202,7 @@ internal fun DataSettingsSection(
         }
 
         if (showArchiveAllDialog) {
-            AlertDialog(
+            AdaptiveAlertDialog(
                 onDismissRequest = { showArchiveAllDialog = false },
                 title = { Text(stringResource(Res.string.dialog_title_archive_all)) },
                 text = { Text(stringResource(Res.string.dialog_archive_all_message)) },
@@ -226,7 +226,7 @@ internal fun DataSettingsSection(
 
         // Clear diagnostic logs confirmation dialog
         if (showClearLogsDialog) {
-            AlertDialog(
+            AdaptiveAlertDialog(
                 onDismissRequest = { showClearLogsDialog = false },
                 title = { Text(stringResource(Res.string.dialog_title_clear_logs)) },
                 text = { Text(stringResource(Res.string.dialog_clear_logs_message)) },

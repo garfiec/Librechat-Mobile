@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -25,10 +26,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.glass.GlassControlColors
+import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 import com.garfiec.librechat.shared.resources.Res
 import com.garfiec.librechat.shared.resources.cd_back_to_conversations
 import com.garfiec.librechat.shared.resources.settings
@@ -50,7 +55,8 @@ fun SettingsSidebarContent(
         modifier = modifier
             .fillMaxHeight()
             .width(300.dp)
-            .statusBarsPadding()
+            // The Liquid Glass panel already keeps the sidebar inside the safe area.
+            .then(if (isLiquidGlass) Modifier else Modifier.statusBarsPadding())
             .padding(top = 8.dp),
     ) {
         Row(
@@ -113,22 +119,26 @@ private fun SettingsCategoryItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val backgroundColor = if (isSelected) {
-        MaterialTheme.colorScheme.secondaryContainer
-    } else {
-        MaterialTheme.colorScheme.surface
+    val glass = isLiquidGlass
+    val backgroundColor = when {
+        glass && isSelected -> GlassControlColors.fill
+        glass -> Color.Transparent
+        isSelected -> MaterialTheme.colorScheme.secondaryContainer
+        else -> MaterialTheme.colorScheme.surface
     }
-    val contentColor = if (isSelected) {
-        MaterialTheme.colorScheme.onSecondaryContainer
-    } else {
-        MaterialTheme.colorScheme.onSurface
+    val contentColor = when {
+        glass && isSelected -> MaterialTheme.colorScheme.primary
+        isSelected -> MaterialTheme.colorScheme.onSecondaryContainer
+        else -> MaterialTheme.colorScheme.onSurface
     }
+    val shape = if (glass) CircleShape else CategoryItemShape
 
     Row(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 2.dp)
-            .background(backgroundColor, CategoryItemShape)
+            .background(backgroundColor, shape)
+            .then(if (glass) Modifier.clip(shape) else Modifier)
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,

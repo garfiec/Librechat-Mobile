@@ -1,27 +1,30 @@
 package com.garfiec.librechat.feature.settings.screen
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SecondaryTabRow
-import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Tab
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
+import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
+import com.garfiec.librechat.core.ui.components.AdaptiveTabRow
+import com.garfiec.librechat.core.ui.components.AdaptiveTabRowKind
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
+import com.garfiec.librechat.core.ui.components.topbar.BarIcons
+import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
+import com.garfiec.librechat.core.ui.components.topbar.BarTitle
+import com.garfiec.librechat.core.ui.glass.GlassControlColors
+import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
+import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import kotlinx.coroutines.launch
@@ -60,55 +63,51 @@ fun TabbedSettingsScreen(
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    Scaffold(
+    val glass = isLiquidGlass
+    AdaptiveScaffold(
         modifier = modifier,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        // Grouped sections sit on the grouped background, so the page behind the bar and tabs matches.
+        containerColor = if (glass) GlassControlColors.groupedBackground else MaterialTheme.colorScheme.background,
+        snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
         topBar = {
             Column {
-                TopAppBar(
-                    title = { Text(stringResource(Res.string.title_settings)) },
-                    navigationIcon = {
-                        IconButton(onClick = onNavigateBack) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = stringResource(Res.string.cd_back),
-                            )
-                        }
-                    },
+                AdaptiveTopBar(
+                    spec = AdaptiveTopBarSpec(
+                        navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.cd_back), onNavigateBack),
+                        title = BarTitle(stringResource(Res.string.title_settings)),
+                        actions = emptyList(),
+                    ),
                 )
-                SecondaryTabRow(
-                    selectedTabIndex = pagerState.currentPage,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    tabTitles.forEachIndexed { index, title ->
-                        Tab(
-                            selected = pagerState.currentPage == index,
-                            onClick = {
-                                scope.launch {
-                                    pagerState.animateScrollToPage(index)
-                                }
-                            },
-                            text = { Text(title) },
-                        )
-                    }
-                }
+                AdaptiveTabRow(
+                    titles = tabTitles,
+                    selectedIndex = pagerState.currentPage,
+                    onSelect = { index -> scope.launch { pagerState.animateScrollToPage(index) } },
+                    kind = AdaptiveTabRowKind.SECONDARY,
+                    // The bar slot: the strip samples the pages scrolling beneath it.
+                    backdrop = LocalGlassBackdrop.current,
+                )
             }
         },
     ) { innerPadding ->
+        // Glass: the pages run under the bar and the tab strip, so the strip's glass has content to
+        // sample; each list insets its own content instead.
+        val contentPadding = if (glass) innerPadding else PaddingValues()
         HorizontalPager(
             state = pagerState,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
+                .then(if (glass) Modifier else Modifier.padding(innerPadding)),
             beyondViewportPageCount = 1,
         ) { page ->
             when (page) {
                 0 -> GeneralSettingsContent(
                     modifier = Modifier.fillMaxSize(),
+                    contentPadding = contentPadding,
                 )
                 1 -> ChatSettingsContent(
                     onNavigateToPresets = onNavigateToPresets,
                     modifier = Modifier.fillMaxSize(),
+                    contentPadding = contentPadding,
                 )
                 2 -> AccountSettingsContent(
                     onLogout = onLogout,
@@ -118,6 +117,7 @@ fun TabbedSettingsScreen(
                     onNavigateToRoleSkillsAdmin = onNavigateToRoleSkillsAdmin,
                     snackbarHostState = snackbarHostState,
                     modifier = Modifier.fillMaxSize(),
+                    contentPadding = contentPadding,
                 )
                 3 -> DataSettingsContent(
                     onNavigateToArchive = onNavigateToArchive,
@@ -126,6 +126,7 @@ fun TabbedSettingsScreen(
                     onNavigateToPrefetchActivity = onNavigateToPrefetchActivity,
                     snackbarHostState = snackbarHostState,
                     modifier = Modifier.fillMaxSize(),
+                    contentPadding = contentPadding,
                 )
             }
         }

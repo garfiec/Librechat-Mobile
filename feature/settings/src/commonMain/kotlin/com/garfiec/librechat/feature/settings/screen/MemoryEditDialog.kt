@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -19,6 +17,8 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.Memory
 import com.garfiec.librechat.core.model.MemoryKeyProblem
 import com.garfiec.librechat.core.model.memoryKeyProblem
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
@@ -60,7 +60,7 @@ internal fun MemoryEditDialog(
         else -> null
     }
 
-    AlertDialog(
+    AdaptiveAlertDialog(
         modifier = modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
         title = {
@@ -68,7 +68,7 @@ internal fun MemoryEditDialog(
         },
         text = {
             Column(modifier = Modifier.imePadding()) {
-                OutlinedTextField(
+                AdaptiveOutlinedTextField(
                     value = key,
                     onValueChange = { key = it },
                     label = { Text(stringResource(Res.string.memory_key_label)) },
@@ -83,7 +83,7 @@ internal fun MemoryEditDialog(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
+                AdaptiveOutlinedTextField(
                     value = value,
                     onValueChange = { value = it },
                     label = { Text(stringResource(Res.string.memory_value_label)) },

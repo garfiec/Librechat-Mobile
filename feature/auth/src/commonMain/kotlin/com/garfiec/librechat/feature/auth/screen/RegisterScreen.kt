@@ -12,10 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -29,6 +26,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.garfiec.librechat.core.ui.components.AdaptiveButton
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.feature.auth.resources.*
 import com.garfiec.librechat.feature.auth.resources.Res
 import com.garfiec.librechat.feature.auth.viewmodel.RegisterViewModel
@@ -70,7 +70,7 @@ fun RegisterScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        OutlinedTextField(
+        AdaptiveOutlinedTextField(
             value = uiState.name,
             onValueChange = viewModel::onNameChanged,
             label = { Text(stringResource(Res.string.full_name_label)) },
@@ -81,7 +81,7 @@ fun RegisterScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        OutlinedTextField(
+        AdaptiveOutlinedTextField(
             value = uiState.username,
             onValueChange = viewModel::onUsernameChanged,
             label = { Text(stringResource(Res.string.username_label)) },
@@ -92,7 +92,7 @@ fun RegisterScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        OutlinedTextField(
+        AdaptiveOutlinedTextField(
             value = uiState.email,
             onValueChange = viewModel::onEmailChanged,
             label = { Text(stringResource(Res.string.email_label)) },
@@ -107,7 +107,7 @@ fun RegisterScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        OutlinedTextField(
+        AdaptiveOutlinedTextField(
             value = uiState.password,
             onValueChange = viewModel::onPasswordChanged,
             label = { Text(stringResource(Res.string.password_label)) },
@@ -123,7 +123,7 @@ fun RegisterScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        OutlinedTextField(
+        AdaptiveOutlinedTextField(
             value = uiState.confirmPassword,
             onValueChange = viewModel::onConfirmPasswordChanged,
             label = { Text(stringResource(Res.string.confirm_password_label)) },
@@ -148,13 +148,13 @@ fun RegisterScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Button(
+        AdaptiveButton(
             onClick = viewModel::register,
             modifier = Modifier.fillMaxWidth(),
             enabled = !uiState.isLoading,
         ) {
             if (uiState.isLoading) {
-                CircularProgressIndicator(
+                AdaptiveCircularProgressIndicator(
                     modifier = Modifier.height(20.dp),
                     color = MaterialTheme.colorScheme.onPrimary,
                     strokeWidth = 2.dp,

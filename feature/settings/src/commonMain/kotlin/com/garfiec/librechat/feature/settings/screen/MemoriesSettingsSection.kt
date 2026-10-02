@@ -15,14 +15,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,6 +34,11 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.Memory
 import com.garfiec.librechat.core.model.MemoryKeyProblem
 import com.garfiec.librechat.core.model.memoryKeyProblem
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
@@ -84,7 +84,7 @@ internal fun MemoriesSettingsSection(
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 val toggleMemoriesCd = stringResource(Res.string.cd_toggle_memories)
-                Switch(
+                AdaptiveSwitch(
                     checked = memoriesEnabled,
                     onCheckedChange = onToggleEnable,
                     modifier = Modifier.semantics {
@@ -114,7 +114,7 @@ internal fun MemoriesSettingsSection(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            OutlinedButton(
+            AdaptiveOutlinedButton(
                 onClick = onAddMemory,
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -127,7 +127,7 @@ internal fun MemoriesSettingsSection(
                 Text(stringResource(Res.string.add_memory))
             }
         }
-        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+        AdaptiveDivider(modifier = Modifier.padding(top = 8.dp))
 
         // Create/edit dialog
         if (showMemoryDialog) {
@@ -213,7 +213,7 @@ private fun MemoryItem(
     }
 
     if (showDeleteConfirm) {
-        AlertDialog(
+        AdaptiveAlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
             title = { Text(stringResource(Res.string.dialog_title_delete_memory)) },
             text = { Text(stringResource(Res.string.dialog_delete_memory_message, memory.key)) },
@@ -265,7 +265,7 @@ private fun MemoryDialog(
         else -> null
     }
 
-    AlertDialog(
+    AdaptiveAlertDialog(
         modifier = modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
         title = {
@@ -273,7 +273,7 @@ private fun MemoryDialog(
         },
         text = {
             Column(modifier = Modifier.imePadding()) {
-                OutlinedTextField(
+                AdaptiveOutlinedTextField(
                     value = key,
                     onValueChange = { key = it },
                     label = { Text(stringResource(Res.string.memory_key_label)) },
@@ -288,7 +288,7 @@ private fun MemoryDialog(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
+                AdaptiveOutlinedTextField(
                     value = value,
                     onValueChange = { value = it },
                     label = { Text(stringResource(Res.string.memory_value_label)) },

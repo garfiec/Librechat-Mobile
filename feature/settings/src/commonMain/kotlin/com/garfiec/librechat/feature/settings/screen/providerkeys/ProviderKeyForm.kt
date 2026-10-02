@@ -10,8 +10,6 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -20,6 +18,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.resources.provider_keys_field_api_key_for_endpoint
 import com.garfiec.librechat.feature.settings.resources.provider_keys_field_api_key_label
@@ -121,7 +121,7 @@ private fun ApiKeyAndBaseUrlFields(
         when (formKind) {
             ProviderKeyFormKind.OPENAI -> {
                 if (form.userProvideURL) {
-                    OutlinedTextField(
+                    AdaptiveOutlinedTextField(
                         value = form.baseURL,
                         onValueChange = callbacks.onBaseUrlChange,
                         label = { Text(stringResource(Res.string.provider_keys_field_base_url_label)) },
@@ -141,7 +141,7 @@ private fun ApiKeyAndBaseUrlFields(
                     customUrlLabel + " " +
                         stringResource(Res.string.provider_keys_field_base_url_optional_suffix)
                 }
-                OutlinedTextField(
+                AdaptiveOutlinedTextField(
                     value = form.baseURL,
                     onValueChange = callbacks.onBaseUrlChange,
                     label = { Text(baseUrlLabel) },
@@ -165,21 +165,21 @@ private fun AzureFields(
             value = form.azureOpenAIApiKey,
             onValueChange = { callbacks.onAzureFieldChange(AzureField.API_KEY, it) },
         )
-        OutlinedTextField(
+        AdaptiveOutlinedTextField(
             value = form.azureOpenAIApiInstanceName,
             onValueChange = { callbacks.onAzureFieldChange(AzureField.INSTANCE, it) },
             label = { Text(stringResource(Res.string.provider_keys_field_azure_instance)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        OutlinedTextField(
+        AdaptiveOutlinedTextField(
             value = form.azureOpenAIApiDeploymentName,
             onValueChange = { callbacks.onAzureFieldChange(AzureField.DEPLOYMENT, it) },
             label = { Text(stringResource(Res.string.provider_keys_field_azure_deployment)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        OutlinedTextField(
+        AdaptiveOutlinedTextField(
             value = form.azureOpenAIApiVersion,
             onValueChange = { callbacks.onAzureFieldChange(AzureField.VERSION, it) },
             label = { Text(stringResource(Res.string.provider_keys_field_azure_api_version)) },
@@ -201,7 +201,7 @@ private fun GoogleFields(
         )
         val launchPicker = callbacks.launchGoogleFilePicker
         if (launchPicker != null) {
-            OutlinedButton(
+            AdaptiveOutlinedButton(
                 onClick = launchPicker,
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -218,7 +218,7 @@ private fun GoogleFields(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        OutlinedTextField(
+        AdaptiveOutlinedTextField(
             value = form.serviceKeyJson,
             onValueChange = callbacks.onGoogleServiceKeyChange,
             label = { Text(stringResource(Res.string.provider_keys_field_google_paste_label)) },
@@ -267,7 +267,7 @@ private fun BedrockFields(
     callbacks: ProviderKeyFormCallbacks,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        OutlinedTextField(
+        AdaptiveOutlinedTextField(
             value = form.accessKeyId,
             onValueChange = { callbacks.onBedrockFieldChange(BedrockField.ACCESS_KEY_ID, it) },
             label = { Text(stringResource(Res.string.provider_keys_field_bedrock_access_key_id)) },
@@ -306,7 +306,7 @@ private fun SecretField(
     value: String,
     onValueChange: (String) -> Unit,
 ) {
-    OutlinedTextField(
+    AdaptiveOutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },

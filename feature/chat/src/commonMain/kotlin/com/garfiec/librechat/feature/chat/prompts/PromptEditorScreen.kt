@@ -11,22 +11,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,7 +26,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.garfiec.librechat.core.ui.components.AdaptiveButton
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
+import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
+import com.garfiec.librechat.core.ui.components.topbar.BarAction
+import com.garfiec.librechat.core.ui.components.topbar.BarIcons
+import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
+import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -79,34 +81,29 @@ fun PromptEditorScreen(
         )
     }
 
-    Scaffold(
+    AdaptiveScaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(if (uiState.isNewPrompt) "Create Prompt" else "Edit Prompt")
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(Res.string.cd_back),
+            AdaptiveTopBar(
+                spec = AdaptiveTopBarSpec(
+                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.cd_back), onBack),
+                    title = BarTitle(if (uiState.isNewPrompt) "Create Prompt" else "Edit Prompt"),
+                    actions = if (!uiState.isNewPrompt && uiState.prompts.isNotEmpty()) {
+                        listOf(
+                            BarAction.Icon(
+                                id = "versions",
+                                icon = BarIcons.History,
+                                label = stringResource(Res.string.cd_version_history),
+                                onClick = viewModel::showVersionsSheet,
+                            ),
                         )
-                    }
-                },
-                actions = {
-                    if (!uiState.isNewPrompt && uiState.prompts.isNotEmpty()) {
-                        IconButton(onClick = viewModel::showVersionsSheet) {
-                            Icon(
-                                imageVector = Icons.Default.History,
-                                contentDescription = stringResource(Res.string.cd_version_history),
-                            )
-                        }
-                    }
-                },
+                    } else {
+                        emptyList()
+                    },
+                ),
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         if (uiState.isLoading) {
             LoadingIndicator(
@@ -114,7 +111,7 @@ fun PromptEditorScreen(
                     .fillMaxSize()
                     .padding(innerPadding),
             )
-            return@Scaffold
+            return@AdaptiveScaffold
         }
 
         Column(
@@ -127,7 +124,7 @@ fun PromptEditorScreen(
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            OutlinedTextField(
+            AdaptiveOutlinedTextField(
                 value = uiState.name,
                 onValueChange = viewModel::updateName,
                 label = { Text(stringResource(Res.string.prompt_name_label)) },
@@ -137,7 +134,7 @@ fun PromptEditorScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            OutlinedTextField(
+            AdaptiveOutlinedTextField(
                 value = uiState.oneliner,
                 onValueChange = viewModel::updateOneliner,
                 label = { Text(stringResource(Res.string.prompt_description_label)) },
@@ -147,7 +144,7 @@ fun PromptEditorScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            OutlinedTextField(
+            AdaptiveOutlinedTextField(
                 state = viewModel.commandState,
                 inputTransformation = CommandInputTransformation,
                 label = { Text(stringResource(Res.string.prompt_command_label)) },
@@ -165,7 +162,7 @@ fun PromptEditorScreen(
             )
             Spacer(modifier = Modifier.height(4.dp))
 
-            OutlinedTextField(
+            AdaptiveOutlinedTextField(
                 value = uiState.promptText,
                 onValueChange = viewModel::updatePromptText,
                 label = { Text(stringResource(Res.string.prompt_text_label)) },
@@ -193,13 +190,13 @@ fun PromptEditorScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Button(
+            AdaptiveButton(
                 onClick = viewModel::save,
                 enabled = !uiState.isSaving && uiState.name.isNotBlank() && uiState.promptText.isNotBlank(),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 if (uiState.isSaving) {
-                    CircularProgressIndicator(
+                    AdaptiveCircularProgressIndicator(
                         color = MaterialTheme.colorScheme.onPrimary,
                         strokeWidth = 2.dp,
                     )
@@ -210,7 +207,7 @@ fun PromptEditorScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            OutlinedButton(
+            AdaptiveOutlinedButton(
                 onClick = onBack,
                 modifier = Modifier.fillMaxWidth(),
             ) {

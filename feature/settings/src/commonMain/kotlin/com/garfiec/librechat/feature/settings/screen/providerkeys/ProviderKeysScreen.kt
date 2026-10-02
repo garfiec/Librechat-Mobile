@@ -14,24 +14,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Key
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -44,6 +37,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.model.endpoint.KeyState
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
+import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
+import com.garfiec.librechat.core.ui.components.topbar.BarAction
+import com.garfiec.librechat.core.ui.components.topbar.BarIcons
+import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
+import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.resources.action_cancel
 import com.garfiec.librechat.feature.settings.resources.cd_back
@@ -106,27 +109,26 @@ fun ProviderKeysScreen(
         viewModel.consumeTransientMessage()
     }
 
-    Scaffold(
+    AdaptiveScaffold(
         modifier = modifier,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(Res.string.provider_keys_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(Res.string.cd_back),
+            AdaptiveTopBar(
+                spec = AdaptiveTopBarSpec(
+                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.cd_back), onNavigateBack),
+                    title = BarTitle(stringResource(Res.string.provider_keys_title)),
+                    actions = if (uiState.entries.any { it.keyState !is KeyState.Unset }) {
+                        listOf(
+                            BarAction.Text(
+                                id = "revoke_all",
+                                label = stringResource(Res.string.provider_keys_revoke_all_action),
+                                onClick = viewModel::showRevokeAllConfirm,
+                            ),
                         )
-                    }
-                },
-                actions = {
-                    if (uiState.entries.any { it.keyState !is KeyState.Unset }) {
-                        TextButton(onClick = viewModel::showRevokeAllConfirm) {
-                            Text(stringResource(Res.string.provider_keys_revoke_all_action))
-                        }
-                    }
-                },
+                    } else {
+                        emptyList()
+                    },
+                ),
             )
         },
     ) { innerPadding ->
@@ -138,7 +140,7 @@ fun ProviderKeysScreen(
                         .padding(innerPadding),
                     contentAlignment = Alignment.Center,
                 ) {
-                    CircularProgressIndicator()
+                    AdaptiveCircularProgressIndicator()
                 }
             }
             uiState.entries.isEmpty() -> {
@@ -191,7 +193,7 @@ fun ProviderKeysScreen(
     }
 
     if (uiState.showRevokeAllConfirm) {
-        AlertDialog(
+        AdaptiveAlertDialog(
             onDismissRequest = viewModel::dismissRevokeAllConfirm,
             title = { Text(stringResource(Res.string.provider_keys_revoke_all)) },
             text = { Text(stringResource(Res.string.provider_keys_revoke_all_confirm)) },

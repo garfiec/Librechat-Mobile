@@ -12,11 +12,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -165,7 +163,7 @@ fun CustomHeadersEditor(
                 }
                 if (stacked && index != headers.lastIndex) {
                     Spacer(modifier = Modifier.height(8.dp))
-                    HorizontalDivider()
+                    AdaptiveDivider()
                 }
             }
 
@@ -281,7 +279,7 @@ private fun HeaderNameField(
     onNameChange: (Int, String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    OutlinedTextField(
+    AdaptiveOutlinedTextField(
         value = name,
         onValueChange = { onNameChange(index, it) },
         label = { Text(stringResource(Res.string.server_headers_name)) },
@@ -304,7 +302,7 @@ private fun HeaderValueField(
     onToggleReveal: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    OutlinedTextField(
+    AdaptiveOutlinedTextField(
         value = value,
         onValueChange = { onValueChange(index, it) },
         label = { Text(stringResource(Res.string.server_headers_value)) },

@@ -10,23 +10,13 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,6 +26,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.garfiec.librechat.core.ui.components.AdaptiveButton
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
+import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
+import com.garfiec.librechat.core.ui.components.topbar.BarIcons
+import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
+import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.viewmodel.RoleSkillsAdminViewModel
@@ -51,19 +51,15 @@ fun RoleSkillsAdminScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    Scaffold(
+    AdaptiveScaffold(
         modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(Res.string.role_skills_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(Res.string.role_skills_back),
-                        )
-                    }
-                },
+            AdaptiveTopBar(
+                spec = AdaptiveTopBarSpec(
+                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.role_skills_back), onNavigateBack),
+                    title = BarTitle(stringResource(Res.string.role_skills_title)),
+                    actions = emptyList(),
+                ),
             )
         },
     ) { padding ->
@@ -90,7 +86,7 @@ fun RoleSkillsAdminScreen(
 
             if (uiState.isLoading) {
                 Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+                    AdaptiveCircularProgressIndicator()
                 }
             } else {
                 PermissionToggle(
@@ -126,13 +122,13 @@ fun RoleSkillsAdminScreen(
                 Text(msg, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
             }
 
-            Button(
+            AdaptiveButton(
                 onClick = viewModel::save,
                 enabled = uiState.canSave,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 if (uiState.isSaving) {
-                    CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
+                    AdaptiveCircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
                 }
                 Text(stringResource(Res.string.role_skills_save))
             }
@@ -153,7 +149,7 @@ private fun RolePicker(
         onExpandedChange = { expanded = it },
         modifier = Modifier.fillMaxWidth(),
     ) {
-        OutlinedTextField(
+        AdaptiveOutlinedTextField(
             value = selected,
             onValueChange = {},
             readOnly = true,
@@ -190,6 +186,6 @@ private fun PermissionToggle(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(text = label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-        Switch(checked = checked, enabled = enabled, onCheckedChange = onCheckedChange)
+        AdaptiveSwitch(checked = checked, enabled = enabled, onCheckedChange = onCheckedChange)
     }
 }

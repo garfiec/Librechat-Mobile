@@ -14,7 +14,6 @@ import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,6 +27,8 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.feature.chat.components.web.rememberWebAssetBaseUrl
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.data.repository.ArtifactShortcutRepository
 import com.garfiec.librechat.feature.chat.components.web.rememberWebAssetBaseUrl
@@ -138,7 +139,7 @@ actual fun ArtifactPreviewSurface(
         )
 
         if (isLoading) {
-            CircularProgressIndicator(
+            AdaptiveCircularProgressIndicator(
                 modifier = Modifier
                     .align(Alignment.Center)
                     .size(32.dp),

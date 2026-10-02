@@ -16,12 +16,9 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.DataUsage
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,6 +34,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.model.usage.TokenUsage
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.context_compact
@@ -244,7 +244,7 @@ internal fun ContextUsageSheet(
     isCompacting: Boolean = false,
     onCompact: (() -> Unit)? = null,
 ) {
-    ModalBottomSheet(
+    AdaptiveModalBottomSheet(
         onDismissRequest = onDismiss,
         dragHandle = { LowProfileDragHandle() },
     ) {
@@ -334,7 +334,7 @@ private fun ContextUsageBreakdown(
         val input = tokenUsage?.inputTokens
         val output = tokenUsage?.outputTokens
         if (input != null || output != null) {
-            HorizontalDivider()
+            AdaptiveDivider()
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 UsageRow(stringResource(Res.string.context_usage_input), input ?: 0, max = 0)
                 UsageRow(stringResource(Res.string.context_usage_output), output ?: 0, max = 0)
@@ -344,9 +344,9 @@ private fun ContextUsageBreakdown(
         // Where the context usage is already being read, matching upstream's placement. Withheld
         // entirely rather than disabled when the server does not offer compaction.
         if (onCompact != null) {
-            HorizontalDivider()
+            AdaptiveDivider()
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                OutlinedButton(
+                AdaptiveOutlinedButton(
                     onClick = onCompact,
                     enabled = !isCompacting,
                     modifier = Modifier.fillMaxWidth(),

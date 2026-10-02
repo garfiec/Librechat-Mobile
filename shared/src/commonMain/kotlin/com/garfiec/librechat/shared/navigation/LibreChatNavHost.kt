@@ -12,8 +12,9 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DrawerDefaults
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
@@ -27,6 +28,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.movableContentOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -34,6 +36,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.dp
@@ -53,7 +58,13 @@ import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.lifecycle.DeferredWorkWindow
 import com.garfiec.librechat.core.common.lifecycle.ForegroundSignal
 import com.garfiec.librechat.core.logging.Diag
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.BannerDisplay
+import com.garfiec.librechat.core.ui.components.topbar.CoversNativeBars
+import com.garfiec.librechat.core.ui.glass.GlassSheetHost
+import com.garfiec.librechat.core.ui.glass.glassBackdropSource
+import com.garfiec.librechat.core.ui.glass.rememberGlassBackdrop
+import com.garfiec.librechat.core.ui.glass.rememberGlassStyle
 import com.garfiec.librechat.core.ui.theme.AppLocale
 import com.garfiec.librechat.feature.agents.navigation.AgentMarketplace
 import com.garfiec.librechat.feature.agents.navigation.agentsEntries
@@ -276,20 +287,25 @@ fun LibreChatNavHost(
     // UI so every stringResource re-resolves, while the back stack created above survives the swap
     // and the user stays on their current screen.
     AppLocale(tag = appLocaleTag) {
-        if (content != null) {
-            content(navigator, navHostViewModel, modifier)
-        } else {
-            // Read from the window rather than a size class so iPad Split View / Slide Over, which
-            // resize the window without a rotation, flip the layout too. iOS resizes in place, so
-            // both layouts share one movable NavDisplay; see rememberMovableNavDisplay.
-            val navDisplay = rememberMovableNavDisplay(navigator)
-            val windowWidth = with(LocalDensity.current) {
-                LocalWindowInfo.current.containerSize.width.toDp()
-            }
-            if (windowWidth >= TabletMinWidth) {
-                TabletLayout(navigator = navigator, modifier = modifier, navDisplay = navDisplay)
+        // Liquid Glass sheets are drawn over the whole app from here (see GlassSheetHost) — around
+        // both the shared layouts and a platform's own [content] (Android's), or sheets there fall
+        // back to the opaque M3 sheet.
+        GlassSheetHost {
+            if (content != null) {
+                content(navigator, navHostViewModel, modifier)
             } else {
-                PhoneLayout(navigator = navigator, modifier = modifier, navDisplay = navDisplay)
+                // Read from the window rather than a size class so iPad Split View / Slide Over, which
+                // resize the window without a rotation, flip the layout too. iOS resizes in place, so
+                // both layouts share one movable NavDisplay; see rememberMovableNavDisplay.
+                val navDisplay = rememberMovableNavDisplay(navigator)
+                val windowWidth = with(LocalDensity.current) {
+                    LocalWindowInfo.current.containerSize.width.toDp()
+                }
+                if (windowWidth >= TabletMinWidth) {
+                    TabletLayout(navigator = navigator, modifier = modifier, navDisplay = navDisplay)
+                } else {
+                    PhoneLayout(navigator = navigator, modifier = modifier, navDisplay = navDisplay)
+                }
             }
         }
 
@@ -319,7 +335,7 @@ fun LibreChatNavHost(
 /** Reports an unannounced sign-out. [accountLabel] is blank when the account can't be named. */
 @Composable
 private fun SessionExpiredDialog(accountLabel: String, onDismiss: () -> Unit) {
-    AlertDialog(
+    AdaptiveAlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
@@ -352,7 +368,7 @@ private fun VersionMismatchDialog(
     onDismiss: () -> Unit,
     onDismissPermanently: () -> Unit,
 ) {
-    AlertDialog(
+    AdaptiveAlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
@@ -392,6 +408,18 @@ fun PhoneLayout(
     val isLoggedIn by navHostViewModel.isLoggedIn.collectAsStateWithLifecycle()
     val banner by navHostViewModel.banner.collectAsStateWithLifecycle()
 
+    val glass = rememberGlassStyle()
+    val drawerBackdrop = rememberGlassBackdrop()
+    // Any part of the sheet on screen, including mid-drag, where currentValue and targetValue can
+    // both still read Closed. The offset runs from minus the sheet's width (closed) to 0 (open).
+    var drawerWidthPx by remember { mutableIntStateOf(0) }
+    val drawerShowing by remember {
+        derivedStateOf {
+            val offset = drawerState.currentOffset
+            !offset.isNaN() && drawerWidthPx > 0 && offset > -drawerWidthPx + 1f
+        }
+    }
+
     // Reset sidebar mode to Conversations when the drawer closes
     LaunchedEffect(drawerState.isClosed) {
         if (drawerState.isClosed) {
@@ -406,8 +434,10 @@ fun PhoneLayout(
         // auth base) leaves a non-auth route on top, and without this its edge-swipe would open the
         // drawer over a session-less state.
         gesturesEnabled = isLoggedIn && !navigator.isInAuthFlow,
+        // Liquid Glass shows the screen through the panel, so it dims it only lightly.
+        scrimColor = if (glass != null) GlassDrawerScrim else DrawerDefaults.scrimColor,
         drawerContent = {
-            ModalDrawerSheet(drawerState = drawerState) {
+            val sidebar: @Composable () -> Unit = {
                 // targetValue, not isOpen: start polling as the drawer begins to open, not after it settles.
                 val drawerOpen by remember { derivedStateOf { drawerState.targetValue == DrawerValue.Open } }
                 SidebarScaffold(
@@ -463,9 +493,32 @@ fun PhoneLayout(
                     },
                 )
             }
+            if (glass == null) {
+                ModalDrawerSheet(drawerState = drawerState) { sidebar() }
+            } else {
+                // A transparent sheet keeps M3's drawer gestures and predictive back; the panel inside
+                // it is the visible sidebar.
+                ModalDrawerSheet(
+                    drawerState = drawerState,
+                    modifier = Modifier.onSizeChanged { drawerWidthPx = it.width },
+                    drawerShape = RectangleShape,
+                    drawerContainerColor = Color.Transparent,
+                    drawerTonalElevation = 0.dp,
+                    windowInsets = WindowInsets(0),
+                ) {
+                    GlassSidebarPanel(style = glass, backdrop = drawerBackdrop) { sidebar() }
+                }
+            }
         },
     ) {
-        Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                // Recorded only while the drawer is opening or open: recording redraws the screen
+                // every frame, and nothing samples it while the drawer is shut.
+                .glassBackdropSource(drawerBackdrop?.takeIf { drawerShowing }),
+        ) {
             if (!navigator.isInAuthFlow) {
                 BannerDisplay(
                     banner = banner,
@@ -475,6 +528,14 @@ fun PhoneLayout(
             navDisplay({ scope.launch { drawerState.open() } }, Modifier.fillMaxSize())
         }
     }
+    // The drawer is drawn in the Compose canvas, under any native glass bar; hide those bars from
+    // the moment it starts opening until it has fully closed. drawerShowing covers a short edge-swipe,
+    // where both values still read Closed while the panel is on screen.
+    CoversNativeBars(
+        active = drawerShowing ||
+            drawerState.currentValue == DrawerValue.Open ||
+            drawerState.targetValue == DrawerValue.Open,
+    )
 }
 
 /** [MainNavDisplay] taking `(onMenuClick, modifier)`, as produced by [rememberMovableNavDisplay]. */
@@ -628,3 +689,5 @@ fun MainNavDisplay(
         },
     )
 }
+
+private val GlassDrawerScrim = Color.Black.copy(alpha = 0.12f)

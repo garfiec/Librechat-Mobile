@@ -18,11 +18,8 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -39,11 +36,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.garfiec.librechat.core.model.ActionAuth
 import com.garfiec.librechat.core.model.ActionMetadata
 import com.garfiec.librechat.core.model.request.FunctionTool
+import com.garfiec.librechat.core.ui.components.AdaptiveDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.agents.AgentActionDisplayData
 import com.garfiec.librechat.feature.agents.resources.*
@@ -107,7 +107,7 @@ internal fun ActionEditorDialog(
         isValidating = false
     }
 
-    Dialog(
+    AdaptiveDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
@@ -209,7 +209,7 @@ internal fun ActionEditorDialog(
                     onShowAuthConfig = { showAuthConfig = true },
                 )
 
-                HorizontalDivider()
+                AdaptiveDivider()
 
                 // 2. Schema input
                 Text(
@@ -221,7 +221,7 @@ internal fun ActionEditorDialog(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                OutlinedTextField(
+                AdaptiveOutlinedTextField(
                     value = rawSpec,
                     onValueChange = { rawSpec = it },
                     label = { Text(stringResource(Res.string.label_openapi_spec)) },
@@ -272,7 +272,7 @@ internal fun ActionEditorDialog(
 
                 // 3. Available actions table
                 if (parsedFunctionInfos.isNotEmpty()) {
-                    HorizontalDivider()
+                    AdaptiveDivider()
                     Text(
                         text = stringResource(Res.string.available_actions_count, parsedFunctionInfos.size),
                         style = MaterialTheme.typography.titleSmall,
@@ -281,7 +281,7 @@ internal fun ActionEditorDialog(
                 }
 
                 // 4. Privacy policy URL
-                OutlinedTextField(
+                AdaptiveOutlinedTextField(
                     value = privacyPolicyUrl,
                     onValueChange = { privacyPolicyUrl = it },
                     label = { Text(stringResource(Res.string.label_privacy_policy_url)) },
@@ -339,7 +339,7 @@ private fun AuthenticationSection(
             style = MaterialTheme.typography.titleSmall,
         )
         Spacer(modifier = Modifier.height(8.dp))
-        OutlinedButton(
+        AdaptiveOutlinedButton(
             onClick = onShowAuthConfig,
             modifier = Modifier.fillMaxWidth(),
         ) {
@@ -401,7 +401,7 @@ private fun FunctionTable(
                     modifier = Modifier.width(200.dp),
                 )
             }
-            HorizontalDivider()
+            AdaptiveDivider()
 
             // Rows
             functions.forEach { func ->

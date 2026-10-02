@@ -12,10 +12,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,6 +36,9 @@ import com.garfiec.librechat.core.data.datastore.InlineArtifactPrefs
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveRadioButton
+import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -143,7 +143,7 @@ internal fun <T> RadioSelectionDialog(
 ) {
     var current by remember { mutableStateOf(selected) }
 
-    AlertDialog(
+    AdaptiveAlertDialog(
         onDismissRequest = onDismiss,
         modifier = modifier,
         title = { Text(title) },
@@ -195,7 +195,7 @@ internal fun ChatHeaderSettingsDialog(
     var currentContent by remember { mutableStateOf(content) }
     var currentAlignment by remember { mutableStateOf(alignment) }
 
-    AlertDialog(
+    AdaptiveAlertDialog(
         onDismissRequest = onDismiss,
         modifier = modifier,
         title = { Text(stringResource(Res.string.chat_header_title)) },
@@ -249,7 +249,7 @@ internal fun RenderInlineDialog(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    AlertDialog(
+    AdaptiveAlertDialog(
         onDismissRequest = onDismiss,
         modifier = modifier,
         title = { Text(stringResource(Res.string.artifact_inline_title)) },
@@ -344,7 +344,7 @@ private fun RadioOptionRow(
             .padding(vertical = 8.dp, horizontal = 4.dp),
         verticalAlignment = if (description == null) Alignment.CenterVertically else Alignment.Top,
     ) {
-        RadioButton(selected = selected, onClick = null)
+        AdaptiveRadioButton(selected = selected, onClick = null)
         Spacer(modifier = Modifier.width(8.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(text = label, style = MaterialTheme.typography.bodyLarge)
@@ -381,6 +381,6 @@ private fun InlineToggleRow(
             )
         }
         Spacer(modifier = Modifier.width(16.dp))
-        Switch(checked = checked, onCheckedChange = onChange)
+        AdaptiveSwitch(checked = checked, onCheckedChange = onChange)
     }
 }

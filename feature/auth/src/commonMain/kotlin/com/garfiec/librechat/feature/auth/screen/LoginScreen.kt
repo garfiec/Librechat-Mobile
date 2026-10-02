@@ -13,13 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -35,6 +29,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveButton
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.feature.auth.resources.*
 import com.garfiec.librechat.feature.auth.resources.Res
 import com.garfiec.librechat.feature.auth.viewmodel.LoginViewModel
@@ -107,7 +107,7 @@ fun LoginScreen(
             // (ALLOW_EMAIL_LOGIN=false, #14180) — it 403s the login POST, so offer only the
             // social providers below. Fail-open: the flag defaults true until config resolves.
             if (uiState.emailLoginEnabled) {
-                OutlinedTextField(
+                AdaptiveOutlinedTextField(
                     value = uiState.email,
                     onValueChange = viewModel::onEmailChanged,
                     label = { Text(stringResource(Res.string.email_label)) },
@@ -122,7 +122,7 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                OutlinedTextField(
+                AdaptiveOutlinedTextField(
                     value = uiState.password,
                     onValueChange = viewModel::onPasswordChanged,
                     label = { Text(stringResource(Res.string.password_label)) },
@@ -150,13 +150,13 @@ fun LoginScreen(
             if (uiState.emailLoginEnabled) {
                 Spacer(modifier = Modifier.height(24.dp))
 
-                Button(
+                AdaptiveButton(
                     onClick = viewModel::login,
                     modifier = Modifier.fillMaxWidth().testTag("login_submit"),
                     enabled = !uiState.isLoading,
                 ) {
                     if (uiState.isLoading) {
-                        CircularProgressIndicator(
+                        AdaptiveCircularProgressIndicator(
                             modifier = Modifier.height(20.dp),
                             color = MaterialTheme.colorScheme.onPrimary,
                             strokeWidth = 2.dp,
@@ -185,7 +185,7 @@ fun LoginScreen(
             if (uiState.socialLoginEnabled && socialLogins.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(16.dp))
 
-                HorizontalDivider(modifier = Modifier.fillMaxWidth())
+                AdaptiveDivider(modifier = Modifier.fillMaxWidth())
 
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -200,7 +200,7 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 socialLogins.forEach { provider ->
-                    OutlinedButton(
+                    AdaptiveOutlinedButton(
                         onClick = { viewModel.onSsoProviderSelected(provider) },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !uiState.isLoading,
@@ -213,7 +213,7 @@ fun LoginScreen(
         }
 
         uiState.pendingSsoProvider?.let {
-            AlertDialog(
+            AdaptiveAlertDialog(
                 onDismissRequest = viewModel::onSsoRiskDismissed,
                 title = { Text(stringResource(Res.string.sso_risk_title)) },
                 text = { Text(stringResource(Res.string.sso_risk_body)) },

@@ -117,6 +117,9 @@ class MainActivity : ComponentActivity() {
             val useDynamicColor by themeDataStore.useDynamicColor.collectAsStateWithLifecycle(
                 initialValue = themeDataStore.initialUseDynamicColor,
             )
+            val storedUiStyle by themeDataStore.uiStyle.collectAsStateWithLifecycle(
+                initialValue = themeDataStore.initialUiStyle,
+            )
             // Gate on the language warm-up too so a persisted non-system language is applied
             // before the first frame (no flash of the system locale before switching).
             val localeReady by settingsDataStore.isReady.collectAsStateWithLifecycle()
@@ -146,6 +149,7 @@ class MainActivity : ComponentActivity() {
                     darkTheme = darkTheme,
                     accentColor = Color(accentColorArgb),
                     useDynamicColor = useDynamicColor,
+                    uiStyle = storedUiStyle,
                 ) {
                     Surface(
                         modifier = Modifier

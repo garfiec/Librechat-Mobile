@@ -20,19 +20,19 @@ import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.SaveAs
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Timeline
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
-import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.model.usage.ContextUsage
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.action_archive
 import com.garfiec.librechat.feature.chat.resources.action_duplicate
@@ -50,233 +50,117 @@ import com.garfiec.librechat.feature.chat.resources.trace_open
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * The chat top bar's overflow menu, shared by the Android and iOS floating top bars so the items,
- * ordering, gating, and icons stay identical across platforms. Each action dismisses the menu
- * before running. Items are gated by the same `interface.*` flags the web header uses.
+ * The chat top bar's overflow menu in Material style, shared by the Android and iOS floating top
+ * bars. What it shows comes from [sections] ([chatOverflowSections]) — the same list the native iOS
+ * menu is built from — so this composable only decides how each item looks. Each action dismisses the
+ * menu before running.
  */
 @Composable
 internal fun ChatOverflowMenu(
     expanded: Boolean,
     onDismiss: () -> Unit,
-    conversationId: String?,
-    presetsEnabled: Boolean,
-    promptsEnabled: Boolean,
-    multiConvoEnabled: Boolean,
-    sharedLinksEnabled: Boolean,
+    sections: List<List<ChatOverflowItem>>,
     isComparisonEnabled: Boolean,
-    /** Confirmed by `/api/traces/:id/availability` for THIS conversation — see FeatureGatesState. */
-    traceViewerAvailable: Boolean,
     contextUsage: ContextUsage?,
-    contextUsageEnabled: Boolean,
-    contextBarPlacement: ContextBarPlacement,
-    onShowContextDetails: () -> Unit,
-    onOpenSearch: () -> Unit,
-    onShowAllMedia: (() -> Unit)?,
-    onLoadPreset: () -> Unit,
-    onSavePreset: () -> Unit,
-    onOpenPromptsLibrary: (() -> Unit)?,
-    onToggleComparison: () -> Unit,
-    onOpenTraceViewer: () -> Unit,
-    onShare: () -> Unit,
-    onRename: () -> Unit,
-    onDuplicate: () -> Unit,
-    onArchive: () -> Unit,
-    onDelete: () -> Unit,
+    onItem: (ChatOverflowItem) -> Unit,
 ) {
-    DropdownMenu(
+    AdaptiveDropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismiss,
         shape = RoundedCornerShape(16.dp),
         offset = DpOffset(x = 0.dp, y = 8.dp),
     ) {
-        if (conversationId != null) {
-            DropdownMenuItem(
-                text = { Text(stringResource(Res.string.action_search)) },
-                onClick = {
+        // No conversation-title header here: a long title's full (untruncated) width is what a
+        // single-line Text reports as its max intrinsic width, and DropdownMenu measures at
+        // IntrinsicSize.Max — so the title would stretch the whole menu to full screen width.
+        sections.forEachIndexed { index, section ->
+            if (index > 0) AdaptiveDivider(modifier = Modifier.padding(vertical = 4.dp))
+            section.forEach { item ->
+                val select = {
                     onDismiss()
-                    onOpenSearch()
-                },
-                leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = null)
-                },
-            )
-        }
-        if (onShowAllMedia != null) {
-            DropdownMenuItem(
-                text = { Text(stringResource(Res.string.action_show_all_media)) },
-                onClick = {
-                    onDismiss()
-                    onShowAllMedia()
-                },
-                leadingIcon = {
-                    Icon(Icons.Outlined.PhotoLibrary, contentDescription = null)
-                },
-            )
-        }
-        // Preset load/save — hidden when the server disables `interface.presets`
-        // (or `interface.modelSelect`), matching web's Header.tsx presets menu.
-        if (presetsEnabled) {
-            DropdownMenuItem(
-                text = { Text(stringResource(Res.string.load_preset)) },
-                onClick = {
-                    onDismiss()
-                    onLoadPreset()
-                },
-                leadingIcon = {
-                    Icon(Icons.Outlined.FileOpen, contentDescription = null)
-                },
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(Res.string.save_as_preset)) },
-                onClick = {
-                    onDismiss()
-                    onSavePreset()
-                },
-                leadingIcon = {
-                    Icon(Icons.Outlined.SaveAs, contentDescription = null)
-                },
-            )
-        }
-        if (onOpenPromptsLibrary != null && promptsEnabled) {
-            DropdownMenuItem(
-                text = { Text(stringResource(Res.string.prompts_library)) },
-                onClick = {
-                    onDismiss()
-                    onOpenPromptsLibrary()
-                },
-                leadingIcon = {
-                    Icon(Icons.Outlined.AutoAwesome, contentDescription = null)
-                },
-            )
-        }
-        if (multiConvoEnabled) {
-            DropdownMenuItem(
-                text = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = stringResource(Res.string.compare_models),
-                            modifier = Modifier.weight(1f),
-                        )
-                        if (isComparisonEnabled) {
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Icon(
-                                imageVector = Icons.Filled.Check,
-                                contentDescription = stringResource(Res.string.cd_comparison_enabled),
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(18.dp),
+                    onItem(item)
+                }
+                when (item) {
+                    ChatOverflowItem.SEARCH ->
+                        OverflowItem(stringResource(Res.string.action_search), Icons.Default.Search, select)
+                    ChatOverflowItem.SHOW_ALL_MEDIA ->
+                        OverflowItem(stringResource(Res.string.action_show_all_media), Icons.Outlined.PhotoLibrary, select)
+                    ChatOverflowItem.LOAD_PRESET ->
+                        OverflowItem(stringResource(Res.string.load_preset), Icons.Outlined.FileOpen, select)
+                    ChatOverflowItem.SAVE_PRESET ->
+                        OverflowItem(stringResource(Res.string.save_as_preset), Icons.Outlined.SaveAs, select)
+                    ChatOverflowItem.PROMPTS_LIBRARY ->
+                        OverflowItem(stringResource(Res.string.prompts_library), Icons.Outlined.AutoAwesome, select)
+                    ChatOverflowItem.COMPARE -> CompareItem(isComparisonEnabled, select)
+                    // The conversation trace (v0.8.8-rc3). Upstream puts it here on mobile too — the
+                    // desktop header has a dedicated button, and HeaderMenu carries the same action
+                    // behind the overflow control.
+                    ChatOverflowItem.TRACE ->
+                        OverflowItem(stringResource(Res.string.trace_open), Icons.Outlined.Timeline, select)
+                    // Opening the breakdown sheet is the host's job: that modal can't be opened from
+                    // inside this popup without nesting modal surfaces.
+                    ChatOverflowItem.CONTEXT_USAGE ->
+                        contextUsage?.let { ContextUsageMenuItem(usage = it, onClick = select) }
+                    ChatOverflowItem.SHARE ->
+                        OverflowItem(stringResource(Res.string.action_share), Icons.Outlined.Share, select)
+                    ChatOverflowItem.RENAME ->
+                        OverflowItem(stringResource(Res.string.action_rename), Icons.Outlined.Edit, select)
+                    ChatOverflowItem.DUPLICATE ->
+                        OverflowItem(stringResource(Res.string.action_duplicate), Icons.Outlined.ContentCopy, select)
+                    ChatOverflowItem.ARCHIVE ->
+                        OverflowItem(stringResource(Res.string.action_archive), Icons.Outlined.Archive, select)
+                    ChatOverflowItem.DELETE -> DropdownMenuItem(
+                        text = {
+                            Text(
+                                stringResource(Res.string.delete),
+                                color = MaterialTheme.colorScheme.error,
                             )
-                        }
-                    }
-                },
-                onClick = {
-                    onDismiss()
-                    onToggleComparison()
-                },
-                leadingIcon = {
-                    Icon(Icons.Outlined.Compare, contentDescription = null)
-                },
-            )
-        }
-        // The conversation trace (v0.8.8-rc3). Upstream puts it here on mobile too — the desktop
-        // header has a dedicated button, and HeaderMenu carries the same action behind the overflow
-        // control. Availability is a precondition, so reaching this means there is a trace to read.
-        if (traceViewerAvailable) {
-            DropdownMenuItem(
-                text = { Text(stringResource(Res.string.trace_open)) },
-                onClick = {
-                    onDismiss()
-                    onOpenTraceViewer()
-                },
-                leadingIcon = {
-                    Icon(Icons.Outlined.Timeline, contentDescription = null)
-                },
-            )
-        }
-        // Context-usage gauge, surfaced here as a regular menu item when the user picked the
-        // overflow-menu placement. Tapping it dismisses the menu and the host (ChatFloatingTopBar)
-        // opens the breakdown sheet — that modal can't be opened from inside this popup without
-        // nesting modal surfaces.
-        val menuContextUsage = contextUsage
-        if (contextBarPlacement == ContextBarPlacement.OVERFLOW_MENU &&
-            contextUsageEnabled &&
-            menuContextUsage != null &&
-            menuContextUsage.usedTokens > 0
-        ) {
-            ContextUsageMenuItem(
-                usage = menuContextUsage,
-                onClick = {
-                    onDismiss()
-                    onShowContextDetails()
-                },
-            )
-        }
-        if (conversationId != null) {
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-            // No conversation-title header here: a long title's full (untruncated) width is what a
-            // single-line Text reports as its max intrinsic width, and DropdownMenu measures at
-            // IntrinsicSize.Max — so the title would stretch the whole menu to full screen width.
-            if (sharedLinksEnabled) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(Res.string.action_share)) },
-                    onClick = {
-                        onDismiss()
-                        onShare()
-                    },
-                    leadingIcon = {
-                        Icon(Icons.Outlined.Share, contentDescription = null)
-                    },
-                )
+                        },
+                        onClick = select,
+                        leadingIcon = {
+                            Icon(
+                                Icons.Outlined.DeleteOutline,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        },
+                    )
+                }
             }
-            DropdownMenuItem(
-                text = { Text(stringResource(Res.string.action_rename)) },
-                onClick = {
-                    onDismiss()
-                    onRename()
-                },
-                leadingIcon = {
-                    Icon(Icons.Outlined.Edit, contentDescription = null)
-                },
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(Res.string.action_duplicate)) },
-                onClick = {
-                    onDismiss()
-                    onDuplicate()
-                },
-                leadingIcon = {
-                    Icon(Icons.Outlined.ContentCopy, contentDescription = null)
-                },
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(Res.string.action_archive)) },
-                onClick = {
-                    onDismiss()
-                    onArchive()
-                },
-                leadingIcon = {
-                    Icon(Icons.Outlined.Archive, contentDescription = null)
-                },
-            )
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        stringResource(Res.string.delete),
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                },
-                onClick = {
-                    onDismiss()
-                    onDelete()
-                },
-                leadingIcon = {
-                    Icon(
-                        Icons.Outlined.DeleteOutline,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error,
-                    )
-                },
-            )
         }
     }
+}
+
+@Composable
+private fun OverflowItem(label: String, icon: ImageVector, onClick: () -> Unit) {
+    DropdownMenuItem(
+        text = { Text(label) },
+        onClick = onClick,
+        leadingIcon = { Icon(icon, contentDescription = null) },
+    )
+}
+
+@Composable
+private fun CompareItem(isComparisonEnabled: Boolean, onClick: () -> Unit) {
+    DropdownMenuItem(
+        text = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(Res.string.compare_models),
+                    modifier = Modifier.weight(1f),
+                )
+                if (isComparisonEnabled) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(
+                        imageVector = Icons.Filled.Check,
+                        contentDescription = stringResource(Res.string.cd_comparison_enabled),
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+        },
+        onClick = onClick,
+        leadingIcon = { Icon(Icons.Outlined.Compare, contentDescription = null) },
+    )
 }

@@ -30,11 +30,8 @@ import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -51,6 +48,9 @@ import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.model.usage.TokenUsage
+import com.garfiec.librechat.core.ui.components.AdaptiveCheckbox
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -176,7 +176,7 @@ fun ChatToolsSheetContent(
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+            AdaptiveDivider(modifier = Modifier.padding(horizontal = 16.dp))
             Spacer(modifier = Modifier.height(8.dp))
         }
 
@@ -276,7 +276,7 @@ fun ChatToolsSheetContent(
             }
         }
 
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+        AdaptiveDivider(modifier = Modifier.padding(horizontal = 16.dp))
         Spacer(modifier = Modifier.height(8.dp))
 
         // Tool toggle items — ephemeral tools are hidden for the agents endpoint
@@ -413,7 +413,7 @@ private fun ToolToggleRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Switch(
+        AdaptiveSwitch(
             checked = isEnabled,
             onCheckedChange = { onToggle() },
             colors = SwitchDefaults.colors(
@@ -510,7 +510,7 @@ private fun McpServerToggleRow(
                 )
             }
         }
-        Checkbox(
+        AdaptiveCheckbox(
             checked = isSelected,
             onCheckedChange = { onToggle() },
         )

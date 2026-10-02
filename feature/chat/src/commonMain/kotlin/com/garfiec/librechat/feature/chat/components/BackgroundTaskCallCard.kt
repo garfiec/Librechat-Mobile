@@ -20,7 +20,6 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -44,6 +43,7 @@ import com.garfiec.librechat.core.model.background.BackgroundTaskOutcome
 import com.garfiec.librechat.core.model.background.BackgroundTaskOutput
 import com.garfiec.librechat.core.model.background.PolledTask
 import com.garfiec.librechat.core.model.background.PolledTaskStatus
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -153,7 +153,7 @@ internal fun BackgroundTaskCallCard(
                                 )
                             }
                             display.tasks.forEachIndexed { index, task ->
-                                if (index > 0) HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                                if (index > 0) AdaptiveDivider(Modifier.padding(vertical = 8.dp))
                                 PolledTaskBlock(task)
                             }
                             if (display.partial || display.warning != null) {

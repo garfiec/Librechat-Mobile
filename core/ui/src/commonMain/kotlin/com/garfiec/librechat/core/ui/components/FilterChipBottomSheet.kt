@@ -14,12 +14,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -65,7 +62,7 @@ fun <T : Any> FilterChipBottomSheet(
     var currentSelection by remember { mutableStateOf(selectedItems) }
     var newItemText by remember { mutableStateOf("") }
 
-    ModalBottomSheet(
+    AdaptiveModalBottomSheet(
         onDismissRequest = {
             onSelectionChange(currentSelection)
             onDismiss()
@@ -101,7 +98,7 @@ fun <T : Any> FilterChipBottomSheet(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items.forEach { item ->
-                        FilterChip(
+                        AdaptiveFilterChip(
                             selected = item in currentSelection,
                             onClick = {
                                 currentSelection = if (item in currentSelection) {
@@ -123,7 +120,7 @@ fun <T : Any> FilterChipBottomSheet(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    OutlinedTextField(
+                    AdaptiveOutlinedTextField(
                         value = newItemText,
                         onValueChange = { newItemText = it },
                         placeholder = { Text(addPlaceholder) },

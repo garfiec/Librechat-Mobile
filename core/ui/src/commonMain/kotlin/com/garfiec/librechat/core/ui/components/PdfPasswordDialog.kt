@@ -15,11 +15,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.WarningAmber
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -79,7 +77,7 @@ fun PdfPasswordDialog(
 
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
-    AlertDialog(
+    AdaptiveAlertDialog(
         onDismissRequest = onDismiss,
         modifier = Modifier.testTag("pdf_password_dialog").clearFocusOnTap(),
         title = { Text(stringResource(Res.string.pdf_password_title)) },
@@ -116,7 +114,7 @@ fun PdfPasswordDialog(
                         )
                     }
                 }
-                OutlinedTextField(
+                AdaptiveOutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
                     label = { Text(stringResource(Res.string.pdf_password_field)) },

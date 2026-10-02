@@ -49,6 +49,73 @@ style:
       - "**/build/generated/compose/resourceGenerator/**"
   ForbiddenComment:
     active: false
+  # Chrome goes through core/ui's adaptive components so it follows the interface style (Material /
+  # Liquid Glass). A raw M3 bar, sheet, FAB or menu silently stays Material in glass mode, and a raw
+  # dialog or sheet leaves its scrim under the native iOS glass bar.
+  ForbiddenImport:
+    active: true
+    imports:
+      - value: "androidx.compose.material3.TopAppBar"
+        reason: "Use AdaptiveTopBar (core/ui components/topbar)."
+      - value: "androidx.compose.material3.CenterAlignedTopAppBar"
+        reason: "Use AdaptiveTopBar with a BarTitleAlignment.CENTER title."
+      - value: "androidx.compose.material3.ModalBottomSheet"
+        reason: "Use AdaptiveModalBottomSheet (core/ui components)."
+      - value: "androidx.compose.material3.FloatingActionButton"
+        reason: "Use AdaptiveFloatingActionButton (core/ui components)."
+      - value: "androidx.compose.material3.SmallFloatingActionButton"
+        reason: "Use AdaptiveFloatingActionButton(small = true) (core/ui components)."
+      - value: "androidx.compose.material3.LargeFloatingActionButton"
+        reason: "No glass counterpart yet; add one to AdaptiveFloatingActionButton."
+      - value: "androidx.compose.material3.ExtendedFloatingActionButton"
+        reason: "No glass counterpart yet; add one to AdaptiveFloatingActionButton."
+      - value: "androidx.compose.material3.AlertDialog"
+        reason: "Use AdaptiveAlertDialog (core/ui components)."
+      - value: "androidx.compose.ui.window.Dialog"
+        reason: "Use AdaptiveDialog (core/ui components)."
+      - value: "androidx.compose.material3.DropdownMenu"
+        reason: "Use AdaptiveDropdownMenu (core/ui components)."
+      - value: "androidx.compose.material3.Switch"
+        reason: "Use AdaptiveSwitch (core/ui components)."
+      - value: "androidx.compose.material3.RadioButton"
+        reason: "Use AdaptiveRadioButton (core/ui components)."
+      - value: "androidx.compose.material3.Checkbox"
+        reason: "Use AdaptiveCheckbox (core/ui components)."
+      - value: "androidx.compose.material3.HorizontalDivider"
+        reason: "Use AdaptiveDivider (core/ui components)."
+      - value: "androidx.compose.material3.Button"
+        reason: "Use AdaptiveButton (core/ui components)."
+      - value: "androidx.compose.material3.OutlinedButton"
+        reason: "Use AdaptiveOutlinedButton (core/ui components)."
+      - value: "androidx.compose.material3.FilledTonalButton"
+        reason: "Use AdaptiveFilledTonalButton (core/ui components)."
+      - value: "androidx.compose.material3.OutlinedTextField"
+        reason: "Use AdaptiveOutlinedTextField (core/ui components)."
+      - value: "androidx.compose.material3.SingleChoiceSegmentedButtonRow"
+        reason: "Use AdaptiveSegmentedChoice (core/ui components)."
+      - value: "androidx.compose.material3.SegmentedButton"
+        reason: "Use AdaptiveSegmentedChoice (core/ui components)."
+      - value: "androidx.compose.material3.TabRow"
+        reason: "Use AdaptiveTabRow (core/ui components)."
+      - value: "androidx.compose.material3.PrimaryTabRow"
+        reason: "Use AdaptiveTabRow (core/ui components)."
+      - value: "androidx.compose.material3.SecondaryTabRow"
+        reason: "Use AdaptiveTabRow with AdaptiveTabRowKind.SECONDARY (core/ui components)."
+      - value: "androidx.compose.material3.FilterChip"
+        reason: "Use AdaptiveFilterChip (core/ui components)."
+      - value: "androidx.compose.material3.AssistChip"
+        reason: "Use AdaptiveAssistChip (core/ui components)."
+      - value: "androidx.compose.material3.InputChip"
+        reason: "Use AdaptiveInputChip (core/ui components)."
+      - value: "androidx.compose.material3.SuggestionChip"
+        reason: "Use AdaptiveSuggestionChip (core/ui components)."
+      - value: "androidx.compose.material3.SnackbarHost"
+        reason: "Use AdaptiveSnackbarHost (core/ui components)."
+      - value: "androidx.compose.material3.CircularProgressIndicator"
+        reason: "Use AdaptiveCircularProgressIndicator (core/ui components)."
+    excludes:
+      - "**/core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/topbar/**"
+      - "**/core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/Adaptive*.kt"
   UnusedPrivateMember:
     active: true
     allowedNames: "(_|ignored|expected|serialVersionUID)"
@@ -123,9 +190,20 @@ coroutines:
 # the screen-specific-ViewModel anti-pattern the rule actually targets is absent
 # from this project.
 Compose:
+  # The adaptive sheet and dialogs wrap M3 surfaces that open their own window and emit nothing into
+  # the caller's layout; without this the rules treat every sheet or dialog host as a content emitter.
+  ModifierMissing:
+    active: true
+    contentEmittersDenylist: AdaptiveModalBottomSheet,AdaptiveAlertDialog,AdaptiveDialog
+  LambdaParameterEventTrailing:
+    active: true
+    contentEmittersDenylist: AdaptiveModalBottomSheet,AdaptiveAlertDialog,AdaptiveDialog
+  MultipleEmitters:
+    active: true
+    contentEmittersDenylist: AdaptiveModalBottomSheet,AdaptiveAlertDialog,AdaptiveDialog
   CompositionLocalAllowlist:
     active: true
-    allowedCompositionLocals: LocalAddArtifactToHomeScreen,LocalAttachmentDownloader,LocalChatMediaViewer,LocalFeedbackEnabled,LocalImmediateMarkdown,LocalInlineArtifactPrefs,LocalMermaidRenderCache,LocalOpenArtifact,LocalOpenPdf,LocalParsedMarkdownCache,LocalRelativeTimeReference,LocalSearchFocusNonce,LocalSubagentProgress,LocalSubagentThreads,LocalSubagentThreadsAvailable,LocalSuppressGroupAutoCollapse
+    allowedCompositionLocals: LocalAddArtifactToHomeScreen,LocalAttachmentDownloader,LocalDarkTheme,LocalGlassBackdrop,LocalGlassLevel,LocalGlassSheetHost,LocalGroupPosition,LocalInSeparateWindow,LocalNativeOverlayGate,LocalChatMediaViewer,LocalFeedbackEnabled,LocalImmediateMarkdown,LocalInlineArtifactPrefs,LocalMermaidRenderCache,LocalOpenArtifact,LocalOpenPdf,LocalParsedMarkdownCache,LocalRelativeTimeReference,LocalSearchFocusNonce,LocalSubagentProgress,LocalSubagentThreads,LocalSubagentThreadsAvailable,LocalSuppressGroupAutoCollapse
 
 # detekt-koin rule overrides (defaults ship in plugin jar; buildUponDefaultConfig = true)
 koin-rules:

@@ -22,7 +22,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -42,6 +41,7 @@ import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.endpoint.KeyState
 import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.model.usage.TokenUsage
+import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.core.ui.components.ModelParameterContent
 import com.garfiec.librechat.core.ui.components.ModelParameters
@@ -136,7 +136,7 @@ data class ModelParametersPageParams(
 )
 
 /**
- * The chat options sheet: one [ModalBottomSheet] that swaps between the tools menu and the model
+ * The chat options sheet: one [AdaptiveModalBottomSheet] that swaps between the tools menu and the model
  * selector / parameters, so choosing a model returns to the Options page rather than the chat. The
  * standalone selector (top-bar chip, send-block, dual-pane) lives in `ChatModelSheets.kt`. Opened
  * via [ChatOptionsSheetController].
@@ -187,7 +187,7 @@ fun ChatOptionsBottomSheet(
         if (page == ChatOptionsPage.Options) dismiss() else goTo(ChatOptionsPage.Options)
     }
 
-    ModalBottomSheet(
+    AdaptiveModalBottomSheet(
         onDismissRequest = dismiss,
         modifier = modifier.clearFocusOnTap(),
         sheetState = sheetState,

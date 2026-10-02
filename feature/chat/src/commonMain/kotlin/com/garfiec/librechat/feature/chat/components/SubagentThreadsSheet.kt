@@ -19,7 +19,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -39,6 +38,7 @@ import com.garfiec.librechat.core.model.subagent.SubagentSummary
 import com.garfiec.librechat.core.model.subagent.SubagentThreadView
 import com.garfiec.librechat.core.model.subagent.hasTruncatedContent
 import com.garfiec.librechat.core.model.subagent.toContentParts
+import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -82,7 +82,7 @@ internal fun SubagentThreadsSheet(
         viewModel.openFor(parentConversationId, focusParentToolCallId)
     }
 
-    ModalBottomSheet(
+    AdaptiveModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         modifier = modifier,

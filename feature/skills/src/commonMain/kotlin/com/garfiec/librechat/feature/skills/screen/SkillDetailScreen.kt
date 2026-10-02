@@ -11,18 +11,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -31,11 +22,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
+import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
+import com.garfiec.librechat.core.ui.components.topbar.BarAction
+import com.garfiec.librechat.core.ui.components.topbar.BarIcons
+import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
+import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.feature.skills.components.SkillAclSharingSection
 import com.garfiec.librechat.feature.skills.components.SkillFileEditorDialog
 import com.garfiec.librechat.feature.skills.components.SkillFilesSection
@@ -98,47 +98,57 @@ fun SkillDetailScreen(
         }
     }
 
-    Scaffold(
+    AdaptiveScaffold(
         modifier = modifier,
         topBar = {
-            androidx.compose.material3.TopAppBar(
-                title = {
-                    Text(
-                        text = uiState.skill?.let { it.displayTitle?.takeIf { t -> t.isNotBlank() } ?: it.name }
+            AdaptiveTopBar(
+                spec = AdaptiveTopBarSpec(
+                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.skills_back), onBack),
+                    title = BarTitle(
+                        uiState.skill?.let { it.displayTitle?.takeIf { t -> t.isNotBlank() } ?: it.name }
                             ?: stringResource(Res.string.skills_title),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.skills_back))
-                    }
-                },
-                actions = {
-                    val skill = uiState.skill
-                    if (skill != null) {
-                        IconButton(onClick = viewModel::toggleSource) {
-                            Text(if (uiState.showSource) "</>" else "¶", style = MaterialTheme.typography.titleMedium)
-                        }
-                        if (uiState.canEdit) {
-                            IconButton(onClick = { onEdit(skill.id) }) {
-                                Icon(Icons.Default.Edit, contentDescription = stringResource(Res.string.skill_edit))
+                    ),
+                    actions = uiState.skill?.let { skill ->
+                        buildList {
+                            add(
+                                BarAction.Toggle(
+                                    id = "source",
+                                    iconOff = BarIcons.Source,
+                                    iconOn = BarIcons.Rendered,
+                                    label = stringResource(Res.string.skill_toggle_source),
+                                    checked = uiState.showSource,
+                                    onCheckedChange = { viewModel.toggleSource() },
+                                ),
+                            )
+                            if (uiState.canEdit) {
+                                add(
+                                    BarAction.Icon(
+                                        id = "edit",
+                                        icon = BarIcons.EditFilled,
+                                        label = stringResource(Res.string.skill_edit),
+                                        onClick = { onEdit(skill.id) },
+                                    ),
+                                )
+                            }
+                            if (uiState.canDelete) {
+                                add(
+                                    BarAction.Icon(
+                                        id = "delete",
+                                        icon = BarIcons.DeleteFilled,
+                                        label = stringResource(Res.string.skill_delete),
+                                        onClick = viewModel::requestDelete,
+                                    ),
+                                )
                             }
                         }
-                        if (uiState.canDelete) {
-                            IconButton(onClick = viewModel::requestDelete) {
-                                Icon(Icons.Default.Delete, contentDescription = stringResource(Res.string.skill_delete))
-                            }
-                        }
-                    }
-                },
+                    }.orEmpty(),
+                ),
             )
         },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when {
-                uiState.isLoading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
+                uiState.isLoading -> AdaptiveCircularProgressIndicator(Modifier.align(Alignment.Center))
                 uiState.error != null && uiState.skill == null -> Text(
                     text = uiState.error ?: "",
                     color = MaterialTheme.colorScheme.error,
@@ -186,7 +196,7 @@ fun SkillDetailScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                            Switch(
+                            AdaptiveSwitch(
                                 checked = uiState.isActive,
                                 // Disabled until the full states map loads — toggling on a
                                 // null snapshot would full-replace-clobber other overrides.
@@ -248,7 +258,7 @@ fun SkillDetailScreen(
 
     if (uiState.showDeleteConfirm) {
         val name = uiState.skill?.let { it.displayTitle?.takeIf { t -> t.isNotBlank() } ?: it.name } ?: ""
-        AlertDialog(
+        AdaptiveAlertDialog(
             onDismissRequest = viewModel::dismissDelete,
             title = { Text(stringResource(Res.string.skill_delete_confirm_title)) },
             text = { Text(stringResource(Res.string.skill_delete_confirm_message, name)) },

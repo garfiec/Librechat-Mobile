@@ -21,16 +21,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -50,6 +44,12 @@ import com.garfiec.librechat.core.model.PendingAction
 import com.garfiec.librechat.core.model.ToolApprovalDecisions
 import com.garfiec.librechat.core.model.ToolApprovalRequest
 import com.garfiec.librechat.core.model.request.ToolApprovalResolution
+import com.garfiec.librechat.core.ui.components.AdaptiveButton
+import com.garfiec.librechat.core.ui.components.AdaptiveCard
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveFilterChip
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.util.DEFAULT_ALLOWED_TOOL_DECISIONS
@@ -143,7 +143,7 @@ fun ToolApprovalPanel(
         // than the ask panel's, which stands in for the composer.
         val bodyMaxHeight = if (maxHeight == Dp.Infinity) FALLBACK_BODY_MAX_HEIGHT else maxHeight * BODY_HEIGHT_FRACTION
         val isWide = maxWidth >= PAUSE_PANEL_WIDE_MIN_WIDTH
-        Card(
+        AdaptiveCard(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -276,10 +276,10 @@ private fun CompactToolLayout(
                         BulkButtons(state = state, actions = actions)
                         Spacer(modifier = Modifier.weight(1f))
                         if (state.isResolving) {
-                            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                            AdaptiveCircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                         }
                         if (canProceed) {
-                            Button(
+                            AdaptiveButton(
                                 onClick = { actions.advanceOrSubmit(state.activeIndex, state.drafts) },
                                 enabled = !state.isResolving,
                             ) {
@@ -375,7 +375,7 @@ private fun WideToolLayout(
                     BulkButtons(state = state, actions = actions)
                     Spacer(modifier = Modifier.weight(1f))
                     if (state.isResolving) {
-                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        AdaptiveCircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                     }
                     if (state.activeIndex > 0) {
                         TextButton(
@@ -386,14 +386,14 @@ private fun WideToolLayout(
                         }
                     }
                     if (!state.isLast) {
-                        Button(
+                        AdaptiveButton(
                             onClick = { actions.onSelect(state.activeIndex + 1) },
                             enabled = !state.isResolving,
                         ) {
                             Text(stringResource(Res.string.ask_user_question_next))
                         }
                     } else {
-                        Button(
+                        AdaptiveButton(
                             onClick = { actions.submit(state.drafts) },
                             enabled = !state.isResolving && state.allDecided,
                         ) {
@@ -506,7 +506,7 @@ private fun ToolCallBody(
 
         if (draft.decision == ToolApprovalDecisions.EDIT) {
             val invalid = draft.editedArguments.isNotBlank() && draft.editedArguments.parseToolArgumentsOrNull() == null
-            OutlinedTextField(
+            AdaptiveOutlinedTextField(
                 value = draft.editedArguments,
                 onValueChange = { onDraftChange(draft.copy(editedArguments = it)) },
                 enabled = !isResolving,
@@ -525,7 +525,7 @@ private fun ToolCallBody(
         }
 
         if (draft.decision == ToolApprovalDecisions.RESPOND) {
-            OutlinedTextField(
+            AdaptiveOutlinedTextField(
                 value = draft.responseText,
                 onValueChange = { onDraftChange(draft.copy(responseText = it)) },
                 enabled = !isResolving,
@@ -564,7 +564,7 @@ private fun DecisionRow(
                 Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
             }
             when (decision) {
-                ToolApprovalDecisions.APPROVE -> Button(
+                ToolApprovalDecisions.APPROVE -> AdaptiveButton(
                     onClick = { onPick(decision) },
                     enabled = enabled,
                     contentPadding = DECISION_BUTTON_PADDING,
@@ -572,7 +572,7 @@ private fun DecisionRow(
                     if (isSelected) check()
                     Text(label)
                 }
-                ToolApprovalDecisions.REJECT -> OutlinedButton(
+                ToolApprovalDecisions.REJECT -> AdaptiveOutlinedButton(
                     onClick = { onPick(decision) },
                     enabled = enabled,
                     contentPadding = DECISION_BUTTON_PADDING,
@@ -580,7 +580,7 @@ private fun DecisionRow(
                     if (isSelected) check()
                     Text(label)
                 }
-                else -> FilterChip(
+                else -> AdaptiveFilterChip(
                     selected = isSelected,
                     enabled = enabled,
                     onClick = { onPick(decision) },

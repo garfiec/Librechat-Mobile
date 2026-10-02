@@ -22,7 +22,6 @@ import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -41,6 +40,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.AskUserQuestionRequest
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -180,7 +180,7 @@ internal fun AskUserQuestionRecordCard(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     if (description != null) {
-                        HorizontalDivider()
+                        AdaptiveDivider()
                         Text(
                             text = description,
                             style = MaterialTheme.typography.bodySmall,

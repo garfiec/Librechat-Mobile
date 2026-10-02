@@ -109,6 +109,7 @@ internal fun ComparisonPanes(
 
     val primaryMessageList: @Composable () -> Unit = {
         MessageList(
+            recordsGlassBackdrop = false,
             displayMessages = primaryDisplayMessages,
             isStreaming = comparisonState.primaryIsStreaming || uiState.isStreaming,
             justSettledMessageId = uiState.justSettledMessageId,

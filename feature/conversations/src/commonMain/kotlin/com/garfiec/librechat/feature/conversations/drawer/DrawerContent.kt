@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -31,8 +32,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyItemScope
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
@@ -50,13 +54,10 @@ import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.Workspaces
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -75,6 +76,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
@@ -92,7 +94,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.common.extensions.toRelativeTimeString
 import com.garfiec.librechat.core.model.ChatProject
 import com.garfiec.librechat.core.model.SAVED_TAG
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.EndpointIcon
+import com.garfiec.librechat.core.ui.glass.GlassControlColors
+import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 import com.garfiec.librechat.feature.conversations.components.ConversationActionDialogs
 import com.garfiec.librechat.feature.conversations.components.ConversationActionEffects
 import com.garfiec.librechat.feature.conversations.components.ConversationActionsMenu
@@ -137,6 +144,15 @@ import org.koin.compose.viewmodel.koinViewModel
 
 // Pre-computed shapes to avoid creating new ones per item per frame
 private val ItemShape = RoundedCornerShape(8.dp)
+
+/**
+ * A sticky header in Material; a plain item in Liquid Glass, where the opaque band a sticky header
+ * needs (so rows don't show through it) would cut across the glass panel.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+private fun LazyListScope.drawerHeader(glass: Boolean, key: Any, content: @Composable LazyItemScope.() -> Unit) {
+    if (glass) item(key = key, content = content) else stickyHeader(key = key) { content() }
+}
 private val ActiveIndicatorShape = RoundedCornerShape(2.dp)
 
 // Sliding pill toggle: the rounded track, its slightly-tighter moving thumb, and each icon+label
@@ -390,14 +406,24 @@ fun DrawerContent(
 
     // One ticker for every row the drawer renders, so the relative-time labels below
     // actually advance instead of freezing at whatever they said when composed.
+    val glass = isLiquidGlass
     ProvideRelativeTimeReference {
         Column(
             modifier = modifier
                 .fillMaxHeight()
                 .width(300.dp)
-                .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                .statusBarsPadding()
-                .navigationBarsPadding()
+                // In Liquid Glass the floating panel around the drawer paints it and keeps it inside the
+                // safe area, so the drawer itself is transparent and unpadded.
+                .then(
+                    if (glass) {
+                        Modifier
+                    } else {
+                        Modifier
+                            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                            .statusBarsPadding()
+                            .navigationBarsPadding()
+                    },
+                )
                 .padding(top = 16.dp),
         ) {
             Spacer(
@@ -431,9 +457,9 @@ fun DrawerContent(
                 Surface(
                     onClick = onNewChat,
                     modifier = Modifier.weight(1f),
-                    shape = ItemShape,
-                    color = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    shape = if (glass) CircleShape else ItemShape,
+                    color = if (glass) GlassControlColors.tint else MaterialTheme.colorScheme.primary,
+                    contentColor = if (glass) Color.White else MaterialTheme.colorScheme.onPrimary,
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -460,12 +486,12 @@ fun DrawerContent(
                         searchExpanded = !searchExpanded
                         if (!searchExpanded) onSearchQueryChange("")
                     },
-                    modifier = Modifier.fillMaxHeight(),
-                    shape = ItemShape,
-                    color = if (searchExpanded) {
-                        MaterialTheme.colorScheme.secondaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.surfaceContainerHighest
+                    modifier = if (glass) Modifier.fillMaxHeight().aspectRatio(1f) else Modifier.fillMaxHeight(),
+                    shape = if (glass) CircleShape else ItemShape,
+                    color = when {
+                        glass -> GlassControlColors.fill
+                        searchExpanded -> MaterialTheme.colorScheme.secondaryContainer
+                        else -> MaterialTheme.colorScheme.surfaceContainerHighest
                     },
                 ) {
                     Box(
@@ -477,7 +503,7 @@ fun DrawerContent(
                         Icon(
                             imageVector = if (searchExpanded) Icons.Default.Close else Icons.Default.Search,
                             contentDescription = stringResource(Res.string.cd_search),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = if (glass) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(20.dp),
                         )
                     }
@@ -488,7 +514,7 @@ fun DrawerContent(
             AnimatedVisibility(visible = searchExpanded) {
                 Column {
                     Spacer(modifier = Modifier.height(12.dp))
-                    OutlinedTextField(
+                    AdaptiveOutlinedTextField(
                         value = uiState.searchQuery,
                         onValueChange = onSearchQueryChange,
                         leadingIcon = {
@@ -659,7 +685,7 @@ fun DrawerContent(
                         }
 
                         item(key = "pinned_divider") {
-                            HorizontalDivider(
+                            AdaptiveDivider(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                                 color = MaterialTheme.colorScheme.outlineVariant,
                             )
@@ -672,11 +698,11 @@ fun DrawerContent(
                     // [FavoritesPreviewCount] show until "Show more" reveals the rest.
                     if (uiState.bookmarksEnabled && uiState.favoriteConversations.isNotEmpty() && uiState.searchQuery.isEmpty()) {
                         val favorites = uiState.favoriteConversations
-                        stickyHeader(key = "favorites_header") {
+                        drawerHeader(glass, key = "favorites_header") {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(MaterialTheme.colorScheme.surfaceContainerLow),
+                                    .background(if (glass) Color.Transparent else MaterialTheme.colorScheme.surfaceContainerLow),
                             ) {
                                 SectionHeader(
                                     icon = Icons.Default.Star,
@@ -720,7 +746,7 @@ fun DrawerContent(
                                             )
                                         }
 
-                                        HorizontalDivider(
+                                        AdaptiveDivider(
                                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                                             color = MaterialTheme.colorScheme.outlineVariant,
                                         )
@@ -742,7 +768,7 @@ fun DrawerContent(
                     }
 
                     uiState.groupedConversations.forEach { (dateGroup, displayItems) ->
-                        stickyHeader(key = "header_$dateGroup") {
+                        drawerHeader(glass, key = "header_$dateGroup") {
                             Text(
                                 text = if (dateGroup == RUNNING_CHATS_GROUP) {
                                     stringResource(Res.string.drawer_running_chats)
@@ -753,7 +779,7 @@ fun DrawerContent(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                                    .background(if (glass) Color.Transparent else MaterialTheme.colorScheme.surfaceContainerLow)
                                     .padding(
                                         start = 16.dp,
                                         end = 16.dp,
@@ -780,7 +806,7 @@ fun DrawerContent(
                                     .padding(16.dp),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                CircularProgressIndicator(
+                                AdaptiveCircularProgressIndicator(
                                     modifier = Modifier.size(24.dp),
                                     strokeWidth = 2.dp,
                                 )
@@ -804,7 +830,7 @@ fun DrawerContent(
             }
 
             // Bottom section: divider + footer links
-            HorizontalDivider(
+            AdaptiveDivider(
                 modifier = Modifier.padding(horizontal = 12.dp),
                 color = MaterialTheme.colorScheme.outlineVariant,
             )
@@ -906,6 +932,8 @@ private fun DrawerTabToggle(
         targetValue = if (selectedTab == DrawerTab.Chats) 0f else 1f,
         label = "DrawerTabThumb",
     )
+    val glass = isLiquidGlass
+    val thumbColor = if (glass) GlassControlColors.segmentThumb else MaterialTheme.colorScheme.secondaryContainer
     Box(
         modifier = modifier
             .clip(PillTrackShape)
@@ -919,8 +947,9 @@ private fun DrawerTabToggle(
                 .width(DrawerTabCellWidth)
                 .fillMaxHeight()
                 .offset(x = DrawerTabCellWidth * thumbOffsetFraction)
+                .then(if (glass) Modifier.shadow(2.dp, PillThumbShape) else Modifier)
                 .clip(PillThumbShape)
-                .background(MaterialTheme.colorScheme.secondaryContainer),
+                .background(thumbColor),
         )
         Row {
             DrawerTabToggleCell(
@@ -948,7 +977,7 @@ private fun DrawerTabToggleCell(
     onClick: () -> Unit,
 ) {
     val contentColor = if (selected) {
-        MaterialTheme.colorScheme.onSecondaryContainer
+        if (isLiquidGlass) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSecondaryContainer
     } else {
         MaterialTheme.colorScheme.onSurfaceVariant
     }
@@ -1010,7 +1039,7 @@ private fun DrawerProjectsList(
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                    AdaptiveCircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                 }
             }
             inlineProjectChats.conversations.isEmpty() -> {
@@ -1065,7 +1094,7 @@ private fun DrawerProjectsList(
         }
 
         item(key = "projects_divider") {
-            HorizontalDivider(
+            AdaptiveDivider(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                 color = MaterialTheme.colorScheme.outlineVariant,
             )
@@ -1220,10 +1249,12 @@ private fun DrawerConversationItem(
     showBookmarkToggle: Boolean = true,
     menuContent: @Composable (DpOffset) -> Unit = {},
 ) {
-    val backgroundColor = if (data.isActive) {
-        MaterialTheme.colorScheme.secondaryContainer
-    } else {
-        Color.Transparent
+    val glass = isLiquidGlass
+    val rowShape = if (glass) CircleShape else ItemShape
+    val backgroundColor = when {
+        !data.isActive -> Color.Transparent
+        glass -> GlassControlColors.fill
+        else -> MaterialTheme.colorScheme.secondaryContainer
     }
 
     // Horizontal pixel position of the last press, so the long-press menu can open with its
@@ -1251,8 +1282,8 @@ private fun DrawerConversationItem(
                 }
                 .padding(horizontal = 4.dp, vertical = 1.dp)
                 .fillMaxWidth()
-                .background(backgroundColor, ItemShape)
-                .clip(ItemShape)
+                .background(backgroundColor, rowShape)
+                .clip(rowShape)
                 .combinedClickable(
                     role = Role.Button,
                     onClick = onClick,
@@ -1262,7 +1293,7 @@ private fun DrawerConversationItem(
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (data.isActive) {
+            if (data.isActive && !glass) {
                 Box(
                     modifier = Modifier
                         .width(3.dp)
@@ -1299,7 +1330,7 @@ private fun DrawerConversationItem(
                     text = data.title,
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (data.isActive) {
-                        MaterialTheme.colorScheme.onSecondaryContainer
+                        if (glass) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSecondaryContainer
                     } else {
                         MaterialTheme.colorScheme.onSurface
                     },
