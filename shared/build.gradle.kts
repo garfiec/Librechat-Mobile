@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType
+
 plugins {
     id("librechat.kmp.library")
     id("librechat.kmp.compose")
@@ -20,6 +22,15 @@ kotlin {
             export(project(":core:model"))
             export(project(":core:network"))
             export(project(":core:data"))
+            // TEMPORARY: the Release link's whole-program static-initializer pass outgrew the 7 GB
+            // macOS runner (Java heap space in StaticInitializersOptimization, Kotlin 2.4.10). It
+            // is a pure optimization, so skipping it keeps the binary correct, at some runtime
+            // cost. Tracked as KT-89519; fixed by KT-87570, first available in Kotlin 2.5.0-Beta2.
+            // Remove after upgrading to a 2.5.0 build and confirming the CI OOM canary links in
+            // its usual time.
+            if (buildType == NativeBuildType.RELEASE) {
+                freeCompilerArgs += "-Xdisable-phases=RemoveRedundantCallsToStaticInitializersPhase"
+            }
         }
     }
 

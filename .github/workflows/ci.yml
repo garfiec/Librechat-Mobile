@@ -240,12 +240,12 @@ jobs:
           key: ${{ runner.os }}-konan-${{ hashFiles('gradle/libs.versions.toml') }}
           restore-keys: ${{ runner.os }}-konan-
 
-      # The Release device link runs Kotlin/Native's whole-program optimization pass
-      # (DevirtualizationAnalysis), whose memory use grows with total code size and
-      # OOM'd the 7 GB runner on every release from Jul 2 to Jul 25, 2026 (KT-80367;
-      # the #200 ktor pin was a stopgap that code growth overtook). The Debug/simulator
-      # builds above skip that pass entirely, so without this job the first signal that
-      # the IPA / App Store archive can't link is a failed release. Same task, same
-      # heap cap (gradle.properties -Xmx6g) as release.yml and appstore.yml.
+      # The Release device link runs Kotlin/Native's whole-program optimization passes,
+      # whose memory use grows with total code size and can OOM the 7 GB runner (one is
+      # currently disabled as a stopgap in shared/build.gradle.kts). The Debug/simulator
+      # builds above skip these passes, so without this job the first signal that the
+      # IPA / App Store archive can't link is a failed release. Watch its duration too:
+      # a heap near the cap shows up as a link that takes hours before it OOMs. Same
+      # task, same heap cap (gradle.properties -Xmx6g) as release.yml and appstore.yml.
       - name: Link Release framework (device)
         run: ./gradlew :shared:linkReleaseFrameworkIosArm64
