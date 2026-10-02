@@ -13,6 +13,7 @@ import com.garfiec.librechat.core.common.result.toSafeError
 import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.ContentType
+import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.StreamErrorCodes
 import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.error.StreamErrorType
@@ -60,6 +61,11 @@ class StreamingManagerDelegate(
     private val emitUserKeyError: (UserKeyError) -> Unit,
     /** Reloads the conversation from the server (VM-owned Room observer). */
     private val reloadConversation: (String) -> Unit,
+    /**
+     * [reloadConversation], then restores the given user message's text to the composer if the
+     * reloaded conversation holds no server copy of it.
+     */
+    private val reloadRestoringUnsaved: (String, Message) -> Unit,
     /**
      * Puts an early-aborted (never-persisted) turn's text back into the composer. Lives on the
      * ViewModel because streaming writes are scoped away from the composer slice.
@@ -240,6 +246,9 @@ class StreamingManagerDelegate(
     /**
      * Whether this turn reached the server's `created` milestone. Below that line nothing is
      * persisted — not even the user message — which is what makes a failed send safe to un-send.
+     * Above it the user message is *probably* persisted, not certainly: the server emits `created`
+     * before building the prompt (memory, MCP config, attachments) and saves the user message only
+     * after, so a failure in between ends a created turn that the server never recorded.
      */
     private var currentTurnCreated = false
 
@@ -636,7 +645,8 @@ class StreamingManagerDelegate(
     }
 
     private fun handleCreated(event: StreamEvent.Created) {
-        // Past this milestone the server owns the turn, so a later failure must NOT un-send it.
+        // Past this milestone a later failure must NOT un-send the turn outright: the server has
+        // usually persisted it. See currentTurnCreated for the exception.
         currentTurnCreated = true
         if (lastErrorWasNetwork) {
             lastErrorWasNetwork = false
@@ -966,6 +976,14 @@ class StreamingManagerDelegate(
                     unsent?.text?.takeIf { it.isNotBlank() }
                         ?.let { restoreUnsentInput(it, unsent.quotes.orEmpty()) }
                 }
+                // Past `created` the user message may or may not have been saved (see
+                // currentTurnCreated), and the reload below drops the optimistic bubble either way,
+                // so the reload decides: no server copy means the text goes back to the composer.
+                // Not on a network error — the run may still be alive server-side, and the
+                // connectivity observer re-attaches to it.
+                val unsavedTurn = currentTurnOptimisticUserMessageId
+                    ?.takeIf { currentTurnCreated && !reason.isNetwork }
+                    ?.let { id -> handle.state.messages.firstOrNull { it.messageId == id } }
                 // Preserve partial content so users can read/copy what was received.
                 val partialContent = streamingBuffer.toString()
                 handle.update {
@@ -994,7 +1012,13 @@ class StreamingManagerDelegate(
                     emitUserKeyError(keyError)
                 }
                 // If the server already created a conversation, fetch whatever it persisted.
-                handle.state.conversationId?.let(reloadConversation)
+                handle.state.conversationId?.let { conversationId ->
+                    if (unsavedTurn != null) {
+                        reloadRestoringUnsaved(conversationId, unsavedTurn)
+                    } else {
+                        reloadConversation(conversationId)
+                    }
+                }
             }
             is StreamEndReason.AbortFallback, is StreamEndReason.ResumeFailed -> {
                 streamJob?.cancel()

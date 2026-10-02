@@ -45,6 +45,7 @@ class StreamingManagerRetryCeilingTest {
 
     private val chatRepository = mockk<ChatRepository>(relaxed = true)
     private val reloadConversation = mockk<(String) -> Unit>(relaxed = true)
+    private val reloadRestoringUnsaved = mockk<(String, Message) -> Unit>(relaxed = true)
     private val connectivityObserver = mockk<ConnectivityObserver>(relaxed = true)
 
     private fun streamingState() = ChatUiState(
@@ -78,6 +79,7 @@ class StreamingManagerRetryCeilingTest {
             steeringDelegate = mockk(relaxed = true),
             emitUserKeyError = {},
             reloadConversation = reloadConversation,
+            reloadRestoringUnsaved = reloadRestoringUnsaved,
             restoreUnsentInput = { _, _ -> },
             isNewConversation = { false },
             isHandedOffNewChat = { false },
