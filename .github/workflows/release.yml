@@ -124,18 +124,19 @@ jobs:
           elif [ -f "$coded" ]; then
             echo "$coded already present (expected when finalizing a release candidate)."
           else
-            echo "::error title=Missing changelog::No $coded and no $next. Write the user-facing changelog to $next and re-run; F-Droid can only read it from the tagged commit, so it cannot be added after the fact."
-            exit 1
-          fi
-
-          # -s, not -f: an empty file passes every test above and ships a blank What's New.
-          if [ ! -s "$coded" ]; then
-            echo "::error title=Empty changelog::$coded is empty. Write the user-facing text and re-run."
+            echo "::error title=Missing changelog::No $coded and no $next. Run scripts/draft-changelog.sh to seed $next from the commit log, rewrite it as prose, and re-run; F-Droid can only read it from the tagged commit, so it cannot be added after the fact."
             exit 1
           fi
 
           echo "--- changelog for $VERSION_CODE ---"
           cat "$coded"
+
+      # The step above only renames the changelog into place; --release is what refuses an
+      # empty one, or one still carrying the scripts/draft-changelog.sh marker.
+      - name: Verify F-Droid store listing
+        env:
+          VERSION_CODE: ${{ steps.bump.outputs.version_code }}
+        run: scripts/check-fdroid-metadata.py --release --version-code "$VERSION_CODE"
 
       # Same source of truth the app reads (core/common codegen) — surfaced in the
       # release notes so users know which LibreChat backend this build targets.

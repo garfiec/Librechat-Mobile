@@ -30,11 +30,14 @@ BACKGROUND = (0x1C, 0x1C, 0x1E)
 MARK_FRACTION = 72 / 108
 SIZE = 512
 
-DEFAULT_SOURCE = pathlib.Path.home() / "Desktop" / "SwitchboardLogo.png"
 # Anchored to the repo, not the cwd: a relative destination writes a stray fastlane/ tree
 # wherever the script was run from and reports success, leaving the real icon untouched.
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 DEST = REPO_ROOT / "fastlane/metadata/android/en-US/images/icon.png"
+# Must stay RGBA: the crop below is derived from the measured ALPHA bounding box, so a source
+# that lost its alpha channel reads as fully opaque, silently crops to the whole image, and
+# still reports success.
+DEFAULT_SOURCE = REPO_ROOT / "design/SwitchboardLogo.png"
 
 
 def decode_png(data: bytes) -> tuple[int, int, bytearray]:

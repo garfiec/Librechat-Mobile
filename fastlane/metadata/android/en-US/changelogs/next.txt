@@ -1,3 +1,8 @@
-Settings can now check GitHub for a newer release, and What's new shows its notes in the app.
-Turning on the daily check also puts a one-time notice above the composer on a new chat when
-a release ships. The check is off until you turn it on.
+Settings can now check GitHub for a newer release, and What's new shows its notes in the
+app. The check is off until you turn it on; once on, a one-time notice also appears above
+the composer when a release ships.
+
+Appearance offers a choice of interface style: Material or the new Liquid Glass. Android 13
+and later draw the glass in full; older versions fall back to a blur or a flat surface.
+
+Pause panels show page dots on phones and swipe between pages on tablets.

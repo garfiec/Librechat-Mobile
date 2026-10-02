@@ -37,6 +37,11 @@ jobs:
       - name: Verify vendored web assets
         run: scripts/vendor-web-assets.py --check
 
+      # Must run per-PR, not only at release: the listing freezes at the tag and fdroidserver
+      # truncates over-limit text silently. See fastlane/README.md.
+      - name: Verify F-Droid store listing
+        run: scripts/check-fdroid-metadata.py
+
       - name: Run lint
         run: ./gradlew detekt detektMetadataCommonMain :app:lint --continue
 

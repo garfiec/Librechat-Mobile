@@ -44,6 +44,17 @@ android {
             keepDebugSymbols += setOf("**/*.so")
         }
     }
+
+    // AGP stores a Play-encrypted list of our dependencies in the APK signing block
+    // (id 0x504B4453). fdroidserver's scanner rejects it outright -- it is in
+    // APK_SIGNING_BLOCK_IDS alongside Frosting and Meituan -- and a signing block cannot be
+    // whitelisted from the recipe the way a source path can with scanignore. F-Droid's own
+    // rebuild is unsigned so it never has the block; only the developer-signed APK we publish
+    // as the reproducible-build reference does, which is what gets scanned.
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
 }
 
 dependencies {

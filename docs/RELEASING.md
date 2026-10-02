@@ -50,7 +50,11 @@ backendTargetVersion=0.8.6 # LibreChat backend this build targets (best-tested)
   candidate to every stable user. The pattern is matched with `re.match`, which anchors only
   at the start, hence the explicit `$`.
 
-  The recipe and the merge-request text live in [`fdroid/`](fdroid/).
+  The recipe and the merge-request text live in [`fdroid/`](fdroid/). The recipe there is a
+  byte-identical **copy of what was submitted**, kept so it can be diffed against the
+  fdroiddata branch — not the live metadata. Once the merge request is accepted, F-Droid's
+  bot owns the real file and this copy stops tracking it; delete it then rather than letting
+  it rot into a plausible-looking lie.
 - The About screen reads the *installed* version via `AppInfo` (package metadata), so it can never drift.
 - This is the **app's** version and is intentionally independent of `backendTargetVersion`.
 - `backendTargetVersion` is the **single source of truth** for the LibreChat backend the app
@@ -203,6 +207,13 @@ second full shrink on every pull request.
 > lands — not at release time — and commit it on the feature branch. The release job renames
 > it to `<versionCode>.txt` once the code is known and stages it into the release commit.
 >
+> `scripts/draft-changelog.sh` seeds that file from the commit log so you are never starting
+> from a blank page. It is a seed, not an answer: it writes a `# DRAFT` first line that
+> `scripts/check-fdroid-metadata.py --release` refuses to release with, because the generated
+> bullets overrun F-Droid's **500-character** cap on any busy release, conventional-commit
+> type does not mean user-facing, and the thing most worth saying — what a change broke — is
+> never in a commit message. Rewrite it as prose and delete that line.
+>
 > Author it as `next.txt`, not as `<versionCode>.txt` — with one exception, an rc train, where
 > the candidate's own run has already created `<versionCode>.txt` and any further lines must be
 > appended **there**. The versionCode is
@@ -220,9 +231,28 @@ second full shrink on every pull request.
 > candidate finds `<versionCode>.txt` already in place from the candidate's run, because an
 > `-rcN` and its final share one versionCode; that is a pass.
 >
+> **The changelog is not the only file that freezes at the tag.** F-Droid reads the whole
+> store listing — description, summary, icon, screenshots — from the tagged commit, so a
+> screenshot refresh or a description fix has to land *before* the cut to appear at all.
+> `scripts/check-fdroid-metadata.py` runs in CI on every pull request and enforces every limit
+> fdroidserver applies; it exists because fdroidserver truncates over-limit text silently and
+> `fdroid lint` cannot see these files.
+>
 > The version pins in [`fdroid/com.garfiec.librechat.yml`](fdroid/com.garfiec.librechat.yml)
-> are a separate matter — F-Droid's own `checkupdates` bot advances those from the tag, so
-> they need no hand-editing.
+> depend on whether the submission has merged yet:
+>
+> * **Before the MR merges** — hand-edit the recipe on the fdroiddata branch and force-push.
+>   **Replace** the existing build block rather than adding one: box 36 of the App-inclusion
+>   template asks for only the latest version in the metadata before merge. Five fields move
+>   together — `versionName`, `versionCode`, the full 40-character `commit`, `CurrentVersion`
+>   and `CurrentVersionCode`.
+> * **After it merges** — nothing to do. `AutoUpdateMode: Version` plus
+>   `UpdateCheckMode: Tags` means F-Droid's own `checkupdates` bot advances them from the tag.
+>
+> Either way the tag is pushed before the draft release is published, so the bot can briefly
+> see a version whose `Binaries:` URL still 404s. That build fails and is simply retried on the
+> next pass — fdroidserver skips a build only when its output APK already exists — so publish
+> the draft and leave it alone.
 
 1. Actions → **Release** → *Run workflow* → choose the bump (`patch` for a stable
    release, or `prepatch`/`rc`/`finalize` for the candidate flow). Year/month are
