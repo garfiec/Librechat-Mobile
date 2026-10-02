@@ -93,6 +93,50 @@ jobs:
         id: bump
         run: ./scripts/bump-version.sh "${{ inputs.bump }}"
 
+      # F-Droid reads "What's New" from `changelogs/<versionCode>.txt` **in the tagged commit**,
+      # so a changelog added after the tag is unreachable and silently never appears. The code
+      # is only known at dispatch (UTC date), hence authoring as `next.txt` and renaming here.
+      # An -rcN and its final share one code, so `finalize` finding <code>.txt is a pass.
+      # Full rationale: docs/RELEASING.md § Cutting a release.
+      - name: Resolve the changelog filename, and require one
+        env:
+          VERSION_CODE: ${{ steps.bump.outputs.version_code }}
+        run: |
+          set -euo pipefail
+          # An empty VERSION_CODE resolves to "$dir/.txt" — a dotfile no file test below trips
+          # over, so the guard would pass on a release with no reachable changelog.
+          if [[ ! "$VERSION_CODE" =~ ^[0-9]+$ ]]; then
+            echo "::error title=No versionCode::bump-version.sh did not emit a numeric version_code (got '$VERSION_CODE')."
+            exit 1
+          fi
+          dir="fastlane/metadata/android/en-US/changelogs"
+          coded="$dir/$VERSION_CODE.txt"
+          next="$dir/next.txt"
+
+          if [ -f "$coded" ] && [ -f "$next" ]; then
+            echo "::error title=Ambiguous changelog::Both $coded and $next exist. Merge them into $coded and delete $next; refusing to guess which is intended."
+            exit 1
+          fi
+
+          if [ -f "$next" ]; then
+            git mv "$next" "$coded"
+            echo "Renamed next.txt -> $VERSION_CODE.txt"
+          elif [ -f "$coded" ]; then
+            echo "$coded already present (expected when finalizing a release candidate)."
+          else
+            echo "::error title=Missing changelog::No $coded and no $next. Write the user-facing changelog to $next and re-run; F-Droid can only read it from the tagged commit, so it cannot be added after the fact."
+            exit 1
+          fi
+
+          # -s, not -f: an empty file passes every test above and ships a blank What's New.
+          if [ ! -s "$coded" ]; then
+            echo "::error title=Empty changelog::$coded is empty. Write the user-facing text and re-run."
+            exit 1
+          fi
+
+          echo "--- changelog for $VERSION_CODE ---"
+          cat "$coded"
+
       # Same source of truth the app reads (core/common codegen) — surfaced in the
       # release notes so users know which LibreChat backend this build targets.
       - name: Read backend target version
@@ -140,7 +184,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add version.properties
+          # The changelog dir must be staged too: the rename above is worthless unless it
+          # lands in the tagged commit, which is the only place F-Droid looks for it.
+          git add version.properties fastlane/metadata/android/en-US/changelogs/
           git commit -m "chore(release): $TAG"
           git tag -a "$TAG" -m "Release $TAG"
 

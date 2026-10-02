@@ -37,7 +37,7 @@ backendTargetVersion=0.8.6 # LibreChat backend this build targets (best-tested)
   ```
 
   Without that field the app builds and publishes fine but is never offered as an update, so
-  it belongs in the RFP alongside `Binaries` and `AllowedAPKSigningKeys`.
+  it belongs in the fdroiddata recipe alongside `Binaries` and `AllowedAPKSigningKeys`.
 
   The regex on `UpdateCheckMode` is load-bearing, not decoration. `Tags` takes an optional
   pattern, and candidates are tagged `vYYYY.MM.P-rcN` while the packing above **strips the
@@ -50,7 +50,7 @@ backendTargetVersion=0.8.6 # LibreChat backend this build targets (best-tested)
   candidate to every stable user. The pattern is matched with `re.match`, which anchors only
   at the start, hence the explicit `$`.
 
-  The full proposed recipe and RFP text live in [`fdroid/`](fdroid/).
+  The recipe and the merge-request text live in [`fdroid/`](fdroid/).
 - The About screen reads the *installed* version via `AppInfo` (package metadata), so it can never drift.
 - This is the **app's** version and is intentionally independent of `backendTargetVersion`.
 - `backendTargetVersion` is the **single source of truth** for the LibreChat backend the app
@@ -179,8 +179,10 @@ reliable signal.
 
 This exists for F-Droid, whose buildserver has no credentials and would otherwise get a
 release APK quietly signed with the committed *debug* key. Its build recipe requests the flag
-with `gradleprops: [unsignedRelease]`. Nothing in the repo hardcodes that relationship — the
-flag is just "build unsigned", equally usable by any downstream packager.
+with `gradleprops: [unsignedRelease]`, which passes it bare: the build tests for the property's
+presence, not its value, so `-PunsignedRelease=false` still builds unsigned. Nothing in the repo
+hardcodes that relationship — the flag is just "build unsigned", equally usable by any
+downstream packager.
 
 It is a hedge, not a requirement. fdroidserver does **not** insist on an unsigned build: its
 `verify_apks` strips and ignores any signature found on the rebuilt APK, and
@@ -196,24 +198,37 @@ second full shrink on every pull request.
 
 ## Cutting a release
 
-> **Before dispatching:** add `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt`
-> for the version you are about to cut, and commit it to the branch first. Nothing in the
-> workflow writes it, and F-Droid/IzzyOnDroid read the file **from the tagged commit** — the
-> release commit contains only `version.properties`, so a changelog added afterwards is not
-> reachable from the tag and never appears. The filename is the versionCode
-> (`2026.08.4` → `20260804`), which `scripts/bump-version.sh` computes as
-> `YEAR*10000 + MONTH*100 + PATCH` from today's UTC date; see `fastlane/README.md`.
+> **Every release needs a changelog, and the workflow now enforces it.** Write the
+> user-facing text to `fastlane/metadata/android/en-US/changelogs/next.txt` when the work
+> lands — not at release time — and commit it on the feature branch. The release job renames
+> it to `<versionCode>.txt` once the code is known and stages it into the release commit.
 >
-> Because the date is read **at dispatch time**, a changelog written in advance goes stale if
-> the cut slips into the next month: `patch` would yield `2026.10.0`/`20261000` where the file
-> says `20260900`, and the release ships with no changelog at all. Nothing fails — re-check the
-> filename against the bump you are about to run. The same applies to the version pins in
-> [`fdroid/com.garfiec.librechat.yml`](fdroid/com.garfiec.librechat.yml).
+> Author it as `next.txt`, not as `<versionCode>.txt` — with one exception, an rc train, where
+> the candidate's own run has already created `<versionCode>.txt` and any further lines must be
+> appended **there**. The versionCode is
+> `YEAR*10000 + MONTH*100 + PATCH` derived from the **UTC date at dispatch**, so a hand-named
+> file goes stale the moment a cut slips into the next month. **v2026.10.0 shipped with no
+> changelog** this way: it was cut on 1 October, a day after `2026.09.0`, and the tagged tree
+> carries `20260804.txt` and `20260900.txt` but no `20261000.txt`. Nothing failed — the
+> release simply published without one. It could not be fixed afterwards either, because
+> F-Droid reads changelogs from the
+> **tagged commit**, and re-tagging would change the APK and break the reproducible-build
+> match.
+>
+> The dispatch now **fails** if neither `next.txt` nor `<versionCode>.txt` is present, and
+> also if both are (ambiguous — merge them and delete `next.txt`). Finalizing a release
+> candidate finds `<versionCode>.txt` already in place from the candidate's run, because an
+> `-rcN` and its final share one versionCode; that is a pass.
+>
+> The version pins in [`fdroid/com.garfiec.librechat.yml`](fdroid/com.garfiec.librechat.yml)
+> are a separate matter — F-Droid's own `checkupdates` bot advances those from the tag, so
+> they need no hand-editing.
 
 1. Actions → **Release** → *Run workflow* → choose the bump (`patch` for a stable
    release, or `prepatch`/`rc`/`finalize` for the candidate flow). Year/month are
    derived from the current UTC date automatically.
-2. The job bumps `version.properties`, commits and tags `vYYYY.MM.P` **locally**, builds a
+2. The job bumps `version.properties`, resolves the changelog filename (failing the run if
+   there is none), commits and tags `vYYYY.MM.P` **locally**, builds a
    signed universal APK, **asserts it carries the published signing certificate**, re-verifies
    that the unsigned build path still works, signs a SLSA build-provenance attestation, and
    **only then pushes** the commit and tag and creates a **draft** GitHub Release with
@@ -328,9 +343,10 @@ rebuild, or the comparison is circular.
   releases are full releases; `-rcN` candidate tags are marked pre-release.
 - **F-Droid** (future) — developer-signed, verified by reproducible build (`Binaries:` +
   `AllowedAPKSigningKeys`) rather than re-signed with F-Droid's key, because Android refuses
-  in-place upgrades across a signing-key change. The proposed recipe and the RFP text are in
-  [`fdroid/`](fdroid/). Note `Binaries:` has **no fallback**: a release that fails to reproduce
-  is simply never published, so only versions cut after the tag-before-build fix can be listed.
+  in-place upgrades across a signing-key change. The recipe and the merge-request text are in
+  [`fdroid/`](fdroid/); submission is a merge request against fdroiddata, not an RFP issue.
+  Note `Binaries:` has **no fallback**: a release that fails to reproduce is simply never
+  published, so only versions cut after the tag-before-build fix can be listed.
 
   **Publish the draft promptly once F-Droid is live.** The workflow pushes the tag before it
   creates the release, and the release starts as a draft whose assets 404 anonymously. A scan
