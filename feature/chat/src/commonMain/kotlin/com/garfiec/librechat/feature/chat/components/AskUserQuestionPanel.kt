@@ -134,10 +134,11 @@ internal fun PendingAction.toAskPanelModel(): AskPanelModel? {
  * beside it only competes with it.
  *
  * Two layouts, split at the same width as the comparison panes:
- * - **Compact** (phones, a folded foldable): the question heads the card with a `‹ 1 of 4 ›`
- *   pager, options are numbered rows, and a pick or a per-question Skip moves straight on — the
- *   answer that fills the last blank question submits the batch.
- * - **Wide** (tablets, unfolded): one tab per question with explicit Back / Next / Send.
+ * - **Compact** (phones, a folded foldable): the question heads the card with a `‹ ● ━ ○ ›`
+ *   page-dot pager, options are numbered rows, and a pick or a per-question Skip moves straight
+ *   on — the answer that fills the last blank question submits the batch.
+ * - **Wide** (tablets, unfolded): one tab per question with explicit Back / Next / Send, and the
+ *   question body pages on a horizontal swipe.
  *
  * Both collapse to a single line so the reply above can be read.
  *
@@ -168,6 +169,11 @@ fun AskUserQuestionPanel(
      * fingerprint 403 fails every answer and Skip alike) strands the user until it expires.
      */
     onStop: (() -> Unit)? = null,
+    /**
+     * A resume has already failed. Stop is offered only then: until an answer or Skip has been
+     * tried, it only takes room from the question.
+     */
+    resumeFailed: Boolean = false,
 ) {
     val model = remember(pendingAction) { pendingAction.toAskPanelModel() } ?: return
     val questions = model.questions
@@ -187,11 +193,12 @@ fun AskUserQuestionPanel(
         isResolving = isResolving,
         collapsed = collapsed,
     )
+    val stop = onStop?.takeIf { resumeFailed }
     val actions = AskPanelActions(
         onDraftChange = onDraftChange,
         onSelect = { index -> onSelectQuestion(questions[index].id) },
         onCollapsedChange = onCollapsedChange,
-        onStop = onStop,
+        onStop = stop,
         submit = submit,
         skipAll = { submit(questions.associate { it.id to ASK_USER_DECLINED_ANSWER }) },
         advanceOrSubmit = { fromIndex, filled ->
@@ -285,13 +292,13 @@ private fun CompactAskLayout(
                     PausePanelPager(
                         index = state.activeIndex,
                         count = state.questions.size,
+                        done = state.questions.map { state.isAnswered(it.id) },
                         enabled = !state.collapsed,
                         onSelect = actions.onSelect,
                         previousLabel = stringResource(Res.string.cd_previous_ask_user_question),
                         nextLabel = stringResource(Res.string.cd_next_ask_user_question),
                     )
                 }
-                actions.onStop?.let { StopRunButton(onStop = it) }
                 CollapseToggle(collapsed = state.collapsed, onCollapsedChange = actions.onCollapsedChange)
             }
 
@@ -485,6 +492,7 @@ private fun CompactFreeTextRow(state: AskPanelState, actions: AskPanelActions) {
             AdaptiveCircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
             Spacer(modifier = Modifier.width(8.dp))
         }
+        actions.onStop?.let { StopRunButton(onStop = it) }
         when {
             !answered -> AdaptiveOutlinedButton(
                 onClick = {
@@ -553,36 +561,43 @@ private fun WideAskLayout(
                             .verticalScroll(rememberScrollState()),
                     )
                 }
-                actions.onStop?.let { StopRunButton(onStop = it) }
                 CollapseToggle(collapsed = state.collapsed, onCollapsedChange = actions.onCollapsedChange)
             }
 
             if (state.collapsed) return@Column
 
             Column(modifier = Modifier.padding(end = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Keyed per tab so each question opens scrolled to its top.
-                key(active.id) {
-                    AskQuestionBody(
-                        modifier = Modifier
-                            .heightIn(max = bodyMaxHeight)
-                            .verticalScroll(rememberScrollState()),
-                        item = active,
-                        showQuestion = isTabbed,
-                        draft = state.activeDraft,
-                        isResolving = state.isResolving,
-                        onDraftChange = { draft -> actions.onDraftChange(active.id, draft) },
-                        onPickedSingle = {
-                            // A single-select pick is a complete answer, so move on to the next tab —
-                            // after a beat, so the pick is seen landing.
-                            if (!state.isLast) {
-                                val from = active.id
-                                coroutineScope.launch {
-                                    delay(PAUSE_PANEL_AUTO_ADVANCE_DELAY_MS)
-                                    if (currentActiveId == from) actions.onSelect(state.activeIndex + 1)
+                // A new pause is a new pager, opening on its own active item.
+                key(questions) {
+                    PausePanelSwipeArea(
+                        index = state.activeIndex,
+                        count = questions.size,
+                        enabled = isTabbed && !state.isResolving,
+                        onSelect = actions.onSelect,
+                    ) { page, swipeHandle ->
+                        val item = questions[page]
+                        AskQuestionBody(
+                            optionsModifier = swipeHandle,
+                            modifier = Modifier
+                                .heightIn(max = bodyMaxHeight)
+                                .verticalScroll(rememberScrollState()),
+                            item = item,
+                            showQuestion = isTabbed,
+                            draft = state.drafts[item.id] ?: AskAnswerDraft(),
+                            isResolving = state.isResolving,
+                            onDraftChange = { draft -> actions.onDraftChange(item.id, draft) },
+                            onPickedSingle = {
+                                // A single-select pick is a complete answer, so move on to the next tab —
+                                // after a beat, so the pick is seen landing.
+                                if (page < questions.lastIndex) {
+                                    coroutineScope.launch {
+                                        delay(PAUSE_PANEL_AUTO_ADVANCE_DELAY_MS)
+                                        if (currentActiveId == item.id) actions.onSelect(page + 1)
+                                    }
                                 }
-                            }
-                        },
-                    )
+                            },
+                        )
+                    }
                 }
 
                 Row(
@@ -590,6 +605,7 @@ private fun WideAskLayout(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    actions.onStop?.let { StopRunButton(onStop = it) }
                     TextButton(onClick = actions.skipAll, enabled = !state.isResolving) {
                         Text(
                             stringResource(
@@ -674,6 +690,7 @@ private fun AskQuestionBody(
     onDraftChange: (AskAnswerDraft) -> Unit,
     onPickedSingle: () -> Unit,
     modifier: Modifier = Modifier,
+    optionsModifier: Modifier = Modifier,
 ) {
     val selected = draft.selectedOptions
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -696,7 +713,7 @@ private fun AskQuestionBody(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Column(modifier = if (item.multiSelect) Modifier else Modifier.selectableGroup()) {
+            Column(modifier = if (item.multiSelect) optionsModifier else optionsModifier.selectableGroup()) {
                 item.options.forEachIndexed { index, option ->
                     val isSelected = option.value in selected
                     val onToggle = {
@@ -779,7 +796,10 @@ private fun toggledSelection(selected: List<String>, value: String, multiSelect:
     else -> selected + value
 }
 
-/** Left enabled while a resume is in flight: aborting then is legitimate, and Stop guards its own re-entry. */
+/**
+ * Shown only once a resume has failed. Left enabled while a retry is in flight: aborting then is
+ * legitimate, and Stop guards its own re-entry.
+ */
 @Composable
 private fun StopRunButton(onStop: () -> Unit) {
     IconButton(onClick = onStop) {

@@ -219,6 +219,7 @@ data class ChatUiState(
     val tokenUsage: TokenUsage? get() = content.tokenUsage
     val pendingAction: PendingAction? get() = content.pendingAction
     val isResolvingPendingAction: Boolean get() = content.isResolvingPendingAction
+    val pendingActionResumeFailed: Boolean get() = content.pendingActionResumeFailed
     val askAnswerDrafts: Map<String, AskAnswerDraft> get() = content.askAnswerDrafts
     val askActiveQuestionId: String? get() = content.askActiveQuestionId
     val askPanelCollapsed: Boolean get() = content.askPanelCollapsed

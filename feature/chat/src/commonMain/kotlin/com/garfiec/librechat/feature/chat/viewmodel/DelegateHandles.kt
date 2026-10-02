@@ -253,6 +253,7 @@ class ContextProjectionHandle(root: ChatStateHandle) : DelegateHandle(root) {
 class PendingActionWrites internal constructor(state: ChatUiState) {
     var pendingAction: PendingAction? = state.content.pendingAction
     var isResolvingPendingAction: Boolean = state.content.isResolvingPendingAction
+    var pendingActionResumeFailed: Boolean = state.content.pendingActionResumeFailed
     var askAnswerDrafts: Map<String, AskAnswerDraft> = state.content.askAnswerDrafts
     var askActiveQuestionId: String? = state.content.askActiveQuestionId
     var askPanelCollapsed: Boolean = state.content.askPanelCollapsed
@@ -264,6 +265,7 @@ class PendingActionWrites internal constructor(state: ChatUiState) {
         content = s.content.copy(
             pendingAction = pendingAction,
             isResolvingPendingAction = isResolvingPendingAction,
+            pendingActionResumeFailed = pendingActionResumeFailed,
             askAnswerDrafts = askAnswerDrafts,
             askActiveQuestionId = askActiveQuestionId,
             askPanelCollapsed = askPanelCollapsed,

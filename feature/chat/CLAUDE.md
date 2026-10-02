@@ -262,11 +262,13 @@ A clarifying question reaches the screen twice over its life, and the two must n
 - **While the run is paused** it is the interactive `AskUserQuestionPanel`, which takes the
   composer's place (both `ChatScreen` actuals hide the composer while it is up) with one tab per
   question of a batch — the only thing that can resolve it. Below 600dp (phones, a folded Fold) it
-  is a Claude-style card with a `‹ 1 of 4 ›` pager where a pick or a per-question Skip advances
-  and the answer filling the last blank submits; at 600dp and up it is tabbed with explicit
-  Back / Next / Send. Both collapse to one line, and both carry a Stop: hiding the composer hides
-  the only other one, and a pause this client cannot resolve (a fingerprint 403 fails every answer
-  and Skip alike) would otherwise strand the user until it expires. Panel submits never re-home
+  is a Claude-style card with a page-dot pager (see the next section) where a pick or a
+  per-question Skip advances and the answer filling the last blank submits; at 600dp and up it is
+  tabbed with explicit Back / Next / Send. Both collapse to one line. **Stop appears only once a
+  resume has failed** (`MessagesState.pendingActionResumeFailed`, in the action row): hiding the
+  composer hides the only other one, and a pause this client cannot resolve (a fingerprint 403
+  fails every answer and Skip alike) would otherwise strand the user until it expires — but
+  before anything has failed it only takes width from the question. Panel submits never re-home
   text into the hidden composer — their words stay in the drafts, on the panel; only
   `submitAnswerFromComposer` restores. The thread keeps only a one-line `AskUserQuestionWaitingMarker`
   (tool approval docks too; see the next section). The panel's drafts, active tab and collapse
@@ -306,11 +308,31 @@ this panel carries no Stop of its own.
 
 It pages through the batch the way the ask panel does, sharing its chrome (`PausePanelChrome.kt`:
 pager, tabs, collapse toggle, collapsed overlay, waiting marker, the 600dp split and the
-auto-advance beat). Below 600dp a `‹ 1 of 3 ›` pager, where an Approve or Reject on a call not yet
-decided moves on and the decision completing the batch submits it; at 600dp and up one tab per
-call with Back / Next / Continue (n/N). Edit and Respond reveal their field and never advance on
-their own. Approve all / Reject all appear only when every call's policy permits that decision,
-and submit immediately.
+auto-advance beat). Below 600dp a `‹ ● ━ ○ ›` page-dot pager, where an Approve or Reject on a
+call not yet decided moves on and the decision completing the batch submits it; at 600dp and up
+one tab per call with Back / Next / Continue (n/N). Edit and Respond reveal their field and never
+advance on their own. Approve all / Reject all appear only when every call's policy permits that
+decision, and submit immediately.
+
+Paging is shared by both panels:
+- **Compact: page dots.** Filled = done, open = not yet, a short bar = on screen. Dragging along
+  the dots scrubs (iOS home-screen style, a haptic tick per item) — relative to where the drag
+  began, 48dp of travel per item (shrunk so every item fits in 80% of the window), because the
+  dots themselves are ~20dp apart and mapping the finger onto them overshoots; a tap jumps; the
+  arrows step. Past 10 items the dots fall back to `n of N` text. Screen readers get the `n of N`
+  as the row's state description and page with the arrows.
+- **Wide: a page swipe, started only from the answer controls.** `PausePanelSwipeArea` is a small
+  pager: the whole body follows the finger with its neighbour alongside, commits past a quarter of
+  the width or on a fling, and is rubber-banded at the ends so a swipe never submits. Tabs,
+  Back / Next and the auto-advance beat slide the same way. Only the `swipeHandle` modifier the
+  page lambda receives starts a swipe — the ask panel puts it on the option rows, the tool panel on
+  the decision row. The question, description, arguments and text fields deliberately don't page.
+  The handle moves with the page it drags, so the fling velocity is tracked on the finger's
+  accumulated delta, never on `change.position` (which stands still under the finger on a device;
+  the instrumented harness can't see the difference — its events land before a frame re-places
+  the page).
+- **Wide: dragging along the tabs** selects the tab under the finger, ahead of the row's own
+  scroll (Initial pass), so an overflowing row scrolls to follow the selection rather than the drag.
 
 The resume is all-or-nothing (`toolBatchResolutions` returns null until every call is decided and
 complete — the route 400s a partial batch and an edit/respond without its payload). Allowed

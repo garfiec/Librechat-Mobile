@@ -315,6 +315,7 @@ actual fun ChatScreen(
                             onSubmitAnswers = viewModel::answerPendingQuestions,
                             // The composer's Stop is hidden with it, and the run stays live across the pause.
                             onStop = viewModel::stopGeneration.takeIf { isAnyStreaming },
+                            resumeFailed = uiState.pendingActionResumeFailed,
                             modifier = Modifier
                                 .navigationBarsPadding()
                                 .padding(horizontal = 12.dp, vertical = 8.dp),
