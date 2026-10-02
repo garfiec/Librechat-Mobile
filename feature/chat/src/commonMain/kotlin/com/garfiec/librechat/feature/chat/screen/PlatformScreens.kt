@@ -26,6 +26,8 @@ expect fun ChatScreen(
     onShowAllMedia: (() -> Unit)? = null,
     /** Opens the server-file picker so the user can attach an already-uploaded file by reference. */
     onAttachFromServer: () -> Unit = {},
+    /** Opens What's new from the update banner shown on an empty chat. */
+    onOpenWhatsNew: () -> Unit = {},
     /**
      * Deep-link CTA from the user-provided-key error snackbar and the
      * model-selector "Set API Key" CTA on greyed endpoint groups. Tap navigates to
@@ -48,5 +50,6 @@ expect fun NewChatScreen(
     onOpenDrawer: (() -> Unit)? = null,
     onNavigateToPromptsLibrary: (() -> Unit)? = null,
     onAttachFromServer: () -> Unit = {},
+    onOpenWhatsNew: () -> Unit = {},
     onNavigateToProviderKeys: (endpointName: String?) -> Unit,
 )

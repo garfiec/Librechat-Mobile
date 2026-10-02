@@ -202,6 +202,27 @@
     <string name="server_build_branch_label">Ветка сервера</string>
     <string name="server_build_date_label">Дата сборки сервера</string>
 
+    <!-- App updates -->
+    <string name="update_check">Проверить обновления</string>
+    <string name="update_check_desc">Искать новую версию на GitHub</string>
+    <string name="update_checking">Проверка…</string>
+    <string name="update_up_to_date">У вас последняя версия</string>
+    <string name="update_available">Доступна версия %1$s</string>
+    <string name="update_see_whats_new">Что нового</string>
+    <string name="update_check_failed">Не удалось связаться с GitHub</string>
+    <string name="update_auto_check">Проверять обновления ежедневно</string>
+    <string name="update_auto_check_desc">Раз в день, пока приложение открыто, проверяет новые версии на GitHub. GitHub видит ваш IP-адрес.</string>
+    <string name="whats_new_title">Что нового</string>
+    <string name="whats_new_installed">У вас версия %1$s</string>
+    <string name="whats_new_full_changelog">Полный список изменений</string>
+    <string name="whats_new_download_apk">Скачать APK</string>
+    <string name="whats_new_view_on_github">Открыть на GitHub</string>
+    <string name="whats_new_open_obtainium">Открыть Obtainium</string>
+    <string name="whats_new_open_fdroid">Открыть F-Droid</string>
+    <string name="whats_new_hint_obtainium">Это приложение установлено через Obtainium, он и доставляет обновления.</string>
+    <string name="whats_new_hint_fdroid">Это приложение установлено через F-Droid, он и доставляет обновления. Новая версия может появиться там через несколько дней.</string>
+    <string name="whats_new_error">Не удалось загрузить примечания к выпуску</string>
+
     <!-- Tablet settings -->
     <string name="sidebar_swipe_gesture">Жест открытия боковой панели</string>
     <string name="sidebar_swipe_gesture_desc">Проведите от левого края, чтобы открыть боковую панель в режиме планшета</string>

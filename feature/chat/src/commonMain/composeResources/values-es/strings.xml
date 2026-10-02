@@ -626,4 +626,9 @@
     <string name="background_tasks_pending_delivery_note">Resultado pendiente de entrega. Aún puede llegar como un nuevo turno; consúltalo para obtenerlo antes.</string>
     <string name="background_tasks_failed_delivery_note">La entrega automática falló. Consulta esta tarea para obtener su resultado; no llegará como un nuevo turno.</string>
     <string name="background_tasks_cancellation_requested">Cancelación solicitada. Es posible que la tarea siga en curso; vuelve a comprobar su estado final.</string>
+
+    <!-- App update banner -->
+    <string name="update_banner_title">Switchboard %1$s está disponible</string>
+    <string name="update_banner_action">Ver novedades</string>
+    <string name="cd_dismiss_update">Descartar aviso de actualización</string>
 </resources>

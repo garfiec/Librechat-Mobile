@@ -19,6 +19,7 @@ actual fun NewChatScreen(
     onOpenDrawer: (() -> Unit)?,
     onNavigateToPromptsLibrary: (() -> Unit)?,
     onAttachFromServer: () -> Unit,
+    onOpenWhatsNew: () -> Unit,
     onNavigateToProviderKeys: (endpointName: String?) -> Unit,
 ) {
     ChatScreen(
@@ -31,5 +32,6 @@ actual fun NewChatScreen(
         onNavigateToPromptsLibrary = onNavigateToPromptsLibrary,
         onNavigateToProviderKeys = onNavigateToProviderKeys,
         onAttachFromServer = onAttachFromServer,
+        onOpenWhatsNew = onOpenWhatsNew,
     )
 }

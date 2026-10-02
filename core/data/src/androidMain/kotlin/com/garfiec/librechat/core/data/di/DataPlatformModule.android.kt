@@ -21,6 +21,10 @@ import com.garfiec.librechat.core.data.repository.AndroidSwitchCacheCleaner
 import com.garfiec.librechat.core.data.repository.CommonSessionCacheCleaner
 import com.garfiec.librechat.core.data.repository.SessionCacheCleaner
 import com.garfiec.librechat.core.data.repository.SwitchCacheCleaner
+import com.garfiec.librechat.core.data.update.AndroidAppInstallSource
+import com.garfiec.librechat.core.data.update.AppInstallSource
+import com.garfiec.librechat.core.data.update.AppUpdateRepository
+import com.garfiec.librechat.core.data.update.AppUpdateRepositoryImpl
 import com.garfiec.librechat.core.network.client.ImageCookieCredentials
 import com.garfiec.librechat.core.network.client.SecureTokenStorage
 import com.garfiec.librechat.core.network.client.TokenManager
@@ -42,6 +46,10 @@ actual val dataPlatformModule: Module = module {
     single<AttachmentWarmer> { CoilAttachmentWarmer(androidContext()) }
     single<PrefetchScheduler> { WorkManagerPrefetchScheduler(androidContext()) }
     single<PdfNormalizer> { AndroidPdfNormalizer(androidContext()) }
+    single<AppInstallSource> { AndroidAppInstallSource(androidContext()) }
+    single<AppUpdateRepository> {
+        AppUpdateRepositoryImpl(isSupported = true, api = get(), store = get(), appInfo = get())
+    }
 
     // --- Database ---
     single {

@@ -626,4 +626,9 @@
     <string name="background_tasks_pending_delivery_note">النتيجة بانتظار التسليم. قد تصل كدور جديد؛ استعلم عنها لاستلامها أسرع.</string>
     <string name="background_tasks_failed_delivery_note">فشل التسليم التلقائي. استعلم عن هذه المهمة لاستلام نتيجتها؛ لن تصل كدور جديد.</string>
     <string name="background_tasks_cancellation_requested">تم طلب الإلغاء. قد تظل المهمة قيد التشغيل؛ تحقّق مرة أخرى من حالتها النهائية.</string>
+
+    <!-- App update banner -->
+    <string name="update_banner_title">Switchboard %1$s متاح</string>
+    <string name="update_banner_action">عرض الجديد</string>
+    <string name="cd_dismiss_update">إغلاق إشعار التحديث</string>
 </resources>

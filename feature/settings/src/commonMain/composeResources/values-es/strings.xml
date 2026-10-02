@@ -202,6 +202,27 @@
     <string name="server_build_branch_label">Rama del servidor</string>
     <string name="server_build_date_label">Fecha de compilación del servidor</string>
 
+    <!-- App updates -->
+    <string name="update_check">Buscar actualizaciones</string>
+    <string name="update_check_desc">Buscar una versión más reciente en GitHub</string>
+    <string name="update_checking">Buscando…</string>
+    <string name="update_up_to_date">Tienes la versión más reciente</string>
+    <string name="update_available">La versión %1$s está disponible</string>
+    <string name="update_see_whats_new">Ver novedades</string>
+    <string name="update_check_failed">No se pudo conectar con GitHub</string>
+    <string name="update_auto_check">Buscar actualizaciones a diario</string>
+    <string name="update_auto_check_desc">Busca nuevas versiones en GitHub una vez al día mientras la app está abierta. GitHub ve tu dirección IP.</string>
+    <string name="whats_new_title">Novedades</string>
+    <string name="whats_new_installed">Tienes la versión %1$s</string>
+    <string name="whats_new_full_changelog">Registro de cambios completo</string>
+    <string name="whats_new_download_apk">Descargar APK</string>
+    <string name="whats_new_view_on_github">Ver en GitHub</string>
+    <string name="whats_new_open_obtainium">Abrir Obtainium</string>
+    <string name="whats_new_open_fdroid">Abrir F-Droid</string>
+    <string name="whats_new_hint_obtainium">Obtainium instaló esta app y entrega sus actualizaciones.</string>
+    <string name="whats_new_hint_fdroid">F-Droid instaló esta app y entrega sus actualizaciones. Una nueva versión puede tardar unos días en aparecer allí.</string>
+    <string name="whats_new_error">No se pudieron cargar las notas de la versión</string>
+
     <!-- Tablet settings -->
     <string name="sidebar_swipe_gesture">Gesto de deslizar para la barra lateral</string>
     <string name="sidebar_swipe_gesture_desc">Desliza desde el borde izquierdo para abrir la barra lateral en diseños de tableta</string>

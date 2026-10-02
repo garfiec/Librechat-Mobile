@@ -99,6 +99,8 @@ import com.garfiec.librechat.core.data.repository.TraceRepository
 import com.garfiec.librechat.core.data.repository.TraceRepositoryImpl
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.repository.UserRepositoryImpl
+import com.garfiec.librechat.core.data.update.UpdateCheckCoordinator
+import com.garfiec.librechat.core.data.update.UpdateCheckStore
 import com.garfiec.librechat.core.data.util.AccountLabelBackfillSessionTask
 import com.garfiec.librechat.core.data.util.EndpointConfigFetchSessionTask
 import com.garfiec.librechat.core.data.util.PermissionGate
@@ -345,6 +347,16 @@ val dataModule = module {
             sessionManager = get(),
             gate = get(),
             engine = get(),
+            appScope = get<CoroutineScope>(KoinQualifiers.ApplicationScope),
+        )
+    }
+    single { UpdateCheckStore(dataStore = get()) }
+    // Eager: a collector nobody resolves would never run the daily check.
+    single(createdAtStart = true) {
+        UpdateCheckCoordinator(
+            repository = get(),
+            store = get(),
+            foregroundSignal = get(),
             appScope = get<CoroutineScope>(KoinQualifiers.ApplicationScope),
         )
     }

@@ -626,4 +626,9 @@
     <string name="background_tasks_pending_delivery_note">Résultat en attente de livraison. Il peut encore arriver comme nouveau tour ; interrogez-le pour l'obtenir plus tôt.</string>
     <string name="background_tasks_failed_delivery_note">La livraison automatique a échoué. Interrogez cette tâche pour obtenir son résultat ; il n'arrivera pas comme nouveau tour.</string>
     <string name="background_tasks_cancellation_requested">Annulation demandée. La tâche peut encore être en cours ; revérifiez son statut final.</string>
+
+    <!-- App update banner -->
+    <string name="update_banner_title">Switchboard %1$s est disponible</string>
+    <string name="update_banner_action">Voir les nouveautés</string>
+    <string name="cd_dismiss_update">Ignorer l’avis de mise à jour</string>
 </resources>

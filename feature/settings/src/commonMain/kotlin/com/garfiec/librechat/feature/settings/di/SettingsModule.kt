@@ -10,6 +10,8 @@ import com.garfiec.librechat.feature.settings.viewmodel.PresetManagerViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.RoleSkillsAdminViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ServerHeadersViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.UpdateCheckViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.WhatsNewViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.providerkeys.ProviderKeysViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.providerkeys.SetProviderKeyViewModel
 import org.koin.core.module.Module
@@ -67,6 +69,8 @@ val settingsModule = module {
     viewModelOf(::ProviderKeysViewModel)
     viewModelOf(::RoleSkillsAdminViewModel)
     viewModelOf(::ServerHeadersViewModel)
+    viewModelOf(::UpdateCheckViewModel)
+    viewModelOf(::WhatsNewViewModel)
 
     // viewModelOf has no overload that accepts ParametersHolder, so the runtime
     // endpointName parameter forces the lambda DSL despite the deprecation hint.

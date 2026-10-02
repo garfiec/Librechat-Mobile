@@ -22,6 +22,10 @@ import com.garfiec.librechat.core.data.repository.CommonSessionCacheCleaner
 import com.garfiec.librechat.core.data.repository.IosSwitchCacheCleaner
 import com.garfiec.librechat.core.data.repository.SessionCacheCleaner
 import com.garfiec.librechat.core.data.repository.SwitchCacheCleaner
+import com.garfiec.librechat.core.data.update.AppInstallSource
+import com.garfiec.librechat.core.data.update.AppUpdateRepository
+import com.garfiec.librechat.core.data.update.AppUpdateRepositoryImpl
+import com.garfiec.librechat.core.data.update.NoopAppInstallSource
 import com.garfiec.librechat.core.network.client.ImageCookieCredentials
 import com.garfiec.librechat.core.network.client.SecureTokenStorage
 import com.garfiec.librechat.core.network.client.TokenManager
@@ -49,6 +53,10 @@ actual val dataPlatformModule: Module = module {
     single<AttachmentWarmer> { NoopAttachmentWarmer() }
     single<PrefetchScheduler> { IosPrefetchScheduler() }
     single<PdfNormalizer> { PdfKitPdfNormalizer() }
+    single<AppInstallSource> { NoopAppInstallSource() }
+    single<AppUpdateRepository> {
+        AppUpdateRepositoryImpl(isSupported = false, api = get(), store = get(), appInfo = get())
+    }
 
     // --- Database ---
     single {

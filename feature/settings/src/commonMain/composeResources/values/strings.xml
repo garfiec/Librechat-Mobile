@@ -208,6 +208,27 @@
     <string name="server_build_branch_label">Server branch</string>
     <string name="server_build_date_label">Server build date</string>
 
+    <!-- App updates -->
+    <string name="update_check">Check for updates</string>
+    <string name="update_check_desc">Look for a newer release on GitHub</string>
+    <string name="update_checking">Checking…</string>
+    <string name="update_up_to_date">You're on the latest version</string>
+    <string name="update_available">Version %1$s is available</string>
+    <string name="update_see_whats_new">See what's new</string>
+    <string name="update_check_failed">Couldn't reach GitHub</string>
+    <string name="update_auto_check">Check for updates daily</string>
+    <string name="update_auto_check_desc">Checks GitHub for new releases once a day while the app is open. GitHub sees your IP address.</string>
+    <string name="whats_new_title">What's new</string>
+    <string name="whats_new_installed">You have version %1$s</string>
+    <string name="whats_new_full_changelog">Full changelog</string>
+    <string name="whats_new_download_apk">Download APK</string>
+    <string name="whats_new_view_on_github">View on GitHub</string>
+    <string name="whats_new_open_obtainium">Open Obtainium</string>
+    <string name="whats_new_open_fdroid">Open F-Droid</string>
+    <string name="whats_new_hint_obtainium">Obtainium installed this app and delivers its updates.</string>
+    <string name="whats_new_hint_fdroid">F-Droid installed this app and delivers its updates. A new release can take a few days to appear there.</string>
+    <string name="whats_new_error">Couldn't load the release notes</string>
+
     <!-- Tablet settings -->
     <string name="sidebar_swipe_gesture">Sidebar swipe gesture</string>
     <string name="sidebar_swipe_gesture_desc">Swipe from the left edge to open the sidebar on tablet layouts</string>

@@ -66,6 +66,7 @@ import com.garfiec.librechat.core.ui.glass.reducedEffectNote
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.UpdateCheckViewModel
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -76,6 +77,7 @@ private const val DISABLED_ALPHA = 0.4f
 @Composable
 fun GeneralSettingsScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToWhatsNew: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     AdaptiveScaffold(
@@ -91,6 +93,7 @@ fun GeneralSettingsScreen(
         },
     ) { innerPadding ->
         GeneralSettingsContent(
+            onNavigateToWhatsNew = onNavigateToWhatsNew,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
@@ -104,11 +107,14 @@ fun GeneralSettingsScreen(
  */
 @Composable
 fun GeneralSettingsContent(
+    onNavigateToWhatsNew: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
     viewModel: SettingsViewModel = koinViewModel(),
+    updateViewModel: UpdateCheckViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val updateState by updateViewModel.uiState.collectAsStateWithLifecycle()
 
     Column(modifier = modifier) {
         AdaptiveGroupedPage(modifier = Modifier.fillMaxSize()) {
@@ -209,6 +215,21 @@ fun GeneralSettingsContent(
                             serverVersion = uiState.serverVersion,
                             buildInfo = uiState.buildInfo,
                         )
+                    }
+                    if (updateViewModel.isSupported) {
+                        row(key = "update_check") {
+                            UpdateCheckRow(
+                                state = updateState.checkState,
+                                onCheck = updateViewModel::check,
+                                onOpenWhatsNew = onNavigateToWhatsNew,
+                            )
+                        }
+                        row(key = "update_auto_check") {
+                            UpdateAutoCheckToggle(
+                                enabled = updateState.autoCheckEnabled,
+                                onEnabledChange = updateViewModel::setAutoCheckEnabled,
+                            )
+                        }
                     }
                 }
 

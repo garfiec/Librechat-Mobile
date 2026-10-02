@@ -1,6 +1,9 @@
 package com.garfiec.librechat.feature.chat.screen
 
 import android.annotation.SuppressLint
+import com.garfiec.librechat.feature.chat.components.UpdateAvailableBanner
+import com.garfiec.librechat.feature.chat.viewmodel.UpdateBannerViewModel
+import com.garfiec.librechat.feature.chat.viewmodel.isEmptyLanding
 import android.content.ClipboardManager
 import android.content.Context
 import androidx.activity.compose.BackHandler
@@ -128,6 +131,7 @@ actual fun ChatScreen(
     onNavigateBack: (() -> Unit)?,
     onShowAllMedia: (() -> Unit)?,
     onAttachFromServer: () -> Unit,
+    onOpenWhatsNew: () -> Unit,
     onNavigateToProviderKeys: (endpointName: String?) -> Unit,
 ) {
     val viewModel: ChatViewModel =
@@ -140,6 +144,8 @@ actual fun ChatScreen(
     }
     val initialChrome = remember(viewModel) { viewModel.uiState.value.neutralizeStreamingChurn() }
     val uiState by chromeFlow.collectAsStateWithLifecycle(initialChrome)
+    val updateBannerViewModel: UpdateBannerViewModel = koinViewModel()
+    val updateBanner by updateBannerViewModel.pendingUpdate.collectAsStateWithLifecycle()
     val attachedFiles by viewModel.attachedFiles.collectAsStateWithLifecycle()
     val prefs by viewModel.chatPreferences.collectAsStateWithLifecycle()
     val promptLibraryRevision by viewModel.promptLibraryRevision.collectAsStateWithLifecycle()
@@ -523,6 +529,19 @@ actual fun ChatScreen(
                         .onSizeChanged { inputBarHeightPx = it.height },
                 ) {
                     Column {
+                        if (uiState.isEmptyLanding()) {
+                            updateBanner?.let { update ->
+                                UpdateAvailableBanner(
+                                    version = update.version,
+                                    onOpen = {
+                                        updateBannerViewModel.acknowledge(update)
+                                        onOpenWhatsNew()
+                                    },
+                                    onDismiss = { updateBannerViewModel.acknowledge(update) },
+                                    modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp),
+                                )
+                            }
+                        }
                         toolPause?.let { pause ->
                             ToolApprovalPanel(
                                 pendingAction = pause,

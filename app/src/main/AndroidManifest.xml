@@ -13,6 +13,18 @@
         android:name="android.hardware.camera"
         android:required="false" />
 
+    <!-- What's new opens the store that installed the app (AndroidAppInstallSource). Android 11+
+         hides other packages, so without these the launch intent resolves to nothing. Keep in step
+         with the package sets in AndroidAppInstallSource. -->
+    <queries>
+        <package android:name="dev.imranr.obtainium" />
+        <package android:name="dev.imranr.obtainium.fdroid" />
+        <package android:name="org.fdroid.fdroid" />
+        <package android:name="org.fdroid.basic" />
+        <package android:name="com.looker.droidify" />
+        <package android:name="com.machiav3lli.fdroid" />
+    </queries>
+
     <application
         android:name=".LibreChatApplication"
         android:allowBackup="false"

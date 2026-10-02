@@ -202,6 +202,27 @@
     <string name="server_build_branch_label">Server-Branch</string>
     <string name="server_build_date_label">Server-Build-Datum</string>
 
+    <!-- App updates -->
+    <string name="update_check">Nach Updates suchen</string>
+    <string name="update_check_desc">Auf GitHub nach einer neueren Version suchen</string>
+    <string name="update_checking">Wird gesucht…</string>
+    <string name="update_up_to_date">Du verwendest die neueste Version</string>
+    <string name="update_available">Version %1$s ist verfügbar</string>
+    <string name="update_see_whats_new">Neuerungen ansehen</string>
+    <string name="update_check_failed">GitHub ist nicht erreichbar</string>
+    <string name="update_auto_check">Täglich nach Updates suchen</string>
+    <string name="update_auto_check_desc">Sucht einmal täglich, während die App geöffnet ist, auf GitHub nach neuen Versionen. GitHub sieht deine IP-Adresse.</string>
+    <string name="whats_new_title">Neuerungen</string>
+    <string name="whats_new_installed">Installiert ist Version %1$s</string>
+    <string name="whats_new_full_changelog">Vollständiges Änderungsprotokoll</string>
+    <string name="whats_new_download_apk">APK herunterladen</string>
+    <string name="whats_new_view_on_github">Auf GitHub ansehen</string>
+    <string name="whats_new_open_obtainium">Obtainium öffnen</string>
+    <string name="whats_new_open_fdroid">F-Droid öffnen</string>
+    <string name="whats_new_hint_obtainium">Obtainium hat diese App installiert und liefert ihre Updates.</string>
+    <string name="whats_new_hint_fdroid">F-Droid hat diese App installiert und liefert ihre Updates. Eine neue Version kann dort erst nach einigen Tagen erscheinen.</string>
+    <string name="whats_new_error">Versionshinweise konnten nicht geladen werden</string>
+
     <!-- Tablet settings -->
     <string name="sidebar_swipe_gesture">Wischgeste für Seitenleiste</string>
     <string name="sidebar_swipe_gesture_desc">Vom linken Rand wischen, um die Seitenleiste in Tablet-Layouts zu öffnen</string>

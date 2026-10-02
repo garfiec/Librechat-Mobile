@@ -626,4 +626,9 @@
     <string name="background_tasks_pending_delivery_note">结果等待送达，仍可能作为新一轮到达；可主动查询以更早获取。</string>
     <string name="background_tasks_failed_delivery_note">自动送达失败。请查询此任务以获取结果；它不会作为新一轮到达。</string>
     <string name="background_tasks_cancellation_requested">已请求取消。任务可能仍在运行；请再次查看其最终状态。</string>
+
+    <!-- App update banner -->
+    <string name="update_banner_title">Switchboard %1$s 可用</string>
+    <string name="update_banner_action">查看新功能</string>
+    <string name="cd_dismiss_update">关闭更新提示</string>
 </resources>

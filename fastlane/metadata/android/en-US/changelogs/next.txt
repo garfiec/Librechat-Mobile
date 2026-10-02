@@ -1,0 +1,3 @@
+Settings can now check GitHub for a newer release, and What's new shows its notes in the app.
+Turning on the daily check also puts a one-time notice above the composer on a new chat when
+a release ships. The check is off until you turn it on.

@@ -202,6 +202,27 @@
     <string name="server_build_branch_label">Branche du serveur</string>
     <string name="server_build_date_label">Date de build du serveur</string>
 
+    <!-- App updates -->
+    <string name="update_check">Rechercher des mises à jour</string>
+    <string name="update_check_desc">Rechercher une version plus récente sur GitHub</string>
+    <string name="update_checking">Recherche…</string>
+    <string name="update_up_to_date">Vous utilisez la dernière version</string>
+    <string name="update_available">La version %1$s est disponible</string>
+    <string name="update_see_whats_new">Voir les nouveautés</string>
+    <string name="update_check_failed">Impossible de joindre GitHub</string>
+    <string name="update_auto_check">Rechercher des mises à jour chaque jour</string>
+    <string name="update_auto_check_desc">Recherche de nouvelles versions sur GitHub une fois par jour lorsque l’app est ouverte. GitHub voit votre adresse IP.</string>
+    <string name="whats_new_title">Nouveautés</string>
+    <string name="whats_new_installed">Vous avez la version %1$s</string>
+    <string name="whats_new_full_changelog">Journal des modifications complet</string>
+    <string name="whats_new_download_apk">Télécharger l’APK</string>
+    <string name="whats_new_view_on_github">Voir sur GitHub</string>
+    <string name="whats_new_open_obtainium">Ouvrir Obtainium</string>
+    <string name="whats_new_open_fdroid">Ouvrir F-Droid</string>
+    <string name="whats_new_hint_obtainium">Obtainium a installé cette app et fournit ses mises à jour.</string>
+    <string name="whats_new_hint_fdroid">F-Droid a installé cette app et fournit ses mises à jour. Une nouvelle version peut mettre quelques jours à y apparaître.</string>
+    <string name="whats_new_error">Impossible de charger les notes de version</string>
+
     <!-- Tablet settings -->
     <string name="sidebar_swipe_gesture">Geste de balayage de la barre latérale</string>
     <string name="sidebar_swipe_gesture_desc">Balayez depuis le bord gauche pour ouvrir la barre latérale sur les dispositions de tablette</string>

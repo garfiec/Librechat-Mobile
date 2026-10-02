@@ -652,4 +652,9 @@
     <string name="background_tasks_pending_delivery_note">Result pending delivery. It may still arrive as a new turn; poll to collect it sooner.</string>
     <string name="background_tasks_failed_delivery_note">Automatic delivery failed. Poll this task to collect its result; it will not arrive as a new turn.</string>
     <string name="background_tasks_cancellation_requested">Cancellation requested. The task may still be running; check again for its final status.</string>
+
+    <!-- App update banner -->
+    <string name="update_banner_title">Switchboard %1$s is available</string>
+    <string name="update_banner_action">See what's new</string>
+    <string name="cd_dismiss_update">Dismiss update notice</string>
 </resources>

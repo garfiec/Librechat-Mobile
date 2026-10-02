@@ -72,11 +72,13 @@ fun EntryProviderScope<NavKey>.settingsEntries(
             onNavigateToFavorites = { onNavigate(Favorites) },
             onNavigateToProviderKeys = navigateToProviderKeys,
             onNavigateToRoleSkillsAdmin = { onNavigate(RoleSkillsAdmin) },
+            onNavigateToWhatsNew = { onNavigate(WhatsNew) },
         )
     }
     entry<SettingsGeneral> {
         GeneralSettingsScreen(
             onNavigateBack = onBack,
+            onNavigateToWhatsNew = { onNavigate(WhatsNew) },
         )
     }
     entry<SettingsChat> {
@@ -145,6 +147,7 @@ fun EntryProviderScope<NavKey>.settingsEntries(
     roleSkillsAdminEntry(onBack = onBack)
     artifactShortcutsEntry(onBack = onBack)
     prefetchActivityEntry(onBack = onBack)
+    whatsNewEntry(onBack = onBack)
 }
 
 val settingsSerializersModule = SerializersModule {
@@ -164,5 +167,6 @@ val settingsSerializersModule = SerializersModule {
         subclass(RoleSkillsAdmin::class, RoleSkillsAdmin.serializer())
         subclass(ArtifactShortcuts::class, ArtifactShortcuts.serializer())
         subclass(PrefetchActivity::class, PrefetchActivity.serializer())
+        subclass(WhatsNew::class, WhatsNew.serializer())
     }
 }

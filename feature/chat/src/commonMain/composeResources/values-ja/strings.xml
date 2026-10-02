@@ -626,4 +626,9 @@
     <string name="background_tasks_pending_delivery_note">結果は配信待ちです。新しいターンとして届く場合があります。早く取得するにはポーリングしてください。</string>
     <string name="background_tasks_failed_delivery_note">自動配信に失敗しました。結果を取得するにはこのタスクをポーリングしてください。新しいターンとして届くことはありません。</string>
     <string name="background_tasks_cancellation_requested">キャンセルを要求しました。タスクはまだ実行中の可能性があります。最終状態をもう一度確認してください。</string>
+
+    <!-- App update banner -->
+    <string name="update_banner_title">Switchboard %1$s が利用可能です</string>
+    <string name="update_banner_action">新機能を見る</string>
+    <string name="cd_dismiss_update">アップデートのお知らせを閉じる</string>
 </resources>
