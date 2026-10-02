@@ -57,6 +57,8 @@ import com.garfiec.librechat.core.data.repository.TagRepository
 import com.garfiec.librechat.core.data.repository.ToolFavoritesRepository
 import com.garfiec.librechat.core.data.repository.TraceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
+import com.garfiec.librechat.core.data.update.AppInstallSource
+import com.garfiec.librechat.core.data.update.AppUpdateRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.data.util.SessionTask
 import com.garfiec.librechat.core.data.util.SessionTaskRunner
@@ -232,6 +234,8 @@ class KoinGraphVerificationTest {
             PrefetchStatusReporter::class,
             PrefetchController::class,
             SessionTaskRunner::class,
+            AppUpdateRepository::class,
+            AppInstallSource::class,
             // feature:files platform provides
             FileReader::class,
             // feature:conversations provides (consumed cross-module by shared NavHostViewModel)
