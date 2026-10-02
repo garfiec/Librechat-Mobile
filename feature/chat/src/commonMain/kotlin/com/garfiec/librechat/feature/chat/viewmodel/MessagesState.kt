@@ -107,6 +107,13 @@ data class MessagesState(
     /** A decision for [pendingAction] is in flight; the resolve controls are disabled meanwhile. */
     val isResolvingPendingAction: Boolean = false,
     /**
+     * A resume for [pendingAction] has failed and the pause is still up. Gates the ask panel's
+     * Stop: Skip goes through the same resume, so a pause the client cannot resolve (a fingerprint
+     * 403) leaves Stop as the only way out while the composer is hidden. Cleared when the pause
+     * resolves, dies, or is replaced by a different one.
+     */
+    val pendingActionResumeFailed: Boolean = false,
+    /**
      * Per-question answer drafts for an `ask_user_question` [pendingAction], keyed by the batch
      * item's id (the action id for a single question).
      *

@@ -7,11 +7,21 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipe
+import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -47,16 +57,17 @@ class ToolApprovalPanelInstrumentedTest {
     private var drafts by mutableStateOf(emptyMap<String, ToolDecisionDraft>())
     private var activeCallId by mutableStateOf<String?>(null)
     private var collapsed by mutableStateOf(false)
+    private var pending by mutableStateOf<PendingAction?>(null)
     private val submitted = mutableListOf<List<ToolApprovalResolution>>()
 
     @Test
     fun compactApprovingEachCallWalksTheBatchThenSubmitsIt() {
         setPanel(batch("search_web", "read_file"), width = COMPACT)
 
-        composeRule.onNodeWithText("1 of 2").assertExists()
+        assertPage("1 of 2")
         composeRule.onNodeWithText("Approve").performClick()
         afterTheBeat()
-        composeRule.onNodeWithText("2 of 2").assertExists()
+        assertPage("2 of 2")
         assertTrue("submitted before the batch was complete", submitted.isEmpty())
 
         composeRule.onNodeWithText("Reject").performClick()
@@ -76,7 +87,7 @@ class ToolApprovalPanelInstrumentedTest {
         composeRule.onNodeWithText("Edit").performClick()
         afterTheBeat()
 
-        composeRule.onNodeWithText("1 of 2").assertExists()
+        assertPage("1 of 2")
         assertEquals("""{"q":"call-1"}""", drafts["call-1"]?.editedArguments)
         assertTrue(submitted.isEmpty())
     }
@@ -138,7 +149,182 @@ class ToolApprovalPanelInstrumentedTest {
         assertEquals(false, collapsed)
     }
 
+    @Test
+    fun compactScrubbingTheDotsWalksTheBatchWithoutSubmitting() {
+        setPanel(batch("search_web", "read_file", "write_file"), width = COMPACT)
+
+        composeRule.onNodeWithTag(PAUSE_PANEL_PAGE_DOTS_TAG).performTouchInput {
+            swipe(center, center + Offset(120.dp.toPx(), 0f))
+        }
+        composeRule.waitForIdle()
+
+        assertEquals("call-3", activeCallId)
+        assertPage("3 of 3")
+        assertTrue(submitted.isEmpty())
+    }
+
+    /** A scrub moves one item per 48dp of travel, not one per dot: 60dp from the middle reaches only the next. */
+    @Test
+    fun compactScrubMovesOneItemPerStep() {
+        setPanel(batch("search_web", "read_file", "write_file"), width = COMPACT)
+
+        composeRule.onNodeWithTag(PAUSE_PANEL_PAGE_DOTS_TAG).performTouchInput {
+            swipe(center, center + Offset(60.dp.toPx(), 0f))
+        }
+        composeRule.waitForIdle()
+
+        assertEquals("call-2", activeCallId)
+    }
+
+    @Test
+    fun compactTappingADotJumpsToIt() {
+        setPanel(batch("search_web", "read_file", "write_file"), width = COMPACT)
+
+        composeRule.onNodeWithTag(PAUSE_PANEL_PAGE_DOTS_TAG).performTouchInput {
+            click(Offset(width * 5f / 6f, centerY))
+        }
+        composeRule.waitForIdle()
+
+        assertEquals("call-3", activeCallId)
+    }
+
+    @Test
+    fun collapsedDotsAreInert() {
+        collapsed = true
+        setPanel(batch("search_web", "read_file", "write_file"), width = COMPACT)
+
+        composeRule.onNodeWithTag(PAUSE_PANEL_PAGE_DOTS_TAG).performTouchInput { swipe(centerLeft, centerRight) }
+        composeRule.waitForIdle()
+
+        assertEquals(null, activeCallId)
+    }
+
+    @Test
+    fun wideSwipeOnTheDecisionsPagesBetweenCalls() {
+        setPanel(batch("search_web", "read_file"), width = WIDE)
+
+        swipeFromApprove(fraction = -0.5f)
+        assertEquals("call-2", activeCallId)
+
+        swipeFromApprove(fraction = 0.5f)
+        assertEquals("call-1", activeCallId)
+    }
+
+    /** The question's text and arguments are for reading: only the answer controls page. */
+    @Test
+    fun wideSwipeOutsideTheDecisionsDoesNotPage() {
+        setPanel(batch("search_web", "read_file"), width = WIDE)
+
+        val areaWidth = composeRule.onNodeWithTag(PAUSE_PANEL_SWIPE_AREA_TAG).fetchSemanticsNode().size.width
+        composeRule.onNodeWithText("Runs search_web for the assistant.").performTouchInput {
+            swipe(center, center - Offset(areaWidth / 2f, 0f))
+        }
+        composeRule.onNodeWithText("""{"q":"call-1"}""").performTouchInput {
+            swipe(center, center - Offset(areaWidth / 2f, 0f))
+        }
+        composeRule.waitForIdle()
+
+        assertEquals(null, activeCallId)
+    }
+
+    @Test
+    fun wideSwipePastTheLastCallStaysAndDoesNotSubmit() {
+        activeCallId = "call-2"
+        setPanel(batch("search_web", "read_file"), width = WIDE)
+
+        swipeFromApprove(fraction = -0.5f)
+
+        assertEquals("call-2", activeCallId)
+        assertTrue(submitted.isEmpty())
+    }
+
+    @Test
+    fun wideShortSlowDragSpringsBack() {
+        setPanel(batch("search_web", "read_file"), width = WIDE)
+
+        swipeFromApprove(fraction = -0.1f, durationMillis = 600)
+
+        assertEquals(null, activeCallId)
+    }
+
+    /** Short of a quarter of the width, so only its speed can carry it over. */
+    @Test
+    fun wideQuickFlickPages() {
+        setPanel(batch("search_web", "read_file"), width = WIDE)
+
+        swipeFromApprove(fraction = -0.15f, durationMillis = 60)
+
+        assertEquals("call-2", activeCallId)
+    }
+
+    @Test
+    fun wideSwipeInsideTheEditFieldDoesNotPage() {
+        setPanel(batch("search_web", "read_file", allowEdit = true), width = WIDE)
+        composeRule.onNodeWithText("Edit").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNode(hasSetTextAction()).performTouchInput { swipeLeft() }
+        composeRule.waitForIdle()
+
+        assertEquals(null, activeCallId)
+    }
+
+    @Test
+    fun wideDraggingAlongTheTabsSelectsTheOneUnderTheFinger() {
+        setPanel(batch("search_web", "read_file", "write_file"), width = WIDE)
+
+        val tabs = composeRule.onNodeWithTag(PAUSE_PANEL_TABS_TAG)
+        val readFile = composeRule.onNodeWithText("read_file").fetchSemanticsNode().boundsInRoot
+        val tabsLeft = tabs.fetchSemanticsNode().boundsInRoot.left
+        tabs.performTouchInput {
+            swipe(Offset(4f, centerY), Offset(readFile.center.x - tabsLeft, centerY))
+        }
+        composeRule.waitForIdle()
+
+        assertEquals("call-2", activeCallId)
+        assertTrue(submitted.isEmpty())
+    }
+
+    /** One pause's resume can race the run's next pause, which then replaces it on screen. */
+    @Test
+    fun wideReplacingThePauseWithAShorterOneOpensItsOwnPage() {
+        activeCallId = "call-3"
+        setPanel(batch("search_web", "read_file", "write_file"), width = WIDE)
+
+        activeCallId = null
+        pending = batch("delete_file")
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Runs delete_file for the assistant.").assertExists()
+    }
+
+    @Test
+    fun wideTappingATabStillSelectsIt() {
+        setPanel(batch("search_web", "read_file", "write_file"), width = WIDE)
+
+        composeRule.onNodeWithText("write_file").performClick()
+        composeRule.waitForIdle()
+
+        assertEquals("call-3", activeCallId)
+    }
+
     // ── harness ───────────────────────────────────────────────────────────────
+
+    /**
+     * Drags from the shown call's Approve button by [fraction] of the swipe area's width (negative
+     * is leftward) — a finger travels well past the button it lands on.
+     */
+    private fun swipeFromApprove(fraction: Float, durationMillis: Long = 200L) {
+        val areaWidth = composeRule.onNodeWithTag(PAUSE_PANEL_SWIPE_AREA_TAG).fetchSemanticsNode().size.width
+        composeRule.onNodeWithText("Approve").performTouchInput {
+            swipe(center, center + Offset(areaWidth * fraction, 0f), durationMillis)
+        }
+        composeRule.waitForIdle()
+    }
+
+    private fun assertPage(page: String) {
+        composeRule.onNode(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, page)).assertExists()
+    }
 
     /** Past the pause a pick waits before moving on, which idling alone does not advance. */
     private fun afterTheBeat() {
@@ -147,13 +333,14 @@ class ToolApprovalPanelInstrumentedTest {
     }
 
     private fun setPanel(action: PendingAction, width: Dp) {
+        pending = action
         composeRule.setContent {
             // A phone-sized test device is ~420dp wide, which would clamp the wide layout's width
             // back under the 600dp split; a lower density fits it on screen at its real dp size.
             CompositionLocalProvider(LocalDensity provides Density(HARNESS_DENSITY)) {
                 LibreChatTheme {
                     ToolApprovalPanel(
-                        pendingAction = action,
+                        pendingAction = pending ?: action,
                         isResolving = false,
                         drafts = drafts,
                         activeCallId = activeCallId,

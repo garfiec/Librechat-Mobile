@@ -76,9 +76,10 @@ import org.jetbrains.compose.resources.stringResource
  *
  * Two layouts, split at the same width as the ask panel:
  * - **Compact** (phones, a folded foldable): the call's tool name heads the card with a
- *   `‹ 1 of 3 ›` pager; an Approve or Reject on a call not yet decided moves straight on, and the
- *   decision that completes the batch submits it.
- * - **Wide** (tablets, unfolded): one tab per call with explicit Back / Next / Continue.
+ *   `‹ ● ━ ○ ›` page-dot pager; an Approve or Reject on a call not yet decided moves straight on,
+ *   and the decision that completes the batch submits it.
+ * - **Wide** (tablets, unfolded): one tab per call with explicit Back / Next / Continue, and the
+ *   call body pages on a horizontal swipe.
  *
  * Both collapse to a single line so the reply above can be read.
  *
@@ -221,6 +222,7 @@ private fun CompactToolLayout(
                     PausePanelPager(
                         index = state.activeIndex,
                         count = state.calls.size,
+                        done = state.calls.map { state.isDecided(it.toolCallId) },
                         enabled = !state.collapsed,
                         onSelect = actions.onSelect,
                         previousLabel = stringResource(Res.string.cd_previous_tool_call),
@@ -343,28 +345,36 @@ private fun WideToolLayout(
             if (state.collapsed) return@Column
 
             Column(modifier = Modifier.padding(end = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Keyed per tab so each call opens scrolled to its top.
-                key(active.toolCallId) {
-                    ToolCallBody(
-                        call = active,
-                        showName = state.isBatch,
-                        allowedDecisions = state.allowedFor(active),
-                        draft = state.activeDraft,
-                        isResolving = state.isResolving,
-                        bodyMaxHeight = bodyMaxHeight,
-                        onDraftChange = { draft -> actions.onDraftChange(active.toolCallId, draft) },
-                        onPickedFinal = {
-                            // A complete decision moves on to the next tab, after a beat so the pick
-                            // is seen landing. The wide layout never submits on a pick: Continue does.
-                            if (!state.isLast) {
-                                val from = active.toolCallId
-                                coroutineScope.launch {
-                                    delay(PAUSE_PANEL_AUTO_ADVANCE_DELAY_MS)
-                                    if (currentActiveId == from) actions.onSelect(state.activeIndex + 1)
+                // A new pause is a new pager, opening on its own active item.
+                key(state.calls) {
+                    PausePanelSwipeArea(
+                        index = state.activeIndex,
+                        count = state.calls.size,
+                        enabled = state.isBatch && !state.isResolving,
+                        onSelect = actions.onSelect,
+                    ) { page, swipeHandle ->
+                        val call = state.calls[page]
+                        ToolCallBody(
+                            decisionsModifier = swipeHandle,
+                            call = call,
+                            showName = state.isBatch,
+                            allowedDecisions = state.allowedFor(call),
+                            draft = state.drafts[call.toolCallId] ?: ToolDecisionDraft(),
+                            isResolving = state.isResolving,
+                            bodyMaxHeight = bodyMaxHeight,
+                            onDraftChange = { draft -> actions.onDraftChange(call.toolCallId, draft) },
+                            onPickedFinal = {
+                                // A complete decision moves on to the next tab, after a beat so the pick
+                                // is seen landing. The wide layout never submits on a pick: Continue does.
+                                if (page < state.calls.lastIndex) {
+                                    coroutineScope.launch {
+                                        delay(PAUSE_PANEL_AUTO_ADVANCE_DELAY_MS)
+                                        if (currentActiveId == call.toolCallId) actions.onSelect(page + 1)
+                                    }
                                 }
-                            }
-                        },
-                    )
+                            },
+                        )
+                    }
                 }
 
                 Row(
@@ -450,9 +460,11 @@ private fun ToolCallBody(
     onDraftChange: (ToolDecisionDraft) -> Unit,
     /** An Approve or Reject on a call that had no complete decision yet. */
     onPickedFinal: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    decisionsModifier: Modifier = Modifier,
 ) {
     val arguments = remember(call.arguments) { call.arguments.asDisplayText() }
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Column(
             modifier = Modifier
                 .heightIn(max = bodyMaxHeight)
@@ -488,6 +500,7 @@ private fun ToolCallBody(
         }
 
         DecisionRow(
+            modifier = decisionsModifier,
             allowedDecisions = allowedDecisions,
             selected = draft.decision,
             enabled = !isResolving,
@@ -549,10 +562,11 @@ private fun DecisionRow(
     selected: String?,
     enabled: Boolean,
     onPick: (String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val ordered = DECISION_ORDER.filter { it in allowedDecisions }
     FlowRow(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {

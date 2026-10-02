@@ -248,6 +248,7 @@ class PendingActionDelegate(
             this.pendingAction = pendingAction
             if (!isSameActionMidSubmit) isResolvingPendingAction = false
             if (!isSameAction) {
+                pendingActionResumeFailed = false
                 askAnswerDrafts = restored?.askDrafts.orEmpty()
                 askActiveQuestionId = restored?.askActiveQuestionId
                 askPanelCollapsed = restored?.askCollapsed ?: false
@@ -306,6 +307,7 @@ class PendingActionDelegate(
         handle.update {
             pendingAction = null
             isResolvingPendingAction = false
+            pendingActionResumeFailed = false
             askAnswerDrafts = emptyMap()
             askActiveQuestionId = null
             askPanelCollapsed = false
@@ -343,6 +345,7 @@ class PendingActionDelegate(
         handle.update {
             pendingAction = null
             isResolvingPendingAction = false
+            pendingActionResumeFailed = false
             askAnswerDrafts = emptyMap()
             askActiveQuestionId = null
             askPanelCollapsed = false
@@ -568,6 +571,7 @@ class PendingActionDelegate(
                     handle.update {
                         pendingAction = null
                         isResolvingPendingAction = false
+                        pendingActionResumeFailed = false
                         askAnswerDrafts = emptyMap()
                         askActiveQuestionId = null
                         askPanelCollapsed = false
@@ -593,6 +597,7 @@ class PendingActionDelegate(
                     val fingerprintRejected = statusCode == HTTP_FORBIDDEN
                     handle.update {
                         isResolvingPendingAction = false
+                        pendingActionResumeFailed = true
                         error = if (fingerprintRejected) {
                             fingerprintRejectedMessage()
                         } else {

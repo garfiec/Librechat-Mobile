@@ -794,6 +794,46 @@ class PendingActionDelegateTest {
     }
 
     /**
+     * The ask panel offers Stop only after a resume has failed — Skip is the same POST, so a
+     * pause that keeps failing has no other way out while the composer is hidden.
+     */
+    @Test
+    fun `a failed resume arms Stop until the pause resolves`() = runTest(UnconfinedTestDispatcher()) {
+        coEvery { chatRepository.resumeChat(any()) } returns
+            Result.Error(ApiException(statusCode = 403, message = "Forbidden"))
+        val (delegate, flow) = delegateWith(this)
+
+        delegate.onPendingAction(toolApproval("act-1"))
+        assertThat(flow.value.pendingActionResumeFailed).isFalse()
+
+        delegate.submitAnswer("yes")
+        assertThat(flow.value.pendingActionResumeFailed).isTrue()
+
+        // A re-announcement of the same pause keeps it: nothing about the failure has changed.
+        delegate.onPendingAction(toolApproval("act-1"))
+        assertThat(flow.value.pendingActionResumeFailed).isTrue()
+
+        coEvery { chatRepository.resumeChat(any()) } returns Result.Success(ChatResumeResponse())
+        delegate.submitAnswer("yes")
+        assertThat(flow.value.pendingActionResumeFailed).isFalse()
+    }
+
+    @Test
+    fun `a different pause or a clear disarms Stop`() = runTest(UnconfinedTestDispatcher()) {
+        coEvery { chatRepository.resumeChat(any()) } returns Result.Error(message = "boom")
+        val (delegate, flow) = delegateWith(this)
+
+        delegate.onPendingAction(toolApproval("act-1"))
+        delegate.submitAnswer("yes")
+        delegate.onPendingAction(toolApproval("act-2"))
+        assertThat(flow.value.pendingActionResumeFailed).isFalse()
+
+        delegate.submitAnswer("yes")
+        delegate.clear()
+        assertThat(flow.value.pendingActionResumeFailed).isFalse()
+    }
+
+    /**
      * The stream can end while the answer is still in flight — `endStream` clears the pause, and
      * the continuation is then forbidden from touching the shared fields. The words are not the
      * pause, though, and this is the path that silently ate them.
