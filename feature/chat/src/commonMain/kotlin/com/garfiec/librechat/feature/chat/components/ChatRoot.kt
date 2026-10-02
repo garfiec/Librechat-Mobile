@@ -11,6 +11,9 @@ import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import com.garfiec.librechat.core.data.datastore.InlineArtifactPrefs
+import com.garfiec.librechat.core.ui.components.topbar.CoversNativeBars
+import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
+import com.garfiec.librechat.core.ui.glass.rememberGlassBackdrop
 import com.garfiec.librechat.core.ui.media.MediaActionBar
 import com.garfiec.librechat.core.ui.media.MediaPreviewState
 import com.garfiec.librechat.core.ui.media.ZoomableMediaPager
@@ -82,7 +85,12 @@ fun ChatRoot(
         }
     }
 
+    // Full-screen overlays hosted here are drawn in the Compose canvas, under a native glass bar.
+    CoversNativeBars(active = mediaPreview != null || pdfRequest != null)
+
     CompositionLocalProvider(
+        // What the chat's glass chrome samples: the message list records into it (MessageList).
+        LocalGlassBackdrop provides rememberGlassBackdrop(),
         LocalInlineArtifactPrefs provides inlineArtifactPrefs,
         LocalMermaidRenderCache provides mermaidRenderCache,
         LocalParsedMarkdownCache provides parsedMarkdownCache,

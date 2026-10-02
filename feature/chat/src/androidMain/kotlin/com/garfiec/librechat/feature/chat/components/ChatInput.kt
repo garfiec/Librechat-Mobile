@@ -197,6 +197,7 @@ fun ChatInput(
             Box {
                 FilledTonalIconButton(
                     onClick = onOpenTools,
+                    colors = ChatInputDefaults.toolsButtonColors(),
                     modifier = Modifier
                         .size(48.dp)
                         .semantics {
@@ -250,6 +251,7 @@ fun ChatInput(
         },
         textFieldContent = {
             Box(modifier = Modifier.weight(1f)) {
+                // The composer draws its own field (ChatInputDefaults), glass included; not the adaptive one.
                 OutlinedTextField(
                     value = textFieldValue,
                     onValueChange = { newValue ->

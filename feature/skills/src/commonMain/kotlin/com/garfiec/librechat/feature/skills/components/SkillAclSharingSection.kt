@@ -17,10 +17,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -29,10 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -46,6 +39,13 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.AccessRole
 import com.garfiec.librechat.core.model.Principal
 import com.garfiec.librechat.core.model.PrincipalType
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveAssistChip
+import com.garfiec.librechat.core.ui.components.AdaptiveButton
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.skills.resources.*
 import com.garfiec.librechat.feature.skills.resources.Res
@@ -103,7 +103,7 @@ fun SkillAclSharingSection(
 
                 if (uiState.isLoading) {
                     Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+                        AdaptiveCircularProgressIndicator()
                     }
                 } else if (uiState.principals.isEmpty()) {
                     Text(
@@ -120,7 +120,7 @@ fun SkillAclSharingSection(
                     }
                 }
 
-                OutlinedButton(
+                AdaptiveOutlinedButton(
                     onClick = viewModel::openGrantDialog,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
@@ -216,7 +216,7 @@ private fun PublicToggle(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Switch(
+            AdaptiveSwitch(
                 checked = isPublic,
                 onCheckedChange = { enabled ->
                     onSetPublic(enabled, publicAccessRoleId ?: roles.firstOrNull()?.accessRoleId)
@@ -230,7 +230,7 @@ private fun PublicToggle(
                 onExpandedChange = { roleMenu = it },
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                OutlinedTextField(
+                AdaptiveOutlinedTextField(
                     value = publicAccessRoleId ?: "",
                     onValueChange = {},
                     readOnly = true,
@@ -270,13 +270,13 @@ private fun GrantAccessDialog(
     var selectedRole by remember(roles) { mutableStateOf(roles.firstOrNull()?.accessRoleId) }
     var roleMenu by remember { mutableStateOf(false) }
 
-    AlertDialog(
+    AdaptiveAlertDialog(
         modifier = Modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.skill_acl_grant_dialog_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
+                AdaptiveOutlinedTextField(
                     value = searchQuery,
                     onValueChange = onQueryChange,
                     label = { Text(stringResource(Res.string.skill_acl_search_hint)) },
@@ -288,7 +288,7 @@ private fun GrantAccessDialog(
                     onExpandedChange = { roleMenu = it },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    OutlinedTextField(
+                    AdaptiveOutlinedTextField(
                         value = selectedRole ?: "",
                         onValueChange = {},
                         readOnly = true,
@@ -313,7 +313,7 @@ private fun GrantAccessDialog(
 
                 if (isSearching) {
                     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                        AdaptiveCircularProgressIndicator(modifier = Modifier.size(24.dp))
                     }
                 } else if (searchQuery.isNotBlank() && results.isEmpty()) {
                     Text(
@@ -322,9 +322,9 @@ private fun GrantAccessDialog(
                     )
                 } else {
                     results.forEach { principal ->
-                        AssistChip(
+                        AdaptiveAssistChip(
                             onClick = {
-                                val role = selectedRole ?: return@AssistChip
+                                val role = selectedRole ?: return@AdaptiveAssistChip
                                 onGrant(principal, role)
                             },
                             label = { Text(principal.name ?: principal.id ?: "?") },
@@ -335,7 +335,7 @@ private fun GrantAccessDialog(
             }
         },
         confirmButton = {
-            Button(onClick = onDismiss) {
+            AdaptiveButton(onClick = onDismiss) {
                 Text(stringResource(Res.string.skill_acl_close))
             }
         },

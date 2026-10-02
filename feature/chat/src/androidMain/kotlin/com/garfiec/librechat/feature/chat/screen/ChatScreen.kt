@@ -29,13 +29,10 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -69,8 +66,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.model.response.pickerMimeTypes
+import com.garfiec.librechat.core.ui.components.AdaptiveSheetSurface
+import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.core.ui.components.PdfPasswordDialog
+import com.garfiec.librechat.core.ui.glass.glassBackdropSource
+import com.garfiec.librechat.core.ui.glass.rememberGlassBackdrop
 import com.garfiec.librechat.feature.chat.components.AskUserQuestionPanel
 import com.garfiec.librechat.feature.chat.components.ChatFloatingTopBar
 import com.garfiec.librechat.feature.chat.components.ChatInput
@@ -262,7 +263,7 @@ actual fun ChatScreen(
         // must extend under the status bar — only reserve the navigation-bar inset here (for the
         // snackbar); the composer handles its own nav-bar padding.
         contentWindowInsets = WindowInsets.navigationBars,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
     ) { _ ->
         // The composer overlays the message list at the bottom; the list reserves a scrollable
         // bottom inset so its latest content rests above the bar. We measure the bar's actual
@@ -465,197 +466,202 @@ actual fun ChatScreen(
                 flingBehavior = pullUpFling,
             )
 
-            Column(
-                // "Add to chat" on the selection toolbar (v0.8.7 quotes), contributed from above
-                // every message's SelectionContainer — which is where foundation collects a
-                // menu's components from. Gated: a pre-0.8.7 server ignores the request field and
-                // would silently drop the excerpts.
-                modifier = Modifier
-                    .fillMaxSize()
-                    .addToChatSelectionItem(
-                        enabled = uiState.quoteCaptureAvailable,
-                        onAddToChat = viewModel::addPendingQuote,
-                    ),
-            ) {
-                ChatContent(
-                    listPullUpModifier = pullUpListModifier,
-                    pullUpModifier = pullUpLandingModifier,
-                    viewModel = viewModel,
-                    clipboardManager = clipboardManager,
-                    agentName = agentName,
-                    displayModel = displayModel,
-                    fontSizeMultiplier = fontSizeMultiplier,
-                    showImageDescriptions = showImageDescriptions,
-                    chatLayoutStyle = chatLayoutStyle,
-                    showAvatars = showAvatars,
-                    showBubbles = showBubbles,
-                    useKatex = useKatex,
-                    bottomContentPadding = bottomContentPadding,
-                    topContentPadding = topContentPadding,
-                    onShowSecondaryModelSheet = { showSecondaryModelSheet = true },
-                    onComparisonTabChange = { activeComparisonTab = it },
-                )
-            }
-
-            // ChatInput overlays at the bottom so gradient shows content behind
-            val isAnyStreaming = uiState.isStreaming ||
-                uiState.comparisonState.primaryIsStreaming ||
-                uiState.comparisonState.secondaryIsStreaming
-            // A question pause takes the composer's place until it resolves (see
-            // AskUserQuestionPanel); a tool-approval pause docks above it (see ToolApprovalPanel).
-            // Everything here is measured together so the list's bottom inset clears it.
-            val askPause = uiState.renderablePendingAction?.takeIf { it.isAskUserQuestion }
-            val toolPause = uiState.renderablePendingAction?.takeIf { it.isToolApproval }
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .onSizeChanged { inputBarHeightPx = it.height },
-            ) {
-                Column {
-                    toolPause?.let { pause ->
-                        ToolApprovalPanel(
-                            pendingAction = pause,
-                            isResolving = uiState.isResolvingPendingAction,
-                            drafts = uiState.toolDecisionDrafts,
-                            activeCallId = uiState.toolActiveCallId,
-                            collapsed = uiState.toolPanelCollapsed,
-                            onDraftChange = viewModel::updateToolDecisionDraft,
-                            onSelectCall = viewModel::selectToolCall,
-                            onCollapsedChange = viewModel::setToolPanelCollapsed,
-                            onSubmit = viewModel::resolveToolApproval,
-                            modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp),
-                        )
-                    }
-                    if (askPause != null) {
-                        AskUserQuestionPanel(
-                            pendingAction = askPause,
-                            isResolving = uiState.isResolvingPendingAction,
-                            drafts = uiState.askAnswerDrafts,
-                            activeQuestionId = uiState.askActiveQuestionId,
-                            collapsed = uiState.askPanelCollapsed,
-                            onDraftChange = viewModel::updateAskAnswerDraft,
-                            onSelectQuestion = viewModel::selectAskQuestion,
-                            onCollapsedChange = viewModel::setAskPanelCollapsed,
-                            onSubmitAnswer = viewModel::answerPendingQuestion,
-                            onSubmitAnswers = viewModel::answerPendingQuestions,
-                            // The composer's Stop is hidden with it, and the run stays live across the pause.
-                            onStop = viewModel::stopGeneration.takeIf { isAnyStreaming },
-                            modifier = Modifier
-                                .navigationBarsPadding()
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
-                        )
-                    } else {
-                        ChatInput(
-                            inputText = uiState.inputText,
-                            isStreaming = isAnyStreaming,
-                            onInputChanged = viewModel::onInputChanged,
-                            onSend = {
-                                viewModel.sendMessage()
-                                if (dismissKeyboardOnSend) {
-                                    keyboardController?.hide()
-                                }
-                            },
-                            onStop = viewModel::stopGeneration,
-                            onOpenTools = { optionsController.open() },
-                            // The mid-stream send button: the ViewModel resolves steer-vs-queue from the
-                            // user's preference and what this run can actually take, so the composer never
-                            // has to. `onQueue` stays the picker's explicit "add to queue".
-                            onDuringRunSend = {
-                                viewModel.sendDuringRun()
-                                if (dismissKeyboardOnSend) {
-                                    keyboardController?.hide()
-                                }
-                            },
-                            onQueue = {
-                                viewModel.queueMessage()
-                                if (dismissKeyboardOnSend) {
-                                    keyboardController?.hide()
-                                }
-                            },
-                            canQueue = uiState.canQueueFollowUp,
-                            // Explicit "steer this one", from the during-run picker or the send button when
-                            // steering is the standing default.
-                            onSteer = {
-                                viewModel.steerMessage()
-                                if (dismissKeyboardOnSend) {
-                                    keyboardController?.hide()
-                                }
-                            },
-                            canSteer = uiState.canSteerNow,
-                            duringRunAction = uiState.effectiveDuringRunAction,
-                            duringRunSendTarget = uiState.duringRunSendTarget,
-                            pendingSteers = uiState.pendingSteers,
-                            pendingQuotes = uiState.pendingQuotes,
-                            onRemoveQuote = viewModel::removePendingQuote,
-                            onCancelSteer = viewModel::cancelSteer,
-                            onSetDuringRunAction = viewModel::setDuringRunAction,
-                            attachedFiles = attachedFiles,
-                            onRemoveFile = viewModel::removeFile,
-                            promptSuggestions = uiState.availablePrompts,
-                            onSlashCommandSelected = viewModel::handleSlashCommand,
-                            isRecording = uiState.isRecording,
-                            isTranscribing = uiState.isTranscribing,
-                            onStartRecording = onStartRecordingWithPermission,
-                            onStopRecording = viewModel::stopRecording,
-                            enabledTools = uiState.effectiveEnabledTools,
-                            pinnedToolKeys = uiState.pinnedToolChips,
-                            onToggleTool = viewModel::toggleTool,
-                            mcpServers = uiState.mcpServers,
-                            selectedMcpServerNames = uiState.selectedMcpServerNames,
-                            selectedModelDisplay = effectiveSelectedModelDisplay,
-                            isCodeInterpreterAvailable = uiState.isCodeInterpreterAvailable,
-                            gates = uiState.chatInputGates,
-                            contextUsage = uiState.contextUsage,
-                            tokenUsage = uiState.tokenUsage,
-                            contextUsageEnabled = uiState.contextUsageEnabled,
-                            isCompacting = uiState.isCompacting,
-                            onCompact = viewModel::compactConversation.takeIf { uiState.canCompactNow },
-                            contextBarPlacement = uiState.contextBarPlacement,
-                            // After a Stop/error pause, the queue waits for an explicit nudge.
-                            queuedPausedCount = uiState.pausedQueueCount,
-                            onSendQueuedMessages = viewModel::sendQueuedNow,
-                            isEditingQueued = uiState.isEditingQueued,
-                            onCommitEdit = viewModel::commitQueuedEdit,
-                            onCancelEdit = viewModel::cancelQueuedEdit,
-                            isAwaitingUploadSend = uiState.isAwaitingUploadSend,
-                            arePicksUnsettled = uiState.arePicksUnsettled,
-                            onCancelPendingSend = viewModel::cancelPendingUploadSend,
-                            queuedMessages = uiState.messageQueue,
-                            onEditQueuedMessage = viewModel::editQueued,
-                            onCancelQueuedMessage = viewModel::cancelQueued,
-                            onReorderQueuedMessages = viewModel::reorderQueue,
-                            fontSizeMultiplier = fontSizeMultiplier,
-                        )
-                    }
-                }
-            }
-
-            // Floating top bar overlays the message list (drawn last so it sits above content),
-            // measured so ChatContent can reserve a matching scrollable top inset.
-            ChatFloatingTopBar(
-                uiState = uiState,
-                viewModel = viewModel,
-                onLoadPreset = { showPresetPicker = true },
-                onSavePreset = { showSavePresetDialog = true },
-                onRename = viewModel::showRenameDialog,
-                onOpenDrawer = onOpenDrawer,
-                onShowAllMedia = onShowAllMedia,
-                onOpenPromptsLibrary = onNavigateToPromptsLibrary,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .onSizeChanged { topBarHeightPx = it.height },
-            )
-
-            // Pull-up sheet overlay (drawn last so scrim + sheet sit above the composer and top bar).
-            // `pullUpVisible` is derived so the scrim/back-handler recompose only on the open<->closed
-            // transition; the scrim's dim level is drawn in the draw phase (drawBehind) and the sheet
-            // offset is read in the layout phase (offset {}), so a drag doesn't recompose the screen.
+            // The whole screen, recorded for the pull-up sheet only while it shows. The sheet is drawn
+            // beside this, never inside it.
+            val pullUpBackdrop = rememberGlassBackdrop()
             val pullUpVisible by remember {
                 derivedStateOf {
                     val o = pullUpState.offset
                     pullUpSheetHeightPx > 0 && !o.isNaN() && o < pullUpSheetHeightPx
                 }
             }
+            Box(Modifier.fillMaxSize().glassBackdropSource(pullUpBackdrop.takeIf { pullUpVisible })) {
+                Column(
+                    // "Add to chat" on the selection toolbar (v0.8.7 quotes), contributed from above
+                    // every message's SelectionContainer — which is where foundation collects a
+                    // menu's components from. Gated: a pre-0.8.7 server ignores the request field and
+                    // would silently drop the excerpts.
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .addToChatSelectionItem(
+                            enabled = uiState.quoteCaptureAvailable,
+                            onAddToChat = viewModel::addPendingQuote,
+                        ),
+                ) {
+                    ChatContent(
+                        listPullUpModifier = pullUpListModifier,
+                        pullUpModifier = pullUpLandingModifier,
+                        viewModel = viewModel,
+                        clipboardManager = clipboardManager,
+                        agentName = agentName,
+                        displayModel = displayModel,
+                        fontSizeMultiplier = fontSizeMultiplier,
+                        showImageDescriptions = showImageDescriptions,
+                        chatLayoutStyle = chatLayoutStyle,
+                        showAvatars = showAvatars,
+                        showBubbles = showBubbles,
+                        useKatex = useKatex,
+                        bottomContentPadding = bottomContentPadding,
+                        topContentPadding = topContentPadding,
+                        onShowSecondaryModelSheet = { showSecondaryModelSheet = true },
+                        onComparisonTabChange = { activeComparisonTab = it },
+                    )
+                }
+
+                // ChatInput overlays at the bottom so gradient shows content behind
+                val isAnyStreaming = uiState.isStreaming ||
+                    uiState.comparisonState.primaryIsStreaming ||
+                    uiState.comparisonState.secondaryIsStreaming
+                // A question pause takes the composer's place until it resolves (see
+                // AskUserQuestionPanel); a tool-approval pause docks above it (see ToolApprovalPanel).
+                // Everything here is measured together so the list's bottom inset clears it.
+                val askPause = uiState.renderablePendingAction?.takeIf { it.isAskUserQuestion }
+                val toolPause = uiState.renderablePendingAction?.takeIf { it.isToolApproval }
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .onSizeChanged { inputBarHeightPx = it.height },
+                ) {
+                    Column {
+                        toolPause?.let { pause ->
+                            ToolApprovalPanel(
+                                pendingAction = pause,
+                                isResolving = uiState.isResolvingPendingAction,
+                                drafts = uiState.toolDecisionDrafts,
+                                activeCallId = uiState.toolActiveCallId,
+                                collapsed = uiState.toolPanelCollapsed,
+                                onDraftChange = viewModel::updateToolDecisionDraft,
+                                onSelectCall = viewModel::selectToolCall,
+                                onCollapsedChange = viewModel::setToolPanelCollapsed,
+                                onSubmit = viewModel::resolveToolApproval,
+                                modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp),
+                            )
+                        }
+                        if (askPause != null) {
+                            AskUserQuestionPanel(
+                                pendingAction = askPause,
+                                isResolving = uiState.isResolvingPendingAction,
+                                drafts = uiState.askAnswerDrafts,
+                                activeQuestionId = uiState.askActiveQuestionId,
+                                collapsed = uiState.askPanelCollapsed,
+                                onDraftChange = viewModel::updateAskAnswerDraft,
+                                onSelectQuestion = viewModel::selectAskQuestion,
+                                onCollapsedChange = viewModel::setAskPanelCollapsed,
+                                onSubmitAnswer = viewModel::answerPendingQuestion,
+                                onSubmitAnswers = viewModel::answerPendingQuestions,
+                                // The composer's Stop is hidden with it, and the run stays live across the pause.
+                                onStop = viewModel::stopGeneration.takeIf { isAnyStreaming },
+                                modifier = Modifier
+                                    .navigationBarsPadding()
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                            )
+                        } else {
+                            ChatInput(
+                                inputText = uiState.inputText,
+                                isStreaming = isAnyStreaming,
+                                onInputChanged = viewModel::onInputChanged,
+                                onSend = {
+                                    viewModel.sendMessage()
+                                    if (dismissKeyboardOnSend) {
+                                        keyboardController?.hide()
+                                    }
+                                },
+                                onStop = viewModel::stopGeneration,
+                                onOpenTools = { optionsController.open() },
+                                // The mid-stream send button: the ViewModel resolves steer-vs-queue from the
+                                // user's preference and what this run can actually take, so the composer never
+                                // has to. `onQueue` stays the picker's explicit "add to queue".
+                                onDuringRunSend = {
+                                    viewModel.sendDuringRun()
+                                    if (dismissKeyboardOnSend) {
+                                        keyboardController?.hide()
+                                    }
+                                },
+                                onQueue = {
+                                    viewModel.queueMessage()
+                                    if (dismissKeyboardOnSend) {
+                                        keyboardController?.hide()
+                                    }
+                                },
+                                canQueue = uiState.canQueueFollowUp,
+                                // Explicit "steer this one", from the during-run picker or the send button when
+                                // steering is the standing default.
+                                onSteer = {
+                                    viewModel.steerMessage()
+                                    if (dismissKeyboardOnSend) {
+                                        keyboardController?.hide()
+                                    }
+                                },
+                                canSteer = uiState.canSteerNow,
+                                duringRunAction = uiState.effectiveDuringRunAction,
+                                duringRunSendTarget = uiState.duringRunSendTarget,
+                                pendingSteers = uiState.pendingSteers,
+                                pendingQuotes = uiState.pendingQuotes,
+                                onRemoveQuote = viewModel::removePendingQuote,
+                                onCancelSteer = viewModel::cancelSteer,
+                                onSetDuringRunAction = viewModel::setDuringRunAction,
+                                attachedFiles = attachedFiles,
+                                onRemoveFile = viewModel::removeFile,
+                                promptSuggestions = uiState.availablePrompts,
+                                onSlashCommandSelected = viewModel::handleSlashCommand,
+                                isRecording = uiState.isRecording,
+                                isTranscribing = uiState.isTranscribing,
+                                onStartRecording = onStartRecordingWithPermission,
+                                onStopRecording = viewModel::stopRecording,
+                                enabledTools = uiState.effectiveEnabledTools,
+                                pinnedToolKeys = uiState.pinnedToolChips,
+                                onToggleTool = viewModel::toggleTool,
+                                mcpServers = uiState.mcpServers,
+                                selectedMcpServerNames = uiState.selectedMcpServerNames,
+                                selectedModelDisplay = effectiveSelectedModelDisplay,
+                                isCodeInterpreterAvailable = uiState.isCodeInterpreterAvailable,
+                                gates = uiState.chatInputGates,
+                                contextUsage = uiState.contextUsage,
+                                tokenUsage = uiState.tokenUsage,
+                                contextUsageEnabled = uiState.contextUsageEnabled,
+                                isCompacting = uiState.isCompacting,
+                                onCompact = viewModel::compactConversation.takeIf { uiState.canCompactNow },
+                                contextBarPlacement = uiState.contextBarPlacement,
+                                // After a Stop/error pause, the queue waits for an explicit nudge.
+                                queuedPausedCount = uiState.pausedQueueCount,
+                                onSendQueuedMessages = viewModel::sendQueuedNow,
+                                isEditingQueued = uiState.isEditingQueued,
+                                onCommitEdit = viewModel::commitQueuedEdit,
+                                onCancelEdit = viewModel::cancelQueuedEdit,
+                                isAwaitingUploadSend = uiState.isAwaitingUploadSend,
+                                arePicksUnsettled = uiState.arePicksUnsettled,
+                                onCancelPendingSend = viewModel::cancelPendingUploadSend,
+                                queuedMessages = uiState.messageQueue,
+                                onEditQueuedMessage = viewModel::editQueued,
+                                onCancelQueuedMessage = viewModel::cancelQueued,
+                                onReorderQueuedMessages = viewModel::reorderQueue,
+                                fontSizeMultiplier = fontSizeMultiplier,
+                            )
+                        }
+                    }
+                }
+
+                // Floating top bar overlays the message list (drawn last so it sits above content),
+                // measured so ChatContent can reserve a matching scrollable top inset.
+                ChatFloatingTopBar(
+                    uiState = uiState,
+                    viewModel = viewModel,
+                    onLoadPreset = { showPresetPicker = true },
+                    onSavePreset = { showSavePresetDialog = true },
+                    onRename = viewModel::showRenameDialog,
+                    onOpenDrawer = onOpenDrawer,
+                    onShowAllMedia = onShowAllMedia,
+                    onOpenPromptsLibrary = onNavigateToPromptsLibrary,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .onSizeChanged { topBarHeightPx = it.height },
+                )
+            }
+
+            // Pull-up sheet overlay (drawn last so scrim + sheet sit above the composer and top bar).
+            // `pullUpVisible` is derived so the scrim/back-handler recompose only on the open<->closed
+            // transition; the scrim's dim level is drawn in the draw phase (drawBehind) and the sheet
+            // offset is read in the layout phase (offset {}), so a drag doesn't recompose the screen.
             if (pullUpVisible) {
                 Box(
                     modifier = Modifier
@@ -685,9 +691,8 @@ actual fun ChatScreen(
             BackHandler(enabled = pullUpVisible) {
                 coroutineScope.launch { pullUpState.animateTo(PullUpAnchor.Hidden) }
             }
-            Surface(
-                color = BottomSheetDefaults.ContainerColor,
-                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+            AdaptiveSheetSurface(
+                backdrop = pullUpBackdrop,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     // Match ModalBottomSheet: full-bleed on phones, capped + centered on wide

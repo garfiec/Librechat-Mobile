@@ -15,10 +15,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -39,6 +37,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.model.background.BackgroundTaskDelivery
 import com.garfiec.librechat.core.model.background.BackgroundTaskStatus
 import com.garfiec.librechat.core.model.background.BackgroundTaskSummary
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -117,7 +117,7 @@ private fun BackgroundTasksSheet(
     onStopAll: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    ModalBottomSheet(
+    AdaptiveModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         dragHandle = { LowProfileDragHandle() },
@@ -168,7 +168,7 @@ private fun BackgroundTasksSheet(
                     )
                 }
                 state.tasks.forEachIndexed { index, task ->
-                    if (index > 0) HorizontalDivider()
+                    if (index > 0) AdaptiveDivider()
                     BackgroundTaskRow(
                         task = task,
                         stopping = task.cancellationRequested || task.taskId in state.stoppingTaskIds ||

@@ -19,20 +19,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -46,10 +40,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveFilterChip
+import com.garfiec.librechat.core.ui.components.AdaptiveFloatingActionButton
+import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
+import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.EmptyState
 import com.garfiec.librechat.core.ui.components.ErrorBanner
 import com.garfiec.librechat.core.ui.components.LibreChatTopBar
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
+import com.garfiec.librechat.core.ui.components.topbar.BarAction
+import com.garfiec.librechat.core.ui.components.topbar.BarIcons
 import com.garfiec.librechat.feature.chat.prompts.components.PromptFilterSheet
 import com.garfiec.librechat.feature.chat.prompts.components.PromptShareDialog
 import com.garfiec.librechat.feature.chat.prompts.components.PromptSortOrder
@@ -112,7 +113,7 @@ fun PromptsLibraryScreen(
         )
 
         if (uiState.pendingDeleteGroupId == selectedGroup.id) {
-            AlertDialog(
+            AdaptiveAlertDialog(
                 onDismissRequest = viewModel::dismissDeleteGroup,
                 title = { Text(stringResource(Res.string.dialog_title_delete_prompt)) },
                 text = { Text(stringResource(Res.string.dialog_delete_prompt_message, selectedGroup.name)) },
@@ -167,26 +168,26 @@ fun PromptsLibraryScreen(
         )
     }
 
-    Scaffold(
+    AdaptiveScaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
             LibreChatTopBar(
                 title = stringResource(Res.string.prompts_library),
                 onNavigateBack = onNavigateBack,
-                actions = {
-                    IconButton(onClick = viewModel::showFilterSheet) {
-                        Icon(
-                            imageVector = Icons.Default.FilterList,
-                            contentDescription = stringResource(Res.string.cd_filter_sort),
-                        )
-                    }
-                },
+                actions = listOf(
+                    BarAction.Icon(
+                        id = "filter",
+                        icon = BarIcons.Filter,
+                        label = stringResource(Res.string.cd_filter_sort),
+                        onClick = viewModel::showFilterSheet,
+                    ),
+                ),
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
         floatingActionButton = {
             if (uiState.promptsCreateEnabled) {
-                FloatingActionButton(onClick = { onNavigateToEditor(null) }) {
+                AdaptiveFloatingActionButton(onClick = { onNavigateToEditor(null) }) {
                     Icon(Icons.Default.Add, contentDescription = stringResource(Res.string.cd_create_prompt))
                 }
             }
@@ -213,7 +214,7 @@ fun PromptsLibraryScreen(
                     ) {
                         val selectedCat = uiState.selectedCategory
                         if (selectedCat != null) {
-                            FilterChip(
+                            AdaptiveFilterChip(
                                 selected = true,
                                 onClick = { viewModel.onCategorySelected(null) },
                                 label = { Text(selectedCat) },
@@ -227,7 +228,7 @@ fun PromptsLibraryScreen(
                             )
                         }
                         if (uiState.sortOrder != PromptSortOrder.RECENT) {
-                            FilterChip(
+                            AdaptiveFilterChip(
                                 selected = true,
                                 onClick = {
                                     viewModel.onSortOrderChanged(PromptSortOrder.RECENT)

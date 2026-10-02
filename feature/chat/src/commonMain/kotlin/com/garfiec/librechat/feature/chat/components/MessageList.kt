@@ -20,7 +20,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -53,6 +52,9 @@ import com.garfiec.librechat.core.common.ChatLayoutConstants
 import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.MinimalFeedback
 import com.garfiec.librechat.core.model.PendingAction
+import com.garfiec.librechat.core.ui.components.AdaptiveFloatingActionButton
+import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
+import com.garfiec.librechat.core.ui.glass.glassBackdropSource
 import com.garfiec.librechat.core.ui.theme.isSurfaceDark
 import com.garfiec.librechat.feature.chat.components.artifact.ArtifactType
 import com.garfiec.librechat.feature.chat.resources.*
@@ -141,6 +143,11 @@ fun MessageList(
      * composer. Only the callers that can resolve one pass it; the comparison panes leave it null.
      */
     pendingAction: PendingAction? = null,
+    /**
+     * Whether this list records itself into the screen's glass backdrop. Comparison mode shows two
+     * lists, and two sources writing one backdrop would overwrite each other, so its panes opt out.
+     */
+    recordsGlassBackdrop: Boolean = true,
 ) {
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -536,6 +543,7 @@ fun MessageList(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
+                .glassBackdropSource(LocalGlassBackdrop.current.takeIf { recordsGlassBackdrop })
                 .onFocusChanged { listHasFocus = it.hasFocus }
                 .onGloballyPositioned { listCoordinates = it }
                 .pointerInput(Unit) {
@@ -778,7 +786,7 @@ fun MessageList(
             enter = fadeIn(),
             exit = fadeOut(),
         ) {
-            SmallFloatingActionButton(
+            AdaptiveFloatingActionButton(
                 onClick = {
                     userScrolledUp = false
                     coroutineScope.launch {
@@ -787,11 +795,11 @@ fun MessageList(
                         }
                     }
                 },
+                small = true,
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                 contentColor = MaterialTheme.colorScheme.onSurface,
-                elevation = FloatingActionButtonDefaults.elevation(
-                    defaultElevation = 4.dp,
-                ),
+                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp),
+                backdrop = LocalGlassBackdrop.current.takeIf { recordsGlassBackdrop },
             ) {
                 Icon(
                     imageVector = Icons.Default.KeyboardArrowDown,

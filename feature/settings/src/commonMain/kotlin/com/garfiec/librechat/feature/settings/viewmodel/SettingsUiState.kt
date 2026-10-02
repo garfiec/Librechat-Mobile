@@ -22,6 +22,8 @@ import com.garfiec.librechat.core.model.config.BuildInfo
 import com.garfiec.librechat.core.model.mcp.McpServer
 import com.garfiec.librechat.core.model.mcp.McpServerStatus
 import com.garfiec.librechat.core.model.speech.TtsVoice
+import com.garfiec.librechat.core.model.ui.GlassCapability
+import com.garfiec.librechat.core.model.ui.UiStyle
 import com.garfiec.librechat.feature.settings.model.SharedLinkDisplayData
 import com.garfiec.librechat.feature.settings.model.UserDisplayData
 import com.garfiec.librechat.feature.settings.screen.DeviceVoiceInfo
@@ -40,6 +42,10 @@ data class SettingsUiState(
     val accentColor: Int = ThemeDataStore.DEFAULT_ACCENT_COLOR,
     val useDynamicColor: Boolean = false,
     val dynamicColorSupported: Boolean = false,
+    /** The effective style: the stored choice, else the platform default. */
+    val uiStyle: UiStyle = UiStyle.MATERIAL,
+    /** Drives the note under the style selector when Liquid Glass renders reduced here. */
+    val glassCapability: GlassCapability = GlassCapability.FLAT,
     val showAccentColorDialog: Boolean = false,
     val serverUrl: String = "",
     /** Human-facing app version (e.g. `0.1.0`), sourced from the installed package. */

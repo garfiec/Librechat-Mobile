@@ -1,10 +1,10 @@
 package com.garfiec.librechat.feature.settings.screen
 
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 
 @Composable
 internal actual fun AvatarUploadDialog(
@@ -15,7 +15,7 @@ internal actual fun AvatarUploadDialog(
     modifier: Modifier,
 ) {
     // iOS: placeholder dialog — image picker not yet implemented
-    AlertDialog(
+    AdaptiveAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Update Avatar") },
         text = { Text("Avatar upload is not yet available on iOS.") },

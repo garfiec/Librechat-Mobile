@@ -21,42 +21,31 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.automirrored.filled.Sort
-import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AudioFile
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.filled.VideoFile
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScrollableTabRow
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -76,10 +65,26 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.garfiec.librechat.core.model.FileObject
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveCheckbox
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveFloatingActionButton
+import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
+import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.EmptyState
 import com.garfiec.librechat.core.ui.components.ErrorBanner
 import com.garfiec.librechat.core.ui.components.PdfPasswordDialog
 import com.garfiec.librechat.core.ui.components.PlatformBackHandler
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
+import com.garfiec.librechat.core.ui.components.topbar.BarAction
+import com.garfiec.librechat.core.ui.components.topbar.BarIcons
+import com.garfiec.librechat.core.ui.components.topbar.BarMenuItem
+import com.garfiec.librechat.core.ui.components.topbar.BarMenuSection
+import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
+import com.garfiec.librechat.core.ui.components.topbar.BarTint
+import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.media.MediaActionBar
 import com.garfiec.librechat.core.ui.media.ZoomableMediaPager
 import com.garfiec.librechat.core.ui.media.rememberSaveImageToGallery
@@ -89,6 +94,8 @@ import com.garfiec.librechat.feature.files.components.UploadProgressCard
 import com.garfiec.librechat.feature.files.platform.rememberFilePickerLauncher
 import com.garfiec.librechat.feature.files.resources.*
 import com.garfiec.librechat.feature.files.resources.Res
+import com.garfiec.librechat.feature.files.viewmodel.FileSortField
+import com.garfiec.librechat.feature.files.viewmodel.FileSortOrder
 import com.garfiec.librechat.feature.files.viewmodel.FileTypeFilter
 import com.garfiec.librechat.feature.files.viewmodel.FileViewMode
 import com.garfiec.librechat.feature.files.viewmodel.FilesViewModel
@@ -121,7 +128,6 @@ fun FilesScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var singleDeleteFileId by remember { mutableStateOf<String?>(null) }
-    var showSortMenu by remember { mutableStateOf(false) }
     var showCancelSelectionConfirmation by remember { mutableStateOf(false) }
 
     val requestExitSelection = {
@@ -159,119 +165,159 @@ fun FilesScreen(
         viewModel.dismissError()
     }
 
-    Scaffold(
+    AdaptiveScaffold(
         modifier = modifier,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
         topBar = {
             if (pickerMode) {
-                TopAppBar(
-                    title = { SelectionCountTitle(uiState.selectedFileIds.size) },
-                    navigationIcon = {
-                        if (onBack != null) {
-                            IconButton(onClick = onBack) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = stringResource(Res.string.cd_close_picker),
-                                )
-                            }
-                        }
-                    },
-                    actions = {
-                        SelectAllAction(onClick = { viewModel.selectAll() })
-                        ViewModeToggleAction(
-                            viewMode = uiState.viewMode,
-                            onClick = { viewModel.toggleViewMode() },
-                        )
-                        TextButton(
-                            onClick = { onConfirmSelection?.invoke(viewModel.confirmSelection()) },
-                            enabled = uiState.selectedFileIds.isNotEmpty(),
-                        ) {
-                            Text(stringResource(Res.string.attach_count, uiState.selectedFileIds.size))
-                        }
-                    },
+                AdaptiveTopBar(
+                    spec = AdaptiveTopBarSpec(
+                        navigation = onBack?.let {
+                            BarNavigation(BarIcons.Close, stringResource(Res.string.cd_close_picker), it)
+                        },
+                        title = BarTitle(
+                            if (uiState.selectedFileIds.isEmpty()) {
+                                stringResource(Res.string.select_files)
+                            } else {
+                                stringResource(Res.string.selected_count, uiState.selectedFileIds.size)
+                            },
+                        ),
+                        actions = listOf(
+                            BarAction.Icon(
+                                id = "select_all",
+                                icon = BarIcons.SelectAll,
+                                label = stringResource(Res.string.cd_select_all),
+                                onClick = { viewModel.selectAll() },
+                            ),
+                            BarAction.Icon(
+                                id = "view_mode",
+                                icon = if (uiState.viewMode == FileViewMode.LIST) BarIcons.GridView else BarIcons.ListView,
+                                label = if (uiState.viewMode == FileViewMode.LIST) {
+                                    stringResource(Res.string.cd_switch_to_grid)
+                                } else {
+                                    stringResource(Res.string.cd_switch_to_list)
+                                },
+                                onClick = { viewModel.toggleViewMode() },
+                            ),
+                            BarAction.Text(
+                                id = "attach",
+                                label = stringResource(Res.string.attach_count, uiState.selectedFileIds.size),
+                                enabled = uiState.selectedFileIds.isNotEmpty(),
+                                onClick = { onConfirmSelection?.invoke(viewModel.confirmSelection()) },
+                            ),
+                        ),
+                    ),
                 )
             } else if (uiState.isSelectionMode) {
-                TopAppBar(
-                    title = { SelectionCountTitle(uiState.selectedFileIds.size) },
-                    navigationIcon = {
-                        IconButton(onClick = requestExitSelection) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = stringResource(Res.string.cd_exit_edit_mode),
-                            )
-                        }
-                    },
-                    actions = {
-                        SelectAllAction(onClick = { viewModel.selectAll() })
-                        IconButton(
-                            onClick = { showDeleteConfirmation = true },
-                            enabled = uiState.selectedFileIds.isNotEmpty(),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = stringResource(Res.string.cd_delete_selected),
-                                tint = if (uiState.selectedFileIds.isNotEmpty()) {
-                                    MaterialTheme.colorScheme.error
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                            )
-                        }
-                        TextButton(onClick = { viewModel.exitSelectionMode() }) {
-                            Text(stringResource(Res.string.done))
-                        }
-                    },
+                AdaptiveTopBar(
+                    spec = AdaptiveTopBarSpec(
+                        navigation = BarNavigation(
+                            BarIcons.Close,
+                            stringResource(Res.string.cd_exit_edit_mode),
+                            requestExitSelection,
+                        ),
+                        title = BarTitle(
+                            if (uiState.selectedFileIds.isEmpty()) {
+                                stringResource(Res.string.select_files)
+                            } else {
+                                stringResource(Res.string.selected_count, uiState.selectedFileIds.size)
+                            },
+                        ),
+                        actions = listOf(
+                            BarAction.Icon(
+                                id = "select_all",
+                                icon = BarIcons.SelectAll,
+                                label = stringResource(Res.string.cd_select_all),
+                                onClick = { viewModel.selectAll() },
+                            ),
+                            BarAction.Icon(
+                                id = "delete",
+                                icon = BarIcons.DeleteFilled,
+                                label = stringResource(Res.string.cd_delete_selected),
+                                tint = BarTint.DESTRUCTIVE,
+                                enabled = uiState.selectedFileIds.isNotEmpty(),
+                                onClick = { showDeleteConfirmation = true },
+                            ),
+                            BarAction.Text(
+                                id = "done",
+                                label = stringResource(Res.string.done),
+                                onClick = { viewModel.exitSelectionMode() },
+                            ),
+                        ),
+                    ),
                 )
             } else {
-                TopAppBar(
-                    title = { Text(stringResource(Res.string.files)) },
-                    navigationIcon = {
-                        if (onBack != null) {
-                            IconButton(onClick = onBack) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "Back",
+                AdaptiveTopBar(
+                    spec = AdaptiveTopBarSpec(
+                        navigation = onBack?.let { BarNavigation(BarIcons.Back, "Back", it) },
+                        title = BarTitle(stringResource(Res.string.files)),
+                        actions = buildList {
+                            if (uiState.hasFiles) {
+                                add(
+                                    BarAction.Icon(
+                                        id = "edit",
+                                        icon = BarIcons.EditFilled,
+                                        label = stringResource(Res.string.cd_edit_files),
+                                        onClick = { viewModel.enterEditMode() },
+                                    ),
                                 )
                             }
-                        }
-                    },
-                    actions = {
-                        if (uiState.hasFiles) {
-                            IconButton(onClick = { viewModel.enterEditMode() }) {
-                                Icon(
-                                    imageVector = Icons.Default.Edit,
-                                    contentDescription = stringResource(Res.string.cd_edit_files),
-                                )
-                            }
-                        }
-                        ViewModeToggleAction(
-                            viewMode = uiState.viewMode,
-                            onClick = { viewModel.toggleViewMode() },
-                        )
-                        Box {
-                            IconButton(onClick = { showSortMenu = true }) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.Sort,
-                                    contentDescription = stringResource(Res.string.cd_sort_files),
-                                )
-                            }
-                            FileSortMenu(
-                                expanded = showSortMenu,
-                                currentSortField = uiState.sortField,
-                                currentSortOrder = uiState.sortOrder,
-                                onSortSelect = { field, order ->
-                                    viewModel.setSort(field, order)
-                                },
-                                onDismiss = { showSortMenu = false },
+                            add(
+                                BarAction.Icon(
+                                    id = "view_mode",
+                                    icon = if (uiState.viewMode == FileViewMode.LIST) BarIcons.GridView else BarIcons.ListView,
+                                    label = if (uiState.viewMode == FileViewMode.LIST) {
+                                        stringResource(Res.string.cd_switch_to_grid)
+                                    } else {
+                                        stringResource(Res.string.cd_switch_to_list)
+                                    },
+                                    onClick = { viewModel.toggleViewMode() },
+                                ),
                             )
-                        }
-                    },
+                            add(
+                                BarAction.Menu(
+                                    id = "sort",
+                                    icon = BarIcons.Sort,
+                                    label = stringResource(Res.string.cd_sort_files),
+                                    sections = listOf(
+                                        BarMenuSection(
+                                            FileSortField.entries.map { field ->
+                                                val isSelected = field == uiState.sortField
+                                                BarMenuItem(
+                                                    id = field.name,
+                                                    label = field.label,
+                                                    icon = null,
+                                                    checked = isSelected,
+                                                    subtitle = if (!isSelected) {
+                                                        null
+                                                    } else if (uiState.sortOrder == FileSortOrder.ASCENDING) {
+                                                        stringResource(Res.string.cd_ascending)
+                                                    } else {
+                                                        stringResource(Res.string.cd_descending)
+                                                    },
+                                                    // Re-selecting the active field flips the order; a new field starts descending.
+                                                    onClick = {
+                                                        val order = when {
+                                                            !isSelected -> FileSortOrder.DESCENDING
+                                                            uiState.sortOrder == FileSortOrder.ASCENDING -> FileSortOrder.DESCENDING
+                                                            else -> FileSortOrder.ASCENDING
+                                                        }
+                                                        viewModel.setSort(field, order)
+                                                    },
+                                                )
+                                            },
+                                        ),
+                                    ),
+                                ),
+                            )
+                        },
+                    ),
                 )
             }
         },
         floatingActionButton = {
             if (!uiState.isSelectionMode && !pickerMode) {
-                FloatingActionButton(
+                AdaptiveFloatingActionButton(
                     onClick = { filePickerLauncher.launch(uiState.pickerMimeTypes) },
                 ) {
                     Icon(
@@ -312,7 +358,7 @@ fun FilesScreen(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center,
                         ) {
-                            CircularProgressIndicator()
+                            AdaptiveCircularProgressIndicator()
                         }
                     }
                     uiState.error != null && !uiState.hasFiles -> {
@@ -427,7 +473,7 @@ fun FilesScreen(
     // Multi-file delete confirmation
     if (showDeleteConfirmation) {
         val count = uiState.selectedFileIds.size
-        AlertDialog(
+        AdaptiveAlertDialog(
             onDismissRequest = { showDeleteConfirmation = false },
             title = { Text(stringResource(Res.string.delete_count_files, count, if (count > 1) "s" else "")) },
             text = {
@@ -457,7 +503,7 @@ fun FilesScreen(
 
     // Cancel-selection confirmation (back gesture / close with files selected)
     if (showCancelSelectionConfirmation) {
-        AlertDialog(
+        AdaptiveAlertDialog(
             onDismissRequest = { showCancelSelectionConfirmation = false },
             title = { Text(stringResource(Res.string.discard_selection_title)) },
             text = {
@@ -490,7 +536,7 @@ fun FilesScreen(
     if (pendingDeleteId != null) {
         val fileName = uiState.displayFiles
             .find { it.fileId == pendingDeleteId }?.filename ?: stringResource(Res.string.this_file)
-        AlertDialog(
+        AdaptiveAlertDialog(
             onDismissRequest = { singleDeleteFileId = null },
             title = { Text(stringResource(Res.string.delete_file_question)) },
             text = {
@@ -559,46 +605,6 @@ fun FilesScreen(
     }
 }
 
-/** Title for the selection/picker top bars: a generic prompt until something is picked. */
-@Composable
-private fun SelectionCountTitle(count: Int) {
-    Text(
-        if (count == 0) {
-            stringResource(Res.string.select_files)
-        } else {
-            stringResource(Res.string.selected_count, count)
-        },
-    )
-}
-
-/** Top-bar action that selects every visible file. */
-@Composable
-private fun SelectAllAction(onClick: () -> Unit) {
-    IconButton(onClick = onClick) {
-        Icon(
-            imageVector = Icons.Default.SelectAll,
-            contentDescription = stringResource(Res.string.cd_select_all),
-        )
-    }
-}
-
-/** Top-bar action that toggles between the list and grid layouts. */
-@Composable
-private fun ViewModeToggleAction(viewMode: FileViewMode, onClick: () -> Unit) {
-    IconButton(onClick = onClick) {
-        Icon(
-            imageVector = when (viewMode) {
-                FileViewMode.LIST -> Icons.Default.GridView
-                FileViewMode.GRID -> Icons.AutoMirrored.Filled.ViewList
-            },
-            contentDescription = when (viewMode) {
-                FileViewMode.LIST -> stringResource(Res.string.cd_switch_to_grid)
-                FileViewMode.GRID -> stringResource(Res.string.cd_switch_to_list)
-            },
-        )
-    }
-}
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun FileItem(
@@ -623,7 +629,7 @@ private fun FileItem(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (isEditMode) {
-                Checkbox(
+                AdaptiveCheckbox(
                     checked = isSelected,
                     onCheckedChange = { onClick() },
                 )
@@ -663,7 +669,7 @@ private fun FileItem(
                 }
             }
         }
-        HorizontalDivider()
+        AdaptiveDivider()
     }
 }
 
@@ -745,7 +751,7 @@ private fun FileGridItem(
 
             // Selection checkbox overlay
             if (isSelectionMode) {
-                Checkbox(
+                AdaptiveCheckbox(
                     checked = isSelected,
                     onCheckedChange = { onClick() },
                     modifier = Modifier

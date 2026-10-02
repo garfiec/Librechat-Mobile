@@ -40,6 +40,7 @@ import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
 import com.garfiec.librechat.core.model.speech.TtsVoice
+import com.garfiec.librechat.core.model.ui.UiStyle
 import com.garfiec.librechat.feature.settings.util.ContentReader
 import com.garfiec.librechat.feature.settings.util.PlatformCacheCleaner
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.AccountDelegate
@@ -236,6 +237,10 @@ class SettingsViewModel(
 
     fun setUseDynamicColor(enabled: Boolean) {
         prefsController.setUseDynamicColor(enabled)
+    }
+
+    fun setUiStyle(style: UiStyle) {
+        prefsController.setUiStyle(style)
     }
 
     fun showAccentColorDialog() {

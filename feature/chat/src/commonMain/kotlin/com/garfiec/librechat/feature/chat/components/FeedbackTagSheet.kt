@@ -16,9 +16,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -36,6 +33,9 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.FeedbackRating
 import com.garfiec.librechat.core.model.FeedbackTag
+import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.AdaptiveRadioButton
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.chat.resources.*
@@ -78,7 +78,7 @@ internal fun FeedbackTagSheet(
     var comment by rememberSaveable(rating) { mutableStateOf("") }
     val selectedTag = tags.firstOrNull { it.name == selectedTagName }
 
-    ModalBottomSheet(
+    AdaptiveModalBottomSheet(
         onDismissRequest = onDismiss,
         dragHandle = { LowProfileDragHandle() },
         modifier = modifier.clearFocusOnTap(),
@@ -120,7 +120,7 @@ internal fun FeedbackTagSheet(
                             .padding(vertical = 8.dp, horizontal = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        RadioButton(selected = selectedTag == tag, onClick = null)
+                        AdaptiveRadioButton(selected = selectedTag == tag, onClick = null)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = feedbackTagLabel(tag),
@@ -141,7 +141,7 @@ internal fun FeedbackTagSheet(
                 )
             }
 
-            OutlinedTextField(
+            AdaptiveOutlinedTextField(
                 value = comment,
                 onValueChange = { if (it.length <= MAX_COMMENT_LENGTH) comment = it },
                 modifier = Modifier.fillMaxWidth(),

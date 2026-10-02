@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -16,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -62,7 +62,7 @@ fun ComparisonDualPane(
                     Text(stringResource(Res.string.continue_with_response))
                 }
             }
-            HorizontalDivider()
+            AdaptiveDivider()
             Box(modifier = Modifier.weight(1f)) {
                 primaryContent()
             }
@@ -96,7 +96,7 @@ fun ComparisonDualPane(
                     Text(stringResource(Res.string.continue_with_response))
                 }
             }
-            HorizontalDivider()
+            AdaptiveDivider()
             Box(modifier = Modifier.weight(1f)) {
                 secondaryContent()
             }

@@ -8,10 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -22,6 +19,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
@@ -41,7 +41,7 @@ internal fun PersonalizationDialog(
     var currentResponseStyle by remember { mutableStateOf(responseStyle) }
     var currentEnabled by remember { mutableStateOf(enabled) }
 
-    AlertDialog(
+    AdaptiveAlertDialog(
         onDismissRequest = onDismiss,
         modifier = modifier.clearFocusOnTap(),
         title = { Text(stringResource(Res.string.personalization)) },
@@ -62,13 +62,13 @@ internal fun PersonalizationDialog(
                         modifier = Modifier.weight(1f),
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Switch(
+                    AdaptiveSwitch(
                         checked = currentEnabled,
                         onCheckedChange = { currentEnabled = it },
                     )
                 }
 
-                OutlinedTextField(
+                AdaptiveOutlinedTextField(
                     value = currentAboutUser,
                     onValueChange = { currentAboutUser = it },
                     label = { Text(stringResource(Res.string.about_you_label)) },
@@ -83,7 +83,7 @@ internal fun PersonalizationDialog(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                OutlinedTextField(
+                AdaptiveOutlinedTextField(
                     value = currentResponseStyle,
                     onValueChange = { currentResponseStyle = it },
                     label = { Text(stringResource(Res.string.response_style_label)) },

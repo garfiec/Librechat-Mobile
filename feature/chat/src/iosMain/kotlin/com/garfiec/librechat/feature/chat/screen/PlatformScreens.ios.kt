@@ -14,14 +14,10 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -44,6 +40,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.PdfPasswordDialog
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.chat.components.AskUserQuestionPanel
@@ -144,7 +144,6 @@ actual fun ChatScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
-    var showOptionsMenu by remember { mutableStateOf(false) }
     var showPresetPicker by remember { mutableStateOf(false) }
     var showSavePresetDialog by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
@@ -236,7 +235,7 @@ actual fun ChatScreen(
         // The floating top bar draws behind the status bar itself, so the body extends under the
         // status bar — only reserve the navigation-bar inset here (for the snackbar).
         contentWindowInsets = WindowInsets.navigationBars,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
     ) { _ ->
         // The composer overlays the message list at the bottom; the list reserves a scrollable
         // bottom inset so its latest content rests above the bar. We measure the bar's actual
@@ -517,14 +516,14 @@ actual fun ChatScreen(
     // Rename dialog
     if (showRenameDialog) {
         var title by remember { mutableStateOf(uiState.conversationTitle ?: "") }
-        AlertDialog(
+        AdaptiveAlertDialog(
             modifier = Modifier.clearFocusOnTap(),
             onDismissRequest = { showRenameDialog = false },
             title = { Text(stringResource(Res.string.dialog_title_rename)) },
             text = {
                 Column {
                     Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
+                    AdaptiveOutlinedTextField(
                         value = title,
                         onValueChange = { title = it },
                         singleLine = true,
@@ -554,7 +553,7 @@ actual fun ChatScreen(
 
     // Delete confirmation — matches Android so a destructive delete can't fire from a single tap.
     if (uiState.showDeleteConfirmation) {
-        AlertDialog(
+        AdaptiveAlertDialog(
             onDismissRequest = viewModel::dismissDeleteConfirmation,
             title = { Text(stringResource(Res.string.dialog_title_delete_conversation)) },
             text = {
@@ -639,7 +638,7 @@ private fun IosChatBody(
                 modifier = topPaddedFill,
                 contentAlignment = Alignment.Center,
             ) {
-                CircularProgressIndicator(modifier = Modifier.size(36.dp))
+                AdaptiveCircularProgressIndicator(modifier = Modifier.size(36.dp))
             }
         }
         // `hasMessages` folds in isStreaming, which is load-bearing: a handed-off new chat is

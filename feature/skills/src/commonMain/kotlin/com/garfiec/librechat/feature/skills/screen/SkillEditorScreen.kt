@@ -11,23 +11,14 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -41,6 +32,16 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.model.response.Category
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
+import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
+import com.garfiec.librechat.core.ui.components.topbar.BarAction
+import com.garfiec.librechat.core.ui.components.topbar.BarIcons
+import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
+import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.feature.skills.resources.*
 import com.garfiec.librechat.feature.skills.resources.Res
 import com.garfiec.librechat.feature.skills.viewmodel.SkillEditorEvent
@@ -69,36 +70,34 @@ fun SkillEditorScreen(
         }
     }
 
-    Scaffold(
+    AdaptiveScaffold(
         modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = {
-                    val titleRes = if (uiState.isEditMode) {
-                        Res.string.skill_editor_edit_title
-                    } else {
-                        Res.string.skill_editor_create_title
-                    }
-                    Text(stringResource(titleRes))
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.skills_back))
-                    }
-                },
-                actions = {
-                    TextButton(onClick = viewModel::save, enabled = uiState.canSave) {
-                        Text(stringResource(Res.string.skill_save))
-                    }
-                },
+            AdaptiveTopBar(
+                spec = AdaptiveTopBarSpec(
+                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.skills_back), onBack),
+                    title = BarTitle(
+                        stringResource(
+                            if (uiState.isEditMode) Res.string.skill_editor_edit_title else Res.string.skill_editor_create_title,
+                        ),
+                    ),
+                    actions = listOf(
+                        BarAction.Text(
+                            id = "save",
+                            label = stringResource(Res.string.skill_save),
+                            enabled = uiState.canSave,
+                            onClick = viewModel::save,
+                        ),
+                    ),
+                ),
             )
         },
     ) { padding ->
         if (uiState.isLoading) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+                AdaptiveCircularProgressIndicator()
             }
-            return@Scaffold
+            return@AdaptiveScaffold
         }
         Column(
             modifier = Modifier
@@ -116,7 +115,7 @@ fun SkillEditorScreen(
                 Text(err, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
             }
 
-            OutlinedTextField(
+            AdaptiveOutlinedTextField(
                 value = uiState.name,
                 onValueChange = viewModel::onNameChanged,
                 label = { Text(stringResource(Res.string.skill_field_name)) },
@@ -130,14 +129,14 @@ fun SkillEditorScreen(
                 },
                 modifier = Modifier.fillMaxWidth(),
             )
-            OutlinedTextField(
+            AdaptiveOutlinedTextField(
                 value = uiState.displayTitle,
                 onValueChange = viewModel::onDisplayTitleChanged,
                 label = { Text(stringResource(Res.string.skill_field_display_title)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
-            OutlinedTextField(
+            AdaptiveOutlinedTextField(
                 value = uiState.description,
                 onValueChange = viewModel::onDescriptionChanged,
                 label = { Text(stringResource(Res.string.skill_field_description)) },
@@ -164,12 +163,12 @@ fun SkillEditorScreen(
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.weight(1f),
                 )
-                Switch(
+                AdaptiveSwitch(
                     checked = uiState.alwaysApply,
                     onCheckedChange = viewModel::onAlwaysApplyChanged,
                 )
             }
-            OutlinedTextField(
+            AdaptiveOutlinedTextField(
                 value = uiState.body,
                 onValueChange = viewModel::onBodyChanged,
                 label = { Text(stringResource(Res.string.skill_field_body)) },
@@ -204,7 +203,7 @@ private fun CategoryDropdown(
         onExpandedChange = { expanded = it },
         modifier = modifier.fillMaxWidth(),
     ) {
-        OutlinedTextField(
+        AdaptiveOutlinedTextField(
             value = selected.ifBlank { placeholder },
             onValueChange = {},
             readOnly = true,

@@ -3,6 +3,7 @@ package com.garfiec.librechat.shared.navigation
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -32,6 +33,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.model.Banner
 import com.garfiec.librechat.core.ui.components.BannerDisplay
 import com.garfiec.librechat.core.ui.components.PlatformBackHandler
+import com.garfiec.librechat.core.ui.glass.rememberGlassStyle
 import com.garfiec.librechat.feature.agents.navigation.AgentMarketplace
 import com.garfiec.librechat.feature.auth.navigation.AddAccountServerUrl
 import com.garfiec.librechat.feature.chat.navigation.NewChat
@@ -61,6 +63,7 @@ fun TabletLayout(
     // The sidebar is an authenticated surface, same rule as PhoneLayout's drawer gestures: a
     // logged-out deep link (artifact viewer atop the auth base) is not in the auth flow either.
     val showSidebar = isLoggedIn && !navigator.isInAuthFlow
+    val glass = rememberGlassStyle()
 
     // Persisted sidebar state from DataStore -- single source of truth in the ViewModel.
     // Null until the persisted value resolves; treat unknown as closed for boolean callers.
@@ -178,50 +181,63 @@ fun TabletLayout(
             content = {
                 // Slot 0: Sidebar -- always 320dp, slides from off-screen left to x=0
                 Row(modifier = Modifier.fillMaxHeight()) {
-                    SidebarScaffold(
-                        isOpen = isSidebarOpen,
-                        onNewChat = {
-                            if (navigator.currentRoute !is NewChat) {
-                                navigator.navigateToTopLevel(NewChat())
-                            }
-                        },
-                        onConversationClick = { conversationId ->
-                            navigator.navigateToChat(conversationId)
-                        },
-                        onSettingsClick = {
-                            navigator.navigate(SettingsTabbed)
-                        },
-                        onSettingsCategorySelect = { category ->
-                            navigator.navigate(category.toRoute())
-                        },
-                        onAgentsClick = {
-                            navigator.navigate(AgentMarketplace)
-                        },
-                        onFilesClick = {
-                            navigator.navigate(Files)
-                        },
-                        onSkillsClick = {
-                            navigator.navigate(SkillsList)
-                        },
-                        onSchedulesClick = {
-                            navigator.navigate(SchedulesList)
-                        },
-                        onOpenProjectsIndex = {
-                            navigator.navigate(Projects)
-                        },
-                        onSwitchAccount = { accountId ->
-                            navHostViewModel.switchAccount(accountId)
-                        },
-                        onAddAccount = {
-                            navigator.navigate(AddAccountServerUrl)
-                        },
-                        modifier = Modifier
-                            .width(SidebarWidth)
-                            .fillMaxHeight(),
-                    )
-                    VerticalDivider(
-                        color = MaterialTheme.colorScheme.outlineVariant,
-                    )
+                    val sidebar: @Composable (Modifier) -> Unit = { sidebarModifier ->
+                        SidebarScaffold(
+                            isOpen = isSidebarOpen,
+                            onNewChat = {
+                                if (navigator.currentRoute !is NewChat) {
+                                    navigator.navigateToTopLevel(NewChat())
+                                }
+                            },
+                            onConversationClick = { conversationId ->
+                                navigator.navigateToChat(conversationId)
+                            },
+                            onSettingsClick = {
+                                navigator.navigate(SettingsTabbed)
+                            },
+                            onSettingsCategorySelect = { category ->
+                                navigator.navigate(category.toRoute())
+                            },
+                            onAgentsClick = {
+                                navigator.navigate(AgentMarketplace)
+                            },
+                            onFilesClick = {
+                                navigator.navigate(Files)
+                            },
+                            onSkillsClick = {
+                                navigator.navigate(SkillsList)
+                            },
+                            onSchedulesClick = {
+                                navigator.navigate(SchedulesList)
+                            },
+                            onOpenProjectsIndex = {
+                                navigator.navigate(Projects)
+                            },
+                            onSwitchAccount = { accountId ->
+                                navHostViewModel.switchAccount(accountId)
+                            },
+                            onAddAccount = {
+                                navigator.navigate(AddAccountServerUrl)
+                            },
+                            modifier = sidebarModifier,
+                        )
+                    }
+                    if (glass == null) {
+                        sidebar(Modifier.width(SidebarWidth).fillMaxHeight())
+                        VerticalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant,
+                        )
+                    } else {
+                        // Beside the content rather than over it, so the flat frosted tier: there is
+                        // nothing behind the panel for a backdrop to show.
+                        GlassSidebarPanel(
+                            style = glass,
+                            backdrop = null,
+                            modifier = Modifier.width(SidebarWidth).fillMaxHeight(),
+                        ) {
+                            sidebar(Modifier.fillMaxSize())
+                        }
+                    }
                 }
                 // Slot 1: Main content -- resizes to fill remaining space
                 MainContent(
@@ -234,7 +250,14 @@ fun TabletLayout(
                     },
                 )
             },
-            modifier = modifier.fillMaxSize().then(swipeModifier).clipToBounds(),
+            // The page colour behind both slots: in Liquid Glass the sidebar is a floating panel, and
+            // without it the margin around the panel shows the bare window (black in dark mode).
+            // Material's sidebar is edge to edge, so it leaves no margin to fill.
+            modifier = modifier
+                .fillMaxSize()
+                .then(if (glass != null) Modifier.background(MaterialTheme.colorScheme.background) else Modifier)
+                .then(swipeModifier)
+                .clipToBounds(),
         ) { measurables, constraints ->
             val sidebarPx = SidebarWidth.roundToPx()
             val animatedPx = sidebarOffset.value.toInt()

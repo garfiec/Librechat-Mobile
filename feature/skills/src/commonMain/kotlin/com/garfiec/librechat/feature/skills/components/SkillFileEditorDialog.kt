@@ -5,10 +5,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -19,6 +16,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.skills.resources.*
 import com.garfiec.librechat.feature.skills.resources.Res
@@ -42,19 +42,19 @@ fun SkillFileEditorDialog(
     var draft by rememberSaveable(editor.relativePath, editor.fileId, editor.content) {
         mutableStateOf(editor.content.orEmpty())
     }
-    AlertDialog(
+    AdaptiveAlertDialog(
         onDismissRequest = onDismiss,
         modifier = Modifier.clearFocusOnTap(),
         title = { Text(editor.relativePath) },
         text = {
             Column {
                 when {
-                    editor.isLoading -> CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    editor.isLoading -> AdaptiveCircularProgressIndicator(modifier = Modifier.size(24.dp))
                     editor.isBinary || editor.content == null -> Text(
                         stringResource(Res.string.skill_file_binary),
                         style = MaterialTheme.typography.bodySmall,
                     )
-                    else -> OutlinedTextField(
+                    else -> AdaptiveOutlinedTextField(
                         value = draft,
                         onValueChange = { draft = it },
                         readOnly = !editable,

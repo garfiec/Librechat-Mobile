@@ -19,7 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -42,6 +41,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.SingletonImageLoader
 import coil3.compose.LocalPlatformContext
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.github.panpf.zoomimage.CoilZoomAsyncImage
 import com.github.panpf.zoomimage.rememberCoilZoomState
 import kotlinx.coroutines.CancellationException
@@ -178,7 +178,7 @@ fun ZoomableMediaPager(
                         // indefinitely blank black screen (the old viewers had explicit states).
                         when (loadState) {
                             MediaLoadState.LOADING ->
-                                CircularProgressIndicator(color = Color.White)
+                                AdaptiveCircularProgressIndicator(color = Color.White)
                             MediaLoadState.ERROR -> BrokenImagePlaceholder()
                             MediaLoadState.SUCCESS -> Unit
                         }

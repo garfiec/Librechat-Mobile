@@ -13,25 +13,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -48,7 +39,18 @@ import com.garfiec.librechat.core.common.extensions.formatAbsoluteTimestamp
 import com.garfiec.librechat.core.model.schedule.Schedule
 import com.garfiec.librechat.core.model.schedule.cadenceToCron
 import com.garfiec.librechat.core.model.schedule.pausedForUnattendedMcpAuth
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveFloatingActionButton
+import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
+import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
+import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
+import com.garfiec.librechat.core.ui.components.topbar.BarIcons
+import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
+import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.feature.schedules.components.disabledReasonLabel
 import com.garfiec.librechat.feature.schedules.resources.Res
 import com.garfiec.librechat.feature.schedules.resources.schedule_cancel
@@ -94,24 +96,23 @@ fun SchedulesListScreen(
         }
     }
 
-    Scaffold(
+    AdaptiveScaffold(
         modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(Res.string.schedules)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                    }
-                },
+            AdaptiveTopBar(
+                spec = AdaptiveTopBarSpec(
+                    navigation = BarNavigation(BarIcons.Back, null, onBack),
+                    title = BarTitle(stringResource(Res.string.schedules)),
+                    actions = emptyList(),
+                ),
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
         floatingActionButton = {
             // Fail-closed on CREATE, and hidden at the deployment's cap rather than offering a
             // form whose Save is a guaranteed 400.
             if (uiState.canCreate && !uiState.isDisabledOnServer && !uiState.isAtLimit) {
-                FloatingActionButton(onClick = onCreate) {
+                AdaptiveFloatingActionButton(onClick = onCreate) {
                     Icon(Icons.Default.Add, contentDescription = stringResource(Res.string.schedules_create))
                 }
             }
@@ -156,7 +157,7 @@ fun SchedulesListScreen(
     }
 
     pendingDelete?.let { schedule ->
-        AlertDialog(
+        AdaptiveAlertDialog(
             onDismissRequest = { pendingDelete = null },
             title = { Text(stringResource(Res.string.schedule_delete_confirm_title)) },
             text = { Text(stringResource(Res.string.schedule_delete_confirm_body)) },
@@ -237,9 +238,9 @@ private fun ScheduleCard(
                     modifier = Modifier.weight(1f),
                 )
                 if (isBusy) {
-                    CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                    AdaptiveCircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                 } else if (canManage) {
-                    Switch(checked = schedule.enabled, onCheckedChange = onToggle)
+                    AdaptiveSwitch(checked = schedule.enabled, onCheckedChange = onToggle)
                 }
             }
             Spacer(Modifier.height(4.dp))

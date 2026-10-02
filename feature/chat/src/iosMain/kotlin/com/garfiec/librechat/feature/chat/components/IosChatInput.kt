@@ -16,7 +16,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -27,6 +26,7 @@ import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.model.usage.TokenUsage
+import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -162,6 +162,7 @@ fun IosChatInput(
             // "+" button to open tools bottom sheet (matches Android behavior)
             FilledTonalIconButton(
                 onClick = onOpenTools,
+                colors = ChatInputDefaults.toolsButtonColors(),
                 modifier = Modifier.size(48.dp),
             ) {
                 Icon(
@@ -194,6 +195,7 @@ fun IosChatInput(
             Box(
                 modifier = Modifier.weight(1f),
             ) {
+                // The composer draws its own field (ChatInputDefaults), glass included; not the adaptive one.
                 OutlinedTextField(
                     value = inputText,
                     onValueChange = onInputChanged,
@@ -245,7 +247,7 @@ fun IosChatInput(
         },
         bottomContent = {
             // Snackbar for file attachment toast
-            SnackbarHost(
+            AdaptiveSnackbarHost(
                 hostState = snackbarHostState,
                 modifier = Modifier.align(Alignment.BottomCenter),
             )

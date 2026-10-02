@@ -10,18 +10,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,6 +34,10 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.common.speech.sttEngineSelectsRecognizer
 import com.garfiec.librechat.core.common.speech.sttSupportsLiveRecognition
 import com.garfiec.librechat.core.model.speech.SttEngine
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveFilledTonalButton
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
@@ -71,7 +71,7 @@ internal fun SttDetailDialog(
         if (serverSttEnabled || engine == SttEngine.EXTERNAL) add(SttEngine.EXTERNAL)
     }
 
-    AlertDialog(
+    AdaptiveAlertDialog(
         modifier = Modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.speech_to_text_settings)) },
@@ -88,7 +88,7 @@ internal fun SttDetailDialog(
                     expanded = engineExpanded,
                     onExpandedChange = { engineExpanded = it },
                 ) {
-                    OutlinedTextField(
+                    AdaptiveOutlinedTextField(
                         value = sttEngineLabel(engine),
                         onValueChange = {},
                         readOnly = true,
@@ -151,7 +151,7 @@ internal fun SttDetailDialog(
                             )
                         }
                         Spacer(modifier = Modifier.width(8.dp))
-                        Switch(
+                        AdaptiveSwitch(
                             checked = onDevice,
                             onCheckedChange = { onDevice = it },
                         )
@@ -175,7 +175,7 @@ internal fun SttDetailDialog(
                             )
                         }
                         Spacer(modifier = Modifier.width(8.dp))
-                        Switch(
+                        AdaptiveSwitch(
                             checked = endOfSpeech,
                             onCheckedChange = { endOfSpeech = it },
                         )
@@ -191,7 +191,7 @@ internal fun SttDetailDialog(
                     expanded = languageExpanded,
                     onExpandedChange = { languageExpanded = it },
                 ) {
-                    OutlinedTextField(
+                    AdaptiveOutlinedTextField(
                         value = language.ifBlank { stringResource(Res.string.stt_auto_detect) },
                         onValueChange = {},
                         readOnly = true,
@@ -281,7 +281,7 @@ internal fun TtsDetailDialog(
     val serverLabel = stringResource(Res.string.tts_source_server)
     val sourceOptions = listOf("device" to deviceLabel, "server" to serverLabel)
 
-    AlertDialog(
+    AdaptiveAlertDialog(
         modifier = Modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.text_to_speech_settings)) },
@@ -298,7 +298,7 @@ internal fun TtsDetailDialog(
                     expanded = sourceExpanded,
                     onExpandedChange = { sourceExpanded = it },
                 ) {
-                    OutlinedTextField(
+                    AdaptiveOutlinedTextField(
                         value = sourceOptions.firstOrNull { it.first == source }?.second ?: deviceLabel,
                         onValueChange = {},
                         readOnly = true,
@@ -340,7 +340,7 @@ internal fun TtsDetailDialog(
                             expanded = deviceVoiceExpanded,
                             onExpandedChange = { deviceVoiceExpanded = it },
                         ) {
-                            OutlinedTextField(
+                            AdaptiveOutlinedTextField(
                                 value = selectedDisplayName,
                                 onValueChange = {},
                                 readOnly = true,
@@ -424,7 +424,7 @@ internal fun TtsDetailDialog(
                         expanded = engineExpanded,
                         onExpandedChange = { engineExpanded = it },
                     ) {
-                        OutlinedTextField(
+                        AdaptiveOutlinedTextField(
                             value = engine.ifBlank { stringResource(Res.string.stt_default) },
                             onValueChange = {},
                             readOnly = true,
@@ -460,7 +460,7 @@ internal fun TtsDetailDialog(
                         expanded = voiceExpanded,
                         onExpandedChange = { voiceExpanded = it },
                     ) {
-                        OutlinedTextField(
+                        AdaptiveOutlinedTextField(
                             value = voice.ifBlank { stringResource(Res.string.stt_default) },
                             onValueChange = {},
                             readOnly = true,
@@ -498,7 +498,7 @@ internal fun TtsDetailDialog(
                             modifier = Modifier.weight(1f),
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Switch(
+                        AdaptiveSwitch(
                             checked = caching,
                             onCheckedChange = { caching = it },
                         )
@@ -509,7 +509,7 @@ internal fun TtsDetailDialog(
                 val previewText = stringResource(Res.string.tts_preview_text)
                 val previewCd =
                     stringResource(if (isPreviewPlaying) Res.string.cd_stop_voice_preview else Res.string.cd_preview_voice)
-                FilledTonalButton(
+                AdaptiveFilledTonalButton(
                     onClick = {
                         if (isPreviewPlaying) {
                             onStopPreview()

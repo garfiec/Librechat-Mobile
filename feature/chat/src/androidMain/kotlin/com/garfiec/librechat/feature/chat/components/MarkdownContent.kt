@@ -21,14 +21,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -39,8 +36,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
@@ -57,10 +54,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.isSpecified
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.garfiec.librechat.core.ui.components.AdaptiveDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
+import com.garfiec.librechat.core.ui.components.topbar.BarIcons
+import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
+import com.garfiec.librechat.core.ui.components.topbar.BarTitle
+import com.garfiec.librechat.core.ui.components.topbar.MaterialBarStyle
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.mikepenz.markdown.m3.markdownColor
@@ -375,7 +377,7 @@ private fun MarkdownTableWithFullscreen(
 
 /**
  * Fullscreen dialog that renders a markdown table inside a scrollable container
- * (both horizontal and vertical) with a [TopAppBar] for the title and close button.
+ * (both horizontal and vertical) with an adaptive top bar for the title and close button.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -386,7 +388,7 @@ private fun FullscreenTableDialog(
     fontSizeMultiplier: Float,
     onDismiss: () -> Unit,
 ) {
-    Dialog(
+    AdaptiveDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
@@ -395,19 +397,13 @@ private fun FullscreenTableDialog(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.surface),
         ) {
-            TopAppBar(
-                title = { Text(stringResource(Res.string.dialog_table)) },
-                navigationIcon = {
-                    IconButton(onClick = onDismiss) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = stringResource(Res.string.cd_close),
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+            AdaptiveTopBar(
+                spec = AdaptiveTopBarSpec(
+                    navigation = BarNavigation(BarIcons.Close, stringResource(Res.string.cd_close), onDismiss),
+                    title = BarTitle(stringResource(Res.string.dialog_table)),
+                    actions = emptyList(),
                 ),
+                materialStyle = MaterialBarStyle(containerColor = MaterialTheme.colorScheme.surface),
             )
 
             val verticalScrollState = rememberScrollState()
@@ -541,7 +537,7 @@ private fun MarkdownTable(
                 }
             }
 
-            HorizontalDivider(color = dividerColor, thickness = 1.dp)
+            AdaptiveDivider(color = dividerColor, thickness = 1.dp)
 
             // Data rows
             rows.forEachIndexed { rowIndex, row ->
@@ -570,7 +566,7 @@ private fun MarkdownTable(
                     }
                 }
                 if (rowIndex < rows.lastIndex) {
-                    HorizontalDivider(color = dividerColor, thickness = Dp.Hairline)
+                    AdaptiveDivider(color = dividerColor, thickness = Dp.Hairline)
                 }
             }
         }

@@ -8,9 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -19,8 +16,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.AdaptiveTabRow
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import kotlinx.coroutines.launch
@@ -58,39 +55,11 @@ fun ComparisonTabBar(
     }
 
     Column(modifier = modifier.fillMaxSize()) {
-        TabRow(
-            selectedTabIndex = pagerState.currentPage,
-            modifier = Modifier.fillMaxWidth(),
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.primary,
-        ) {
-            Tab(
-                selected = pagerState.currentPage == 0,
-                onClick = {
-                    coroutineScope.launch { pagerState.animateScrollToPage(0) }
-                },
-                text = {
-                    Text(
-                        text = primaryModelName,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                },
-            )
-            Tab(
-                selected = pagerState.currentPage == 1,
-                onClick = {
-                    coroutineScope.launch { pagerState.animateScrollToPage(1) }
-                },
-                text = {
-                    Text(
-                        text = secondaryModelName,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                },
-            )
-        }
+        AdaptiveTabRow(
+            titles = listOf(primaryModelName, secondaryModelName),
+            selectedIndex = pagerState.currentPage,
+            onSelect = { page -> coroutineScope.launch { pagerState.animateScrollToPage(page) } },
+        )
 
         HorizontalPager(
             state = pagerState,

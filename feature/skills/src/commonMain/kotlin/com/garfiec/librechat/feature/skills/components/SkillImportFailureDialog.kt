@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -16,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.response.SkillImportFailedFile
 import com.garfiec.librechat.core.model.response.SkillImportFailedResponse
 import com.garfiec.librechat.core.model.response.SkillImportFailureReason
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.feature.skills.resources.*
 import com.garfiec.librechat.feature.skills.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -42,7 +42,7 @@ internal fun SkillImportFailureDialog(
             stringResource(Res.string.skill_import_incomplete, count) to
                 stringResource(Res.string.skill_import_failed_files)
     }
-    AlertDialog(
+    AdaptiveAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.skill_import_failed_title)) },
         text = {

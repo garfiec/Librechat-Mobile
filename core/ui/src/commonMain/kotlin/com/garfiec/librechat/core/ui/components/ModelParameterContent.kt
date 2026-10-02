@@ -7,9 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -369,7 +367,7 @@ fun ModelParameterContent(
         // Reset visible definitions to their defaults; dynamicValues for keys
         // not in the current schema are preserved (other endpoints' state stays
         // intact when the user is just resetting the active endpoint's view).
-        OutlinedButton(
+        AdaptiveOutlinedButton(
             onClick = {
                 val reset = definitions.fold(parameters) { acc, def -> acc.resetKeyToDefault(def) }
                 onParametersChange(reset)
@@ -381,7 +379,7 @@ fun ModelParameterContent(
 
         // Save As Preset
         if (showSaveAsPreset) {
-            FilledTonalButton(
+            AdaptiveFilledTonalButton(
                 onClick = onSaveAsPreset,
                 modifier = Modifier.fillMaxWidth(),
             ) {

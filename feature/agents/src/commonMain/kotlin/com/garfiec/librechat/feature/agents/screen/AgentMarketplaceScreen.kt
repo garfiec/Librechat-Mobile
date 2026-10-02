@@ -24,14 +24,9 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -47,6 +42,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.model.EModelEndpoint
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveFilterChip
+import com.garfiec.librechat.core.ui.components.AdaptiveFloatingActionButton
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AvatarImage
 import com.garfiec.librechat.core.ui.components.EmptyState
 import com.garfiec.librechat.core.ui.components.ErrorBanner
@@ -97,7 +97,7 @@ fun AgentMarketplaceScreen(
         }
     }
 
-    Scaffold(
+    AdaptiveScaffold(
         modifier = modifier,
         topBar = {
             LibreChatTopBar(
@@ -107,7 +107,7 @@ fun AgentMarketplaceScreen(
         },
         floatingActionButton = {
             if (uiState.agentsEnabled && uiState.agentsCreateEnabled) {
-                FloatingActionButton(
+                AdaptiveFloatingActionButton(
                     onClick = onCreateAgent,
                 ) {
                     Icon(
@@ -138,7 +138,7 @@ fun AgentMarketplaceScreen(
             }
             Column(modifier = Modifier.fillMaxSize()) {
                 // Search bar
-                OutlinedTextField(
+                AdaptiveOutlinedTextField(
                     value = uiState.searchQuery,
                     onValueChange = viewModel::onSearchQueryChanged,
                     modifier = Modifier
@@ -165,7 +165,7 @@ fun AgentMarketplaceScreen(
                             key = { it },
                             contentType = { "category" },
                         ) { category ->
-                            FilterChip(
+                            AdaptiveFilterChip(
                                 selected = uiState.selectedCategory == category,
                                 onClick = { viewModel.onCategorySelected(category) },
                                 label = { Text(category.replaceFirstChar { it.uppercase() }) },
@@ -240,7 +240,7 @@ fun AgentMarketplaceScreen(
                                             .padding(16.dp),
                                         contentAlignment = Alignment.Center,
                                     ) {
-                                        CircularProgressIndicator()
+                                        AdaptiveCircularProgressIndicator()
                                     }
                                 }
                             }

@@ -18,9 +18,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,6 +37,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.artifactTypeGlyph
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.add_to_home_screen_confirm
@@ -138,7 +138,7 @@ private fun AddArtifactToHomeScreenDialog(
     // rather than silently pinning the type default the user didn't ask for.
     val customPending = (choice as? IconChoice.Custom)?.emoji?.isBlank() == true
 
-    AlertDialog(
+    AdaptiveAlertDialog(
         modifier = Modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.add_to_home_screen_dialog_title)) },
@@ -155,7 +155,7 @@ private fun AddArtifactToHomeScreenDialog(
                 )
                 Spacer(Modifier.height(16.dp))
 
-                OutlinedTextField(
+                AdaptiveOutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
                     singleLine = true,
@@ -199,7 +199,7 @@ private fun AddArtifactToHomeScreenDialog(
 
                 (choice as? IconChoice.Custom)?.let { custom ->
                     Spacer(Modifier.height(12.dp))
-                    OutlinedTextField(
+                    AdaptiveOutlinedTextField(
                         // A single grapheme, so a short fixed width is enough.
                         value = custom.emoji,
                         onValueChange = { choice = IconChoice.Custom(firstGrapheme(it)) },

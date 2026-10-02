@@ -21,14 +21,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -55,6 +50,9 @@ import com.garfiec.librechat.core.model.trace.TraceStep
 import com.garfiec.librechat.core.model.trace.TraceSummary
 import com.garfiec.librechat.core.model.trace.TraceTurn
 import com.garfiec.librechat.core.model.trace.durationMillis
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
+import com.garfiec.librechat.core.ui.components.AdaptiveSegmentedChoice
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -130,7 +128,7 @@ internal fun TraceViewerSheet(
         if (settled) viewModel.refresh()
     }
 
-    ModalBottomSheet(
+    AdaptiveModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         modifier = modifier,
@@ -231,18 +229,13 @@ private fun RecordList(
             // One choice of two, so segmented buttons (radio semantics) rather than FilterChips,
             // which hardcode Role.Checkbox and announce two independent toggles.
             val views = listOf(true to Res.string.trace_view_steps, false to Res.string.trace_view_all)
-            SingleChoiceSegmentedButtonRow(Modifier.padding(top = 8.dp)) {
-                views.forEachIndexed { index, (isSteps, label) ->
-                    SegmentedButton(
-                        selected = stepsView == isSteps,
-                        onClick = { onStepsViewChange(isSteps) },
-                        shape = SegmentedButtonDefaults.itemShape(index = index, count = views.size),
-                    ) {
-                        Text(stringResource(label))
-                    }
-                }
-            }
-            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+            AdaptiveSegmentedChoice(
+                options = views.map { (_, label) -> stringResource(label) },
+                selectedIndex = views.indexOfFirst { (isSteps, _) -> isSteps == stepsView },
+                onSelect = { onStepsViewChange(views[it].first) },
+                modifier = Modifier.padding(top = 8.dp),
+            )
+            AdaptiveDivider(Modifier.padding(vertical = 8.dp))
         }
 
         LazyColumn(Modifier.weight(1f, fill = false)) {

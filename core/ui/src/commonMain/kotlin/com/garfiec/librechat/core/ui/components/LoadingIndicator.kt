@@ -2,7 +2,6 @@ package com.garfiec.librechat.core.ui.components
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -18,7 +17,7 @@ fun LoadingIndicator(
         modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
     ) {
-        CircularProgressIndicator(
+        AdaptiveCircularProgressIndicator(
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.semantics { contentDescription = "Loading" },
         )

@@ -50,9 +50,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.UIKitView
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import co.touchlab.kermit.Logger
+import com.garfiec.librechat.core.ui.components.AdaptiveDialog
 import com.garfiec.librechat.core.ui.platform.currentTopmostViewController
 import com.garfiec.librechat.feature.chat.components.web.loadVendoredHtml
 import com.garfiec.librechat.feature.chat.components.web.rememberWebAssetBaseUrl
@@ -648,7 +648,7 @@ actual fun MermaidDiagram(
     }
 
     if (showFullscreen) {
-        Dialog(
+        AdaptiveDialog(
             onDismissRequest = { showFullscreen = false },
             properties = DialogProperties(usePlatformDefaultWidth = false),
         ) {

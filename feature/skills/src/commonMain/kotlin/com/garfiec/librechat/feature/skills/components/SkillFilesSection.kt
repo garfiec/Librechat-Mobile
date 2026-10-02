@@ -12,11 +12,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,6 +23,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.SkillFile
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.feature.skills.resources.*
 import com.garfiec.librechat.feature.skills.resources.Res
 import com.garfiec.librechat.feature.skills.viewmodel.SkillFilesUiState
@@ -49,7 +49,7 @@ fun SkillFilesSection(
         )
 
         when {
-            state.isLoading -> CircularProgressIndicator(modifier = Modifier.size(24.dp))
+            state.isLoading -> AdaptiveCircularProgressIndicator(modifier = Modifier.size(24.dp))
             state.files.isEmpty() -> Text(
                 text = stringResource(Res.string.skill_files_empty),
                 style = MaterialTheme.typography.bodySmall,
@@ -70,13 +70,13 @@ fun SkillFilesSection(
         }
 
         if (state.canEditFiles) {
-            OutlinedButton(
+            AdaptiveOutlinedButton(
                 onClick = onAddFile,
                 enabled = !state.isUploading,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 if (state.isUploading) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp))
+                    AdaptiveCircularProgressIndicator(modifier = Modifier.size(18.dp))
                 } else {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                 }

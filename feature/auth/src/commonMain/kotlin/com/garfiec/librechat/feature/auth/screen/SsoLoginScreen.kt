@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -20,6 +18,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.garfiec.librechat.core.ui.components.AdaptiveButton
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.feature.auth.resources.*
 import com.garfiec.librechat.feature.auth.resources.Res
 import com.garfiec.librechat.feature.auth.viewmodel.SsoLoginError
@@ -59,7 +59,7 @@ fun SsoLoginScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center,
             ) {
-                CircularProgressIndicator()
+                AdaptiveCircularProgressIndicator()
             }
         }
 
@@ -107,7 +107,7 @@ private fun SsoErrorPane(error: SsoLoginError, onBack: (() -> Unit)?) {
                     )
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-                Button(onClick = { onBack?.invoke() }) {
+                AdaptiveButton(onClick = { onBack?.invoke() }) {
                     Text(stringResource(Res.string.back_to_sign_in))
                 }
             }

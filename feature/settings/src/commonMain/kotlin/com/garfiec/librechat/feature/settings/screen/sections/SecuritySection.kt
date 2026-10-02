@@ -15,12 +15,9 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -35,6 +32,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveFilledTonalButton
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.OTP_LENGTH
 import com.garfiec.librechat.core.ui.components.OtpCodeInput
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
@@ -70,7 +70,7 @@ internal fun TwoFactorSetupDialog(
     // A rejected code leaves six digits in the boxes; re-arm so editing (or Verify) can submit again.
     LaunchedEffect(isLoading) { if (!isLoading) submitted = false }
 
-    AlertDialog(
+    AdaptiveAlertDialog(
         modifier = Modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.dialog_title_enable_2fa)) },
@@ -89,7 +89,7 @@ internal fun TwoFactorSetupDialog(
                     // The phone IS the second device, so it cannot scan its own screen -- handing
                     // the otpauth:// URI to the authenticator is the enrollment path that works
                     // here. QR and the setup key are the fallbacks, not the default.
-                    FilledTonalButton(
+                    AdaptiveFilledTonalButton(
                         onClick = { noAuthenticator = !openUri(otpauthUrl) },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
@@ -224,7 +224,7 @@ internal fun TwoFactorCodeDialog(
 ) {
     var code by remember { mutableStateOf("") }
 
-    AlertDialog(
+    AdaptiveAlertDialog(
         modifier = Modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
         title = { Text(title) },
@@ -236,7 +236,7 @@ internal fun TwoFactorCodeDialog(
                     text = description,
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                OutlinedTextField(
+                AdaptiveOutlinedTextField(
                     value = code,
                     onValueChange = { new -> sanitizeOtpInput(old = code, new = new)?.let { code = it } },
                     label = { Text(stringResource(Res.string.hint_verification_code)) },
@@ -271,7 +271,7 @@ internal fun BackupCodesDialog(
     // copy-then-confirm affordance ApiKeyCreateDialog uses for its equally one-shot secret.
     var copied by remember { mutableStateOf(false) }
 
-    AlertDialog(
+    AdaptiveAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.dialog_title_backup_codes)) },
         text = {

@@ -14,7 +14,6 @@ import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.PushPin
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -26,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
 import com.garfiec.librechat.feature.conversations.resources.*
 import com.garfiec.librechat.feature.conversations.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -36,7 +36,7 @@ private val MenuShape = RoundedCornerShape(16.dp)
 
 /**
  * Anchored dropdown variant of [ConversationActions]. Same action set, but presented as a
- * [DropdownMenu] (web-style) instead of a bottom sheet — used by the navigation drawer's
+ * [AdaptiveDropdownMenu] (web-style) instead of a bottom sheet — used by the navigation drawer's
  * long-press menu. Must be placed inside the anchor's layout (e.g. the conversation row's Box)
  * so the menu positions itself at the row. Tags/Export are delegated to the caller (which hosts
  * the pickers), mirroring [ConversationActions].
@@ -71,7 +71,7 @@ fun ConversationActionsMenu(
     // opens with its left edge under the finger.
     offset: DpOffset = DpOffset.Zero,
 ) {
-    DropdownMenu(
+    AdaptiveDropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismiss,
         offset = offset,

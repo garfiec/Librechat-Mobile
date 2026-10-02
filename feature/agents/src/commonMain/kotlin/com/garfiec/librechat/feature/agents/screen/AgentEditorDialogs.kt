@@ -1,12 +1,12 @@
 package com.garfiec.librechat.feature.agents.screen
 
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.feature.agents.components.AgentVersionHistory
 import com.garfiec.librechat.feature.agents.components.ToolAuthDialog
 import com.garfiec.librechat.feature.agents.components.ToolsMarketplaceDialog
@@ -34,7 +34,7 @@ internal fun AgentEditorDialogs(
 ) {
     // Delete confirmation dialog
     if (uiState.showDeleteConfirm) {
-        AlertDialog(
+        AdaptiveAlertDialog(
             onDismissRequest = viewModel::dismissDeleteConfirmation,
             title = { Text(stringResource(Res.string.delete_agent)) },
             text = { Text(stringResource(Res.string.delete_agent_editor_confirm)) },
@@ -53,7 +53,7 @@ internal fun AgentEditorDialogs(
 
     // Duplicate confirmation dialog
     if (uiState.showDuplicateConfirm) {
-        AlertDialog(
+        AdaptiveAlertDialog(
             onDismissRequest = viewModel::dismissDuplicateConfirmation,
             title = { Text(stringResource(Res.string.duplicate_agent)) },
             text = { Text(stringResource(Res.string.duplicate_agent_confirm)) },

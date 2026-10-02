@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -31,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.PlatformBackHandler
 import com.garfiec.librechat.core.ui.media.rememberShareFile
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -140,7 +140,7 @@ internal fun PdfPreviewOverlay(
                 contentAlignment = Alignment.Center,
             ) {
                 when (val state = loadState) {
-                    is PdfLoadState.Loading -> CircularProgressIndicator()
+                    is PdfLoadState.Loading -> AdaptiveCircularProgressIndicator()
                     // Only a failed download is worth retrying; re-downloading won't fix bad bytes.
                     is PdfLoadState.DownloadFailed -> PdfErrorContent(onRetry = { attempt++ })
                     is PdfLoadState.Unrenderable -> PdfErrorContent(onRetry = null)

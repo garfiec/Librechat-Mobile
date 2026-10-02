@@ -25,12 +25,6 @@ import androidx.compose.material.icons.outlined.PermMedia
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PrimaryTabRow
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -48,6 +42,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.garfiec.librechat.core.common.extensions.formatByteSize
+import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
+import com.garfiec.librechat.core.ui.components.AdaptiveSegmentedChoice
+import com.garfiec.librechat.core.ui.components.AdaptiveTabRow
 import com.garfiec.librechat.core.ui.components.EmptyState
 import com.garfiec.librechat.core.ui.components.LibreChatTopBar
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
@@ -100,7 +97,7 @@ fun ConversationMediaScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedTab by rememberSaveable { mutableIntStateOf(MediaTab.MEDIA.ordinal) }
 
-    Scaffold(
+    AdaptiveScaffold(
         modifier = modifier,
         topBar = {
             LibreChatTopBar(
@@ -110,28 +107,16 @@ fun ConversationMediaScreen(
         },
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            PrimaryTabRow(selectedTabIndex = selectedTab) {
-                Tab(
-                    selected = selectedTab == MediaTab.MEDIA.ordinal,
-                    onClick = { selectedTab = MediaTab.MEDIA.ordinal },
-                    text = { Text(stringResource(Res.string.media_tab_media)) },
-                )
-                Tab(
-                    selected = selectedTab == MediaTab.FILES.ordinal,
-                    onClick = { selectedTab = MediaTab.FILES.ordinal },
-                    text = { Text(stringResource(Res.string.media_tab_files)) },
-                )
-                Tab(
-                    selected = selectedTab == MediaTab.LINKS.ordinal,
-                    onClick = { selectedTab = MediaTab.LINKS.ordinal },
-                    text = { Text(stringResource(Res.string.media_tab_links)) },
-                )
-                Tab(
-                    selected = selectedTab == MediaTab.ARTIFACTS.ordinal,
-                    onClick = { selectedTab = MediaTab.ARTIFACTS.ordinal },
-                    text = { Text(stringResource(Res.string.media_tab_artifacts)) },
-                )
-            }
+            AdaptiveTabRow(
+                titles = listOf(
+                    stringResource(Res.string.media_tab_media),
+                    stringResource(Res.string.media_tab_files),
+                    stringResource(Res.string.media_tab_links),
+                    stringResource(Res.string.media_tab_artifacts),
+                ),
+                selectedIndex = selectedTab,
+                onSelect = { selectedTab = it },
+            )
 
             ScopeToggle(
                 scope = uiState.scope,
@@ -188,22 +173,16 @@ private fun ScopeToggle(
     onScopeChange: (MediaScope) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    SingleChoiceSegmentedButtonRow(modifier = modifier) {
-        SegmentedButton(
-            selected = scope == MediaScope.ACTIVE_BRANCH,
-            onClick = { onScopeChange(MediaScope.ACTIVE_BRANCH) },
-            shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-        ) {
-            Text(stringResource(Res.string.media_scope_this_branch))
-        }
-        SegmentedButton(
-            selected = scope == MediaScope.ENTIRE,
-            onClick = { onScopeChange(MediaScope.ENTIRE) },
-            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-        ) {
-            Text(stringResource(Res.string.media_scope_whole_chat))
-        }
-    }
+    val scopes = listOf(MediaScope.ACTIVE_BRANCH, MediaScope.ENTIRE)
+    AdaptiveSegmentedChoice(
+        options = listOf(
+            stringResource(Res.string.media_scope_this_branch),
+            stringResource(Res.string.media_scope_whole_chat),
+        ),
+        selectedIndex = scopes.indexOf(scope),
+        onSelect = { onScopeChange(scopes[it]) },
+        modifier = modifier,
+    )
 }
 
 @Composable

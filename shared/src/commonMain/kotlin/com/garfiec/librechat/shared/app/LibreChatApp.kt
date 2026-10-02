@@ -62,6 +62,7 @@ fun LibreChatApp(modifier: Modifier = Modifier) {
     val themeMode by themeDataStore.themeMode.collectAsState(initial = themeDataStore.initialThemeMode)
     val accentColorArgb by themeDataStore.accentColor.collectAsState(initial = themeDataStore.initialAccentColor)
     val useDynamicColor by themeDataStore.useDynamicColor.collectAsState(initial = themeDataStore.initialUseDynamicColor)
+    val storedUiStyle by themeDataStore.uiStyle.collectAsState(initial = themeDataStore.initialUiStyle)
 
     val settingsDataStore = koinInject<SettingsDataStore>()
     // Gate on the language warm-up too so a persisted non-system language is applied before the
@@ -84,6 +85,7 @@ fun LibreChatApp(modifier: Modifier = Modifier) {
             darkTheme = darkTheme,
             accentColor = Color(accentColorArgb),
             useDynamicColor = useDynamicColor,
+            uiStyle = storedUiStyle,
         ) {
             Box(modifier.fillMaxSize().clearFocusOnTap()) {
                 LibreChatNavHost(appLocaleTag = appLocale)

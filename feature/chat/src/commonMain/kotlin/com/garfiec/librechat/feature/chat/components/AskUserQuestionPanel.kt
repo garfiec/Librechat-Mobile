@@ -28,19 +28,11 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -64,6 +56,14 @@ import com.garfiec.librechat.core.model.AskUserQuestionLimits
 import com.garfiec.librechat.core.model.AskUserQuestionOption
 import com.garfiec.librechat.core.model.AskUserQuestionRequest
 import com.garfiec.librechat.core.model.PendingAction
+import com.garfiec.librechat.core.ui.components.AdaptiveButton
+import com.garfiec.librechat.core.ui.components.AdaptiveCard
+import com.garfiec.librechat.core.ui.components.AdaptiveCheckbox
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.AdaptiveRadioButton
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
@@ -205,7 +205,7 @@ fun AskUserQuestionPanel(
         // screen; the header and the action row stay pinned around it.
         val bodyMaxHeight = if (maxHeight == Dp.Infinity) FALLBACK_BODY_MAX_HEIGHT else maxHeight * BODY_HEIGHT_FRACTION
         val isWide = maxWidth >= PAUSE_PANEL_WIDE_MIN_WIDTH
-        Card(
+        AdaptiveCard(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -356,7 +356,7 @@ private fun CompactAskLayout(
                                     }
                                 },
                             )
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            AdaptiveDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                         }
                     }
                 }
@@ -482,11 +482,11 @@ private fun CompactFreeTextRow(state: AskPanelState, actions: AskPanelActions) {
         }
         Spacer(modifier = Modifier.width(8.dp))
         if (state.isResolving) {
-            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+            AdaptiveCircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
             Spacer(modifier = Modifier.width(8.dp))
         }
         when {
-            !answered -> OutlinedButton(
+            !answered -> AdaptiveOutlinedButton(
                 onClick = {
                     actions.onDraftChange(active.id, AskAnswerDraft(skipped = true))
                     actions.advanceOrSubmit(
@@ -498,10 +498,10 @@ private fun CompactFreeTextRow(state: AskPanelState, actions: AskPanelActions) {
             ) {
                 Text(stringResource(Res.string.ask_user_question_skip))
             }
-            state.allAnswered -> Button(onClick = proceed, enabled = !state.isResolving) {
+            state.allAnswered -> AdaptiveButton(onClick = proceed, enabled = !state.isResolving) {
                 Text(stringResource(Res.string.ask_user_question_send))
             }
-            else -> Button(onClick = proceed, enabled = !state.isResolving) {
+            else -> AdaptiveButton(onClick = proceed, enabled = !state.isResolving) {
                 Text(stringResource(Res.string.ask_user_question_next))
             }
         }
@@ -599,7 +599,7 @@ private fun WideAskLayout(
                     }
                     Spacer(modifier = Modifier.weight(1f))
                     if (state.isResolving) {
-                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        AdaptiveCircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                     }
                     if (state.activeIndex > 0) {
                         TextButton(
@@ -610,14 +610,14 @@ private fun WideAskLayout(
                         }
                     }
                     if (!state.isLast) {
-                        Button(
+                        AdaptiveButton(
                             onClick = { actions.onSelect(state.activeIndex + 1) },
                             enabled = !state.isResolving,
                         ) {
                             Text(stringResource(Res.string.ask_user_question_next))
                         }
                     } else {
-                        Button(
+                        AdaptiveButton(
                             onClick = { actions.submit(state.answers) },
                             enabled = !state.isResolving && state.allAnswered,
                         ) {
@@ -729,9 +729,9 @@ private fun AskQuestionBody(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         if (item.multiSelect) {
-                            Checkbox(checked = isSelected, onCheckedChange = null, enabled = !isResolving)
+                            AdaptiveCheckbox(checked = isSelected, onCheckedChange = null, enabled = !isResolving)
                         } else {
-                            RadioButton(selected = isSelected, onClick = null, enabled = !isResolving)
+                            AdaptiveRadioButton(selected = isSelected, onClick = null, enabled = !isResolving)
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
@@ -743,7 +743,7 @@ private fun AskQuestionBody(
             }
         }
 
-        OutlinedTextField(
+        AdaptiveOutlinedTextField(
             value = draft.freeText,
             onValueChange = { typed ->
                 onDraftChange(

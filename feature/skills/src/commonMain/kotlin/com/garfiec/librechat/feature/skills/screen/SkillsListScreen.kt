@@ -12,19 +12,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.FileUpload
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -37,6 +29,16 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.model.SkillSummary
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveFloatingActionButton
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
+import com.garfiec.librechat.core.ui.components.topbar.BarAction
+import com.garfiec.librechat.core.ui.components.topbar.BarIcons
+import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
+import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.feature.skills.components.SkillImportFailureDialog
 import com.garfiec.librechat.feature.skills.components.rememberSkillFilePicker
 import com.garfiec.librechat.feature.skills.resources.*
@@ -79,45 +81,39 @@ fun SkillsListScreen(
         SkillImportFailureDialog(failure = failure, onDismiss = viewModel::dismissImportFailure)
     }
 
-    Scaffold(
+    AdaptiveScaffold(
         modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(Res.string.skills_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.skills_back))
-                    }
-                },
-                actions = {
-                    if (uiState.canCreate) {
-                        IconButton(
-                            onClick = { importPicker.launch(emptyList()) },
-                            enabled = !uiState.isImporting,
-                        ) {
-                            if (uiState.isImporting) {
-                                CircularProgressIndicator(modifier = Modifier.size(20.dp))
-                            } else {
-                                Icon(
-                                    Icons.Default.FileUpload,
-                                    contentDescription = stringResource(Res.string.skills_import),
-                                )
-                            }
-                        }
-                    }
-                },
+            AdaptiveTopBar(
+                spec = AdaptiveTopBarSpec(
+                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.skills_back), onBack),
+                    title = BarTitle(stringResource(Res.string.skills_title)),
+                    actions = if (uiState.canCreate) {
+                        listOf(
+                            BarAction.Icon(
+                                id = "import",
+                                icon = BarIcons.Import,
+                                label = stringResource(Res.string.skills_import),
+                                busy = uiState.isImporting,
+                                onClick = { importPicker.launch(emptyList()) },
+                            ),
+                        )
+                    } else {
+                        emptyList()
+                    },
+                ),
             )
         },
         floatingActionButton = {
             if (uiState.canCreate) {
-                FloatingActionButton(onClick = onCreateSkill) {
+                AdaptiveFloatingActionButton(onClick = onCreateSkill) {
                     Icon(Icons.Default.Add, contentDescription = stringResource(Res.string.skills_create))
                 }
             }
         },
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            OutlinedTextField(
+            AdaptiveOutlinedTextField(
                 value = uiState.searchQuery,
                 onValueChange = viewModel::onSearchQueryChanged,
                 label = { Text(stringResource(Res.string.skills_search_hint)) },
@@ -128,7 +124,7 @@ fun SkillsListScreen(
             when {
                 uiState.isLoading && uiState.skills.isEmpty() -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+                        AdaptiveCircularProgressIndicator()
                     }
                 }
                 uiState.error != null && uiState.skills.isEmpty() -> {
@@ -162,7 +158,7 @@ fun SkillsListScreen(
                         if (uiState.isLoadingMore) {
                             item(contentType = "loader") {
                                 Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                                    CircularProgressIndicator()
+                                    AdaptiveCircularProgressIndicator()
                                 }
                             }
                         }

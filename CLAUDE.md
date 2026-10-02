@@ -39,6 +39,10 @@ Each module has its own `CLAUDE.md` with specific guidance.
 - Unidirectional data flow: UI → ViewModel → Repository → API/Room
 - Room is a read-through cache; server is source of truth
 - Custom SSE parser over raw ByteReadChannel (not Ktor SSE plugin)
+- UI is style-agnostic: the user's Material / Liquid Glass choice flows down as a CompositionLocal
+  from `LibreChatTheme`, and `Adaptive*` components in `:core:ui` self-theme into one of two variants.
+  Screens use `Adaptive*` (detekt bans raw M3 chrome) and don't branch on style. See "The pattern"
+  in `core/ui/CLAUDE.md`.
 
 ## Adding a New Feature Module
 

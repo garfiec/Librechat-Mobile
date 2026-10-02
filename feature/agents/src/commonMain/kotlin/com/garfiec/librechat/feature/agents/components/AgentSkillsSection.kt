@@ -15,17 +15,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,6 +32,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.SkillSummary
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveCheckbox
+import com.garfiec.librechat.core.ui.components.AdaptiveInputChip
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.agents.resources.*
 import com.garfiec.librechat.feature.agents.resources.Res
@@ -87,7 +87,7 @@ fun AgentSkillsSection(
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.weight(1f),
                 )
-                Switch(checked = enabled, onCheckedChange = onToggle)
+                AdaptiveSwitch(checked = enabled, onCheckedChange = onToggle)
             }
 
             val hint = when {
@@ -110,7 +110,7 @@ fun AgentSkillsSection(
                     ) {
                         selectedSkillIds.forEach { id ->
                             val label = labelOf(id)
-                            InputChip(
+                            AdaptiveInputChip(
                                 selected = false,
                                 onClick = {},
                                 label = { Text(label) },
@@ -128,7 +128,7 @@ fun AgentSkillsSection(
                 }
 
                 Spacer(modifier = Modifier.padding(top = 4.dp))
-                OutlinedButton(
+                AdaptiveOutlinedButton(
                     onClick = { showPicker = true },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
@@ -173,13 +173,13 @@ private fun SkillSelectDialog(
         }
     }
 
-    AlertDialog(
+    AdaptiveAlertDialog(
         modifier = Modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.select_skills)) },
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
-                OutlinedTextField(
+                AdaptiveOutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
                     label = { Text(stringResource(Res.string.search_skills_hint)) },
@@ -239,7 +239,7 @@ private fun SkillRow(
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Checkbox(checked = checked, onCheckedChange = { onToggle() })
+        AdaptiveCheckbox(checked = checked, onCheckedChange = { onToggle() })
         Spacer(modifier = Modifier.width(8.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(

@@ -4,7 +4,13 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
+import com.garfiec.librechat.core.model.ui.GlassCapability
+import com.garfiec.librechat.core.model.ui.UiStyle
+import com.garfiec.librechat.core.ui.components.topbar.LocalNativeOverlayGate
+import com.garfiec.librechat.core.ui.components.topbar.NativeOverlayGate
 import com.materialkolor.PaletteStyle
 import com.materialkolor.rememberDynamicColorScheme
 
@@ -22,6 +28,12 @@ expect fun platformColorScheme(darkTheme: Boolean, dynamicColor: Boolean): Color
  */
 expect fun supportsDynamicColor(): Boolean
 
+/** The platform's own idiom, used when the user has not picked a [UiStyle]. */
+expect fun platformDefaultUiStyle(): UiStyle
+
+/** How faithfully this device can render [UiStyle.LIQUID_GLASS]. */
+expect fun glassCapability(): GlassCapability
+
 /**
  * Applies the LibreChat Material 3 theme.
  *
@@ -34,12 +46,15 @@ expect fun supportsDynamicColor(): Boolean
  * chroma and a fixed per-role tone, so no role in the generated scheme resolves to the seed hex.
  * The hue feeds the neutral palette as well as the accent one, which is why it tints surfaces
  * app-wide.
+ *
+ * [uiStyle] is the user's stored choice; null (nothing stored) means [platformDefaultUiStyle].
  */
 @Composable
 fun LibreChatTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     accentColor: Color = DefaultAccentSeed,
     useDynamicColor: Boolean = false,
+    uiStyle: UiStyle? = null,
     content: @Composable () -> Unit,
 ) {
     val seedScheme = rememberDynamicColorScheme(accentColor, darkTheme, style = PaletteStyle.TonalSpot)
@@ -49,10 +64,18 @@ fun LibreChatTheme(
         seedScheme
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = libreChatTypography,
-        shapes = libreChatShapes,
-        content = content,
-    )
+    val capability = remember { glassCapability() }
+    CompositionLocalProvider(
+        LocalGlassLevel provides capability.takeIf { (uiStyle ?: platformDefaultUiStyle()) == UiStyle.LIQUID_GLASS },
+        LocalDarkTheme provides darkTheme,
+        // One gate for the whole app: covering surfaces and native bars must see the same instance.
+        LocalNativeOverlayGate provides remember { NativeOverlayGate() },
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = libreChatTypography,
+            shapes = libreChatShapes,
+            content = content,
+        )
+    }
 }

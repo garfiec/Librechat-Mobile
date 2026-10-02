@@ -28,11 +28,9 @@ import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarBorder
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,9 +42,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
+import com.garfiec.librechat.core.ui.components.AdaptiveDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveFilterChip
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.agents.components.model.MarketplaceBuiltinLabel
 import com.garfiec.librechat.feature.agents.components.model.MarketplaceItem
@@ -119,7 +119,7 @@ fun ToolsMarketplaceDialog(
         filterMarketplace(catalog, query, filter, favoriteKeys, builtinLabels)
     }
 
-    Dialog(
+    AdaptiveDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
@@ -150,7 +150,7 @@ fun ToolsMarketplaceDialog(
                     }
                 }
 
-                OutlinedTextField(
+                AdaptiveOutlinedTextField(
                     value = query,
                     onValueChange = onQueryChange,
                     placeholder = { Text(stringResource(Res.string.tools_marketplace_search_hint)) },
@@ -172,7 +172,7 @@ fun ToolsMarketplaceDialog(
                         // The Favorites tab would be a dead end on a server that cannot store
                         // any, so it is not offered there at all.
                         if (entry == MarketplaceFilter.FAVORITES && !favoritesSupported) return@forEach
-                        FilterChip(
+                        AdaptiveFilterChip(
                             selected = filter == entry,
                             onClick = { onFilterChange(entry) },
                             label = { Text(stringResource(entry.labelRes())) },

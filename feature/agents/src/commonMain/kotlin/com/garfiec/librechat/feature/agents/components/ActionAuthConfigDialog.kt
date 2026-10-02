@@ -12,11 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -29,6 +25,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.AdaptiveRadioButton
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.agents.resources.*
 import com.garfiec.librechat.feature.agents.resources.Res
@@ -74,7 +74,7 @@ internal fun AuthConfigDialog(
     var localScope by rememberSaveable { mutableStateOf(scope) }
     var localTokenExchangeMethod by rememberSaveable { mutableStateOf(tokenExchangeMethod) }
 
-    AlertDialog(
+    AdaptiveAlertDialog(
         modifier = Modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.label_authentication)) },
@@ -113,13 +113,13 @@ internal fun AuthConfigDialog(
                     Column(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        HorizontalDivider()
+                        AdaptiveDivider()
                         Text(
                             text = stringResource(Res.string.label_api_key_settings),
                             style = MaterialTheme.typography.labelLarge,
                         )
 
-                        OutlinedTextField(
+                        AdaptiveOutlinedTextField(
                             value = localApiKey,
                             onValueChange = { localApiKey = it },
                             label = { Text(stringResource(Res.string.label_api_key)) },
@@ -157,7 +157,7 @@ internal fun AuthConfigDialog(
                         )
 
                         AnimatedVisibility(visible = localAuthorizationType == "custom") {
-                            OutlinedTextField(
+                            AdaptiveOutlinedTextField(
                                 value = localCustomHeader,
                                 onValueChange = { localCustomHeader = it },
                                 label = { Text(stringResource(Res.string.label_custom_auth_header)) },
@@ -174,13 +174,13 @@ internal fun AuthConfigDialog(
                     Column(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        HorizontalDivider()
+                        AdaptiveDivider()
                         Text(
                             text = stringResource(Res.string.label_oauth_settings),
                             style = MaterialTheme.typography.labelLarge,
                         )
 
-                        OutlinedTextField(
+                        AdaptiveOutlinedTextField(
                             value = localOauthClientId,
                             onValueChange = { localOauthClientId = it },
                             label = { Text(stringResource(Res.string.label_client_id)) },
@@ -191,7 +191,7 @@ internal fun AuthConfigDialog(
                             modifier = Modifier.fillMaxWidth(),
                         )
 
-                        OutlinedTextField(
+                        AdaptiveOutlinedTextField(
                             value = localOauthClientSecret,
                             onValueChange = { localOauthClientSecret = it },
                             label = { Text(stringResource(Res.string.label_client_secret)) },
@@ -207,7 +207,7 @@ internal fun AuthConfigDialog(
                             modifier = Modifier.fillMaxWidth(),
                         )
 
-                        OutlinedTextField(
+                        AdaptiveOutlinedTextField(
                             value = localAuthUrl,
                             onValueChange = { localAuthUrl = it },
                             label = { Text(stringResource(Res.string.label_authorization_url)) },
@@ -216,7 +216,7 @@ internal fun AuthConfigDialog(
                             modifier = Modifier.fillMaxWidth(),
                         )
 
-                        OutlinedTextField(
+                        AdaptiveOutlinedTextField(
                             value = localClientUrl,
                             onValueChange = { localClientUrl = it },
                             label = { Text(stringResource(Res.string.label_token_url)) },
@@ -225,7 +225,7 @@ internal fun AuthConfigDialog(
                             modifier = Modifier.fillMaxWidth(),
                         )
 
-                        OutlinedTextField(
+                        AdaptiveOutlinedTextField(
                             value = localScope,
                             onValueChange = { localScope = it },
                             label = { Text(stringResource(Res.string.label_scope)) },
@@ -295,7 +295,7 @@ private fun AuthTypeRadioOption(
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        RadioButton(
+        AdaptiveRadioButton(
             selected = selected,
             onClick = onClick,
         )

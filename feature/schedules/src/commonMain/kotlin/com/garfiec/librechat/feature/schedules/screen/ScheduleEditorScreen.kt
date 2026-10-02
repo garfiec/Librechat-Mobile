@@ -13,24 +13,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -43,7 +31,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.schedule.ScheduleFrequency
+import com.garfiec.librechat.core.ui.components.AdaptiveAssistChip
+import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
+import com.garfiec.librechat.core.ui.components.AdaptiveFilterChip
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
+import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
+import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
+import com.garfiec.librechat.core.ui.components.topbar.BarAction
+import com.garfiec.librechat.core.ui.components.topbar.BarIcons
+import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
+import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.feature.schedules.components.frequencyLabel
 import com.garfiec.librechat.feature.schedules.components.problemLabel
 import com.garfiec.librechat.feature.schedules.resources.Res
@@ -103,12 +104,13 @@ fun ScheduleEditorScreen(
         }
     }
 
-    Scaffold(
+    AdaptiveScaffold(
         modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
+            AdaptiveTopBar(
+                spec = AdaptiveTopBarSpec(
+                    navigation = BarNavigation(BarIcons.Back, null, onBack),
+                    title = BarTitle(
                         stringResource(
                             if (uiState.isEditing) {
                                 Res.string.schedule_editor_edit_title
@@ -116,25 +118,23 @@ fun ScheduleEditorScreen(
                                 Res.string.schedule_editor_new_title
                             },
                         ),
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                    }
-                },
-                actions = {
-                    TextButton(onClick = viewModel::save, enabled = uiState.canSave) {
-                        Text(stringResource(Res.string.schedule_save))
-                    }
-                },
+                    ),
+                    actions = listOf(
+                        BarAction.Text(
+                            id = "save",
+                            label = stringResource(Res.string.schedule_save),
+                            enabled = uiState.canSave,
+                            onClick = viewModel::save,
+                        ),
+                    ),
+                ),
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
     ) { padding ->
         if (uiState.isLoading) {
             LoadingIndicator(Modifier.fillMaxSize().padding(padding))
-            return@Scaffold
+            return@AdaptiveScaffold
         }
         Column(
             modifier = Modifier
@@ -189,7 +189,7 @@ private fun EditorBody(
     val enabled = !uiState.hasConflict && !uiState.loadFailed
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-    OutlinedTextField(
+    AdaptiveOutlinedTextField(
         value = draft.name,
         onValueChange = { value -> onChange { it.copy(name = value) } },
         label = { Text(stringResource(Res.string.schedule_name)) },
@@ -197,7 +197,7 @@ private fun EditorBody(
         enabled = enabled,
         modifier = Modifier.fillMaxWidth(),
     )
-    OutlinedTextField(
+    AdaptiveOutlinedTextField(
         value = draft.prompt,
         onValueChange = { value -> onChange { it.copy(prompt = value) } },
         label = { Text(stringResource(Res.string.schedule_prompt)) },
@@ -224,7 +224,7 @@ private fun EditorBody(
         modifier = Modifier.fillMaxWidth(),
     ) {
         (ScheduleFrequency.STRUCTURED + ScheduleFrequency.CRON).forEach { frequency ->
-            FilterChip(
+            AdaptiveFilterChip(
                 selected = draft.frequency == frequency,
                 onClick = { onChange { it.copy(frequency = frequency) } },
                 label = { Text(frequencyLabel(frequency)) },
@@ -234,7 +234,7 @@ private fun EditorBody(
     }
 
     if (draft.isCron) {
-        OutlinedTextField(
+        AdaptiveOutlinedTextField(
             value = draft.cronExpression,
             onValueChange = { value -> onChange { it.copy(cronExpression = value) } },
             label = { Text(stringResource(Res.string.schedule_cron_expression)) },
@@ -247,7 +247,7 @@ private fun EditorBody(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             // Raw text, so the field can be cleared and retyped. The draft turns an
             // unparseable value into a problem rather than substituting a default.
-            OutlinedTextField(
+            AdaptiveOutlinedTextField(
                 value = draft.hourText,
                 onValueChange = { value -> onChange { it.copy(hourText = value) } },
                 label = { Text(stringResource(Res.string.schedule_time)) },
@@ -255,7 +255,7 @@ private fun EditorBody(
                 enabled = enabled && draft.frequency != ScheduleFrequency.HOURLY,
                 modifier = Modifier.weight(1f),
             )
-            OutlinedTextField(
+            AdaptiveOutlinedTextField(
                 value = draft.minuteText,
                 onValueChange = { value -> onChange { it.copy(minuteText = value) } },
                 label = { Text(stringResource(Res.string.schedule_minute)) },
@@ -272,7 +272,7 @@ private fun EditorBody(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 WEEKDAY_LABELS.forEachIndexed { index, label ->
-                    FilterChip(
+                    AdaptiveFilterChip(
                         selected = index in draft.daysOfWeek,
                         onClick = {
                             onChange {
@@ -298,7 +298,7 @@ private fun EditorBody(
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 
-    OutlinedTextField(
+    AdaptiveOutlinedTextField(
         value = draft.timezone,
         onValueChange = { value -> onChange { it.copy(timezone = value) } },
         label = { Text(stringResource(Res.string.schedule_timezone)) },
@@ -331,7 +331,7 @@ private fun EditorBody(
 
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(stringResource(Res.string.schedule_enable), modifier = Modifier.weight(1f))
-        Switch(
+        AdaptiveSwitch(
             checked = draft.enabled,
             onCheckedChange = { value -> onChange { it.copy(enabled = value) } },
             enabled = enabled,
@@ -353,12 +353,12 @@ private fun LabelledPicker(
     Column {
         Text(label, style = MaterialTheme.typography.labelLarge)
         Box {
-            AssistChip(
+            AdaptiveAssistChip(
                 onClick = { expanded = true },
                 label = { Text(selectedLabel.ifBlank { "—" }) },
                 enabled = enabled && options.isNotEmpty(),
             )
-            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            AdaptiveDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 options.forEach { (id, name) ->
                     DropdownMenuItem(
                         text = { Text(name) },
