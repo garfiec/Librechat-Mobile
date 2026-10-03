@@ -474,6 +474,7 @@ class ChatViewModel(
         steeringDelegate = steeringDelegate,
         emitUserKeyError = { _userKeyErrors.trySend(it) },
         reloadConversation = ::loadConversation,
+        reloadRestoringUnsaved = { id, unsent -> loadConversation(id, unsavedTurn = unsent) },
         restoreUnsentInput = ::restoreUnsentInput,
         isNewConversation = { isNewConversation },
         isHandedOffNewChat = { isHandedOffNewChat },
@@ -845,8 +846,15 @@ class ChatViewModel(
      * flash: the finalized turn is in memory and Room stays stale until `cacheMessages` lands, so
      * painting the cache would re-render the pre-Final tree. `true` subscribes first and revalidates
      * in the background; `init` is the only opt-in (#300).
+     *
+     * [unsavedTurn] is a failed turn's optimistic user message whose persistence is unknown: once
+     * the fetch settles, its text goes back into the composer if the server kept no copy of it.
      */
-    private fun loadConversation(conversationId: String, cacheFirst: Boolean = false) {
+    private fun loadConversation(
+        conversationId: String,
+        cacheFirst: Boolean = false,
+        unsavedTurn: Message? = null,
+    ) {
         // SECURITY: do not remove — temp-chat data-at-rest guard.
         // Defense-in-depth for temporary chats: never route a temp conversation
         // through the Room read-through, which would upsert its message rows to disk (the
@@ -860,6 +868,7 @@ class ChatViewModel(
         // non-empty emission (the authoritative tail) — so a later Room re-emit can't
         // re-enable comparison after the user has toggled it off for the session.
         var autoRehydrateHandled = false
+        var pendingUnsavedTurn = unsavedTurn
         roomObserverJob = viewModelScope.launch {
             // A flow, not a plain flag: it is a `combine` input below, so settling re-runs the
             // transform even when Room never emits again — a conversation with genuinely zero
@@ -946,6 +955,19 @@ class ChatViewModel(
                                 pendingResumeUserMessage = emission.retainedPending,
                             ),
                         )
+                    }
+                    // Judged on the settled read only: a cached emission predates the failed turn
+                    // and would always look like the server dropped it. A fetch that failed also
+                    // settles, and then restores — duplicating text the server did keep is the
+                    // recoverable mistake; losing text it did not keep is not.
+                    pendingUnsavedTurn?.takeIf { settled }?.let { unsent ->
+                        pendingUnsavedTurn = null
+                        val kept = emission.messages.any {
+                            it.messageId == unsent.messageId || it.isServerCopyOf(unsent)
+                        }
+                        if (!kept && unsent.text.isNotBlank()) {
+                            restoreUnsentInput(unsent.text, unsent.quotes.orEmpty())
+                        }
                     }
                     // Restore comparison mode when reopening a Compare Models conversation: the
                     // last assistant message carries both agents' attributed parts but nothing

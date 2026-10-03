@@ -54,6 +54,7 @@ class StreamingManagerStopTest {
     private val completionDelegate = mockk<SendCompletionDelegate>(relaxed = true)
     private val queueDelegate = mockk<MessageQueueDelegate>(relaxed = true)
     private val reloadConversation = mockk<(String) -> Unit>(relaxed = true)
+    private val reloadRestoringUnsaved = mockk<(String, Message) -> Unit>(relaxed = true)
     private val treeDelegate = mockk<MessageTreeDelegate>(relaxed = true)
     private val restoreUnsentInput = mockk<(String, List<String>) -> Unit>(relaxed = true)
 
@@ -93,6 +94,7 @@ class StreamingManagerStopTest {
             steeringDelegate = mockk(relaxed = true),
             emitUserKeyError = {},
             reloadConversation = reloadConversation,
+            reloadRestoringUnsaved = reloadRestoringUnsaved,
             restoreUnsentInput = restoreUnsentInput,
             isNewConversation = { false },
             isHandedOffNewChat = { false },

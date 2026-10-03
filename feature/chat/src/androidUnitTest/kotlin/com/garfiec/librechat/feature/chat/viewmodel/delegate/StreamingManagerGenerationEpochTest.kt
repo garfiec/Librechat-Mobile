@@ -90,6 +90,7 @@ class StreamingManagerGenerationEpochTest {
             steeringDelegate = mockk(relaxed = true),
             emitUserKeyError = {},
             reloadConversation = {},
+            reloadRestoringUnsaved = { _, _ -> },
             restoreUnsentInput = { _, _ -> },
             isNewConversation = { false },
             isHandedOffNewChat = { false },
