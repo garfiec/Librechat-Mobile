@@ -17,7 +17,6 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -43,7 +42,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Extension
@@ -57,7 +55,6 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
-import androidx.compose.material.icons.filled.Workspaces
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -80,18 +77,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -134,7 +132,6 @@ import com.garfiec.librechat.feature.conversations.resources.cd_collapse_section
 import com.garfiec.librechat.feature.conversations.resources.cd_conversation_actions
 import com.garfiec.librechat.feature.conversations.resources.cd_expand_section
 import com.garfiec.librechat.feature.conversations.resources.cd_search
-import com.garfiec.librechat.feature.conversations.resources.chats
 import com.garfiec.librechat.feature.conversations.resources.drawer_running_chats
 import com.garfiec.librechat.feature.conversations.resources.favorites
 import com.garfiec.librechat.feature.conversations.resources.files
@@ -168,13 +165,6 @@ private fun LazyListScope.drawerHeader(glass: Boolean, key: Any, content: @Compo
     if (glass) item(key = key, content = content) else stickyHeader(key = key) { content() }
 }
 private val ActiveIndicatorShape = RoundedCornerShape(2.dp)
-
-// Sliding pill toggle: the rounded track, its slightly-tighter moving thumb, and each icon+label
-// cell's fixed size (equal widths so the thumb offset is a whole-cell step).
-private val PillTrackShape = RoundedCornerShape(12.dp)
-private val PillThumbShape = RoundedCornerShape(8.dp)
-private val DrawerTabCellWidth = 88.dp
-private val DrawerTabCellHeight = 34.dp
 
 // Pulls a tappable drawer row in from the edges and clips its ripple to [ItemShape], so every row
 // reads as the same inset, rounded button instead of a full-bleed rectangular highlight. Apply
@@ -580,6 +570,7 @@ fun DrawerContent(
             // Chats / Projects toggle above the list — shown only where projects are supported. When
             // hidden (older server / no permission) the drawer is always the recents list.
             val projectsTabAvailable = uiState.projectsEnabled
+            val librarySwitch = rememberLibrarySwitch(selectedTab)
             if (projectsTabAvailable) {
                 Spacer(modifier = Modifier.height(8.dp))
                 // Section heading + a compact icon pill that slides between the recents and projects
@@ -599,20 +590,28 @@ fun DrawerContent(
                             .semantics { heading() },
                     )
                     DrawerTabToggle(
+                        switch = librarySwitch,
                         selectedTab = selectedTab,
                         onSelect = onSelectTab,
                     )
                 }
-                // Keep the folder counts fresh whenever the user opens the Projects tab.
+                // Keep the folder counts fresh whenever the Projects panel comes into view, a drag included.
                 val currentOnLoadProjects by rememberUpdatedState(onLoadProjects)
-                LaunchedEffect(selectedTab) {
-                    if (selectedTab == DrawerTab.Projects) currentOnLoadProjects()
+                val projectsInView = librarySwitch.projectsShown
+                LaunchedEffect(projectsInView) {
+                    if (projectsInView) currentOnLoadProjects()
                 }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            val showProjectsTab = projectsTabAvailable && selectedTab == DrawerTab.Projects
+            // Both panels are composed only mid-swap; at rest it's the selected one.
+            val showChats = !projectsTabAvailable || librarySwitch.chatsShown
+            val showProjects = projectsTabAvailable && librarySwitch.projectsShown
+            val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+            val panel = { tab: DrawerTab ->
+                if (projectsTabAvailable) Modifier.libraryPanel(librarySwitch, tab, rtl) else Modifier
+            }
 
             // Conversation list with favorites section and date groups
             val listState = rememberLazyListState()
@@ -680,11 +679,12 @@ fun DrawerContent(
                 }
             }
 
-            if (!showProjectsTab) {
+            Box(modifier = Modifier.weight(1f)) {
+            if (showChats) {
                 PullToRefreshBox(
                     isRefreshing = uiState.isRefreshing,
                     onRefresh = onRefresh,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxSize().then(panel(DrawerTab.Chats)),
                 ) {
                     LazyColumn(
                         state = listState,
@@ -841,7 +841,8 @@ fun DrawerContent(
                     }
                     }
                 }
-            } else {
+            }
+            if (showProjects) {
                 DrawerProjectsList(
                     projects = projects,
                     inlineProjectChats = inlineProjectChats,
@@ -851,8 +852,9 @@ fun DrawerContent(
                     onRenameProject = onRenameProject,
                     onDeleteProject = onDeleteProject,
                     renderChat = renderConversationItem,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxSize().then(panel(DrawerTab.Projects)),
                 )
+            }
             }
 
             // Bottom section: divider + footer links
@@ -946,95 +948,6 @@ fun DrawerContent(
             onSelect = { projectId -> onMoveToProject(target.conversationId, projectId) },
             onCreate = { name -> onCreateProjectAndAssign(target.conversationId, name) },
             onDismiss = { projectPickerTarget = null },
-        )
-    }
-}
-
-/**
- * Sliding-pill toggle for the drawer's two list modes: a rounded track holding two equal-width
- * icon+label cells (chat / workspaces) with a highlighted thumb that animates between them. Sits
- * inline to the right of the section heading; tapping a cell selects that mode.
- */
-@Composable
-private fun DrawerTabToggle(
-    selectedTab: DrawerTab,
-    onSelect: (DrawerTab) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val thumbOffsetFraction by animateFloatAsState(
-        targetValue = if (selectedTab == DrawerTab.Chats) 0f else 1f,
-        label = "DrawerTabThumb",
-    )
-    val glass = isLiquidGlass
-    val thumbColor = if (glass) GlassControlColors.segmentThumb else MaterialTheme.colorScheme.secondaryContainer
-    Box(
-        modifier = modifier
-            .clip(PillTrackShape)
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-            .padding(3.dp)
-            .height(DrawerTabCellHeight),
-    ) {
-        // Moving highlight behind the active cell; offset by a whole cell for the selected side.
-        Box(
-            modifier = Modifier
-                .width(DrawerTabCellWidth)
-                .fillMaxHeight()
-                .offset(x = DrawerTabCellWidth * thumbOffsetFraction)
-                .then(if (glass) Modifier.shadow(2.dp, PillThumbShape) else Modifier)
-                .clip(PillThumbShape)
-                .background(thumbColor),
-        )
-        Row {
-            DrawerTabToggleCell(
-                icon = Icons.AutoMirrored.Filled.Chat,
-                label = stringResource(Res.string.chats),
-                selected = selectedTab == DrawerTab.Chats,
-                onClick = { onSelect(DrawerTab.Chats) },
-            )
-            DrawerTabToggleCell(
-                icon = Icons.Default.Workspaces,
-                label = stringResource(Res.string.projects),
-                selected = selectedTab == DrawerTab.Projects,
-                onClick = { onSelect(DrawerTab.Projects) },
-            )
-        }
-    }
-}
-
-/** One icon+label cell of [DrawerTabToggle]; its tint flips when it becomes the selected side. */
-@Composable
-private fun DrawerTabToggleCell(
-    icon: ImageVector,
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    val contentColor = if (selected) {
-        if (isLiquidGlass) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSecondaryContainer
-    } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
-    }
-    Row(
-        modifier = Modifier
-            .width(DrawerTabCellWidth)
-            .fillMaxHeight()
-            .clip(PillThumbShape)
-            .clickable(role = Role.Tab, onClick = onClick),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(16.dp),
-            tint = contentColor,
-        )
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = contentColor,
-            maxLines = 1,
         )
     }
 }
