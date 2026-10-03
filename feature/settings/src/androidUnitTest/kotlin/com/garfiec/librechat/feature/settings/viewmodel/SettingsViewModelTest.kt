@@ -72,6 +72,7 @@ class SettingsViewModelTest {
     private val settingsDataStore = mockk<SettingsDataStore>(relaxed = true)
     private val selectedLanguageFlow = MutableStateFlow(SettingsDataStore.DEFAULT_LANGUAGE)
     private val uploadRoutingModeFlow = MutableStateFlow(UploadRoutingMode.AUTO)
+    private val siteIconsChoiceFlow = MutableStateFlow<Boolean?>(null)
     private val mcpRepository = mockk<McpRepository>(relaxed = true)
     private val memoryRepository = mockk<MemoryRepository>(relaxed = true)
     private val speechRepository = mockk<SpeechRepository>(relaxed = true)
@@ -126,6 +127,8 @@ class SettingsViewModelTest {
         every { settingsDataStore.prefetchAttachmentsEnabled } returns MutableStateFlow(false)
         every { settingsDataStore.prefetchOnMeteredEnabled } returns MutableStateFlow(false)
         every { settingsDataStore.prefetchDepth } returns MutableStateFlow(PrefetchDepth.DEFAULT)
+        every { settingsDataStore.siteIconsChoice } returns siteIconsChoiceFlow
+        coEvery { settingsDataStore.setShowSiteIcons(any()) } answers { siteIconsChoiceFlow.value = firstArg() }
         every { settingsDataStore.chatLayoutStyle } returns MutableStateFlow(ChatLayoutConstants.THREAD)
         every { settingsDataStore.showAvatars } returns MutableStateFlow(true)
         every { settingsDataStore.showBubbles } returns MutableStateFlow(false)
@@ -291,6 +294,19 @@ class SettingsViewModelTest {
 
         assertThat(viewModel.uiState.value.error).isEqualTo("Server error")
         assertThat(viewModel.uiState.value.isAccountDeleted).isFalse()
+    }
+
+    @Test
+    fun `site icons read as off until chosen, then follow the stored choice`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.showSiteIcons).isFalse()
+
+        viewModel.setShowSiteIcons(true)
+        advanceUntilIdle()
+
+        coVerify { settingsDataStore.setShowSiteIcons(true) }
+        assertThat(viewModel.uiState.value.showSiteIcons).isTrue()
     }
 
     @Test

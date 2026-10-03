@@ -636,4 +636,6 @@
     <string name="mcp_oauth_message">Dieser Server benötigt deine Erlaubnis, bevor er verwendet werden kann. Du wirst zum Anbieter weitergeleitet, um den Zugriff zu autorisieren, und kannst danach zurückkehren und neu verbinden.</string>
     <string name="mcp_oauth_continue">Weiter</string>
     <string name="mcp_connection_deferred">Verbindung wird im Hintergrund hergestellt — Tools erscheinen, sobald sie bereit ist.</string>
+    <string name="show_site_icons">Website-Symbole anzeigen</string>
+    <string name="show_site_icons_desc">Symbole für Websuchergebnisse von Google und anderen Websites laden</string>
 </resources>

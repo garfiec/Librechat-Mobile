@@ -88,6 +88,7 @@ internal class ChatViewModelTestFixture {
     val serverFileSelectionHandoff = mockk<ServerFileSelectionHandoff>(relaxed = true)
 
     val selectionHandoff = NewChatSelectionHandoff()
+    val siteIconPromptSession = SiteIconPromptSession()
 
     /** Driven by hand where a test needs a prompt mutation to reach a retained ViewModel. */
     val promptRevision = MutableStateFlow(0L)
@@ -123,6 +124,7 @@ internal class ChatViewModelTestFixture {
         every { settingsDataStore.chatHeaderAlignment } returns MutableStateFlow(ChatHeaderAlignment.CENTER)
         every { settingsDataStore.contextBarPlacement } returns MutableStateFlow(ContextBarPlacement.HIDDEN)
         every { settingsDataStore.contextGaugeExpanded } returns MutableStateFlow(false)
+        every { settingsDataStore.siteIconsChoice } returns MutableStateFlow(null)
         every { settingsDataStore.duringRunAction } returns MutableStateFlow(DuringRunAction.QUEUE)
     }
 
@@ -166,6 +168,7 @@ internal class ChatViewModelTestFixture {
         selectionHandoff = selectionHandoff,
         serverFileSelectionHandoff = serverFileSelectionHandoff,
         promptInsertionHandoff = PromptInsertionHandoff(),
+        siteIconPromptSession = siteIconPromptSession,
         activeAccountProvider = activeAccountProvider,
     )
 }

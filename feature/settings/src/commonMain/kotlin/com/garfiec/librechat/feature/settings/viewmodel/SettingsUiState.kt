@@ -111,6 +111,7 @@ data class SettingsUiState(
     val cacheSizeBytes: Long? = null,
     val uploadRoutingMode: UploadRoutingMode = UploadRoutingMode.AUTO,
     val showImageDescriptions: Boolean = false,
+    val showSiteIcons: Boolean = false,
     val dismissKeyboardOnSend: Boolean = false,
     // Data management
     val archivedCount: Int = 0,

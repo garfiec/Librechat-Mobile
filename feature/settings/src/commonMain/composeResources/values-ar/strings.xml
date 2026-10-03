@@ -636,4 +636,6 @@
     <string name="mcp_oauth_message">يحتاج هذا الخادم إلى إذنك قبل استخدامه. ستُنقل إلى المزوّد لتفويض الوصول، ثم يمكنك العودة وإعادة الاتصال.</string>
     <string name="mcp_oauth_continue">متابعة</string>
     <string name="mcp_connection_deferred">جارٍ الاتصال في الخلفية — ستظهر الأدوات عندما يصبح جاهزًا.</string>
+    <string name="show_site_icons">إظهار أيقونات المواقع</string>
+    <string name="show_site_icons_desc">تحميل أيقونات نتائج البحث على الويب من Google ومواقع أخرى</string>
 </resources>

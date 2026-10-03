@@ -636,4 +636,6 @@
     <string name="mcp_oauth_message">このサーバーを使用するには許可が必要です。プロバイダーに移動してアクセスを承認した後、戻って再接続してください。</string>
     <string name="mcp_oauth_continue">続行</string>
     <string name="mcp_connection_deferred">バックグラウンドで接続中です — 準備ができるとツールが表示されます。</string>
+    <string name="show_site_icons">サイトのアイコンを表示</string>
+    <string name="show_site_icons_desc">ウェブ検索結果のアイコンを Google などのサイトから読み込みます</string>
 </resources>

@@ -631,4 +631,9 @@
     <string name="update_banner_title">Switchboard %1$s을(를) 사용할 수 있습니다</string>
     <string name="update_banner_action">새로운 기능 보기</string>
     <string name="cd_dismiss_update">업데이트 알림 닫기</string>
+    <string name="site_icons_prompt_title">웹사이트 아이콘을 표시할까요?</string>
+    <string name="site_icons_prompt_body">웹 검색 결과에 각 웹사이트의 아이콘을 표시할 수 있습니다. 아이콘을 불러오면 사이트 주소가 Google 등 외부 서버로 전송됩니다.</string>
+    <string name="site_icons_prompt_settings_hint">'설정 → 채팅 → 웹사이트 아이콘 표시'에서 언제든지 변경할 수 있습니다.</string>
+    <string name="site_icons_prompt_allow">아이콘 표시</string>
+    <string name="site_icons_prompt_deny">표시 안 함</string>
 </resources>

@@ -168,6 +168,7 @@ class ChatViewModel(
     private val selectionHandoff: NewChatSelectionHandoff,
     private val serverFileSelectionHandoff: ServerFileSelectionHandoff,
     private val promptInsertionHandoff: PromptInsertionHandoff,
+    private val siteIconPromptSession: SiteIconPromptSession,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -345,10 +346,24 @@ class ChatViewModel(
         SttAndRendererPrefs(latex, autoSendStt, sttEngine, sttLang, inlineArtifacts)
     }
 
+    // Third stage: a stored choice wins; with none, ask unless the prompt was already closed
+    // this process (see SiteIconPromptSession).
+    private val siteIconsState = combine(
+        settingsDataStore.siteIconsChoice,
+        siteIconPromptSession.dismissed,
+    ) { choice, dismissed ->
+        when (choice) {
+            true -> SiteIconsState.ON
+            false -> SiteIconsState.OFF
+            null -> if (dismissed) SiteIconsState.OFF else SiteIconsState.ASK
+        }
+    }
+
     val chatPreferences: StateFlow<ChatPreferences> = combine(
         baseChatPrefs,
         sttAndRendererPrefs,
-    ) { base, sttRenderer ->
+        siteIconsState,
+    ) { base, sttRenderer, siteIcons ->
         ChatPreferences(
             showImageDescriptions = base.showImageDescriptions,
             dismissKeyboardOnSend = base.dismissKeyboardOnSend,
@@ -360,6 +375,7 @@ class ChatViewModel(
             sttEngine = sttRenderer.sttEngine,
             sttLanguage = sttRenderer.sttLanguage,
             inlineArtifactPrefs = sttRenderer.inlineArtifactPrefs,
+            siteIcons = siteIcons,
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, ChatPreferences())
 
@@ -1229,6 +1245,14 @@ class ChatViewModel(
 
     /** Withdraws a steer that has not been injected into the running reply yet. */
     fun cancelSteer(steerId: String) = steeringDelegate.cancel(steerId)
+
+    /** The website-icons prompt's answer; also what stops it asking again. */
+    fun setShowSiteIcons(show: Boolean) {
+        viewModelScope.launch { settingsDataStore.setShowSiteIcons(show) }
+    }
+
+    /** The website-icons prompt was closed without a choice: stay quiet until the next launch. */
+    fun dismissSiteIconPrompt() = siteIconPromptSession.dismiss()
 
     /** Settings/composer-menu write for the default during-run action (steer vs queue). */
     fun setDuringRunAction(action: DuringRunAction) {

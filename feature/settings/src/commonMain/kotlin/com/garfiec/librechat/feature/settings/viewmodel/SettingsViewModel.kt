@@ -309,6 +309,10 @@ class SettingsViewModel(
         prefsController.setShowImageDescriptions(show)
     }
 
+    fun setShowSiteIcons(show: Boolean) {
+        prefsController.setShowSiteIcons(show)
+    }
+
     fun setDismissKeyboardOnSend(enabled: Boolean) {
         prefsController.setDismissKeyboardOnSend(enabled)
     }

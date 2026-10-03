@@ -25,6 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,6 +48,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_search_result
 import com.garfiec.librechat.feature.chat.resources.web_searched
+import com.garfiec.librechat.feature.chat.viewmodel.SiteIconsState
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -95,7 +97,7 @@ private fun Favicon(model: String, size: Dp, modifier: Modifier = Modifier) {
 
 /** Overlapping stack of up to [MAX_STACKED_FAVICONS] domain favicons (first drawn on top). */
 @Composable
-private fun SourceFaviconStack(hosts: List<String>, modifier: Modifier = Modifier) {
+private fun SourceFaviconStack(hosts: List<String>, showIcons: Boolean, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier.semantics { },
         horizontalArrangement = Arrangement.spacedBy((-7).dp),
@@ -111,7 +113,7 @@ private fun SourceFaviconStack(hosts: List<String>, modifier: Modifier = Modifie
                     .padding(3.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Favicon(model = faviconUrl(host), size = 14.dp)
+                if (showIcons) Favicon(model = faviconUrl(host), size = 14.dp) else GlobeIcon(14.dp)
             }
         }
     }
@@ -128,6 +130,13 @@ fun WebSearchSourcesCard(
     modifier: Modifier = Modifier,
 ) {
     val uriHandler = LocalUriHandler.current
+    // Icons come from external servers, so they're off until the user opts in; the first card
+    // shown while that's undecided raises the one-time prompt. Keyed on the state so it fires
+    // when preferences finish loading as ASK.
+    val siteIcons = LocalSiteIcons.current
+    LaunchedEffect(siteIcons.state) {
+        if (siteIcons.state == SiteIconsState.ASK) siteIcons.requestChoice()
+    }
     var isExpanded by remember { mutableStateOf(false) }
 
     val previewHosts = remember(results) {
@@ -152,7 +161,7 @@ fun WebSearchSourcesCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (previewHosts.isNotEmpty()) {
-                SourceFaviconStack(previewHosts)
+                SourceFaviconStack(previewHosts, showIcons = siteIcons.state.showIcons)
             } else {
                 Icon(
                     imageVector = Icons.Default.Language,
@@ -212,7 +221,11 @@ fun WebSearchSourcesCard(
                             },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Favicon(model = result.favicon ?: faviconUrl(domain), size = 16.dp)
+                        if (siteIcons.state.showIcons) {
+                            Favicon(model = result.favicon ?: faviconUrl(domain), size = 16.dp)
+                        } else {
+                            GlobeIcon(16.dp)
+                        }
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
                             text = result.title,

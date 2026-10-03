@@ -657,4 +657,9 @@
     <string name="update_banner_title">Switchboard %1$s is available</string>
     <string name="update_banner_action">See what's new</string>
     <string name="cd_dismiss_update">Dismiss update notice</string>
+    <string name="site_icons_prompt_title">Show website icons?</string>
+    <string name="site_icons_prompt_body">Web search results can show each website's icon. Loading them sends the sites' addresses to external servers such as Google.</string>
+    <string name="site_icons_prompt_settings_hint">You can change this anytime in Settings → Chat → Show website icons.</string>
+    <string name="site_icons_prompt_allow">Show icons</string>
+    <string name="site_icons_prompt_deny">Don't show</string>
 </resources>

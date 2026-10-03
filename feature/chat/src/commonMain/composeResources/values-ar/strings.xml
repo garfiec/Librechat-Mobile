@@ -631,4 +631,9 @@
     <string name="update_banner_title">Switchboard %1$s متاح</string>
     <string name="update_banner_action">عرض الجديد</string>
     <string name="cd_dismiss_update">إغلاق إشعار التحديث</string>
+    <string name="site_icons_prompt_title">إظهار أيقونات المواقع؟</string>
+    <string name="site_icons_prompt_body">يمكن أن تعرض نتائج البحث على الويب أيقونة كل موقع. يؤدي تحميلها إلى إرسال عناوين المواقع إلى خوادم خارجية مثل Google.</string>
+    <string name="site_icons_prompt_settings_hint">يمكنك تغيير ذلك في أي وقت من الإعدادات ← المحادثة ← إظهار أيقونات المواقع.</string>
+    <string name="site_icons_prompt_allow">إظهار الأيقونات</string>
+    <string name="site_icons_prompt_deny">عدم الإظهار</string>
 </resources>

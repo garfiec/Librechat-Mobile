@@ -631,4 +631,9 @@
     <string name="update_banner_title">Switchboard %1$s 可用</string>
     <string name="update_banner_action">查看新功能</string>
     <string name="cd_dismiss_update">关闭更新提示</string>
+    <string name="site_icons_prompt_title">显示网站图标？</string>
+    <string name="site_icons_prompt_body">网页搜索结果可以显示每个网站的图标。加载图标时，网站地址会发送到 Google 等外部服务器。</string>
+    <string name="site_icons_prompt_settings_hint">你可以随时在“设置 → 聊天 → 显示网站图标”中更改此设置。</string>
+    <string name="site_icons_prompt_allow">显示图标</string>
+    <string name="site_icons_prompt_deny">不显示</string>
 </resources>

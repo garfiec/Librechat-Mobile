@@ -631,4 +631,9 @@
     <string name="update_banner_title">Switchboard %1$s está disponível</string>
     <string name="update_banner_action">Ver novidades</string>
     <string name="cd_dismiss_update">Dispensar aviso de atualização</string>
+    <string name="site_icons_prompt_title">Mostrar ícones dos sites?</string>
+    <string name="site_icons_prompt_body">Os resultados da pesquisa na web podem mostrar o ícone de cada site. Para carregá-los, os endereços dos sites são enviados a servidores externos, como o Google.</string>
+    <string name="site_icons_prompt_settings_hint">Você pode mudar isso a qualquer momento em Configurações → Conversa → Mostrar ícones dos sites.</string>
+    <string name="site_icons_prompt_allow">Mostrar ícones</string>
+    <string name="site_icons_prompt_deny">Não mostrar</string>
 </resources>

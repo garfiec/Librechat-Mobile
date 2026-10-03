@@ -631,4 +631,9 @@
     <string name="update_banner_title">Switchboard %1$s ist verfügbar</string>
     <string name="update_banner_action">Neuerungen ansehen</string>
     <string name="cd_dismiss_update">Update-Hinweis schließen</string>
+    <string name="site_icons_prompt_title">Website-Symbole anzeigen?</string>
+    <string name="site_icons_prompt_body">Websuchergebnisse können das Symbol jeder Website anzeigen. Beim Laden werden die Adressen der Websites an externe Server wie Google gesendet.</string>
+    <string name="site_icons_prompt_settings_hint">Du kannst das jederzeit unter Einstellungen → Chat → Website-Symbole anzeigen ändern.</string>
+    <string name="site_icons_prompt_allow">Symbole anzeigen</string>
+    <string name="site_icons_prompt_deny">Nicht anzeigen</string>
 </resources>

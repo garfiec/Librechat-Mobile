@@ -631,4 +631,9 @@
     <string name="update_banner_title">Switchboard %1$s est disponible</string>
     <string name="update_banner_action">Voir les nouveautés</string>
     <string name="cd_dismiss_update">Ignorer l’avis de mise à jour</string>
+    <string name="site_icons_prompt_title">Afficher les icônes des sites ?</string>
+    <string name="site_icons_prompt_body">Les résultats de recherche web peuvent afficher l'icône de chaque site. Pour les charger, les adresses des sites sont envoyées à des serveurs externes comme Google.</string>
+    <string name="site_icons_prompt_settings_hint">Vous pouvez modifier ce choix à tout moment dans Paramètres → Discussion → Afficher les icônes des sites.</string>
+    <string name="site_icons_prompt_allow">Afficher les icônes</string>
+    <string name="site_icons_prompt_deny">Ne pas afficher</string>
 </resources>

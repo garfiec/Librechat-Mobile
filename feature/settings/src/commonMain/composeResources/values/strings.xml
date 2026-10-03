@@ -648,4 +648,6 @@
     <string name="mcp_oauth_message">This server needs your permission before it can be used. You will be sent to the provider to authorize access, then you can come back and reconnect.</string>
     <string name="mcp_oauth_continue">Continue</string>
     <string name="mcp_connection_deferred">Connecting in the background \u2014 tools appear once it is ready.</string>
+    <string name="show_site_icons">Show website icons</string>
+    <string name="show_site_icons_desc">Load icons for web search results from Google and other websites</string>
 </resources>

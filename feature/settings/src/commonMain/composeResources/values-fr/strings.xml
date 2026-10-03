@@ -636,4 +636,6 @@
     <string name="mcp_oauth_message">Ce serveur a besoin de votre autorisation avant de pouvoir être utilisé. Vous serez redirigé vers le fournisseur pour autoriser l'accès, puis vous pourrez revenir et vous reconnecter.</string>
     <string name="mcp_oauth_continue">Continuer</string>
     <string name="mcp_connection_deferred">Connexion en arrière-plan — les outils apparaîtront une fois prête.</string>
+    <string name="show_site_icons">Afficher les icônes des sites</string>
+    <string name="show_site_icons_desc">Charger les icônes des résultats de recherche web depuis Google et d'autres sites</string>
 </resources>

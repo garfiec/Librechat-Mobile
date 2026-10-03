@@ -636,4 +636,6 @@
     <string name="mcp_oauth_message">此服务器需要你的授权才能使用。你将被转到提供方进行授权，之后可以返回并重新连接。</string>
     <string name="mcp_oauth_continue">继续</string>
     <string name="mcp_connection_deferred">正在后台连接 — 就绪后将显示工具。</string>
+    <string name="show_site_icons">显示网站图标</string>
+    <string name="show_site_icons_desc">从 Google 和其他网站加载网页搜索结果的图标</string>
 </resources>

@@ -636,4 +636,6 @@
     <string name="mcp_oauth_message">이 서버를 사용하려면 권한이 필요합니다. 제공자 페이지로 이동해 접근을 승인한 뒤 돌아와서 다시 연결하세요.</string>
     <string name="mcp_oauth_continue">계속</string>
     <string name="mcp_connection_deferred">백그라운드에서 연결 중 — 준비되면 도구가 표시됩니다.</string>
+    <string name="show_site_icons">웹사이트 아이콘 표시</string>
+    <string name="show_site_icons_desc">웹 검색 결과의 아이콘을 Google 및 기타 웹사이트에서 불러옵니다</string>
 </resources>

@@ -636,4 +636,6 @@
     <string name="mcp_oauth_message">Este servidor necesita tu permiso para poder usarse. Se te enviará al proveedor para autorizar el acceso y después podrás volver y reconectar.</string>
     <string name="mcp_oauth_continue">Continuar</string>
     <string name="mcp_connection_deferred">Conectando en segundo plano — las herramientas aparecerán cuando esté listo.</string>
+    <string name="show_site_icons">Mostrar iconos de sitios web</string>
+    <string name="show_site_icons_desc">Carga los iconos de los resultados de búsqueda web desde Google y otros sitios</string>
 </resources>
