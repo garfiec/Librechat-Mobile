@@ -27,7 +27,10 @@ import kotlin.math.abs
 /**
  * Press-drag-release across a list's rows, in place: press a row and drag up or down, and the
  * highlight springs from row to row under the finger; lifting over a row selects it, lifting off
- * every row does nothing. Taps are left to the rows' own clicks.
+ * every row does nothing. Taps are left to the rows' own clicks. The highlight is also the rows'
+ * pressed state: it shows on the touched row at once and fades if the press ends as a tap or a
+ * swipe, so a row applying [listDragTarget] should keep its click's press ripple off (its focus and
+ * hover indication can stay).
  *
  * Only a vertical drag is taken, so it can sit inside a horizontal swipe (a drawer): whichever axis
  * passes touch slop first wins. Holding past the long-press timeout takes the gesture whatever the
@@ -76,6 +79,8 @@ private fun Modifier.dragSelectGesture(state: ListDragSelection): Modifier =
                 val down = awaitFirstDown(requireUnconsumed = false)
                 val start = toScreen(down.position)?.let(highlight::targetAt) ?: return@awaitEachGesture
                 highlight.reset()
+                // The pressed state, before the gesture is known to be a drag-select.
+                highlight.hover(start, tick = false)
 
                 // Main pass, so a child's own drag (the account avatar's swipe) consumes first and
                 // wins, and this runs before the drawer's horizontal drag above it.
@@ -100,7 +105,6 @@ private fun Modifier.dragSelectGesture(state: ListDragSelection): Modifier =
 
                 if (claim == Claim.Hold || claim == Claim.Drag) {
                     if (claim == Claim.Hold) state.held()
-                    highlight.hover(start)
                     // A hold released without moving is the row's own click, already on its way.
                     var dragging = claim == Claim.Drag
                     while (true) {
