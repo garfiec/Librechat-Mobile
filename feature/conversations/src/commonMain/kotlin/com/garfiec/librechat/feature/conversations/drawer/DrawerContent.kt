@@ -7,12 +7,16 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -1531,12 +1535,26 @@ private fun DrawerFooterItem(
     modifier: Modifier = Modifier,
     dragSelection: ListDragSelection? = null,
 ) {
+    // The drag highlight is the pressed state, so the indication sees only focus and hover: a press
+    // ripple would play under the highlight.
+    val interactions = remember { MutableInteractionSource() }
+    val indicated = remember { MutableInteractionSource() }
+    LaunchedEffect(interactions, indicated) {
+        interactions.interactions.collect { if (it !is PressInteraction) indicated.emit(it) }
+    }
+    val click = if (dragSelection != null) {
+        Modifier
+            .indication(indicated, LocalIndication.current)
+            .clickable(interactionSource = interactions, indication = null, onClick = onClick)
+    } else {
+        Modifier.clickable(onClick = onClick)
+    }
     Row(
         modifier = modifier
             .fillMaxWidth()
             .listDragTarget(dragSelection, onClick)
             .drawerRowShape()
-            .clickable(onClick = onClick)
+            .then(click)
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

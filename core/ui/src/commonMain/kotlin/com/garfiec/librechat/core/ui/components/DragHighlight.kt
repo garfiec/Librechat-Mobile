@@ -87,7 +87,8 @@ internal class DragHighlight(
         return bounds
     }
 
-    fun hover(target: DragHighlightTargetNode?) {
+    /** Moves the highlight to [target] (null fades it); [tick] plays the row-change haptic. */
+    fun hover(target: DragHighlightTargetNode?, tick: Boolean = true) {
         if (target === hovered) return
         hovered = target
         val bounds = target?.screenBounds()
@@ -95,7 +96,7 @@ internal class DragHighlight(
             scope.launch { alpha.animateTo(0f, tween(HIGHLIGHT_FADE_MILLIS)) }
             return
         }
-        haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
+        if (tick) haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
         left = bounds.left
         right = bounds.right
         if (alpha.targetValue == 0f) {
