@@ -83,7 +83,7 @@ LibreChatTheme(darkTheme, accentColor, useDynamicColor, uiStyle = storedUiStyle)
 @Composable
 fun AdaptiveThing(/* exactly the M3 Thing's parameters, same names, order and defaults */) {
     if (!isLiquidGlass) {
-        Thing(/* every parameter forwarded unchanged */)   // Material: pixel-identical, zero cost
+        Thing(/* every parameter forwarded unchanged */)   // Material: the M3 control, every parameter forwarded
         return
     }
     // Liquid Glass variant. Colours from GlassControlColors, sizes from GlassDefaults,
@@ -104,8 +104,13 @@ Rules — follow these when writing or reviewing UI:
    - *one M3 call with per-argument overrides* when glass only restyles it (Buttons, Chips,
      DropdownMenu, FAB): `shape = shape ?: if (glass) GlassShape else M3Defaults.shape`. A value the
      caller passes explicitly still wins (null / M3-default sentinel).
-3. **Material path = the M3 call with every parameter forwarded.** Material must look exactly as it
-   did before glass existed; M3-only parameters stay and are documented as "Material only".
+3. **Material path = the M3 call with every parameter forwarded.** M3-only parameters stay and are
+   documented as "Material only". The exception is deliberate Material motion: a component may
+   replace the M3 call with its own implementation to add motion M3 doesn't expose, provided it
+   keeps M3's layout, placement and colours — e.g. `AdaptiveDropdownMenu` → `MaterialMenuOverlay`
+   (drawn in `GlassSheetHost` like the glass menu, so it can overshoot its bounds; inside a
+   dialog/sheet window it falls back to the `MaterialMenuPopup` window), both placed by a port of
+   M3's popup positioning rules.
 4. **`isLiquidGlass` is the one public predicate.** `LocalGlassLevel` is internal — only core/ui
    tells the tiers (NATIVE / FULL / SIMULATED / BLUR_ONLY / FLAT) apart, and `glassSurface` /
    `rememberGlassBackdrop` degrade by tier themselves. Never re-derive the flag another way

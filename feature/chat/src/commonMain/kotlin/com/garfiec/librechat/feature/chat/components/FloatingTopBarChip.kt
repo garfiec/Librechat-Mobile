@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.onLongClick
@@ -150,6 +151,7 @@ internal fun FloatingBarIconButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     tint: Color = MaterialTheme.colorScheme.onSurface,
+    iconRotation: () -> Float = { 0f },
 ) {
     FloatingBarChip(onClick = onClick, modifier = modifier.size(FloatingBarChipSize)) {
         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
@@ -157,7 +159,7 @@ internal fun FloatingBarIconButton(
                 imageVector = icon,
                 contentDescription = contentDescription,
                 tint = tint,
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(22.dp).graphicsLayer { rotationZ = iconRotation() },
             )
         }
     }

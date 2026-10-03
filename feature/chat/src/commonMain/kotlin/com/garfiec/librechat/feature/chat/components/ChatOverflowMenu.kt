@@ -33,6 +33,9 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
+import com.garfiec.librechat.core.ui.components.MenuDragSelection
+import com.garfiec.librechat.core.ui.components.menuDragRowIcon
+import com.garfiec.librechat.core.ui.components.menuDragTarget
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.action_archive
 import com.garfiec.librechat.feature.chat.resources.action_duplicate
@@ -63,12 +66,14 @@ internal fun ChatOverflowMenu(
     isComparisonEnabled: Boolean,
     contextUsage: ContextUsage?,
     onItem: (ChatOverflowItem) -> Unit,
+    dragSelection: MenuDragSelection? = null,
 ) {
     AdaptiveDropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismiss,
         shape = RoundedCornerShape(16.dp),
         offset = DpOffset(x = 0.dp, y = 8.dp),
+        dragSelection = dragSelection,
     ) {
         // No conversation-title header here: a long title's full (untruncated) width is what a
         // single-line Text reports as its max intrinsic width, and DropdownMenu measures at
@@ -80,35 +85,36 @@ internal fun ChatOverflowMenu(
                     onDismiss()
                     onItem(item)
                 }
+                val dragTarget = Modifier.menuDragTarget(dragSelection, select)
                 when (item) {
                     ChatOverflowItem.SEARCH ->
-                        OverflowItem(stringResource(Res.string.action_search), Icons.Default.Search, select)
+                        OverflowItem(stringResource(Res.string.action_search), Icons.Default.Search, select, dragTarget)
                     ChatOverflowItem.SHOW_ALL_MEDIA ->
-                        OverflowItem(stringResource(Res.string.action_show_all_media), Icons.Outlined.PhotoLibrary, select)
+                        OverflowItem(stringResource(Res.string.action_show_all_media), Icons.Outlined.PhotoLibrary, select, dragTarget)
                     ChatOverflowItem.LOAD_PRESET ->
-                        OverflowItem(stringResource(Res.string.load_preset), Icons.Outlined.FileOpen, select)
+                        OverflowItem(stringResource(Res.string.load_preset), Icons.Outlined.FileOpen, select, dragTarget)
                     ChatOverflowItem.SAVE_PRESET ->
-                        OverflowItem(stringResource(Res.string.save_as_preset), Icons.Outlined.SaveAs, select)
+                        OverflowItem(stringResource(Res.string.save_as_preset), Icons.Outlined.SaveAs, select, dragTarget)
                     ChatOverflowItem.PROMPTS_LIBRARY ->
-                        OverflowItem(stringResource(Res.string.prompts_library), Icons.Outlined.AutoAwesome, select)
-                    ChatOverflowItem.COMPARE -> CompareItem(isComparisonEnabled, select)
+                        OverflowItem(stringResource(Res.string.prompts_library), Icons.Outlined.AutoAwesome, select, dragTarget)
+                    ChatOverflowItem.COMPARE -> CompareItem(isComparisonEnabled, select, dragTarget)
                     // The conversation trace (v0.8.8-rc3). Upstream puts it here on mobile too — the
                     // desktop header has a dedicated button, and HeaderMenu carries the same action
                     // behind the overflow control.
                     ChatOverflowItem.TRACE ->
-                        OverflowItem(stringResource(Res.string.trace_open), Icons.Outlined.Timeline, select)
+                        OverflowItem(stringResource(Res.string.trace_open), Icons.Outlined.Timeline, select, dragTarget)
                     // Opening the breakdown sheet is the host's job: that modal can't be opened from
                     // inside this popup without nesting modal surfaces.
                     ChatOverflowItem.CONTEXT_USAGE ->
-                        contextUsage?.let { ContextUsageMenuItem(usage = it, onClick = select) }
+                        contextUsage?.let { ContextUsageMenuItem(usage = it, onClick = select, modifier = dragTarget) }
                     ChatOverflowItem.SHARE ->
-                        OverflowItem(stringResource(Res.string.action_share), Icons.Outlined.Share, select)
+                        OverflowItem(stringResource(Res.string.action_share), Icons.Outlined.Share, select, dragTarget)
                     ChatOverflowItem.RENAME ->
-                        OverflowItem(stringResource(Res.string.action_rename), Icons.Outlined.Edit, select)
+                        OverflowItem(stringResource(Res.string.action_rename), Icons.Outlined.Edit, select, dragTarget)
                     ChatOverflowItem.DUPLICATE ->
-                        OverflowItem(stringResource(Res.string.action_duplicate), Icons.Outlined.ContentCopy, select)
+                        OverflowItem(stringResource(Res.string.action_duplicate), Icons.Outlined.ContentCopy, select, dragTarget)
                     ChatOverflowItem.ARCHIVE ->
-                        OverflowItem(stringResource(Res.string.action_archive), Icons.Outlined.Archive, select)
+                        OverflowItem(stringResource(Res.string.action_archive), Icons.Outlined.Archive, select, dragTarget)
                     ChatOverflowItem.DELETE -> DropdownMenuItem(
                         text = {
                             Text(
@@ -117,11 +123,13 @@ internal fun ChatOverflowMenu(
                             )
                         },
                         onClick = select,
+                        modifier = dragTarget,
                         leadingIcon = {
                             Icon(
                                 Icons.Outlined.DeleteOutline,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.menuDragRowIcon(),
                             )
                         },
                     )
@@ -132,17 +140,19 @@ internal fun ChatOverflowMenu(
 }
 
 @Composable
-private fun OverflowItem(label: String, icon: ImageVector, onClick: () -> Unit) {
+private fun OverflowItem(label: String, icon: ImageVector, onClick: () -> Unit, modifier: Modifier = Modifier) {
     DropdownMenuItem(
+        modifier = modifier,
         text = { Text(label) },
         onClick = onClick,
-        leadingIcon = { Icon(icon, contentDescription = null) },
+        leadingIcon = { Icon(icon, contentDescription = null, modifier = Modifier.menuDragRowIcon()) },
     )
 }
 
 @Composable
-private fun CompareItem(isComparisonEnabled: Boolean, onClick: () -> Unit) {
+private fun CompareItem(isComparisonEnabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     DropdownMenuItem(
+        modifier = modifier,
         text = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -161,6 +171,6 @@ private fun CompareItem(isComparisonEnabled: Boolean, onClick: () -> Unit) {
             }
         },
         onClick = onClick,
-        leadingIcon = { Icon(Icons.Outlined.Compare, contentDescription = null) },
+        leadingIcon = { Icon(Icons.Outlined.Compare, contentDescription = null, modifier = Modifier.menuDragRowIcon()) },
     )
 }
