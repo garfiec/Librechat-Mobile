@@ -2,6 +2,8 @@ package com.garfiec.librechat.feature.settings.screen
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
@@ -13,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.AdaptiveTabRow
@@ -91,14 +94,30 @@ fun TabbedSettingsScreen(
             }
         },
     ) { innerPadding ->
-        // Glass: the pages run under the bar and the tab strip, so the strip's glass has content to
-        // sample; each list insets its own content instead.
-        val contentPadding = if (glass) innerPadding else PaddingValues()
+        // The pages run under the navigation bar and each list insets its own content, so rows scroll
+        // behind the bar but the last one can still clear it. Glass also runs them under the bar and the
+        // tab strip, so the strip's glass has content to sample.
+        val layoutDirection = LocalLayoutDirection.current
+        val contentPadding = if (glass) {
+            innerPadding
+        } else {
+            PaddingValues(bottom = innerPadding.calculateBottomPadding())
+        }
         HorizontalPager(
             state = pagerState,
             modifier = Modifier
                 .fillMaxSize()
-                .then(if (glass) Modifier else Modifier.padding(innerPadding)),
+                .then(
+                    if (glass) {
+                        Modifier
+                    } else {
+                        Modifier.padding(
+                            start = innerPadding.calculateStartPadding(layoutDirection),
+                            top = innerPadding.calculateTopPadding(),
+                            end = innerPadding.calculateEndPadding(layoutDirection),
+                        )
+                    },
+                ),
             beyondViewportPageCount = 1,
         ) { page ->
             when (page) {
