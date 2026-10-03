@@ -1,23 +1,30 @@
 package com.garfiec.librechat.feature.skills.screen
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -33,6 +40,13 @@ import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicato
 import com.garfiec.librechat.core.ui.components.AdaptiveFloatingActionButton
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
+import com.garfiec.librechat.core.ui.components.EmptyState
+import com.garfiec.librechat.core.ui.components.ErrorBanner
+import com.garfiec.librechat.core.ui.components.ListDragSelection
+import com.garfiec.librechat.core.ui.components.dragSelectRow
+import com.garfiec.librechat.core.ui.components.dragSelectRowIcon
+import com.garfiec.librechat.core.ui.components.listDragSelection
+import com.garfiec.librechat.core.ui.components.rememberListDragSelection
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarAction
@@ -73,7 +87,7 @@ fun SkillsListScreen(
             last >= uiState.skills.size - 3 && uiState.hasMore && !uiState.isLoadingMore
         }
     }
-    androidx.compose.runtime.LaunchedEffect(shouldLoadMore) {
+    LaunchedEffect(shouldLoadMore) {
         if (shouldLoadMore) viewModel.loadMore()
     }
 
@@ -118,47 +132,68 @@ fun SkillsListScreen(
                 onValueChange = viewModel::onSearchQueryChanged,
                 label = { Text(stringResource(Res.string.skills_search_hint)) },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp),
             )
 
-            when {
-                uiState.isLoading && uiState.skills.isEmpty() -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        AdaptiveCircularProgressIndicator()
-                    }
-                }
-                uiState.error != null && uiState.skills.isEmpty() -> {
-                    Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-                        Text(
-                            text = uiState.error ?: "",
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    }
-                }
-                uiState.skills.isEmpty() -> {
-                    Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-                        Text(
-                            text = stringResource(Res.string.skills_empty),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    }
-                }
-                else -> {
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        items(uiState.skills, key = { it.id }, contentType = { "skill" }) { skill ->
-                            SkillRow(skill = skill, onClick = { onSkillClick(skill.id) })
+            PullToRefreshBox(
+                isRefreshing = uiState.isRefreshing,
+                onRefresh = viewModel::refresh,
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                when {
+                    uiState.isLoading && uiState.skills.isEmpty() -> {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            AdaptiveCircularProgressIndicator()
                         }
-                        if (uiState.isLoadingMore) {
-                            item(contentType = "loader") {
-                                Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                                    AdaptiveCircularProgressIndicator()
+                    }
+                    uiState.error != null && uiState.skills.isEmpty() -> {
+                        // Scrollable so pull-to-refresh has something to pull.
+                        LazyColumn(Modifier.fillMaxSize()) {
+                            item(contentType = "error") {
+                                ErrorBanner(
+                                    message = uiState.error ?: "",
+                                    onRetry = viewModel::loadFirstPage,
+                                    retryLabel = stringResource(Res.string.skills_retry),
+                                )
+                            }
+                        }
+                    }
+                    uiState.skills.isEmpty() -> {
+                        // Scrollable so pull-to-refresh has something to pull; fillParentMaxSize keeps
+                        // it centred, which a verticalScroll's unbounded height would not.
+                        val noMatches = uiState.searchQuery.isNotBlank()
+                        val title = stringResource(
+                            if (noMatches) Res.string.skills_no_matches else Res.string.skills_empty,
+                        )
+                        val hint = if (!noMatches && uiState.canCreate) stringResource(Res.string.skills_empty_hint) else null
+                        LazyColumn(Modifier.fillMaxSize()) {
+                            item(contentType = "empty") {
+                                EmptyState(
+                                    title = title,
+                                    description = hint,
+                                    icon = if (noMatches) null else Icons.Default.Extension,
+                                    modifier = Modifier.fillParentMaxSize(),
+                                )
+                            }
+                        }
+                    }
+                    else -> {
+                        val dragSelection = rememberListDragSelection()
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .listDragSelection(dragSelection, holdOnly = true),
+                            contentPadding = PaddingValues(start = 4.dp, end = 4.dp, top = 4.dp, bottom = 88.dp),
+                        ) {
+                            items(uiState.skills, key = { it.id }, contentType = { "skill" }) { skill ->
+                                SkillRow(skill = skill, dragSelection = dragSelection, onClick = { onSkillClick(skill.id) })
+                            }
+                            if (uiState.isLoadingMore) {
+                                item(contentType = "loader") {
+                                    Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                                        AdaptiveCircularProgressIndicator()
+                                    }
                                 }
                             }
                         }
@@ -170,27 +205,57 @@ fun SkillsListScreen(
 }
 
 @Composable
-private fun SkillRow(skill: SkillSummary, onClick: () -> Unit) {
-    Column(
+private fun SkillRow(skill: SkillSummary, dragSelection: ListDragSelection, onClick: () -> Unit) {
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 8.dp),
+            .dragSelectRow(dragSelection, onClick = onClick)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = skill.displayTitle?.takeIf { it.isNotBlank() } ?: skill.name,
-            style = MaterialTheme.typography.titleMedium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        skill.description?.takeIf { it.isNotBlank() }?.let { desc ->
+        Box(
+            modifier = Modifier
+                .dragSelectRowIcon()
+                .size(40.dp)
+                .background(MaterialTheme.colorScheme.secondaryContainer, IconTileShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Default.Extension,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+        }
+        Spacer(Modifier.width(16.dp))
+        Column(Modifier.weight(1f)) {
             Text(
-                text = desc,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
+                text = skill.displayTitle?.takeIf { it.isNotBlank() } ?: skill.name,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+            skill.description?.takeIf { it.isNotBlank() }?.let { desc ->
+                Text(
+                    text = desc,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            skill.category?.takeIf { it.isNotBlank() }?.let { category ->
+                Text(
+                    text = category,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
         }
     }
 }
+
+private val IconTileShape = RoundedCornerShape(12.dp)

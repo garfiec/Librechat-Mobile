@@ -7,6 +7,9 @@
     <string name="skills_import">Importar habilidade</string>
     <string name="skills_search_hint">Buscar habilidades…</string>
     <string name="skills_empty">Nenhuma habilidade ainda.</string>
+    <string name="skills_empty_hint">Toque em + para criar uma ou importe um arquivo de habilidade.</string>
+    <string name="skills_no_matches">Nenhuma habilidade corresponde à sua pesquisa.</string>
+    <string name="skills_retry">Tentar novamente</string>
 
     <!-- Files -->
     <string name="skill_files_title">Arquivos</string>

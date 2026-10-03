@@ -7,6 +7,9 @@
     <string name="skills_import">Import skill</string>
     <string name="skills_search_hint">Search skills…</string>
     <string name="skills_empty">No skills yet.</string>
+    <string name="skills_empty_hint">Tap + to create one, or import a skill file.</string>
+    <string name="skills_no_matches">No skills match your search.</string>
+    <string name="skills_retry">Retry</string>
 
     <!-- Files -->
     <string name="skill_files_title">Files</string>

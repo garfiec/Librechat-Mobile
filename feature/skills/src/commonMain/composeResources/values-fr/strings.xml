@@ -7,6 +7,9 @@
     <string name="skills_import">Importer une compétence</string>
     <string name="skills_search_hint">Rechercher des compétences…</string>
     <string name="skills_empty">Aucune compétence pour l'instant.</string>
+    <string name="skills_empty_hint">Appuyez sur + pour en créer une ou importez un fichier de compétence.</string>
+    <string name="skills_no_matches">Aucune compétence ne correspond à votre recherche.</string>
+    <string name="skills_retry">Réessayer</string>
 
     <!-- Files -->
     <string name="skill_files_title">Fichiers</string>

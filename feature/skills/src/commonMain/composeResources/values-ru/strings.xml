@@ -7,6 +7,9 @@
     <string name="skills_import">Импортировать навык</string>
     <string name="skills_search_hint">Поиск навыков…</string>
     <string name="skills_empty">Пока нет навыков.</string>
+    <string name="skills_empty_hint">Нажмите +, чтобы создать навык, или импортируйте файл навыка.</string>
+    <string name="skills_no_matches">Нет навыков, соответствующих запросу.</string>
+    <string name="skills_retry">Повторить</string>
 
     <!-- Files -->
     <string name="skill_files_title">Файлы</string>
