@@ -26,7 +26,6 @@ internal sealed interface InlineSegment {
 // Pre-compiled regex patterns
 private val CODE_BLOCK_REGEX = Regex("```(\\w*)[^\\S\\n]*\\n([\\s\\S]*?)```")
 private val BLOCK_LATEX_REGEX = Regex("\\$\\$([\\s\\S]+?)\\$\\$|\\\\\\[([\\s\\S]+?)\\\\\\]")
-private val INLINE_LATEX_REGEX = Regex("(?<!\\$)\\$(?!\\$)(.+?)(?<!\\$)\\$(?!\\$)|\\\\\\((.+?)\\\\\\)")
 internal val CITATION_DETECT_REGEX = Regex("""\[\d+]|\u3010\d+\u2020""")
 private val TABLE_SEPARATOR_REGEX = Regex("^\\|?\\s*:?-{1,}:?\\s*(\\|\\s*:?-{1,}:?\\s*)*\\|?$")
 
@@ -42,12 +41,174 @@ private val HTML_OPENING_TAG_REGEX = Regex(
     RegexOption.IGNORE_CASE,
 )
 
-private val LATEX_INDICATORS = setOf('\\', '^', '_', '{', '}')
-private val LATEX_KEYWORDS = listOf("frac", "sqrt", "sum", "int", "lim", "infty", "alpha", "beta")
+private const val INLINE_PAREN_OPEN = "\\("
+private const val INLINE_PAREN_CLOSE = "\\)"
+private const val FENCE_RUN = 3
 
-internal fun looksLikeLatex(content: String): Boolean {
-    if (content.any { it in LATEX_INDICATORS }) return true
-    return LATEX_KEYWORDS.any { keyword -> content.contains(keyword) }
+/**
+ * Splits [text] into prose and inline math, or returns null when it holds no inline math so the
+ * caller keeps its `TextBlock` untouched.
+ *
+ * `$…$` follows Pandoc's `tex_math_dollars`. Nothing inspects the span's content; the decision is
+ * made entirely by the delimiters' neighbours:
+ *  - an opening `$` is not preceded by `$` and is followed by a non-space, non-`$` character;
+ *  - the first unescaped `$` after it decides: it closes when preceded by a non-space and not
+ *    followed by a digit, otherwise the opener is given up and scanning resumes right after it;
+ *  - a backslash always consumes the next character, so `\$` never delimits and `\\$x$` is math.
+ * One deliberate departure from Pandoc: a span never crosses a line break (Pandoc allows one soft
+ * break). Pandoc's `\text{…}` brace tolerance is not ported.
+ *
+ * Code wins over math: a delimiter inside a backtick code span (`` `$HOME` and `$PATH` ``) is never
+ * seen, and a fence still open at the start of a line — the rest of the message is code to Markdown
+ * too — stops the scan, so a streaming ```` ```bash ```` + `$A/$B` never flashes `A/` as math. An
+ * unmatched backtick run is plain text and hides nothing.
+ *
+ * `\(…\)`: same line, non-blank content, no neighbour rules.
+ *
+ * Must stay linear — it re-runs on every streaming flush over the whole message: no regex, each `$`
+ * visited at most twice, and a failed `\(` search poisons the rest of its line (`parenDeadBefore`).
+ *
+ * [streaming] defers a candidate closer that is the last character of the buffer: it cannot see
+ * whether a digit is about to arrive, so the span stays prose for this flush and is
+ * re-decided when more text lands (`US$5 to US$` + `10` must not flash `5 to US` as math). Every
+ * other verdict depends only on the delimiters' immediate neighbours and is final once text follows.
+ * Openers need no deferral: a `$` at the end of the buffer has no following character and is already
+ * not an opener.
+ */
+internal fun scanInlineLatex(text: String, streaming: Boolean = false): List<InlineSegment>? {
+    if (text.indexOf('$') < 0 && text.indexOf(INLINE_PAREN_OPEN) < 0) return null
+    return InlineLatexScanner(text, streaming).scan()
+}
+
+private class InlineLatexScanner(private val text: String, private val streaming: Boolean) {
+    private val segments = mutableListOf<InlineSegment>()
+    private var textStart = 0
+
+    /** End of the line in which a `\(` search already failed; a later `\(` on that line cannot close either. */
+    private var parenDeadBefore = -1
+
+    fun scan(): List<InlineSegment>? {
+        var i = 0
+        while (i < text.length) {
+            i = when (text[i]) {
+                '\\' -> atBackslash(i)
+                '$' -> atDollar(i)
+                '`' -> atBacktick(i)
+                else -> i + 1
+            }
+        }
+        if (segments.isEmpty()) return null
+        flushText(text.length)
+        return segments
+    }
+
+    private fun atBackslash(i: Int): Int {
+        if (i < parenDeadBefore || !text.startsWith(INLINE_PAREN_OPEN, i)) return i + 2
+        val contentStart = i + INLINE_PAREN_OPEN.length
+        val close = findParenCloser(contentStart)
+        if (close < 0) {
+            parenDeadBefore = lineEndFrom(i)
+            return i + 2
+        }
+        // A blank `\( \)` is prose, but it is consumed whole so a later `\(…\)` on the line still closes.
+        if (!isBlankRange(contentStart, close)) {
+            emitLatex(start = i, contentStart = contentStart, contentEnd = close)
+        }
+        return close + INLINE_PAREN_CLOSE.length
+    }
+
+    /**
+     * Skips a code span whose closing run matches [i]'s run; a line-leading run of three or more is
+     * an open fence and ends the scan.
+     */
+    private fun atBacktick(i: Int): Int {
+        val runEnd = backtickRunEnd(i)
+        val run = runEnd - i
+        if (run >= FENCE_RUN && (i == 0 || text[i - 1] == '\n')) return text.length
+        var k = runEnd
+        while (k < text.length) {
+            k = text.indexOf('`', k)
+            if (k < 0) return runEnd
+            val end = backtickRunEnd(k)
+            if (end - k == run) return end
+            k = end
+        }
+        return runEnd
+    }
+
+    private fun backtickRunEnd(i: Int): Int {
+        var k = i
+        while (k < text.length && text[k] == '`') k++
+        return k
+    }
+
+    private fun atDollar(i: Int): Int {
+        if (!isDollarOpener(i)) return i + 1
+        val close = nextUnescapedDollar(i + 1)
+        if (close < 0 || !closesDollarSpan(close)) return i + 1
+        emitLatex(start = i, contentStart = i + 1, contentEnd = close)
+        return close + 1
+    }
+
+    private fun isDollarOpener(i: Int): Boolean {
+        if (i > 0 && text[i - 1] == '$') return false
+        val next = text.getOrNull(i + 1) ?: return false
+        return next != '$' && !next.isWhitespace()
+    }
+
+    /** Index of the first `$` at or after [from] on the same line, skipping escaped pairs; -1 if none. */
+    private fun nextUnescapedDollar(from: Int): Int {
+        var k = from
+        while (k < text.length) {
+            when (text[k]) {
+                '$' -> return k
+                '\n' -> return -1
+                '\\' -> k = afterEscape(k)
+                else -> k++
+            }
+        }
+        return -1
+    }
+
+    /** A backslash consumes the next character unless it is a line break, which no span may cross. */
+    private fun afterEscape(k: Int): Int = if (text.getOrNull(k + 1) == '\n') k + 1 else k + 2
+
+    private fun closesDollarSpan(j: Int): Boolean {
+        if (text[j - 1].isWhitespace()) return false
+        val after = text.getOrNull(j + 1) ?: return !streaming
+        return !after.isDigit()
+    }
+
+    /** Index of the first `\)` at or after [from] on the same line, skipping escaped pairs; -1 if none. */
+    private fun findParenCloser(from: Int): Int {
+        var k = from
+        while (k < text.length) {
+            when {
+                text[k] == '\n' -> return -1
+                text.startsWith(INLINE_PAREN_CLOSE, k) -> return k
+                text[k] == '\\' -> k = afterEscape(k)
+                else -> k++
+            }
+        }
+        return -1
+    }
+
+    private fun isBlankRange(start: Int, end: Int): Boolean {
+        for (k in start until end) if (!text[k].isWhitespace()) return false
+        return true
+    }
+
+    private fun lineEndFrom(i: Int): Int = text.indexOf('\n', i).let { if (it < 0) text.length else it }
+
+    private fun emitLatex(start: Int, contentStart: Int, contentEnd: Int) {
+        flushText(start)
+        segments.add(InlineSegment.Latex(text.substring(contentStart, contentEnd).trim()))
+        textStart = contentEnd + (if (text[start] == '$') 1 else INLINE_PAREN_CLOSE.length)
+    }
+
+    private fun flushText(end: Int) {
+        if (end > textStart) segments.add(InlineSegment.Text(text.substring(textStart, end)))
+    }
 }
 
 private fun looksLikeHtmlBlock(text: String): Boolean {
@@ -139,8 +300,13 @@ private fun extractHtmlBlocks(segments: List<MarkdownSegment>): List<MarkdownSeg
 /**
  * 5-phase markdown parser that extracts code blocks, HTML blocks, block LaTeX,
  * tables, and inline LaTeX from raw text.
+ *
+ * [streaming]: the message is still growing, so an inline `$` closer ending the buffer is deferred
+ * (see [scanInlineLatex]). Decide that from the raw [text], not per segment: segments are trimmed,
+ * so a last segment ending in `$` may really be followed by whitespace or a closing fence. Only the
+ * last segment can hold it; everything else is parsed as settled.
  */
-internal fun parseMarkdownSegments(text: String): List<MarkdownSegment> {
+internal fun parseMarkdownSegments(text: String, streaming: Boolean = false): List<MarkdownSegment> {
     // --- Pass 1: split on fenced code blocks ---
     val afterCodeBlocks = mutableListOf<MarkdownSegment>()
     var lastIndex = 0
@@ -226,53 +392,11 @@ internal fun parseMarkdownSegments(text: String): List<MarkdownSegment> {
     // --- Pass 5: detect inline LaTeX ($...$ or \(...\)) within remaining TextBlocks ---
     val finalSegments = mutableListOf<MarkdownSegment>()
 
-    for (segment in afterTables) {
-        if (segment !is MarkdownSegment.TextBlock) {
-            finalSegments.add(segment)
-            continue
-        }
-
-        val matches = INLINE_LATEX_REGEX.findAll(segment.text)
-            .filter { match ->
-                val dollarContent = match.groupValues[1]
-                val parenContent = match.groupValues[2]
-                if (parenContent.isNotBlank()) {
-                    true
-                } else {
-                    dollarContent.isNotBlank() && looksLikeLatex(dollarContent)
-                }
-            }
-            .toList()
-
-        if (matches.isEmpty()) {
-            finalSegments.add(segment)
-            continue
-        }
-
-        val inlineSegments = mutableListOf<InlineSegment>()
-        var segLastIndex = 0
-        val segText = segment.text
-
-        for (match in matches) {
-            if (match.range.first > segLastIndex) {
-                val before = segText.substring(segLastIndex, match.range.first)
-                if (before.isNotEmpty()) {
-                    inlineSegments.add(InlineSegment.Text(before))
-                }
-            }
-            val content = (match.groupValues[1].ifEmpty { match.groupValues[2] }).trim()
-            inlineSegments.add(InlineSegment.Latex(content))
-            segLastIndex = match.range.last + 1
-        }
-
-        if (segLastIndex < segText.length) {
-            val remaining = segText.substring(segLastIndex)
-            if (remaining.isNotEmpty()) {
-                inlineSegments.add(InlineSegment.Text(remaining))
-            }
-        }
-
-        finalSegments.add(MarkdownSegment.InlineLatexText(inlineSegments))
+    val deferTrailingCloser = streaming && text.endsWith('$')
+    afterTables.forEachIndexed { index, segment ->
+        val inline = (segment as? MarkdownSegment.TextBlock)
+            ?.let { scanInlineLatex(it.text, streaming = deferTrailingCloser && index == afterTables.lastIndex) }
+        finalSegments.add(if (inline != null) MarkdownSegment.InlineLatexText(inline) else segment)
     }
 
     return finalSegments

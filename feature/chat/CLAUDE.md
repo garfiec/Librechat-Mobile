@@ -123,7 +123,11 @@ Two consequences worth knowing before touching that block:
 - `CodeBlock` renders fenced code with syntax highlighting, language badge, and copy button (3s checkmark)
 - LaTeX: `LatexBlock` (block math) and `LatexInline` (inline math) via AndroidMath native rendering
   - Supports `$$...$$`, `\[...\]` (block) and `$...$`, `\(...\)` (inline)
-  - `$...$` requires heuristic check (`looksLikeLatex()`) to avoid false positives on dollar amounts
+  - `$...$` follows Pandoc's `tex_math_dollars` neighbour rules (`scanInlineLatex()` in
+    `MarkdownParsing.kt`): opener followed by non-space, closer preceded by non-space and not
+    followed by a digit, `\$` never delimits. Nothing inspects the span's content. Backtick code
+    spans are skipped and an open fence stops the scan (code wins, as on the web). While streaming,
+    a closer at the very end of the buffer is deferred so `US$5 to US$` + `10` never flashes as math
   - Falls back to monospace text if AndroidMath can't parse the expression
 
 ## Streaming

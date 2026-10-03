@@ -28,13 +28,14 @@ internal fun rememberMarkdownSegments(
     }
 
     val latestText by rememberUpdatedState(text)
-    var segments by remember { mutableStateOf(parseMarkdownSegments(text)) }
+    var segments by remember { mutableStateOf(parseMarkdownSegments(text, streaming = true)) }
     val initialText = remember { text }
 
     LaunchedEffect(Unit) {
         collectMarkdownSegments(
             texts = snapshotFlow { latestText },
             alreadyParsed = initialText,
+            parse = { parseMarkdownSegments(it, streaming = true) },
         ) { segments = it }
     }
 
