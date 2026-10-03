@@ -10,7 +10,6 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -26,24 +25,12 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.layout.Measurable
-import androidx.compose.ui.layout.MeasureResult
-import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.layout.onPlaced
-import androidx.compose.ui.modifier.ModifierLocalModifierNode
-import androidx.compose.ui.modifier.modifierLocalMapOf
-import androidx.compose.ui.modifier.modifierLocalOf
-import androidx.compose.ui.node.GlobalPositionAwareModifierNode
-import androidx.compose.ui.node.LayoutModifierNode
-import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.max
-import kotlin.math.min
 import kotlin.math.sqrt
 
 /**
@@ -67,8 +54,7 @@ class MenuDragSelection internal constructor(
 
     /** The menu panel's untransformed frame; set by the menu while it is open. */
     internal var panel: LayoutCoordinates? = null
-    private val targets = mutableListOf<MenuDragTargetNode>()
-    private var hovered: MenuDragTargetNode? = null
+    internal val highlight = DragHighlight(scope, haptics)
 
     /** The finger in screen coordinates while dragging, else null. */
     internal var finger by mutableStateOf<Offset?>(null)
@@ -81,16 +67,6 @@ class MenuDragSelection internal constructor(
     /** The row a drag selected, in screen coordinates; the closing menu folds into it. */
     internal var selected by mutableStateOf<Rect?>(null)
         private set
-
-    // The highlight, in screen coordinates. Its top and bottom ride separate springs so it stretches
-    // as it travels: the leading edge is stiff, the trailing one lags.
-    internal val highlightTop = Animatable(0f)
-    internal val highlightBottom = Animatable(0f)
-    internal var highlightLeft by mutableFloatStateOf(0f)
-        private set
-    internal var highlightRight by mutableFloatStateOf(0f)
-        private set
-    internal val highlightAlpha = Animatable(0f)
 
     /** The opener's swell: 1 fully grown, 0 at rest; [PopSpec] overshoots below 0 as it settles. */
     internal val press = Animatable(0f)
@@ -130,20 +106,10 @@ class MenuDragSelection internal constructor(
     /** The opener's lean toward the finger, in px. */
     internal val pull = Animatable(Offset.Zero, Offset.VectorConverter)
 
-    internal fun register(target: MenuDragTargetNode) {
-        targets += target
-    }
-
-    internal fun unregister(target: MenuDragTargetNode) {
-        targets -= target
-        if (hovered === target) hover(null)
-    }
-
     /** Clears the previous gesture's leftovers; the menu calls this as it opens. */
     internal fun reset() {
-        hovered = null
         selected = null
-        scope.launch { highlightAlpha.snapTo(0f) }
+        highlight.reset()
     }
 
     internal fun pressStart(holdMillis: Long) {
@@ -175,52 +141,23 @@ class MenuDragSelection internal constructor(
             cancelArmed = armed
             if (armed) haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
         }
-        hover(if (armed) null else targets.firstOrNull { it.screenBounds()?.contains(onScreen) == true })
+        highlight.hover(if (armed) null else highlight.targetAt(onScreen))
     }
 
     /** Ends a drag over a row: selects it and returns true. */
     internal fun release(): Boolean {
-        val target = hovered ?: return false
-        val bounds = target.screenBounds() ?: return false
-        hovered = null
-        selected = bounds
-        haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-        target.onSelect()
+        selected = highlight.select() ?: return false
         return true
     }
 
     internal fun finish() {
         finger = null
         cancelArmed = false
-        if (selected == null) hover(null)
+        if (selected == null) highlight.hover(null)
         // A hold or drag already started the opener's bounce; letting go mustn't restart it.
         if (openedByGesture) return
         scope.launch { press.animateTo(0f, PopSpec) }
         scope.launch { pull.animateTo(Offset.Zero, SettleSpec) }
-    }
-
-    private fun hover(target: MenuDragTargetNode?) {
-        if (target === hovered) return
-        hovered = target
-        val bounds = target?.screenBounds()
-        if (bounds == null) {
-            scope.launch { highlightAlpha.animateTo(0f, tween(HIGHLIGHT_FADE_MILLIS)) }
-            return
-        }
-        haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
-        highlightLeft = bounds.left
-        highlightRight = bounds.right
-        if (highlightAlpha.targetValue == 0f) {
-            scope.launch {
-                highlightTop.snapTo(bounds.top)
-                highlightBottom.snapTo(bounds.bottom)
-            }
-        } else {
-            val down = bounds.top > highlightTop.targetValue
-            scope.launch { highlightTop.animateTo(bounds.top, if (down) TrailSpec else LeadSpec) }
-            scope.launch { highlightBottom.animateTo(bounds.bottom, if (down) LeadSpec else TrailSpec) }
-        }
-        scope.launch { highlightAlpha.animateTo(1f, tween(HIGHLIGHT_FADE_MILLIS)) }
     }
 }
 
@@ -320,103 +257,7 @@ fun Modifier.menuDragPressEffect(state: MenuDragSelection): Modifier = graphicsL
 
 /** On a selectable menu row: a drag that ends over it calls [onSelect]; it lifts while highlighted. */
 fun Modifier.menuDragTarget(state: MenuDragSelection?, onSelect: () -> Unit): Modifier =
-    if (state == null) this else this then MenuDragTargetElement(state, onSelect)
-
-/** On a row's leading icon, inside a [menuDragTarget] row: grows while the row is highlighted. */
-fun Modifier.menuDragRowIcon(): Modifier = this then MenuDragRowIconElement
-
-private val ModifierLocalRowLift = modifierLocalOf<() -> Float> { { 0f } }
-
-private data class MenuDragTargetElement(
-    val state: MenuDragSelection,
-    val onSelect: () -> Unit,
-) : ModifierNodeElement<MenuDragTargetNode>() {
-    override fun create() = MenuDragTargetNode(state, onSelect)
-
-    override fun update(node: MenuDragTargetNode) {
-        if (node.state !== state) {
-            node.state.unregister(node)
-            node.state = state
-            if (node.isAttached) state.register(node)
-        }
-        node.onSelect = onSelect
-    }
-}
-
-/**
- * A row's lift is how much of the highlight covers it, times the highlight's opacity — so it rides
- * the highlight's springs rather than animating on its own.
- */
-internal class MenuDragTargetNode(
-    var state: MenuDragSelection,
-    var onSelect: () -> Unit,
-) : Modifier.Node(), LayoutModifierNode, GlobalPositionAwareModifierNode, ModifierLocalModifierNode {
-    private var coordinates: LayoutCoordinates? = null
-
-    override val providedValues = modifierLocalMapOf(ModifierLocalRowLift to { lift() })
-
-    override fun onAttach() = state.register(this)
-
-    override fun onDetach() {
-        state.unregister(this)
-        coordinates = null
-    }
-
-    override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
-        this.coordinates = coordinates
-    }
-
-    fun screenBounds(): Rect? = coordinates?.screenBounds()
-
-    fun lift(): Float {
-        val alpha = state.highlightAlpha.value
-        if (alpha == 0f) return 0f
-        val bounds = screenBounds() ?: return 0f
-        if (bounds.height <= 0f) return 0f
-        val overlap = min(state.highlightBottom.value, bounds.bottom) - max(state.highlightTop.value, bounds.top)
-        return alpha * (overlap / bounds.height).coerceIn(0f, 1f)
-    }
-
-    override fun MeasureScope.measure(measurable: Measurable, constraints: Constraints): MeasureResult {
-        val placeable = measurable.measure(constraints)
-        val direction = if (layoutDirection == LayoutDirection.Ltr) 1f else -1f
-        val nudge = RowNudge.toPx() * direction
-        return layout(placeable.width, placeable.height) {
-            placeable.placeWithLayer(0, 0) {
-                val lift = lift()
-                translationX = lift * nudge
-                alpha = 1f - ROW_DIM * state.highlightAlpha.value * (1f - lift)
-            }
-        }
-    }
-}
-
-private object MenuDragRowIconElement : ModifierNodeElement<MenuDragRowIconNode>() {
-    override fun create() = MenuDragRowIconNode()
-    override fun update(node: MenuDragRowIconNode) = Unit
-    override fun hashCode() = 0
-    override fun equals(other: Any?) = other === this
-}
-
-private class MenuDragRowIconNode : Modifier.Node(), LayoutModifierNode, ModifierLocalModifierNode {
-    override fun MeasureScope.measure(measurable: Measurable, constraints: Constraints): MeasureResult {
-        val placeable = measurable.measure(constraints)
-        return layout(placeable.width, placeable.height) {
-            placeable.placeWithLayer(0, 0) {
-                val scale = 1f + ICON_GROWTH * ModifierLocalRowLift.current()
-                scaleX = scale
-                scaleY = scale
-            }
-        }
-    }
-}
-
-internal fun LayoutCoordinates.screenBounds(): Rect? {
-    if (!isAttached) return null
-    val topLeft = localToScreen(Offset.Zero)
-    if (!topLeft.isSpecified) return null
-    return Rect(topLeft, localToScreen(Offset(size.width.toFloat(), size.height.toFloat())))
-}
+    dragHighlightTarget(state?.highlight, onSelect)
 
 private fun Rect.distanceTo(point: Offset): Float {
     val dx = max(max(left - point.x, 0f), point.x - right)
@@ -439,15 +280,9 @@ internal fun rubberVector(vector: Offset, cap: Float, softness: Float): Offset {
 
 private val LeanCap = 4.dp
 private val CancelDistance = 48.dp
-private val RowNudge = 4.dp
 private const val ANCHOR_LEAN_SOFTNESS = 0.1f
 private const val SWELL_DEPTH = 0.15f
-private const val ROW_DIM = 0.15f
-private const val ICON_GROWTH = 0.15f
-private const val HIGHLIGHT_FADE_MILLIS = 100
 
-private val LeadSpec = spring<Float>(dampingRatio = 0.85f, stiffness = 1400f)
-private val TrailSpec = spring<Float>(dampingRatio = 0.85f, stiffness = 500f)
 private val TrackSpec = spring<Offset>(dampingRatio = 0.9f, stiffness = 1500f)
 private val SettleSpec = spring<Offset>(dampingRatio = 0.6f, stiffness = 500f)
 

@@ -34,7 +34,7 @@ import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
 import com.garfiec.librechat.core.ui.components.MenuDragSelection
-import com.garfiec.librechat.core.ui.components.menuDragRowIcon
+import com.garfiec.librechat.core.ui.components.dragSelectRowIcon
 import com.garfiec.librechat.core.ui.components.menuDragTarget
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.action_archive
@@ -129,7 +129,7 @@ internal fun ChatOverflowMenu(
                                 Icons.Outlined.DeleteOutline,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.menuDragRowIcon(),
+                                modifier = Modifier.dragSelectRowIcon(),
                             )
                         },
                     )
@@ -145,7 +145,7 @@ private fun OverflowItem(label: String, icon: ImageVector, onClick: () -> Unit, 
         modifier = modifier,
         text = { Text(label) },
         onClick = onClick,
-        leadingIcon = { Icon(icon, contentDescription = null, modifier = Modifier.menuDragRowIcon()) },
+        leadingIcon = { Icon(icon, contentDescription = null, modifier = Modifier.dragSelectRowIcon()) },
     )
 }
 
@@ -171,6 +171,6 @@ private fun CompareItem(isComparisonEnabled: Boolean, onClick: () -> Unit, modif
             }
         },
         onClick = onClick,
-        leadingIcon = { Icon(Icons.Outlined.Compare, contentDescription = null, modifier = Modifier.menuDragRowIcon()) },
+        leadingIcon = { Icon(Icons.Outlined.Compare, contentDescription = null, modifier = Modifier.dragSelectRowIcon()) },
     )
 }

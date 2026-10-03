@@ -292,7 +292,7 @@ private fun MorphingMenu(
                             }
                             .background(containerColor)
                             .onPlaced { effects.inside = it }
-                            .drawBehind { if (drag != null) drawHighlight(drag, effects.inside, highlightColor) }
+                            .drawBehind { if (drag != null) drawHighlight(drag.highlight, effects.inside, highlightColor) }
                             // While closing, rows are on their way out: swallow taps so one can't fire twice.
                             .then(if (open) Modifier else Modifier.pointerInput(Unit) { consumeAll() })
                             .then(modifier)
