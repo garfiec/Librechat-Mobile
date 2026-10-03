@@ -57,10 +57,11 @@ internal class DragHighlight(
     private val targets = mutableListOf<DragHighlightTargetNode>()
     private var hovered: DragHighlightTargetNode? = null
 
-    // The row last hovered and where it was then. It stays set while the highlight fades out, so
-    // the highlight rides along if that row moves (a sheet dragged away, a list scrolled).
+    // The row last hovered and its bounds then. It stays set while the highlight fades out, so the
+    // highlight rides along if that row moves (a sheet dragged away, a list scrolled) or is scaled
+    // (a menu still growing in).
     private var anchor: DragHighlightTargetNode? = null
-    private var anchorOrigin = Offset.Zero
+    private var anchorFrame = Rect.Zero
 
     // Set by [reset] until the next hover: its snap to transparent is still queued, so alpha's target
     // may still be the last gesture's fade-in, and the highlight must not spring over from there.
@@ -86,10 +87,15 @@ internal class DragHighlight(
         if (anchor === target) anchor = null
     }
 
-    /** How far the anchor row has moved on screen since it was hovered; add it to the screen geometry. */
-    fun drift(): Offset {
-        val origin = anchor?.screenBounds()?.topLeft ?: return Offset.Zero
-        return origin - anchorOrigin
+    /** A point of the highlight's geometry, moved and scaled as its anchor row has been since it was hovered. */
+    fun toScreen(point: Offset): Offset {
+        val now = anchor?.screenBounds() ?: return point
+        val then = anchorFrame
+        if (then.width <= 0f || then.height <= 0f) return point
+        return Offset(
+            now.left + (point.x - then.left) * now.width / then.width,
+            now.top + (point.y - then.top) * now.height / then.height,
+        )
     }
 
     fun targetAt(screen: Offset): DragHighlightTargetNode? =
@@ -149,7 +155,7 @@ internal class DragHighlight(
         }
         if (tick) haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
         anchor = target
-        anchorOrigin = bounds.topLeft
+        anchorFrame = bounds
         left = bounds.left
         right = bounds.right
         if (fresh || alpha.targetValue == 0f) {
@@ -208,9 +214,8 @@ internal fun Modifier.dragHighlightTarget(highlight: DragHighlight?, onSelect: (
 internal fun DrawScope.drawHighlight(highlight: DragHighlight, inside: LayoutCoordinates?, color: Color) {
     val alpha = highlight.alpha.value
     if (alpha <= 0f || inside == null || !inside.isAttached) return
-    val drift = highlight.drift()
-    val topLeft = inside.screenToLocal(Offset(highlight.left, highlight.top.value) + drift)
-    val bottomRight = inside.screenToLocal(Offset(highlight.right, highlight.bottom.value) + drift)
+    val topLeft = inside.screenToLocal(highlight.toScreen(Offset(highlight.left, highlight.top.value)))
+    val bottomRight = inside.screenToLocal(highlight.toScreen(Offset(highlight.right, highlight.bottom.value)))
     if (!topLeft.isSpecified || !bottomRight.isSpecified) return
     val size = Size(bottomRight.x - topLeft.x, bottomRight.y - topLeft.y)
     if (size.height <= 0f) return
@@ -297,8 +302,9 @@ internal class DragHighlightTargetNode(
         if (alpha == 0f) return 0f
         val bounds = screenBounds() ?: return 0f
         if (bounds.height <= 0f) return 0f
-        val dy = highlight.drift().y
-        val overlap = min(highlight.bottom.value + dy, bounds.bottom) - max(highlight.top.value + dy, bounds.top)
+        val top = highlight.toScreen(Offset(highlight.left, highlight.top.value)).y
+        val bottom = highlight.toScreen(Offset(highlight.right, highlight.bottom.value)).y
+        val overlap = min(bottom, bounds.bottom) - max(top, bounds.top)
         return alpha * (overlap / bounds.height).coerceIn(0f, 1f)
     }
 
