@@ -30,7 +30,7 @@ jobs:
           java-version: 21
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6.3.0
+        uses: gradle/actions/setup-gradle@v6.4.0
 
       # The WebView renderers execute these files. Nothing else notices if one is
       # hand-edited, replaced, or left behind by a repin -- the app just runs it.
@@ -75,7 +75,7 @@ jobs:
           java-version: 21
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6.3.0
+        uses: gradle/actions/setup-gradle@v6.4.0
 
       - name: Run tests
         run: ./gradlew test
@@ -107,7 +107,7 @@ jobs:
           java-version: 21
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6.3.0
+        uses: gradle/actions/setup-gradle@v6.4.0
 
       - name: Build debug APK
         run: ./gradlew :app:assembleDebug
@@ -184,7 +184,7 @@ jobs:
           java-version: 21
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6.3.0
+        uses: gradle/actions/setup-gradle@v6.4.0
 
       - name: Cache Kotlin/Native toolchain
         uses: actions/cache@v6
@@ -236,7 +236,7 @@ jobs:
           java-version: 21
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6.3.0
+        uses: gradle/actions/setup-gradle@v6.4.0
 
       - name: Cache Kotlin/Native toolchain
         uses: actions/cache@v6
