@@ -26,7 +26,7 @@ Privacy
 
 All chat traffic goes to the LibreChat server you configure. The app contains no analytics, no crash reporting and no advertising, and every script its renderers execute is bundled in the APK rather than fetched from a CDN.
 
-Some images come from other hosts, none of them carrying your chat messages: web-search result cards load site icons from Google or an address your server supplies; model icons and profile avatars load from whatever addresses your server's configuration supplies, which are often vendor or CDN URLs; attachments and generated images load straight from object storage when your server uses one; and generated HTML, React or Markdown artifacts may load images from any address they reference.
+Some images come from other hosts, none of them carrying your chat messages: web-search result cards load site icons from Google or an address your server supplies, only after you allow it; model icons and profile avatars load from whatever addresses your server's configuration supplies, which are often vendor or CDN URLs; attachments and generated images load straight from object storage when your server uses one; and generated HTML, React or Markdown artifacts may load images from any address they reference.
 
 Dictation is the one thing that can carry content elsewhere: where your phone has no on-device recogniser, or it fails, voice typing falls back to the network one, which sends that audio to whichever service your phone uses. You can instead send audio to your own LibreChat server.
 

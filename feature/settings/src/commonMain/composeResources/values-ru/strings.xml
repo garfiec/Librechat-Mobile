@@ -643,4 +643,6 @@
     <string name="mcp_oauth_message">Для использования этого сервера нужно ваше разрешение. Вы будете перенаправлены к провайдеру для авторизации доступа, после чего сможете вернуться и переподключиться.</string>
     <string name="mcp_oauth_continue">Продолжить</string>
     <string name="mcp_connection_deferred">Подключение в фоновом режиме — инструменты появятся, когда оно будет готово.</string>
+    <string name="show_site_icons">Показывать значки сайтов</string>
+    <string name="show_site_icons_desc">Загружать значки результатов веб-поиска с Google и других сайтов</string>
 </resources>

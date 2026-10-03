@@ -43,6 +43,7 @@ internal fun ChatSettingsSection(
     duringRunAction: DuringRunAction,
     uploadRoutingMode: UploadRoutingMode,
     showImageDescriptions: Boolean,
+    showSiteIcons: Boolean,
     dismissKeyboardOnSend: Boolean,
     chatLayoutStyle: String,
     showAvatars: Boolean,
@@ -54,6 +55,7 @@ internal fun ChatSettingsSection(
     onAutoScrollChange: (Boolean) -> Unit,
     onShowThinkingChange: (Boolean) -> Unit,
     onShowImageDescriptionsChange: (Boolean) -> Unit,
+    onShowSiteIconsChange: (Boolean) -> Unit,
     onDismissKeyboardOnSendChange: (Boolean) -> Unit,
     onShowAvatarsChange: (Boolean) -> Unit,
     onShowBubblesChange: (Boolean) -> Unit,
@@ -125,6 +127,13 @@ internal fun ChatSettingsSection(
                     description = stringResource(Res.string.show_image_descriptions_desc),
                     checked = showImageDescriptions,
                     onChange = onShowImageDescriptionsChange,
+                )
+
+                ToggleRow(
+                    title = stringResource(Res.string.show_site_icons),
+                    description = stringResource(Res.string.show_site_icons_desc),
+                    checked = showSiteIcons,
+                    onChange = onShowSiteIconsChange,
                 )
 
                 ToggleRow(

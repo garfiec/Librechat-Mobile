@@ -631,4 +631,9 @@
     <string name="update_banner_title">Switchboard %1$s が利用可能です</string>
     <string name="update_banner_action">新機能を見る</string>
     <string name="cd_dismiss_update">アップデートのお知らせを閉じる</string>
+    <string name="site_icons_prompt_title">サイトのアイコンを表示しますか？</string>
+    <string name="site_icons_prompt_body">ウェブ検索結果に各サイトのアイコンを表示できます。読み込む際、サイトのアドレスが Google などの外部サーバーに送信されます。</string>
+    <string name="site_icons_prompt_settings_hint">この設定はいつでも「設定 → チャット → サイトのアイコンを表示」で変更できます。</string>
+    <string name="site_icons_prompt_allow">アイコンを表示</string>
+    <string name="site_icons_prompt_deny">表示しない</string>
 </resources>

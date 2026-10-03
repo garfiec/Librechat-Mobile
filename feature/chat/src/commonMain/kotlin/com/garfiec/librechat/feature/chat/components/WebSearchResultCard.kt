@@ -25,6 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,6 +48,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_search_result
 import com.garfiec.librechat.feature.chat.resources.web_searched
+import com.garfiec.librechat.feature.chat.viewmodel.SiteIconsState
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -62,7 +64,7 @@ data class WebSearchResult(
 
 private const val MAX_STACKED_FAVICONS = 3
 
-/** Google's favicon service — same source the source cards already use. */
+/** Google's favicon service. Sends [host] to Google, so only [Favicon] calls it, and only when icons are on. */
 private fun faviconUrl(host: String): String =
     "https://www.google.com/s2/favicons?domain=$host&sz=48"
 
@@ -84,6 +86,12 @@ private fun GlobeIcon(size: Dp) {
  */
 @Composable
 private fun Favicon(model: String, size: Dp, modifier: Modifier = Modifier) {
+    // The one place an external icon is requested, so the opt-in gate lives here: any caller is
+    // off until the user turns site icons on.
+    if (!LocalSiteIcons.current.state.showIcons) {
+        GlobeIcon(size)
+        return
+    }
     SubcomposeAsyncImage(
         model = model,
         contentDescription = null,
@@ -128,6 +136,13 @@ fun WebSearchSourcesCard(
     modifier: Modifier = Modifier,
 ) {
     val uriHandler = LocalUriHandler.current
+    // Icons come from external servers, so they're off until the user opts in; the first card
+    // shown while that's undecided raises the one-time prompt. Composed only while asking, so a
+    // card costs nothing once the user has chosen.
+    val siteIcons = LocalSiteIcons.current
+    if (siteIcons.state == SiteIconsState.ASK) {
+        LaunchedEffect(Unit) { siteIcons.requestChoice() }
+    }
     var isExpanded by remember { mutableStateOf(false) }
 
     val previewHosts = remember(results) {

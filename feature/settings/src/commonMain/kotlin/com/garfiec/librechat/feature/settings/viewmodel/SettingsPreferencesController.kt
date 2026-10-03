@@ -84,6 +84,7 @@ private data class AdditionalPreferences(
     val prefetchOnMeteredEnabled: Boolean = false,
     val prefetchDepth: Int = PrefetchDepth.DEFAULT,
     val uploadRoutingMode: UploadRoutingMode = UploadRoutingMode.AUTO,
+    val showSiteIcons: Boolean = false,
 )
 
 /**
@@ -248,6 +249,9 @@ class SettingsPreferencesController(
         additional.copy(prefetchOnMeteredEnabled = prefetchOnMetered)
     }.combine(settingsDataStore.prefetchDepth) { additional, depth ->
         additional.copy(prefetchDepth = depth)
+    }.combine(settingsDataStore.siteIconsChoice) { additional, siteIcons ->
+        // Never chosen reads as off: the chat screen asks before anything loads.
+        additional.copy(showSiteIcons = siteIcons ?: false)
     }.stateIn(scope, SharingStarted.Eagerly, AdditionalPreferences(true, false, "", "", true))
 
     /** The single public UI state that merges DataStore preferences with imperative state. */
@@ -304,6 +308,7 @@ class SettingsPreferencesController(
             prefetchOnMeteredEnabled = additional.prefetchOnMeteredEnabled,
             prefetchDepth = additional.prefetchDepth,
             uploadRoutingMode = additional.uploadRoutingMode,
+            showSiteIcons = additional.showSiteIcons,
         )
     }.stateIn(scope, SharingStarted.Eagerly, SettingsUiState())
 
@@ -383,6 +388,10 @@ class SettingsPreferencesController(
 
     fun setShowImageDescriptions(show: Boolean) {
         scope.launch { settingsDataStore.setShowImageDescriptions(show) }
+    }
+
+    fun setShowSiteIcons(show: Boolean) {
+        scope.launch { settingsDataStore.setShowSiteIcons(show) }
     }
 
     fun setDismissKeyboardOnSend(enabled: Boolean) {

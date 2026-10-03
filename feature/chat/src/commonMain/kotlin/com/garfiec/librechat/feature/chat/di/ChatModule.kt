@@ -10,6 +10,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.ConversationMediaViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.NewChatSelectionHandoff
 import com.garfiec.librechat.feature.chat.viewmodel.PromptInsertionHandoff
 import com.garfiec.librechat.feature.chat.viewmodel.ServerFileSelectionHandoff
+import com.garfiec.librechat.feature.chat.viewmodel.SiteIconPromptSession
 import com.garfiec.librechat.feature.chat.viewmodel.SubagentThreadsViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.TraceViewerViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.UpdateBannerViewModel
@@ -25,6 +26,7 @@ val chatModule = module {
     single { ServerFileSelectionHandoff() }
     single { ArtifactViewerHandoff() }
     single { ModelShortcutBus() }
+    single { SiteIconPromptSession() }
     viewModelOf(::PromptsViewModel)
     viewModelOf(::SubagentThreadsViewModel)
     viewModelOf(::TraceViewerViewModel)

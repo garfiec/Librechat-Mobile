@@ -168,6 +168,21 @@ class DataStoreRoundTripTest {
     }
 
     @Test
+    fun settingsDataStore_siteIconsChoice_unsetUntilChosen() = runTest(testDispatcher) {
+        val ds = createDataStore("settings-site-icons")
+        val store = settingsStore(ds)
+
+        // Null means "never asked" -- distinct from an explicit off.
+        assertThat(store.siteIconsChoice.first()).isNull()
+
+        store.setShowSiteIcons(false)
+        assertThat(store.siteIconsChoice.first()).isFalse()
+
+        store.setShowSiteIcons(true)
+        assertThat(store.siteIconsChoice.first()).isTrue()
+    }
+
+    @Test
     fun settingsDataStore_roundTrip_enums() = runTest(testDispatcher) {
         val ds = createDataStore("settings-enums")
         val store = settingsStore(ds)

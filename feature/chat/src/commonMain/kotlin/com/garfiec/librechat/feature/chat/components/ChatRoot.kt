@@ -27,6 +27,7 @@ import com.garfiec.librechat.feature.chat.resources.cd_close
 import com.garfiec.librechat.feature.chat.resources.cd_image
 import com.garfiec.librechat.feature.chat.resources.cd_save_to_device
 import com.garfiec.librechat.feature.chat.resources.cd_share_image
+import com.garfiec.librechat.feature.chat.viewmodel.SiteIconsState
 import com.garfiec.librechat.feature.chat.viewmodel.SubagentTrace
 import org.jetbrains.compose.resources.stringResource
 
@@ -57,6 +58,10 @@ fun ChatRoot(
     /** Required, not defaulted, so neither platform's `ChatScreen` can quietly drop the wiring. */
     promptLibraryRevision: Long,
     onRefreshPrompts: () -> Unit,
+    /** Required, not defaulted, so neither platform's `ChatScreen` can drop the icons prompt. */
+    siteIcons: SiteIconsState,
+    onSiteIconsChoice: (show: Boolean) -> Unit,
+    onSiteIconsPromptDismiss: () -> Unit,
     content: @Composable () -> Unit,
 ) {
     // Driven from the chat screen's composition rather than a ViewModel collector, which defers the
@@ -85,6 +90,12 @@ fun ChatRoot(
         }
     }
 
+    // A search-result card raises this; the dialog lives here so several cards raise one prompt.
+    // Only a visibility latch: once the user chooses or closes it, `siteIcons` leaves ASK.
+    var siteIconsPromptRequested by remember { mutableStateOf(false) }
+    val requestSiteIconsChoice = remember { { siteIconsPromptRequested = true } }
+    val siteIconsLocal = remember(siteIcons) { SiteIcons(siteIcons, requestSiteIconsChoice) }
+
     // Full-screen overlays hosted here are drawn in the Compose canvas, under a native glass bar.
     CoversNativeBars(active = mediaPreview != null || pdfRequest != null)
 
@@ -103,8 +114,16 @@ fun ChatRoot(
         // The repository asks the version question again before it issues a request — this one
         // decides whether the affordance is drawn at all.
         LocalSubagentThreadsAvailable provides (conversationId != null && subagentThreadsSupported),
+        LocalSiteIcons provides siteIconsLocal,
     ) {
         content()
+
+        if (siteIconsPromptRequested && siteIcons == SiteIconsState.ASK) {
+            SiteIconsPromptDialog(
+                onChoice = onSiteIconsChoice,
+                onDismiss = onSiteIconsPromptDismiss,
+            )
+        }
 
         if (subagentSheetOpen && conversationId != null) {
             SubagentThreadsSheet(

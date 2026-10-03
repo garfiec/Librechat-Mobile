@@ -67,7 +67,27 @@ data class ChatPreferences(
     val sttEngine: String = "",
     val sttLanguage: String = "",
     val inlineArtifactPrefs: InlineArtifactPrefs = InlineArtifactPrefs(),
+    /**
+     * Defaults to [SiteIconsState.OFF], not [SiteIconsState.ASK]: `chatPreferences` starts from
+     * this default before DataStore's first emission, and an ASK default would flash the prompt at
+     * a user who has already chosen.
+     */
+    val siteIcons: SiteIconsState = SiteIconsState.OFF,
 )
+
+/**
+ * Whether web-search results may load site icons from external servers, which sends the result
+ * domains to Google's favicon service (or to an icon host the result names).
+ */
+enum class SiteIconsState {
+    /** Never chosen, and the prompt hasn't been closed this process. Off until the user picks. */
+    ASK,
+    ON,
+    OFF,
+    ;
+
+    val showIcons: Boolean get() = this == ON
+}
 
 /**
  * Chat-screen display preferences (floating top bar, options-sheet context gauge, during-run

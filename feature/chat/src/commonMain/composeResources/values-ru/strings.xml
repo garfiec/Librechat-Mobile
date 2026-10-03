@@ -631,4 +631,9 @@
     <string name="update_banner_title">Доступен Switchboard %1$s</string>
     <string name="update_banner_action">Что нового</string>
     <string name="cd_dismiss_update">Скрыть уведомление об обновлении</string>
+    <string name="site_icons_prompt_title">Показывать значки сайтов?</string>
+    <string name="site_icons_prompt_body">В результатах веб-поиска можно показывать значок каждого сайта. Для их загрузки адреса сайтов отправляются на внешние серверы, например Google.</string>
+    <string name="site_icons_prompt_settings_hint">Это можно изменить в любой момент: Настройки → Чат → Показывать значки сайтов.</string>
+    <string name="site_icons_prompt_allow">Показывать</string>
+    <string name="site_icons_prompt_deny">Не показывать</string>
 </resources>

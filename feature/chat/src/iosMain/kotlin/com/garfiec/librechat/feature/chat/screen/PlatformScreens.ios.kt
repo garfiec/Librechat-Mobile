@@ -230,6 +230,9 @@ actual fun ChatScreen(
         onDownloadAttachment = viewModel::downloadFileBytes,
         promptLibraryRevision = promptLibraryRevision,
         onRefreshPrompts = viewModel::refreshPromptsIfStale,
+        siteIcons = prefs.siteIcons,
+        onSiteIconsChoice = viewModel::setShowSiteIcons,
+        onSiteIconsPromptDismiss = viewModel::dismissSiteIconPrompt,
     ) {
     Scaffold(
         modifier = modifier.imePadding(),
