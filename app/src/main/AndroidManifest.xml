@@ -12,6 +12,9 @@
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" />
+    <uses-feature
+        android:name="android.hardware.microphone"
+        android:required="false" />
 
     <!-- What's new opens the store that installed the app (AndroidAppInstallSource). Android 11+
          hides other packages, so without these the launch intent resolves to nothing. Keep in step
