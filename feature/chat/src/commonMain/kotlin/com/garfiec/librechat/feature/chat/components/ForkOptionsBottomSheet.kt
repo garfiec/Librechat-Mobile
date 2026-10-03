@@ -1,6 +1,5 @@
 package com.garfiec.librechat.feature.chat.components
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -30,7 +29,12 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.request.ForkOption
 import com.garfiec.librechat.core.ui.components.AdaptiveCheckbox
 import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
+import com.garfiec.librechat.core.ui.components.ListDragSelection
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
+import com.garfiec.librechat.core.ui.components.dragSelectRow
+import com.garfiec.librechat.core.ui.components.dragSelectRowIcon
+import com.garfiec.librechat.core.ui.components.listDragSelection
+import com.garfiec.librechat.core.ui.components.rememberListDragSelection
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -51,8 +55,11 @@ fun ForkOptionsBottomSheet(
         modifier = modifier,
         sheetState = sheetState,
     ) {
+        val dragSelection = rememberListDragSelection()
         Column(
-            modifier = Modifier.padding(bottom = 32.dp),
+            modifier = Modifier
+                .listDragSelection(dragSelection, holdOnly = true)
+                .padding(bottom = 32.dp),
         ) {
             Text(
                 text = stringResource(Res.string.fork_conversation),
@@ -66,6 +73,7 @@ fun ForkOptionsBottomSheet(
                 label = stringResource(Res.string.fork_visible_messages),
                 description = stringResource(Res.string.fork_visible_messages_desc),
                 onClick = { onFork(ForkOption.DIRECT_PATH, splitAtTarget) },
+                dragSelection = dragSelection,
             )
 
             ForkOptionRow(
@@ -73,6 +81,7 @@ fun ForkOptionsBottomSheet(
                 label = stringResource(Res.string.fork_include_branches),
                 description = stringResource(Res.string.fork_include_branches_desc),
                 onClick = { onFork(ForkOption.INCLUDE_BRANCHES, splitAtTarget) },
+                dragSelection = dragSelection,
             )
 
             ForkOptionRow(
@@ -80,6 +89,7 @@ fun ForkOptionsBottomSheet(
                 label = stringResource(Res.string.fork_all_to_target),
                 description = stringResource(Res.string.fork_all_to_target_desc),
                 onClick = { onFork(ForkOption.TARGET_LEVEL, splitAtTarget) },
+                dragSelection = dragSelection,
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -87,13 +97,14 @@ fun ForkOptionsBottomSheet(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { splitAtTarget = !splitAtTarget }
+                    .dragSelectRow(dragSelection) { splitAtTarget = !splitAtTarget }
                     .padding(horizontal = 24.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 AdaptiveCheckbox(
                     checked = splitAtTarget,
                     onCheckedChange = { splitAtTarget = it },
+                    modifier = Modifier.dragSelectRowIcon(),
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
@@ -118,18 +129,19 @@ private fun ForkOptionRow(
     label: String,
     description: String,
     onClick: () -> Unit,
+    dragSelection: ListDragSelection,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .dragSelectRow(dragSelection, onClick = onClick)
             .padding(horizontal = 24.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            modifier = Modifier.size(24.dp),
+            modifier = Modifier.size(24.dp).dragSelectRowIcon(),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(modifier = Modifier.width(16.dp))

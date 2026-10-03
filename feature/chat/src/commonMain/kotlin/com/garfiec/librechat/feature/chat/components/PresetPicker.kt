@@ -1,6 +1,5 @@
 package com.garfiec.librechat.feature.chat.components
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -27,7 +26,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
+import com.garfiec.librechat.core.ui.components.ListDragSelection
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
+import com.garfiec.librechat.core.ui.components.dragSelectExclude
+import com.garfiec.librechat.core.ui.components.dragSelectRow
+import com.garfiec.librechat.core.ui.components.listDragSelection
+import com.garfiec.librechat.core.ui.components.rememberListDragSelection
 import com.garfiec.librechat.feature.chat.model.PresetDisplayData
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -51,15 +55,17 @@ fun PresetPicker(
         sheetState = sheetState,
         modifier = modifier,
     ) {
+        val dragSelection = rememberListDragSelection()
+        // The rows run edge to edge and pad themselves, so the drag highlight has room around their text.
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+                .listDragSelection(dragSelection, holdOnly = true),
         ) {
             Text(
                 text = stringResource(Res.string.select_preset),
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(bottom = 12.dp),
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
             )
 
             if (presets.isEmpty()) {
@@ -67,7 +73,7 @@ fun PresetPicker(
                     text = stringResource(Res.string.no_presets_saved),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(vertical = 24.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp),
                 )
             } else {
                 LazyColumn(
@@ -79,8 +85,12 @@ fun PresetPicker(
                             onClick = { onPresetSelect(preset) },
                             onEdit = { onEditPreset(preset) },
                             onDelete = { onDeletePreset(preset) },
+                            dragSelection = dragSelection,
                         )
-                        AdaptiveDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        AdaptiveDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant,
+                        )
                     }
                 }
             }
@@ -96,13 +106,14 @@ private fun PresetItem(
     onClick: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    dragSelection: ListDragSelection,
     modifier: Modifier = Modifier,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 12.dp),
+            .dragSelectRow(dragSelection, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -139,7 +150,7 @@ private fun PresetItem(
 
         IconButton(
             onClick = onEdit,
-            modifier = Modifier.size(36.dp),
+            modifier = Modifier.size(36.dp).dragSelectExclude(dragSelection),
         ) {
             Icon(
                 imageVector = Icons.Default.Edit,
@@ -151,7 +162,7 @@ private fun PresetItem(
 
         IconButton(
             onClick = onDelete,
-            modifier = Modifier.size(36.dp),
+            modifier = Modifier.size(36.dp).dragSelectExclude(dragSelection),
         ) {
             Icon(
                 imageVector = Icons.Default.Delete,
