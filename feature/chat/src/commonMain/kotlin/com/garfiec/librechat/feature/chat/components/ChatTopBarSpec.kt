@@ -121,7 +121,6 @@ internal fun rememberChatTopBarSpec(
                 icon = BarIcons.More,
                 label = stringResource(Res.string.cd_more_options),
                 sections = menuSections,
-                dragToSelect = true,
             ),
         )
     }
