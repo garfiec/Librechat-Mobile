@@ -402,9 +402,11 @@ private fun HeaderTitleChip(
     onCommit: (String) -> Unit,
 ) {
     var isEditing by remember(conversationKey) { mutableStateOf(false) }
+    // On both chips, so the pop that opens the editor plays out on the editor.
+    val holdCharge = rememberHoldCharge()
 
     if (isEditing) {
-        FloatingBarContentChip(fillWidth = fillWidth) {
+        FloatingBarContentChip(fillWidth = fillWidth, modifier = Modifier.holdChargeScale(holdCharge)) {
             HeaderTitleEditor(
                 initial = title,
                 fillWidth = fillWidth,
@@ -419,8 +421,10 @@ private fun HeaderTitleChip(
         FloatingBarLabelChip(
             text = title,
             fillWidth = fillWidth,
+            modifier = Modifier.holdChargeScale(holdCharge),
             onLongClick = { isEditing = true },
             onLongClickLabel = stringResource(Res.string.cd_edit_title),
+            holdCharge = holdCharge,
         )
     }
 }
