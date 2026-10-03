@@ -51,7 +51,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.IntrinsicMeasurable
@@ -190,7 +189,7 @@ internal fun MaterialMenuPopup(
                     }
                     .background(containerColor)
                     .onPlaced { effects.inside = it }
-                    .drawBehind { if (drag != null) drawHighlight(drag, effects.inside, highlightColor) }
+                    .drawBehind { if (drag != null) drawHighlight(drag.highlight, effects.inside, highlightColor) }
                     // While closing, rows are on their way out: swallow taps so one can't fire twice.
                     .then(if (expandedState.targetState) Modifier else Modifier.pointerInput(Unit) { consumeAll() })
                     .then(modifier)
@@ -264,24 +263,6 @@ internal fun rememberMenuDragEffects(drag: MenuDragSelection?, opening: Boolean,
         }
     }
     return effects
-}
-
-/** The drag highlight, from screen coordinates into the panel's (transformed) inside. */
-internal fun DrawScope.drawHighlight(drag: MenuDragSelection, inside: LayoutCoordinates?, color: Color) {
-    val alpha = drag.highlightAlpha.value
-    if (alpha <= 0f || inside == null || !inside.isAttached) return
-    val topLeft = inside.screenToLocal(Offset(drag.highlightLeft, drag.highlightTop.value))
-    val bottomRight = inside.screenToLocal(Offset(drag.highlightRight, drag.highlightBottom.value))
-    if (!topLeft.isSpecified || !bottomRight.isSpecified) return
-    val inset = HighlightInset.toPx()
-    val height = bottomRight.y - topLeft.y
-    if (height <= 0f) return
-    drawRoundRect(
-        color = color.copy(alpha = color.alpha * alpha),
-        topLeft = Offset(topLeft.x + inset, topLeft.y),
-        size = Size(bottomRight.x - topLeft.x - 2 * inset, height),
-        cornerRadius = CornerRadius(min(HighlightRadius.toPx(), height / 2f)),
-    )
 }
 
 internal fun LayoutCoordinates.toLocal(screen: Rect): Rect? {
@@ -430,8 +411,6 @@ private const val ROW_START_SCALE = 0.92f
 private const val MIN_BLUR_PX = 0.5f
 private val StretchCap = 12.dp
 private val PanelLeanCap = 4.dp
-private val HighlightInset = 4.dp
-private val HighlightRadius = 12.dp
 private const val STRETCH_SOFTNESS = 0.3f
 private const val PANEL_LEAN_SOFTNESS = 0.05f
 private const val CANCEL_SHRINK = 0.03f
@@ -446,8 +425,6 @@ internal const val BACK_FOLD = 0.4f
 internal const val BACK_FADE = 0.5f
 internal val BackCancelSpec = spring<Float>(dampingRatio = 0.8f, stiffness = 600f)
 
-/** M3's pressed state-layer opacity, so the drag highlight reads as a held press. */
-internal const val DRAG_HIGHLIGHT_ALPHA = 0.10f
 private val PanelTrackSpec = spring<Float>(dampingRatio = 0.9f, stiffness = 1500f)
 private val PanelOffsetSpec = spring<Offset>(dampingRatio = 0.9f, stiffness = 1500f)
 

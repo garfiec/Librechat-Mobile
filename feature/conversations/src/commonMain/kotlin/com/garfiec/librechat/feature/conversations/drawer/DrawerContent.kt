@@ -98,7 +98,12 @@ import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicato
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.EndpointIcon
+import com.garfiec.librechat.core.ui.components.ListDragSelection
+import com.garfiec.librechat.core.ui.components.dragSelectRowIcon
+import com.garfiec.librechat.core.ui.components.listDragSelection
+import com.garfiec.librechat.core.ui.components.listDragTarget
 import com.garfiec.librechat.core.ui.components.pressBounce
+import com.garfiec.librechat.core.ui.components.rememberListDragSelection
 import com.garfiec.librechat.core.ui.components.rememberPressBounce
 import com.garfiec.librechat.core.ui.glass.GlassControlColors
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
@@ -234,7 +239,7 @@ fun DrawerContent(
 
     DrawerContent(
         uiState = uiState,
-        footerContent = {
+        footerContent = { dragSelection ->
             val active = accounts.firstOrNull { it.isActive }
             Spacer(modifier = Modifier.height(8.dp))
             // Footer row: Settings (icon + label) on the left takes the width; the account avatar
@@ -256,6 +261,7 @@ fun DrawerContent(
                     icon = Icons.Default.Settings,
                     label = stringResource(Res.string.settings),
                     onClick = onSettingsClick,
+                    dragSelection = dragSelection,
                     modifier = Modifier.weight(1f),
                 )
                 if (active != null) {
@@ -350,8 +356,9 @@ fun DrawerContent(
     onSchedulesClick: () -> Unit,
     modifier: Modifier = Modifier,
     // Slot below the footer links (Files, Agents, …) — the stateful wrapper puts the Settings row
-    // and the account avatar here, at the bottom of the drawer.
-    footerContent: (@Composable () -> Unit)? = null,
+    // and the account avatar here, at the bottom of the drawer. Its rows join the footer links'
+    // drag-to-select through the [ListDragSelection] it's given.
+    footerContent: (@Composable (ListDragSelection?) -> Unit)? = null,
     onToggleFavorite: (DrawerConversationDisplayData) -> Unit = {},
     onRefresh: () -> Unit = {},
     onLoadMore: () -> Unit = {},
@@ -843,34 +850,41 @@ fun DrawerContent(
                 color = MaterialTheme.colorScheme.outlineVariant,
             )
 
-            if (uiState.agentsEnabled) {
+            val dragSelection = rememberListDragSelection()
+            Column(modifier = Modifier.listDragSelection(dragSelection)) {
+                if (uiState.agentsEnabled) {
+                    DrawerFooterItem(
+                        icon = Icons.Default.SmartToy,
+                        label = stringResource(Res.string.agents),
+                        onClick = onAgentsClick,
+                        dragSelection = dragSelection,
+                    )
+                }
+                if (uiState.skillsEnabled) {
+                    DrawerFooterItem(
+                        icon = Icons.Default.Extension,
+                        label = stringResource(Res.string.skills),
+                        onClick = onSkillsClick,
+                        dragSelection = dragSelection,
+                    )
+                }
+                if (uiState.schedulesEnabled) {
+                    DrawerFooterItem(
+                        icon = Icons.Default.Schedule,
+                        label = stringResource(Res.string.schedules),
+                        onClick = onSchedulesClick,
+                        dragSelection = dragSelection,
+                    )
+                }
                 DrawerFooterItem(
-                    icon = Icons.Default.SmartToy,
-                    label = stringResource(Res.string.agents),
-                    onClick = onAgentsClick,
+                    icon = Icons.Default.Folder,
+                    label = stringResource(Res.string.files),
+                    onClick = onFilesClick,
+                    dragSelection = dragSelection,
                 )
-            }
-            if (uiState.skillsEnabled) {
-                DrawerFooterItem(
-                    icon = Icons.Default.Extension,
-                    label = stringResource(Res.string.skills),
-                    onClick = onSkillsClick,
-                )
-            }
-            if (uiState.schedulesEnabled) {
-                DrawerFooterItem(
-                    icon = Icons.Default.Schedule,
-                    label = stringResource(Res.string.schedules),
-                    onClick = onSchedulesClick,
-                )
-            }
-            DrawerFooterItem(
-                icon = Icons.Default.Folder,
-                label = stringResource(Res.string.files),
-                onClick = onFilesClick,
-            )
 
-            footerContent?.invoke()
+                footerContent?.invoke(dragSelection)
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
         }
@@ -1499,10 +1513,12 @@ private fun DrawerFooterItem(
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    dragSelection: ListDragSelection? = null,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .listDragTarget(dragSelection, onClick)
             .drawerRowShape()
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 10.dp),
@@ -1511,7 +1527,7 @@ private fun DrawerFooterItem(
         Icon(
             imageVector = icon,
             contentDescription = label,
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier.size(20.dp).dragSelectRowIcon(),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(modifier = Modifier.width(12.dp))
