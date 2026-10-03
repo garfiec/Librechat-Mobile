@@ -21,9 +21,15 @@ import com.garfiec.librechat.core.ui.glass.LocalGlassSheetHost
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 
 /**
- * In Liquid Glass, a glass panel portalled into the app canvas; [properties] apply to the M3 popup
- * only. Outside a host or inside another window it falls back to a rounded opaque popup.
+ * In Material, a menu that springs out of its corner nearest the anchor, in the app canvas
+ * ([MaterialMenuOverlay]), or, inside a dialog or sheet window, a popup that unfolds from it
+ * ([MaterialMenuPopup]). In Liquid Glass, a glass panel portalled into the app canvas; [properties]
+ * apply to the popup only. Outside a host or inside another window it falls back to a rounded opaque
+ * popup. [dragSelection] (Material only) wires the menu to an opener's [menuDragAnchor] for
+ * press-drag-release.
  */
+// One branch runs per call; the rule counts the Material overlay, popup and M3 menu as if all did.
+@Suppress("MultipleEmitters")
 @Composable
 fun AdaptiveDropdownMenu(
     expanded: Boolean,
@@ -34,12 +40,43 @@ fun AdaptiveDropdownMenu(
     properties: PopupProperties = PopupProperties(focusable = true),
     shape: Shape? = null,
     containerColor: Color? = null,
+    dragSelection: MenuDragSelection? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val glass = isLiquidGlass
     val host = LocalGlassSheetHost.current
     if (glass && host != null && !LocalInSeparateWindow.current) {
         GlassMenuPortal(host, expanded, onDismissRequest, offset, scrollState, containerColor, modifier, content)
+        return
+    }
+    if (!glass && host != null && !LocalInSeparateWindow.current) {
+        MaterialMenuOverlay(
+            host = host,
+            expanded = expanded,
+            onDismissRequest = onDismissRequest,
+            modifier = modifier,
+            offset = offset,
+            scrollState = scrollState,
+            shape = shape ?: MenuDefaults.shape,
+            containerColor = containerColor ?: MenuDefaults.containerColor,
+            dragSelection = dragSelection,
+            content = content,
+        )
+        return
+    }
+    if (!glass) {
+        MaterialMenuPopup(
+            expanded = expanded,
+            onDismissRequest = onDismissRequest,
+            modifier = modifier,
+            offset = offset,
+            scrollState = scrollState,
+            properties = properties,
+            shape = shape ?: MenuDefaults.shape,
+            containerColor = containerColor ?: MenuDefaults.containerColor,
+            dragSelection = dragSelection,
+            content = content,
+        )
         return
     }
     DropdownMenu(
@@ -49,11 +86,11 @@ fun AdaptiveDropdownMenu(
         offset = offset,
         scrollState = scrollState,
         properties = properties,
-        shape = shape ?: if (glass) GlassDefaults.MenuShape else MenuDefaults.shape,
-        containerColor = containerColor ?: if (glass) MaterialTheme.colorScheme.surfaceContainerHigh else MenuDefaults.containerColor,
-        tonalElevation = if (glass) 0.dp else MenuDefaults.TonalElevation,
-        shadowElevation = if (glass) GlassMenuShadow else MenuDefaults.ShadowElevation,
-        border = if (glass) BorderStroke(GlassDefaults.Hairline, GlassControlColors.separator) else null,
+        shape = shape ?: GlassDefaults.MenuShape,
+        containerColor = containerColor ?: MaterialTheme.colorScheme.surfaceContainerHigh,
+        tonalElevation = 0.dp,
+        shadowElevation = GlassMenuShadow,
+        border = BorderStroke(GlassDefaults.Hairline, GlassControlColors.separator),
         content = content,
     )
 }

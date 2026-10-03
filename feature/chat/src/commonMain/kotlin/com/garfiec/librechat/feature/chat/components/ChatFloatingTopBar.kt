@@ -1,6 +1,8 @@
 package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
@@ -47,6 +49,9 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
 import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
 import com.garfiec.librechat.core.ui.components.consumeUnhandledTouches
+import com.garfiec.librechat.core.ui.components.menuDragAnchor
+import com.garfiec.librechat.core.ui.components.menuDragPressEffect
+import com.garfiec.librechat.core.ui.components.rememberMenuDragSelection
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -321,11 +326,27 @@ private fun MaterialChatTopBar(
                 Spacer(modifier = Modifier.width(8.dp))
             }
 
-            Box {
+            val overflowDrag = rememberMenuDragSelection()
+            Box(
+                modifier = Modifier.menuDragAnchor(
+                    overflowDrag,
+                    enabled = !isLiquidGlass,
+                    onOpen = { showOverflowMenu = true },
+                    onCancel = { showOverflowMenu = false },
+                ),
+            ) {
+                // Material only: ⋮ turns into ⋯ while its menu is open.
+                val moreRotation by animateFloatAsState(
+                    targetValue = if (showOverflowMenu && !isLiquidGlass) 90f else 0f,
+                    animationSpec = spring(dampingRatio = 0.8f, stiffness = 200f),
+                    label = "moreRotation",
+                )
                 FloatingBarIconButton(
                     icon = Icons.Default.MoreVert,
                     contentDescription = stringResource(Res.string.cd_more_options),
                     onClick = { showOverflowMenu = true },
+                    modifier = Modifier.menuDragPressEffect(overflowDrag),
+                    iconRotation = { moreRotation },
                 )
                 ChatOverflowMenu(
                     expanded = showOverflowMenu,
@@ -334,6 +355,7 @@ private fun MaterialChatTopBar(
                     isComparisonEnabled = uiState.comparisonState.isEnabled,
                     contextUsage = uiState.contextUsage,
                     onItem = onItem,
+                    dragSelection = overflowDrag.takeIf { !isLiquidGlass },
                 )
             }
         }
