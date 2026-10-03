@@ -2,6 +2,7 @@ package com.garfiec.librechat.core.data.update
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.garfiec.librechat.core.common.AppInfo
+import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.network.api.GitHubReleasesApi
 import com.garfiec.librechat.core.network.di.librechatJson
 import com.google.common.truth.Truth.assertThat
@@ -60,7 +61,12 @@ class AppUpdateRepositoryImplTest {
         }
     """.trimIndent()
 
-    private class Harness(val repo: AppUpdateRepositoryImpl, val store: UpdateCheckStore, val requests: () -> Int)
+    private class Harness(
+        val repo: AppUpdateRepositoryImpl,
+        val store: UpdateCheckStore,
+        val requests: () -> Int,
+        val paths: List<String>,
+    )
 
     private fun harness(
         installed: String = "2026.09.0",
@@ -71,8 +77,10 @@ class AppUpdateRepositoryImplTest {
         hang: Boolean = false,
     ): Harness {
         var requests = 0
-        val engine = MockEngine {
+        val paths = mutableListOf<String>()
+        val engine = MockEngine { request ->
             requests++
+            paths += request.url.encodedPath + (request.url.parameters["page"]?.let { "?page=$it" } ?: "")
             if (hang) awaitCancellation()
             respond(body, status, headersOf(HttpHeaders.ContentType, "application/json"))
         }
@@ -88,7 +96,7 @@ class AppUpdateRepositoryImplTest {
             override val gitSha = "unknown"
         }
         val repo = AppUpdateRepositoryImpl(supported, GitHubReleasesApi(client), store, appInfo) { now }
-        return Harness(repo, store, { requests })
+        return Harness(repo, store, { requests }, paths)
     }
 
     @Test
@@ -168,6 +176,72 @@ class AppUpdateRepositoryImplTest {
         h.repo.setAutoCheckEnabled(true)
         h.store.setAvailableTag("v2026.10.0")
         assertThat(h.repo.pendingUpdate.first()).isNull()
+    }
+
+    @Test
+    fun installedReleaseFetchesTheInstalledTag() = runBlocking {
+        val h = harness(installed = "2026.10.0-debug", body = release("v2026.10.0"))
+        assertThat(h.repo.installedTag).isEqualTo("v2026.10.0")
+
+        val notes = (h.repo.installedRelease() as Result.Success).data
+        assertThat(h.paths).containsExactly("/repos/garfiec/Librechat-Mobile/releases/tags/v2026.10.0")
+        assertThat(notes?.version).isEqualTo("2026.10.0")
+        assertThat(notes?.highlights).isEqualTo("Notes for v2026.10.0")
+        assertThat(notes?.fullChangelog).isEqualTo("* a PR")
+    }
+
+    @Test
+    fun installedReleaseIsNullWhenGitHubHasNoSuchTag() = runBlocking {
+        val h = harness(status = HttpStatusCode.NotFound, body = """{"message":"Not Found"}""")
+        assertThat(h.repo.installedRelease()).isEqualTo(Result.Success(null))
+    }
+
+    @Test
+    fun installedReleaseOtherFailuresAreErrors() = runBlocking {
+        val h = harness(status = HttpStatusCode.Forbidden, body = """{"message":"API rate limit exceeded"}""")
+        assertThat(h.repo.installedRelease()).isInstanceOf(Result.Error::class.java)
+    }
+
+    @Test
+    fun installedReleaseWorksWhereTheUpdateCheckDoesNot() = runBlocking {
+        // iOS: no update check, but the IPA ships on the same tags.
+        val h = harness(supported = false, body = release("v2026.09.0"))
+        assertThat((h.repo.installedRelease() as Result.Success).data?.tag).isEqualTo("v2026.09.0")
+    }
+
+    @Test
+    fun olderReleasesKeepsStableReleasesBelowInstalled() = runBlocking {
+        val h = harness(
+            installed = "2026.10.0",
+            body = "[" + listOf(
+                release("v2026.10.1"),
+                release("v2026.10.0"),
+                release("v2026.09.1-rc1", prerelease = true),
+                release("v2026.08.4"),
+                release("v2026.09.0"),
+            ).joinToString() + "]",
+        )
+        val page = (h.repo.olderReleases(2) as Result.Success).data
+        assertThat(h.paths).containsExactly("/repos/garfiec/Librechat-Mobile/releases?page=2")
+        assertThat(page.releases.map { it.tag }).containsExactly("v2026.09.0", "v2026.08.4").inOrder()
+        assertThat(page.hasMore).isFalse()
+    }
+
+    @Test
+    fun olderReleasesHasMoreWhenThePageIsFull() = runBlocking {
+        val full = (1..GitHubReleasesApi.PAGE_SIZE).map { release("v2025.01.$it") }
+        val h = harness(installed = "2026.10.0", body = "[" + full.joinToString() + "]")
+        val page = (h.repo.olderReleases(1) as Result.Success).data
+        assertThat(page.releases).hasSize(GitHubReleasesApi.PAGE_SIZE)
+        assertThat(page.hasMore).isTrue()
+    }
+
+    @Test
+    fun unparseableVersionHasNoReleaseAndNeverRequests() = runBlocking {
+        val h = harness(installed = "local-build")
+        assertThat(h.repo.installedTag).isNull()
+        assertThat(h.repo.installedRelease()).isEqualTo(Result.Success(null))
+        assertThat(h.requests()).isEqualTo(0)
     }
 
     @Test

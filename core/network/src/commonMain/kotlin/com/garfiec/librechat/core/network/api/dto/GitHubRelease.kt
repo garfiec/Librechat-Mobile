@@ -3,7 +3,7 @@ package com.garfiec.librechat.core.network.api.dto
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/** One entry of GitHub's `GET /repos/{owner}/{repo}/releases`, trimmed to what the update check reads. */
+/** One GitHub release, as `GET /repos/{owner}/{repo}/releases` lists it, trimmed to what the app reads. */
 @Serializable
 data class GitHubRelease(
     @SerialName("tag_name") val tagName: String,

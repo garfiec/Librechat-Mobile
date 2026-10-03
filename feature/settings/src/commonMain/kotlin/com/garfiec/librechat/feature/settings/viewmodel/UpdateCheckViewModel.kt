@@ -15,12 +15,15 @@ data class UpdateCheckUiState(
     val autoCheckEnabled: Boolean = false,
 )
 
-/** Settings → About's update rows. */
+/** The rows of Settings' Updates section. */
 class UpdateCheckViewModel(
     private val repository: AppUpdateRepository,
 ) : ViewModel() {
 
     val isSupported: Boolean = repository.isSupported
+
+    /** The installed build has a release tag to read notes for. Unlike [isSupported], true on iOS too. */
+    val releaseNotesAvailable: Boolean = repository.installedTag != null
 
     val uiState: StateFlow<UpdateCheckUiState> = combine(
         repository.checkState,

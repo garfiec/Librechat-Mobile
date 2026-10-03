@@ -62,6 +62,7 @@
 
     <!-- Section headers -->
     <string name="section_about">حول</string>
+    <string name="section_updates">التحديثات</string>
     <string name="section_advanced">متقدم</string>
     <string name="section_appearance">المظهر</string>
     <string name="section_balance">الرصيد</string>
@@ -222,6 +223,12 @@
     <string name="whats_new_hint_obtainium">ثبّت Obtainium هذا التطبيق ويوفّر تحديثاته.</string>
     <string name="whats_new_hint_fdroid">ثبّت F-Droid هذا التطبيق ويوفّر تحديثاته. قد يستغرق ظهور الإصدار الجديد هناك بضعة أيام.</string>
     <string name="whats_new_error">تعذّر تحميل ملاحظات الإصدار</string>
+    <string name="release_notes_title">ملاحظات الإصدار</string>
+    <string name="release_notes_desc">ما الذي تغيّر في الإصدار %1$s</string>
+    <string name="release_notes_not_found">لا توجد ملاحظات إصدار لـ %1$s</string>
+    <string name="release_notes_not_found_desc">لا يوجد إصدار منشور على GitHub لهذا البناء.</string>
+    <string name="release_notes_previous">الإصدارات السابقة</string>
+    <string name="release_notes_load_older">تحميل الإصدارات الأقدم</string>
 
     <!-- Tablet settings -->
     <string name="sidebar_swipe_gesture">إيماءة السحب للشريط الجانبي</string>

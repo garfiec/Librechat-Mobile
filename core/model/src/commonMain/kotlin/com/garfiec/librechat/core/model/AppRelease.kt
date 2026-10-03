@@ -1,6 +1,6 @@
 package com.garfiec.librechat.core.model
 
-/** A published Switchboard release newer than the installed build, as shown on What's new. */
+/** A published Switchboard release, as What's new and Release notes show it. */
 data class AppRelease(
     /** Release tag, e.g. `v2026.10.1`. Identifies the release for "already notified" bookkeeping. */
     val tag: String,

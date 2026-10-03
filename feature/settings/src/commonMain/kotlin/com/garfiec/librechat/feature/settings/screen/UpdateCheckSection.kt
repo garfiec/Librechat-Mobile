@@ -35,7 +35,7 @@ import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import org.jetbrains.compose.resources.stringResource
 
-/** The Check for updates row, with its result shown directly beneath it. */
+/** The Check for updates row, with its result shown directly beneath it. Always followed by the daily toggle, so no divider. */
 @Composable
 internal fun UpdateCheckRow(
     state: UpdateCheckState,
@@ -91,7 +91,6 @@ internal fun UpdateCheckRow(
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
             )
         }
-        AdaptiveDivider()
     }
 }
 

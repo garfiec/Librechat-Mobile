@@ -62,6 +62,7 @@
 
     <!-- Section headers -->
     <string name="section_about">À propos</string>
+    <string name="section_updates">Mises à jour</string>
     <string name="section_advanced">Avancé</string>
     <string name="section_appearance">Apparence</string>
     <string name="section_balance">Solde</string>
@@ -222,6 +223,12 @@
     <string name="whats_new_hint_obtainium">Obtainium a installé cette app et fournit ses mises à jour.</string>
     <string name="whats_new_hint_fdroid">F-Droid a installé cette app et fournit ses mises à jour. Une nouvelle version peut mettre quelques jours à y apparaître.</string>
     <string name="whats_new_error">Impossible de charger les notes de version</string>
+    <string name="release_notes_title">Notes de version</string>
+    <string name="release_notes_desc">Les nouveautés de la version %1$s</string>
+    <string name="release_notes_not_found">Aucune note de version pour %1$s</string>
+    <string name="release_notes_not_found_desc">Cette version n'a pas de publication sur GitHub.</string>
+    <string name="release_notes_previous">Versions précédentes</string>
+    <string name="release_notes_load_older">Charger les versions plus anciennes</string>
 
     <!-- Tablet settings -->
     <string name="sidebar_swipe_gesture">Geste de balayage de la barre latérale</string>

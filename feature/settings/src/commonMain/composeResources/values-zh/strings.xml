@@ -62,6 +62,7 @@
 
     <!-- Section headers -->
     <string name="section_about">关于</string>
+    <string name="section_updates">更新</string>
     <string name="section_advanced">高级</string>
     <string name="section_appearance">外观</string>
     <string name="section_balance">余额</string>
@@ -222,6 +223,12 @@
     <string name="whats_new_hint_obtainium">此应用由 Obtainium 安装，并由它提供更新。</string>
     <string name="whats_new_hint_fdroid">此应用由 F-Droid 安装，并由它提供更新。新版本可能需要几天才会出现在 F-Droid 上。</string>
     <string name="whats_new_error">无法加载发布说明</string>
+    <string name="release_notes_title">发布说明</string>
+    <string name="release_notes_desc">版本 %1$s 的更新内容</string>
+    <string name="release_notes_not_found">没有 %1$s 的发布说明</string>
+    <string name="release_notes_not_found_desc">此版本在 GitHub 上没有已发布的版本。</string>
+    <string name="release_notes_previous">以前的版本</string>
+    <string name="release_notes_load_older">加载更早的版本</string>
 
     <!-- Tablet settings -->
     <string name="sidebar_swipe_gesture">侧边栏滑动手势</string>

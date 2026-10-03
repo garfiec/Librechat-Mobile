@@ -3,10 +3,14 @@ package com.garfiec.librechat.core.data.update
 import com.garfiec.librechat.core.common.AppInfo
 import com.garfiec.librechat.core.common.AppVersion
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.common.result.onApiDispatcher
 import com.garfiec.librechat.core.common.result.safeApiCall
+import com.garfiec.librechat.core.common.result.toSafeError
 import com.garfiec.librechat.core.model.AppRelease
 import com.garfiec.librechat.core.network.api.GitHubReleasesApi
 import com.garfiec.librechat.core.network.api.dto.GitHubRelease
+import io.ktor.client.plugins.ClientRequestException
+import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,6 +31,7 @@ class AppUpdateRepositoryImpl(
 ) : AppUpdateRepository {
 
     private val installed: AppVersion? = AppVersion.parse(appInfo.versionName)
+    override val installedTag: String? = installed?.let { "v$it" }
     private val checkMutex = Mutex()
 
     private val _checkState = MutableStateFlow<UpdateCheckState>(UpdateCheckState.Idle)
@@ -77,6 +82,33 @@ class AppUpdateRepositoryImpl(
     }
 
     override suspend fun markNotified(tag: String) = store.setNotifiedTag(tag)
+
+    override suspend fun installedRelease(): Result<AppRelease?> {
+        val version = installed ?: return Result.Success(null)
+        // Not safeApiCall: a missing release is an expected answer here, not an error to log.
+        return try {
+            Result.Success(onApiDispatcher { api.getRelease("v$version") }.toAppRelease(version))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: ClientRequestException) {
+            if (e.response.status == HttpStatusCode.NotFound) Result.Success(null) else e.toSafeError()
+        } catch (e: Exception) {
+            e.toSafeError()
+        }
+    }
+
+    override suspend fun olderReleases(page: Int): Result<ReleasePage> = safeApiCall {
+        val releases = api.listReleases(page)
+        val older = releases
+            .asSequence()
+            .filter { !it.draft && !it.prerelease }
+            .mapNotNull { release -> AppVersion.parse(release.tagName)?.let { it to release } }
+            .filter { (version, _) -> installed == null || version < installed }
+            .sortedByDescending { (version, _) -> version }
+            .map { (version, release) -> release.toAppRelease(version) }
+            .toList()
+        ReleasePage(older, hasMore = releases.size >= GitHubReleasesApi.PAGE_SIZE)
+    }
 
     private fun newerThanInstalled(releases: List<GitHubRelease>): List<AppRelease> {
         val current = installed ?: return emptyList()

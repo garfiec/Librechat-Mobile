@@ -1,38 +1,24 @@
 package com.garfiec.librechat.feature.settings.screen
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.data.update.InstallChannel
@@ -54,9 +40,6 @@ import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.util.openUri
 import com.garfiec.librechat.feature.settings.viewmodel.WhatsNewUiState
 import com.garfiec.librechat.feature.settings.viewmodel.WhatsNewViewModel
-import com.mikepenz.markdown.m3.Markdown
-import com.mikepenz.markdown.m3.markdownColor
-import com.mikepenz.markdown.m3.markdownTypography
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -174,77 +157,6 @@ private fun ReleaseNotes(release: AppRelease) {
 }
 
 @Composable
-private fun ReleaseNotesBody(release: AppRelease) {
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp)) {
-        Row(verticalAlignment = Alignment.Bottom) {
-            Text(
-                text = release.version,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.weight(1f),
-            )
-            // ISO date: unambiguous in every locale, and GitHub only reports UTC anyway.
-            release.publishedAt?.take(ISO_DATE_LENGTH)?.let { date ->
-                Text(
-                    text = date,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        release.highlights?.let { highlights ->
-            Spacer(modifier = Modifier.height(8.dp))
-            NotesMarkdown(highlights)
-        }
-        release.fullChangelog?.let { changelog ->
-            Spacer(modifier = Modifier.height(8.dp))
-            FullChangelog(changelog, initiallyExpanded = release.highlights == null)
-        }
-    }
-}
-
-@Composable
-private fun FullChangelog(changelog: String, initiallyExpanded: Boolean) {
-    var expanded by rememberSaveable { mutableStateOf(initiallyExpanded) }
-    val rotation by animateFloatAsState(if (expanded) 180f else 0f)
-    Column {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(role = Role.Button) { expanded = !expanded }
-                .padding(vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = stringResource(Res.string.whats_new_full_changelog),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.weight(1f),
-            )
-            Icon(
-                imageVector = Icons.Default.ExpandMore,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp).rotate(rotation),
-            )
-        }
-        AnimatedVisibility(visible = expanded) {
-            NotesMarkdown(changelog)
-        }
-    }
-}
-
-@Composable
-private fun NotesMarkdown(markdown: String) {
-    Markdown(
-        content = markdown,
-        colors = markdownColor(),
-        typography = markdownTypography(),
-        modifier = Modifier.fillMaxWidth(),
-    )
-}
-
-@Composable
 private fun UpdateActions(
     latest: AppRelease,
     channel: InstallChannel,
@@ -282,5 +194,3 @@ private fun UpdateActions(
         }
     }
 }
-
-private const val ISO_DATE_LENGTH = 10

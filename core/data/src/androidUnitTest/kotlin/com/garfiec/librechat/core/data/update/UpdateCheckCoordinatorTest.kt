@@ -2,6 +2,8 @@ package com.garfiec.librechat.core.data.update
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.garfiec.librechat.core.common.lifecycle.ForegroundSignal
+import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.model.AppRelease
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -38,12 +40,17 @@ class UpdateCheckCoordinatorTest {
         override val checkState: StateFlow<UpdateCheckState> = MutableStateFlow(UpdateCheckState.Idle)
         override val autoCheckEnabled: Flow<Boolean> = flowOf(false)
         override val pendingUpdate: Flow<PendingUpdate?> = flowOf(null)
+        override val installedTag: String? = "v2026.09.0"
         override suspend fun setAutoCheckEnabled(enabled: Boolean) = Unit
         override suspend fun check(): UpdateCheckState {
             checks.send(Unit)
             return UpdateCheckState.UpToDate
         }
         override suspend fun markNotified(tag: String) = Unit
+        override suspend fun installedRelease(): Result<AppRelease?> =
+            error("Release notes are fetched on a tap, never by the background check")
+        override suspend fun olderReleases(page: Int): Result<ReleasePage> =
+            error("Release notes are fetched on a tap, never by the background check")
     }
 
     private val now = 100 * UpdateCheckCoordinator.INTERVAL_MILLIS
