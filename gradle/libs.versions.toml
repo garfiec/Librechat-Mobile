@@ -82,7 +82,7 @@ robolectric = "4.14.1"
 detekt = "1.23.8"
 ktlint = "12.1.2"
 compose-lint-checks = "1.5.2"
-kover = "0.9.8"
+kover = "0.9.11"
 
 # Build
 desugar = "2.1.5"
