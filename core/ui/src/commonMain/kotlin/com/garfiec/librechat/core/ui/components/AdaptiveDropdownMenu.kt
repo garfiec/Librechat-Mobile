@@ -25,8 +25,8 @@ import com.garfiec.librechat.core.ui.theme.isLiquidGlass
  * ([MaterialMenuOverlay]), or, inside a dialog or sheet window, a popup that unfolds from it
  * ([MaterialMenuPopup]). In Liquid Glass, a glass panel portalled into the app canvas; [properties]
  * apply to the popup only. Outside a host or inside another window it falls back to a rounded opaque
- * popup. [dragSelection] (Material only) wires the menu to an opener's [menuDragAnchor] for
- * press-drag-release.
+ * popup. [dragSelection] wires the menu to an opener's [menuDragAnchor] for press-drag-release
+ * (not in the fallback popups' glass look).
  */
 // One branch runs per call; the rule counts the Material overlay, popup and M3 menu as if all did.
 @Suppress("MultipleEmitters")
@@ -46,7 +46,7 @@ fun AdaptiveDropdownMenu(
     val glass = isLiquidGlass
     val host = LocalGlassSheetHost.current
     if (glass && host != null && !LocalInSeparateWindow.current) {
-        GlassMenuPortal(host, expanded, onDismissRequest, offset, scrollState, containerColor, modifier, content)
+        GlassMenuPortal(host, expanded, onDismissRequest, offset, scrollState, containerColor, dragSelection, modifier, content)
         return
     }
     if (!glass && host != null && !LocalInSeparateWindow.current) {

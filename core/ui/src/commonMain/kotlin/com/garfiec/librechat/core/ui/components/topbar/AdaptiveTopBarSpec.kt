@@ -60,7 +60,9 @@ sealed interface BarAction {
 
     /**
      * A button that opens a menu. [sections] is read when the menu opens, so it may change while
-     * the bar is on screen without rebuilding the bar.
+     * the bar is on screen without rebuilding the bar. With [dragToSelect], holding or dragging
+     * from the button opens the menu and the same press can slide onto an item and release (the
+     * Compose bars; the native iOS bar keeps its system menu).
      */
     @Immutable
     data class Menu(
@@ -68,6 +70,7 @@ sealed interface BarAction {
         val icon: BarIcon,
         override val label: String,
         val sections: List<BarMenuSection>,
+        val dragToSelect: Boolean = false,
     ) : BarAction
 }
 

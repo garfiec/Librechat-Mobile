@@ -26,6 +26,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
+import com.garfiec.librechat.core.ui.components.MenuDragSelection
+import com.garfiec.librechat.core.ui.components.dragSelectRowIcon
+import com.garfiec.librechat.core.ui.components.menuDragTarget
 import com.garfiec.librechat.feature.conversations.resources.*
 import com.garfiec.librechat.feature.conversations.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -70,6 +73,7 @@ fun ConversationActionsMenu(
     // Position offset relative to the anchor; callers feed the long-press point so the menu
     // opens with its left edge under the finger.
     offset: DpOffset = DpOffset.Zero,
+    dragSelection: MenuDragSelection? = null,
 ) {
     AdaptiveDropdownMenu(
         expanded = expanded,
@@ -80,8 +84,10 @@ fun ConversationActionsMenu(
         // floating over it instead of blending into the panel.
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = modifier,
+        dragSelection = dragSelection,
     ) {
         MenuActionItem(
+            dragSelection = dragSelection,
             icon = Icons.Default.Edit,
             label = stringResource(Res.string.rename),
             onClick = {
@@ -92,6 +98,7 @@ fun ConversationActionsMenu(
 
         if (showPinAction) {
             MenuActionItem(
+                dragSelection = dragSelection,
                 icon = if (isPinned) Icons.Default.PushPin else Icons.Outlined.PushPin,
                 label = if (isPinned) stringResource(Res.string.unpin) else stringResource(Res.string.pin),
                 iconTint = if (isPinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
@@ -104,6 +111,7 @@ fun ConversationActionsMenu(
 
         if (bookmarksEnabled) {
             MenuActionItem(
+                dragSelection = dragSelection,
                 icon = if (isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
                 label = if (isBookmarked) stringResource(Res.string.remove_bookmark) else stringResource(Res.string.bookmark),
                 iconTint = if (isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
@@ -115,6 +123,7 @@ fun ConversationActionsMenu(
         }
 
         MenuActionItem(
+            dragSelection = dragSelection,
             icon = Icons.AutoMirrored.Filled.Label,
             label = stringResource(Res.string.tags),
             onClick = {
@@ -125,6 +134,7 @@ fun ConversationActionsMenu(
 
         if (showMoveToProject) {
             MenuActionItem(
+                dragSelection = dragSelection,
                 icon = Icons.Default.DriveFileMove,
                 label = stringResource(Res.string.move_to_project),
                 onClick = {
@@ -136,6 +146,7 @@ fun ConversationActionsMenu(
 
         if (showShareAction) {
             MenuActionItem(
+                dragSelection = dragSelection,
                 icon = Icons.Default.Share,
                 label = stringResource(Res.string.share),
                 onClick = {
@@ -147,6 +158,7 @@ fun ConversationActionsMenu(
 
         val duplicateTitle = stringResource(Res.string.copy_of).replace("%1\$s", title)
         MenuActionItem(
+            dragSelection = dragSelection,
             icon = Icons.Default.ContentCopy,
             label = stringResource(Res.string.duplicate),
             onClick = {
@@ -156,6 +168,7 @@ fun ConversationActionsMenu(
         )
 
         MenuActionItem(
+            dragSelection = dragSelection,
             icon = Icons.Default.FileDownload,
             label = stringResource(Res.string.export),
             onClick = {
@@ -165,6 +178,7 @@ fun ConversationActionsMenu(
         )
 
         MenuActionItem(
+            dragSelection = dragSelection,
             icon = Icons.Default.Archive,
             label = stringResource(Res.string.archive),
             onClick = {
@@ -174,6 +188,7 @@ fun ConversationActionsMenu(
         )
 
         MenuActionItem(
+            dragSelection = dragSelection,
             icon = Icons.Default.Delete,
             label = stringResource(Res.string.delete),
             tint = MaterialTheme.colorScheme.error,
@@ -222,17 +237,20 @@ private fun MenuActionItem(
     icon: ImageVector,
     label: String,
     onClick: () -> Unit,
+    dragSelection: MenuDragSelection?,
     tint: Color = MaterialTheme.colorScheme.onSurface,
     iconTint: Color = tint,
 ) {
     DropdownMenuItem(
         text = { Text(label) },
         onClick = onClick,
+        modifier = Modifier.menuDragTarget(dragSelection, onClick),
         leadingIcon = {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
                 tint = iconTint,
+                modifier = Modifier.dragSelectRowIcon(),
             )
         },
         colors = MenuDefaults.itemColors(

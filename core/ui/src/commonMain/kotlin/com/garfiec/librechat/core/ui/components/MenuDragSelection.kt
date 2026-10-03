@@ -175,15 +175,19 @@ private enum class HoldOutcome { Tap, Hold, Drag, Cancel }
  * is left to the opener's own click. Watches in the initial pass without consuming the down; once
  * the finger drags past touch slop the moves are consumed, which cancels that click. [onCancel]
  * closes the menu when a drag is released far from it.
+ *
+ * With [opensOnDrag] false only a hold opens it: a drag before the long-press timeout is left alone,
+ * so an opener inside a scrolling list or a swipeable drawer still scrolls and swipes.
  */
 fun Modifier.menuDragAnchor(
     state: MenuDragSelection,
     enabled: Boolean = true,
+    opensOnDrag: Boolean = true,
     onOpen: () -> Unit,
     onCancel: () -> Unit,
 ): Modifier {
     if (!enabled) return this
-    return onPlaced { state.anchor = it }.pointerInput(state) {
+    return onPlaced { state.anchor = it }.pointerInput(state, opensOnDrag) {
         val slop = viewConfiguration.touchSlop
         val holdMillis = viewConfiguration.longPressTimeoutMillis
         val leanCap = LeanCap.toPx()
@@ -201,9 +205,11 @@ fun Modifier.menuDragAnchor(
                     result = when {
                         change == null -> HoldOutcome.Cancel
                         !change.pressed -> HoldOutcome.Tap
-                        (change.position - down.position).getDistance() > slop -> {
+                        (change.position - down.position).getDistance() > slop -> if (opensOnDrag) {
                             change.consume()
                             HoldOutcome.Drag
+                        } else {
+                            HoldOutcome.Cancel
                         }
                         else -> {
                             change.leanToward()
