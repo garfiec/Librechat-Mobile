@@ -143,7 +143,6 @@ internal fun LiquidSegmentedControl(
         val thumbHeight = SegmentHeight - TrackPadding * 2
         motion.pressedScaleX = (segmentWidth + ThumbOverhangX * 2) / segmentWidth
         motion.pressedScaleY = (thumbHeight + ThumbOverhangY * 2) / thumbHeight
-        motion.maxPullPx = with(density) { MaxPull.toPx() }
         motion.maxShiftPx = with(density) { MaxShift.toPx() }
         motion.maxGrowPx = with(density) { MaxGrow.toPx() }
         motion.leanSpanPx = segmentPx
@@ -205,7 +204,11 @@ internal fun LiquidSegmentedControl(
             Modifier.pointerInput(motion) {
                 awaitEachGesture {
                     val down = awaitFirstDown()
+                    val pressed = (latestPositionAt(down.position.x, size.width.toFloat()) - 0.5f).roundToInt()
+                        .coerceIn(0, latestCount - 1)
                     motion.touchDown()
+                    // The thumb goes to the pressed segment on touch, as on iOS; selection waits for release.
+                    motion.follow(pressed.toFloat())
                     var finished = false
                     try {
                         var dragging = false
@@ -222,10 +225,7 @@ internal fun LiquidSegmentedControl(
                             if (dragging) {
                                 change.consume()
                                 val at = latestPositionAt(change.position.x, size.width.toFloat())
-                                motion.follow(
-                                    to = rubberBand(at - 0.5f, latestCount - 1f),
-                                    pullY = change.position.y - down.position.y,
-                                )
+                                motion.follow(rubberBand(at - 0.5f, latestCount - 1f))
                                 motion.lean(change.position.x - down.position.x)
                             } else {
                                 // An ancestor (a scrolling list, a sheet's drag) took the gesture: give it up,
@@ -237,7 +237,7 @@ internal fun LiquidSegmentedControl(
                         val target = when {
                             !released -> currentSelected
                             dragging -> motion.target.roundToInt()
-                            else -> (latestPositionAt(down.position.x, size.width.toFloat()) - 0.5f).roundToInt()
+                            else -> pressed
                         }.coerceIn(0, latestCount - 1)
                         motion.touchUp(target.toFloat(), latestCount)
                         finished = true
@@ -294,7 +294,6 @@ internal fun LiquidSegmentedControl(
                     .graphicsLayer {
                         // The thumb is laid out on the first segment, so translate from there.
                         translationX = xAt(motion.value, 0f) - xAt(0f, 0f) + motion.leanX
-                        translationY = motion.pullY
                     }
                     .width(segmentWidth)
                     .fillMaxHeight()
@@ -412,7 +411,6 @@ private class LiquidThumbMotion(private val scope: CoroutineScope, initial: Floa
     private val swellX = Animatable(1f)
     private val swellY = Animatable(1f)
     private val stretch = Animatable(0f)
-    private val pull = Animatable(0f)
     private val sheen = Animatable(0f)
     private val glowAnim = Animatable(0f)
     private val dragDx = Animatable(0f)
@@ -421,7 +419,6 @@ private class LiquidThumbMotion(private val scope: CoroutineScope, initial: Floa
     // Set from layout.
     var pressedScaleX = 1f
     var pressedScaleY = 1f
-    var maxPullPx = 0f
     var maxShiftPx = 0f
 
     /** The drag that reaches full lean: one segment, not the strip, so a wide tablet strip leans as readily. */
@@ -431,7 +428,6 @@ private class LiquidThumbMotion(private val scope: CoroutineScope, initial: Floa
     val value: Float get() = position.value
     val target: Float get() = position.targetValue
     val pressProgress: Float get() = press.value
-    val pullY: Float get() = pull.value
 
     val leanTilt: Float get() = if (maxShiftPx > 0f) leanX / maxShiftPx * MAX_SHEEN_TILT else 0f
 
@@ -470,11 +466,8 @@ private class LiquidThumbMotion(private val scope: CoroutineScope, initial: Floa
         moveTo(target, count)
     }
 
-    /** [pullY] is the finger's vertical travel; the thumb gives to it, rubber-banded. */
-    fun follow(to: Float, pullY: Float) {
+    fun follow(to: Float) {
         scope.launch { slide(to, FollowSpec) }
-        val give = maxPullPx * (1f - 1f / (1f + abs(pullY) * PULL_GIVE / maxPullPx.coerceAtLeast(1f)))
-        scope.launch { pull.animateTo(if (pullY < 0) -give else give, FollowSpec) }
     }
 
     fun moveTo(to: Float, count: Int) {
@@ -482,7 +475,6 @@ private class LiquidThumbMotion(private val scope: CoroutineScope, initial: Floa
         job?.cancel()
         job = scope.launch {
             animatePress(1f, pressedScaleX, pressedScaleY)
-            launch { pull.animateTo(0f, SwellYSpec) }
             launch {
                 slide(to, PositionSpec)
                 launch { sheen.animateTo(0f, StretchSpec) }
@@ -520,7 +512,6 @@ private class LiquidThumbMotion(private val scope: CoroutineScope, initial: Floa
 
         /** Segments per second that give a full stretch's worth of stretch target, before the clamp. */
         const val VELOCITY_SCALE = 14f
-        const val PULL_GIVE = 0.5f
         const val MAX_SHEEN_TILT = 60f
         const val RELEASE_FRACTION = 0.025f
         val PositionSpec = spring(dampingRatio = 0.8f, stiffness = 500f, visibilityThreshold = VISIBILITY)
@@ -538,8 +529,7 @@ private val SegmentHeight = 36.dp
 private val TrackPadding = 3.dp
 
 private val ThumbOverhangX = 12.dp
-private val ThumbOverhangY = 12.dp
-private val MaxPull = 4.dp
+private val ThumbOverhangY = 18.dp
 private val MaxShift = 8.dp
 private val MaxGrow = 4.dp
 
@@ -552,7 +542,7 @@ private fun rubberBand(position: Float, last: Float): Float = when {
 
 private const val OVERDRAG = 0.25f
 private const val MAX_OVERDRAG = 0.33f
-private val LensHeight = 16.dp
+private val LensHeight = 12.dp
 private val LensAmount = 20.dp
 private val InnerShadowRadius = 8.dp
 private val RestShadow = 2.dp
