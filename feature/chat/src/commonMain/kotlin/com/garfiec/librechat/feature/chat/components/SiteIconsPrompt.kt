@@ -33,7 +33,7 @@ data class SiteIcons(
 )
 
 /** Off, and never prompts, outside [ChatRoot]: nothing loads an external icon unasked. */
-val LocalSiteIcons = compositionLocalOf { SiteIcons(SiteIconsState.LOADING) {} }
+val LocalSiteIcons = compositionLocalOf { SiteIcons(SiteIconsState.OFF) {} }
 
 /**
  * Asks once whether web-search results may load site icons from external servers. Closing it

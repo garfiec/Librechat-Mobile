@@ -68,11 +68,11 @@ data class ChatPreferences(
     val sttLanguage: String = "",
     val inlineArtifactPrefs: InlineArtifactPrefs = InlineArtifactPrefs(),
     /**
-     * Defaults to [SiteIconsState.LOADING], not [SiteIconsState.ASK]: `chatPreferences` starts
-     * from this default before DataStore's first emission, and an ASK default would flash the
-     * prompt at a user who has already chosen.
+     * Defaults to [SiteIconsState.OFF], not [SiteIconsState.ASK]: `chatPreferences` starts from
+     * this default before DataStore's first emission, and an ASK default would flash the prompt at
+     * a user who has already chosen.
      */
-    val siteIcons: SiteIconsState = SiteIconsState.LOADING,
+    val siteIcons: SiteIconsState = SiteIconsState.OFF,
 )
 
 /**
@@ -80,9 +80,6 @@ data class ChatPreferences(
  * domains to Google's favicon service (or to an icon host the result names).
  */
 enum class SiteIconsState {
-    /** Preferences not read yet. Treated as off, and never prompts. */
-    LOADING,
-
     /** Never chosen, and the prompt hasn't been closed this process. Off until the user picks. */
     ASK,
     ON,

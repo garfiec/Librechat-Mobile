@@ -64,7 +64,7 @@ data class WebSearchResult(
 
 private const val MAX_STACKED_FAVICONS = 3
 
-/** Google's favicon service — same source the source cards already use. */
+/** Google's favicon service. Sends [host] to Google, so only [Favicon] calls it, and only when icons are on. */
 private fun faviconUrl(host: String): String =
     "https://www.google.com/s2/favicons?domain=$host&sz=48"
 
@@ -86,6 +86,12 @@ private fun GlobeIcon(size: Dp) {
  */
 @Composable
 private fun Favicon(model: String, size: Dp, modifier: Modifier = Modifier) {
+    // The one place an external icon is requested, so the opt-in gate lives here: any caller is
+    // off until the user turns site icons on.
+    if (!LocalSiteIcons.current.state.showIcons) {
+        GlobeIcon(size)
+        return
+    }
     SubcomposeAsyncImage(
         model = model,
         contentDescription = null,
@@ -97,7 +103,7 @@ private fun Favicon(model: String, size: Dp, modifier: Modifier = Modifier) {
 
 /** Overlapping stack of up to [MAX_STACKED_FAVICONS] domain favicons (first drawn on top). */
 @Composable
-private fun SourceFaviconStack(hosts: List<String>, showIcons: Boolean, modifier: Modifier = Modifier) {
+private fun SourceFaviconStack(hosts: List<String>, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier.semantics { },
         horizontalArrangement = Arrangement.spacedBy((-7).dp),
@@ -113,7 +119,7 @@ private fun SourceFaviconStack(hosts: List<String>, showIcons: Boolean, modifier
                     .padding(3.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                if (showIcons) Favicon(model = faviconUrl(host), size = 14.dp) else GlobeIcon(14.dp)
+                Favicon(model = faviconUrl(host), size = 14.dp)
             }
         }
     }
@@ -131,11 +137,11 @@ fun WebSearchSourcesCard(
 ) {
     val uriHandler = LocalUriHandler.current
     // Icons come from external servers, so they're off until the user opts in; the first card
-    // shown while that's undecided raises the one-time prompt. Keyed on the state so it fires
-    // when preferences finish loading as ASK.
+    // shown while that's undecided raises the one-time prompt. Composed only while asking, so a
+    // card costs nothing once the user has chosen.
     val siteIcons = LocalSiteIcons.current
-    LaunchedEffect(siteIcons.state) {
-        if (siteIcons.state == SiteIconsState.ASK) siteIcons.requestChoice()
+    if (siteIcons.state == SiteIconsState.ASK) {
+        LaunchedEffect(Unit) { siteIcons.requestChoice() }
     }
     var isExpanded by remember { mutableStateOf(false) }
 
@@ -161,7 +167,7 @@ fun WebSearchSourcesCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (previewHosts.isNotEmpty()) {
-                SourceFaviconStack(previewHosts, showIcons = siteIcons.state.showIcons)
+                SourceFaviconStack(previewHosts)
             } else {
                 Icon(
                     imageVector = Icons.Default.Language,
@@ -221,11 +227,7 @@ fun WebSearchSourcesCard(
                             },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        if (siteIcons.state.showIcons) {
-                            Favicon(model = result.favicon ?: faviconUrl(domain), size = 16.dp)
-                        } else {
-                            GlobeIcon(16.dp)
-                        }
+                        Favicon(model = result.favicon ?: faviconUrl(domain), size = 16.dp)
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
                             text = result.title,

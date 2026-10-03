@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -174,7 +175,7 @@ class SettingsDataStore(
      */
     val siteIconsChoice: Flow<Boolean?> = dataStore.data.map { prefs ->
         prefs[KEY_SHOW_SITE_ICONS]
-    }
+    }.distinctUntilChanged()
 
     val selectedVoiceId: Flow<String?> = dataStore.data.map { prefs ->
         prefs[KEY_SELECTED_VOICE_ID]

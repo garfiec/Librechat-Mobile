@@ -19,7 +19,7 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * The website-icons preference as the chat screen sees it: off and silent until preferences load,
+ * The website-icons preference as the chat screen sees it: off and silent until preferences load (the OFF default),
  * then a stored choice wins, and with none the prompt shows unless it was closed this process.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -56,8 +56,7 @@ class ChatViewModelSiteIconsTest {
     @Test
     fun `default before preferences load never asks`() {
         // The stateIn seed is what a card sees before DataStore's first emission.
-        assertThat(ChatPreferences().siteIcons).isEqualTo(SiteIconsState.LOADING)
-        assertThat(SiteIconsState.LOADING.showIcons).isFalse()
+        assertThat(ChatPreferences().siteIcons).isEqualTo(SiteIconsState.OFF)
     }
 
     @Test
