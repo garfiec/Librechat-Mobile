@@ -538,7 +538,7 @@ private fun rubberBand(position: Float, last: Float): Float = when {
 
 private const val OVERDRAG = 0.25f
 private const val MAX_OVERDRAG = 0.33f
-private val LensHeight = 16.dp
+private val LensHeight = 12.dp
 private val LensAmount = 20.dp
 private val InnerShadowRadius = 8.dp
 private val RestShadow = 2.dp
