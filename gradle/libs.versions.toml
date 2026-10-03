@@ -35,7 +35,7 @@ coroutines = "1.11.0"
 atomicfu = "0.33.0"
 
 # Paging
-paging = "3.5.0"
+paging = "3.5.1"
 
 # Browser
 
