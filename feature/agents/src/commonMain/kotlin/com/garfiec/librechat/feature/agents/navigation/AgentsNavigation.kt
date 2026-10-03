@@ -20,9 +20,16 @@ import kotlinx.serialization.modules.subclass
 
 @Serializable data class AgentEditorEdit(val agentId: String) : AgentsRoute
 
+/**
+ * @param onReplace swaps the top entry for a route, so a finished editor doesn't stay under the
+ *   page it opened.
+ * @param onPopWhile pops entries while the predicate holds for the top one, never the last entry.
+ */
 fun EntryProviderScope<NavKey>.agentsEntries(
     onNavigate: (NavKey) -> Unit,
     onBack: () -> Unit,
+    onReplace: (NavKey) -> Unit,
+    onPopWhile: ((NavKey) -> Boolean) -> Unit,
     onStartChat: (String) -> Unit,
 ) {
     entry<AgentMarketplace> {
@@ -44,14 +51,18 @@ fun EntryProviderScope<NavKey>.agentsEntries(
     entry<AgentEditorCreate> {
         AgentEditorScreen(
             onBack = onBack,
-            onSave = { agentId -> onNavigate(AgentDetail(agentId = agentId)) },
+            onSave = { agentId -> onReplace(AgentDetail(agentId = agentId)) },
             agentId = null,
         )
     }
     entry<AgentEditorEdit> { key ->
+        val deletedDetail = AgentDetail(agentId = key.agentId)
         AgentEditorScreen(
+            // The editor is opened from the agent's detail page, which is still underneath.
             onBack = onBack,
-            onSave = { agentId -> onNavigate(AgentDetail(agentId = agentId)) },
+            onSave = { onBack() },
+            onDuplicate = { agentId -> onReplace(AgentDetail(agentId = agentId)) },
+            onDelete = { onPopWhile { it == key || it == deletedDetail } },
             agentId = key.agentId,
         )
     }

@@ -7,10 +7,14 @@ import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.model.Agent
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -35,7 +39,10 @@ class AgentDetailViewModelTest {
         // Stubbed explicitly because a relaxed mock answers `false` for a nullable Boolean, which
         // this screen reads as the list denying edit — the opposite of "no list answer".
         coEvery { agentRepository.listedEditVerdict(any()) } returns null
+        every { agentRepository.revision } returns revision
     }
+
+    private val revision = MutableStateFlow(0L)
 
     @After
     fun tearDown() {
@@ -159,5 +166,42 @@ class AgentDetailViewModelTest {
         assertThat(state.agent).isNull()
         assertThat(state.error).isNotNull()
         assertThat(state.canEdit).isFalse()
+    }
+
+    /** Saving in the editor pops back to this same page, so the page has to pick the save up. */
+    @Test
+    fun `an agent edit elsewhere refreshes the page without a spinner`() = runTest(testDispatcher) {
+        coEvery { agentRepository.getAgentForEditing("agent-1") } returns Result.Success(agent)
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        coEvery { agentRepository.getAgentForEditing("agent-1") } returns
+            Result.Success(agent.copy(name = "Renamed"))
+        val loadingSeen = mutableListOf<Boolean>()
+        // Unconfined: advanceUntilIdle never runs backgroundScope work, so this would record nothing.
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.uiState.collect { loadingSeen += it.isLoading }
+        }
+        revision.value += 1
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.agent?.name).isEqualTo("Renamed")
+        assertThat(loadingSeen).doesNotContain(true)
+    }
+
+    @Test
+    fun `a failed refresh keeps the page it was showing`() = runTest(testDispatcher) {
+        coEvery { agentRepository.getAgentForEditing("agent-1") } returns Result.Success(agent)
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        coEvery { agentRepository.getAgentForEditing("agent-1") } returns forbidden()
+        coEvery { agentRepository.getAgent("agent-1") } returns Result.Error(message = "Not found")
+        revision.value += 1
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.agent?.name).isEqualTo("Coding Assistant")
+        assertThat(state.error).isNull()
     }
 }

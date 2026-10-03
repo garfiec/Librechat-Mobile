@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -54,11 +55,19 @@ class AgentDetailViewModel(
 
     init {
         loadAgent()
+        // Saving in the editor pops back to this page rather than opening a fresh copy of it.
+        viewModelScope.launch {
+            agentRepository.revision.drop(1).collect { fetchAgent(isRefresh = true) }
+        }
     }
 
-    fun loadAgent() {
+    fun loadAgent() = fetchAgent(isRefresh = false)
+
+    /** A refresh keeps the page on screen: no spinner, and a failure leaves the last good copy. */
+    private fun fetchAgent(isRefresh: Boolean) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            val showsAgent = isRefresh && _uiState.value.agent != null
+            if (!showsAgent) _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             // Try the expanded endpoint first (returns full agent data including
             // description, category, tools, conversation_starters). It requires
             // EDIT permission server-side, so a 403 there means the user may view
@@ -91,6 +100,7 @@ class AgentDetailViewModel(
                     )
                 }
                 is Result.Error -> {
+                    if (showsAgent) return@launch
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         canEdit = false,

@@ -20,7 +20,7 @@ import com.garfiec.librechat.feature.agents.viewmodel.delegate.marketplaceCatalo
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * The editor's modal layer: delete/duplicate confirmations, version history,
+ * The editor's modal layer: discard/delete/duplicate confirmations, version history,
  * tool selection, and the Code Interpreter API-key dialog. Each is gated on its
  * own state flag, so this composable renders nothing when no dialog is active.
  */
@@ -32,6 +32,24 @@ internal fun AgentEditorDialogs(
     showToolDialog: Boolean,
     onDismissToolDialog: () -> Unit,
 ) {
+    if (uiState.showDiscardConfirm) {
+        AdaptiveAlertDialog(
+            onDismissRequest = viewModel::dismissDiscardConfirmation,
+            title = { Text(stringResource(Res.string.agent_editor_discard_title)) },
+            text = { Text(stringResource(Res.string.agent_editor_discard_message)) },
+            confirmButton = {
+                TextButton(onClick = viewModel::discardChanges) {
+                    Text(stringResource(Res.string.agent_editor_discard_confirm), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissDiscardConfirmation) {
+                    Text(stringResource(Res.string.cancel))
+                }
+            },
+        )
+    }
+
     // Delete confirmation dialog
     if (uiState.showDeleteConfirm) {
         AdaptiveAlertDialog(

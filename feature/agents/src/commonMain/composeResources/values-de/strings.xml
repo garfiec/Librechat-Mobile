@@ -61,6 +61,9 @@
     <string name="create_agent">Agent erstellen</string>
     <string name="duplicate_agent">Agent duplizieren</string>
     <string name="delete_agent_editor_confirm">Möchtest du diesen Agenten wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.</string>
+    <string name="agent_editor_discard_title">Änderungen verwerfen?</string>
+    <string name="agent_editor_discard_message">Deine nicht gespeicherten Änderungen an diesem Agenten gehen verloren.</string>
+    <string name="agent_editor_discard_confirm">Verwerfen</string>
     <string name="duplicate_agent_confirm">Eine Kopie dieses Agenten erstellen?</string>
     <string name="version_history">Versionsverlauf</string>
     <string name="tap_to_change_avatar">Zum Ändern des Avatars tippen</string>

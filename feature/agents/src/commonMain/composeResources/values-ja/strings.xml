@@ -61,6 +61,9 @@
     <string name="create_agent">エージェントを作成</string>
     <string name="duplicate_agent">エージェントを複製</string>
     <string name="delete_agent_editor_confirm">このエージェントを削除してもよろしいですか？この操作は取り消せません。</string>
+    <string name="agent_editor_discard_title">変更を破棄しますか？</string>
+    <string name="agent_editor_discard_message">このエージェントへの保存していない変更は失われます。</string>
+    <string name="agent_editor_discard_confirm">破棄</string>
     <string name="duplicate_agent_confirm">このエージェントのコピーを作成しますか？</string>
     <string name="version_history">バージョン履歴</string>
     <string name="tap_to_change_avatar">タップしてアバターを変更</string>

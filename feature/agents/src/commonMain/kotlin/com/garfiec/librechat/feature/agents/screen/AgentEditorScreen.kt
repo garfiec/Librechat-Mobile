@@ -16,6 +16,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
 import com.garfiec.librechat.core.ui.components.PdfPasswordDialog
+import com.garfiec.librechat.core.ui.components.PlatformBackHandler
 import com.garfiec.librechat.feature.agents.components.rememberAgentFilePicker
 import com.garfiec.librechat.feature.agents.resources.*
 import com.garfiec.librechat.feature.agents.resources.Res
@@ -42,6 +43,8 @@ fun AgentEditorScreen(
     viewModel: AgentEditorViewModel = koinViewModel { parametersOf(agentId) },
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val hasUnsavedChanges by viewModel.hasUnsavedChanges.collectAsStateWithLifecycle()
+    val currentOnBack by rememberUpdatedState(onBack)
     val currentOnSaved by rememberUpdatedState(onSave)
     val currentOnDuplicated by rememberUpdatedState(onDuplicate)
     val currentOnDeleted by rememberUpdatedState(onDelete)
@@ -104,9 +107,13 @@ fun AgentEditorScreen(
                 is AgentEditorEvent.SaveSuccess -> currentOnSaved(event.agentId)
                 is AgentEditorEvent.DuplicateSuccess -> currentOnDuplicated(event.agentId)
                 is AgentEditorEvent.DeleteSuccess -> currentOnDeleted()
+                is AgentEditorEvent.Exit -> currentOnBack()
             }
         }
     }
+
+    // Only while dirty, so a clean form keeps the system's predictive-back preview.
+    PlatformBackHandler(enabled = hasUnsavedChanges, onBack = viewModel::onBackRequested)
 
     AgentEditorDialogs(
         uiState = uiState,
@@ -121,7 +128,7 @@ fun AgentEditorScreen(
         topBar = {
             AgentEditorTopBar(
                 isEditMode = uiState.isEditMode,
-                onBack = onBack,
+                onBack = viewModel::onBackRequested,
                 onDuplicate = viewModel::showDuplicateConfirmation,
                 onVersionHistory = viewModel::showVersionHistory,
                 onDelete = viewModel::showDeleteConfirmation,

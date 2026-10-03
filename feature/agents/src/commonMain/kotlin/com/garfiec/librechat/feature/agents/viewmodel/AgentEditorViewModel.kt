@@ -45,9 +45,14 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 
@@ -106,8 +111,14 @@ data class AgentEditorUiState(
     val versionBasis: AgentVersionBasis = AgentVersionBasis(),
     /** True while the lazy `/versions` fetch is in flight (v0.8.8 servers only). */
     val isLoadingVersions: Boolean = false,
+    /**
+     * The agent the form was last filled from — on load and on revert — and so what Save is
+     * measured against for unsaved changes. Null when creating.
+     */
+    val loadedAgent: Agent? = null,
     val showDeleteConfirm: Boolean = false,
     val showDuplicateConfirm: Boolean = false,
+    val showDiscardConfirm: Boolean = false,
     val showVersionHistory: Boolean = false,
     // Unified tools marketplace (v0.8.8) — the one picker over capabilities, tools, MCP, skills.
     val showToolsMarketplace: Boolean = false,
@@ -279,6 +290,7 @@ sealed interface AgentEditorEvent {
     data class SaveSuccess(val agentId: String) : AgentEditorEvent
     data class DuplicateSuccess(val agentId: String) : AgentEditorEvent
     data object DeleteSuccess : AgentEditorEvent
+    data object Exit : AgentEditorEvent
 }
 
 class AgentEditorViewModel(
@@ -304,6 +316,12 @@ class AgentEditorViewModel(
         ),
     )
     val uiState: StateFlow<AgentEditorUiState> = _uiState.asStateFlow()
+
+    /** Drives the system-back interception, so a clean form keeps the predictive-back preview. */
+    val hasUnsavedChanges: StateFlow<Boolean> = _uiState
+        .map { it.hasUnsavedChanges() }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     private val _events = MutableSharedFlow<AgentEditorEvent>()
     val events: SharedFlow<AgentEditorEvent> = _events.asSharedFlow()
@@ -571,6 +589,24 @@ class AgentEditorViewModel(
 
     fun dismissDuplicateConfirmation() {
         stateHandle.update { copy(showDuplicateConfirm = false) }
+    }
+
+    /** Leaves the editor, or asks first when that would throw away unsaved changes. */
+    fun onBackRequested() {
+        if (stateHandle.state.hasUnsavedChanges()) {
+            stateHandle.update { copy(showDiscardConfirm = true) }
+        } else {
+            viewModelScope.launch { _events.emit(AgentEditorEvent.Exit) }
+        }
+    }
+
+    fun discardChanges() {
+        stateHandle.update { copy(showDiscardConfirm = false) }
+        viewModelScope.launch { _events.emit(AgentEditorEvent.Exit) }
+    }
+
+    fun dismissDiscardConfirmation() {
+        stateHandle.update { copy(showDiscardConfirm = false) }
     }
 
     // --- Unified tools marketplace ---

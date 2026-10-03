@@ -61,6 +61,9 @@
     <string name="create_agent">Criar agente</string>
     <string name="duplicate_agent">Duplicar agente</string>
     <string name="delete_agent_editor_confirm">Tem certeza de que deseja excluir este agente? Esta ação não pode ser desfeita.</string>
+    <string name="agent_editor_discard_title">Descartar alterações?</string>
+    <string name="agent_editor_discard_message">Suas alterações não salvas neste agente serão perdidas.</string>
+    <string name="agent_editor_discard_confirm">Descartar</string>
     <string name="duplicate_agent_confirm">Criar uma cópia deste agente?</string>
     <string name="version_history">Histórico de versões</string>
     <string name="tap_to_change_avatar">Toque para alterar o avatar</string>
