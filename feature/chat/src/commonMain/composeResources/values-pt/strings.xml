@@ -55,6 +55,9 @@
     <string name="cd_update_queued_message">Atualizar mensagem na fila</string>
     <string name="cd_open_drawer">Abrir menu de navegação</string>
     <string name="cd_edit_title">Editar título</string>
+    <string name="title_edit_discard_prompt">Descartar alteração do título?</string>
+    <string name="title_edit_discard">Descartar</string>
+    <string name="title_edit_keep_editing">Continuar editando</string>
     <string name="cd_more_options">Mais opções</string>
     <string name="cd_scroll_to_bottom">Rolar até o final</string>
     <string name="cd_select_model">Selecionar modelo</string>

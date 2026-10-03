@@ -55,6 +55,9 @@
     <string name="cd_update_queued_message">Mettre à jour le message en attente</string>
     <string name="cd_open_drawer">Ouvrir le tiroir de navigation</string>
     <string name="cd_edit_title">Modifier le titre</string>
+    <string name="title_edit_discard_prompt">Abandonner la modification du titre ?</string>
+    <string name="title_edit_discard">Abandonner</string>
+    <string name="title_edit_keep_editing">Continuer</string>
     <string name="cd_more_options">Plus d'options</string>
     <string name="cd_scroll_to_bottom">Défiler vers le bas</string>
     <string name="cd_select_model">Sélectionner un modèle</string>

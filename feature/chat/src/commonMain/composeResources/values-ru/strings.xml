@@ -55,6 +55,9 @@
     <string name="cd_update_queued_message">Обновить сообщение в очереди</string>
     <string name="cd_open_drawer">Открыть панель навигации</string>
     <string name="cd_edit_title">Изменить название</string>
+    <string name="title_edit_discard_prompt">Отменить изменение названия?</string>
+    <string name="title_edit_discard">Отменить</string>
+    <string name="title_edit_keep_editing">Продолжить</string>
     <string name="cd_more_options">Дополнительно</string>
     <string name="cd_scroll_to_bottom">Прокрутить вниз</string>
     <string name="cd_select_model">Выбрать модель</string>
