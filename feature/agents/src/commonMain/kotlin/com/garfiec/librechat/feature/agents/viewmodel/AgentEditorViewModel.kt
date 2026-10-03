@@ -267,7 +267,13 @@ data class AgentEditorUiState(
     /** Agent runtime `tool_kwargs`. See [Agent.toolKwargs] for shape + the
      *  wire-level caveat that the field is stripped server-side today. */
     val toolKwargs: JsonElement? = null,
-)
+) {
+    /**
+     * A save, duplicate or delete is in flight. Each navigates when it lands, so back is held until
+     * then: leaving first would let the late result pop or replace the screen the user went back to.
+     */
+    val isCommitting: Boolean get() = isSaving || isDuplicating || isDeleting
+}
 
 /**
  * Per-tool authentication state derived from `GET /agents/tools/:id/auth`.
@@ -598,6 +604,7 @@ class AgentEditorViewModel(
 
     /** Leaves the editor, or asks first when that would throw away unsaved changes. */
     fun onBackRequested() {
+        if (stateHandle.state.isCommitting) return
         if (stateHandle.state.hasUnsavedChanges()) {
             stateHandle.update { copy(showDiscardConfirm = true) }
         } else {

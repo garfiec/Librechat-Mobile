@@ -10,6 +10,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -142,5 +143,20 @@ class PromptEditorUnsavedChangesTest {
 
         assertTrue(viewModel.uiState.value.promptText == "old body")
         assertFalse(viewModel.hasUnsavedChanges())
+    }
+
+    /** A save navigates when it lands; leaving first would let it pop the screen behind this one. */
+    @Test
+    fun backIsHeldWhileASaveIsInFlight() = runTest(testDispatcher) {
+        coEvery { promptRepository.update("g-1", any()) } coAnswers { awaitCancellation() }
+        val viewModel = editor()
+        viewModel.updateName("Summarise")
+        viewModel.save()
+        assertTrue(viewModel.uiState.value.isSaving)
+
+        viewModel.onBackRequested()
+
+        assertFalse(viewModel.uiState.value.showDiscardConfirm)
+        assertFalse(viewModel.uiState.value.exitRequested)
     }
 }

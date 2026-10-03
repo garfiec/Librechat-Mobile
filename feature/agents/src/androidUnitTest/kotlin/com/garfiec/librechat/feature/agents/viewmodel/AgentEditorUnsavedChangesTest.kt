@@ -19,6 +19,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -215,5 +216,24 @@ class AgentEditorUnsavedChangesTest {
     @Test
     fun `toggling a capability is an edit`() {
         assertThat(loaded().copy(fileSearchEnabled = true).hasUnsavedChanges()).isTrue()
+    }
+
+    /** A save navigates when it lands; leaving first would let it pop the screen behind this one. */
+    @Test
+    fun `back is held while a save is in flight`() = runTest(dispatcher) {
+        coEvery { agentRepository.updateAgent(agent.id, any()) } coAnswers { awaitCancellation() }
+        val viewModel = editor()
+        val events = eventsOf(viewModel)
+        advanceUntilIdle()
+        viewModel.onNameChanged("Helper 2")
+        viewModel.save()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.isSaving).isTrue()
+
+        viewModel.onBackRequested()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.showDiscardConfirm).isFalse()
+        assertThat(events).isEmpty()
     }
 }

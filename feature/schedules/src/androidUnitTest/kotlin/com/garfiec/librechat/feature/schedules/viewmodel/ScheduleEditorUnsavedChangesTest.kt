@@ -13,6 +13,7 @@ import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -130,5 +131,20 @@ class ScheduleEditorUnsavedChangesTest {
 
         assertThat(viewModel.uiState.value.draft.name).isEqualTo("Morning digest")
         assertThat(viewModel.uiState.value.hasUnsavedChanges).isFalse()
+    }
+
+    /** A save navigates when it lands; leaving first would let it pop the screen behind this one. */
+    @Test
+    fun `back is held while a save is in flight`() = runTest {
+        coEvery { scheduleRepository.updateSchedule(schedule.id, any()) } coAnswers { awaitCancellation() }
+        val viewModel = editor()
+        viewModel.update { it.copy(name = "Renamed") }
+        viewModel.save()
+        assertThat(viewModel.uiState.value.isSaving).isTrue()
+
+        viewModel.onBackRequested()
+
+        assertThat(viewModel.uiState.value.showDiscardConfirm).isFalse()
+        assertThat(viewModel.uiState.value.exitRequested).isFalse()
     }
 }

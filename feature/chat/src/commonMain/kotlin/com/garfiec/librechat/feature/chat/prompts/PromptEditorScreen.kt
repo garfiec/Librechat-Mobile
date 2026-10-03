@@ -79,8 +79,8 @@ fun PromptEditorScreen(
 
     // Reads the command field's text, so typing a command recomposes this too.
     val hasUnsavedChanges = uiState.hasUnsavedChanges(viewModel.commandState.text.toString())
-    // Only while dirty, so a clean form keeps the predictive-back preview.
-    PlatformBackHandler(enabled = hasUnsavedChanges, onBack = viewModel::onBackRequested)
+    // Only while dirty or saving, so a clean form keeps the predictive-back preview.
+    PlatformBackHandler(enabled = hasUnsavedChanges || uiState.isSaving, onBack = viewModel::onBackRequested)
     if (uiState.showDiscardConfirm) {
         DiscardChangesDialog(
             onDiscard = viewModel::discardChanges,

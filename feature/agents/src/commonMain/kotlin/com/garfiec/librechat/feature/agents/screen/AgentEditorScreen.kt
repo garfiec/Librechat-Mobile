@@ -112,8 +112,11 @@ fun AgentEditorScreen(
         }
     }
 
-    // Only while dirty, so a clean form keeps the system's predictive-back preview.
-    PlatformBackHandler(enabled = hasUnsavedChanges, onBack = viewModel::onBackRequested)
+    // Only while dirty or committing, so a clean form keeps the system's predictive-back preview.
+    PlatformBackHandler(
+        enabled = hasUnsavedChanges || uiState.isCommitting,
+        onBack = viewModel::onBackRequested,
+    )
 
     AgentEditorDialogs(
         uiState = uiState,

@@ -159,6 +159,8 @@ class SkillEditorViewModel(
 
     /** Back from the editor: leaves at once when nothing is pending, otherwise asks first. */
     fun onBackRequested() {
+        // A save navigates when it lands; leaving first would let it pop the screen behind this one.
+        if (_uiState.value.isSaving) return
         if (_uiState.value.hasUnsavedChanges) {
             _uiState.value = _uiState.value.copy(showDiscardConfirm = true)
         } else {

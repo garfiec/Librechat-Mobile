@@ -74,8 +74,8 @@ fun SkillEditorScreen(
         }
     }
 
-    // Only while dirty, so a clean form keeps the predictive-back preview.
-    PlatformBackHandler(enabled = uiState.hasUnsavedChanges, onBack = viewModel::onBackRequested)
+    // Only while dirty or saving, so a clean form keeps the predictive-back preview.
+    PlatformBackHandler(enabled = uiState.hasUnsavedChanges || uiState.isSaving, onBack = viewModel::onBackRequested)
     if (uiState.showDiscardConfirm) {
         DiscardChangesDialog(
             onDiscard = viewModel::discardChanges,

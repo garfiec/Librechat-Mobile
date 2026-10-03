@@ -11,6 +11,7 @@ import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -146,5 +147,24 @@ class SkillEditorUnsavedChangesTest {
 
         assertThat(viewModel.uiState.value.conflictNotice).isNotNull()
         assertThat(viewModel.uiState.value.hasUnsavedChanges).isTrue()
+    }
+
+    /** A save navigates when it lands; leaving first would let it pop the screen behind this one. */
+    @Test
+    fun `back is held while a save is in flight`() = runTest(dispatcher) {
+        coEvery { skillsRepository.updateSkill(skill.id, any()) } coAnswers { awaitCancellation() }
+        val viewModel = editor()
+        val events = eventsOf(viewModel)
+        advanceUntilIdle()
+        viewModel.onBodyChanged("Be thorough.")
+        viewModel.save()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.isSaving).isTrue()
+
+        viewModel.onBackRequested()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.showDiscardConfirm).isFalse()
+        assertThat(events).isEmpty()
     }
 }
