@@ -38,7 +38,9 @@ import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
+import com.garfiec.librechat.core.ui.components.DiscardChangesDialog
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
+import com.garfiec.librechat.core.ui.components.PlatformBackHandler
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarAction
@@ -89,9 +91,21 @@ fun ScheduleEditorScreen(
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val currentOnSaveComplete by rememberUpdatedState(onSaveComplete)
+    val currentOnBack by rememberUpdatedState(onBack)
 
     LaunchedEffect(uiState.savedScheduleId) {
         if (uiState.savedScheduleId != null) currentOnSaveComplete()
+    }
+    LaunchedEffect(uiState.exitRequested) {
+        if (uiState.exitRequested) currentOnBack()
+    }
+    // Only while dirty, so a clean form keeps the predictive-back preview.
+    PlatformBackHandler(enabled = uiState.hasUnsavedChanges, onBack = viewModel::onBackRequested)
+    if (uiState.showDiscardConfirm) {
+        DiscardChangesDialog(
+            onDiscard = viewModel::discardChanges,
+            onDismiss = viewModel::dismissDiscardConfirmation,
+        )
     }
     LaunchedEffect(uiState.error) {
         // A conflict keeps its message on screen with a Reload beside it; everything else is a
@@ -109,7 +123,7 @@ fun ScheduleEditorScreen(
         topBar = {
             AdaptiveTopBar(
                 spec = AdaptiveTopBarSpec(
-                    navigation = BarNavigation(BarIcons.Back, null, onBack),
+                    navigation = BarNavigation(BarIcons.Back, null, viewModel::onBackRequested),
                     title = BarTitle(
                         stringResource(
                             if (uiState.isEditing) {

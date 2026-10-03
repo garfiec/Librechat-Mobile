@@ -31,4 +31,8 @@
     <string name="pdf_password_confirm">解密并上传</string>
     <string name="pdf_password_cancel">取消</string>
     <string name="param_thinking_between_tools_description">启用由“努力程度”参数控制的自适应思考。此模型无法完全关闭思考：关闭此项会使用其最低设置，跳过扩展思考，仅在工具调用之间保留简短笔记。关闭时，努力程度上限为“高”。</string>
+    <string name="discard_changes_title">放弃更改？</string>
+    <string name="discard_changes_message">未保存的更改将会丢失。</string>
+    <string name="discard_changes_confirm">放弃</string>
+    <string name="discard_changes_cancel">取消</string>
 </resources>

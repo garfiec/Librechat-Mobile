@@ -31,4 +31,8 @@
     <string name="pdf_password_confirm">復号してアップロード</string>
     <string name="pdf_password_cancel">キャンセル</string>
     <string name="param_thinking_between_tools_description">Effort パラメーターで制御される適応型思考を有効にします。このモデルは思考を完全にはオフにできません。オフにすると最も低い設定が使われ、拡張思考は行わず、ツール呼び出しの間の短いメモだけが残ります。オフの間、Effort は High が上限になります。</string>
+    <string name="discard_changes_title">変更を破棄しますか？</string>
+    <string name="discard_changes_message">保存していない変更は失われます。</string>
+    <string name="discard_changes_confirm">破棄</string>
+    <string name="discard_changes_cancel">キャンセル</string>
 </resources>

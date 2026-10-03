@@ -61,9 +61,6 @@
     <string name="create_agent">创建智能体</string>
     <string name="duplicate_agent">复制智能体</string>
     <string name="delete_agent_editor_confirm">确定要删除此智能体吗？此操作无法撤销。</string>
-    <string name="agent_editor_discard_title">放弃更改？</string>
-    <string name="agent_editor_discard_message">对此智能体未保存的更改将会丢失。</string>
-    <string name="agent_editor_discard_confirm">放弃</string>
     <string name="duplicate_agent_confirm">创建此智能体的副本？</string>
     <string name="version_history">版本历史</string>
     <string name="tap_to_change_avatar">点击更换头像</string>

@@ -61,9 +61,6 @@
     <string name="create_agent">Create Agent</string>
     <string name="duplicate_agent">Duplicate Agent</string>
     <string name="delete_agent_editor_confirm">Are you sure you want to delete this agent? This action cannot be undone.</string>
-    <string name="agent_editor_discard_title">Discard changes?</string>
-    <string name="agent_editor_discard_message">Your unsaved changes to this agent will be lost.</string>
-    <string name="agent_editor_discard_confirm">Discard</string>
     <string name="duplicate_agent_confirm">Create a copy of this agent?</string>
     <string name="version_history">Version History</string>
     <string name="tap_to_change_avatar">Tap to change avatar</string>

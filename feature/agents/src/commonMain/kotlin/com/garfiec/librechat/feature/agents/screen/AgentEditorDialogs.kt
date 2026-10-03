@@ -7,6 +7,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.DiscardChangesDialog
 import com.garfiec.librechat.feature.agents.components.AgentVersionHistory
 import com.garfiec.librechat.feature.agents.components.ToolAuthDialog
 import com.garfiec.librechat.feature.agents.components.ToolsMarketplaceDialog
@@ -33,20 +34,9 @@ internal fun AgentEditorDialogs(
     onDismissToolDialog: () -> Unit,
 ) {
     if (uiState.showDiscardConfirm) {
-        AdaptiveAlertDialog(
-            onDismissRequest = viewModel::dismissDiscardConfirmation,
-            title = { Text(stringResource(Res.string.agent_editor_discard_title)) },
-            text = { Text(stringResource(Res.string.agent_editor_discard_message)) },
-            confirmButton = {
-                TextButton(onClick = viewModel::discardChanges) {
-                    Text(stringResource(Res.string.agent_editor_discard_confirm), color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = viewModel::dismissDiscardConfirmation) {
-                    Text(stringResource(Res.string.cancel))
-                }
-            },
+        DiscardChangesDialog(
+            onDiscard = viewModel::discardChanges,
+            onDismiss = viewModel::dismissDiscardConfirmation,
         )
     }
 

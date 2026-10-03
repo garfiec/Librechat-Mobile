@@ -61,9 +61,6 @@
     <string name="create_agent">Создать агента</string>
     <string name="duplicate_agent">Дублировать агента</string>
     <string name="delete_agent_editor_confirm">Вы уверены, что хотите удалить этого агента? Это действие нельзя отменить.</string>
-    <string name="agent_editor_discard_title">Сбросить изменения?</string>
-    <string name="agent_editor_discard_message">Несохранённые изменения этого агента будут потеряны.</string>
-    <string name="agent_editor_discard_confirm">Сбросить</string>
     <string name="duplicate_agent_confirm">Создать копию этого агента?</string>
     <string name="version_history">История версий</string>
     <string name="tap_to_change_avatar">Нажмите, чтобы изменить аватар</string>

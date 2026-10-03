@@ -36,6 +36,8 @@ import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicato
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
+import com.garfiec.librechat.core.ui.components.DiscardChangesDialog
+import com.garfiec.librechat.core.ui.components.PlatformBackHandler
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarAction
@@ -61,13 +63,24 @@ fun SkillEditorScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val currentOnSave by rememberUpdatedState(onSave)
+    val currentOnBack by rememberUpdatedState(onBack)
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
                 is SkillEditorEvent.Saved -> currentOnSave(event.skillId)
+                SkillEditorEvent.Exit -> currentOnBack()
             }
         }
+    }
+
+    // Only while dirty, so a clean form keeps the predictive-back preview.
+    PlatformBackHandler(enabled = uiState.hasUnsavedChanges, onBack = viewModel::onBackRequested)
+    if (uiState.showDiscardConfirm) {
+        DiscardChangesDialog(
+            onDiscard = viewModel::discardChanges,
+            onDismiss = viewModel::dismissDiscardConfirmation,
+        )
     }
 
     AdaptiveScaffold(
@@ -75,7 +88,7 @@ fun SkillEditorScreen(
         topBar = {
             AdaptiveTopBar(
                 spec = AdaptiveTopBarSpec(
-                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.skills_back), onBack),
+                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.skills_back), viewModel::onBackRequested),
                     title = BarTitle(
                         stringResource(
                             if (uiState.isEditMode) Res.string.skill_editor_edit_title else Res.string.skill_editor_create_title,

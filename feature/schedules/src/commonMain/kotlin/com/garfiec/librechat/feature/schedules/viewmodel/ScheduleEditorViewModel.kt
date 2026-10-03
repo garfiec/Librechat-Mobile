@@ -46,7 +46,18 @@ data class ScheduleEditorUiState(
      * proves the row exists.
      */
     val loadFailed: Boolean = false,
+    /**
+     * The draft as [load] left it — the user's schedule, or for create the blank form with its
+     * defaults filled in (local timezone, first agent). Taken in the same write as the draft, so
+     * neither those defaults nor the agents, projects and limits landing alongside count as edits.
+     */
+    val loadedDraft: ScheduleDraft? = null,
+    val showDiscardConfirm: Boolean = false,
+    /** Set to leave the editor: nothing was pending, or the user chose to discard it. */
+    val exitRequested: Boolean = false,
 ) {
+    val hasUnsavedChanges: Boolean get() = !isLoading && loadedDraft != null && draft != loadedDraft
+
     /** The cron line the engine would fire from, for the structured picker's preview. */
     val cadencePreview: String get() = cadenceToCron(draft.cadence)
 
@@ -112,12 +123,14 @@ class ScheduleEditorViewModel(
             // nothing to choose and the request is not worth making.
             val projects = if (limits.projectId == null) loadProjects() else emptyList()
 
+            val draft = schedule?.let(ScheduleDraft::from)
+                ?: ScheduleDraft(
+                    timezone = TimeZone.currentSystemDefault().id,
+                    agentId = agents.firstOrNull()?.id.orEmpty(),
+                )
             _uiState.value = _uiState.value.copy(
-                draft = schedule?.let(ScheduleDraft::from)
-                    ?: ScheduleDraft(
-                        timezone = TimeZone.currentSystemDefault().id,
-                        agentId = agents.firstOrNull()?.id.orEmpty(),
-                    ),
+                draft = draft,
+                loadedDraft = draft,
                 limits = limits,
                 agents = agents,
                 projects = projects,
@@ -223,6 +236,23 @@ class ScheduleEditorViewModel(
             error = null,
         )
         load()
+    }
+
+    /** Back from the editor: leaves at once when nothing is pending, otherwise asks first. */
+    fun onBackRequested() {
+        _uiState.value = if (_uiState.value.hasUnsavedChanges) {
+            _uiState.value.copy(showDiscardConfirm = true)
+        } else {
+            _uiState.value.copy(exitRequested = true)
+        }
+    }
+
+    fun discardChanges() {
+        _uiState.value = _uiState.value.copy(showDiscardConfirm = false, exitRequested = true)
+    }
+
+    fun dismissDiscardConfirmation() {
+        _uiState.value = _uiState.value.copy(showDiscardConfirm = false)
     }
 
     fun clearError() {

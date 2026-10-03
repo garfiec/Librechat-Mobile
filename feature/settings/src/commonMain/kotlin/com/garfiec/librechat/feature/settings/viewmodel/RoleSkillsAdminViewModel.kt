@@ -28,9 +28,21 @@ data class RoleSkillsAdminUiState(
     val create: Boolean = false,
     val share: Boolean = false,
     val sharePublic: Boolean = false,
+    /** The flags as the server last reported them, on load or save; null until a role has loaded. */
+    val savedFlags: SkillsFlags? = null,
+    val showDiscardConfirm: Boolean = false,
+    /** Set to leave the screen: nothing was pending, or the user chose to discard it. */
+    val exitRequested: Boolean = false,
 ) {
     val canSave: Boolean get() = loaded && !isSaving && !isLoading
+
+    val hasUnsavedChanges: Boolean
+        get() = loaded && savedFlags != null && SkillsFlags(use, create, share, sharePublic) != savedFlags
 }
+
+/** A role's SKILLS permission booleans. */
+@Immutable
+data class SkillsFlags(val use: Boolean, val create: Boolean, val share: Boolean, val sharePublic: Boolean)
 
 /**
  * Admin-only editor for a role's SKILLS permission booleans
@@ -61,6 +73,23 @@ class RoleSkillsAdminViewModel(
     fun setShare(value: Boolean) { _uiState.value = _uiState.value.copy(share = value, savedMessage = null) }
     fun setSharePublic(value: Boolean) { _uiState.value = _uiState.value.copy(sharePublic = value, savedMessage = null) }
 
+    /** Back from the screen: leaves at once when nothing is pending, otherwise asks first. */
+    fun onBackRequested() {
+        _uiState.value = if (_uiState.value.hasUnsavedChanges) {
+            _uiState.value.copy(showDiscardConfirm = true)
+        } else {
+            _uiState.value.copy(exitRequested = true)
+        }
+    }
+
+    fun discardChanges() {
+        _uiState.value = _uiState.value.copy(showDiscardConfirm = false, exitRequested = true)
+    }
+
+    fun dismissDiscardConfirmation() {
+        _uiState.value = _uiState.value.copy(showDiscardConfirm = false)
+    }
+
     fun dismissError() { _uiState.value = _uiState.value.copy(error = null) }
 
     private fun loadRole(role: String) {
@@ -76,7 +105,7 @@ class RoleSkillsAdminViewModel(
                         create = perms.hasAccessStrict(PermissionType.SKILLS, Permission.CREATE),
                         share = perms.hasAccessStrict(PermissionType.SKILLS, Permission.SHARE),
                         sharePublic = perms.hasAccessStrict(PermissionType.SKILLS, Permission.SHARE_PUBLIC),
-                    )
+                    ).let { it.copy(savedFlags = SkillsFlags(it.use, it.create, it.share, it.sharePublic)) }
                 }
                 is Result.Error ->
                     _uiState.value = _uiState.value.copy(
@@ -111,7 +140,7 @@ class RoleSkillsAdminViewModel(
                         create = perms.hasAccessStrict(PermissionType.SKILLS, Permission.CREATE),
                         share = perms.hasAccessStrict(PermissionType.SKILLS, Permission.SHARE),
                         sharePublic = perms.hasAccessStrict(PermissionType.SKILLS, Permission.SHARE_PUBLIC),
-                    )
+                    ).let { it.copy(savedFlags = SkillsFlags(it.use, it.create, it.share, it.sharePublic)) }
                     // If the admin just edited their OWN role, the app-wide cached
                     // permissions are now stale (live gating elsewhere would keep using
                     // the old flags until the next session fetch). Refresh that cache.
