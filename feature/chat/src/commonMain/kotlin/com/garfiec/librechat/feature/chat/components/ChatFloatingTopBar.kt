@@ -51,7 +51,9 @@ import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
 import com.garfiec.librechat.core.ui.components.consumeUnhandledTouches
 import com.garfiec.librechat.core.ui.components.menuDragAnchor
 import com.garfiec.librechat.core.ui.components.menuDragPressEffect
+import com.garfiec.librechat.core.ui.components.pressBounce
 import com.garfiec.librechat.core.ui.components.rememberMenuDragSelection
+import com.garfiec.librechat.core.ui.components.rememberPressBounce
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -267,10 +269,12 @@ private fun MaterialChatTopBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (onOpenDrawer != null) {
+                val drawerBounce = rememberPressBounce()
                 FloatingBarIconButton(
                     icon = Icons.Default.Menu,
                     contentDescription = stringResource(Res.string.cd_open_drawer),
                     onClick = onOpenDrawer,
+                    modifier = Modifier.pressBounce(drawerBounce, enabled = !isLiquidGlass),
                 )
                 Spacer(modifier = Modifier.width(8.dp))
             }
@@ -317,7 +321,12 @@ private fun MaterialChatTopBar(
             }
 
             if (showTempChatToggle) {
-                FloatingBarChip(modifier = Modifier.size(FloatingBarChipSize)) {
+                val tempChatBounce = rememberPressBounce()
+                FloatingBarChip(
+                    modifier = Modifier
+                        .size(FloatingBarChipSize)
+                        .pressBounce(tempChatBounce, enabled = !isLiquidGlass),
+                ) {
                     TempChatToggle(
                         isTemporary = uiState.isTemporaryChat,
                         onToggle = actions.onToggleTemporaryChat,

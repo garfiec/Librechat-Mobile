@@ -98,6 +98,8 @@ import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicato
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.EndpointIcon
+import com.garfiec.librechat.core.ui.components.pressBounce
+import com.garfiec.librechat.core.ui.components.rememberPressBounce
 import com.garfiec.librechat.core.ui.glass.GlassControlColors
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 import com.garfiec.librechat.feature.conversations.components.ConversationActionDialogs
@@ -447,6 +449,8 @@ fun DrawerContent(
             }
 
             // "New Chat" button at top, with a search toggle to its right.
+            val newChatBounce = rememberPressBounce()
+            val searchBounce = rememberPressBounce()
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -456,7 +460,7 @@ fun DrawerContent(
             ) {
                 Surface(
                     onClick = onNewChat,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).pressBounce(newChatBounce, enabled = !glass),
                     shape = if (glass) CircleShape else ItemShape,
                     color = if (glass) GlassControlColors.tint else MaterialTheme.colorScheme.primary,
                     contentColor = if (glass) Color.White else MaterialTheme.colorScheme.onPrimary,
@@ -486,7 +490,11 @@ fun DrawerContent(
                         searchExpanded = !searchExpanded
                         if (!searchExpanded) onSearchQueryChange("")
                     },
-                    modifier = if (glass) Modifier.fillMaxHeight().aspectRatio(1f) else Modifier.fillMaxHeight(),
+                    modifier = if (glass) {
+                        Modifier.fillMaxHeight().aspectRatio(1f)
+                    } else {
+                        Modifier.fillMaxHeight().pressBounce(searchBounce)
+                    },
                     shape = if (glass) CircleShape else ItemShape,
                     color = when {
                         glass -> GlassControlColors.fill
