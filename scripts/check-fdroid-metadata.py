@@ -42,8 +42,7 @@ CHANGELOGS = os.path.join(LOCALE_DIR, "changelogs")
 IMAGES = os.path.join(LOCALE_DIR, "images")
 VERSION_PROPS = os.path.join(REPO, "version.properties")
 
-# fdroidserver common.py char_limits. 'name' covers title.txt/name.txt, which we do not
-# ship (the recipe's `Name:` outranks them), but check if one ever appears.
+# fdroidserver common.py char_limits. 'name' covers title.txt/name.txt.
 LIMITS = {"name": 50, "summary": 80, "description": 4000, "video": 256, "whatsNew": 500}
 
 # update.py: the file -> field mapping. Either spelling of each is honoured.

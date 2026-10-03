@@ -11,6 +11,10 @@ and `fdroid lint` only inspects the recipe's own `Summary:`/`Description:` keys,
 not set. Run it before pushing a listing change; it also prints how much headroom each file
 has left, which is the number worth watching.
 
+- `title.txt` — the listing name, one line, **50 characters maximum**. It carries the
+  "A LibreChat Mobile App" tagline so the listing says what Switchboard is for; the launcher
+  label stays plain "Switchboard". A `Name:` key in the fdroiddata recipe would override it,
+  so the recipe must not set one.
 - `short_description.txt` — one line, **80 characters maximum**. An interior newline mangles
   it: fdroidserver strips only leading and trailing ones for this field.
 - `full_description.txt` — the listing body, **4000 characters maximum**. Keep it accurate
