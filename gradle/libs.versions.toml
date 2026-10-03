@@ -24,7 +24,7 @@ kotlinx-serialization = "1.11.0"
 kotlinx-datetime = "0.8.0"
 
 # Local Data
-room = "2.8.4"
+room = "2.8.5"
 sqlite = "2.6.2"
 datastore = "1.2.1"
 security-crypto = "1.1.0"
