@@ -50,6 +50,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -317,9 +318,13 @@ class AgentEditorViewModel(
     )
     val uiState: StateFlow<AgentEditorUiState> = _uiState.asStateFlow()
 
-    /** Drives the system-back interception, so a clean form keeps the predictive-back preview. */
+    /**
+     * Drives the system-back interception, so a clean form keeps the predictive-back preview.
+     * Off the main thread because it re-maps the loaded agent on every keystroke.
+     */
     val hasUnsavedChanges: StateFlow<Boolean> = _uiState
         .map { it.hasUnsavedChanges() }
+        .flowOn(ioDispatcher)
         .distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
