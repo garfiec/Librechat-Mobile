@@ -46,7 +46,13 @@ import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.LocalInSeparateWindow
+import com.garfiec.librechat.core.ui.components.MenuDragSelection
 import com.garfiec.librechat.core.ui.components.consumeUnhandledTouches
+import com.garfiec.librechat.core.ui.components.dragSelectRowIcon
+import com.garfiec.librechat.core.ui.components.menuDragAnchor
+import com.garfiec.librechat.core.ui.components.menuDragPressEffect
+import com.garfiec.librechat.core.ui.components.menuDragTarget
+import com.garfiec.librechat.core.ui.components.rememberMenuDragSelection
 import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
 import com.garfiec.librechat.core.ui.glass.glassSurface
 import com.garfiec.librechat.core.ui.glass.rememberGlassStyle
@@ -191,29 +197,57 @@ private fun BarActionButton(action: BarAction, colors: BarActionColors) {
             )
         }
 
-        is BarAction.Menu -> Box {
+        is BarAction.Menu -> {
             var expanded by remember { mutableStateOf(false) }
-            IconButton(onClick = { expanded = true }) {
-                Icon(imageVector = action.icon.vector, contentDescription = action.label)
-            }
-            AdaptiveDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                action.sections.filter { it.items.isNotEmpty() }.forEachIndexed { index, section ->
-                    if (index > 0) {
-                        AdaptiveDivider(modifier = if (colors.glass) Modifier.padding(vertical = 4.dp) else Modifier)
-                    }
-                    section.items.forEach { item ->
-                        BarDropdownItem(item = item, onSelect = { expanded = false }, checkTint = colors.accent)
-                    }
+            val drag = if (action.dragToSelect) rememberMenuDragSelection() else null
+            Box(
+                modifier = if (drag != null) {
+                    Modifier.menuDragAnchor(drag, onOpen = { expanded = true }, onCancel = { expanded = false })
+                } else {
+                    Modifier
+                },
+            ) {
+                IconButton(
+                    onClick = { expanded = true },
+                    modifier = if (drag != null) Modifier.menuDragPressEffect(drag) else Modifier,
+                ) {
+                    Icon(imageVector = action.icon.vector, contentDescription = action.label)
                 }
+                BarMenu(action, expanded, onDismiss = { expanded = false }, drag, colors)
             }
         }
     }
 }
 
 @Composable
-private fun BarDropdownItem(item: BarMenuItem, onSelect: () -> Unit, checkTint: Color) {
+private fun BarMenu(
+    action: BarAction.Menu,
+    expanded: Boolean,
+    onDismiss: () -> Unit,
+    drag: MenuDragSelection?,
+    colors: BarActionColors,
+) {
+    AdaptiveDropdownMenu(expanded = expanded, onDismissRequest = onDismiss, dragSelection = drag) {
+        action.sections.filter { it.items.isNotEmpty() }.forEachIndexed { index, section ->
+            if (index > 0) {
+                AdaptiveDivider(modifier = if (colors.glass) Modifier.padding(vertical = 4.dp) else Modifier)
+            }
+            section.items.forEach { item ->
+                BarDropdownItem(item = item, onSelect = onDismiss, checkTint = colors.accent, drag = drag)
+            }
+        }
+    }
+}
+
+@Composable
+private fun BarDropdownItem(item: BarMenuItem, onSelect: () -> Unit, checkTint: Color, drag: MenuDragSelection?) {
     val error = MaterialTheme.colorScheme.error
+    val select = {
+        onSelect()
+        item.onClick()
+    }
     DropdownMenuItem(
+        modifier = if (item.enabled) Modifier.menuDragTarget(drag, select) else Modifier,
         text = {
             if (item.subtitle == null) {
                 Text(item.label, color = if (item.destructive) error else Color.Unspecified)
@@ -228,17 +262,14 @@ private fun BarDropdownItem(item: BarMenuItem, onSelect: () -> Unit, checkTint: 
                 }
             }
         },
-        onClick = {
-            onSelect()
-            item.onClick()
-        },
+        onClick = select,
         enabled = item.enabled,
         leadingIcon = item.icon?.let { icon ->
             {
                 if (item.destructive) {
-                    Icon(icon.vector, contentDescription = null, tint = error)
+                    Icon(icon.vector, contentDescription = null, tint = error, modifier = Modifier.dragSelectRowIcon())
                 } else {
-                    Icon(icon.vector, contentDescription = null)
+                    Icon(icon.vector, contentDescription = null, modifier = Modifier.dragSelectRowIcon())
                 }
             }
         },

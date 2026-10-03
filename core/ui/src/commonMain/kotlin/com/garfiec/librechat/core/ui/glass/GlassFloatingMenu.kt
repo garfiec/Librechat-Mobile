@@ -30,6 +30,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
@@ -45,7 +46,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.DRAG_HIGHLIGHT_ALPHA
+import com.garfiec.librechat.core.ui.components.MenuDragSelection
 import com.garfiec.librechat.core.ui.components.PlatformBackHandler
+import com.garfiec.librechat.core.ui.components.drawHighlight
+import com.garfiec.librechat.core.ui.components.rememberMenuDragEffects
 import com.garfiec.librechat.core.ui.components.topbar.CoversNativeBars
 import com.garfiec.librechat.core.ui.theme.LocalDarkTheme
 
@@ -58,6 +63,7 @@ internal fun GlassMenuPortal(
     offset: DpOffset,
     scrollState: ScrollState,
     containerColor: Color?,
+    dragSelection: MenuDragSelection?,
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -73,6 +79,7 @@ internal fun GlassMenuPortal(
     val currentModifier by rememberUpdatedState(modifier)
     val currentOffset by rememberUpdatedState(offset)
     val currentContainer by rememberUpdatedState(containerColor)
+    val currentDrag by rememberUpdatedState(dragSelection)
     val currentContent by rememberUpdatedState(content)
     GlassPortal(
         host,
@@ -87,6 +94,7 @@ internal fun GlassMenuPortal(
                         offset = currentOffset,
                         scrollState = scrollState,
                         containerColor = currentContainer,
+                        drag = currentDrag,
                         content = currentContent,
                     )
                 }
@@ -97,7 +105,8 @@ internal fun GlassMenuPortal(
 
 /**
  * Below [anchor] (above when there's no room), aligned to its nearer edge. The dismissing touch is
- * consumed, as in M3.
+ * consumed, as in M3. With [drag], a press-drag-release from the opener highlights rows under the
+ * finger, and the panel leans toward it and stretches past its far edge, as the Material menu does.
  */
 // [modifier] is the caller's, for the menu panel (a width, a max height), as on an M3 menu; the
 // root here is the full-screen dismiss layer, which is not what it is meant for.
@@ -109,6 +118,7 @@ private fun GlassFloatingMenu(
     offset: DpOffset,
     scrollState: ScrollState,
     containerColor: Color?,
+    drag: MenuDragSelection?,
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -122,6 +132,8 @@ private fun GlassFloatingMenu(
     // Where this overlay sits in the root, to turn the anchor's root bounds into local ones.
     var hostOrigin by remember { mutableStateOf(Offset.Zero) }
     var growFrom by remember { mutableStateOf(TransformOrigin(1f, 0f)) }
+    val effects = rememberMenuDragEffects(drag, opening = true, opensDown = { growFrom.pivotFractionY == 0f })
+    val highlightColor = MaterialTheme.colorScheme.onSurface.copy(alpha = DRAG_HIGHLIGHT_ALPHA)
     val fill = containerColor ?: GlassDefaults.panelThickening(MaterialTheme.colorScheme.surface, LocalDarkTheme.current)
     val safeArea = WindowInsets.safeDrawing
 
@@ -141,6 +153,16 @@ private fun GlassFloatingMenu(
                 Column(
                     modifier = modifier
                         .width(IntrinsicSize.Max)
+                        .onPlaced { effects.frame = it }
+                        .graphicsLayer {
+                            // Stretches from the edge nearest the anchor toward the finger.
+                            val squeeze = 1f - CANCEL_SHRINK * effects.shrink.value
+                            scaleX = squeeze
+                            scaleY = squeeze * (1f + effects.stretch.value / size.height.coerceAtLeast(1f))
+                            transformOrigin = TransformOrigin(0.5f, growFrom.pivotFractionY)
+                            translationX = effects.lean.value.x
+                            translationY = effects.lean.value.y
+                        }
                         .graphicsLayer {
                             alpha = shown.value
                             val scale = START_SCALE + (1f - START_SCALE) * shown.value
@@ -151,6 +173,8 @@ private fun GlassFloatingMenu(
                         .glassSurface(style, GlassDefaults.MenuShape, backdrop)
                         .clip(GlassDefaults.MenuShape)
                         .background(fill)
+                        .onPlaced { effects.inside = it }
+                        .drawBehind { if (drag != null) drawHighlight(drag.highlight, effects.inside, highlightColor) }
                         .verticalScroll(scrollState)
                         .padding(vertical = 8.dp)
                         // The content behind is still in the tree, unlike behind a popup window.
@@ -189,6 +213,7 @@ private fun GlassFloatingMenu(
 }
 
 private const val START_SCALE = 0.85f
+private const val CANCEL_SHRINK = 0.03f
 private val MenuMargin = 8.dp
 private val MenuMinWidth = 112.dp
 private val MenuMaxWidth = 280.dp

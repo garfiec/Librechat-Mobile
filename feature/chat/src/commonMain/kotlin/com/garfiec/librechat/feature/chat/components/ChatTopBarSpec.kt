@@ -115,7 +115,15 @@ internal fun rememberChatTopBarSpec(
                 ),
             )
         }
-        add(BarAction.Menu("overflow", BarIcons.More, stringResource(Res.string.cd_more_options), menuSections))
+        add(
+            BarAction.Menu(
+                id = "overflow",
+                icon = BarIcons.More,
+                label = stringResource(Res.string.cd_more_options),
+                sections = menuSections,
+                dragToSelect = true,
+            ),
+        )
     }
 
     return AdaptiveTopBarSpec(navigation = navigation, title = title, actions = actions)

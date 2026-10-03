@@ -99,11 +99,14 @@ import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.EndpointIcon
 import com.garfiec.librechat.core.ui.components.ListDragSelection
+import com.garfiec.librechat.core.ui.components.MenuDragSelection
 import com.garfiec.librechat.core.ui.components.dragSelectRowIcon
 import com.garfiec.librechat.core.ui.components.listDragSelection
 import com.garfiec.librechat.core.ui.components.listDragTarget
+import com.garfiec.librechat.core.ui.components.menuDragAnchor
 import com.garfiec.librechat.core.ui.components.pressBounce
 import com.garfiec.librechat.core.ui.components.rememberListDragSelection
+import com.garfiec.librechat.core.ui.components.rememberMenuDragSelection
 import com.garfiec.librechat.core.ui.components.rememberPressBounce
 import com.garfiec.librechat.core.ui.glass.GlassControlColors
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
@@ -619,7 +622,8 @@ fun DrawerContent(
                     onToggleFavorite = { onToggleFavorite(data) },
                     showBookmarkToggle = uiState.bookmarksEnabled,
                     onLongPress = { menuRowKey = rowKey },
-                    menuContent = { menuOffset ->
+                    onMenuCancel = { menuRowKey = null },
+                    menuContent = { menuOffset, menuDrag ->
                         // Only the open row materializes the menu, so there's one menu in the tree at
                         // a time (and the dialogs it triggers are hoisted below, outside this row).
                         if (menuRowKey == rowKey) {
@@ -649,6 +653,7 @@ fun DrawerContent(
                                 onDuplicate = { newTitle -> onDuplicate(data.conversationId, newTitle) },
                                 onTags = { tagPickerTarget = data },
                                 onExport = { exportPickerTarget = data },
+                                dragSelection = menuDrag,
                             )
                         }
                     },
@@ -1268,8 +1273,9 @@ private fun DrawerConversationItem(
     modifier: Modifier = Modifier,
     onToggleFavorite: () -> Unit = {},
     onLongPress: () -> Unit = {},
+    onMenuCancel: () -> Unit = {},
     showBookmarkToggle: Boolean = true,
-    menuContent: @Composable (DpOffset) -> Unit = {},
+    menuContent: @Composable (DpOffset, MenuDragSelection) -> Unit = { _, _ -> },
 ) {
     val glass = isLiquidGlass
     val rowShape = if (glass) CircleShape else ItemShape
@@ -1289,6 +1295,8 @@ private fun DrawerConversationItem(
     // (the only way to reach rename/delete/share/etc. from the drawer) is undiscoverable.
     val longPressLabel = stringResource(Res.string.cd_conversation_actions)
 
+    val menuDrag = rememberMenuDragSelection()
+
     // Box wraps the row so the long-press action menu (a DropdownMenu) anchors to this row.
     Box(modifier = modifier) {
         Row(
@@ -1302,6 +1310,12 @@ private fun DrawerConversationItem(
                         pressXpx = down.position.x
                     }
                 }
+                .menuDragAnchor(
+                    menuDrag,
+                    opensOnDrag = false,
+                    onOpen = onLongPress,
+                    onCancel = onMenuCancel,
+                )
                 .padding(horizontal = 4.dp, vertical = 1.dp)
                 .fillMaxWidth()
                 .background(backgroundColor, rowShape)
@@ -1311,6 +1325,8 @@ private fun DrawerConversationItem(
                     onClick = onClick,
                     onLongClickLabel = longPressLabel,
                     onLongClick = onLongPress,
+                    // menuDragAnchor already fires the hold haptic; on here it buzzes twice.
+                    hapticFeedbackEnabled = false,
                 )
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -1412,7 +1428,7 @@ private fun DrawerConversationItem(
         // Open the menu just below the row, with its left edge under the press point. The
         // DropdownMenu position provider flips it above the row near the screen bottom and
         // clamps it within a margin, so it never clips off-screen.
-        menuContent(with(density) { DpOffset(x = pressXpx.toDp(), y = MenuVerticalGap) })
+        menuContent(with(density) { DpOffset(x = pressXpx.toDp(), y = MenuVerticalGap) }, menuDrag)
     }
 }
 
