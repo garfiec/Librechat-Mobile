@@ -62,6 +62,7 @@
 
     <!-- Section headers -->
     <string name="section_about">Info</string>
+    <string name="section_updates">Updates</string>
     <string name="section_advanced">Erweitert</string>
     <string name="section_appearance">Darstellung</string>
     <string name="section_balance">Guthaben</string>
@@ -222,6 +223,12 @@
     <string name="whats_new_hint_obtainium">Obtainium hat diese App installiert und liefert ihre Updates.</string>
     <string name="whats_new_hint_fdroid">F-Droid hat diese App installiert und liefert ihre Updates. Eine neue Version kann dort erst nach einigen Tagen erscheinen.</string>
     <string name="whats_new_error">Versionshinweise konnten nicht geladen werden</string>
+    <string name="release_notes_title">Versionshinweise</string>
+    <string name="release_notes_desc">Was sich in Version %1$s geändert hat</string>
+    <string name="release_notes_not_found">Keine Versionshinweise für %1$s</string>
+    <string name="release_notes_not_found_desc">Für diesen Build gibt es keine veröffentlichte Version auf GitHub.</string>
+    <string name="release_notes_previous">Frühere Versionen</string>
+    <string name="release_notes_load_older">Ältere Versionen laden</string>
 
     <!-- Tablet settings -->
     <string name="sidebar_swipe_gesture">Wischgeste für Seitenleiste</string>

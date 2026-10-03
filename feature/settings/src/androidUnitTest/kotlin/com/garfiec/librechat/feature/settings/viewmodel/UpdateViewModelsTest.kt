@@ -1,10 +1,12 @@
 package com.garfiec.librechat.feature.settings.viewmodel
 
 import com.garfiec.librechat.core.common.AppInfo
+import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.update.AppInstallSource
 import com.garfiec.librechat.core.data.update.AppUpdateRepository
 import com.garfiec.librechat.core.data.update.InstallChannel
 import com.garfiec.librechat.core.data.update.PendingUpdate
+import com.garfiec.librechat.core.data.update.ReleasePage
 import com.garfiec.librechat.core.data.update.UpdateCheckState
 import com.garfiec.librechat.core.model.AppRelease
 import kotlinx.coroutines.Dispatchers
@@ -28,10 +30,14 @@ class UpdateViewModelsTest {
     private class FakeRepository(
         initial: UpdateCheckState = UpdateCheckState.Idle,
         private val result: UpdateCheckState = UpdateCheckState.UpToDate,
+        override val installedTag: String? = "v2026.09.0",
+        var installedResult: Result<AppRelease?> = Result.Success(null),
+        val pages: MutableMap<Int, Result<ReleasePage>> = mutableMapOf(1 to Result.Success(ReleasePage(emptyList(), false))),
     ) : AppUpdateRepository {
         val state = MutableStateFlow(initial)
         val notified = mutableListOf<String>()
         var checks = 0
+        var notesFetches = 0
         override val isSupported = true
         override val checkState: StateFlow<UpdateCheckState> = state
         override val autoCheckEnabled: Flow<Boolean> = MutableStateFlow(false)
@@ -44,6 +50,15 @@ class UpdateViewModelsTest {
         }
         override suspend fun markNotified(tag: String) {
             notified += tag
+        }
+        val pagesRequested = mutableListOf<Int>()
+        override suspend fun installedRelease(): Result<AppRelease?> {
+            notesFetches++
+            return installedResult
+        }
+        override suspend fun olderReleases(page: Int): Result<ReleasePage> {
+            pagesRequested += page
+            return pages.getValue(page)
         }
     }
 
@@ -132,5 +147,86 @@ class UpdateViewModelsTest {
 
         viewModel.retry()
         assertEquals(2, repo.checks)
+    }
+
+    @Test
+    fun releaseNotesShowTheInstalledRelease() = runTest {
+        val notes = release("v2026.09.0")
+        val repo = FakeRepository(installedResult = Result.Success(notes))
+        val viewModel = ReleaseNotesViewModel(repo, appInfo)
+
+        assertEquals(InstalledNotes.Content(notes), viewModel.uiState.value.installed)
+        assertEquals(0, repo.checks)
+        assertEquals(emptyList(), repo.notified)
+    }
+
+    @Test
+    fun releaseNotesForAnUnpublishedBuildAreNotFound() = runTest {
+        val viewModel = ReleaseNotesViewModel(FakeRepository(), appInfo)
+        assertEquals(InstalledNotes.NotFound, viewModel.uiState.value.installed)
+    }
+
+    @Test
+    fun releaseNotesFailureIsRetryable() = runTest {
+        val repo = FakeRepository(installedResult = Result.Error())
+        val viewModel = ReleaseNotesViewModel(repo, appInfo)
+        assertEquals(InstalledNotes.Error, viewModel.uiState.value.installed)
+
+        val notes = release("v2026.09.0")
+        repo.installedResult = Result.Success(notes)
+        viewModel.retryInstalled()
+        assertEquals(2, repo.notesFetches)
+        assertEquals(InstalledNotes.Content(notes), viewModel.uiState.value.installed)
+    }
+
+    @Test
+    fun olderReleasesPageUntilTheListEnds() = runTest {
+        val repo = FakeRepository(
+            pages = mutableMapOf(
+                1 to Result.Success(ReleasePage(listOf(release("v2026.08.4")), hasMore = true)),
+                2 to Result.Success(ReleasePage(listOf(release("v2026.08.3")), hasMore = false)),
+            ),
+        )
+        val viewModel = ReleaseNotesViewModel(repo, appInfo)
+        assertEquals(OlderStatus.MORE, viewModel.uiState.value.olderStatus)
+
+        viewModel.loadOlder()
+        assertEquals(listOf("v2026.08.4", "v2026.08.3"), viewModel.uiState.value.older.map { it.tag })
+        assertEquals(OlderStatus.END, viewModel.uiState.value.olderStatus)
+
+        viewModel.loadOlder()
+        assertEquals(listOf(1, 2), repo.pagesRequested)
+    }
+
+    @Test
+    fun aPageWithNothingOlderReadsOnToTheNext() = runTest {
+        // The installed build is far behind: GitHub's first page is all newer releases.
+        val repo = FakeRepository(
+            pages = mutableMapOf(
+                1 to Result.Success(ReleasePage(emptyList(), hasMore = true)),
+                2 to Result.Success(ReleasePage(listOf(release("v2025.01.0")), hasMore = false)),
+            ),
+        )
+        val viewModel = ReleaseNotesViewModel(repo, appInfo)
+        assertEquals(listOf(1, 2), repo.pagesRequested)
+        assertEquals(listOf("v2025.01.0"), viewModel.uiState.value.older.map { it.tag })
+    }
+
+    @Test
+    fun aFailedOlderPageRetriesTheSamePage() = runTest {
+        val repo = FakeRepository(pages = mutableMapOf(1 to Result.Error()))
+        val viewModel = ReleaseNotesViewModel(repo, appInfo)
+        assertEquals(OlderStatus.ERROR, viewModel.uiState.value.olderStatus)
+
+        repo.pages[1] = Result.Success(ReleasePage(listOf(release("v2026.08.4")), hasMore = false))
+        viewModel.loadOlder()
+        assertEquals(listOf(1, 1), repo.pagesRequested)
+        assertEquals(OlderStatus.END, viewModel.uiState.value.olderStatus)
+    }
+
+    @Test
+    fun releaseNotesRowFollowsTheInstalledTagNotUpdateSupport() = runTest {
+        assertEquals(true, UpdateCheckViewModel(FakeRepository()).releaseNotesAvailable)
+        assertEquals(false, UpdateCheckViewModel(FakeRepository(installedTag = null)).releaseNotesAvailable)
     }
 }

@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
@@ -78,6 +79,7 @@ private const val DISABLED_ALPHA = 0.4f
 fun GeneralSettingsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToWhatsNew: () -> Unit,
+    onNavigateToReleaseNotes: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     AdaptiveScaffold(
@@ -94,6 +96,7 @@ fun GeneralSettingsScreen(
     ) { innerPadding ->
         GeneralSettingsContent(
             onNavigateToWhatsNew = onNavigateToWhatsNew,
+            onNavigateToReleaseNotes = onNavigateToReleaseNotes,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
@@ -108,6 +111,7 @@ fun GeneralSettingsScreen(
 @Composable
 fun GeneralSettingsContent(
     onNavigateToWhatsNew: () -> Unit,
+    onNavigateToReleaseNotes: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
     viewModel: SettingsViewModel = koinViewModel(),
@@ -215,6 +219,26 @@ fun GeneralSettingsContent(
                             serverVersion = uiState.serverVersion,
                             buildInfo = uiState.buildInfo,
                         )
+                    }
+                }
+
+                if (updateViewModel.releaseNotesAvailable || updateViewModel.isSupported) {
+                    item(key = "updates_header") {
+                        AdaptiveSectionHeader(stringResource(Res.string.section_updates))
+                    }
+                }
+                adaptiveSection {
+                    if (updateViewModel.releaseNotesAvailable) {
+                        row(key = "release_notes") {
+                            GeneralSettingsRow(
+                                icon = Icons.Default.Description,
+                                title = stringResource(Res.string.release_notes_title),
+                                subtitle = stringResource(Res.string.release_notes_desc, uiState.appVersion),
+                                onClick = onNavigateToReleaseNotes,
+                                // One divider closes the Updates group, under its last row.
+                                showDivider = !updateViewModel.isSupported,
+                            )
+                        }
                     }
                     if (updateViewModel.isSupported) {
                         row(key = "update_check") {
@@ -625,6 +649,7 @@ private fun GeneralSettingsRow(
     subtitle: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    showDivider: Boolean = true,
 ) {
     Column(modifier = modifier) {
         Surface(
@@ -664,6 +689,6 @@ private fun GeneralSettingsRow(
                 )
             }
         }
-        AdaptiveDivider()
+        if (showDivider) AdaptiveDivider()
     }
 }

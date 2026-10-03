@@ -62,6 +62,7 @@
 
     <!-- Section headers -->
     <string name="section_about">About</string>
+    <string name="section_updates">Updates</string>
     <string name="section_advanced">Advanced</string>
     <string name="section_appearance">Appearance</string>
     <string name="section_balance">Balance</string>
@@ -228,6 +229,12 @@
     <string name="whats_new_hint_obtainium">Obtainium installed this app and delivers its updates.</string>
     <string name="whats_new_hint_fdroid">F-Droid installed this app and delivers its updates. A new release can take a few days to appear there.</string>
     <string name="whats_new_error">Couldn't load the release notes</string>
+    <string name="release_notes_title">Release notes</string>
+    <string name="release_notes_desc">What changed in version %1$s</string>
+    <string name="release_notes_not_found">No release notes for %1$s</string>
+    <string name="release_notes_not_found_desc">This build has no published release on GitHub.</string>
+    <string name="release_notes_previous">Previous versions</string>
+    <string name="release_notes_load_older">Load older versions</string>
 
     <!-- Tablet settings -->
     <string name="sidebar_swipe_gesture">Sidebar swipe gesture</string>

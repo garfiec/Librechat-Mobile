@@ -62,6 +62,7 @@
 
     <!-- Section headers -->
     <string name="section_about">情報</string>
+    <string name="section_updates">アップデート</string>
     <string name="section_advanced">詳細設定</string>
     <string name="section_appearance">外観</string>
     <string name="section_balance">残高</string>
@@ -222,6 +223,12 @@
     <string name="whats_new_hint_obtainium">このアプリは Obtainium でインストールされ、アップデートも Obtainium から配信されます。</string>
     <string name="whats_new_hint_fdroid">このアプリは F-Droid でインストールされ、アップデートも F-Droid から配信されます。新しいリリースが F-Droid に表示されるまで数日かかる場合があります。</string>
     <string name="whats_new_error">リリースノートを読み込めませんでした</string>
+    <string name="release_notes_title">リリースノート</string>
+    <string name="release_notes_desc">バージョン %1$s の変更点</string>
+    <string name="release_notes_not_found">%1$s のリリースノートはありません</string>
+    <string name="release_notes_not_found_desc">このビルドには GitHub で公開されたリリースがありません。</string>
+    <string name="release_notes_previous">以前のバージョン</string>
+    <string name="release_notes_load_older">さらに古いバージョンを読み込む</string>
 
     <!-- Tablet settings -->
     <string name="sidebar_swipe_gesture">サイドバーのスワイプ操作</string>

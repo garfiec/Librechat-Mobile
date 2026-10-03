@@ -7,6 +7,7 @@ import com.garfiec.librechat.feature.settings.viewmodel.McpViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.MemoriesViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.PrefetchActivityViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.PresetManagerViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.ReleaseNotesViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.RoleSkillsAdminViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ServerHeadersViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsViewModel
@@ -71,6 +72,7 @@ val settingsModule = module {
     viewModelOf(::ServerHeadersViewModel)
     viewModelOf(::UpdateCheckViewModel)
     viewModelOf(::WhatsNewViewModel)
+    viewModelOf(::ReleaseNotesViewModel)
 
     // viewModelOf has no overload that accepts ParametersHolder, so the runtime
     // endpointName parameter forces the lambda DSL despite the deprecation hint.

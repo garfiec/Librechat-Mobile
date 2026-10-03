@@ -52,6 +52,7 @@ fun TabbedSettingsScreen(
     onNavigateToProviderKeys: () -> Unit,
     onNavigateToRoleSkillsAdmin: () -> Unit,
     onNavigateToWhatsNew: () -> Unit,
+    onNavigateToReleaseNotes: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val pagerState = rememberPagerState(pageCount = { SETTINGS_TAB_COUNT })
@@ -103,6 +104,7 @@ fun TabbedSettingsScreen(
             when (page) {
                 0 -> GeneralSettingsContent(
                     onNavigateToWhatsNew = onNavigateToWhatsNew,
+                    onNavigateToReleaseNotes = onNavigateToReleaseNotes,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = contentPadding,
                 )

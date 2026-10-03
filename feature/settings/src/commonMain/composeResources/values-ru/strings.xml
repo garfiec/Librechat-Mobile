@@ -62,6 +62,7 @@
 
     <!-- Section headers -->
     <string name="section_about">О приложении</string>
+    <string name="section_updates">Обновления</string>
     <string name="section_advanced">Дополнительно</string>
     <string name="section_appearance">Внешний вид</string>
     <string name="section_balance">Баланс</string>
@@ -222,6 +223,12 @@
     <string name="whats_new_hint_obtainium">Это приложение установлено через Obtainium, он и доставляет обновления.</string>
     <string name="whats_new_hint_fdroid">Это приложение установлено через F-Droid, он и доставляет обновления. Новая версия может появиться там через несколько дней.</string>
     <string name="whats_new_error">Не удалось загрузить примечания к выпуску</string>
+    <string name="release_notes_title">Примечания к выпуску</string>
+    <string name="release_notes_desc">Что изменилось в версии %1$s</string>
+    <string name="release_notes_not_found">Нет примечаний к выпуску %1$s</string>
+    <string name="release_notes_not_found_desc">Для этой сборки нет опубликованного выпуска на GitHub.</string>
+    <string name="release_notes_previous">Предыдущие версии</string>
+    <string name="release_notes_load_older">Загрузить более старые версии</string>
 
     <!-- Tablet settings -->
     <string name="sidebar_swipe_gesture">Жест открытия боковой панели</string>
