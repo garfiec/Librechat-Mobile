@@ -29,6 +29,19 @@ class Navigator(val backStack: NavBackStack<NavKey>) {
         backStack.removeLastOrNull()
     }
 
+    /** Swap the top entry for [route], so back skips the screen being left. */
+    fun replaceTop(route: NavKey) {
+        backStack.removeLastOrNull()
+        backStack.add(route)
+    }
+
+    /** Pop while [predicate] holds for the top entry. Never pops the last one. */
+    fun popWhile(predicate: (NavKey) -> Boolean) {
+        while (backStack.size > 1 && predicate(backStack.last())) {
+            backStack.removeLastOrNull()
+        }
+    }
+
     /** Navigate to a chat, replacing any current chat on the stack. [isTemporary] marks a
      *  temporary chat so a restored Chat(id) entry stays temp-aware and never persists
      *  the server-hidden conversation to Room — see [Chat.isTemporary]. */

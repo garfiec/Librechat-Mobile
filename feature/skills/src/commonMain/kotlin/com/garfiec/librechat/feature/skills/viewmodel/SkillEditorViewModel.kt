@@ -48,7 +48,24 @@ data class SkillEditorUiState(
     /** Authoritative server skill captured on a 409 conflict (kept for a possible
      *  future diff/discard affordance; the user's edits are NOT replaced by it). */
     val serverCurrent: Skill? = null,
+    /** What Save would send for the skill as it was loaded (blank for create). A 409 keeps it, so
+     *  the edits it preserves still count as unsaved. */
+    val baseline: SkillFields = SkillFields(),
+    val showDiscardConfirm: Boolean = false,
 ) {
+    /** Compared as Save would send them, so late reference data (the category presets) and the
+     *  version bookkeeping are never mistaken for an edit. */
+    val hasUnsavedChanges: Boolean get() = !isLoading && savedFields() != baseline
+
+    internal fun savedFields() = SkillFields(
+        name = name,
+        displayTitle = displayTitle.ifBlank { null },
+        description = description,
+        body = body,
+        category = category.ifBlank { null },
+        alwaysApply = alwaysApply,
+    )
+
     val nameError: Boolean get() = name.isNotEmpty() && !SkillValidation.isNameValid(name)
     val descriptionTooLong: Boolean get() = description.length > SkillValidation.DESCRIPTION_MAX_LENGTH
     val canSave: Boolean
@@ -58,8 +75,20 @@ data class SkillEditorUiState(
             SkillValidation.isBodyValid(body)
 }
 
+/** The fields a save writes, normalized the way the request carries them. */
+@Immutable
+data class SkillFields(
+    val name: String = "",
+    val displayTitle: String? = null,
+    val description: String = "",
+    val body: String = "",
+    val category: String? = null,
+    val alwaysApply: Boolean = false,
+)
+
 sealed interface SkillEditorEvent {
     data class Saved(val skillId: String) : SkillEditorEvent
+    data object Exit : SkillEditorEvent
 }
 
 class SkillEditorViewModel(
@@ -117,7 +146,7 @@ class SkillEditorViewModel(
         alwaysApply = skill.alwaysApply ?: false,
         loadedVersion = skill.version,
         isLoading = false,
-    )
+    ).let { it.copy(baseline = it.savedFields()) }
 
     fun onNameChanged(value: String) { _uiState.value = _uiState.value.copy(name = value) }
     fun onDisplayTitleChanged(value: String) { _uiState.value = _uiState.value.copy(displayTitle = value) }
@@ -125,6 +154,23 @@ class SkillEditorViewModel(
     fun onBodyChanged(value: String) { _uiState.value = _uiState.value.copy(body = value) }
     fun onCategoryChanged(value: String) { _uiState.value = _uiState.value.copy(category = value) }
     fun onAlwaysApplyChanged(value: Boolean) { _uiState.value = _uiState.value.copy(alwaysApply = value) }
+
+    fun onBackRequested() {
+        // A save navigates when it lands; leaving first would let it pop the screen behind this one.
+        if (_uiState.value.isSaving) return
+        if (_uiState.value.hasUnsavedChanges) {
+            _uiState.value = _uiState.value.copy(showDiscardConfirm = true)
+        } else {
+            viewModelScope.launch { _events.emit(SkillEditorEvent.Exit) }
+        }
+    }
+
+    fun discardChanges() {
+        _uiState.value = _uiState.value.copy(showDiscardConfirm = false)
+        viewModelScope.launch { _events.emit(SkillEditorEvent.Exit) }
+    }
+
+    fun dismissDiscardConfirmation() { _uiState.value = _uiState.value.copy(showDiscardConfirm = false) }
 
     fun dismissConflictNotice() { _uiState.value = _uiState.value.copy(conflictNotice = null) }
 

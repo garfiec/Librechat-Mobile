@@ -646,6 +646,8 @@ fun MainNavDisplay(
             agentsEntries(
                 onNavigate = { navigator.navigate(it) },
                 onBack = { navigator.goBack() },
+                onReplace = { navigator.replaceTop(it) },
+                onPopWhile = { navigator.popWhile(it) },
                 onStartChat = { agentId ->
                     // Carry the agent id into the new chat so it opens on that agent
                     // (Tier-0 override in ModelSelectionDelegate) rather than falling

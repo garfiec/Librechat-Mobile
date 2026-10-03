@@ -31,4 +31,8 @@
     <string name="pdf_password_confirm">Déchiffrer et envoyer</string>
     <string name="pdf_password_cancel">Annuler</string>
     <string name="param_thinking_between_tools_description">Active la réflexion adaptative contrôlée par le paramètre Effort. Ce modèle ne peut pas désactiver entièrement la réflexion : la désactiver utilise son niveau le plus bas, qui ignore la réflexion étendue et ne conserve que de brèves notes entre les appels d’outils. L’effort est plafonné à Élevé lorsque l’option est désactivée.</string>
+    <string name="discard_changes_title">Abandonner les modifications ?</string>
+    <string name="discard_changes_message">Vos modifications non enregistrées seront perdues.</string>
+    <string name="discard_changes_confirm">Abandonner</string>
+    <string name="discard_changes_cancel">Annuler</string>
 </resources>

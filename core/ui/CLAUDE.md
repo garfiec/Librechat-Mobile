@@ -17,6 +17,11 @@ Material 3 theme and shared Compose components used across all feature modules. 
 - `EmptyState` - Illustration + message for empty lists.
 - `AvatarImage` - User/agent/model avatar with Coil image loading and fallback.
 - `ConfirmationDialog` - Reusable confirm/cancel dialog.
+- `DiscardChangesDialog` - "Discard changes?" for leaving an editor with unsaved edits. Every
+  full-screen editor (agent, skill, schedule, prompt, role skills) uses it the same way: the ViewModel
+  owns `onBackRequested()` and the dialog flag, `PlatformBackHandler` is enabled only while dirty (a
+  clean form keeps predictive back), and the top bar's back goes through the same check, since the
+  handler never fires on iOS. Dirty = what Save would send differs from what was loaded.
 - `ModelIcon` - Endpoint-specific model icons.
 - `EndpointBadge` - Colored badge showing the AI provider.
 - `SearchBar` - Reusable search input field.

@@ -32,7 +32,9 @@ import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
+import com.garfiec.librechat.core.ui.components.DiscardChangesDialog
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
+import com.garfiec.librechat.core.ui.components.PlatformBackHandler
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarAction
@@ -71,6 +73,20 @@ fun PromptEditorScreen(
             currentOnBack()
         }
     }
+    LaunchedEffect(uiState.exitRequested) {
+        if (uiState.exitRequested) currentOnBack()
+    }
+
+    // Reads the command field's text, so typing a command recomposes this too.
+    val hasUnsavedChanges = uiState.hasUnsavedChanges(viewModel.commandState.text.toString())
+    // Only while dirty or saving, so a clean form keeps the predictive-back preview.
+    PlatformBackHandler(enabled = hasUnsavedChanges || uiState.isSaving, onBack = viewModel::onBackRequested)
+    if (uiState.showDiscardConfirm) {
+        DiscardChangesDialog(
+            onDiscard = viewModel::discardChanges,
+            onDismiss = viewModel::dismissDiscardConfirmation,
+        )
+    }
 
     if (uiState.showVersionsSheet && uiState.prompts.isNotEmpty()) {
         PromptVersionsSheet(
@@ -86,7 +102,7 @@ fun PromptEditorScreen(
         topBar = {
             AdaptiveTopBar(
                 spec = AdaptiveTopBarSpec(
-                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.cd_back), onBack),
+                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.cd_back), viewModel::onBackRequested),
                     title = BarTitle(if (uiState.isNewPrompt) "Create Prompt" else "Edit Prompt"),
                     actions = if (!uiState.isNewPrompt && uiState.prompts.isNotEmpty()) {
                         listOf(
@@ -208,7 +224,7 @@ fun PromptEditorScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             AdaptiveOutlinedButton(
-                onClick = onBack,
+                onClick = viewModel::onBackRequested,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(stringResource(Res.string.cancel))

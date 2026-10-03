@@ -31,4 +31,8 @@
     <string name="pdf_password_confirm">Расшифровать и загрузить</string>
     <string name="pdf_password_cancel">Отмена</string>
     <string name="param_thinking_between_tools_description">Включает адаптивное мышление, управляемое параметром «Усилие». Эта модель не может полностью отключить мышление: при выключении используется её минимальный уровень, при котором расширенное мышление пропускается и остаются только краткие заметки между вызовами инструментов. В выключенном состоянии усилие ограничено уровнем «Высокое».</string>
+    <string name="discard_changes_title">Сбросить изменения?</string>
+    <string name="discard_changes_message">Несохранённые изменения будут потеряны.</string>
+    <string name="discard_changes_confirm">Сбросить</string>
+    <string name="discard_changes_cancel">Отмена</string>
 </resources>

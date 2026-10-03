@@ -18,9 +18,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,6 +33,8 @@ import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicato
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
+import com.garfiec.librechat.core.ui.components.DiscardChangesDialog
+import com.garfiec.librechat.core.ui.components.PlatformBackHandler
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
@@ -50,13 +54,26 @@ fun RoleSkillsAdminScreen(
     viewModel: RoleSkillsAdminViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val currentOnNavigateBack by rememberUpdatedState(onNavigateBack)
+
+    LaunchedEffect(uiState.exitRequested) {
+        if (uiState.exitRequested) currentOnNavigateBack()
+    }
+    // Only while dirty, so a clean screen keeps the predictive-back preview.
+    PlatformBackHandler(enabled = uiState.hasUnsavedChanges, onBack = viewModel::onBackRequested)
+    if (uiState.showDiscardConfirm) {
+        DiscardChangesDialog(
+            onDiscard = viewModel::discardChanges,
+            onDismiss = viewModel::dismissDiscardConfirmation,
+        )
+    }
 
     AdaptiveScaffold(
         modifier = modifier,
         topBar = {
             AdaptiveTopBar(
                 spec = AdaptiveTopBarSpec(
-                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.role_skills_back), onNavigateBack),
+                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.role_skills_back), viewModel::onBackRequested),
                     title = BarTitle(stringResource(Res.string.role_skills_title)),
                     actions = emptyList(),
                 ),

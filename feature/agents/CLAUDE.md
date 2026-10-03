@@ -55,6 +55,16 @@
 - **Gotcha**: MCP tools load requires a separate `McpRepository.getTools()` call; they're not bundled with agent data
 - **Gotcha**: `isPublic`/`isCollaborative` map to the sharing section, not individual toggles in the agent model
 
+### Editor exits and unsaved changes
+- The edit editor sits on top of the agent's detail page: Save pops back to it, Duplicate replaces the
+  editor with the copy's page, Delete pops the editor and the deleted agent's page. Create replaces
+  itself with the new agent's page. None of them push, or back walks through a finished form.
+- The detail page refreshes on `AgentRepository.revision`, since a save returns to the same page.
+- "Unsaved changes" = `hasUnsavedChanges()`: Save's request built from the form vs. from the form
+  reset to `loadedAgent`. Comparing requests is what keeps late reference data (MCP catalog, config
+  gates) and instantly-saved files/avatar from counting as edits. `applyAgentData` sets
+  `loadedAgent`, so load and revert both move the baseline.
+
 ### Unified tools picker (v0.8.8)
 - `ToolsMarketplaceDialog` is the ONE picker for what an agent can do — built-in capabilities,
   plugin tools, MCP servers and skills in one searchable list with kind filter chips. It replaced

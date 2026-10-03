@@ -7,6 +7,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.DiscardChangesDialog
 import com.garfiec.librechat.feature.agents.components.AgentVersionHistory
 import com.garfiec.librechat.feature.agents.components.ToolAuthDialog
 import com.garfiec.librechat.feature.agents.components.ToolsMarketplaceDialog
@@ -20,7 +21,7 @@ import com.garfiec.librechat.feature.agents.viewmodel.delegate.marketplaceCatalo
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * The editor's modal layer: delete/duplicate confirmations, version history,
+ * The editor's modal layer: discard/delete/duplicate confirmations, version history,
  * tool selection, and the Code Interpreter API-key dialog. Each is gated on its
  * own state flag, so this composable renders nothing when no dialog is active.
  */
@@ -32,6 +33,13 @@ internal fun AgentEditorDialogs(
     showToolDialog: Boolean,
     onDismissToolDialog: () -> Unit,
 ) {
+    if (uiState.showDiscardConfirm) {
+        DiscardChangesDialog(
+            onDiscard = viewModel::discardChanges,
+            onDismiss = viewModel::dismissDiscardConfirmation,
+        )
+    }
+
     // Delete confirmation dialog
     if (uiState.showDeleteConfirm) {
         AdaptiveAlertDialog(

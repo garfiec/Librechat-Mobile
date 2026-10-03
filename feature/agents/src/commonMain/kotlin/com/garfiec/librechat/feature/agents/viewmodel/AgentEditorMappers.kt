@@ -161,6 +161,7 @@ internal fun AgentEditorUiState.applyAgentData(agent: Agent): AgentEditorUiState
     )
 
     return copy(
+        loadedAgent = agent,
         name = agent.name ?: "",
         description = agent.description ?: "",
         instructions = agent.instructions ?: "",
