@@ -7,6 +7,9 @@
     <string name="skills_import">导入技能</string>
     <string name="skills_search_hint">搜索技能…</string>
     <string name="skills_empty">暂无技能。</string>
+    <string name="skills_empty_hint">点按 + 创建技能，或导入技能文件。</string>
+    <string name="skills_no_matches">没有与搜索匹配的技能。</string>
+    <string name="skills_retry">重试</string>
 
     <!-- Files -->
     <string name="skill_files_title">文件</string>

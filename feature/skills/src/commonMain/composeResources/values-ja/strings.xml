@@ -7,6 +7,9 @@
     <string name="skills_import">スキルをインポート</string>
     <string name="skills_search_hint">スキルを検索…</string>
     <string name="skills_empty">スキルはまだありません。</string>
+    <string name="skills_empty_hint">+ をタップして作成するか、スキルファイルをインポートします。</string>
+    <string name="skills_no_matches">検索に一致するスキルはありません。</string>
+    <string name="skills_retry">再試行</string>
 
     <!-- Files -->
     <string name="skill_files_title">ファイル</string>

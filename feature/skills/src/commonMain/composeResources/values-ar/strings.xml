@@ -7,6 +7,9 @@
     <string name="skills_import">استيراد مهارة</string>
     <string name="skills_search_hint">البحث في المهارات…</string>
     <string name="skills_empty">لا توجد مهارات بعد.</string>
+    <string name="skills_empty_hint">اضغط + لإنشاء مهارة، أو استورد ملف مهارة.</string>
+    <string name="skills_no_matches">لا توجد مهارات تطابق بحثك.</string>
+    <string name="skills_retry">إعادة المحاولة</string>
 
     <!-- Files -->
     <string name="skill_files_title">الملفات</string>
