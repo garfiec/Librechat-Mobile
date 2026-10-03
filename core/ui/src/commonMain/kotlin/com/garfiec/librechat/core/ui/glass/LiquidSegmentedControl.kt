@@ -204,7 +204,11 @@ internal fun LiquidSegmentedControl(
             Modifier.pointerInput(motion) {
                 awaitEachGesture {
                     val down = awaitFirstDown()
+                    val pressed = (latestPositionAt(down.position.x, size.width.toFloat()) - 0.5f).roundToInt()
+                        .coerceIn(0, latestCount - 1)
                     motion.touchDown()
+                    // The thumb goes to the pressed segment on touch, as on iOS; selection waits for release.
+                    motion.follow(pressed.toFloat())
                     var finished = false
                     try {
                         var dragging = false
@@ -233,7 +237,7 @@ internal fun LiquidSegmentedControl(
                         val target = when {
                             !released -> currentSelected
                             dragging -> motion.target.roundToInt()
-                            else -> (latestPositionAt(down.position.x, size.width.toFloat()) - 0.5f).roundToInt()
+                            else -> pressed
                         }.coerceIn(0, latestCount - 1)
                         motion.touchUp(target.toFloat(), latestCount)
                         finished = true
