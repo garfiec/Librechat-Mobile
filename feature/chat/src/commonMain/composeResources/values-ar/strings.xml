@@ -55,6 +55,9 @@
     <string name="cd_update_queued_message">تحديث الرسالة في قائمة الانتظار</string>
     <string name="cd_open_drawer">فتح درج التنقل</string>
     <string name="cd_edit_title">تعديل العنوان</string>
+    <string name="title_edit_discard_prompt">تجاهل تغيير العنوان؟</string>
+    <string name="title_edit_discard">تجاهل</string>
+    <string name="title_edit_keep_editing">متابعة التعديل</string>
     <string name="cd_more_options">خيارات إضافية</string>
     <string name="cd_scroll_to_bottom">التمرير إلى الأسفل</string>
     <string name="cd_select_model">اختيار النموذج</string>

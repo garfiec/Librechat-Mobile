@@ -55,6 +55,9 @@
     <string name="cd_update_queued_message">キュー内のメッセージを更新</string>
     <string name="cd_open_drawer">ナビゲーションドロワーを開く</string>
     <string name="cd_edit_title">タイトルを編集</string>
+    <string name="title_edit_discard_prompt">タイトルの変更を破棄しますか？</string>
+    <string name="title_edit_discard">破棄</string>
+    <string name="title_edit_keep_editing">編集を続ける</string>
     <string name="cd_more_options">その他のオプション</string>
     <string name="cd_scroll_to_bottom">一番下までスクロール</string>
     <string name="cd_select_model">モデルを選択</string>

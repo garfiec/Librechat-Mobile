@@ -55,6 +55,9 @@
     <string name="cd_update_queued_message">Update queued message</string>
     <string name="cd_open_drawer">Open navigation drawer</string>
     <string name="cd_edit_title">Edit title</string>
+    <string name="title_edit_discard_prompt">Discard title change?</string>
+    <string name="title_edit_discard">Discard</string>
+    <string name="title_edit_keep_editing">Keep editing</string>
     <string name="cd_more_options">More options</string>
     <string name="cd_temporary_chat">Temporary chat</string>
     <string name="cd_scroll_to_bottom">Scroll to bottom</string>

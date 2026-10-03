@@ -55,6 +55,9 @@
     <string name="cd_update_queued_message">更新排队的消息</string>
     <string name="cd_open_drawer">打开导航抽屉</string>
     <string name="cd_edit_title">编辑标题</string>
+    <string name="title_edit_discard_prompt">放弃标题更改？</string>
+    <string name="title_edit_discard">放弃</string>
+    <string name="title_edit_keep_editing">继续编辑</string>
     <string name="cd_more_options">更多选项</string>
     <string name="cd_scroll_to_bottom">滚动到底部</string>
     <string name="cd_select_model">选择模型</string>

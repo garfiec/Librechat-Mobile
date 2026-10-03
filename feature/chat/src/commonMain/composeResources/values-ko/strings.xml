@@ -55,6 +55,9 @@
     <string name="cd_update_queued_message">대기 중인 메시지 업데이트</string>
     <string name="cd_open_drawer">탐색 서랍 열기</string>
     <string name="cd_edit_title">제목 편집</string>
+    <string name="title_edit_discard_prompt">제목 변경을 취소할까요?</string>
+    <string name="title_edit_discard">취소</string>
+    <string name="title_edit_keep_editing">계속 편집</string>
     <string name="cd_more_options">추가 옵션</string>
     <string name="cd_scroll_to_bottom">맨 아래로 스크롤</string>
     <string name="cd_select_model">모델 선택</string>

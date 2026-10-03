@@ -55,6 +55,9 @@
     <string name="cd_update_queued_message">Nachricht in Warteschlange aktualisieren</string>
     <string name="cd_open_drawer">Navigationsleiste öffnen</string>
     <string name="cd_edit_title">Titel bearbeiten</string>
+    <string name="title_edit_discard_prompt">Titeländerung verwerfen?</string>
+    <string name="title_edit_discard">Verwerfen</string>
+    <string name="title_edit_keep_editing">Weiter bearbeiten</string>
     <string name="cd_more_options">Weitere Optionen</string>
     <string name="cd_scroll_to_bottom">Nach unten scrollen</string>
     <string name="cd_select_model">Modell auswählen</string>

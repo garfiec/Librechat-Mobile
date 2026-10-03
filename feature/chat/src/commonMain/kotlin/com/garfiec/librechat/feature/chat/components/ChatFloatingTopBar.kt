@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -24,6 +26,8 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
@@ -31,6 +35,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -42,12 +47,16 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
 import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.consumeUnhandledTouches
 import com.garfiec.librechat.core.ui.components.menuDragAnchor
 import com.garfiec.librechat.core.ui.components.menuDragPressEffect
@@ -61,9 +70,13 @@ import com.garfiec.librechat.feature.chat.resources.cd_edit_title
 import com.garfiec.librechat.feature.chat.resources.cd_more_options
 import com.garfiec.librechat.feature.chat.resources.cd_open_drawer
 import com.garfiec.librechat.feature.chat.resources.select_model
+import com.garfiec.librechat.feature.chat.resources.title_edit_discard
+import com.garfiec.librechat.feature.chat.resources.title_edit_discard_prompt
+import com.garfiec.librechat.feature.chat.resources.title_edit_keep_editing
 import com.garfiec.librechat.feature.chat.screen.rememberChatModelLabel
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
+import kotlinx.coroutines.flow.first
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -432,6 +445,8 @@ private fun HeaderTitleChip(
  * scrim ([consumeUnhandledTouches]) swallows background taps, so a commit-on-blur would otherwise
  * persist abandoned, half-typed titles. Done with an unchanged or blank value also discards, which
  * covers the case where the title updated underneath an untouched editor (e.g. async gen_title).
+ * Dismissing the keyboard keeps focus, so it's watched separately: with nothing to save it ends the
+ * edit, otherwise it asks before discarding, and Keep editing brings the keyboard back.
  */
 @Composable
 private fun HeaderTitleEditor(
@@ -444,12 +459,17 @@ private fun HeaderTitleEditor(
     var value by remember { mutableStateOf(TextFieldValue(initial, TextRange(initial.length))) }
     var settled by remember { mutableStateOf(false) }
     var everFocused by remember { mutableStateOf(false) }
+    var confirmingDiscard by remember { mutableStateOf(false) }
+    var reopeningKeyboard by remember { mutableStateOf(false) }
+    val keyboard = LocalSoftwareKeyboardController.current
+    val windowInfo = LocalWindowInfo.current
+
+    fun pendingTitle(): String? = value.text.trim().takeIf { it.isNotEmpty() && it != initial }
 
     fun commit() {
         if (settled) return
         settled = true
-        val trimmed = value.text.trim()
-        if (trimmed.isNotEmpty() && trimmed != initial) onCommit(trimmed) else onCancel()
+        pendingTitle()?.let(onCommit) ?: onCancel()
     }
     fun cancel() {
         if (settled) return
@@ -480,7 +500,7 @@ private fun HeaderTitleEditor(
             .onFocusChanged { state ->
                 if (state.isFocused) {
                     everFocused = true
-                } else if (everFocused) {
+                } else if (everFocused && !confirmingDiscard) {
                     // Focus left (composer, overflow, chat switch) — discard the unconfirmed edit.
                     cancel()
                 }
@@ -488,6 +508,57 @@ private fun HeaderTitleEditor(
     )
 
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
+
+    val ime = WindowInsets.ime
+    val density = LocalDensity.current
+    LaunchedEffect(ime, density) {
+        // Only a keyboard that was up and went away; it isn't up yet when the editor opens. One that
+        // hides because this window lost focus (app backgrounded, screen off, another window) wasn't
+        // dismissed by the user.
+        var shown = false
+        snapshotFlow { ime.getBottom(density) > 0 }.collect { visible ->
+            if (visible) {
+                shown = true
+            } else if (
+                shown && windowInfo.isWindowFocused && !settled && !confirmingDiscard && !reopeningKeyboard
+            ) {
+                shown = false
+                if (pendingTitle() == null) cancel() else confirmingDiscard = true
+            }
+        }
+    }
+
+    // A keyboard shown while the dialog's window has focus belongs to the dialog and closes with it,
+    // which would read as another dismissal; wait for this window to have focus again.
+    LaunchedEffect(reopeningKeyboard) {
+        if (!reopeningKeyboard) return@LaunchedEffect
+        snapshotFlow { windowInfo.isWindowFocused }.first { it }
+        focusRequester.requestFocus()
+        keyboard?.show()
+        reopeningKeyboard = false
+    }
+
+    if (confirmingDiscard) {
+        val keepEditing: () -> Unit = {
+            confirmingDiscard = false
+            reopeningKeyboard = true
+        }
+        AdaptiveAlertDialog(
+            onDismissRequest = keepEditing,
+            title = { Text(stringResource(Res.string.title_edit_discard_prompt)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmingDiscard = false
+                        cancel()
+                    },
+                ) { Text(stringResource(Res.string.title_edit_discard)) }
+            },
+            dismissButton = {
+                TextButton(onClick = keepEditing) { Text(stringResource(Res.string.title_edit_keep_editing)) }
+            },
+        )
+    }
 }
 
 /** The ViewModel calls the bar renderers make, so the ViewModel itself stays in [ChatFloatingTopBar]. */
