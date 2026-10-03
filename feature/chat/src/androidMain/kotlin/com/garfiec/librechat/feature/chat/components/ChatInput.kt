@@ -40,6 +40,9 @@ import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.model.usage.TokenUsage
+import com.garfiec.librechat.core.ui.components.pressBounce
+import com.garfiec.librechat.core.ui.components.rememberPressBounce
+import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.resources.*
@@ -194,7 +197,8 @@ fun ChatInput(
         modifier = modifier,
         leadingButtons = {
             // "+" button to open tools bottom sheet
-            Box {
+            val toolsBounce = rememberPressBounce()
+            Box(modifier = Modifier.pressBounce(toolsBounce, enabled = !isLiquidGlass)) {
                 FilledTonalIconButton(
                     onClick = onOpenTools,
                     colors = ChatInputDefaults.toolsButtonColors(),
@@ -227,6 +231,7 @@ fun ChatInput(
 
             // Paste image button (shown only when clipboard has image content)
             if (onImagePasted != null) {
+                val pasteBounce = rememberPressBounce()
                 IconButton(
                     onClick = {
                         // Clipboard image pasting is handled by the screen
@@ -234,6 +239,7 @@ fun ChatInput(
                     },
                     modifier = Modifier
                         .size(48.dp)
+                        .pressBounce(pasteBounce, enabled = !isLiquidGlass)
                         .semantics {
                             contentDescription = cdPasteImage
                             role = Role.Button
@@ -278,6 +284,7 @@ fun ChatInput(
                     keyboardActions = KeyboardActions.Default,
                     maxLines = 6,
                     trailingIcon = {
+                        val micBounce = rememberPressBounce()
                         IconButton(
                             onClick = {
                                 if (isRecording) {
@@ -288,6 +295,7 @@ fun ChatInput(
                             },
                             modifier = Modifier
                                 .size(40.dp)
+                                .pressBounce(micBounce, enabled = !isLiquidGlass && !isTranscribing)
                                 .semantics {
                                     contentDescription = if (isRecording) {
                                         cdStopVoiceRec

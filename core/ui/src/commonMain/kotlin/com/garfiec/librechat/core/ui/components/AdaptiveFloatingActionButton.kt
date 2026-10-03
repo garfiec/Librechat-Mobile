@@ -22,7 +22,7 @@ private val GlassFabShape = RoundedCornerShape(16.dp)
 /**
  * [small] is the M3 [SmallFloatingActionButton]. Outside an [AdaptiveScaffold]'s FAB slot, pass a
  * [backdrop] or get the flat fallback. [containerColor], [contentColor] and [elevation] apply in
- * Material only.
+ * Material only. In Material it also swells under the finger ([pressBounce]).
  */
 @Composable
 fun AdaptiveFloatingActionButton(
@@ -42,7 +42,12 @@ fun AdaptiveFloatingActionButton(
         small -> FloatingActionButtonDefaults.smallShape
         else -> FloatingActionButtonDefaults.shape
     }
-    val fabModifier = if (glass == null) modifier else modifier.glassSurface(glass, glassShape, backdrop)
+    val bounce = rememberPressBounce()
+    val fabModifier = if (glass == null) {
+        modifier.pressBounce(bounce)
+    } else {
+        modifier.glassSurface(glass, glassShape, backdrop)
+    }
     val fabContainer = if (glass == null) containerColor else Color.Transparent
     val fabContent = if (glass == null) contentColor else MaterialTheme.colorScheme.primary
     val fabElevation = if (glass == null) elevation else FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp)

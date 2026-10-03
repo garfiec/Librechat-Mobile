@@ -47,13 +47,13 @@ import kotlin.math.min
 import kotlin.math.sqrt
 
 /**
- * Press-drag-release on a menu's opener, iOS style. A tap opens the menu on release. Holding presses
- * the opener in until the long-press timeout, then pops the menu open; dragging opens it at once.
+ * Press-drag-release on a menu's opener, iOS style. A tap opens the menu on release. Holding swells
+ * the opener until the long-press timeout, then pops the menu open; dragging opens it at once.
  * With the menu open, a highlight springs between rows under the finger, the hovered row lifts, and
  * the panel leans toward the finger and stretches past its far edge. Lifting over a row selects it
  * (the menu folds into that row); lifting well away from the menu cancels it.
  *
- * The opener applies [menuDragAnchor] (and [menuDragPressEffect] on what should press in), the
+ * The opener applies [menuDragAnchor] (and [menuDragPressEffect] on what should swell), the
  * menu takes the state through `AdaptiveDropdownMenu(dragSelection = …)`, and each selectable row
  * applies [menuDragTarget]. They meet in screen coordinates: the whole gesture stays with the opener
  * that took the down (and the popup fallback is a separate window), so rows are hit-tested here.
@@ -92,13 +92,12 @@ class MenuDragSelection internal constructor(
         private set
     internal val highlightAlpha = Animatable(0f)
 
-    /** The opener's press-in: 1 fully in, 0 at rest, below 0 swelling (a tap's open). */
+    /** The opener's swell: 1 fully grown, 0 at rest; [PopSpec] overshoots below 0 as it settles. */
     internal val press = Animatable(0f)
 
     /**
-     * The menu is open — however it was opened. The opener is never pressed in or leaning while it
-     * is: a hold or drag dips it and bounces it back up as the menu opens ([opened]); a plain tap
-     * swells it and lets it settle back as the menu opens.
+     * The menu is open — however it was opened. The opener is never swollen or leaning while it
+     * is: it springs back to size as the menu opens ([popBack]).
      */
     internal var menuOpen by mutableStateOf(false)
         private set
@@ -114,11 +113,17 @@ class MenuDragSelection internal constructor(
             return
         }
         scope.launch { pull.animateTo(Offset.Zero, SettleSpec) }
-        if (!openedByGesture) {
-            scope.launch {
-                press.animateTo(-1f, TapSwellSpec)
-                press.animateTo(0f, PopSpec)
-            }
+        if (!openedByGesture) popBack()
+    }
+
+    /**
+     * Springs the opener back to size, growing it first if a quick tap or early drag beat the swell,
+     * so the bounce reads.
+     */
+    private fun popBack() {
+        scope.launch {
+            if (press.value < DIP_THRESHOLD) press.animateTo(1f, DipSpec)
+            press.animateTo(0f, PopSpec)
         }
     }
 
@@ -150,12 +155,7 @@ class MenuDragSelection internal constructor(
         openedByGesture = true
         if (byHold) haptics.performHapticFeedback(HapticFeedbackType.LongPress)
         scope.launch { pull.animateTo(Offset.Zero, SettleSpec) }
-        scope.launch {
-            // A drag can open the menu before the press has visibly gone in; dip it first so the
-            // bounce back up always reads.
-            if (press.value < DIP_THRESHOLD) press.animateTo(1f, DipSpec)
-            press.animateTo(0f, PopSpec)
-        }
+        popBack()
     }
 
     internal fun lean(target: Offset) {
@@ -308,9 +308,9 @@ fun Modifier.menuDragAnchor(
     }
 }
 
-/** On the opener's visible chip: presses in while held and leans toward the finger. */
+/** On the opener's visible chip: swells while held and leans toward the finger. */
 fun Modifier.menuDragPressEffect(state: MenuDragSelection): Modifier = graphicsLayer {
-    val scale = 1f - PRESS_DEPTH * state.press.value
+    val scale = 1f + SWELL_DEPTH * state.press.value
     scaleX = scale
     scaleY = scale
     val pull = state.pull.value
@@ -441,7 +441,7 @@ private val LeanCap = 4.dp
 private val CancelDistance = 48.dp
 private val RowNudge = 4.dp
 private const val ANCHOR_LEAN_SOFTNESS = 0.1f
-private const val PRESS_DEPTH = 0.08f
+private const val SWELL_DEPTH = 0.15f
 private const val ROW_DIM = 0.15f
 private const val ICON_GROWTH = 0.15f
 private const val HIGHLIGHT_FADE_MILLIS = 100
@@ -456,6 +456,3 @@ private val PopSpec = spring<Float>(dampingRatio = 0.45f, stiffness = 600f)
 
 private val DipSpec = tween<Float>(durationMillis = 90, easing = LinearOutSlowInEasing)
 private const val DIP_THRESHOLD = 0.5f
-
-/** A tap's swell (press -1 = [PRESS_DEPTH] larger) before [PopSpec] settles it. */
-private val TapSwellSpec = tween<Float>(durationMillis = 110, easing = LinearOutSlowInEasing)

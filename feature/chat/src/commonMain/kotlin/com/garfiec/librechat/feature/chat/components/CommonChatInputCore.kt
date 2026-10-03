@@ -57,9 +57,12 @@ import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.model.usage.TokenUsage
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.pressBounce
+import com.garfiec.librechat.core.ui.components.rememberPressBounce
 import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
 import com.garfiec.librechat.core.ui.glass.glassSurface
 import com.garfiec.librechat.core.ui.glass.rememberGlassStyle
+import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -476,13 +479,16 @@ fun SendStopButton(
         isEditingQueued = isEditingQueued,
         isAwaitingUploadSend = isAwaitingUploadSend,
     )
+    // On the slot, not each button, so a send's bounce survives the swap to Stop.
+    val bounce = rememberPressBounce()
+    val bounces = !isLiquidGlass && (canSend || (mode != SendButtonMode.SEND && mode != SendButtonMode.UPDATE))
     AnimatedContent(
         targetState = mode,
         transitionSpec = {
             (fadeIn() + scaleIn()).togetherWith(fadeOut() + scaleOut())
         },
         label = "send_stop_toggle",
-        modifier = modifier,
+        modifier = modifier.pressBounce(bounce, enabled = bounces),
     ) { buttonMode ->
         when (buttonMode) {
             SendButtonMode.UPDATE -> IconButton(
