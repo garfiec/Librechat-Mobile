@@ -47,8 +47,11 @@ fun rememberPressBounce(): PressBounce {
     return remember(scope) { PressBounce(scope) }
 }
 
-/** On the button's visible chip. With [enabled] false it does nothing. */
-fun Modifier.pressBounce(state: PressBounce, enabled: Boolean = true): Modifier {
+/**
+ * On the button's visible chip. With [enabled] false it does nothing. [depth] is how much it swells,
+ * as a fraction of its size (still capped at 12dp); raise it for a small glyph the default barely shows.
+ */
+fun Modifier.pressBounce(state: PressBounce, enabled: Boolean = true, depth: Float = SWELL_DEPTH): Modifier {
     if (!enabled) return this
     return pointerInput(state) {
         awaitEachGesture {
@@ -63,8 +66,8 @@ fun Modifier.pressBounce(state: PressBounce, enabled: Boolean = true): Modifier 
         }
     }.graphicsLayer {
         // Capped in dp, so a wide button doesn't grow over its neighbours.
-        val depth = min(SWELL_DEPTH, MaxSwell.toPx() / maxOf(size.width, size.height, 1f))
-        val scale = 1f + depth * state.press.value
+        val swell = min(depth, MaxSwell.toPx() / maxOf(size.width, size.height, 1f))
+        val scale = 1f + swell * state.press.value
         scaleX = scale
         scaleY = scale
     }
