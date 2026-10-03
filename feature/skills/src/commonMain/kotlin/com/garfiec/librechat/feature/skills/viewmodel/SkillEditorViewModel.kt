@@ -88,8 +88,6 @@ data class SkillFields(
 
 sealed interface SkillEditorEvent {
     data class Saved(val skillId: String) : SkillEditorEvent
-
-    /** Leave the editor: nothing was pending, or the user chose to discard it. */
     data object Exit : SkillEditorEvent
 }
 
@@ -157,7 +155,6 @@ class SkillEditorViewModel(
     fun onCategoryChanged(value: String) { _uiState.value = _uiState.value.copy(category = value) }
     fun onAlwaysApplyChanged(value: Boolean) { _uiState.value = _uiState.value.copy(alwaysApply = value) }
 
-    /** Back from the editor: leaves at once when nothing is pending, otherwise asks first. */
     fun onBackRequested() {
         // A save navigates when it lands; leaving first would let it pop the screen behind this one.
         if (_uiState.value.isSaving) return

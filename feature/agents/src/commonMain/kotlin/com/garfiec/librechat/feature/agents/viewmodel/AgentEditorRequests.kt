@@ -11,10 +11,6 @@ import com.garfiec.librechat.feature.agents.components.withoutModelRemovedValues
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 
-// The request bodies the editor's Save sends, assembled from [AgentEditorUiState]. Also the
-// yardstick for unsaved changes: the form is dirty exactly when Save would write something other
-// than what the agent it was loaded from would.
-
 /**
  * Whether Save would change the agent — the current form against the same form reset to
  * [AgentEditorUiState.loadedAgent] (an empty agent when creating).

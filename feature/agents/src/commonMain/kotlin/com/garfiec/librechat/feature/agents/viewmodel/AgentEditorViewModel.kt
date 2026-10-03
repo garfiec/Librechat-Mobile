@@ -602,7 +602,6 @@ class AgentEditorViewModel(
         stateHandle.update { copy(showDuplicateConfirm = false) }
     }
 
-    /** Leaves the editor, or asks first when that would throw away unsaved changes. */
     fun onBackRequested() {
         if (stateHandle.state.isCommitting) return
         if (stateHandle.state.hasUnsavedChanges()) {

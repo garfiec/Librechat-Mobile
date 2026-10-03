@@ -31,7 +31,6 @@ data class RoleSkillsAdminUiState(
     /** The flags as the server last reported them, on load or save; null until a role has loaded. */
     val savedFlags: SkillsFlags? = null,
     val showDiscardConfirm: Boolean = false,
-    /** Set to leave the screen: nothing was pending, or the user chose to discard it. */
     val exitRequested: Boolean = false,
 ) {
     val canSave: Boolean get() = loaded && !isSaving && !isLoading
@@ -40,7 +39,6 @@ data class RoleSkillsAdminUiState(
         get() = loaded && savedFlags != null && SkillsFlags(use, create, share, sharePublic) != savedFlags
 }
 
-/** A role's SKILLS permission booleans. */
 @Immutable
 data class SkillsFlags(val use: Boolean, val create: Boolean, val share: Boolean, val sharePublic: Boolean)
 
@@ -73,7 +71,6 @@ class RoleSkillsAdminViewModel(
     fun setShare(value: Boolean) { _uiState.value = _uiState.value.copy(share = value, savedMessage = null) }
     fun setSharePublic(value: Boolean) { _uiState.value = _uiState.value.copy(sharePublic = value, savedMessage = null) }
 
-    /** Back from the screen: leaves at once when nothing is pending, otherwise asks first. */
     fun onBackRequested() {
         _uiState.value = if (_uiState.value.hasUnsavedChanges) {
             _uiState.value.copy(showDiscardConfirm = true)

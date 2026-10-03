@@ -53,7 +53,6 @@ data class ScheduleEditorUiState(
      */
     val loadedDraft: ScheduleDraft? = null,
     val showDiscardConfirm: Boolean = false,
-    /** Set to leave the editor: nothing was pending, or the user chose to discard it. */
     val exitRequested: Boolean = false,
 ) {
     val hasUnsavedChanges: Boolean get() = !isLoading && loadedDraft != null && draft != loadedDraft
@@ -238,7 +237,6 @@ class ScheduleEditorViewModel(
         load()
     }
 
-    /** Back from the editor: leaves at once when nothing is pending, otherwise asks first. */
     fun onBackRequested() {
         // A save navigates when it lands; leaving first would let it pop the screen behind this one.
         if (_uiState.value.isSaving) return
