@@ -182,6 +182,8 @@ private val DrawerTabCellHeight = 34.dp
 private fun Modifier.drawerRowShape(): Modifier =
     padding(horizontal = 4.dp, vertical = 1.dp).clip(ItemShape)
 
+private const val STAR_SWELL = 0.35f
+
 // Gap between the conversation row's bottom edge and the long-press menu's top edge.
 private val MenuVerticalGap = 4.dp
 
@@ -1409,6 +1411,7 @@ private fun DrawerConversationItem(
             }
 
             if (showBookmarkToggle) {
+                val starBounce = rememberPressBounce()
                 Icon(
                     imageVector = if (data.isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
                     contentDescription = if (data.isFavorite) {
@@ -1418,6 +1421,8 @@ private fun DrawerConversationItem(
                     },
                     modifier = Modifier
                         .size(32.dp)
+                        .pressBounce(starBounce, depth = STAR_SWELL)
+                        .clip(CircleShape)
                         .clickable(onClick = onToggleFavorite)
                         .padding(8.dp),
                     tint = if (data.isFavorite) {
