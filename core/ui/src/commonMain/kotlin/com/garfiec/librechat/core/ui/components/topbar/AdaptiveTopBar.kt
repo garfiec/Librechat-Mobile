@@ -1,5 +1,7 @@
 package com.garfiec.librechat.core.ui.components.topbar
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -35,9 +38,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.ui.GlassCapability
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
@@ -207,11 +212,21 @@ private fun BarActionButton(action: BarAction, colors: BarActionColors) {
                     Modifier
                 },
             ) {
+                // Material only: ⋮ turns into ⋯ while its menu is open, as in the chat bar.
+                val rotation by animateFloatAsState(
+                    targetValue = if (expanded && !colors.glass && action.icon == BarIcons.More) 90f else 0f,
+                    animationSpec = spring(dampingRatio = 0.8f, stiffness = 200f),
+                    label = "menuIconRotation",
+                )
                 IconButton(
                     onClick = { expanded = true },
                     modifier = if (drag != null) Modifier.menuDragPressEffect(drag) else Modifier,
                 ) {
-                    Icon(imageVector = action.icon.vector, contentDescription = action.label)
+                    Icon(
+                        imageVector = action.icon.vector,
+                        contentDescription = action.label,
+                        modifier = Modifier.graphicsLayer { rotationZ = rotation },
+                    )
                 }
                 BarMenu(action, expanded, onDismiss = { expanded = false }, drag, colors)
             }
@@ -227,7 +242,13 @@ private fun BarMenu(
     drag: MenuDragSelection?,
     colors: BarActionColors,
 ) {
-    AdaptiveDropdownMenu(expanded = expanded, onDismissRequest = onDismiss, dragSelection = drag) {
+    AdaptiveDropdownMenu(
+        expanded = expanded,
+        onDismissRequest = onDismiss,
+        shape = BarMenuShape,
+        offset = BarMenuOffset,
+        dragSelection = drag,
+    ) {
         action.sections.filter { it.items.isNotEmpty() }.forEachIndexed { index, section ->
             if (index > 0) {
                 AdaptiveDivider(modifier = if (colors.glass) Modifier.padding(vertical = 4.dp) else Modifier)
@@ -280,6 +301,10 @@ private fun BarDropdownItem(item: BarMenuItem, onSelect: () -> Unit, checkTint: 
         },
     )
 }
+
+// The chat bar's menu measures, so every bar menu looks the same.
+private val BarMenuShape = RoundedCornerShape(16.dp)
+private val BarMenuOffset = DpOffset(x = 0.dp, y = 8.dp)
 
 /** The UIKit bar on iOS; never reached on Android, whose actual forwards to the simulated bar. */
 @Composable
