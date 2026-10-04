@@ -255,10 +255,8 @@ internal fun DrawerTabToggle(
             modifier = Modifier
                 .width(DrawerTabCellWidth)
                 .fillMaxHeight()
-                .offset {
-                    val x = (cellPx * switch.progress.value).roundToInt()
-                    IntOffset(if (rtl) -x else x, 0)
-                }
+                // offset {} already mirrors x in RTL; negating it here would flip it twice.
+                .offset { IntOffset((cellPx * switch.progress.value).roundToInt(), 0) }
                 .then(if (glass) Modifier.shadow(2.dp, PillThumbShape) else Modifier)
                 .clip(PillThumbShape)
                 .background(thumbColor),
