@@ -85,8 +85,9 @@ import platform.WebKit.WKWebView
 import platform.WebKit.WKWebViewConfiguration
 import platform.darwin.NSObject
 
+// MultipleEmitters: early returns, so exactly one branch emits
 // TooGenericExceptionCaught: a player that fails to initialise degrades to no playback
-@Suppress("MultipleEmitters", "TooGenericExceptionCaught") // early returns: exactly one branch emits
+@Suppress("MultipleEmitters", "TooGenericExceptionCaught")
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 @Composable
 actual fun AudioContent(

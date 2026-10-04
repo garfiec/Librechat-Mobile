@@ -37,8 +37,9 @@ actual class SkillFilePicker(
     }
 }
 
+// debt — NestedBlockDepth: deeply nested
 // TooGenericExceptionCaught: ContentResolver I/O throws undocumented exceptions; reported, not thrown
-@Suppress("NestedBlockDepth", "TooGenericExceptionCaught") // debt: deeply nested
+@Suppress("NestedBlockDepth", "TooGenericExceptionCaught")
 private fun Context.readPickedDocument(uri: Uri): PickedDocument? {
     return try {
         val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: return null

@@ -36,7 +36,7 @@ import org.jetbrains.compose.resources.stringResource
  * The chat options sheet — the "+" menu, with the model selector and model parameters as
  * swappable pages — is hosted separately in [ChatScreen], since two entry points open it.
  */
-@Suppress("ViewModelForwarding") // screen split across files; hoisting its state is a separate refactor
+@Suppress("ViewModelForwarding") // debt: screen split across files; state not hoisted yet
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ChatScreenDialogs(

@@ -32,7 +32,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
  *
  * Collects `viewModel.uiState` at full rate — the one subtree that re-renders per streaming flush.
  */
-@Suppress("ViewModelForwarding") // screen split across files; hoisting its state is a separate refactor
+@Suppress("ViewModelForwarding") // debt: screen split across files; state not hoisted yet
 @Composable
 internal fun ColumnScope.ChatContent(
     viewModel: ChatViewModel,
