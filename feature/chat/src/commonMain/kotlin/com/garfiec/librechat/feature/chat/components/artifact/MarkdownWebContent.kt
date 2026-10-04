@@ -12,6 +12,7 @@ package com.garfiec.librechat.feature.chat.components.artifact
  */
 object MarkdownWebContent {
 
+    @Suppress("LongMethod") // debt: 122 lines
     fun buildHtml(markdownContent: String, isDarkTheme: Boolean, inline: Boolean = false): String {
         val bgColor = if (isDarkTheme) "#1C1B1F" else "#FFFBFE"
         val fgColor = if (isDarkTheme) "#E6E1E5" else "#1C1B1F"

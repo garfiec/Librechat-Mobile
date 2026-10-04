@@ -361,6 +361,7 @@ class SseEventMapper(private val json: Json) {
 
     // --- LangGraph events ---
 
+    @Suppress("CyclomaticComplexMethod") // debt: complexity 38
     private fun mapLangGraphEvent(eventType: String, root: JsonObject): StreamEvent? {
         val data = root["data"]?.jsonObject ?: return null
         val metadata = data["metadata"]?.jsonObject

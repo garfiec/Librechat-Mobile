@@ -143,6 +143,9 @@ actual class SseHttpTransport(
         }
     }
 
+    // debt — CyclomaticComplexMethod: complexity 38
+    // debt — LongMethod: 100 lines
+    @Suppress("CyclomaticComplexMethod", "LongMethod")
     private fun openConnection(
         streamPath: String,
         resume: Boolean,

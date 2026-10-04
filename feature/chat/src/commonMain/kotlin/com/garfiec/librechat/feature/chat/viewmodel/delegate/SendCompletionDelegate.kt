@@ -111,6 +111,7 @@ class SendCompletionDelegate(
      *   so the conversation save is skipped and the title is re-read from the server rather than
      *   generated — see the call sites below.
      */
+    @Suppress("LongParameterList") // debt: wide parameter list
     fun onFinal(
         event: StreamEvent.Final,
         conversationId: String?,

@@ -68,6 +68,7 @@ import kotlin.time.Clock
  * if it changed, so a refresh that races a teardown can never resurrect the cleared session even
  * though the POST holds no lock — while another account's changes leave it valid.
  */
+@Suppress("TooManyFunctions") // debt: 51 functions
 abstract class CommonTokenDataStore(
     private val refreshClient: Lazy<HttpClient>,
     private val ioDispatcher: CoroutineDispatcher,
@@ -720,6 +721,7 @@ abstract class CommonTokenDataStore(
      * Caller owns the flight lock, and owns the coalescing check. Never takes the lock (the mutex is
      * not reentrant).
      */
+    @Suppress("ReturnCount") // debt: 10 returns
     private suspend fun refreshUnderFlightLock(
         accountKey: String?,
         absoluteRefreshUrl: String?,

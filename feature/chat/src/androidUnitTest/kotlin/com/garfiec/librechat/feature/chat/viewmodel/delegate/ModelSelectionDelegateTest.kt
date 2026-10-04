@@ -52,6 +52,7 @@ import org.junit.Test
  * on the delegate's [TestScope] (not the runTest scope), so leftover collectors don't
  * fail the test — same as the template's init-block collector.
  */
+@Suppress("LargeClass") // debt: 1275-line file
 @OptIn(ExperimentalCoroutinesApi::class)
 class ModelSelectionDelegateTest {
 

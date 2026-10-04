@@ -88,6 +88,7 @@ internal fun AgentEditorUiState.toCreateAgentRequest(): CreateAgentRequest {
 }
 
 /** The request fields that take more than a straight copy, shared by create and update. */
+@Suppress("LongParameterList") // debt: constructor dependencies
 private class AgentWriteFields(
     val isPublic: Boolean,
     val isCollaborative: Boolean?,

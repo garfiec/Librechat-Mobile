@@ -13,6 +13,10 @@ package com.garfiec.librechat.core.common.media
  *
  * @return the detected MIME type, or `null` if the bytes match no recognized image signature.
  */
+// debt — ComplexCondition: one compound magic-byte check per format
+// debt — CyclomaticComplexMethod: complexity 54
+// debt — ReturnCount: 10 returns
+@Suppress("ComplexCondition", "CyclomaticComplexMethod", "ReturnCount")
 fun detectImageMimeType(bytes: ByteArray): String? {
     if (bytes.size < 12) return null
 

@@ -72,6 +72,7 @@ class MainActivity : ComponentActivity() {
 
     private var deepLinkUri by mutableStateOf<Uri?>(null)
 
+    @Suppress("LongMethod") // debt: 101 lines
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class, ExperimentalComposeUiApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

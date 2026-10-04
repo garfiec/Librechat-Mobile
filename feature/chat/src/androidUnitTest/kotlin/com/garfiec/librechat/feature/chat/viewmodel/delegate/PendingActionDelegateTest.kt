@@ -43,6 +43,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import org.junit.Test
 
+@Suppress("LargeClass") // debt: 972-line file
 @OptIn(ExperimentalCoroutinesApi::class)
 class PendingActionDelegateTest {
 

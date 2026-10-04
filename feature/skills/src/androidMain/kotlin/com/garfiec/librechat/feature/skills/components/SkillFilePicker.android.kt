@@ -37,6 +37,7 @@ actual class SkillFilePicker(
     }
 }
 
+@Suppress("NestedBlockDepth") // debt: deeply nested
 private fun Context.readPickedDocument(uri: Uri): PickedDocument? {
     return try {
         val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: return null

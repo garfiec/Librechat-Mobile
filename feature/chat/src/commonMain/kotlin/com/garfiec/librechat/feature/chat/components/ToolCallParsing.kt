@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions") // debt: 27 functions
+
 package com.garfiec.librechat.feature.chat.components
 
 import co.touchlab.kermit.Logger
@@ -288,6 +290,9 @@ internal fun parseMcpResources(output: String?): List<McpResource> {
     }
 }
 
+// debt — CyclomaticComplexMethod: complexity 29
+// debt — NestedBlockDepth: deeply nested
+@Suppress("CyclomaticComplexMethod", "NestedBlockDepth")
 internal fun parseImageGenResult(
     toolCall: AgentToolCall?,
     baseUrl: String = "",

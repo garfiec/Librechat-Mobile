@@ -64,6 +64,7 @@ import kotlin.time.Duration.Companion.milliseconds
  * The stream is opened by resume rather than by a send, and the tests drive with `runCurrent`,
  * for the reasons set out in `ChatViewModelDuringRunSendTest`.
  */
+@Suppress("LargeClass") // debt: 1017-line file
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatViewModelQueuedTurnTest {
 

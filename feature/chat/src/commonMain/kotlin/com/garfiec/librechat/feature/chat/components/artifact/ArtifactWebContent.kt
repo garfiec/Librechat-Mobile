@@ -242,6 +242,7 @@ object ArtifactWebContent {
         return exports.mapValues { (_, names) -> names.toList() }
     }
 
+    @Suppress("LongMethod") // debt: 186 lines
     @OptIn(ExperimentalEncodingApi::class)
     private fun buildReactHtml(content: String, bgColor: String, fgColor: String): String {
         val missing = missingSpecifiers(content)

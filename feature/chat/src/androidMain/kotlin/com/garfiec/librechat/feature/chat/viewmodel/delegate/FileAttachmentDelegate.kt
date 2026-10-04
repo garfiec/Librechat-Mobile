@@ -70,6 +70,9 @@ class FileAttachmentDelegate(
 
     private fun fallbackFilename() = "file_${System.currentTimeMillis()}"
 
+    // debt — CyclomaticComplexMethod: complexity 29
+    // debt — LongMethod: 173 lines
+    @Suppress("CyclomaticComplexMethod", "LongMethod")
     private fun uploadFile(picked: PickedFile, route: UploadRoute, pdfPassword: String? = null) {
         val context = appContext
         val contentResolver = context.contentResolver

@@ -55,6 +55,7 @@ private object ClipboardLabels {
 private val clipboardJson = Json { encodeDefaults = false }
 
 /** `label to value`, empty label meaning "value alone" (plain text); null meaning "skip". */
+@Suppress("CyclomaticComplexMethod") // debt: complexity 26
 private fun formatPartForClipboard(part: MessageContentPart): Pair<String, String>? = when (part.type) {
     ContentType.ERROR -> "" to (part.error ?: part.text.orEmpty())
 

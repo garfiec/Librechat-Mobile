@@ -48,6 +48,7 @@ import kotlinx.coroutines.launch
  * .feature.conversations.drawer.DrawerViewModel] (extracted so `:shared` is nav glue, not a stealth
  * feature module); this VM keeps the account *list* the drawer footer renders, but not the drawer data.
  */
+@Suppress("LongParameterList") // debt: constructor dependencies
 class NavHostViewModel(
     private val authRepository: AuthRepository,
     bannerRepository: BannerRepository,

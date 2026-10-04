@@ -9,6 +9,7 @@ import kotlinx.serialization.json.Json
 import org.junit.Before
 import org.junit.Test
 
+@Suppress("LargeClass") // debt: 948-line file
 class SseEventMapperTest {
 
     private val json = Json {

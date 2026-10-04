@@ -44,6 +44,10 @@ import kotlinx.coroutines.launch
  * this one is the hub that drives them as events arrive. The send paths in `ChatViewModel`
  * build a request flow and hand it to [launchStream]; everything downstream lives here.
  */
+// debt — LargeClass: 1456-line file
+// debt — LongParameterList: constructor dependencies
+// debt — TooManyFunctions: 32 functions
+@Suppress("LargeClass", "LongParameterList", "TooManyFunctions")
 class StreamingManagerDelegate(
     private val handle: StreamingHandle,
     private val chatRepository: ChatRepository,
@@ -405,6 +409,9 @@ class StreamingManagerDelegate(
         }
     }
 
+    // debt — CyclomaticComplexMethod: complexity 36
+    // debt — LongMethod: 172 lines
+    @Suppress("CyclomaticComplexMethod", "LongMethod")
     private fun handleStreamEvent(event: StreamEvent) {
         // In comparison mode the delegate fans streaming deltas/tool-calls into the dual
         // panes; if it consumed the event, skip the single-stream handling below.
@@ -900,6 +907,7 @@ class StreamingManagerDelegate(
      * atomic finalize in `finalizeChatDisplay` (and handleFinal's degenerate fallback) owns
      * that, preserving the no-completion-flash invariant (#169).
      */
+    @Suppress("LongMethod") // debt: 118 lines
     private fun endStream(reason: StreamEndReason, session: Int = streamSession) {
         if (session != streamSession) return
         if (endedSession == session) return

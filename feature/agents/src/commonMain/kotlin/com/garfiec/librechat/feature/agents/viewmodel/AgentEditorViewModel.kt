@@ -300,6 +300,7 @@ sealed interface AgentEditorEvent {
     data object Exit : AgentEditorEvent
 }
 
+@Suppress("TooManyFunctions") // debt: 63 functions
 class AgentEditorViewModel(
     private val agentRepository: AgentRepository,
     private val configRepository: ConfigRepository,

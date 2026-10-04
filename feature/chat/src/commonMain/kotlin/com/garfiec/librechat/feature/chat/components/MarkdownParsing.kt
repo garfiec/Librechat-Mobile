@@ -306,6 +306,7 @@ private fun extractHtmlBlocks(segments: List<MarkdownSegment>): List<MarkdownSeg
  * so a last segment ending in `$` may really be followed by whitespace or a closing fence. Only the
  * last segment can hold it; everything else is parsed as settled.
  */
+@Suppress("CyclomaticComplexMethod") // debt: complexity 28
 internal fun parseMarkdownSegments(text: String, streaming: Boolean = false): List<MarkdownSegment> {
     // --- Pass 1: split on fenced code blocks ---
     val afterCodeBlocks = mutableListOf<MarkdownSegment>()

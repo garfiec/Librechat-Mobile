@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions") // debt: 24 functions
+
 package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.animation.AnimatedContent
@@ -296,6 +298,7 @@ private val constantStyle = SpanStyle(color = Color(0xFF4FC1FF))
 // Cache token rules per language to avoid recreating Regex objects on every code block render.
 private val tokenRulesCache = mutableMapOf<String, List<TokenRule>>()
 
+@Suppress("CyclomaticComplexMethod") // debt: complexity 36
 private fun getTokenRules(language: String?): List<TokenRule>? {
     if (language == null || language == "markdown" || language == "md") return null
     val key = when (language) {
