@@ -168,8 +168,6 @@ fun rememberMenuDragSelection(): MenuDragSelection {
     return remember(scope, haptics) { MenuDragSelection(scope, haptics) }
 }
 
-private enum class HoldOutcome { Tap, Hold, Drag, Cancel }
-
 /**
  * On the opener (the layout the menu anchors to). [onOpen] opens the menu on a hold or a drag; a tap
  * is left to the opener's own click. Watches in the initial pass without consuming the down; once
@@ -198,53 +196,38 @@ fun Modifier.menuDragAnchor(
             fun PointerInputChange.leanToward() = state.lean(rubberVector(position - center, leanCap, ANCHOR_LEAN_SOFTNESS))
 
             state.pressStart(holdMillis)
-            val outcome = withTimeoutOrNull(holdMillis) {
-                var result: HoldOutcome? = null
-                while (result == null) {
-                    val change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id }
-                    result = when {
-                        change == null -> HoldOutcome.Cancel
-                        !change.pressed -> HoldOutcome.Tap
-                        (change.position - down.position).getDistance() > slop -> if (opensOnDrag) {
-                            change.consume()
-                            HoldOutcome.Drag
-                        } else {
-                            HoldOutcome.Cancel
-                        }
-                        else -> {
-                            change.leanToward()
-                            null
-                        }
+            val outcome = awaitHoldOrDrag(
+                down,
+                pass = PointerEventPass.Initial,
+                yieldWhenConsumed = false,
+                claimMove = { delta ->
+                    when {
+                        delta.getDistance() <= slop -> null
+                        opensOnDrag -> HoldOrDrag.Drag
+                        else -> HoldOrDrag.Yield
                     }
-                }
-                result
-            } ?: HoldOutcome.Hold
+                },
+                onPending = { it.leanToward() },
+            )
 
-            if (outcome == HoldOutcome.Hold || outcome == HoldOutcome.Drag) {
+            if (outcome == HoldOrDrag.Hold || outcome == HoldOrDrag.Drag) {
                 onOpen()
-                state.opened(byHold = outcome == HoldOutcome.Hold)
-                var dragging = outcome == HoldOutcome.Drag
-                while (true) {
-                    val change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id } ?: break
-                    if (!change.pressed) {
-                        if (dragging) {
-                            val armed = state.cancelArmed
-                            if (state.release()) {
-                                change.consume()
-                            } else if (armed) {
-                                change.consume()
-                                onCancel()
-                            }
+                state.opened(byHold = outcome == HoldOrDrag.Hold)
+                trackHoldOrDrag(
+                    down,
+                    dragging = outcome == HoldOrDrag.Drag,
+                    onMove = { it.leanToward() },
+                    onDrag = { state.track(it.position, cancelDistance) },
+                    onRelease = { change ->
+                        val armed = state.cancelArmed
+                        if (state.release()) {
+                            change.consume()
+                        } else if (armed) {
+                            change.consume()
+                            onCancel()
                         }
-                        break
-                    }
-                    change.leanToward()
-                    if (!dragging && (change.position - down.position).getDistance() > slop) dragging = true
-                    if (dragging) {
-                        state.track(change.position, cancelDistance)
-                        change.consume()
-                    }
-                }
+                    },
+                )
             }
             state.finish()
         }
