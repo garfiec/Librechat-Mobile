@@ -110,6 +110,7 @@ class ArchivedConversationsViewModel(
         }
     }
 
+    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     fun unarchiveConversation(id: String) {
         viewModelScope.launch {
             try {
@@ -123,6 +124,7 @@ class ArchivedConversationsViewModel(
         }
     }
 
+    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     fun deleteConversation(id: String) {
         viewModelScope.launch {
             try {

@@ -1,3 +1,7 @@
+// debt — TooManyFunctions: 27 functions
+// TooGenericExceptionCaught: parses untrusted tool output; any malformed shape degrades to null, empty or the raw output
+@file:Suppress("TooManyFunctions", "TooGenericExceptionCaught")
+
 package com.garfiec.librechat.feature.chat.components
 
 import co.touchlab.kermit.Logger
@@ -288,6 +292,9 @@ internal fun parseMcpResources(output: String?): List<McpResource> {
     }
 }
 
+// debt — CyclomaticComplexMethod: complexity 29
+// debt — NestedBlockDepth: deeply nested
+@Suppress("CyclomaticComplexMethod", "NestedBlockDepth")
 internal fun parseImageGenResult(
     toolCall: AgentToolCall?,
     baseUrl: String = "",

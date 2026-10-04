@@ -24,6 +24,7 @@ class SessionTaskRunner(
     private val tasks: List<SessionTask>,
     private val applicationScope: CoroutineScope,
 ) {
+    @Suppress("TooGenericExceptionCaught") // one failing task must not stop the others
     fun runAll() {
         tasks.forEach { task ->
             applicationScope.launch {

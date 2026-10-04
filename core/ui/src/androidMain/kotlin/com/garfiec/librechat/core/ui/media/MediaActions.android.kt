@@ -124,6 +124,7 @@ actual fun rememberShareImage(): (url: String) -> Unit {
     }
 }
 
+@Suppress("TooGenericExceptionCaught") // user action: any failure becomes a toast
 @Composable
 actual fun rememberShareFile(): (bytes: ByteArray, filename: String, mime: String?) -> Unit {
     val context = LocalContext.current
@@ -166,6 +167,7 @@ actual fun rememberShareFile(): (bytes: ByteArray, filename: String, mime: Strin
 private fun sanitizeFilename(filename: String): String =
     filename.substringAfterLast('/').substringAfterLast('\\').ifBlank { "file" }
 
+@Suppress("TooGenericExceptionCaught") // user action: any failure becomes a toast
 private suspend fun saveUrlToGallery(context: Context, url: String) {
     try {
         val image = loadEncodedImage(context, url)
@@ -182,6 +184,7 @@ private suspend fun saveUrlToGallery(context: Context, url: String) {
     }
 }
 
+@Suppress("TooGenericExceptionCaught") // removes the pending row, then rethrows
 private fun writeImageToGallery(context: Context, image: EncodedImage) {
     val fileName = "switchboard_${System.currentTimeMillis()}.${image.extension}"
     val contentValues = ContentValues().apply {

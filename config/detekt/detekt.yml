@@ -1,41 +1,43 @@
 build:
   maxIssues: 0
 
+# Set to hold for almost all of the codebase; the few outliers carry a @Suppress naming the rule,
+# which marks the debt instead of a threshold sized to admit the worst offender.
 complexity:
   LongMethod:
-    threshold: 300
+    threshold: 100
     ignoreAnnotated:
       - "Composable"
   LongParameterList:
-    functionThreshold: 10
-    constructorThreshold: 20
+    functionThreshold: 8
+    constructorThreshold: 12
     ignoreDefaultParameters: true
     ignoreAnnotated:
       - "Composable"
   TooManyFunctions:
-    thresholdInFiles: 30
-    thresholdInClasses: 100
-    thresholdInInterfaces: 25
-    thresholdInObjects: 20
+    thresholdInFiles: 20
+    thresholdInClasses: 30
+    thresholdInInterfaces: 20
+    thresholdInObjects: 15
     thresholdInEnums: 10
     ignoreAnnotatedFunctions:
       - "Preview"
   NestedBlockDepth:
-    threshold: 6
+    threshold: 5
   CyclomaticComplexMethod:
-    threshold: 60
+    threshold: 25
     ignoreAnnotated:
       - "Composable"
   ComplexCondition:
-    threshold: 10
+    threshold: 6
   LargeClass:
-    threshold: 2500
+    threshold: 600
 
 style:
   MagicNumber:
     active: false
   ReturnCount:
-    max: 12
+    max: 8
     excludeReturnFromLambda: true
     ignoreAnnotated:
       - "Composable"
@@ -113,9 +115,12 @@ style:
         reason: "Use AdaptiveSnackbarHost (core/ui components)."
       - value: "androidx.compose.material3.CircularProgressIndicator"
         reason: "Use AdaptiveCircularProgressIndicator (core/ui components)."
+    # Tests may drive the raw M3 control on purpose: the ban governs shipped chrome.
     excludes:
       - "**/core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/topbar/**"
       - "**/core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/Adaptive*.kt"
+      - "**/src/*Test/**"
+      - "**/src/test/**"
   UnusedPrivateMember:
     active: true
     allowedNames: "(_|ignored|expected|serialVersionUID)"
@@ -164,6 +169,7 @@ exceptions:
   TooGenericExceptionCaught:
     active: true
     exceptionNames:
+      - "Exception"
       - "RuntimeException"
       - "Throwable"
     allowedExceptionNameRegex: "_|(ignore|expected).*"
@@ -203,7 +209,7 @@ Compose:
     contentEmittersDenylist: AdaptiveModalBottomSheet,AdaptiveAlertDialog,AdaptiveDialog
   CompositionLocalAllowlist:
     active: true
-    allowedCompositionLocals: LocalAddArtifactToHomeScreen,LocalAttachmentDownloader,LocalDarkTheme,LocalGlassBackdrop,LocalGlassLevel,LocalGlassSheetHost,LocalGroupPosition,LocalInSeparateWindow,LocalMediaThumbnails,LocalNativeOverlayGate,LocalChatMediaViewer,LocalFeedbackEnabled,LocalImmediateMarkdown,LocalInlineArtifactPrefs,LocalMermaidRenderCache,LocalOpenArtifact,LocalOpenPdf,LocalParsedMarkdownCache,LocalRelativeTimeReference,LocalSearchFocusNonce,LocalSiteIcons,LocalSubagentProgress,LocalSubagentThreads,LocalSubagentThreadsAvailable,LocalSuppressGroupAutoCollapse
+    allowedCompositionLocals: LocalAddArtifactToHomeScreen,LocalAttachmentDownloader,LocalDarkTheme,LocalGlassBackdrop,LocalGlassLevel,LocalGlassSheetHost,LocalGroupPosition,LocalInSeparateWindow,LocalMediaThumbnails,LocalNativeOverlayGate,LocalChatMediaViewer,LocalFeedbackEnabled,LocalImmediateMarkdown,LocalInlineArtifactPrefs,LocalIosAppLocale,LocalMermaidRenderCache,LocalOpenArtifact,LocalOpenPdf,LocalParsedMarkdownCache,LocalRelativeTimeReference,LocalSearchFocusNonce,LocalSiteIcons,LocalSubagentProgress,LocalSubagentThreads,LocalSubagentThreadsAvailable,LocalSuppressGroupAutoCollapse
 
 # detekt-koin rule overrides (defaults ship in plugin jar; buildUponDefaultConfig = true)
 koin-rules:

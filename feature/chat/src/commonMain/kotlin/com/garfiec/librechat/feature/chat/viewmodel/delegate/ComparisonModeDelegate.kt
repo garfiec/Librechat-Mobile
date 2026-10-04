@@ -336,6 +336,7 @@ class ComparisonModeDelegate(
      * and reloads so the branched message surfaces. Triggers deferred navigation for new
      * chats that skipped it during comparison.
      */
+    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     fun branchFromComparison(agentId: String) {
         val messageId = handle.state.comparisonState.parallelMessageId ?: return
         val conversationId = handle.state.conversationId ?: return

@@ -28,6 +28,7 @@ data class PrefetchCandidateDetail(
     fun toCandidate(): PrefetchCandidate = PrefetchCandidate(conversationId, updatedAt, pinned)
 }
 
+@Suppress("TooManyFunctions") // debt: 20 functions
 @Dao
 interface ConversationDao {
 

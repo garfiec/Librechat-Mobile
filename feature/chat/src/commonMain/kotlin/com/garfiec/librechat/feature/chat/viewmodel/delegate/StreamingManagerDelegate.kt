@@ -44,6 +44,10 @@ import kotlinx.coroutines.launch
  * this one is the hub that drives them as events arrive. The send paths in `ChatViewModel`
  * build a request flow and hand it to [launchStream]; everything downstream lives here.
  */
+// debt — LargeClass: 1456-line file
+// debt — LongParameterList: constructor dependencies
+// debt — TooManyFunctions: 32 functions
+@Suppress("LargeClass", "LongParameterList", "TooManyFunctions")
 class StreamingManagerDelegate(
     private val handle: StreamingHandle,
     private val chatRepository: ChatRepository,
@@ -381,6 +385,7 @@ class StreamingManagerDelegate(
         retryCeiling = null
     }
 
+    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     private suspend fun collectStreamSafely(stream: Flow<StreamEvent>) {
         try {
             stream.collect { event -> handleStreamEvent(event) }
@@ -405,6 +410,9 @@ class StreamingManagerDelegate(
         }
     }
 
+    // debt — CyclomaticComplexMethod: complexity 36
+    // debt — LongMethod: 172 lines
+    @Suppress("CyclomaticComplexMethod", "LongMethod")
     private fun handleStreamEvent(event: StreamEvent) {
         // In comparison mode the delegate fans streaming deltas/tool-calls into the dual
         // panes; if it consumed the event, skip the single-stream handling below.
@@ -900,6 +908,7 @@ class StreamingManagerDelegate(
      * atomic finalize in `finalizeChatDisplay` (and handleFinal's degenerate fallback) owns
      * that, preserving the no-completion-flash invariant (#169).
      */
+    @Suppress("LongMethod") // debt: 118 lines
     private fun endStream(reason: StreamEndReason, session: Int = streamSession) {
         if (session != streamSession) return
         if (endedSession == session) return
@@ -1095,6 +1104,7 @@ class StreamingManagerDelegate(
         stopStreamingUpdater()
     }
 
+    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     fun onResume() {
         if (!wasStreaming) return
         wasStreaming = false
@@ -1239,6 +1249,7 @@ class StreamingManagerDelegate(
      * is active, end one that is not as [whenGone] (the refetch, no banner), and report a network
      * error only when the status read fails too.
      */
+    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     private fun adjudicateRetryCeiling(ceiling: RetryCeiling, session: Int, whenGone: StreamEndReason) {
         val message = ceiling.message
         val unreachable = StreamEndReason.StreamError(message, isNetwork = ceiling.networkWhenUnreachable)
@@ -1319,6 +1330,7 @@ class StreamingManagerDelegate(
         )
     }
 
+    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     fun resumeActiveStreamIfNeeded(
         conversationId: String,
         onInactive: () -> Unit = {},
@@ -1397,6 +1409,7 @@ class StreamingManagerDelegate(
      * If the last stream ended due to a network error, attempts to resume it
      * or falls back to reloading the conversation from the server.
      */
+    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     private fun attemptNetworkRecovery() {
         if (!lastErrorWasNetwork) return
         val state = handle.state

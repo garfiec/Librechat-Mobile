@@ -1,10 +1,10 @@
 package com.garfiec.librechat.shared
 
+import com.garfiec.librechat.core.data.prefetch.PrefetchScheduler
 import com.garfiec.librechat.core.network.api.AgentToolsApi
 import com.garfiec.librechat.core.network.api.PermissionsApi
 import com.garfiec.librechat.core.network.api.SkillsApi
 import com.garfiec.librechat.core.network.sse.SseClient
-import com.garfiec.librechat.core.data.prefetch.PrefetchScheduler
 import org.koin.core.annotation.KoinInternalApi
 import org.koin.dsl.koinApplication
 import kotlin.test.Test

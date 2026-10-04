@@ -102,6 +102,7 @@ class ConfigRepositoryImpl(
         // live one (see the interface KDoc); the add flow carries the result on its pending session.
         fetchAndValidateConfig { }
 
+    @Suppress("TooGenericExceptionCaught") // last resort after the typed catches above
     private suspend fun fetchAndValidateConfig(
         onValid: suspend (StartupConfig) -> Unit,
     ): Result<StartupConfig> {

@@ -6,6 +6,7 @@ import android.content.Intent
 import androidx.core.net.toUri
 import org.koin.mp.KoinPlatformTools
 
+@Suppress("NoGlobalContextAccess") // top-level actual with no injection point for the app Context
 actual fun openUri(uri: String): Boolean {
     val context = KoinPlatformTools.defaultContext().get().get<Context>()
     // Android 11+ package visibility hides other apps from resolveActivity(), but startActivity()

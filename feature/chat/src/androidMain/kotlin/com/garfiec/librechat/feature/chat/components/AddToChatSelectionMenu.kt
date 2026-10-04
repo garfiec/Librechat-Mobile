@@ -101,7 +101,7 @@ private class SelectionQuoteCapture(
             // quotes the user's unrelated previous clip (a password, an old snippet) into the
             // chat. ClipDescription.getTimestamp is API 26, which is minSdk.
             var captured: String? = null
-            for (attempt in 0 until CAPTURE_POLLS) {
+            for (ignored in 0 until CAPTURE_POLLS) {
                 delay(CAPTURE_POLL_MS)
                 val entry = suspendRunCatching { clipboard.getClipEntry() }.getOrNull()
                 val text = entry?.firstText()

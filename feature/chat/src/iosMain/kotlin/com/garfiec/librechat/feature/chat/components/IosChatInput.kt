@@ -1,3 +1,5 @@
+@file:Suppress("ForbiddenImport") // the composer styles its own field (ChatInputDefaults) for both interface styles
+
 package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.foundation.layout.Box
@@ -42,7 +44,7 @@ import org.jetbrains.compose.resources.stringResource
 fun IosChatInput(
     inputText: String,
     isStreaming: Boolean,
-    onInputChanged: (String) -> Unit,
+    onInputChange: (String) -> Unit,
     onSend: () -> Unit,
     onStop: () -> Unit,
     /**
@@ -99,7 +101,7 @@ fun IosChatInput(
     onCompact: (() -> Unit)? = null,
     contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
     promptSuggestions: List<PromptMentionDisplayData> = emptyList(),
-    onSlashCommandSelected: (PromptMentionDisplayData) -> Unit = {},
+    onSlashCommandSelect: (PromptMentionDisplayData) -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -138,7 +140,7 @@ fun IosChatInput(
         state = state,
         onSend = onSend,
         onStop = onStop,
-        onSelectPrompt = onSlashCommandSelected,
+        onSelectPrompt = onSlashCommandSelect,
         onToggleTool = onToggleTool,
         onQueue = onQueue,
         onDuringRunSend = onDuringRunSend,
@@ -198,7 +200,7 @@ fun IosChatInput(
                 // The composer draws its own field (ChatInputDefaults), glass included; not the adaptive one.
                 OutlinedTextField(
                     value = inputText,
-                    onValueChange = onInputChanged,
+                    onValueChange = onInputChange,
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 48.dp, max = 160.dp),
@@ -253,5 +255,4 @@ fun IosChatInput(
             )
         },
     )
-
 }

@@ -124,7 +124,10 @@ class AgentFileRemovalConfirmTest {
      */
     @Test
     fun `a removal the client would refuse is refused without asking`() = runTest(UnconfinedTestDispatcher()) {
-        editorOn(DetectedBackend("0.8.8-rc4", BackendBuildClass.RC), file = AgentFile(fileId = FILE_ID, filename = "notes.pdf")) { files, flow ->
+        editorOn(
+            DetectedBackend("0.8.8-rc4", BackendBuildClass.RC),
+            file = AgentFile(fileId = FILE_ID, filename = "notes.pdf"),
+        ) { files, flow ->
             files.removeAgentFile(FILE_ID, AgentFileSlot.KNOWLEDGE)
 
             assertThat(flow.value.pendingFileRemoval).isNull()

@@ -36,6 +36,7 @@ data class MessageNode(
  *        (e.g. an optimistic message not yet inserted), in which case the normal
  *        activeBranches walk applies.
  */
+@Suppress("CyclomaticComplexMethod") // debt: complexity 26
 fun buildActiveMessagePath(
     messages: List<Message>,
     activeBranches: Map<String, Int> = emptyMap(),

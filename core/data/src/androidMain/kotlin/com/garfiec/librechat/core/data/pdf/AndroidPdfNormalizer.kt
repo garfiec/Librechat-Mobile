@@ -100,7 +100,8 @@ class AndroidPdfNormalizer internal constructor(
     }
 
     /** False when [password] does not open the file. */
-    @Suppress("SwallowedException")
+    // debt — NestedBlockDepth: deeply nested
+    @Suppress("SwallowedException", "NestedBlockDepth")
     @SuppressLint("NewApi") // Each writer branch is gated by Writer.forDevice().
     private fun writeUnprotected(input: File, output: File, password: String): Boolean = try {
         input.openForRead().use { source ->

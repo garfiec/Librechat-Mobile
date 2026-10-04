@@ -99,6 +99,7 @@ class PresetPromptDelegate(
         }
     }
 
+    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     fun savePreset(name: String) {
         val state = handle.state
         val params = state.modelParameters
@@ -279,6 +280,7 @@ class PresetPromptDelegate(
  * properties on [ModelParameters]; everything else lands in [ModelParameters.dynamicValues]
  * so dropdown / switch / text controls round-trip without losing data.
  */
+@Suppress("CyclomaticComplexMethod") // debt: complexity 33
 internal fun ModelParameters.mergedFromPreset(preset: Preset): ModelParameters {
     // Start from an empty map: a preset's dynamicValues fully describe the
     // dynamic-keyed parameters it was saved with. Carrying current entries

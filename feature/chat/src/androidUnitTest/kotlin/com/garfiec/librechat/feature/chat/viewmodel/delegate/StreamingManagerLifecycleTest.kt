@@ -8,8 +8,8 @@ import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.PendingSteer
 import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.response.ChatAbortResponse
-import com.garfiec.librechat.feature.chat.util.AbortFrameFixtures
 import com.garfiec.librechat.core.model.response.ChatStatusResponse
+import com.garfiec.librechat.feature.chat.util.AbortFrameFixtures
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationMetaState
@@ -26,7 +26,6 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -86,7 +85,7 @@ class StreamingManagerLifecycleTest {
     )
 
     /** A generation epoch strictly after any admission the tests below set up. */
-    private val SUCCESSOR_EPOCH = 1_758_000_100_000L
+    private val successorEpoch = 1_758_000_100_000L
 
     private fun delegateWith(
         scope: TestScope,
@@ -387,14 +386,14 @@ class StreamingManagerLifecycleTest {
     fun `attaching to a server-started run retires the admissions it overtook`() =
         runTest(StandardTestDispatcher()) {
             coEvery { chatRepository.checkStreamStatus("conv-1", any()) } coAnswers {
-                claimingStatusAnswer(ChatStatusResponse(active = true, createdAt = SUCCESSOR_EPOCH))
+                claimingStatusAnswer(ChatStatusResponse(active = true, createdAt = successorEpoch))
             }
             val (delegate, _) = delegateWith(this, state = idleState())
 
             delegate.attachToServerStartedRun()
             advanceUntilIdle()
 
-            verify { queueDelegate.retireAdmissionsBefore(SUCCESSOR_EPOCH) }
+            verify { queueDelegate.retireAdmissionsBefore(successorEpoch) }
             delegate.reset()
             advanceUntilIdle()
         }
@@ -423,14 +422,14 @@ class StreamingManagerLifecycleTest {
         var calls = 0
         coEvery { chatRepository.checkStreamStatus("conv-1", any()) } coAnswers {
             if (++calls == 1) throw IllegalStateException("timeout")
-            claimingStatusAnswer(ChatStatusResponse(active = true, createdAt = SUCCESSOR_EPOCH))
+            claimingStatusAnswer(ChatStatusResponse(active = true, createdAt = successorEpoch))
         }
         val (delegate, _) = delegateWith(this, state = idleState())
 
         delegate.attachToServerStartedRun()
         advanceUntilIdle()
 
-        verify { queueDelegate.retireAdmissionsBefore(SUCCESSOR_EPOCH) }
+        verify { queueDelegate.retireAdmissionsBefore(successorEpoch) }
         delegate.reset()
         advanceUntilIdle()
     }

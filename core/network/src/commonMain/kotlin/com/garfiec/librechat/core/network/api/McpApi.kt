@@ -203,6 +203,7 @@ class McpApi constructor(
      * its values, and one that nests the `apiKey` or `oauth` object beside strings mixes element
      * types, so serialization throws before a request is sent.
      */
+    @Suppress("LongParameterList") // debt: wide parameter list
     private fun serverWriteBody(
         name: String,
         description: String?,

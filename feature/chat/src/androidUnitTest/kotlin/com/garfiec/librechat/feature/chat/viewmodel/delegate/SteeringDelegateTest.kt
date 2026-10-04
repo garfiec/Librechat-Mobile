@@ -361,7 +361,8 @@ class SteeringDelegateTest {
             Result.Error(ApiException(statusCode = 502, message = "Bad Gateway", body = ""))
         val (delegate, flow) = delegateWith(this)
         delegate.steer("conv-1", spec("be brief"))
-        val report = listOf(PendingSteer(steerId = "st-1", text = "be brief", clientSteerId = sent.captured.clientSteerId))
+        val report =
+            listOf(PendingSteer(steerId = "st-1", text = "be brief", clientSteerId = sent.captured.clientSteerId))
 
         delegate.onPendingSteersSynced(report)
         delegate.reclaim(report)

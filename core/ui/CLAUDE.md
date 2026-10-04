@@ -102,7 +102,7 @@ AdaptiveThing(...)
 Rules — follow these when writing or reviewing UI:
 1. **Screens use `Adaptive*` components, never raw M3 chrome.** Detekt `ForbiddenImport`
    (`config/detekt/detekt.yml`) bans the raw M3 versions outside `components/Adaptive*.kt` and
-   `components/topbar/`. Note CI's detekt only scans `commonMain`; androidMain/iosMain are on you.
+   `components/topbar/`.
 2. **The branch lives inside the component, once.** Two accepted shapes:
    - *early return* (above) when the glass variant is a different control (Switch, Checkbox, Radio,
      TabRow, SegmentedChoice, SectionHeader, TextField, spinner);

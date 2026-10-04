@@ -46,6 +46,7 @@ fun <T> Result<T>.getOrThrow(): T = when (this) {
  * Note that this wraps the whole block, not just the network call — a block that also touches Room
  * or DataStore gets those reads and writes on the IO dispatcher too, which is where they belong.
  */
+@Suppress("TooGenericExceptionCaught") // the app-wide failure-mapping boundary
 suspend fun <T> safeApiCall(block: suspend () -> T): Result<T> =
     try {
         Result.Success(withContext(ioDispatcher) { block() })

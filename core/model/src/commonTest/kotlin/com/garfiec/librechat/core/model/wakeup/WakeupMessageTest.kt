@@ -50,6 +50,7 @@ class WakeupMessageTest {
         }
     }
 
+    @Suppress("MaxLineLength") // single-line wire JSON fixture
     @Test
     fun parses_a_single_background_tool_wakeup() {
         val text = backgroundHeader + "\n" +

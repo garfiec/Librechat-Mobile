@@ -8,7 +8,9 @@ import com.garfiec.librechat.core.model.ParameterType
  * parameterSettings.ts. Each endpoint maps to an ordered list of ParameterDefinition that
  * drives the dynamic ModelParameterContent rendering.
  */
-@Suppress("TooManyFunctions") // Registry of per-endpoint/provider/variant param builders mirroring upstream parameterSettings.ts.
+// TooManyFunctions: registry of per-endpoint/provider/variant param builders mirroring upstream parameterSettings.ts.
+// debt — LargeClass: 1186-line file
+@Suppress("TooManyFunctions", "LargeClass")
 object EndpointParameterRegistry {
 
     /**
@@ -693,6 +695,7 @@ object EndpointParameterRegistry {
         tagsDefinition(),
     )
 
+    @Suppress("LongMethod") // debt: 150 lines
     private fun openAiParams() = listOf(
         ParameterDefinition(
             key = "chatGptLabel",
@@ -846,6 +849,7 @@ object EndpointParameterRegistry {
         tagsDefinition(),
     )
 
+    @Suppress("LongMethod") // debt: 133 lines
     private fun anthropicParams() = listOf(
         ParameterDefinition(
             key = "modelLabel",
@@ -980,6 +984,7 @@ object EndpointParameterRegistry {
         tagsDefinition(),
     )
 
+    @Suppress("LongMethod") // debt: 120 lines
     private fun googleParams() = listOf(
         ParameterDefinition(
             key = "modelLabel",

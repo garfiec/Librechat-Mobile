@@ -15,8 +15,8 @@ import com.garfiec.librechat.feature.chat.viewmodel.MessagesState
 import com.garfiec.librechat.feature.chat.viewmodel.StreamingHandle
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
-import io.mockk.mockk
 import io.mockk.every
+import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -391,7 +391,7 @@ class StreamingManagerEndStreamTest {
         delegate.launchStream(
             flow {
                 emit(StreamEvent.ContentDelta(chunk = "half an answer"))
-                throw RuntimeException("boom")
+                throw IllegalStateException("boom")
             },
         )
         advanceUntilIdle()

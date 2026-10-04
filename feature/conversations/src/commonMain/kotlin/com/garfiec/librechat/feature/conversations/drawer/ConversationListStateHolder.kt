@@ -65,6 +65,7 @@ class ConversationListStateHolder(
         loadInitialConversations()
     }
 
+    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     private fun observeConversations() {
         scope.launch {
             try {
@@ -115,6 +116,7 @@ class ConversationListStateHolder(
         }
     }
 
+    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     private suspend fun loadPage(cursor: String?): Boolean {
         return try {
             val result = conversationRepository.loadNextPage(cursor = cursor)

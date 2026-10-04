@@ -3,7 +3,6 @@ package com.garfiec.librechat.core.network.client
 import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
-import com.garfiec.librechat.core.network.client.SessionEndReason
 import com.google.common.truth.Truth.assertThat
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
@@ -13,7 +12,6 @@ import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
-import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -212,8 +210,11 @@ class AuthInterceptorTest {
 
         val engine = MockEngine {
             requestCount++
-            if (requestCount == 1) respond("Unauthorized", HttpStatusCode.Unauthorized)
-            else respond("OK", HttpStatusCode.OK)
+            if (requestCount == 1) {
+                respond("Unauthorized", HttpStatusCode.Unauthorized)
+            } else {
+                respond("OK", HttpStatusCode.OK)
+            }
         }
         val client = createClient(tokenManager, engine)
 
@@ -411,8 +412,11 @@ class AuthInterceptorTest {
         val engine = MockEngine { request ->
             requestCount++
             capturedTokens.add(request.headers[HttpHeaders.Authorization])
-            if (requestCount == 1) respond("Unauthorized", HttpStatusCode.Unauthorized)
-            else respond("OK", HttpStatusCode.OK)
+            if (requestCount == 1) {
+                respond("Unauthorized", HttpStatusCode.Unauthorized)
+            } else {
+                respond("OK", HttpStatusCode.OK)
+            }
         }
         val client = createClient(
             tokenManager,

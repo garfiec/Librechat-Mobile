@@ -69,6 +69,7 @@ import kotlin.time.Clock
  * if it changed, so a refresh that races a teardown can never resurrect the cleared session even
  * though the POST holds no lock — while another account's changes leave it valid.
  */
+@Suppress("TooManyFunctions") // debt: 51 functions
 abstract class CommonTokenDataStore(
     private val refreshClient: Lazy<HttpClient>,
     private val ioDispatcher: CoroutineDispatcher,
@@ -721,6 +722,7 @@ abstract class CommonTokenDataStore(
      * Caller owns the flight lock, and owns the coalescing check. Never takes the lock (the mutex is
      * not reentrant).
      */
+    @Suppress("ReturnCount") // debt: 10 returns
     private suspend fun refreshUnderFlightLock(
         accountKey: String?,
         absoluteRefreshUrl: String?,
@@ -848,6 +850,7 @@ abstract class CommonTokenDataStore(
     }
 
     /** One refresh POST + classification. Caller owns the flight lock and the retry/backoff loop. */
+    @Suppress("TooGenericExceptionCaught") // separates keystore corruption from transport failure; neither may throw
     private suspend fun attemptRefresh(
         accountKey: String?,
         epochAtStart: Int,
@@ -1021,6 +1024,7 @@ abstract class CommonTokenDataStore(
         httpResponse.headers[HttpHeaders.RetryAfter]?.trim()?.toLongOrNull()?.let { it * 1000 }
 
     /** Parse + commit a 2xx refresh. A malformed body or a discarded commit is not a hard failure. */
+    @Suppress("TooGenericExceptionCaught") // a 2xx with a non-JSON body is recoverable, not a dead session
     private suspend fun handleSuccess(
         accountKey: String?,
         epochAtStart: Int,

@@ -82,7 +82,8 @@ class ChatOverflowSectionsTest {
 
     @Test
     fun serverGatesRemoveTheirItems() {
-        val result = sections(presetsEnabled = false, promptsEnabled = false, sharedLinksEnabled = false, multiConvoEnabled = false)
+        val result =
+            sections(presetsEnabled = false, promptsEnabled = false, sharedLinksEnabled = false, multiConvoEnabled = false)
         assertEquals(listOf(SEARCH, SHOW_ALL_MEDIA, TRACE, CONTEXT_USAGE), result[0])
         assertEquals(listOf(RENAME, DUPLICATE, ARCHIVE), result[1])
     }

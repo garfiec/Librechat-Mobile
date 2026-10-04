@@ -87,6 +87,7 @@ private enum class Claim { Tap, Hold, Drag, Yield }
 fun Modifier.listDragSelection(state: ListDragSelection?, holdOnly: Boolean = false): Modifier =
     if (state == null) this else dragSelectGesture(state, holdOnly)
 
+@Suppress("CyclomaticComplexMethod") // debt: complexity 33
 private fun Modifier.dragSelectGesture(state: ListDragSelection, holdOnly: Boolean): Modifier =
     onPlaced { state.container = it }
         .drawBehind { drawHighlight(state.highlight, state.container, state.color) }

@@ -57,6 +57,7 @@ data class WakeupDisplay(
  */
 object WakeupMessage {
 
+    @Suppress("ReturnCount") // debt: 10 returns
     fun parse(text: String?): WakeupDisplay? {
         if (text.isNullOrEmpty() || text.length > MAX_WAKEUP_TEXT_CHARS) return null
         // Both headers are one fixed line ending in a newline, so the first line alone decides —

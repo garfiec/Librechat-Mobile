@@ -11,6 +11,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -42,7 +43,7 @@ class ClearFocusOnTapInstrumentedTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private var buttonClicks by mutableStateOf(0)
+    private var buttonClicks by mutableIntStateOf(0)
     private val listState = LazyListState()
 
     private fun setContent(clearFocusOnTap: Boolean = true) = composeRule.setContent {

@@ -126,7 +126,8 @@ import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-@Suppress("TooManyFunctions", "LongParameterList")
+// debt — LargeClass: 2928-line file
+@Suppress("TooManyFunctions", "LongParameterList", "LargeClass")
 class ChatViewModel(
     initialConversationId: String? = null,
     initialAgentId: String? = null,

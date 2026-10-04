@@ -3,6 +3,7 @@ package com.garfiec.librechat.core.data.repository
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.garfiec.librechat.core.common.BackendBuildClass
 import com.garfiec.librechat.core.common.DetectedBackend
+import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.pdf.PdfNormalizeResult
 import com.garfiec.librechat.core.data.pdf.PdfNormalizer
@@ -16,13 +17,12 @@ import com.garfiec.librechat.core.network.di.librechatJson
 import com.google.common.truth.Truth.assertThat
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import com.garfiec.librechat.core.common.result.ApiException
 import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.plugins.api.createClientPlugin
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
-import io.ktor.client.request.header
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText

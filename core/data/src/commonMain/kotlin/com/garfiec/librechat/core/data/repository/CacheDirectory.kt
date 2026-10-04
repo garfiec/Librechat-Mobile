@@ -39,6 +39,7 @@ internal expect fun deleteDirectoryRecursively(path: String)
 class CommonSessionCacheCleaner(
     private val cacheRoot: () -> String,
 ) : SessionCacheCleaner {
+    @Suppress("TooGenericExceptionCaught") // best-effort cleanup on logout
     override fun clearFileCaches() {
         try {
             val root = cacheRoot()

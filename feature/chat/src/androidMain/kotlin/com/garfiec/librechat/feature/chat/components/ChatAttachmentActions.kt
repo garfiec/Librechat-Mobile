@@ -43,7 +43,7 @@ class ChatAttachmentActions(
  */
 @Composable
 fun rememberChatAttachmentActions(
-    onFilesSelected: (List<Uri>) -> Unit,
+    onFilesSelect: (List<Uri>) -> Unit,
     filePickerMimeTypes: List<String> = emptyList(),
 ): ChatAttachmentActions {
     val context = LocalContext.current
@@ -52,7 +52,7 @@ fun rememberChatAttachmentActions(
         contract = ActivityResultContracts.OpenMultipleDocuments(),
     ) { uris ->
         if (uris.isNotEmpty()) {
-            onFilesSelected(uris)
+            onFilesSelect(uris)
         }
     }
 
@@ -60,7 +60,7 @@ fun rememberChatAttachmentActions(
         contract = ActivityResultContracts.PickMultipleVisualMedia(),
     ) { uris ->
         if (uris.isNotEmpty()) {
-            onFilesSelected(uris)
+            onFilesSelect(uris)
         }
     }
 
@@ -71,7 +71,7 @@ fun rememberChatAttachmentActions(
     ) { success ->
         val uri = cameraPhotoUri
         if (success && uri != null) {
-            onFilesSelected(listOf(uri))
+            onFilesSelect(listOf(uri))
         }
         cameraPhotoUri = null
     }
