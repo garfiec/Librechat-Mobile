@@ -39,7 +39,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.abs
 
 /**
@@ -78,8 +77,6 @@ fun rememberListDragSelection(): ListDragSelection {
         .also { it.color = color }
 }
 
-private enum class Claim { Tap, Hold, Drag, Yield }
-
 /**
  * On the layout holding the rows; draws the highlight behind them. With [state] null it does nothing.
  * [holdOnly] is for rows that scroll or sit in a sheet: a vertical drag before the hold is theirs.
@@ -93,7 +90,6 @@ private fun Modifier.dragSelectGesture(state: ListDragSelection, holdOnly: Boole
         .drawBehind { drawHighlight(state.highlight, state.container, state.color) }
         .pointerInput(state, holdOnly) {
             val slop = viewConfiguration.touchSlop
-            val holdMillis = viewConfiguration.longPressTimeoutMillis
             val highlight = state.highlight
             fun toScreen(local: Offset): Offset? =
                 state.container?.takeIf { it.isAttached }?.localToScreen(local)?.takeIf { it.isSpecified }
@@ -107,50 +103,33 @@ private fun Modifier.dragSelectGesture(state: ListDragSelection, holdOnly: Boole
                 // The pressed state, before the gesture is known to be a drag-select.
                 highlight.hover(start, tick = false)
 
-                // Main pass, so a child's own drag (the account avatar's swipe) consumes first and
-                // wins, and this runs before the drawer's horizontal drag above it.
-                val claim = withTimeoutOrNull(holdMillis) {
-                    var result: Claim? = null
-                    while (result == null) {
-                        val change = awaitPointerEvent().changes.firstOrNull { it.id == down.id }
-                        val delta = change?.let { it.position - down.position } ?: Offset.Zero
-                        result = when {
-                            change == null || change.isConsumed -> Claim.Yield
-                            !change.pressed -> Claim.Tap
-                            !holdOnly && abs(delta.y) > slop && abs(delta.y) > abs(delta.x) -> {
-                                change.consume()
-                                Claim.Drag
-                            }
-                            abs(delta.x) > slop || (holdOnly && abs(delta.y) > slop) -> Claim.Yield
+                val claim = awaitHoldOrDrag(
+                    down,
+                    // Main pass, so a child's own drag (the account avatar's swipe) consumes first and
+                    // wins, and this runs before the drawer's horizontal drag above it.
+                    pass = PointerEventPass.Main,
+                    yieldWhenConsumed = true,
+                    claimMove = { delta ->
+                        when {
+                            !holdOnly && abs(delta.y) > slop && abs(delta.y) > abs(delta.x) -> HoldOrDrag.Drag
+                            abs(delta.x) > slop || (holdOnly && abs(delta.y) > slop) -> HoldOrDrag.Yield
                             else -> null
                         }
-                    }
-                    result
-                } ?: Claim.Hold
+                    },
+                )
 
-                if (claim == Claim.Hold || claim == Claim.Drag) {
-                    if (claim == Claim.Hold) state.held()
+                if (claim == HoldOrDrag.Hold || claim == HoldOrDrag.Drag) {
+                    if (claim == HoldOrDrag.Hold) state.held()
                     // A hold released without moving is the row's own click, already on its way.
-                    var dragging = claim == Claim.Drag
-                    while (true) {
-                        // Initial pass once claimed: a list's own scroll sits inside this modifier (a
-                        // LazyColumn's), so in the Main pass it would see the drag first and scroll, or
-                        // hand it to the sheet. Consumed here, neither starts.
-                        val change = awaitPointerEvent(PointerEventPass.Initial).changes
-                            .firstOrNull { it.id == down.id } ?: break
-                        if (!change.pressed) {
-                            if (dragging && highlight.select() != null) change.consume()
-                            break
-                        }
-                        if (!dragging && (change.position - down.position).getDistance() > slop) dragging = true
-                        if (dragging) {
-                            highlight.hover(toScreen(change.position)?.let(highlight::targetAt))
-                            change.consume()
-                        }
-                    }
+                    trackHoldOrDrag(
+                        down,
+                        dragging = claim == HoldOrDrag.Drag,
+                        onDrag = { highlight.hover(toScreen(it.position)?.let(highlight::targetAt)) },
+                        onRelease = { if (highlight.select() != null) it.consume() },
+                    )
                 }
                 // A scroll that took the press fades it at once; anything else is a release.
-                if (claim == Claim.Yield) highlight.hover(null) else highlight.release()
+                if (claim == HoldOrDrag.Yield) highlight.hover(null) else highlight.release()
             }
         }
 
