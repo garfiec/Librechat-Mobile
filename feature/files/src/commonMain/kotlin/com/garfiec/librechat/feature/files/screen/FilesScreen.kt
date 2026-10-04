@@ -86,7 +86,8 @@ import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTint
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.media.MediaActionBar
-import com.garfiec.librechat.core.ui.media.ZoomableMediaPager
+import com.garfiec.librechat.core.ui.media.MediaViewerHost
+import com.garfiec.librechat.core.ui.media.mediaThumbnail
 import com.garfiec.librechat.core.ui.media.rememberSaveImageToGallery
 import com.garfiec.librechat.core.ui.media.rememberShareImage
 import com.garfiec.librechat.feature.files.FileDisplayData
@@ -165,104 +166,53 @@ fun FilesScreen(
         viewModel.dismissError()
     }
 
-    AdaptiveScaffold(
-        modifier = modifier,
-        snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
-        topBar = {
-            if (pickerMode) {
-                AdaptiveTopBar(
-                    spec = AdaptiveTopBarSpec(
-                        navigation = onBack?.let {
-                            BarNavigation(BarIcons.Close, stringResource(Res.string.cd_close_picker), it)
-                        },
-                        title = BarTitle(
-                            if (uiState.selectedFileIds.isEmpty()) {
-                                stringResource(Res.string.select_files)
-                            } else {
-                                stringResource(Res.string.selected_count, uiState.selectedFileIds.size)
+    // Remembered outside the viewer so the save/share scope (and the permission launcher) live as
+    // long as the screen, letting an in-flight save/share survive the viewer being dismissed.
+    val saveImage = rememberSaveImageToGallery()
+    val shareImage = rememberShareImage()
+    // Resolved once here (not inside the per-item actions slot) so paging doesn't re-resolve
+    // string resources on every swipe.
+    val saveDescription = stringResource(Res.string.cd_save_image)
+    val shareDescription = stringResource(Res.string.cd_share_image)
+    MediaViewerHost(
+        preview = uiState.mediaPreview,
+        onDismiss = viewModel::closeMediaPreview,
+        closeContentDescription = stringResource(Res.string.cd_close_preview),
+        defaultContentDescription = stringResource(Res.string.cd_image),
+        actions = { item ->
+            MediaActionBar(
+                item = item,
+                onSave = saveImage,
+                onShare = shareImage,
+                saveContentDescription = saveDescription,
+                shareContentDescription = shareDescription,
+            )
+        },
+    ) {
+        AdaptiveScaffold(
+            modifier = modifier,
+            snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
+            topBar = {
+                if (pickerMode) {
+                    AdaptiveTopBar(
+                        spec = AdaptiveTopBarSpec(
+                            navigation = onBack?.let {
+                                BarNavigation(BarIcons.Close, stringResource(Res.string.cd_close_picker), it)
                             },
-                        ),
-                        actions = listOf(
-                            BarAction.Icon(
-                                id = "select_all",
-                                icon = BarIcons.SelectAll,
-                                label = stringResource(Res.string.cd_select_all),
-                                onClick = { viewModel.selectAll() },
-                            ),
-                            BarAction.Icon(
-                                id = "view_mode",
-                                icon = if (uiState.viewMode == FileViewMode.LIST) BarIcons.GridView else BarIcons.ListView,
-                                label = if (uiState.viewMode == FileViewMode.LIST) {
-                                    stringResource(Res.string.cd_switch_to_grid)
+                            title = BarTitle(
+                                if (uiState.selectedFileIds.isEmpty()) {
+                                    stringResource(Res.string.select_files)
                                 } else {
-                                    stringResource(Res.string.cd_switch_to_list)
+                                    stringResource(Res.string.selected_count, uiState.selectedFileIds.size)
                                 },
-                                onClick = { viewModel.toggleViewMode() },
                             ),
-                            BarAction.Text(
-                                id = "attach",
-                                label = stringResource(Res.string.attach_count, uiState.selectedFileIds.size),
-                                enabled = uiState.selectedFileIds.isNotEmpty(),
-                                onClick = { onConfirmSelection?.invoke(viewModel.confirmSelection()) },
-                            ),
-                        ),
-                    ),
-                )
-            } else if (uiState.isSelectionMode) {
-                AdaptiveTopBar(
-                    spec = AdaptiveTopBarSpec(
-                        navigation = BarNavigation(
-                            BarIcons.Close,
-                            stringResource(Res.string.cd_exit_edit_mode),
-                            requestExitSelection,
-                        ),
-                        title = BarTitle(
-                            if (uiState.selectedFileIds.isEmpty()) {
-                                stringResource(Res.string.select_files)
-                            } else {
-                                stringResource(Res.string.selected_count, uiState.selectedFileIds.size)
-                            },
-                        ),
-                        actions = listOf(
-                            BarAction.Icon(
-                                id = "select_all",
-                                icon = BarIcons.SelectAll,
-                                label = stringResource(Res.string.cd_select_all),
-                                onClick = { viewModel.selectAll() },
-                            ),
-                            BarAction.Icon(
-                                id = "delete",
-                                icon = BarIcons.DeleteFilled,
-                                label = stringResource(Res.string.cd_delete_selected),
-                                tint = BarTint.DESTRUCTIVE,
-                                enabled = uiState.selectedFileIds.isNotEmpty(),
-                                onClick = { showDeleteConfirmation = true },
-                            ),
-                            BarAction.Text(
-                                id = "done",
-                                label = stringResource(Res.string.done),
-                                onClick = { viewModel.exitSelectionMode() },
-                            ),
-                        ),
-                    ),
-                )
-            } else {
-                AdaptiveTopBar(
-                    spec = AdaptiveTopBarSpec(
-                        navigation = onBack?.let { BarNavigation(BarIcons.Back, "Back", it) },
-                        title = BarTitle(stringResource(Res.string.files)),
-                        actions = buildList {
-                            if (uiState.hasFiles) {
-                                add(
-                                    BarAction.Icon(
-                                        id = "edit",
-                                        icon = BarIcons.EditFilled,
-                                        label = stringResource(Res.string.cd_edit_files),
-                                        onClick = { viewModel.enterEditMode() },
-                                    ),
-                                )
-                            }
-                            add(
+                            actions = listOf(
+                                BarAction.Icon(
+                                    id = "select_all",
+                                    icon = BarIcons.SelectAll,
+                                    label = stringResource(Res.string.cd_select_all),
+                                    onClick = { viewModel.selectAll() },
+                                ),
                                 BarAction.Icon(
                                     id = "view_mode",
                                     icon = if (uiState.viewMode == FileViewMode.LIST) BarIcons.GridView else BarIcons.ListView,
@@ -273,200 +223,275 @@ fun FilesScreen(
                                     },
                                     onClick = { viewModel.toggleViewMode() },
                                 ),
-                            )
-                            add(
-                                BarAction.Menu(
-                                    id = "sort",
-                                    icon = BarIcons.Sort,
-                                    label = stringResource(Res.string.cd_sort_files),
-                                    sections = listOf(
-                                        BarMenuSection(
-                                            FileSortField.entries.map { field ->
-                                                val isSelected = field == uiState.sortField
-                                                BarMenuItem(
-                                                    id = field.name,
-                                                    label = field.label,
-                                                    icon = null,
-                                                    checked = isSelected,
-                                                    subtitle = if (!isSelected) {
-                                                        null
-                                                    } else if (uiState.sortOrder == FileSortOrder.ASCENDING) {
-                                                        stringResource(Res.string.cd_ascending)
-                                                    } else {
-                                                        stringResource(Res.string.cd_descending)
-                                                    },
-                                                    // Re-selecting the active field flips the order; a new field starts descending.
-                                                    onClick = {
-                                                        val order = when {
-                                                            !isSelected -> FileSortOrder.DESCENDING
-                                                            uiState.sortOrder == FileSortOrder.ASCENDING -> FileSortOrder.DESCENDING
-                                                            else -> FileSortOrder.ASCENDING
-                                                        }
-                                                        viewModel.setSort(field, order)
-                                                    },
-                                                )
-                                            },
+                                BarAction.Text(
+                                    id = "attach",
+                                    label = stringResource(Res.string.attach_count, uiState.selectedFileIds.size),
+                                    enabled = uiState.selectedFileIds.isNotEmpty(),
+                                    onClick = { onConfirmSelection?.invoke(viewModel.confirmSelection()) },
+                                ),
+                            ),
+                        ),
+                    )
+                } else if (uiState.isSelectionMode) {
+                    AdaptiveTopBar(
+                        spec = AdaptiveTopBarSpec(
+                            navigation = BarNavigation(
+                                BarIcons.Close,
+                                stringResource(Res.string.cd_exit_edit_mode),
+                                requestExitSelection,
+                            ),
+                            title = BarTitle(
+                                if (uiState.selectedFileIds.isEmpty()) {
+                                    stringResource(Res.string.select_files)
+                                } else {
+                                    stringResource(Res.string.selected_count, uiState.selectedFileIds.size)
+                                },
+                            ),
+                            actions = listOf(
+                                BarAction.Icon(
+                                    id = "select_all",
+                                    icon = BarIcons.SelectAll,
+                                    label = stringResource(Res.string.cd_select_all),
+                                    onClick = { viewModel.selectAll() },
+                                ),
+                                BarAction.Icon(
+                                    id = "delete",
+                                    icon = BarIcons.DeleteFilled,
+                                    label = stringResource(Res.string.cd_delete_selected),
+                                    tint = BarTint.DESTRUCTIVE,
+                                    enabled = uiState.selectedFileIds.isNotEmpty(),
+                                    onClick = { showDeleteConfirmation = true },
+                                ),
+                                BarAction.Text(
+                                    id = "done",
+                                    label = stringResource(Res.string.done),
+                                    onClick = { viewModel.exitSelectionMode() },
+                                ),
+                            ),
+                        ),
+                    )
+                } else {
+                    AdaptiveTopBar(
+                        spec = AdaptiveTopBarSpec(
+                            navigation = onBack?.let { BarNavigation(BarIcons.Back, "Back", it) },
+                            title = BarTitle(stringResource(Res.string.files)),
+                            actions = buildList {
+                                if (uiState.hasFiles) {
+                                    add(
+                                        BarAction.Icon(
+                                            id = "edit",
+                                            icon = BarIcons.EditFilled,
+                                            label = stringResource(Res.string.cd_edit_files),
+                                            onClick = { viewModel.enterEditMode() },
+                                        ),
+                                    )
+                                }
+                                add(
+                                    BarAction.Icon(
+                                        id = "view_mode",
+                                        icon = if (uiState.viewMode == FileViewMode.LIST) BarIcons.GridView else BarIcons.ListView,
+                                        label = if (uiState.viewMode == FileViewMode.LIST) {
+                                            stringResource(Res.string.cd_switch_to_grid)
+                                        } else {
+                                            stringResource(Res.string.cd_switch_to_list)
+                                        },
+                                        onClick = { viewModel.toggleViewMode() },
+                                    ),
+                                )
+                                add(
+                                    BarAction.Menu(
+                                        id = "sort",
+                                        icon = BarIcons.Sort,
+                                        label = stringResource(Res.string.cd_sort_files),
+                                        sections = listOf(
+                                            BarMenuSection(
+                                                FileSortField.entries.map { field ->
+                                                    val isSelected = field == uiState.sortField
+                                                    BarMenuItem(
+                                                        id = field.name,
+                                                        label = field.label,
+                                                        icon = null,
+                                                        checked = isSelected,
+                                                        subtitle = if (!isSelected) {
+                                                            null
+                                                        } else if (uiState.sortOrder == FileSortOrder.ASCENDING) {
+                                                            stringResource(Res.string.cd_ascending)
+                                                        } else {
+                                                            stringResource(Res.string.cd_descending)
+                                                        },
+                                                        // Re-selecting the active field flips the order; a new field starts descending.
+                                                        onClick = {
+                                                            val order = when {
+                                                                !isSelected -> FileSortOrder.DESCENDING
+                                                                uiState.sortOrder == FileSortOrder.ASCENDING -> FileSortOrder.DESCENDING
+                                                                else -> FileSortOrder.ASCENDING
+                                                            }
+                                                            viewModel.setSort(field, order)
+                                                        },
+                                                    )
+                                                },
+                                            ),
                                         ),
                                     ),
-                                ),
-                            )
-                        },
-                    ),
-                )
-            }
-        },
-        floatingActionButton = {
-            if (!uiState.isSelectionMode && !pickerMode) {
-                AdaptiveFloatingActionButton(
-                    onClick = { filePickerLauncher.launch(uiState.pickerMimeTypes) },
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = stringResource(Res.string.cd_upload_file),
+                                )
+                            },
+                        ),
                     )
                 }
-            }
-        },
-    ) { padding ->
-        PullToRefreshBox(
-            isRefreshing = uiState.isRefreshing,
-            onRefresh = viewModel::refresh,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-        ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                // File type filter tabs
-                val filters = FileTypeFilter.entries
-                val selectedIndex = filters.indexOf(uiState.selectedFilter)
-                ScrollableTabRow(
-                    selectedTabIndex = selectedIndex,
-                    edgePadding = 16.dp,
-                ) {
-                    filters.forEach { filter ->
-                        Tab(
-                            selected = filter == uiState.selectedFilter,
-                            onClick = { viewModel.setFilter(filter) },
-                            text = { Text(filter.label) },
+            },
+            floatingActionButton = {
+                if (!uiState.isSelectionMode && !pickerMode) {
+                    AdaptiveFloatingActionButton(
+                        onClick = { filePickerLauncher.launch(uiState.pickerMimeTypes) },
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = stringResource(Res.string.cd_upload_file),
                         )
                     }
                 }
-
-                when {
-                    uiState.isLoading -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            AdaptiveCircularProgressIndicator()
+            },
+        ) { padding ->
+            PullToRefreshBox(
+                isRefreshing = uiState.isRefreshing,
+                onRefresh = viewModel::refresh,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+            ) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    // File type filter tabs
+                    val filters = FileTypeFilter.entries
+                    val selectedIndex = filters.indexOf(uiState.selectedFilter)
+                    ScrollableTabRow(
+                        selectedTabIndex = selectedIndex,
+                        edgePadding = 16.dp,
+                    ) {
+                        filters.forEach { filter ->
+                            Tab(
+                                selected = filter == uiState.selectedFilter,
+                                onClick = { viewModel.setFilter(filter) },
+                                text = { Text(filter.label) },
+                            )
                         }
                     }
-                    uiState.error != null && !uiState.hasFiles -> {
-                        ErrorBanner(
-                            message = uiState.error ?: stringResource(Res.string.could_not_load_files),
-                            onRetry = {
-                                viewModel.dismissError()
-                                viewModel.loadFiles()
-                            },
-                        )
-                    }
-                    uiState.displayFiles.isEmpty() && !uiState.isRefreshing -> {
-                        EmptyState(
-                            title = if (uiState.selectedFilter == FileTypeFilter.ALL) {
-                                stringResource(Res.string.no_files)
-                            } else {
-                                stringResource(Res.string.no_filter_files, uiState.selectedFilter.label.lowercase())
-                            },
-                            description = if (uiState.selectedFilter == FileTypeFilter.ALL) {
-                                stringResource(Res.string.upload_to_get_started)
-                            } else {
-                                stringResource(Res.string.no_filter_files_found, uiState.selectedFilter.label.lowercase())
-                            },
-                            icon = Icons.Default.Folder,
-                        )
-                    }
-                    else -> {
-                        when (uiState.viewMode) {
-                            FileViewMode.LIST -> {
-                                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                                    items(
-                                        items = uiState.displayFiles,
-                                        key = { it.fileId },
-                                        contentType = { "file" },
-                                    ) { file ->
-                                        FileItem(
-                                            file = file,
-                                            isEditMode = uiState.isSelectionMode || pickerMode,
-                                            isSelected = file.fileId in uiState.selectedFileIds,
-                                            // The picker must never delete — it only attaches by reference.
-                                            showDelete = !pickerMode,
-                                            onDelete = { singleDeleteFileId = file.fileId },
-                                            onLongClick = {
-                                                if (!pickerMode) {
-                                                    viewModel.enterSelectionMode(file.fileId)
-                                                }
-                                            },
-                                            onClick = {
-                                                if (uiState.isSelectionMode || pickerMode) {
-                                                    viewModel.toggleFileSelection(file.fileId)
-                                                } else if (file.type.startsWith("image/")) {
-                                                    viewModel.openImagePreview(file.fileId)
-                                                } else {
-                                                    viewModel.openFilePreview(file.fileId)
-                                                }
-                                            },
-                                        )
+
+                    when {
+                        uiState.isLoading -> {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                AdaptiveCircularProgressIndicator()
+                            }
+                        }
+                        uiState.error != null && !uiState.hasFiles -> {
+                            ErrorBanner(
+                                message = uiState.error ?: stringResource(Res.string.could_not_load_files),
+                                onRetry = {
+                                    viewModel.dismissError()
+                                    viewModel.loadFiles()
+                                },
+                            )
+                        }
+                        uiState.displayFiles.isEmpty() && !uiState.isRefreshing -> {
+                            EmptyState(
+                                title = if (uiState.selectedFilter == FileTypeFilter.ALL) {
+                                    stringResource(Res.string.no_files)
+                                } else {
+                                    stringResource(Res.string.no_filter_files, uiState.selectedFilter.label.lowercase())
+                                },
+                                description = if (uiState.selectedFilter == FileTypeFilter.ALL) {
+                                    stringResource(Res.string.upload_to_get_started)
+                                } else {
+                                    stringResource(Res.string.no_filter_files_found, uiState.selectedFilter.label.lowercase())
+                                },
+                                icon = Icons.Default.Folder,
+                            )
+                        }
+                        else -> {
+                            when (uiState.viewMode) {
+                                FileViewMode.LIST -> {
+                                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                                        items(
+                                            items = uiState.displayFiles,
+                                            key = { it.fileId },
+                                            contentType = { "file" },
+                                        ) { file ->
+                                            FileItem(
+                                                file = file,
+                                                isEditMode = uiState.isSelectionMode || pickerMode,
+                                                isSelected = file.fileId in uiState.selectedFileIds,
+                                                // The picker must never delete — it only attaches by reference.
+                                                showDelete = !pickerMode,
+                                                onDelete = { singleDeleteFileId = file.fileId },
+                                                onLongClick = {
+                                                    if (!pickerMode) {
+                                                        viewModel.enterSelectionMode(file.fileId)
+                                                    }
+                                                },
+                                                onClick = {
+                                                    if (uiState.isSelectionMode || pickerMode) {
+                                                        viewModel.toggleFileSelection(file.fileId)
+                                                    } else if (file.type.startsWith("image/")) {
+                                                        viewModel.openImagePreview(file.fileId)
+                                                    } else {
+                                                        viewModel.openFilePreview(file.fileId)
+                                                    }
+                                                },
+                                            )
+                                        }
                                     }
                                 }
-                            }
-                            FileViewMode.GRID -> {
-                                LazyVerticalGrid(
-                                    columns = GridCells.Adaptive(minSize = 150.dp),
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentPadding = PaddingValues(8.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    items(
-                                        items = uiState.displayFiles,
-                                        key = { it.fileId },
-                                        contentType = { "file_grid" },
-                                    ) { file ->
-                                        FileGridItem(
-                                            file = file,
-                                            isSelectionMode = uiState.isSelectionMode || pickerMode,
-                                            isSelected = file.fileId in uiState.selectedFileIds,
-                                            onLongClick = {
-                                                if (!pickerMode) {
-                                                    viewModel.enterSelectionMode(file.fileId)
-                                                }
-                                            },
-                                            onClick = {
-                                                if (uiState.isSelectionMode || pickerMode) {
-                                                    viewModel.toggleFileSelection(file.fileId)
-                                                } else if (file.type.startsWith("image/")) {
-                                                    viewModel.openImagePreview(file.fileId)
-                                                } else {
-                                                    viewModel.openFilePreview(file.fileId)
-                                                }
-                                            },
-                                        )
+                                FileViewMode.GRID -> {
+                                    LazyVerticalGrid(
+                                        columns = GridCells.Adaptive(minSize = 150.dp),
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentPadding = PaddingValues(8.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        items(
+                                            items = uiState.displayFiles,
+                                            key = { it.fileId },
+                                            contentType = { "file_grid" },
+                                        ) { file ->
+                                            FileGridItem(
+                                                file = file,
+                                                isSelectionMode = uiState.isSelectionMode || pickerMode,
+                                                isSelected = file.fileId in uiState.selectedFileIds,
+                                                onLongClick = {
+                                                    if (!pickerMode) {
+                                                        viewModel.enterSelectionMode(file.fileId)
+                                                    }
+                                                },
+                                                onClick = {
+                                                    if (uiState.isSelectionMode || pickerMode) {
+                                                        viewModel.toggleFileSelection(file.fileId)
+                                                    } else if (file.type.startsWith("image/")) {
+                                                        viewModel.openImagePreview(file.fileId)
+                                                    } else {
+                                                        viewModel.openFilePreview(file.fileId)
+                                                    }
+                                                },
+                                            )
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            // Upload progress overlay
-            UploadProgressCard(
-                visible = uiState.isUploading,
-                filename = uiState.uploadFilename,
-                progress = uiState.uploadProgress,
-                onCancel = viewModel::cancelUpload,
-                modifier = Modifier.align(Alignment.TopCenter),
-            )
+                // Upload progress overlay
+                UploadProgressCard(
+                    visible = uiState.isUploading,
+                    filename = uiState.uploadFilename,
+                    progress = uiState.uploadProgress,
+                    onCancel = viewModel::cancelUpload,
+                    modifier = Modifier.align(Alignment.TopCenter),
+                )
+            }
         }
     }
 
@@ -571,36 +596,6 @@ fun FilesScreen(
             file = previewFile,
             onDismiss = viewModel::closeFilePreview,
             onDownloadFile = viewModel::downloadFileBytes,
-        )
-    }
-
-    // Full-screen zoomable image viewer.
-    // Remembered above the `if` so the save/share scope (and the permission launcher) live as
-    // long as the screen, letting an in-flight save/share survive the viewer being dismissed.
-    val mediaPreview = uiState.mediaPreview
-    val saveImage = rememberSaveImageToGallery()
-    val shareImage = rememberShareImage()
-    if (mediaPreview != null) {
-        // Resolved once here (not inside the per-item actions slot) so paging doesn't re-resolve
-        // string resources on every swipe.
-        val saveDescription = stringResource(Res.string.cd_save_image)
-        val shareDescription = stringResource(Res.string.cd_share_image)
-        val imageDescription = stringResource(Res.string.cd_image)
-        ZoomableMediaPager(
-            items = mediaPreview.items,
-            initialIndex = mediaPreview.initialIndex,
-            onDismiss = viewModel::closeMediaPreview,
-            closeContentDescription = stringResource(Res.string.cd_close_preview),
-            defaultContentDescription = imageDescription,
-            actions = { item ->
-                MediaActionBar(
-                    item = item,
-                    onSave = saveImage,
-                    onShare = shareImage,
-                    saveContentDescription = saveDescription,
-                    shareContentDescription = shareDescription,
-                )
-            },
         )
     }
 }
@@ -713,7 +708,9 @@ private fun FileGridItem(
                         AsyncImage(
                             model = file.previewUrl,
                             contentDescription = stringResource(Res.string.cd_thumbnail, file.filename),
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .mediaThumbnail(file.previewUrl, MaterialTheme.shapes.medium),
                             contentScale = ContentScale.Crop,
                         )
                     } else {

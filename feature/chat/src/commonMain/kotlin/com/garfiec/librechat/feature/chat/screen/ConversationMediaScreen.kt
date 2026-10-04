@@ -34,7 +34,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextOverflow
@@ -50,7 +49,8 @@ import com.garfiec.librechat.core.ui.components.LibreChatTopBar
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
 import com.garfiec.librechat.core.ui.media.MediaActionBar
 import com.garfiec.librechat.core.ui.media.MediaItem
-import com.garfiec.librechat.core.ui.media.ZoomableMediaPager
+import com.garfiec.librechat.core.ui.media.MediaViewerHost
+import com.garfiec.librechat.core.ui.media.mediaThumbnail
 import com.garfiec.librechat.core.ui.media.rememberSaveImageToGallery
 import com.garfiec.librechat.core.ui.media.rememberShareFile
 import com.garfiec.librechat.core.ui.media.rememberShareImage
@@ -97,72 +97,67 @@ fun ConversationMediaScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedTab by rememberSaveable { mutableIntStateOf(MediaTab.MEDIA.ordinal) }
 
-    AdaptiveScaffold(
-        modifier = modifier,
-        topBar = {
-            LibreChatTopBar(
-                title = stringResource(Res.string.media_gallery_title),
-                onNavigateBack = onNavigateBack,
+    val saveImage = rememberSaveImageToGallery()
+    val shareImage = rememberShareImage()
+    val saveDescription = stringResource(Res.string.cd_save_to_device)
+    val shareDescription = stringResource(Res.string.cd_share_image)
+    MediaViewerHost(
+        preview = uiState.mediaPreview,
+        onDismiss = viewModel::closeMedia,
+        closeContentDescription = stringResource(Res.string.cd_close),
+        defaultContentDescription = stringResource(Res.string.cd_image),
+        actions = { item ->
+            MediaActionBar(
+                item = item,
+                onSave = saveImage,
+                onShare = shareImage,
+                saveContentDescription = saveDescription,
+                shareContentDescription = shareDescription,
             )
         },
-    ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            AdaptiveTabRow(
-                titles = listOf(
-                    stringResource(Res.string.media_tab_media),
-                    stringResource(Res.string.media_tab_files),
-                    stringResource(Res.string.media_tab_links),
-                    stringResource(Res.string.media_tab_artifacts),
-                ),
-                selectedIndex = selectedTab,
-                onSelect = { selectedTab = it },
-            )
+    ) {
+        AdaptiveScaffold(
+            modifier = modifier,
+            topBar = {
+                LibreChatTopBar(
+                    title = stringResource(Res.string.media_gallery_title),
+                    onNavigateBack = onNavigateBack,
+                )
+            },
+        ) { padding ->
+            Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+                AdaptiveTabRow(
+                    titles = listOf(
+                        stringResource(Res.string.media_tab_media),
+                        stringResource(Res.string.media_tab_files),
+                        stringResource(Res.string.media_tab_links),
+                        stringResource(Res.string.media_tab_artifacts),
+                    ),
+                    selectedIndex = selectedTab,
+                    onSelect = { selectedTab = it },
+                )
 
-            ScopeToggle(
-                scope = uiState.scope,
-                onScopeChange = viewModel::setScope,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-            )
+                ScopeToggle(
+                    scope = uiState.scope,
+                    onScopeChange = viewModel::setScope,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                )
 
-            Box(modifier = Modifier.fillMaxSize()) {
-                when {
-                    uiState.isLoading -> LoadingIndicator(modifier = Modifier.fillMaxSize())
-                    selectedTab == MediaTab.MEDIA.ordinal ->
-                        MediaGrid(uiState.media, onOpen = viewModel::openMedia)
-                    selectedTab == MediaTab.FILES.ordinal ->
-                        FilesList(uiState.files, downloadBytes = viewModel::downloadFileBytes)
-                    selectedTab == MediaTab.LINKS.ordinal -> LinksList(uiState.links)
-                    else -> ArtifactsList(uiState.artifacts)
+                Box(modifier = Modifier.fillMaxSize()) {
+                    when {
+                        uiState.isLoading -> LoadingIndicator(modifier = Modifier.fillMaxSize())
+                        selectedTab == MediaTab.MEDIA.ordinal ->
+                            MediaGrid(uiState.media, onOpen = viewModel::openMedia)
+                        selectedTab == MediaTab.FILES.ordinal ->
+                            FilesList(uiState.files, downloadBytes = viewModel::downloadFileBytes)
+                        selectedTab == MediaTab.LINKS.ordinal -> LinksList(uiState.links)
+                        else -> ArtifactsList(uiState.artifacts)
+                    }
                 }
             }
         }
-    }
-
-    val mediaPreview = uiState.mediaPreview
-    if (mediaPreview != null) {
-        val saveImage = rememberSaveImageToGallery()
-        val shareImage = rememberShareImage()
-        val saveDescription = stringResource(Res.string.cd_save_to_device)
-        val shareDescription = stringResource(Res.string.cd_share_image)
-        val imageDescription = stringResource(Res.string.cd_image)
-        ZoomableMediaPager(
-            items = mediaPreview.items,
-            initialIndex = mediaPreview.initialIndex,
-            onDismiss = viewModel::closeMedia,
-            closeContentDescription = stringResource(Res.string.cd_close),
-            defaultContentDescription = imageDescription,
-            actions = { item ->
-                MediaActionBar(
-                    item = item,
-                    onSave = saveImage,
-                    onShare = shareImage,
-                    saveContentDescription = saveDescription,
-                    shareContentDescription = shareDescription,
-                )
-            },
-        )
     }
 }
 
@@ -210,7 +205,7 @@ private fun MediaGrid(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .aspectRatio(1f)
-                    .clip(MediaThumbShape)
+                    .mediaThumbnail(item.url, MediaThumbShape)
                     .clickable { onOpen(item.url) },
             )
         }
