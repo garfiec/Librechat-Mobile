@@ -183,7 +183,9 @@ the controls bullet below.
   `GlassControlColors.fill`, accent label unless the caller picked a colour),
   `AdaptiveOutlinedTextField` (iOS rounded filled field; the chat composer keeps its own field),
   `AdaptiveSegmentedChoice` and `AdaptiveTabRow` (the liquid segmented control in glass; the tab
-  row takes a `backdrop` only in a bar slot), `AdaptiveFloatingActionButton` (`small` for the M3
+  row takes a `backdrop` only in a bar slot), `AdaptivePillChoice` (a full-width sliding-pill
+  toggle in Material, like the drawer's Chats/Projects switch, for a few short options; the
+  liquid segmented control in glass), `AdaptiveFloatingActionButton` (`small` for the M3
   small FAB), `AdaptiveSectionHeader`, the four
   `Adaptive*Chip`s (pills), `AdaptiveSnackbarHost` (a glass capsule toast that samples the
   `AdaptiveScaffold` backdrop) and `AdaptiveCircularProgressIndicator` (iOS activity indicator when
