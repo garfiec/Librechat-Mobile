@@ -3,7 +3,7 @@ package com.garfiec.librechat.core.data.repository
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.common.result.ApiException
-import com.garfiec.librechat.core.common.result.onApiDispatcher
+import com.garfiec.librechat.core.common.result.apiCallCatching
 import com.garfiec.librechat.core.model.error.ServerErrorCode
 import com.garfiec.librechat.core.model.queuedturn.AgentQueuedTurnReceipt
 import com.garfiec.librechat.core.model.queuedturn.EnqueueQueuedTurnRequest
@@ -11,7 +11,6 @@ import com.garfiec.librechat.core.model.queuedturn.QueuedTurnOutcome
 import com.garfiec.librechat.core.model.queuedturn.isDefiniteQueuedTurnRejection
 import com.garfiec.librechat.core.model.queuedturn.isDefiniteQueuedTurnsUnsupported
 import com.garfiec.librechat.core.network.api.QueuedTurnsApi
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -85,14 +84,9 @@ class QueuedTurnRepositoryImpl(
      * which is precisely the collapse this feature cannot survive — and it logs at error level on
      * a path where an old server answering 404 is the expected, correct answer.
      */
-    @Suppress("TooGenericExceptionCaught") // maps any API failure to a Result, as safeApiCall does
     private suspend fun <T> call(
         block: suspend () -> QueuedTurnOutcome<T>,
-    ): QueuedTurnOutcome<T> = try {
-        onApiDispatcher { block() }
-    } catch (e: CancellationException) {
-        throw e
-    } catch (e: Exception) {
+    ): QueuedTurnOutcome<T> = apiCallCatching(block) { e ->
         val api = e as? ApiException
         val code = ServerErrorCode.generationCodeOf(api?.body)
         classify(api?.statusCode, code, api?.message).also {

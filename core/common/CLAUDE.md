@@ -5,7 +5,7 @@ Pure Kotlin utilities shared by all modules. This is the lowest layer -- no othe
 ## What This Module Provides
 
 - **Result sealed class** (`result/Result.kt`): `Success<T>`, `Error(exception, message)`, `Loading`. Used by repositories and ViewModels to propagate outcomes.
-- **Dispatcher & Scope DI** (`di/CommonModule.kt`): Named Koin qualifiers (`named("io")`, `named("default")`, `named("main")`) for dispatchers and `named("applicationScope")` for coroutine scope. Always inject dispatchers -- never hardcode `Dispatchers.IO`. The sole exception is `safeApiCall` / `onApiDispatcher`, which read the platform `ioDispatcher` directly; see below for why.
+- **Dispatcher & Scope DI** (`di/CommonModule.kt`): Named Koin qualifiers (`named("io")`, `named("default")`, `named("main")`) for dispatchers and `named("applicationScope")` for coroutine scope. Always inject dispatchers -- never hardcode `Dispatchers.IO`. The sole exception is `safeApiCall` / `apiCallCatching`, which read the platform `ioDispatcher` directly; see below for why.
 - **Extensions** (`extensions/`): `StringExt`, `DateExt`.
 - **ConnectivityObserver**: Wraps Android `ConnectivityManager.NetworkCallback` to detect network changes. Used by SSE reconnection logic.
 
@@ -17,13 +17,7 @@ into a `FailureKind` and screens server text before it can reach the UI).
 
 ```kotlin
 suspend fun <T> safeApiCall(block: suspend () -> T): Result<T> =
-    try {
-        Result.Success(withContext(ioDispatcher) { block() })
-    } catch (e: CancellationException) {
-        throw e
-    } catch (e: Exception) {
-        e.toSafeError()
-    }
+    apiCallCatching({ Result.Success(block()) }) { it.toSafeError() }
 ```
 
 This lives here (not in `:core:network`) because repositories in `:core:data` call it.
@@ -39,9 +33,10 @@ A Ktor plugin was the other candidate. It would have to cover two pipelines rath
 send, and the response pipeline that `body()` drives — and it still would not cover the Room and
 DataStore work that sits in the same block as the call.
 
-`onApiDispatcher { }` is the same hop **without** the error mapping, for the handful of calls that
-classify their own failures (a bespoke validation message, or a first attempt whose failure is
-expected and must not be logged as an error). Prefer `safeApiCall` unless you are one of those.
+`apiCallCatching(block) { e -> ... }` is the same hop and catch with the mapping left to the caller,
+for the handful of calls that classify their own failures (a bespoke validation message, or a
+failure that is expected and must not be logged as an error). Use it rather than hand-rolling a
+`catch (e: Exception)` around an API call. Prefer `safeApiCall` unless you are one of those.
 
 **Never let a catch around suspending code swallow `CancellationException`.** A cancelled job that
 catches it keeps running and writes a stale error to state after the user has left. Put

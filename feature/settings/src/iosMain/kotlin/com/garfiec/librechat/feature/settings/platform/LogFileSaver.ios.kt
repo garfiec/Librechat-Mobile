@@ -2,6 +2,8 @@ package com.garfiec.librechat.feature.settings.platform
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import com.garfiec.librechat.core.ui.platform.currentTopmostViewController
 import com.garfiec.librechat.core.ui.platform.presentSheet
 import kotlinx.cinterop.BetaInteropApi
@@ -27,7 +29,6 @@ import platform.UIKit.UIActivityViewController
  * - The presenting VC comes from the shared [currentTopmostViewController] (foreground-active scene).
  * - Presentation + iPad popover anchoring go through the shared [presentSheet] helper.
  */
-@Suppress("LambdaParameterInRestartableEffect") // rememberUpdatedState would change which callback a running effect calls
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 @Composable
 actual fun LogFileSaver(
@@ -36,6 +37,8 @@ actual fun LogFileSaver(
     onComplete: (success: Boolean, message: String?) -> Unit,
     onReset: () -> Unit,
 ) {
+    val currentOnComplete by rememberUpdatedState(onComplete)
+    val currentOnReset by rememberUpdatedState(onReset)
     LaunchedEffect(triggerFileName) {
         val fileName = triggerFileName
         val text = content
@@ -43,8 +46,8 @@ actual fun LogFileSaver(
 
         val rootVc = currentTopmostViewController()
         if (rootVc == null) {
-            onComplete(false, "Could not present share sheet")
-            onReset()
+            currentOnComplete(false, "Could not present share sheet")
+            currentOnReset()
             return@LaunchedEffect
         }
 
@@ -52,8 +55,8 @@ actual fun LogFileSaver(
         val data = text.toNSData()
         val wrote = data.writeToFile(tempPath, atomically = true)
         if (!wrote) {
-            onComplete(false, "Could not write export file")
-            onReset()
+            currentOnComplete(false, "Could not write export file")
+            currentOnReset()
             return@LaunchedEffect
         }
 
@@ -68,8 +71,8 @@ actual fun LogFileSaver(
         // resets without claiming success — matching the Android SAF actual.
         activityVc.completionWithItemsHandler = { _, completed, _, _ ->
             runCatching { NSFileManager.defaultManager.removeItemAtPath(tempPath, null) }
-            onComplete(completed, null)
-            onReset()
+            currentOnComplete(completed, null)
+            currentOnReset()
         }
 
         presentSheet(activityVc, from = rootVc)

@@ -9,7 +9,6 @@ import com.garfiec.librechat.core.common.identity.deriveServerId
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.network.client.ServerUrlProvider
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
@@ -48,52 +47,39 @@ class ConfigCacheDataStore(
     suspend fun loadAvailableModels(): Map<String, List<String>>? =
         load(AVAILABLE_MODELS, "available models") { json.decodeFromString(modelsSerializer, it) }
 
-    @Suppress("TooGenericExceptionCaught") // best-effort cache: a failure must not break the caller
     suspend fun clear() {
-        try {
-            // Scope to the logged-out server only: logout keeps the base URL, so serverId() still
-            // resolves to it. Other retained accounts may sit on different servers whose cached
-            // config must survive — a blanket wipe across all servers would strip a retained
-            // account's endpoints/models. Legacy bare (pre-keying) entries are dropped
-            // unconditionally.
-            val serverId = serverId()
+        // Scope to the logged-out server only: logout keeps the base URL, so serverId() still
+        // resolves to it. Other retained accounts may sit on different servers whose cached
+        // config must survive — a blanket wipe across all servers would strip a retained
+        // account's endpoints/models. Legacy bare (pre-keying) entries are dropped
+        // unconditionally.
+        val serverId = serverId()
+        bestEffortCache({ Logger.w(it) { "Failed to clear cached config" } }) {
             dataStore.edit { prefs ->
                 serverId?.let { id -> BASES.forEach { prefs.remove(key(id, it)) } }
                 BASES.forEach { prefs.remove(stringPreferencesKey(it)) }
             }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Logger.w(e) { "Failed to clear cached config" }
         }
     }
 
-    @Suppress("TooGenericExceptionCaught") // best-effort cache: a failure must not break the caller
     private suspend fun save(base: String, label: String, serialize: () -> String) {
         val serverId = serverId() ?: return
-        try {
+        bestEffortCache({ Logger.w(it) { "Failed to cache $label" } }) {
             val serialized = serialize()
             dataStore.edit { prefs ->
                 prefs[key(serverId, base)] = serialized
                 prefs.remove(stringPreferencesKey(base)) // drop the pre-keying bare entry once
             }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Logger.w(e) { "Failed to cache $label" }
         }
     }
 
-    @Suppress("TooGenericExceptionCaught") // best-effort cache: a failure must not break the caller
     private suspend fun <T> load(base: String, label: String, deserialize: (String) -> T): T? {
         val serverId = serverId() ?: return null
-        return try {
-            dataStore.data.first()[key(serverId, base)]?.let(deserialize)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Logger.w(e) { "Failed to load cached $label" }
+        return bestEffortCache({
+            Logger.w(it) { "Failed to load cached $label" }
             null
+        }) {
+            dataStore.data.first()[key(serverId, base)]?.let(deserialize)
         }
     }
 

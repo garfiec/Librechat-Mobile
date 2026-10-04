@@ -7,6 +7,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import com.garfiec.librechat.feature.chat.components.localizedStreamError
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
@@ -19,8 +20,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
  * duplicate and lifecycle live in [ChatScreenOutcomes], shared with iOS.
  */
 // debt — ViewModelForwarding: screen split across files; state not hoisted yet
-// LambdaParameterInRestartableEffect: rememberUpdatedState would change which callback a running effect calls.
-@Suppress("ViewModelForwarding", "LambdaParameterInRestartableEffect")
+@Suppress("ViewModelForwarding")
 @Composable
 internal fun ChatScreenEffects(
     uiState: ChatUiState,
@@ -30,16 +30,20 @@ internal fun ChatScreenEffects(
     onNavigateBack: (() -> Unit)?,
     onNavigateToProviderKeys: (endpointName: String?) -> Unit,
 ) {
+    val currentOnConversationStart by rememberUpdatedState(onConversationStart)
+    val currentOnNavigateBack by rememberUpdatedState(onNavigateBack)
+
     // When a new conversation starts, navigate to Chat(conversationId) immediately
     // (at StreamEvent.Created) so the NewChat landing page stays clean in the back
     // stack. The new ChatViewModel at Chat(id) will resume the active stream.
     // onPendingNavigationHandled() resets this ViewModel to a fresh landing state.
     LaunchedEffect(uiState.pendingNavigationConversationId) {
         val pendingId = uiState.pendingNavigationConversationId
-        if (pendingId != null && onConversationStart != null) {
+        val onStart = currentOnConversationStart
+        if (pendingId != null && onStart != null) {
             // Carry temp-ness onto the Chat(id) route so the new (and any process-death-restored)
             // VM stays temp-aware and never persists the server-hidden conversation to Room.
-            onConversationStart(pendingId, uiState.isTemporaryChat)
+            onStart(pendingId, uiState.isTemporaryChat)
             viewModel.onPendingNavigationHandled()
         }
     }
@@ -71,7 +75,7 @@ internal fun ChatScreenEffects(
     var hadConversation by remember { mutableStateOf(uiState.conversationId != null) }
     LaunchedEffect(uiState.conversationId) {
         if (hadConversation && uiState.conversationId == null) {
-            onNavigateBack?.invoke()
+            currentOnNavigateBack?.invoke()
         }
         hadConversation = uiState.conversationId != null
     }

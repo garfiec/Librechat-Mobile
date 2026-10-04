@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.data.repository
 
+import androidx.sqlite.SQLiteException
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.identity.deriveServerId
 import com.garfiec.librechat.core.common.identity.normalizeServerUrl
@@ -145,7 +146,6 @@ class ServerRepositoryImpl(
         return if (serverId in unreadable) null else byServerId[serverId].orEmpty()
     }
 
-    @Suppress("TooGenericExceptionCaught") // a storage failure is reported as a refusal, not thrown
     override suspend fun setHeaders(serverUrl: String, headers: Map<String, String>): HeaderWriteResult {
         val serverId = serverIdOf(serverUrl)
             ?: return HeaderWriteResult.Refused(HeaderWriteFailure.NoServer)
@@ -190,9 +190,7 @@ class ServerRepositoryImpl(
                     unreadable = unreadable - serverId
                     writtenHere = writtenHere + serverId
                     HeaderWriteResult.Saved
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
+                } catch (e: SQLiteException) {
                     // Reported, not thrown: the editors turn a refusal into "couldn't save", which is
                     // the one outcome the user can act on.
                     Logger.w(e) { "Failed to persist custom server headers" }

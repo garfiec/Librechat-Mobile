@@ -3,7 +3,7 @@ package com.garfiec.librechat.core.data.update
 import com.garfiec.librechat.core.common.AppInfo
 import com.garfiec.librechat.core.common.AppVersion
 import com.garfiec.librechat.core.common.result.Result
-import com.garfiec.librechat.core.common.result.onApiDispatcher
+import com.garfiec.librechat.core.common.result.apiCallCatching
 import com.garfiec.librechat.core.common.result.safeApiCall
 import com.garfiec.librechat.core.common.result.toSafeError
 import com.garfiec.librechat.core.model.AppRelease
@@ -83,18 +83,14 @@ class AppUpdateRepositoryImpl(
 
     override suspend fun markNotified(tag: String) = store.setNotifiedTag(tag)
 
-    @Suppress("TooGenericExceptionCaught") // maps any API failure to a Result, as safeApiCall does
     override suspend fun installedRelease(): Result<AppRelease?> {
         val version = installed ?: return Result.Success(null)
         // Not safeApiCall: a missing release is an expected answer here, not an error to log.
-        return try {
-            Result.Success(onApiDispatcher { api.getRelease("v$version") }.toAppRelease(version))
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: ClientRequestException) {
-            if (e.response.status == HttpStatusCode.NotFound) Result.Success(null) else e.toSafeError()
-        } catch (e: Exception) {
-            e.toSafeError()
+        return apiCallCatching<Result<AppRelease?>>({
+            Result.Success(api.getRelease("v$version").toAppRelease(version))
+        }) { e ->
+            val notFound = e is ClientRequestException && e.response.status == HttpStatusCode.NotFound
+            if (notFound) Result.Success(null) else e.toSafeError()
         }
     }
 

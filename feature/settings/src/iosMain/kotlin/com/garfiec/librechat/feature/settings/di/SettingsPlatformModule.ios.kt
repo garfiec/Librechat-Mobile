@@ -8,7 +8,6 @@ import com.garfiec.librechat.feature.settings.viewmodel.delegate.SpeechSettingsF
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.usePinned
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.core.module.Module
@@ -55,57 +54,44 @@ actual val settingsPlatformModule: Module = module {
     single {
         @OptIn(ExperimentalForeignApi::class)
         object : PlatformCacheCleaner {
-            @Suppress("TooGenericExceptionCaught") // best-effort cache cleanup
+            // Neither body needs a catch: NSFileManager reports failure through the NSError
+            // out-param (passed null) and a nil/false return, never a Kotlin exception.
             override suspend fun clearCache() {
                 withContext(Dispatchers.Default) {
-                    try {
-                        val paths = NSSearchPathForDirectoriesInDomains(
-                            NSCachesDirectory,
-                            NSUserDomainMask,
-                            true,
-                        )
-                        val cachePath = paths.firstOrNull() as? String
-                        if (cachePath == null) {
-                            Logger.w("CacheCleaner") { "Could not resolve caches directory" }
-                            return@withContext
-                        }
-                        val fm = NSFileManager.defaultManager
-                        val contents = fm.contentsOfDirectoryAtPath(cachePath, null) as? List<*>
-                        contents?.forEach { item ->
-                            val name = item as? String ?: return@forEach
-                            fm.removeItemAtPath("$cachePath/$name", null)
-                        }
-                        Logger.i("CacheCleaner") { "Cleared iOS caches directory" }
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (e: Exception) {
-                        Logger.w(e) { "Failed to clear caches" }
-                    }
-                }
-            }
-
-            @Suppress("TooGenericExceptionCaught") // best-effort cache cleanup
-            override suspend fun cacheSizeBytes(): Long = withContext(Dispatchers.Default) {
-                try {
-                    val cachePath = NSSearchPathForDirectoriesInDomains(
+                    val paths = NSSearchPathForDirectoriesInDomains(
                         NSCachesDirectory,
                         NSUserDomainMask,
                         true,
-                    ).firstOrNull() as? String ?: return@withContext 0L
-                    val fm = NSFileManager.defaultManager
-                    // One level deep, matching what clearCache() removes: the readout and the button
-                    // must describe the same bytes, or clearing appears not to work.
-                    val contents = fm.contentsOfDirectoryAtPath(cachePath, null) as? List<*>
-                    contents.orEmpty().sumOf { item ->
-                        val name = item as? String ?: return@sumOf 0L
-                        val attrs = fm.attributesOfItemAtPath("$cachePath/$name", null)
-                        (attrs?.get(NSFileSize) as? NSNumber)?.longLongValue ?: 0L
+                    )
+                    val cachePath = paths.firstOrNull() as? String
+                    if (cachePath == null) {
+                        Logger.w("CacheCleaner") { "Could not resolve caches directory" }
+                        return@withContext
                     }
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    Logger.w(e) { "Failed to size caches" }
-                    0L
+                    val fm = NSFileManager.defaultManager
+                    val contents = fm.contentsOfDirectoryAtPath(cachePath, null) as? List<*>
+                    contents?.forEach { item ->
+                        val name = item as? String ?: return@forEach
+                        fm.removeItemAtPath("$cachePath/$name", null)
+                    }
+                    Logger.i("CacheCleaner") { "Cleared iOS caches directory" }
+                }
+            }
+
+            override suspend fun cacheSizeBytes(): Long = withContext(Dispatchers.Default) {
+                val cachePath = NSSearchPathForDirectoriesInDomains(
+                    NSCachesDirectory,
+                    NSUserDomainMask,
+                    true,
+                ).firstOrNull() as? String ?: return@withContext 0L
+                val fm = NSFileManager.defaultManager
+                // One level deep, matching what clearCache() removes: the readout and the button
+                // must describe the same bytes, or clearing appears not to work.
+                val contents = fm.contentsOfDirectoryAtPath(cachePath, null) as? List<*>
+                contents.orEmpty().sumOf { item ->
+                    val name = item as? String ?: return@sumOf 0L
+                    val attrs = fm.attributesOfItemAtPath("$cachePath/$name", null)
+                    (attrs?.get(NSFileSize) as? NSNumber)?.longLongValue ?: 0L
                 }
             }
         }
