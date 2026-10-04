@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.data.util
 
 import co.touchlab.kermit.Logger
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -28,6 +29,8 @@ class SessionTaskRunner(
             applicationScope.launch {
                 try {
                     task.run()
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     Logger.w(e) { "SessionTask ${task::class.simpleName} failed" }
                 }

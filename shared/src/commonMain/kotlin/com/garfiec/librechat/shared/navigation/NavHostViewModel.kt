@@ -196,6 +196,8 @@ class NavHostViewModel(
                     // connectivity returns instead of stranding them until a manual relaunch.
                     if (!accountResolved) retryAccountRestoreOnReconnect()
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Logger.w(e) { "Failed to check auth state on init" }
             }

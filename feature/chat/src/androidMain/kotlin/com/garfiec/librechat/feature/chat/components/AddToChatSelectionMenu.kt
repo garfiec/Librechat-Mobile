@@ -14,6 +14,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.LocalClipboard
+import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.selection_add_to_chat
 import kotlinx.coroutines.CoroutineScope
@@ -90,7 +91,7 @@ private class SelectionQuoteCapture(
     fun stageSelection(session: TextContextMenuSession, onAddToChat: (String) -> Unit) {
         val copyItem = copyItem ?: return
         scope.launch {
-            val previous = runCatching { clipboard.getClipEntry() }.getOrNull()
+            val previous = suspendRunCatching { clipboard.getClipEntry() }.getOrNull()
             val startedAt = System.currentTimeMillis()
             with(copyItem) { session.onClick() }
             // The copy lands on the clipboard asynchronously; bounded poll for it. The write's own
@@ -102,7 +103,7 @@ private class SelectionQuoteCapture(
             var captured: String? = null
             for (attempt in 0 until CAPTURE_POLLS) {
                 delay(CAPTURE_POLL_MS)
-                val entry = runCatching { clipboard.getClipEntry() }.getOrNull()
+                val entry = suspendRunCatching { clipboard.getClipEntry() }.getOrNull()
                 val text = entry?.firstText()
                 val writtenAt = entry?.clipData?.description?.timestamp ?: 0L
                 if (!text.isNullOrEmpty() && writtenAt >= startedAt) {
@@ -115,7 +116,7 @@ private class SelectionQuoteCapture(
             // selected — say nothing rather than the wrong thing.
             if (captured == null) return@launch
             onAddToChat(captured)
-            runCatching { clipboard.setClipEntry(previous) }
+            suspendRunCatching { clipboard.setClipEntry(previous) }
         }
     }
 

@@ -139,7 +139,13 @@ object LibreChatHttpClient {
             validateResponse { response ->
                 if (!response.status.isSuccess()) {
                     val statusCode = response.status.value
-                    val bodyText = try { response.bodyAsText() } catch (_: Exception) { "" }
+                    val bodyText = try {
+                        response.bodyAsText()
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (_: Exception) {
+                        ""
+                    }
                     val extracted = extractErrorMessage(json, bodyText, statusCode)
                     val isBanned = isLibreChatBan(statusCode, extracted)
 

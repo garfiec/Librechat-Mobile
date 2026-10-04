@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.datastore.SsoRiskDataStore
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.AuthRepository
@@ -84,7 +85,7 @@ class LoginViewModel(
         viewModelScope.launch {
             // Fail towards warning: an unreadable store must not strand every social button behind
             // a latch that only the dialog's own dismiss can clear.
-            val acknowledged = runCatching { ssoRiskDataStore.acknowledged.first() }.getOrDefault(false)
+            val acknowledged = suspendRunCatching { ssoRiskDataStore.acknowledged.first() }.getOrDefault(false)
             if (acknowledged) {
                 _uiState.value = _uiState.value.copy(ssoProvider = provider)
             } else {
@@ -101,7 +102,7 @@ class LoginViewModel(
         viewModelScope.launch {
             // Same reason the read is guarded: a store that cannot be written must cost the user
             // one extra warning next time, not the latch that `consumeSsoNavigation` alone clears.
-            runCatching { ssoRiskDataStore.acknowledge() }
+            suspendRunCatching { ssoRiskDataStore.acknowledge() }
             _uiState.value = _uiState.value.copy(ssoProvider = provider)
         }
     }

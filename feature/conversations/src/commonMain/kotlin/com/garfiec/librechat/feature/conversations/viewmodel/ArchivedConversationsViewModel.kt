@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.feature.conversations.ArchivedConversationDisplayData
 import com.garfiec.librechat.feature.conversations.toArchivedDisplayData
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -113,6 +114,8 @@ class ArchivedConversationsViewModel(
         viewModelScope.launch {
             try {
                 conversationRepository.archive(id, false)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Logger.e(e) { "Failed to unarchive conversation" }
                 _events.emit(ArchivedConversationsEvent.ShowError("Failed to unarchive conversation"))
@@ -124,6 +127,8 @@ class ArchivedConversationsViewModel(
         viewModelScope.launch {
             try {
                 conversationRepository.delete(id)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Logger.e(e) { "Failed to delete conversation" }
                 _events.emit(ArchivedConversationsEvent.ShowError("Failed to delete conversation"))

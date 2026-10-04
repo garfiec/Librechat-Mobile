@@ -17,6 +17,7 @@ import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.model.response.Category
 import com.garfiec.librechat.core.network.api.ConfigApi
 import io.ktor.client.plugins.HttpRequestTimeoutException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -136,6 +137,8 @@ class ConfigRepositoryImpl(
                     "Check the gateway headers under Advanced.",
                 kind = FailureKind.AccessGateway,
             )
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Result.Error(e, "Could not reach the server. Check the URL and your connection.")
         }

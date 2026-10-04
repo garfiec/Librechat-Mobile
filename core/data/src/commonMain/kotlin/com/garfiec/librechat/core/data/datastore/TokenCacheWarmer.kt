@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.data.datastore
 
 import co.touchlab.kermit.Logger
+import com.garfiec.librechat.core.common.result.suspendRunCatching
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -20,7 +21,7 @@ class TokenCacheWarmer(
 ) {
     init {
         appScope.launch {
-            runCatching { store.warmTokenCache() }
+            suspendRunCatching { store.warmTokenCache() }
                 .onFailure { Logger.w(it) { "Token cache warm failed; falling back to a synchronous load" } }
         }
     }

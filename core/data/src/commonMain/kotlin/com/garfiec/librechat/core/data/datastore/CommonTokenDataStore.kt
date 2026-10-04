@@ -21,6 +21,7 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -922,6 +923,8 @@ abstract class CommonTokenDataStore(
                 attrs = mapOf("event" to "refresh_gateway_blocked"),
             ) { "Access gateway rejected the token refresh" }
             RefreshAttempt.GatewayBlocked
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             if (isKeystoreException(e)) {
                 Diag.e(
@@ -971,6 +974,8 @@ abstract class CommonTokenDataStore(
     private suspend fun classifyForbidden(httpResponse: HttpResponse): RefreshAttempt {
         val body = try {
             httpResponse.bodyAsText()
+        } catch (e: CancellationException) {
+            throw e
         } catch (_: Exception) {
             ""
         }
@@ -1024,6 +1029,8 @@ abstract class CommonTokenDataStore(
     ): RefreshAttempt {
         val body: RefreshResponse = try {
             httpResponse.body()
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             // A 2xx whose body isn't the expected JSON (e.g. an HTML interstitial from a proxy).
             // Recoverable, not a dead session.

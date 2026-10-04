@@ -16,6 +16,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
 import com.garfiec.librechat.feature.chat.viewmodel.ComparisonHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ComparisonState
 import com.garfiec.librechat.feature.chat.viewmodel.resolveEndpointDispatch
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 /**
@@ -351,6 +352,8 @@ class ComparisonModeDelegate(
                     handle.update { conversation = conversation.copy(pendingNavigationConversationId = cid) }
                 }
                 reloadConversation(conversationId)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Logger.e(e) { "Failed to branch comparison message" }
                 handle.setError("Failed to continue with selected response")

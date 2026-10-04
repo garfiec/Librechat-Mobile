@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.common.identity.flatMapAccountOrEmpty
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.safeApiCall
+import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.db.dao.ConversationDao
 import com.garfiec.librechat.core.data.db.dao.MessageDao
@@ -213,7 +214,7 @@ class ConversationRepositoryImpl(
                 // failure here must NOT flip delete() to Result.Error (that would suppress the drawer's
                 // navigate-off and surface a spurious "failed to delete"). A lingering message cache is
                 // harmless — the pane navigates away, and it's cleared on the next sync/account wipe.
-                runCatching { messageDao.deleteAllForConversation(id, accountId) }
+                suspendRunCatching { messageDao.deleteAllForConversation(id, accountId) }
                     .onFailure { Logger.w(it) { "Deleted $id but failed to purge its cached messages" } }
             } else {
                 Logger.w { "Server-deleted $id but kept local row: no resolved account to scope the delete" }

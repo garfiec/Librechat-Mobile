@@ -11,6 +11,7 @@ import com.garfiec.librechat.core.data.datastore.RoleCacheDataStore
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.core.model.request.UpdateRoleSkillsRequest
 import com.garfiec.librechat.core.network.api.RolesApi
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -76,6 +77,8 @@ class RoleRepositoryImpl(
             _userPermissions.value = role
             cacheDataStore.save(role)
             Result.Success(role)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             val cached = _userPermissions.value
             if (cached != null) {
