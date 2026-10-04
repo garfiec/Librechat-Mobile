@@ -51,6 +51,7 @@ class FilesApi constructor(
             url { path("api/files/config") }
         }.body()
 
+    @Suppress("TooGenericExceptionCaught") // a throwing progress callback must not kill the upload
     @OptIn(ExperimentalUuidApi::class)
     suspend fun uploadFile(
         bytes: ByteArray,

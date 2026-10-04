@@ -167,6 +167,7 @@ class NavHostViewModel(
     }
 
     init {
+        @Suppress("TooGenericExceptionCaught") // a failed startup check must not crash the root ViewModel
         viewModelScope.launch {
             try {
                 // Wait for the server URL's async warm-up before any startup network work, so a
@@ -299,6 +300,7 @@ class NavHostViewModel(
      * unaccounted and should be retried on reconnect. restoreAccountIfNeeded() self-guards, so it is
      * cheap and safe to call repeatedly.
      */
+    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     private suspend fun tryRestoreAccount(): Boolean =
         try {
             authRepository.restoreAccountIfNeeded()

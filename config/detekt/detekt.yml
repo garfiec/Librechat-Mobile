@@ -169,6 +169,7 @@ exceptions:
   TooGenericExceptionCaught:
     active: true
     exceptionNames:
+      - "Exception"
       - "RuntimeException"
       - "Throwable"
     allowedExceptionNameRegex: "_|(ignore|expected).*"

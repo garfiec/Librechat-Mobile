@@ -14,6 +14,7 @@ import androidx.compose.ui.platform.LocalContext
  * The MIME type must stay `application/octet-stream`: any other type makes SAF append that type's
  * extension to the `.log` name.
  */
+@Suppress("TooGenericExceptionCaught") // ContentResolver I/O throws undocumented exceptions; reported, not thrown
 @Composable
 actual fun LogFileSaver(
     triggerFileName: String?,

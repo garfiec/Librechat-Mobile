@@ -99,6 +99,7 @@ class PresetPromptDelegate(
         }
     }
 
+    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     fun savePreset(name: String) {
         val state = handle.state
         val params = state.modelParameters

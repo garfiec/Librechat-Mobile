@@ -181,6 +181,7 @@ class IosVoiceInput(
      * whole audio stack down and rebuilding it per silence-boundary segment added latency and audible
      * gaps.
      */
+    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     @OptIn(ExperimentalForeignApi::class)
     private fun beginRecording() {
         try {

@@ -178,6 +178,7 @@ internal fun computeInSampleSize(srcWidth: Int, srcHeight: Int, maxDimension: In
  * Returns null only when the bytes cannot be decoded as an image at all (caller should upload the
  * raw bytes, e.g. for a non-image file or a format BitmapFactory can't read).
  */
+@Suppress("TooGenericExceptionCaught") // any decode failure falls back to the original bytes
 internal fun processImageForUpload(
     bytes: ByteArray,
     mimeType: String,

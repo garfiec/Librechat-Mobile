@@ -127,6 +127,7 @@ private sealed interface TextLoadState {
     data class Error(val message: String) : TextLoadState
 }
 
+@Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
 @Composable
 private fun TextContentPreview(
     file: FilePreviewDisplayData,

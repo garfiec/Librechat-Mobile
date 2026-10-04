@@ -78,6 +78,7 @@ class SpeechRecognizerController(private val appContext: Context) {
         createAndListen()
     }
 
+    @Suppress("TooGenericExceptionCaught") // a factory throw on the main thread would crash the app
     private fun createAndListen() {
         recognizer?.destroy()
         recognizer = null
@@ -282,6 +283,7 @@ class SpeechRecognizerController(private val appContext: Context) {
      * live instance is both lighter and lower-latency. Falls back to a full recreate if the
      * instance is gone or rejects the restart (its binding died).
      */
+    @Suppress("TooGenericExceptionCaught") // a failed reuse restart recreates the recognizer
     private fun restartListening() {
         val r = recognizer ?: run { createAndListen(); return }
         handler.postDelayed({

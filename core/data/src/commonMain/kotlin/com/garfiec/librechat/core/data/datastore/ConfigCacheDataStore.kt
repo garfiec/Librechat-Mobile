@@ -48,6 +48,7 @@ class ConfigCacheDataStore(
     suspend fun loadAvailableModels(): Map<String, List<String>>? =
         load(AVAILABLE_MODELS, "available models") { json.decodeFromString(modelsSerializer, it) }
 
+    @Suppress("TooGenericExceptionCaught") // best-effort cache: a failure must not break the caller
     suspend fun clear() {
         try {
             // Scope to the logged-out server only: logout keeps the base URL, so serverId() still
@@ -67,6 +68,7 @@ class ConfigCacheDataStore(
         }
     }
 
+    @Suppress("TooGenericExceptionCaught") // best-effort cache: a failure must not break the caller
     private suspend fun save(base: String, label: String, serialize: () -> String) {
         val serverId = serverId() ?: return
         try {
@@ -82,6 +84,7 @@ class ConfigCacheDataStore(
         }
     }
 
+    @Suppress("TooGenericExceptionCaught") // best-effort cache: a failure must not break the caller
     private suspend fun <T> load(base: String, label: String, deserialize: (String) -> T): T? {
         val serverId = serverId() ?: return null
         return try {

@@ -55,6 +55,7 @@ actual val settingsPlatformModule: Module = module {
     single {
         @OptIn(ExperimentalForeignApi::class)
         object : PlatformCacheCleaner {
+            @Suppress("TooGenericExceptionCaught") // best-effort cache cleanup
             override suspend fun clearCache() {
                 withContext(Dispatchers.Default) {
                     try {
@@ -83,6 +84,7 @@ actual val settingsPlatformModule: Module = module {
                 }
             }
 
+            @Suppress("TooGenericExceptionCaught") // best-effort cache cleanup
             override suspend fun cacheSizeBytes(): Long = withContext(Dispatchers.Default) {
                 try {
                     val cachePath = NSSearchPathForDirectoriesInDomains(

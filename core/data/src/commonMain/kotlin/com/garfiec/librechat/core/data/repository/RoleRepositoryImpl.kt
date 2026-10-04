@@ -54,6 +54,7 @@ class RoleRepositoryImpl(
         }
     }
 
+    @Suppress("TooGenericExceptionCaught") // any failure falls back to the cached role
     override suspend fun fetchUserRole(): Result<UserRolePermissions> {
         // The account this fetch is for. Captured before the first suspension: a switch while it is
         // in flight must not let the outgoing account's role gate the incoming one — nor land in the

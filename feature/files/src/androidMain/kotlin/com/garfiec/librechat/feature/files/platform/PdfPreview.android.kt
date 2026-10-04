@@ -54,6 +54,7 @@ private sealed interface PdfLoadState {
     data class Error(val message: StringResource, val detail: String? = null) : PdfLoadState
 }
 
+@Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
 @Composable
 actual fun PdfPreview(
     file: FilePreviewDisplayData,

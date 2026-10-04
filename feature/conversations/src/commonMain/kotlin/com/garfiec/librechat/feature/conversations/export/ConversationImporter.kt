@@ -2,7 +2,6 @@ package com.garfiec.librechat.feature.conversations.export
 
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.model.ConversationExport
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -27,9 +26,8 @@ class ConversationImporter(
                 return Result.Error(message = "Invalid export: no messages found")
             }
             Result.Success(export)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
+        } catch (e: IllegalArgumentException) {
+            // SerializationException is an IllegalArgumentException; decoding throws nothing else.
             Result.Error(e, "Failed to parse conversation file: ${e.message}")
         }
     }

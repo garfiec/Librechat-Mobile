@@ -83,6 +83,7 @@ class AppUpdateRepositoryImpl(
 
     override suspend fun markNotified(tag: String) = store.setNotifiedTag(tag)
 
+    @Suppress("TooGenericExceptionCaught") // maps any API failure to a Result, as safeApiCall does
     override suspend fun installedRelease(): Result<AppRelease?> {
         val version = installed ?: return Result.Success(null)
         // Not safeApiCall: a missing release is an expected answer here, not an error to log.

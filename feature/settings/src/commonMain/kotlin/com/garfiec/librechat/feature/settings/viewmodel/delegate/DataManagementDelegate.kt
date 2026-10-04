@@ -97,6 +97,7 @@ class DataManagementDelegate(
     // ── Diagnostic logs (issue #96) ────────────────────────────────
 
     /** Loads the current on-disk buffer size into state so the UI can label the export button. */
+    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     fun loadLogsBufferSize() {
         stateHandle.scope.launch {
             try {
@@ -115,6 +116,7 @@ class DataManagementDelegate(
      * one-shot payload. The screen observes it, launches the platform file saver, and calls
      * [consumeLogsExport] once handled.
      */
+    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     fun exportLogs() {
         stateHandle.scope.launch {
             stateHandle.update { copy(isLogsExporting = true) }
@@ -146,6 +148,7 @@ class DataManagementDelegate(
     }
 
     /** Clears both log segments, then refreshes the displayed buffer size. */
+    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     fun clearLogs() {
         stateHandle.scope.launch {
             stateHandle.update { copy(isLogsClearing = true) }
@@ -288,6 +291,7 @@ class DataManagementDelegate(
         }
     }
 
+    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     fun loadCacheSize() {
         stateHandle.scope.launch {
             try {
@@ -301,6 +305,7 @@ class DataManagementDelegate(
         }
     }
 
+    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     fun clearCache() {
         stateHandle.scope.launch {
             stateHandle.update { copy(isCacheClearing = true) }

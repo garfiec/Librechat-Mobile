@@ -1,3 +1,5 @@
+@file:Suppress("TooGenericExceptionCaught") // parses untrusted attachment payloads; any malformed shape is skipped
+
 package com.garfiec.librechat.feature.chat.components
 
 import co.touchlab.kermit.Logger

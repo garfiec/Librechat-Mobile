@@ -1,3 +1,5 @@
+@file:Suppress("TooGenericExceptionCaught") // maps untrusted SSE frames; one malformed frame must not end the stream
+
 package com.garfiec.librechat.core.network.sse
 
 import co.touchlab.kermit.Logger

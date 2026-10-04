@@ -58,6 +58,7 @@ class IosFileHandler(
         }
     }
 
+    @Suppress("TooGenericExceptionCaught") // upload boundary: any failure marks the attachment failed
     @OptIn(ExperimentalUuidApi::class)
     private fun uploadImage(imageData: IosImageData) {
         val uniqueId = Uuid.random().toString()
@@ -142,6 +143,7 @@ class IosFileHandler(
         }
     }
 
+    @Suppress("TooGenericExceptionCaught") // upload boundary: any failure marks the attachment failed
     @OptIn(ExperimentalUuidApi::class)
     private fun uploadFile(fileData: IosFileData, route: UploadRoute, pdfPassword: String? = null) {
         val uniqueId = Uuid.random().toString()

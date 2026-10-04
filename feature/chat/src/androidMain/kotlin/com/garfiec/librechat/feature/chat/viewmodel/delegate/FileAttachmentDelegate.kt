@@ -72,7 +72,8 @@ class FileAttachmentDelegate(
 
     // debt — CyclomaticComplexMethod: complexity 29
     // debt — LongMethod: 173 lines
-    @Suppress("CyclomaticComplexMethod", "LongMethod")
+    // TooGenericExceptionCaught: upload boundary: any failure marks the attachment failed
+    @Suppress("CyclomaticComplexMethod", "LongMethod", "TooGenericExceptionCaught")
     private fun uploadFile(picked: PickedFile, route: UploadRoute, pdfPassword: String? = null) {
         val context = appContext
         val contentResolver = context.contentResolver

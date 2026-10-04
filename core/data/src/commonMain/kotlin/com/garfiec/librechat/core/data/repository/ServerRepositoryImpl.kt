@@ -98,6 +98,7 @@ class ServerRepositoryImpl(
      * the flags describe the map and a reader that saw one without the other would act on a stale
      * pairing.
      */
+    @Suppress("TooGenericExceptionCaught") // fails open and records why (see readFailed)
     private suspend fun seedLocked() {
         try {
             val decoded = serverDao.getAll().decode()
@@ -144,6 +145,7 @@ class ServerRepositoryImpl(
         return if (serverId in unreadable) null else byServerId[serverId].orEmpty()
     }
 
+    @Suppress("TooGenericExceptionCaught") // a storage failure is reported as a refusal, not thrown
     override suspend fun setHeaders(serverUrl: String, headers: Map<String, String>): HeaderWriteResult {
         val serverId = serverIdOf(serverUrl)
             ?: return HeaderWriteResult.Refused(HeaderWriteFailure.NoServer)

@@ -1,3 +1,5 @@
+@file:Suppress("TooGenericExceptionCaught") // parses a user-supplied OpenAPI spec; any malformed shape is reported, not thrown
+
 package com.garfiec.librechat.feature.agents.util
 
 import com.garfiec.librechat.core.model.request.FunctionDefinition

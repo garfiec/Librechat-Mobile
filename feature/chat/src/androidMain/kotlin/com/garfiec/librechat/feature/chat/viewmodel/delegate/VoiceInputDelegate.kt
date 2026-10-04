@@ -221,6 +221,7 @@ class VoiceInputDelegate(
         }
     }
 
+    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     private fun beginExternalRecording() {
         if (!handle.state.serverSttEnabled) {
             // Distinguish "server reachable, STT genuinely off" from "couldn't reach the server to

@@ -42,7 +42,8 @@ class SseClient(
      */
     // debt — CyclomaticComplexMethod: complexity 30
     // debt — LongMethod: 186 lines
-    @Suppress("CyclomaticComplexMethod", "LongMethod")
+    // TooGenericExceptionCaught: transport boundary: every failure is classified or surfaced as a stream event
+    @Suppress("CyclomaticComplexMethod", "LongMethod", "TooGenericExceptionCaught")
     fun connect(
         streamPath: String,
         resume: Boolean = false,

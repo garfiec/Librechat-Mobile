@@ -1,4 +1,6 @@
-@file:Suppress("TooManyFunctions") // debt: 27 functions
+// debt — TooManyFunctions: 27 functions
+// TooGenericExceptionCaught: parses untrusted tool output; any malformed shape degrades to null, empty or the raw output
+@file:Suppress("TooManyFunctions", "TooGenericExceptionCaught")
 
 package com.garfiec.librechat.feature.chat.components
 

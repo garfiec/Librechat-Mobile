@@ -22,6 +22,7 @@ actual fun showToast(message: String) {
     Toast.makeText(appContext, message, Toast.LENGTH_SHORT).show()
 }
 
+@Suppress("TooGenericExceptionCaught") // ContentResolver I/O throws undocumented exceptions; reported, not thrown
 @Composable
 actual fun FileSaver(
     triggerFileName: String?,

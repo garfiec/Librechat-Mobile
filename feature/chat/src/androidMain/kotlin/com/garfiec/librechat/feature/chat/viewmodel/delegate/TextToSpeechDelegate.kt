@@ -111,6 +111,7 @@ class TextToSpeechDelegate(
         }
     }
 
+    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     internal suspend fun readAloudViaServer(text: String) {
         when (val result = speechRepository.synthesizeSpeech(text)) {
             is Result.Success -> {

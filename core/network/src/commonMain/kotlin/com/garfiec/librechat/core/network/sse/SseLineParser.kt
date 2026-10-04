@@ -14,6 +14,7 @@ class SseLineParser(
     private val lineReadTimeoutMs: Long = DEFAULT_LINE_READ_TIMEOUT_MS,
 ) {
 
+    @Suppress("TooGenericExceptionCaught") // logs, then rethrows
     fun parse(channel: ByteReadChannel): Flow<SseEvent> = flow {
         var currentEvent = ""
         val currentData = StringBuilder()

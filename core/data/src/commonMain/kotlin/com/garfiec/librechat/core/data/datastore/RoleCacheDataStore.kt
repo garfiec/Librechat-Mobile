@@ -24,6 +24,7 @@ class RoleCacheDataStore(
     private val activeAccountProvider: ActiveAccountProvider,
 ) {
 
+    @Suppress("TooGenericExceptionCaught") // best-effort cache: a failure must not break the caller
     suspend fun save(role: UserRolePermissions) {
         val accountId = activeAccountProvider.currentAccountId()?.value ?: run {
             Logger.w { "No active account; skipping role cache write" }
@@ -42,6 +43,7 @@ class RoleCacheDataStore(
         }
     }
 
+    @Suppress("TooGenericExceptionCaught") // best-effort cache: a failure must not break the caller
     suspend fun load(): UserRolePermissions? {
         val accountId = activeAccountProvider.currentAccountId()?.value ?: return null
         return try {
@@ -55,6 +57,7 @@ class RoleCacheDataStore(
         }
     }
 
+    @Suppress("TooGenericExceptionCaught") // best-effort cache: a failure must not break the caller
     suspend fun clear() {
         try {
             // Scope to the resolved account only: other roster accounts' cached roles are retained

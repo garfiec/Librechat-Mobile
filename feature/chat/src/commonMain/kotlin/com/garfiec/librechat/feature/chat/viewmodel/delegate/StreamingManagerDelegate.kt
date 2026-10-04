@@ -385,6 +385,7 @@ class StreamingManagerDelegate(
         retryCeiling = null
     }
 
+    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     private suspend fun collectStreamSafely(stream: Flow<StreamEvent>) {
         try {
             stream.collect { event -> handleStreamEvent(event) }
@@ -1103,6 +1104,7 @@ class StreamingManagerDelegate(
         stopStreamingUpdater()
     }
 
+    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     fun onResume() {
         if (!wasStreaming) return
         wasStreaming = false
@@ -1247,6 +1249,7 @@ class StreamingManagerDelegate(
      * is active, end one that is not as [whenGone] (the refetch, no banner), and report a network
      * error only when the status read fails too.
      */
+    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     private fun adjudicateRetryCeiling(ceiling: RetryCeiling, session: Int, whenGone: StreamEndReason) {
         val message = ceiling.message
         val unreachable = StreamEndReason.StreamError(message, isNetwork = ceiling.networkWhenUnreachable)
@@ -1327,6 +1330,7 @@ class StreamingManagerDelegate(
         )
     }
 
+    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     fun resumeActiveStreamIfNeeded(
         conversationId: String,
         onInactive: () -> Unit = {},
@@ -1405,6 +1409,7 @@ class StreamingManagerDelegate(
      * If the last stream ended due to a network error, attempts to resume it
      * or falls back to reloading the conversation from the server.
      */
+    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     private fun attemptNetworkRecovery() {
         if (!lastErrorWasNetwork) return
         val state = handle.state
