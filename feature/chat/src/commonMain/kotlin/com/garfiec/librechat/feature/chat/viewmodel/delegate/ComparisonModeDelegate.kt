@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.EndpointConstants
+import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.StreamEvent
@@ -16,7 +17,6 @@ import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
 import com.garfiec.librechat.feature.chat.viewmodel.ComparisonHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ComparisonState
 import com.garfiec.librechat.feature.chat.viewmodel.resolveEndpointDispatch
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 /**
@@ -336,29 +336,26 @@ class ComparisonModeDelegate(
      * and reloads so the branched message surfaces. Triggers deferred navigation for new
      * chats that skipped it during comparison.
      */
-    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     fun branchFromComparison(agentId: String) {
         val messageId = handle.state.comparisonState.parallelMessageId ?: return
         val conversationId = handle.state.conversationId ?: return
         handle.scope.launch {
-            try {
-                messageRepository.branchMessage(
-                    conversationId = conversationId,
-                    messageId = messageId,
-                    agentId = agentId,
-                )
-                handle.update { comparisonState = ComparisonState() }
-                val cid = handle.state.conversationId
-                if (cid != null && handle.state.pendingNavigationConversationId == null) {
-                    handle.update { conversation = conversation.copy(pendingNavigationConversationId = cid) }
-                }
-                reloadConversation(conversationId)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Logger.e(e) { "Failed to branch comparison message" }
+            val result = messageRepository.branchMessage(
+                conversationId = conversationId,
+                messageId = messageId,
+                agentId = agentId,
+            )
+            if (result !is Result.Success) {
+                Logger.e((result as? Result.Error)?.exception) { "Failed to branch comparison message" }
                 handle.setError("Failed to continue with selected response")
+                return@launch
             }
+            handle.update { comparisonState = ComparisonState() }
+            val cid = handle.state.conversationId
+            if (cid != null && handle.state.pendingNavigationConversationId == null) {
+                handle.update { conversation = conversation.copy(pendingNavigationConversationId = cid) }
+            }
+            reloadConversation(conversationId)
         }
     }
 

@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import co.touchlab.kermit.Logger
+import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.pdf.PdfDocumentHolder
 import com.garfiec.librechat.core.ui.pdf.PdfPageContent
@@ -39,7 +40,6 @@ import com.garfiec.librechat.feature.files.FilePreviewDisplayData
 import com.garfiec.librechat.feature.files.resources.*
 import com.garfiec.librechat.feature.files.resources.Res
 import com.garfiec.librechat.feature.files.screen.InfoRow
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
@@ -54,7 +54,6 @@ private sealed interface PdfLoadState {
     data class Error(val message: StringResource, val detail: String? = null) : PdfLoadState
 }
 
-@Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
 @Composable
 actual fun PdfPreview(
     file: FilePreviewDisplayData,
@@ -69,11 +68,9 @@ actual fun PdfPreview(
     // finishing after dismissal is still closed rather than leaking its fd/renderer.
     val loadState by produceState<PdfLoadState>(PdfLoadState.Loading, file.fileId) {
         value = PdfLoadState.Loading
-        val bytes = try {
+        val bytes = suspendRunCatching {
             withContext(Dispatchers.IO) { currentOnDownloadFile?.invoke(file.fileId, file.userId) }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
+        }.getOrElse { e ->
             Logger.e(e) { "PdfPreview: download failed" }
             value = PdfLoadState.Error(Res.string.failed_to_download_pdf, e.message)
             return@produceState

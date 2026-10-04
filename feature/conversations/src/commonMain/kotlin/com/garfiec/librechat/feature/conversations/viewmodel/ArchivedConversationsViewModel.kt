@@ -9,7 +9,6 @@ import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.feature.conversations.ArchivedConversationDisplayData
 import com.garfiec.librechat.feature.conversations.toArchivedDisplayData
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -110,29 +109,21 @@ class ArchivedConversationsViewModel(
         }
     }
 
-    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     fun unarchiveConversation(id: String) {
         viewModelScope.launch {
-            try {
-                conversationRepository.archive(id, false)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Logger.e(e) { "Failed to unarchive conversation" }
+            val result = conversationRepository.archive(id, false)
+            if (result is Result.Error) {
+                Logger.e(result.exception) { "Failed to unarchive conversation" }
                 _events.emit(ArchivedConversationsEvent.ShowError("Failed to unarchive conversation"))
             }
         }
     }
 
-    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     fun deleteConversation(id: String) {
         viewModelScope.launch {
-            try {
-                conversationRepository.delete(id)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Logger.e(e) { "Failed to delete conversation" }
+            val result = conversationRepository.delete(id)
+            if (result is Result.Error) {
+                Logger.e(result.exception) { "Failed to delete conversation" }
                 _events.emit(ArchivedConversationsEvent.ShowError("Failed to delete conversation"))
             }
         }

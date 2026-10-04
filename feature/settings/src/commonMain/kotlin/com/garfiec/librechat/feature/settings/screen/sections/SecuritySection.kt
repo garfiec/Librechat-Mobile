@@ -41,8 +41,8 @@ import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.core.ui.components.sanitizeOtpInput
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
-import com.garfiec.librechat.feature.settings.util.copyToClipboard
-import com.garfiec.librechat.feature.settings.util.openUri
+import com.garfiec.librechat.feature.settings.util.rememberClipboardWriter
+import com.garfiec.librechat.feature.settings.util.rememberUriOpener
 import io.github.alexzhirkevich.qrose.rememberQrCodePainter
 import org.jetbrains.compose.resources.stringResource
 
@@ -60,6 +60,8 @@ internal fun TwoFactorSetupDialog(
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val clipboard = rememberClipboardWriter()
+    val uriOpener = rememberUriOpener()
     var code by remember { mutableStateOf("") }
     var submitted by remember { mutableStateOf(false) }
     var noAuthenticator by remember { mutableStateOf(false) }
@@ -90,7 +92,7 @@ internal fun TwoFactorSetupDialog(
                     // the otpauth:// URI to the authenticator is the enrollment path that works
                     // here. QR and the setup key are the fallbacks, not the default.
                     AdaptiveFilledTonalButton(
-                        onClick = { noAuthenticator = !openUri(otpauthUrl) },
+                        onClick = { noAuthenticator = !uriOpener.open(otpauthUrl) },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text(stringResource(Res.string.action_open_authenticator))
@@ -106,7 +108,7 @@ internal fun TwoFactorSetupDialog(
                         SetupKeyRow(
                             secret = secret,
                             onCopy = {
-                                copyToClipboard(secret, "2FA setup key")
+                                clipboard.copy(secret, "2FA setup key")
                                 copied = true
                             },
                         )
@@ -266,6 +268,7 @@ internal fun BackupCodesDialog(
     backupCodes: List<String>,
     onDismiss: () -> Unit,
 ) {
+    val clipboard = rememberClipboardWriter()
     // These are single-use recovery codes shown exactly once. Without a copy action the only way
     // to keep them is a screenshot or transcribing ten hex strings by hand, so offer the same
     // copy-then-confirm affordance ApiKeyCreateDialog uses for its equally one-shot secret.
@@ -320,7 +323,7 @@ internal fun BackupCodesDialog(
         dismissButton = {
             TextButton(
                 onClick = {
-                    copyToClipboard(backupCodes.joinToString("\n"), "Backup Codes")
+                    clipboard.copy(backupCodes.joinToString("\n"), "Backup Codes")
                     copied = true
                 },
             ) {

@@ -7,7 +7,6 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.feature.conversations.viewmodel.groupedByDateBucket
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
@@ -16,6 +15,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.filter
@@ -65,11 +65,11 @@ class ConversationListStateHolder(
         loadInitialConversations()
     }
 
-    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     private fun observeConversations() {
         scope.launch {
-            try {
-                conversationRepository.observeConversations().collect { result ->
+            conversationRepository.observeConversations()
+                .catch { e -> Logger.w(e) { "Failed to observe conversations" } }
+                .collect { result ->
                     if (result is Result.Success) {
                         _recentConversations.value = result.data
                         // Regroup on every Room emission — including during an active search. Search
@@ -79,11 +79,6 @@ class ConversationListStateHolder(
                         regroup()
                     }
                 }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Logger.w(e) { "Failed to observe conversations" }
-            }
         }
     }
 
@@ -116,22 +111,14 @@ class ConversationListStateHolder(
         }
     }
 
-    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     private suspend fun loadPage(cursor: String?): Boolean {
-        return try {
-            val result = conversationRepository.loadNextPage(cursor = cursor)
-            if (result is Result.Success) {
-                nextCursor = result.data
-                _hasMore.value = result.data != null
-                true
-            } else {
-                Logger.w { "Failed to load conversations page" }
-                false
-            }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Logger.w(e) { "Failed to load conversations page" }
+        val result = conversationRepository.loadNextPage(cursor = cursor)
+        return if (result is Result.Success) {
+            nextCursor = result.data
+            _hasMore.value = result.data != null
+            true
+        } else {
+            Logger.w((result as? Result.Error)?.exception) { "Failed to load conversations page" }
             false
         }
     }

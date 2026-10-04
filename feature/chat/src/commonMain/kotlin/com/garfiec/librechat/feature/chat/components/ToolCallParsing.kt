@@ -1,6 +1,5 @@
 // debt — TooManyFunctions: 27 functions
-// TooGenericExceptionCaught: parses untrusted tool output; any malformed shape degrades to null, empty or the raw output
-@file:Suppress("TooManyFunctions", "TooGenericExceptionCaught")
+@file:Suppress("TooManyFunctions")
 
 package com.garfiec.librechat.feature.chat.components
 
@@ -139,6 +138,7 @@ internal fun hostOf(url: String): String? =
         .removePrefix("www.")
         .takeIf { it.isNotEmpty() }
 
+@Suppress("TooGenericExceptionCaught") // untrusted tool output; a malformed shape degrades to null, empty or the raw output
 internal fun parseWebSearchResults(output: String?): List<WebSearchResult> {
     if (output.isNullOrBlank()) return emptyList()
     return try {
@@ -173,6 +173,7 @@ internal fun parseWebSearchResults(output: String?): List<WebSearchResult> {
     }
 }
 
+@Suppress("TooGenericExceptionCaught") // untrusted tool output; a malformed shape degrades to null, empty or the raw output
 internal fun parseCodeExecution(toolCall: AgentToolCall?): CodeExecutionResult? {
     if (toolCall == null) return null
     return try {
@@ -238,6 +239,7 @@ internal fun parseCodeExecution(toolCall: AgentToolCall?): CodeExecutionResult? 
  * worth a card, just without the key as a title. Prefer [collectMemoryArtifacts] when a payload
  * exists.
  */
+@Suppress("TooGenericExceptionCaught") // untrusted tool output; a malformed shape degrades to null, empty or the raw output
 internal fun parseMemoryArtifact(output: String?): MemoryArtifact? {
     if (output.isNullOrBlank()) return null
     return try {
@@ -256,6 +258,7 @@ internal fun parseMemoryArtifact(output: String?): MemoryArtifact? {
     }
 }
 
+@Suppress("TooGenericExceptionCaught") // untrusted tool output; a malformed shape degrades to null, empty or the raw output
 internal fun parseMcpResources(output: String?): List<McpResource> {
     if (output.isNullOrBlank()) return emptyList()
     return try {
@@ -294,7 +297,8 @@ internal fun parseMcpResources(output: String?): List<McpResource> {
 
 // debt — CyclomaticComplexMethod: complexity 29
 // debt — NestedBlockDepth: deeply nested
-@Suppress("CyclomaticComplexMethod", "NestedBlockDepth")
+// TooGenericExceptionCaught: untrusted tool output; a malformed shape degrades to null, empty or the raw output
+@Suppress("CyclomaticComplexMethod", "NestedBlockDepth", "TooGenericExceptionCaught")
 internal fun parseImageGenResult(
     toolCall: AgentToolCall?,
     baseUrl: String = "",
@@ -403,6 +407,7 @@ internal fun parseStreamingImageGenResult(
 }
 
 /** Extracts (prompt, quality) from a raw image-gen tool-call args JSON string. */
+@Suppress("TooGenericExceptionCaught") // untrusted tool output; a malformed shape degrades to null, empty or the raw output
 private fun parseImageGenArgs(argsJson: String?): Pair<String?, String?> {
     if (argsJson.isNullOrBlank()) return null to null
     return try {
@@ -416,6 +421,7 @@ private fun parseImageGenArgs(argsJson: String?): Pair<String?, String?> {
     }
 }
 
+@Suppress("TooGenericExceptionCaught") // untrusted tool output; a malformed shape degrades to null, empty or the raw output
 internal fun parseLogContent(toolCall: AgentToolCall?): LogContent {
     if (toolCall == null) return LogContent()
     return try {
@@ -534,6 +540,7 @@ internal fun parseToolIntent(raw: JsonElement?): String? = when (raw) {
 }
 
 /** [parseToolIntent] for args held as raw text — the persisted shape, and the streaming `input`. */
+@Suppress("TooGenericExceptionCaught") // untrusted tool output; a malformed shape degrades to null, empty or the raw output
 internal fun parseToolIntent(raw: String?): String? {
     val text = raw?.trim().orEmpty()
     if (text.isEmpty()) return null
@@ -564,6 +571,7 @@ private fun JsonObject.intentField(): String? {
 }
 
 /** The args as the card should display them: without the label already shown as its title. */
+@Suppress("TooGenericExceptionCaught") // untrusted tool output; a malformed shape degrades to null, empty or the raw output
 internal fun argsWithoutIntent(raw: String?): String? {
     val text = raw?.trim().orEmpty()
     if (text.isEmpty()) return raw
@@ -583,6 +591,7 @@ private const val INTENT_KEY = "intent"
 /** [parseAskUserQuestion] for args held as raw text (the streaming path's `input`). Accepts only
  *  a JSON object, which is also what stops the [JsonElement] overload from recursing: lenient
  *  parsing turns a bare word back into a string, and re-entering on that would not terminate. */
+@Suppress("TooGenericExceptionCaught") // untrusted tool output; a malformed shape degrades to null, empty or the raw output
 internal fun parseAskUserQuestion(raw: String?): AskUserQuestionRequest? {
     val text = raw?.trim().orEmpty()
     if (text.isEmpty()) return null

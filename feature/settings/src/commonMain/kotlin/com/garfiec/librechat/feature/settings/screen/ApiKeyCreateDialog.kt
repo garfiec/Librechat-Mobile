@@ -29,7 +29,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
-import com.garfiec.librechat.feature.settings.util.copyToClipboard
+import com.garfiec.librechat.feature.settings.util.rememberClipboardWriter
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -111,6 +111,7 @@ private fun CreatedKeyDialog(
     apiKey: ApiKey,
     onDismiss: () -> Unit,
 ) {
+    val clipboard = rememberClipboardWriter()
     var copied by remember { mutableStateOf(false) }
 
     AdaptiveAlertDialog(
@@ -151,7 +152,7 @@ private fun CreatedKeyDialog(
                         )
                         IconButton(
                             onClick = {
-                                copyToClipboard(apiKey.keyValue ?: "", "API Key")
+                                clipboard.copy(apiKey.keyValue ?: "", "API Key")
                                 copied = true
                             },
                         ) {

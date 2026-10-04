@@ -14,7 +14,6 @@ import com.garfiec.librechat.feature.chat.prompts.resolvePromptInsertion
 import com.garfiec.librechat.feature.chat.prompts.resolvePromptText
 import com.garfiec.librechat.feature.chat.viewmodel.PendingVariablePrompt
 import com.garfiec.librechat.feature.chat.viewmodel.PresetPromptHandle
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -99,7 +98,6 @@ class PresetPromptDelegate(
         }
     }
 
-    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     fun savePreset(name: String) {
         val state = handle.state
         val params = state.modelParameters
@@ -156,14 +154,13 @@ class PresetPromptDelegate(
             resendFiles = params.resendFiles,
         )
         handle.scope.launch {
-            try {
-                presetRepository.create(preset)
-                loadPresets()
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Logger.e(e) { "Could not save preset" }
-                handle.setError("Could not save preset")
+            when (val result = presetRepository.create(preset)) {
+                is Result.Success -> loadPresets()
+                is Result.Error -> {
+                    Logger.e(result.exception) { "Could not save preset" }
+                    handle.setError("Could not save preset")
+                }
+                is Result.Loading -> { /* no-op */ }
             }
         }
     }

@@ -1,5 +1,3 @@
-@file:Suppress("TooGenericExceptionCaught") // maps untrusted SSE frames; one malformed frame must not end the stream
-
 package com.garfiec.librechat.core.network.sse
 
 import co.touchlab.kermit.Logger
@@ -116,6 +114,7 @@ class SseEventMapper(private val json: Json) {
      * indistinguishable from live events. List order is significant: the snapshot
      * must be applied before the buffered deltas that build on it.
      */
+    @Suppress("TooGenericExceptionCaught") // one malformed SSE frame must not end the stream
     fun mapFrame(event: SseEvent): List<StreamEvent> {
         if (event.data.isBlank() || event.data == "[DONE]") return emptyList()
 
@@ -184,6 +183,7 @@ class SseEventMapper(private val json: Json) {
 
     // --- Control events ---
 
+    @Suppress("TooGenericExceptionCaught") // one malformed SSE frame must not end the stream
     private fun mapFinalEvent(root: JsonObject): StreamEvent {
         val parseErrors = mutableListOf<String>()
 
@@ -285,6 +285,7 @@ class SseEventMapper(private val json: Json) {
      * pause. Order matters where they coexist: the snapshot rebuilds the reply, then the pause
      * marks it as awaiting the user, then the steer snapshot repopulates the chips.
      */
+    @Suppress("TooGenericExceptionCaught") // one malformed SSE frame must not end the stream
     private fun mapSyncEvents(root: JsonObject): List<StreamEvent> {
         val resumeState = root["resumeState"]?.jsonObject ?: return emptyList()
 
@@ -329,6 +330,7 @@ class SseEventMapper(private val json: Json) {
     }
 
     /** Decodes a `TPendingSteer[]` payload, dropping entries that carry no id to cancel by. */
+    @Suppress("TooGenericExceptionCaught") // one malformed SSE frame must not end the stream
     private fun parsePendingSteers(element: JsonElement?): List<PendingSteer> {
         val array = element as? JsonArray ?: return emptyList()
         return array.mapNotNull { item ->
@@ -348,6 +350,7 @@ class SseEventMapper(private val json: Json) {
      * identical record — a client that was attached when the run paused and one that reconnected
      * into the pause must reach the same state.
      */
+    @Suppress("TooGenericExceptionCaught") // one malformed SSE frame must not end the stream
     private fun parsePendingAction(element: JsonElement): StreamEvent? {
         val pendingAction = try {
             json.decodeFromJsonElement(PendingAction.serializer(), element)
@@ -681,6 +684,7 @@ class SseEventMapper(private val json: Json) {
         return StreamEvent.TitleUpdate(conversationId = conversationId, title = title)
     }
 
+    @Suppress("TooGenericExceptionCaught") // one malformed SSE frame must not end the stream
     private fun mapTokenUsage(data: JsonObject): StreamEvent? {
         // data is a TTokenUsageEvent: {input_tokens, output_tokens, total_tokens, model, provider}.
         val usage = try {
@@ -692,6 +696,7 @@ class SseEventMapper(private val json: Json) {
         return StreamEvent.TokenUsageUpdate(usage)
     }
 
+    @Suppress("TooGenericExceptionCaught") // one malformed SSE frame must not end the stream
     private fun mapContextUsage(data: JsonObject): StreamEvent? {
         // data is a TContextUsageEvent: {breakdown:{...}, contextBudget?, remainingContextTokens?, ...}.
         val usage = try {
@@ -703,6 +708,7 @@ class SseEventMapper(private val json: Json) {
         return StreamEvent.ContextUsageUpdate(usage)
     }
 
+    @Suppress("TooGenericExceptionCaught") // one malformed SSE frame must not end the stream
     private fun mapAttachment(data: JsonObject): StreamEvent? {
         // Attachment events carry file metadata for tool-generated artifacts
         // (e.g., images from DALL-E / image_edit_oai). The data object has:

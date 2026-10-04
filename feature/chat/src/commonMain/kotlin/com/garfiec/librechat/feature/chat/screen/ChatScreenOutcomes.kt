@@ -9,7 +9,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.feature.chat.components.ForkOptionsBottomSheet
-import com.garfiec.librechat.feature.chat.util.copyToClipboard
+import com.garfiec.librechat.feature.chat.util.rememberClipboardWriter
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
 
@@ -29,6 +29,7 @@ internal fun ChatScreenOutcomes(
     onConversationStart: ((conversationId: String, isTemporary: Boolean) -> Unit)?,
     onNavigateToConversation: ((String) -> Unit)?,
 ) {
+    val clipboard = rememberClipboardWriter()
     // The effects below outlive a recomposition, so they read the navigation callbacks through
     // these rather than capturing whichever pair was current when they launched.
     val navigate by rememberUpdatedState(onNavigateToConversation)
@@ -52,7 +53,7 @@ internal fun ChatScreenOutcomes(
     val shareLinkUrl by viewModel.shareLinkUrl.collectAsStateWithLifecycle()
     LaunchedEffect(shareLinkUrl) {
         val url = shareLinkUrl ?: return@LaunchedEffect
-        copyToClipboard(url, label = "Share Link")
+        clipboard.copy(url, label = "Share Link")
         viewModel.onShareLinkHandled()
         snackbarHostState.showSnackbar("Share link copied to clipboard")
     }

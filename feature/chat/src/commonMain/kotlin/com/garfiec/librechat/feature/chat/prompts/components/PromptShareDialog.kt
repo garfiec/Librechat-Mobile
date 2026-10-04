@@ -27,7 +27,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveRadioButton
 import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
-import com.garfiec.librechat.feature.chat.util.copyToClipboard
+import com.garfiec.librechat.feature.chat.util.rememberClipboardWriter
 import org.jetbrains.compose.resources.stringResource
 
 enum class SharePermission(val label: String) {
@@ -43,6 +43,7 @@ fun PromptShareDialog(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val clipboard = rememberClipboardWriter()
     var isShared by remember { mutableStateOf(isCurrentlyShared) }
     var permission by remember { mutableStateOf(SharePermission.VIEW_ONLY) }
     AdaptiveAlertDialog(
@@ -101,7 +102,7 @@ fun PromptShareDialog(
                     Spacer(modifier = Modifier.height(4.dp))
                     AdaptiveOutlinedButton(
                         onClick = {
-                            copyToClipboard("prompt://$promptName", "Prompt Link")
+                            clipboard.copy("prompt://$promptName", "Prompt Link")
                         },
                         modifier = Modifier.fillMaxWidth(),
                     ) {

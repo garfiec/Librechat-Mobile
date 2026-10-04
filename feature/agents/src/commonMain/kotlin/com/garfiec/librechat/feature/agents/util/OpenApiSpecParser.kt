@@ -1,5 +1,3 @@
-@file:Suppress("TooGenericExceptionCaught") // parses a user-supplied OpenAPI spec; any malformed shape is reported, not thrown
-
 package com.garfiec.librechat.feature.agents.util
 
 import com.garfiec.librechat.core.model.request.FunctionDefinition
@@ -35,6 +33,7 @@ object OpenApiSpecParser {
      * @param spec The raw OpenAPI specification text (JSON or YAML format).
      * @return [OpenApiParseResult] containing the domain, extracted functions, and any errors.
      */
+    @Suppress("TooGenericExceptionCaught") // user-supplied spec; a malformed shape is reported, not thrown
     fun parse(spec: String): OpenApiParseResult {
         if (spec.isBlank()) {
             return OpenApiParseResult(
@@ -145,6 +144,7 @@ object OpenApiSpecParser {
     /**
      * Extracts a display-friendly list of parsed functions showing name, method, and path.
      */
+    @Suppress("TooGenericExceptionCaught") // user-supplied spec; a malformed shape is reported, not thrown
     fun extractFunctionInfo(spec: String): List<ParsedFunctionInfo> {
         if (spec.isBlank()) return emptyList()
 
@@ -185,6 +185,7 @@ object OpenApiSpecParser {
     }
 
     /** Whether the spec carries the OpenAPI 3 `servers` array the server insists on. */
+    @Suppress("TooGenericExceptionCaught") // user-supplied spec; a malformed shape is reported, not thrown
     private fun hasServersArray(root: JsonObject): Boolean {
         val servers = try { root["servers"]?.jsonArray } catch (_: Exception) { null }
         if (servers.isNullOrEmpty()) return false
@@ -207,6 +208,7 @@ object OpenApiSpecParser {
      * (`https://h:443/v1`) validates: WHATWG strips it from both sides and the port check then
      * compares 443 against the protocol's default.
      */
+    @Suppress("TooGenericExceptionCaught") // user-supplied spec; a malformed shape is reported, not thrown
     private fun extractDomain(root: JsonObject): String {
         val servers = try { root["servers"]?.jsonArray } catch (_: Exception) { null }
         if (servers != null && servers.isNotEmpty()) {
@@ -258,6 +260,7 @@ object OpenApiSpecParser {
         val location: String, // "query", "path", "header", "cookie"
     )
 
+    @Suppress("TooGenericExceptionCaught") // user-supplied spec; a malformed shape is reported, not thrown
     private fun parseParameterList(element: JsonElement): List<ParameterInfo> {
         val array = try { element.jsonArray } catch (_: Exception) { return emptyList() }
         return array.mapNotNull { param ->
@@ -351,6 +354,7 @@ object OpenApiSpecParser {
      * @throws IllegalArgumentException if neither JSON nor YAML parsing succeeds, or if
      *         the parsed result is not an object (map).
      */
+    @Suppress("TooGenericExceptionCaught") // user-supplied spec; a malformed shape is reported, not thrown
     private fun parseSpecToJsonObject(spec: String): JsonObject {
         // Try JSON first
         val jsonError: Exception

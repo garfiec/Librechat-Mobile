@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.common.network.ConnectivityObserver
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.FailureKind
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.common.result.toSafeError
 import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.model.Attachment
@@ -27,7 +28,6 @@ import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
 import com.garfiec.librechat.feature.chat.viewmodel.RetryInfo
 import com.garfiec.librechat.feature.chat.viewmodel.StreamingHandle
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -385,13 +385,10 @@ class StreamingManagerDelegate(
         retryCeiling = null
     }
 
-    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     private suspend fun collectStreamSafely(stream: Flow<StreamEvent>) {
-        try {
+        suspendRunCatching {
             stream.collect { event -> handleStreamEvent(event) }
-        } catch (e: CancellationException) {
-            throw e // Never swallow cancellation
-        } catch (e: Exception) {
+        }.onFailure { e ->
             Logger.e(e) { "Stream collection failed" }
             // Classify rather than surfacing `e.message`: this stream is collected directly, not
             // through safeApiCall, and Ktor builds its messages out of the request URL — a gateway
@@ -1104,7 +1101,6 @@ class StreamingManagerDelegate(
         stopStreamingUpdater()
     }
 
-    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     fun onResume() {
         if (!wasStreaming) return
         wasStreaming = false
@@ -1122,7 +1118,7 @@ class StreamingManagerDelegate(
         // and a stale ResumeExpired must not wipe the newer stream's partial.
         val session = streamSession
         scope.launch {
-            try {
+            suspendRunCatching {
                 val status = chatRepository.checkStreamStatus(conversationId, steeringDelegate::reclaimParked)
                 // A concurrent resume advanced the session (or it ended) while we were suspended:
                 // bail rather than redundantly restart or wipe the now-current stream.
@@ -1142,9 +1138,7 @@ class StreamingManagerDelegate(
                     // Server confirms the job is gone: safe to wipe and reload (past the persist race).
                     endStream(StreamEndReason.ResumeExpired, session)
                 }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
+            }.onFailure { e ->
                 Logger.e(e) { "Could not resume stream" }
                 if (isResumeStale(session) || abortRequested) return@launch
                 // A transient status-check failure is NOT proof the stream ended — preserve the
@@ -1249,7 +1243,6 @@ class StreamingManagerDelegate(
      * is active, end one that is not as [whenGone] (the refetch, no banner), and report a network
      * error only when the status read fails too.
      */
-    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     private fun adjudicateRetryCeiling(ceiling: RetryCeiling, session: Int, whenGone: StreamEndReason) {
         val message = ceiling.message
         val unreachable = StreamEndReason.StreamError(message, isNetwork = ceiling.networkWhenUnreachable)
@@ -1259,11 +1252,9 @@ class StreamingManagerDelegate(
             return
         }
         scope.launch {
-            val status = try {
+            val status = suspendRunCatching {
                 chatRepository.checkStreamStatus(conversationId, steeringDelegate::reclaimParked)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
+            }.getOrElse { e ->
                 Logger.w(e) { "Retry ceiling: could not check stream status" }
                 null
             }
@@ -1330,7 +1321,6 @@ class StreamingManagerDelegate(
         )
     }
 
-    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     fun resumeActiveStreamIfNeeded(
         conversationId: String,
         onInactive: () -> Unit = {},
@@ -1349,7 +1339,7 @@ class StreamingManagerDelegate(
         // such attach.
         val endedAtStart = isSessionEnded()
         scope.launch {
-            try {
+            suspendRunCatching {
                 val status = chatRepository.checkStreamStatus(conversationId, steeringDelegate::reclaimParked)
                 val superseded = streamSession != session || (!endedAtStart && isSessionEnded())
                 if (superseded || abortRequested) return@launch
@@ -1371,9 +1361,7 @@ class StreamingManagerDelegate(
                 } else {
                     onInactive()
                 }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
+            }.onFailure { e ->
                 Logger.d(e) { "No active stream to resume for $conversationId" }
                 onFailed()
             }
@@ -1409,7 +1397,6 @@ class StreamingManagerDelegate(
      * If the last stream ended due to a network error, attempts to resume it
      * or falls back to reloading the conversation from the server.
      */
-    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     private fun attemptNetworkRecovery() {
         if (!lastErrorWasNetwork) return
         val state = handle.state
@@ -1421,7 +1408,7 @@ class StreamingManagerDelegate(
         Logger.d { "Network recovered, attempting to resume conversation $conversationId" }
 
         scope.launch {
-            try {
+            suspendRunCatching {
                 val status = chatRepository.checkStreamStatus(conversationId, steeringDelegate::reclaimParked)
                 if (status.active) {
                     // See resumeActiveStreamIfNeeded: a live server run is the fence's only
@@ -1445,9 +1432,7 @@ class StreamingManagerDelegate(
                     }
                     reloadConversation(conversationId)
                 }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
+            }.onFailure { e ->
                 Logger.w(e) { "Network recovery: could not check stream status" }
             }
         }

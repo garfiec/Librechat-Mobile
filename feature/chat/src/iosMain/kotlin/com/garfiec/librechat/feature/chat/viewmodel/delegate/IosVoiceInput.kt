@@ -181,10 +181,9 @@ class IosVoiceInput(
      * whole audio stack down and rebuilding it per silence-boundary segment added latency and audible
      * gaps.
      */
-    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     @OptIn(ExperimentalForeignApi::class)
     private fun beginRecording() {
-        try {
+        runCatching {
             // Reset all session-scoped state for the fresh session.
             buffer.begin(handle.state.inputText)
             triedCloudFallback = false
@@ -279,7 +278,7 @@ class IosVoiceInput(
                 voice = voice.copy(isRecording = true)
                 error = null
             }
-        } catch (e: Exception) {
+        }.onFailure { e ->
             log.e(e) { "Failed to start recording: ${e.message}" }
             failStart("Could not start recording: ${e.message}")
         }
