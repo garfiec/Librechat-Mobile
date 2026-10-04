@@ -75,8 +75,7 @@ val settingsModule = module {
     viewModelOf(::ReleaseNotesViewModel)
 
     // viewModelOf has no overload that accepts ParametersHolder, so the runtime
-    // endpointName parameter forces the lambda DSL despite the deprecation hint.
-    @Suppress("DeprecatedKoinApi")
+    // endpointName parameter forces the lambda DSL.
     viewModel { params ->
         SetProviderKeyViewModel(
             endpointName = params.get(),

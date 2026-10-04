@@ -40,7 +40,6 @@ val conversationsModule = module {
     // Drawer-data half of the nav shell's NavHostViewModel.
     viewModelOf(::DrawerViewModel)
     // projectId arrives from the navigation layer via parametersOf.
-    @Suppress("DeprecatedKoinApi")
     viewModel { params ->
         ProjectChatsViewModel(
             projectId = params.get(),

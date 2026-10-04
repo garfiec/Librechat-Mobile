@@ -35,9 +35,7 @@ val chatModule = module {
     // Koin's constructor-DSL (`viewModelOf`) wires every argument via `get()` and cannot read
     // values passed through `parametersOf`. This VM receives its `initialGroupId` from the
     // navigation layer via `parametersOf`, so the lambda-form `viewModel { params -> ... }` is
-    // the only DSL that works here. Detekt's `DeprecatedKoinApi` is a blanket stylistic rule,
-    // not a real `@Deprecated` API, so we suppress it in the narrow place it applies.
-    @Suppress("DeprecatedKoinApi")
+    // the only DSL that works here.
     viewModel { params ->
         PromptEditorViewModel(
             promptRepository = get(),
@@ -45,7 +43,6 @@ val chatModule = module {
         )
     }
     // conversationId arrives from the navigation layer via parametersOf — same reason as above.
-    @Suppress("DeprecatedKoinApi")
     viewModel { params ->
         ConversationMediaViewModel(
             conversationId = params.get(),
