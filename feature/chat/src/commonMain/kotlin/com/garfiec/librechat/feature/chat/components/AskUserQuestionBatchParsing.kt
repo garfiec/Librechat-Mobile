@@ -1,5 +1,3 @@
-@file:Suppress("TooGenericExceptionCaught") // parses untrusted tool args; any malformed shape degrades to an empty result
-
 package com.garfiec.librechat.feature.chat.components
 
 import co.touchlab.kermit.Logger
@@ -50,6 +48,7 @@ internal fun parseAskUserQuestionBatch(raw: JsonElement?): List<AskUserQuestionE
 }
 
 /** [parseAskUserQuestionBatch] for args held as raw text — the persisted and streaming shapes. */
+@Suppress("TooGenericExceptionCaught") // untrusted tool args; a malformed shape degrades to an empty result
 internal fun parseAskUserQuestionBatch(raw: String?): List<AskUserQuestionEntry> {
     val text = raw?.trim().orEmpty()
     if (text.isEmpty()) return emptyList()
@@ -82,6 +81,7 @@ private fun JsonObject.toAskUserQuestionBatch(): List<AskUserQuestionEntry> {
  * question's words under another. Empty while the pause is still live, since nothing is stamped
  * until it resolves.
  */
+@Suppress("TooGenericExceptionCaught") // untrusted tool args; a malformed shape degrades to an empty result
 internal fun parseAskUserAnswers(output: String?): Map<String, String> {
     val text = output?.trim().orEmpty()
     if (text.isEmpty()) return emptyMap()

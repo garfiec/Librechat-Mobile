@@ -1,5 +1,3 @@
-@file:Suppress("TooGenericExceptionCaught") // parses untrusted attachment payloads; any malformed shape is skipped
-
 package com.garfiec.librechat.feature.chat.components
 
 import co.touchlab.kermit.Logger
@@ -105,6 +103,7 @@ internal fun memoryArtifactFrom(data: MemoryArtifactData): MemoryArtifact {
     )
 }
 
+@Suppress("TooGenericExceptionCaught") // untrusted attachment payload; a malformed shape is skipped
 private fun parseMemoryError(value: String?): MemoryErrorInfo? {
     if (value.isNullOrBlank()) return null
     return try {
