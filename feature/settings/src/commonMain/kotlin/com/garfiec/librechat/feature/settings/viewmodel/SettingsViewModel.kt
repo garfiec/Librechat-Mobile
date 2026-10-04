@@ -392,27 +392,6 @@ class SettingsViewModel(
         _uiState.update { it.copy(forkMode = mode, showForkSettingsDialog = false) }
     }
 
-    // ── Personalization ────────────────────────────────────────────
-
-    fun showPersonalizationDialog() {
-        _uiState.update { it.copy(showPersonalizationDialog = true) }
-    }
-
-    fun dismissPersonalizationDialog() {
-        _uiState.update { it.copy(showPersonalizationDialog = false) }
-    }
-
-    fun savePersonalization(aboutUser: String, responseStyle: String, enabled: Boolean) {
-        _uiState.update {
-            it.copy(
-                aboutUser = aboutUser,
-                responseStyle = responseStyle,
-                personalizationEnabled = enabled,
-                showPersonalizationDialog = false,
-            )
-        }
-    }
-
     // ── Auth actions ───────────────────────────────────────────────
 
     fun logout() = accountDelegate.logout()

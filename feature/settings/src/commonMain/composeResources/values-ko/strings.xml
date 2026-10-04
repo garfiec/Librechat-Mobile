@@ -138,7 +138,6 @@
     <string name="prefetch_cache_messages_value">메시지 %1$d개</string>
     <string name="prefetch_cache_images">이미지 및 파일</string>
     <string name="section_memories">메모리</string>
-    <string name="section_personalization">개인화</string>
     <string name="section_presets">프리셋</string>
     <string name="section_profile">프로필</string>
     <string name="section_security">보안</string>
@@ -176,7 +175,6 @@
     <!-- Settings rows -->
     <string name="language">언어</string>
     <string name="language_system_default">시스템 기본값</string>
-    <string name="personalization">개인화</string>
     <string name="status_enabled">사용</string>
     <string name="status_disabled">사용 안 함</string>
     <string name="fork_behavior">분기 동작</string>
@@ -494,11 +492,6 @@
     <string name="hint_search_languages">언어 검색</string>
 
     <!-- Personalization dialog -->
-    <string name="enable_personalization">개인화 사용</string>
-    <string name="about_you_label">사용자 정보</string>
-    <string name="about_you_hint">맥락을 위해 AI가 사용자에 대해 알아야 할 내용은 무엇인가요?</string>
-    <string name="response_style_label">AI가 어떻게 응답해야 하나요?</string>
-    <string name="response_style_hint">응답에 선호하는 어조, 형식 또는 스타일</string>
 
     <!-- Avatar upload dialog -->
     <string name="dialog_title_update_avatar">아바타 업데이트</string>

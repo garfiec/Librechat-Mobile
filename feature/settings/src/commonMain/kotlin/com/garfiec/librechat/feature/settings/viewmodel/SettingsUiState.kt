@@ -211,11 +211,6 @@ data class SettingsUiState(
     val forkMode: String = "targetLevel",
     val showForkSettingsDialog: Boolean = false,
     // Commands
-    // Personalization
-    val showPersonalizationDialog: Boolean = false,
-    val personalizationEnabled: Boolean = true,
-    val aboutUser: String = "",
-    val responseStyle: String = "",
     // Tablet
     val tabletSidebarGestureEnabled: Boolean = true,
     // Chat layout

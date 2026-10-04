@@ -138,7 +138,6 @@
     <string name="prefetch_cache_messages_value">Сообщений: %1$d</string>
     <string name="prefetch_cache_images">Изображения и файлы</string>
     <string name="section_memories">Память</string>
-    <string name="section_personalization">Персонализация</string>
     <string name="section_presets">Пресеты</string>
     <string name="section_profile">Профиль</string>
     <string name="section_security">Безопасность</string>
@@ -176,7 +175,6 @@
     <!-- Settings rows -->
     <string name="language">Язык</string>
     <string name="language_system_default">Системный</string>
-    <string name="personalization">Персонализация</string>
     <string name="status_enabled">Включено</string>
     <string name="status_disabled">Выключено</string>
     <string name="fork_behavior">Поведение при ответвлении</string>
@@ -494,11 +492,6 @@
     <string name="hint_search_languages">Поиск языков</string>
 
     <!-- Personalization dialog -->
-    <string name="enable_personalization">Включить персонализацию</string>
-    <string name="about_you_label">О вас</string>
-    <string name="about_you_hint">Что ИИ следует знать о вас для контекста?</string>
-    <string name="response_style_label">Как ИИ должен отвечать?</string>
-    <string name="response_style_hint">Предпочитаемый тон, формат или стиль ответов</string>
 
     <!-- Avatar upload dialog -->
     <string name="dialog_title_update_avatar">Обновить аватар</string>

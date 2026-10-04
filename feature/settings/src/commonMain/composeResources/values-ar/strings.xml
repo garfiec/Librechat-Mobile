@@ -138,7 +138,6 @@
     <string name="prefetch_cache_messages_value">%1$d رسالة</string>
     <string name="prefetch_cache_images">الصور والملفات</string>
     <string name="section_memories">الذكريات</string>
-    <string name="section_personalization">التخصيص</string>
     <string name="section_presets">الإعدادات المسبقة</string>
     <string name="section_profile">الملف الشخصي</string>
     <string name="section_security">الأمان</string>
@@ -176,7 +175,6 @@
     <!-- Settings rows -->
     <string name="language">اللغة</string>
     <string name="language_system_default">افتراضي النظام</string>
-    <string name="personalization">التخصيص</string>
     <string name="status_enabled">مُفعّل</string>
     <string name="status_disabled">مُعطّل</string>
     <string name="fork_behavior">سلوك التفريع</string>
@@ -494,11 +492,6 @@
     <string name="hint_search_languages">البحث في اللغات</string>
 
     <!-- Personalization dialog -->
-    <string name="enable_personalization">تفعيل التخصيص</string>
-    <string name="about_you_label">نبذة عنك</string>
-    <string name="about_you_hint">ما الذي ينبغي أن يعرفه الذكاء الاصطناعي عنك للسياق؟</string>
-    <string name="response_style_label">كيف ينبغي أن يرد الذكاء الاصطناعي؟</string>
-    <string name="response_style_hint">النبرة أو التنسيق أو الأسلوب المفضل للردود</string>
 
     <!-- Avatar upload dialog -->
     <string name="dialog_title_update_avatar">تحديث الصورة الرمزية</string>
