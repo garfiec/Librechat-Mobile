@@ -144,7 +144,10 @@ class FileAttachmentDelegate(
                     val processed = processImageForUpload(bytes, mimeType, maxEncodedBytes = sizeLimit)
                     if (processed != null) {
                         if (processed.reEncoded) {
-                            Logger.d { "uploadFile: re-encoded image from $mimeType to ${processed.mimeType} (${bytes.size} -> ${processed.bytes.size} bytes)" }
+                            Logger.d {
+                                "uploadFile: re-encoded image from $mimeType to ${processed.mimeType} " +
+                                    "(${bytes.size} -> ${processed.bytes.size} bytes)"
+                            }
                         }
                         uploadBytes = processed.bytes
                         mimeType = processed.mimeType
@@ -234,7 +237,10 @@ class FileAttachmentDelegate(
                 when (result) {
                     is Result.Success -> {
                         val fileObject = result.data
-                        Logger.d { "uploadFile: success -- serverFileId=${fileObject.fileId}, filepath=${fileObject.filepath}, type=${fileObject.type}, ${fileObject.width}x${fileObject.height}" }
+                        Logger.d {
+                            "uploadFile: success -- serverFileId=${fileObject.fileId}, filepath=${fileObject.filepath}, " +
+                                "type=${fileObject.type}, ${fileObject.width}x${fileObject.height}"
+                        }
                         // Atomically update the attached file with server data
                         _attachedFiles.update { currentList ->
                             currentList.map { f ->

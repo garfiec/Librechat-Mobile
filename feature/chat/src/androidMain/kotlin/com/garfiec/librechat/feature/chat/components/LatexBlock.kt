@@ -118,7 +118,7 @@ new MutationObserver(reportHeight).observe(document.body, { childList: true, sub
 @Composable
 private fun NativeLatexBlock(
     latex: String,
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
 ) {
     Text(
         text = latex,
@@ -142,7 +142,7 @@ private fun NativeLatexBlock(
 @Composable
 private fun NativeLatexInline(
     latex: String,
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
 ) {
     Text(
         text = latex,
@@ -165,7 +165,7 @@ private fun NativeLatexInline(
 @Composable
 private fun KatexLatexBlock(
     latex: String,
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
 ) {
     val textColorArgb = MaterialTheme.colorScheme.onSurface.toArgb()
     val textColorCss = remember(textColorArgb) { argbToCss(textColorArgb) }
@@ -241,7 +241,7 @@ private fun KatexLatexBlock(
 @Composable
 private fun KatexLatexInline(
     latex: String,
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
 ) {
     val textColorArgb = MaterialTheme.colorScheme.onSurface.toArgb()
     val textColorCss = remember(textColorArgb) { argbToCss(textColorArgb) }

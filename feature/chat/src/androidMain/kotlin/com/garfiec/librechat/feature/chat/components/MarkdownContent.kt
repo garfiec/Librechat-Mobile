@@ -327,7 +327,7 @@ private fun MarkdownTableWithFullscreen(
     headers: List<String>,
     alignments: List<TableCellAlignment>,
     rows: List<List<String>>,
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
     fontSizeMultiplier: Float = 1.0f,
     searchQuery: String? = null,
     searchFocusedOccurrence: Int = -1,

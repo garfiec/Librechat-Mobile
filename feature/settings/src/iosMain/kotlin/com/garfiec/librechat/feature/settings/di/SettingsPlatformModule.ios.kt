@@ -50,6 +50,8 @@ actual val settingsPlatformModule: Module = module {
             }
         }
     } bind ContentReader::class
+    // The rule reads the anonymous `object :` as a generic type; it binds one non-generic interface.
+    @Suppress("GenericDefinitionWithoutQualifier")
     single {
         @OptIn(ExperimentalForeignApi::class)
         object : PlatformCacheCleaner {

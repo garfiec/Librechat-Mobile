@@ -32,7 +32,8 @@ class UpdateViewModelsTest {
         private val result: UpdateCheckState = UpdateCheckState.UpToDate,
         override val installedTag: String? = "v2026.09.0",
         var installedResult: Result<AppRelease?> = Result.Success(null),
-        val pages: MutableMap<Int, Result<ReleasePage>> = mutableMapOf(1 to Result.Success(ReleasePage(emptyList(), false))),
+        val pages: MutableMap<Int, Result<ReleasePage>> =
+        mutableMapOf(1 to Result.Success(ReleasePage(emptyList(), false))),
     ) : AppUpdateRepository {
         val state = MutableStateFlow(initial)
         val notified = mutableListOf<String>()

@@ -90,6 +90,7 @@ class ChatModuleVerificationTest {
         )
     }
 
+    @Suppress("MissingScopedDependencyQualifier") // each mock binds a distinct interface; the rule keys on the mockk() call
     @Test
     fun everyViewModelTheScreensResolveByTypeIsRegistered() {
         // `verify()` above checks that REGISTERED definitions have satisfiable dependencies. It

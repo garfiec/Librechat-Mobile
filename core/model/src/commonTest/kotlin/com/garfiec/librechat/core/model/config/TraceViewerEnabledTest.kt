@@ -1,9 +1,9 @@
 package com.garfiec.librechat.core.model.config
 
+import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-import kotlinx.serialization.json.Json
 
 /**
  * The second absent-means-OFF interface flag — with a DIFFERENT rule from the first.

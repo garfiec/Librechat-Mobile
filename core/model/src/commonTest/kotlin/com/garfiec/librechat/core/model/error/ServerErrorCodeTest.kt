@@ -30,6 +30,7 @@ class ServerErrorCodeTest {
         assertEquals("MCP_API_KEY_REENTRY_REQUIRED", ServerErrorCode.API_KEY_REENTRY_REQUIRED)
     }
 
+    @Suppress("MaxLineLength") // single-line wire JSON fixture
     @Test
     fun reads_the_api_key_reentry_code_off_the_mcp_error_body() {
         val body = """{"error":"MCP_API_KEY_REENTRY_REQUIRED","message":"Re-enter apiKey.key when changing API key credential binding fields: url"}"""

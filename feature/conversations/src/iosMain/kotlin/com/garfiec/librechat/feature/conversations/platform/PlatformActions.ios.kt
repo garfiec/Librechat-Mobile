@@ -55,6 +55,7 @@ actual fun showToast(message: String) {
  * - No `String as NSString` casts.
  * - Presentation + iPad popover anchoring go through the shared [presentSheet] helper.
  */
+@Suppress("LambdaParameterInRestartableEffect") // rememberUpdatedState would change which callback a running effect calls
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 @Composable
 actual fun FileSaver(

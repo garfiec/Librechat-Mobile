@@ -204,6 +204,7 @@ class McpViewModelSaveRouteTest {
      * A coded refusal this client has no copy of still has the server's own sentence, and that is
      * the specific part: the generic screen drops it because it contains a URL.
      */
+    @Suppress("MaxLineLength") // single-line wire JSON fixture
     @Test
     fun `a coded refusal shows the server's message in the dialog`() = runTest {
         coEvery { mcpRepository.createServer(any(), any(), any(), any(), any(), any()) } returns

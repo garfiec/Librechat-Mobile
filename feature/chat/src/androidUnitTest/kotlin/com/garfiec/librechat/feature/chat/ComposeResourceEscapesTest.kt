@@ -2,8 +2,8 @@ package com.garfiec.librechat.feature.chat
 
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
-import java.io.File
 import org.junit.Test
+import java.io.File
 
 /**
  * Compose resources are not Android resources: their string escapes are processed by the Compose

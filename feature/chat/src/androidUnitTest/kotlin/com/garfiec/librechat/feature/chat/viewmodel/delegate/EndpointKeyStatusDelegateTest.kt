@@ -7,8 +7,8 @@ import com.garfiec.librechat.core.model.endpoint.KeyInvalidation
 import com.garfiec.librechat.core.model.endpoint.KeyState
 import com.garfiec.librechat.core.model.endpoint.fromWire
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
-import com.garfiec.librechat.feature.chat.viewmodel.EndpointKeyHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
+import com.garfiec.librechat.feature.chat.viewmodel.EndpointKeyHandle
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify

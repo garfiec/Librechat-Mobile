@@ -12,9 +12,9 @@ import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
-import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationMetaState
+import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -720,7 +720,12 @@ class ModelSelectionDelegateTest {
         assertThat(handle.state.selectedModel).isEqualTo("gpt-4o")
 
         // Conversation starts with its own model.
-        handle.update { copy(conversation = conversation.copy(conversationId = "conv_new"), selection = selection.copy(selectedEndpoint = "anthropic", selectedModel = "claude-3")) }
+        handle.update {
+            copy(
+                conversation = conversation.copy(conversationId = "conv_new"),
+                selection = selection.copy(selectedEndpoint = "anthropic", selectedModel = "claude-3"),
+            )
+        }
         advanceUntilIdle()
 
         // Last-used changes afterwards → must NOT override the started conversation.
@@ -751,7 +756,8 @@ class ModelSelectionDelegateTest {
     @Test
     fun seedNoOpForExistingConversation() = runTest {
         val scope = TestScope(StandardTestDispatcher(testScheduler))
-        val handle = newHandle(scope, uiState(conversationId = "c1", selectedModel = "claude-3", selectedEndpoint = "anthropic"))
+        val handle =
+            newHandle(scope, uiState(conversationId = "c1", selectedModel = "claude-3", selectedEndpoint = "anthropic"))
         val delegate = newDelegate(handle)
         delegate.agentsLoaded.value = true
         lastUsedEndpoint.value = "openAI"

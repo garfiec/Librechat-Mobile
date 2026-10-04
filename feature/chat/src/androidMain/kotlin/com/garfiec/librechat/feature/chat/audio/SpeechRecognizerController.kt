@@ -177,9 +177,9 @@ class SpeechRecognizerController(private val appContext: Context) {
             // is instead refreshed on a real partial/final (proof the recognizer actually works).
         }
         override fun onBeginningOfSpeech() { disarmStartWatchdog() }
-        override fun onBufferReceived(buffer: ByteArray?) {}
-        override fun onEndOfSpeech() {}
-        override fun onEvent(eventType: Int, params: Bundle?) {}
+        override fun onBufferReceived(buffer: ByteArray?) = Unit
+        override fun onEndOfSpeech() = Unit
+        override fun onEvent(eventType: Int, params: Bundle?) = Unit
         override fun onRmsChanged(rmsdB: Float) { disarmStartWatchdog() }
 
         override fun onPartialResults(partialResults: Bundle?) {

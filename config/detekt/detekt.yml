@@ -113,9 +113,12 @@ style:
         reason: "Use AdaptiveSnackbarHost (core/ui components)."
       - value: "androidx.compose.material3.CircularProgressIndicator"
         reason: "Use AdaptiveCircularProgressIndicator (core/ui components)."
+    # Tests may drive the raw M3 control on purpose: the ban governs shipped chrome.
     excludes:
       - "**/core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/topbar/**"
       - "**/core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/Adaptive*.kt"
+      - "**/src/*Test/**"
+      - "**/src/test/**"
   UnusedPrivateMember:
     active: true
     allowedNames: "(_|ignored|expected|serialVersionUID)"
@@ -203,7 +206,7 @@ Compose:
     contentEmittersDenylist: AdaptiveModalBottomSheet,AdaptiveAlertDialog,AdaptiveDialog
   CompositionLocalAllowlist:
     active: true
-    allowedCompositionLocals: LocalAddArtifactToHomeScreen,LocalAttachmentDownloader,LocalDarkTheme,LocalGlassBackdrop,LocalGlassLevel,LocalGlassSheetHost,LocalGroupPosition,LocalInSeparateWindow,LocalMediaThumbnails,LocalNativeOverlayGate,LocalChatMediaViewer,LocalFeedbackEnabled,LocalImmediateMarkdown,LocalInlineArtifactPrefs,LocalMermaidRenderCache,LocalOpenArtifact,LocalOpenPdf,LocalParsedMarkdownCache,LocalRelativeTimeReference,LocalSearchFocusNonce,LocalSiteIcons,LocalSubagentProgress,LocalSubagentThreads,LocalSubagentThreadsAvailable,LocalSuppressGroupAutoCollapse
+    allowedCompositionLocals: LocalAddArtifactToHomeScreen,LocalAttachmentDownloader,LocalDarkTheme,LocalGlassBackdrop,LocalGlassLevel,LocalGlassSheetHost,LocalGroupPosition,LocalInSeparateWindow,LocalMediaThumbnails,LocalNativeOverlayGate,LocalChatMediaViewer,LocalFeedbackEnabled,LocalImmediateMarkdown,LocalInlineArtifactPrefs,LocalIosAppLocale,LocalMermaidRenderCache,LocalOpenArtifact,LocalOpenPdf,LocalParsedMarkdownCache,LocalRelativeTimeReference,LocalSearchFocusNonce,LocalSiteIcons,LocalSubagentProgress,LocalSubagentThreads,LocalSubagentThreadsAvailable,LocalSuppressGroupAutoCollapse
 
 # detekt-koin rule overrides (defaults ship in plugin jar; buildUponDefaultConfig = true)
 koin-rules:

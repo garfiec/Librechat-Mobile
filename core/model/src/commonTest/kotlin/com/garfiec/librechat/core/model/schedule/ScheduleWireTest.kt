@@ -1,10 +1,10 @@
 package com.garfiec.librechat.core.model.schedule
 
+import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import kotlinx.serialization.json.Json
 
 class ScheduleWireTest {
 
@@ -102,7 +102,8 @@ class ScheduleWireTest {
             """.trimIndent(),
         )
 
-        val unattended = decode(ScheduleDisabledReason.MCP_CONFIGURATION_MISSING, ScheduleMcpDetail.UNATTENDED_AUTH_REQUIRED)
+        val unattended =
+            decode(ScheduleDisabledReason.MCP_CONFIGURATION_MISSING, ScheduleMcpDetail.UNATTENDED_AUTH_REQUIRED)
         assertEquals(ScheduleMcpDetail.UNATTENDED_AUTH_REQUIRED, unattended.lastRun?.mcp?.single()?.detail)
         assertEquals(true, unattended.pausedForUnattendedMcpAuth)
         assertEquals(false, decode(ScheduleDisabledReason.MCP_CONFIGURATION_MISSING, null).pausedForUnattendedMcpAuth)

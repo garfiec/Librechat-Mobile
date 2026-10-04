@@ -1,3 +1,5 @@
+@file:Suppress("MaxLineLength") // wire-format JSON fixtures stay on one line, as the server sends them
+
 package com.garfiec.librechat.core.network.sse
 
 import com.garfiec.librechat.core.model.RunStepStatus

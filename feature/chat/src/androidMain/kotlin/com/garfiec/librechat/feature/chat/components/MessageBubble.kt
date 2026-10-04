@@ -164,7 +164,6 @@ actual fun MessageBubble(
 @Composable
 private fun ThreadMessageBubble(
     message: Message,
-    modifier: Modifier,
     siblingIndex: Int,
     siblingCount: Int,
     onSiblingNavigation: ((Int) -> Unit)?,
@@ -198,6 +197,7 @@ private fun ThreadMessageBubble(
     onFocusedOccurrencePosition: ((LayoutCoordinates, Rect) -> Unit)?,
     showAvatars: Boolean,
     showBubbles: Boolean,
+    modifier: Modifier = Modifier,
 ) {
     val isUser = message.isCreatedByUser
     var showActions by remember(message.messageId) { mutableStateOf(showActionsInitially) }
@@ -357,7 +357,6 @@ private fun ThreadMessageBubble(
 @Composable
 private fun TwoSidedMessageBubble(
     message: Message,
-    modifier: Modifier,
     siblingIndex: Int,
     siblingCount: Int,
     onSiblingNavigation: ((Int) -> Unit)?,
@@ -391,6 +390,7 @@ private fun TwoSidedMessageBubble(
     onFocusedOccurrencePosition: ((LayoutCoordinates, Rect) -> Unit)?,
     showAvatars: Boolean,
     showBubbles: Boolean,
+    modifier: Modifier = Modifier,
 ) {
     val isUser = message.isCreatedByUser
     var showActions by remember(message.messageId) { mutableStateOf(showActionsInitially) }

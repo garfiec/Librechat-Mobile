@@ -1,3 +1,5 @@
+@file:Suppress("ForbiddenImport") // the composer styles its own field (ChatInputDefaults) for both interface styles
+
 package com.garfiec.librechat.feature.chat.components
 
 import android.net.Uri
@@ -57,7 +59,7 @@ import org.jetbrains.compose.resources.stringResource
 fun ChatInput(
     inputText: String,
     isStreaming: Boolean,
-    onInputChanged: (String) -> Unit,
+    onInputChange: (String) -> Unit,
     onSend: () -> Unit,
     onStop: () -> Unit,
     /**
@@ -94,12 +96,12 @@ fun ChatInput(
     attachedFiles: List<AttachedFile> = emptyList(),
     onRemoveFile: (AttachedFile) -> Unit = {},
     promptSuggestions: List<PromptMentionDisplayData> = emptyList(),
-    onSlashCommandSelected: (PromptMentionDisplayData) -> Unit = {},
+    onSlashCommandSelect: (PromptMentionDisplayData) -> Unit = {},
     isRecording: Boolean = false,
     isTranscribing: Boolean = false,
     onStartRecording: () -> Unit = {},
     onStopRecording: () -> Unit = {},
-    onImagePasted: ((Uri) -> Unit)? = null,
+    onImagePaste: ((Uri) -> Unit)? = null,
     enabledTools: Set<String> = emptySet(),
     onToggleTool: (String) -> Unit = {},
     pinnedToolKeys: List<String> = emptyList(),
@@ -175,7 +177,7 @@ fun ChatInput(
         state = state,
         onSend = onSend,
         onStop = onStop,
-        onSelectPrompt = onSlashCommandSelected,
+        onSelectPrompt = onSlashCommandSelect,
         onToggleTool = onToggleTool,
         onQueue = onQueue,
         onDuringRunSend = onDuringRunSend,
@@ -230,12 +232,12 @@ fun ChatInput(
             }
 
             // Paste image button (shown only when clipboard has image content)
-            if (onImagePasted != null) {
+            if (onImagePaste != null) {
                 val pasteBounce = rememberPressBounce()
                 IconButton(
                     onClick = {
                         // Clipboard image pasting is handled by the screen
-                        onImagePasted(Uri.EMPTY)
+                        onImagePaste(Uri.EMPTY)
                     },
                     modifier = Modifier
                         .size(48.dp)
@@ -262,7 +264,7 @@ fun ChatInput(
                     value = textFieldValue,
                     onValueChange = { newValue ->
                         textFieldValue = newValue
-                        onInputChanged(newValue.text)
+                        onInputChange(newValue.text)
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -313,7 +315,6 @@ fun ChatInput(
                         }
                     },
                 )
-
             }
         },
         trailingSpacer = {

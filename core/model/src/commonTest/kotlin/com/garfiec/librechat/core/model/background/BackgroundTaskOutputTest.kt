@@ -45,14 +45,16 @@ class BackgroundTaskOutputTest {
 
     @Test
     fun a_running_task_with_cancellation_requested_reads_as_stopping() {
-        val display = parse("""{"background_task_id":"t1","tool":"bash_tool","status":"running","cancellation_requested":true}""")
+        val display =
+            parse("""{"background_task_id":"t1","tool":"bash_tool","status":"running","cancellation_requested":true}""")
         assertEquals(PolledTaskStatus.STOPPING, assertIs<BackgroundTaskDisplay.Task>(display).task.status)
     }
 
     @Test
     fun an_incomplete_list_warns_and_a_list_of_failed_tasks_does_not() {
         val incomplete = parse("""{"tasks":[],"partial":true,"warning":"Some results are missing."}""")
-        val complete = parse("""{"tasks":[{"background_task_id":"t1","tool":"bash_tool","status":"error"}],"partial":false}""")
+        val complete =
+            parse("""{"tasks":[{"background_task_id":"t1","tool":"bash_tool","status":"error"}],"partial":false}""")
         assertEquals(BackgroundTaskOutcome.FAILED, BackgroundTaskOutput.outcome(incomplete))
         assertNull(BackgroundTaskOutput.outcome(complete))
     }

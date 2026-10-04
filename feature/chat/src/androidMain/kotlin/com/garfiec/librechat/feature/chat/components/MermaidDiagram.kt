@@ -178,7 +178,7 @@ actual fun MermaidDiagram(
 private fun MermaidWebView(
     code: String,
     isDarkTheme: Boolean,
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
 ) {
     val bgColor = MaterialTheme.colorScheme.surfaceContainerHighest.toArgb()
     val escapedCode = remember(code) {

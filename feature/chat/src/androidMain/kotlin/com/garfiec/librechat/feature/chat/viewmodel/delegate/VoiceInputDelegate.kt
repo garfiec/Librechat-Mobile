@@ -37,10 +37,12 @@ class VoiceInputDelegate(
 
     // ── External (server Whisper) session state ──
     private var voiceRecorder: VoiceRecorder? = null
+
     // Tracks the in-flight VoiceRecorder.start(). stop()/cancel() join it before touching the
     // recorder so a tap-stop (or second tap) during the MediaRecorder warm-up can't race the
     // not-yet-finished start() and orphan a recording that keeps the mic hot.
     private var startJob: Job? = null
+
     // The in-flight stop→upload→transcribe coroutine. Held so cancelRecording() can abort a slow or
     // hung server upload — otherwise the mic sat unresponsive (the isTranscribing start-guard blocks a
     // retry) with no way to cancel until the network call resolved on its own.

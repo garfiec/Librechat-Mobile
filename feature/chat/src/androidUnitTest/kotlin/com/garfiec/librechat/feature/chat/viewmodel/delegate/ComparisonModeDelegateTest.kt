@@ -6,8 +6,8 @@ import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
-import com.garfiec.librechat.feature.chat.viewmodel.ComparisonHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
+import com.garfiec.librechat.feature.chat.viewmodel.ComparisonHandle
 import com.garfiec.librechat.feature.chat.viewmodel.MessagesState
 import com.google.common.truth.Truth.assertThat
 import io.mockk.mockk

@@ -32,6 +32,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
  *
  * Collects `viewModel.uiState` at full rate — the one subtree that re-renders per streaming flush.
  */
+@Suppress("ViewModelForwarding") // screen split across files; hoisting its state is a separate refactor
 @Composable
 internal fun ColumnScope.ChatContent(
     viewModel: ChatViewModel,
@@ -50,9 +51,9 @@ internal fun ColumnScope.ChatContent(
     onComparisonTabChange: (Int) -> Unit,
     // Bridges the active message list's over-scroll-past-bottom into the pull-up tools sheet
     // (nested-scroll) and re-arms the reveal on each pointer-down.
-    listPullUpModifier: Modifier,
+    listPullUpModifier: Modifier = Modifier,
     // Drives the pull-up sheet directly from the (non-scrollable) landing surface.
-    pullUpModifier: Modifier,
+    pullUpModifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     // Non-scrolling bodies (landing, loading, comparison panes) clear the floating bar with a
@@ -179,7 +180,7 @@ private fun ChatMessageListPane(
     activeToolCalls: List<ActiveToolCall>,
     streamingSenderName: String,
     bottomContentPadding: Dp,
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
 ) {
     MessageList(
         displayMessages = displayMessages,

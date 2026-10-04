@@ -72,5 +72,4 @@ class DateExtTest {
             old.toRelativeDateGroup(reference),
         )
     }
-
 }

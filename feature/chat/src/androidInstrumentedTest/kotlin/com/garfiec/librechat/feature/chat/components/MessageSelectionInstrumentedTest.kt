@@ -240,7 +240,6 @@ class MessageSelectionInstrumentedTest {
         composeRule.waitUntil(timeoutMillis = 5_000) { menuProvider.shownCount > 0 }
     }
 
-
     private fun invokeMenuItem(key: Any, label: String) {
         val item = menuProvider.item(key)
         assertNotNull("selection toolbar offered no $label action", item)
@@ -277,7 +276,6 @@ class MessageSelectionInstrumentedTest {
         // single stray character would still satisfy the substring check above.
         assertTrue("expected a whole word, got \"$copied\"", isWordLike(copied))
     }
-
 
     @Test
     fun longPressDoesNotToggleActionRow_tapDoes() {
@@ -407,7 +405,6 @@ class MessageSelectionInstrumentedTest {
             "partialArtifactToken lives here".contains(copied) && isWordLike(copied),
         )
     }
-
 
     /**
      * Runs on the hand-driven clock: while streaming, MessageList's follower loops on

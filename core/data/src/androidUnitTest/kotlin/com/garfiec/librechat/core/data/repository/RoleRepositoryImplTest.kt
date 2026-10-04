@@ -114,7 +114,7 @@ class RoleRepositoryImplTest {
         coEvery { rolesApi.getRole("ADMIN") } throws IOException("offline")
 
         val repo = newRepo()
-        advanceUntilIdle()   // let the cache-prime launch complete
+        advanceUntilIdle() // let the cache-prime launch complete
         val result = repo.fetchUserRole()
 
         assertThat(result).isInstanceOf(Result.Success::class.java)
@@ -188,7 +188,7 @@ class RoleRepositoryImplTest {
     fun `cache prime populates StateFlow from DataStore at construction`() = runTest {
         coEvery { cacheDataStore.load() } returns adminRole
         val repo = newRepo()
-        advanceUntilIdle()   // StandardTestDispatcher needs this to run the init-block launch
+        advanceUntilIdle() // StandardTestDispatcher needs this to run the init-block launch
 
         assertThat(repo.userPermissions.value).isEqualTo(adminRole)
     }

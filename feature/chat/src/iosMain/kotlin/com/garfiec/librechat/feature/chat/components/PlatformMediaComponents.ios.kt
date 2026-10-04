@@ -85,6 +85,7 @@ import platform.WebKit.WKWebView
 import platform.WebKit.WKWebViewConfiguration
 import platform.darwin.NSObject
 
+@Suppress("MultipleEmitters") // early returns: exactly one branch emits
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 @Composable
 actual fun AudioContent(
@@ -310,8 +311,8 @@ actual fun LatexInline(
 private fun KatexWebView(
     latex: String,
     displayMode: Boolean,
-    modifier: Modifier,
     initialHeight: Dp,
+    modifier: Modifier = Modifier,
 ) {
     val bgComposeColor = MaterialTheme.colorScheme.background
     val isDarkTheme = (bgComposeColor.red * 0.299 + bgComposeColor.green * 0.587 + bgComposeColor.blue * 0.114) < 0.5
@@ -541,7 +542,7 @@ actual fun MermaidDiagram(
 private fun MermaidWKWebView(
     code: String,
     isDarkTheme: Boolean,
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
 ) {
     val escapedCode = remember(code) {
         code.replace("\\", "\\\\")
