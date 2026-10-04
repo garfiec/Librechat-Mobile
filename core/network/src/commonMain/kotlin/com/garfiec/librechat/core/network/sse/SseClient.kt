@@ -253,6 +253,8 @@ class SseClient(
                             connectivityFlow.first { it }
                             Logger.d("SSE") { "SSE: network restored, proceeding with retry $attempt" }
                         }
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (e: Exception) {
                         Logger.w("SSE", e) { "SSE: error checking connectivity, falling back to delay" }
                     }

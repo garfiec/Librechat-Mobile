@@ -27,6 +27,7 @@ import coil3.request.allowHardware
 import coil3.toBitmap
 import com.garfiec.librechat.core.common.media.detectImageMimeType
 import com.garfiec.librechat.core.common.media.imageExtensionForMimeType
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -149,6 +150,8 @@ actual fun rememberShareFile(): (bytes: ByteArray, filename: String, mime: Strin
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     }
                     context.startActivity(Intent.createChooser(shareIntent, null))
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     toast(context, "Failed to share file: ${e.localizedMessage ?: ""}")
                 }
@@ -170,6 +173,8 @@ private suspend fun saveUrlToGallery(context: Context, url: String) {
         }
         withContext(Dispatchers.IO) { writeImageToGallery(context, image) }
         toast(context, "Image saved to gallery")
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: Exception) {
         toast(context, "Failed to save image: ${e.localizedMessage ?: ""}")
     }

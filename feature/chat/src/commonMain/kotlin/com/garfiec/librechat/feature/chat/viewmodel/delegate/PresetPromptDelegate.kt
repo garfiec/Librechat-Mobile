@@ -14,6 +14,7 @@ import com.garfiec.librechat.feature.chat.prompts.resolvePromptInsertion
 import com.garfiec.librechat.feature.chat.prompts.resolvePromptText
 import com.garfiec.librechat.feature.chat.viewmodel.PendingVariablePrompt
 import com.garfiec.librechat.feature.chat.viewmodel.PresetPromptHandle
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -157,6 +158,8 @@ class PresetPromptDelegate(
             try {
                 presetRepository.create(preset)
                 loadPresets()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Logger.e(e) { "Could not save preset" }
                 handle.setError("Could not save preset")

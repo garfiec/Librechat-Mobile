@@ -1440,6 +1440,8 @@ class StreamingManagerDelegate(
                     }
                     reloadConversation(conversationId)
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Logger.w(e) { "Network recovery: could not check stream status" }
             }

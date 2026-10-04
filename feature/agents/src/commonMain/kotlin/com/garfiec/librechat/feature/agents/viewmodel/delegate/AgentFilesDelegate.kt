@@ -221,6 +221,8 @@ class AgentFilesDelegate(
                     }
                     is Result.Loading -> { /* no-op */ }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Logger.e(e) { "uploadAgentFile: unexpected error" }
                 stateHandle.update {

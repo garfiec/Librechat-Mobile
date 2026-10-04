@@ -55,6 +55,7 @@ import com.garfiec.librechat.feature.files.FilePreviewDisplayData
 import com.garfiec.librechat.feature.files.platform.PdfPreview
 import com.garfiec.librechat.feature.files.resources.*
 import com.garfiec.librechat.feature.files.resources.Res
+import kotlinx.coroutines.CancellationException
 import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -149,6 +150,8 @@ private fun TextContentPreview(
                 content
             }
             loadState = TextLoadState.Success(truncated)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Logger.e(e) { "TextContentPreview: failed to load text content" }
             loadState = TextLoadState.Error(

@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.feature.conversations.viewmodel.groupedByDateBucket
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
@@ -77,6 +78,8 @@ class ConversationListStateHolder(
                         regroup()
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Logger.w(e) { "Failed to observe conversations" }
             }
@@ -123,6 +126,8 @@ class ConversationListStateHolder(
                 Logger.w { "Failed to load conversations page" }
                 false
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Logger.w(e) { "Failed to load conversations page" }
             false

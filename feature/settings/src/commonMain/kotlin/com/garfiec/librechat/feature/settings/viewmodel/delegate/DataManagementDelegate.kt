@@ -102,6 +102,8 @@ class DataManagementDelegate(
             try {
                 val bytes = diagnosticLogRepository.bufferSizeBytes()
                 stateHandle.update { copy(logsBufferBytes = bytes) }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Logger.d(e) { "Failed to read diagnostic log buffer size" }
             }
@@ -125,6 +127,8 @@ class DataManagementDelegate(
                         logsExportReady = LogsExportPayload(content = content, fileName = fileName),
                     )
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 stateHandle.update {
                     copy(
@@ -149,6 +153,8 @@ class DataManagementDelegate(
                 diagnosticLogRepository.clear()
                 val bytes = diagnosticLogRepository.bufferSizeBytes()
                 stateHandle.update { copy(isLogsClearing = false, logsBufferBytes = bytes) }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 stateHandle.update {
                     copy(

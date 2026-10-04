@@ -18,6 +18,7 @@ import com.garfiec.librechat.core.model.ConversationPage
 import com.garfiec.librechat.core.model.SAVED_TAG
 import com.garfiec.librechat.core.model.request.ForkConversationRequest
 import com.garfiec.librechat.core.network.api.ConversationsApi
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -214,7 +215,10 @@ class ConversationRepositoryImpl(
                 // navigate-off and surface a spurious "failed to delete"). A lingering message cache is
                 // harmless — the pane navigates away, and it's cleared on the next sync/account wipe.
                 runCatching { messageDao.deleteAllForConversation(id, accountId) }
-                    .onFailure { Logger.w(it) { "Deleted $id but failed to purge its cached messages" } }
+                    .onFailure { error ->
+                        if (error is CancellationException) throw error
+                        Logger.w(error) { "Deleted $id but failed to purge its cached messages" }
+                    }
             } else {
                 Logger.w { "Server-deleted $id but kept local row: no resolved account to scope the delete" }
             }
