@@ -41,9 +41,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.garfiec.librechat.core.common.extensions.formatByteSize
+import com.garfiec.librechat.core.ui.components.AdaptivePillChoice
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
-import com.garfiec.librechat.core.ui.components.AdaptiveSegmentedChoice
-import com.garfiec.librechat.core.ui.components.AdaptiveTabRow
 import com.garfiec.librechat.core.ui.components.EmptyState
 import com.garfiec.librechat.core.ui.components.LibreChatTopBar
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
@@ -126,8 +125,8 @@ fun ConversationMediaScreen(
             },
         ) { padding ->
             Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-                AdaptiveTabRow(
-                    titles = listOf(
+                AdaptivePillChoice(
+                    options = listOf(
                         stringResource(Res.string.media_tab_media),
                         stringResource(Res.string.media_tab_files),
                         stringResource(Res.string.media_tab_links),
@@ -135,6 +134,7 @@ fun ConversationMediaScreen(
                     ),
                     selectedIndex = selectedTab,
                     onSelect = { selectedTab = it },
+                    modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp),
                 )
 
                 ScopeToggle(
@@ -161,7 +161,6 @@ fun ConversationMediaScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ScopeToggle(
     scope: MediaScope,
@@ -169,7 +168,7 @@ private fun ScopeToggle(
     modifier: Modifier = Modifier,
 ) {
     val scopes = listOf(MediaScope.ACTIVE_BRANCH, MediaScope.ENTIRE)
-    AdaptiveSegmentedChoice(
+    AdaptivePillChoice(
         options = listOf(
             stringResource(Res.string.media_scope_this_branch),
             stringResource(Res.string.media_scope_whole_chat),

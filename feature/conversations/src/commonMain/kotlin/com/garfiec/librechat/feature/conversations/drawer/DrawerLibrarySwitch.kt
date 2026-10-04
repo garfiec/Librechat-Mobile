@@ -5,8 +5,9 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -32,7 +33,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,9 +41,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.util.VelocityTracker
-import androidx.compose.ui.input.pointer.util.addPointerInputChange
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
@@ -59,9 +56,7 @@ import com.garfiec.librechat.feature.conversations.resources.projects
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
-import kotlin.math.abs
 import kotlin.math.roundToInt
-import kotlin.math.sign
 
 /**
  * Where the Library section is between its two panels: [progress] is 0 on Chats and 1 on Projects,
@@ -86,13 +81,34 @@ internal class LibrarySwitch(private val scope: CoroutineScope, tab: DrawerTab) 
     val chatsShown by derivedStateOf { progress.value < 1f }
     val projectsShown by derivedStateOf { progress.value > 0f }
 
+    // Where the drag has carried the thumb. Kept apart from [progress], whose snaps land a frame later.
+    private var dragAt = 0f
+
     fun startDrag() {
         dragging = true
+        dragAt = progress.value
         leaveRest()
     }
 
-    fun drag(to: Float) {
-        scope.launch { progress.snapTo(to) }
+    /** Moves the thumb by [panels] (a whole cell is one). */
+    fun dragBy(panels: Float) {
+        dragAt = (dragAt + panels).coerceIn(0f, 1f)
+        scope.launch { progress.snapTo(dragAt) }
+    }
+
+    /**
+     * Settles a drag on the side it was flung toward, or else the nearer one, and returns that tab.
+     * Both velocities are in panels per second.
+     */
+    fun release(velocity: Float, flingVelocity: Float): DrawerTab {
+        val tab = when {
+            velocity > flingVelocity -> DrawerTab.Projects
+            velocity < -flingVelocity -> DrawerTab.Chats
+            dragAt >= 0.5f -> DrawerTab.Projects
+            else -> DrawerTab.Chats
+        }
+        settle(tab, velocity)
+        return tab
     }
 
     /** Springs to [tab]; [velocity] is in panels per second. */
@@ -188,9 +204,6 @@ internal fun DrawerTabToggle(
     val density = LocalDensity.current
     val cellPx = with(density) { DrawerTabCellWidth.toPx() }
     val flingPx = with(density) { FlingVelocity.toPx() }
-    val currentSelected by rememberUpdatedState(selectedTab)
-    val currentOnSelect by rememberUpdatedState(onSelect)
-    val latestRtl by rememberUpdatedState(rtl)
     val select = { tab: DrawerTab ->
         switch.settle(tab)
         if (tab != selectedTab) onSelect(tab)
@@ -199,55 +212,17 @@ internal fun DrawerTabToggle(
         modifier = modifier
             .clip(PillTrackShape)
             .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-            .pointerInput(switch) {
-                awaitEachGesture {
-                    val down = awaitFirstDown(requireUnconsumed = false)
-                    var start = 0f
-                    var slop = 0f
-                    var at = 0f
-                    val direction = if (latestRtl) -1f else 1f
-                    val tracker = VelocityTracker()
-                    tracker.addPointerInputChange(down)
-                    var dragging = false
-                    var settled = false
-                    try {
-                        while (true) {
-                            val change = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
-                            tracker.addPointerInputChange(change)
-                            if (!change.pressed) break
-                            val dx = (change.position.x - down.position.x) * direction
-                            if (!dragging) {
-                                if (abs(dx) <= viewConfiguration.touchSlop) continue
-                                dragging = true
-                                // Taken here, not at touch-down: a tap's settle may still be moving it.
-                                start = switch.progress.value
-                                // Fixed at the claim: re-signing it as dx crosses zero would jump the thumb.
-                                slop = sign(dx) * viewConfiguration.touchSlop
-                                switch.startDrag()
-                            }
-                            // Consumed here, before the drawer's swipe sees it; the cell's tap cancels too.
-                            change.consume()
-                            at = start + (dx - slop) / cellPx
-                            switch.drag(at)
-                        }
-                        if (dragging) {
-                            val velocity = tracker.calculateVelocity().x * direction
-                            val tab = when {
-                                velocity > flingPx -> DrawerTab.Projects
-                                velocity < -flingPx -> DrawerTab.Chats
-                                at >= 0.5f -> DrawerTab.Projects
-                                else -> DrawerTab.Chats
-                            }
-                            switch.settle(tab, velocity / cellPx)
-                            settled = true
-                            if (tab != currentSelected) currentOnSelect(tab)
-                        }
-                    } finally {
-                        // Cancelled mid-drag: never leave the thumb parked between the cells.
-                        if (dragging && !settled) switch.settle(currentSelected)
-                    }
-                }
-            }
+            // Claimed at the touch slop and consumed, ahead of the drawer's swipe; the cell's tap cancels too.
+            .draggable(
+                state = rememberDraggableState { delta -> switch.dragBy(delta / cellPx) },
+                orientation = Orientation.Horizontal,
+                reverseDirection = rtl,
+                onDragStarted = { switch.startDrag() },
+                onDragStopped = { velocity ->
+                    val tab = switch.release(velocity / cellPx, flingPx / cellPx)
+                    if (tab != selectedTab) onSelect(tab)
+                },
+            )
             .padding(3.dp)
             .height(DrawerTabCellHeight),
     ) {
@@ -255,10 +230,8 @@ internal fun DrawerTabToggle(
             modifier = Modifier
                 .width(DrawerTabCellWidth)
                 .fillMaxHeight()
-                .offset {
-                    val x = (cellPx * switch.progress.value).roundToInt()
-                    IntOffset(if (rtl) -x else x, 0)
-                }
+                // offset {} already mirrors x in RTL; negating it here would flip it twice.
+                .offset { IntOffset((cellPx * switch.progress.value).roundToInt(), 0) }
                 .then(if (glass) Modifier.shadow(2.dp, PillThumbShape) else Modifier)
                 .clip(PillThumbShape)
                 .background(thumbColor),
