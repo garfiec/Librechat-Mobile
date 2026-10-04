@@ -71,7 +71,8 @@ open iosApp/iosApp.xcodeproj
 In Xcode:
 1. Select your iPhone from the device picker (top toolbar)
 2. Go to **Signing & Capabilities** → set your **Team** (required for device signing)
-3. Press **⌘R** to build and install
+3. If your team can't register `com.garfiec.librechat.ios`, change **Bundle Identifier** to one of your own (e.g. `com.example.switchboard`). Don't commit it. From the command line, pass `PRODUCT_BUNDLE_IDENTIFIER=<your id>` to `xcodebuild` instead.
+4. Press **⌘R** to build and install
 
 > **Note:** The first build takes several minutes while the Kotlin/Native toolchain downloads. You need an Apple Developer account (free tier works) for device signing.
 
