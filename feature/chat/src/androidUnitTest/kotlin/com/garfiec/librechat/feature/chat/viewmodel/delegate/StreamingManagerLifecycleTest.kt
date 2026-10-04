@@ -48,10 +48,7 @@ class StreamingManagerLifecycleTest {
     private val comparisonDelegate = mockk<ComparisonModeDelegate>(relaxed = true)
     private val completionDelegate = mockk<SendCompletionDelegate>(relaxed = true)
     private val queueDelegate = mockk<MessageQueueDelegate>(relaxed = true)
-    private val reloadConversation = mockk<(String) -> Unit>(relaxed = true)
-    private val reloadRestoringUnsaved = mockk<(String, Message) -> Unit>(relaxed = true)
-    private val treeDelegate = mockk<MessageTreeDelegate>(relaxed = true)
-    private val restoreUnsentInput = mockk<(String, List<String>) -> Unit>(relaxed = true)
+    private val host = mockk<StreamingHost>(relaxed = true)
     private val steeringDelegate = mockk<SteeringDelegate>(relaxed = true)
 
     /**
@@ -101,19 +98,12 @@ class StreamingManagerLifecycleTest {
             activeAccountProvider = mockk<ActiveAccountProvider>(relaxed = true),
             connectivityObserver = connectivity,
             comparisonDelegate = comparisonDelegate,
-            subagentTraceDelegate = mockk(relaxed = true),
-            officePreviewDelegate = mockk(relaxed = true),
+            liveReply = LiveReplyDelegate(StreamingHandle(root), mockk(relaxed = true), mockk(relaxed = true)),
             completionDelegate = completionDelegate,
             queueDelegate = queueDelegate,
-            treeDelegate = treeDelegate,
             pendingActionDelegate = mockk(relaxed = true),
             steeringDelegate = steeringDelegate,
-            emitUserKeyError = {},
-            reloadConversation = reloadConversation,
-            reloadRestoringUnsaved = reloadRestoringUnsaved,
-            restoreUnsentInput = restoreUnsentInput,
-            isNewConversation = { false },
-            isHandedOffNewChat = { false },
+            host = host,
         )
         return delegate to flow
     }
@@ -155,7 +145,7 @@ class StreamingManagerLifecycleTest {
             delegate.onResume()
             advanceUntilIdle()
             coVerify(exactly = 0) { chatRepository.checkStreamStatus(any(), any()) }
-            verify(exactly = 0) { reloadConversation(any()) }
+            verify(exactly = 0) { host.reloadConversation(any()) }
             events.close()
             advanceUntilIdle()
         }
@@ -228,7 +218,7 @@ class StreamingManagerLifecycleTest {
 
         assertThat(flow.value.isStreaming).isFalse()
         assertThat(flow.value.streamingContent).isEmpty()
-        verify(exactly = 1) { reloadConversation("conv-1") }
+        verify(exactly = 1) { host.reloadConversation("conv-1") }
         verify(atLeast = 1) { queueDelegate.pause() }
         events.close()
         advanceUntilIdle()
@@ -266,7 +256,7 @@ class StreamingManagerLifecycleTest {
             runCurrent()
 
             // The wipe/reload must NOT have happened; the pending abort owns teardown.
-            verify(exactly = 0) { reloadConversation(any()) }
+            verify(exactly = 0) { host.reloadConversation(any()) }
 
             // The abort's watchdog fires and finalizes locally with the partial intact.
             advanceUntilIdle()
@@ -308,7 +298,7 @@ class StreamingManagerLifecycleTest {
         runCurrent()
 
         assertThat(flow.value.isStreaming).isTrue()
-        verify(exactly = 0) { reloadConversation(any()) }
+        verify(exactly = 0) { host.reloadConversation(any()) }
         events.close()
         events2.close()
         delegate.reset()
@@ -413,7 +403,7 @@ class StreamingManagerLifecycleTest {
             delegate.attachToServerStartedRun()
             advanceUntilIdle()
 
-            verify(exactly = 1) { reloadConversation("conv-1") }
+            verify(exactly = 1) { host.reloadConversation("conv-1") }
         }
 
     /** The attach is announced once, so a failed status check is retried rather than dropped. */
@@ -446,7 +436,7 @@ class StreamingManagerLifecycleTest {
             advanceUntilIdle()
 
             coVerify(exactly = 3) { chatRepository.checkStreamStatus("conv-1", any()) }
-            verify(exactly = 1) { reloadConversation("conv-1") }
+            verify(exactly = 1) { host.reloadConversation("conv-1") }
         }
 
     /** Every conversation open runs this check; an idle conversation must not fetch twice. */
@@ -460,7 +450,7 @@ class StreamingManagerLifecycleTest {
         delegate.resumeActiveStreamIfNeeded("conv-1")
         advanceUntilIdle()
 
-        verify(exactly = 0) { reloadConversation(any()) }
+        verify(exactly = 0) { host.reloadConversation(any()) }
     }
 
     /** Nothing to retire against: a status with no epoch leaves the evidence exactly as it was. */
@@ -574,7 +564,7 @@ class StreamingManagerLifecycleTest {
 
             assertThat(flow.value.isStreaming).isFalse()
             assertThat(flow.value.streamingContent).isEqualTo("half a reply")
-            verify(exactly = 0) { reloadConversation(any()) }
+            verify(exactly = 0) { host.reloadConversation(any()) }
             events.close()
             advanceUntilIdle()
         }

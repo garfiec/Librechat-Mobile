@@ -55,25 +55,19 @@ class StreamingManagerAttachStaleTest {
             ChatStatusResponse(active = true)
         }
         every { chatRepository.resumeStream("conv-1") } returns flow { awaitCancellation() }
+        val root = ChatStateHandle(flow, scope)
         val delegate = StreamingManagerDelegate(
-            handle = StreamingHandle(ChatStateHandle(flow, scope)),
+            handle = StreamingHandle(root),
             chatRepository = chatRepository,
             activeAccountProvider = mockk(relaxed = true),
             connectivityObserver = connectivityObserver,
             comparisonDelegate = mockk(relaxed = true),
-            subagentTraceDelegate = mockk(relaxed = true),
-            officePreviewDelegate = mockk(relaxed = true),
+            liveReply = LiveReplyDelegate(StreamingHandle(root), mockk(relaxed = true), mockk(relaxed = true)),
             completionDelegate = mockk(relaxed = true),
             queueDelegate = mockk(relaxed = true),
-            treeDelegate = mockk(relaxed = true),
             pendingActionDelegate = mockk(relaxed = true),
             steeringDelegate = mockk(relaxed = true),
-            emitUserKeyError = {},
-            reloadConversation = {},
-            reloadRestoringUnsaved = { _, _ -> },
-            restoreUnsentInput = { _, _ -> },
-            isNewConversation = { false },
-            isHandedOffNewChat = { false },
+            host = mockk(relaxed = true),
         )
         return delegate to flow
     }

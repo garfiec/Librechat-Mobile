@@ -81,19 +81,12 @@ class StreamingManagerGenerationEpochTest {
             activeAccountProvider = mockk<ActiveAccountProvider>(relaxed = true),
             connectivityObserver = connectivity,
             comparisonDelegate = mockk(relaxed = true),
-            subagentTraceDelegate = mockk(relaxed = true),
-            officePreviewDelegate = mockk(relaxed = true),
+            liveReply = LiveReplyDelegate(StreamingHandle(root), mockk(relaxed = true), mockk(relaxed = true)),
             completionDelegate = mockk(relaxed = true),
             queueDelegate = mockk(relaxed = true),
-            treeDelegate = mockk(relaxed = true),
             pendingActionDelegate = pendingActionDelegate,
             steeringDelegate = mockk(relaxed = true),
-            emitUserKeyError = {},
-            reloadConversation = {},
-            reloadRestoringUnsaved = { _, _ -> },
-            restoreUnsentInput = { _, _ -> },
-            isNewConversation = { false },
-            isHandedOffNewChat = { false },
+            host = mockk(relaxed = true),
         )
         return streamingDelegate to pendingActionDelegate
     }
