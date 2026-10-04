@@ -16,7 +16,7 @@ import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
 import com.garfiec.librechat.core.ui.glass.rememberGlassBackdrop
 import com.garfiec.librechat.core.ui.media.MediaActionBar
 import com.garfiec.librechat.core.ui.media.MediaPreviewState
-import com.garfiec.librechat.core.ui.media.ZoomableMediaPager
+import com.garfiec.librechat.core.ui.media.MediaViewerHost
 import com.garfiec.librechat.core.ui.media.rememberSaveImageToGallery
 import com.garfiec.librechat.core.ui.media.rememberShareImage
 import com.garfiec.librechat.feature.chat.components.artifact.LocalInlineArtifactPrefs
@@ -116,7 +116,31 @@ fun ChatRoot(
         LocalSubagentThreadsAvailable provides (conversationId != null && subagentThreadsSupported),
         LocalSiteIcons provides siteIconsLocal,
     ) {
-        content()
+        // Remembered outside the viewer so the save/share coroutine scope (and the permission
+        // launcher) live as long as the chat screen, not just while the viewer is open — a
+        // save/share in flight survives the user dismissing the viewer mid-operation.
+        val saveImage = rememberSaveImageToGallery()
+        val shareImage = rememberShareImage()
+        // Resolved once here (not inside the per-item actions slot) so paging doesn't
+        // re-resolve string resources on every swipe.
+        val saveDescription = stringResource(Res.string.cd_save_to_device)
+        val shareDescription = stringResource(Res.string.cd_share_image)
+        MediaViewerHost(
+            preview = mediaPreview,
+            onDismiss = onCloseMedia,
+            closeContentDescription = stringResource(Res.string.cd_close),
+            defaultContentDescription = stringResource(Res.string.cd_image),
+            actions = { item ->
+                MediaActionBar(
+                    item = item,
+                    onSave = saveImage,
+                    onShare = shareImage,
+                    saveContentDescription = saveDescription,
+                    shareContentDescription = shareDescription,
+                )
+            },
+            content = content,
+        )
 
         if (siteIconsPromptRequested && siteIcons == SiteIconsState.ASK) {
             SiteIconsPromptDialog(
@@ -130,35 +154,6 @@ fun ChatRoot(
                 parentConversationId = conversationId,
                 focusParentToolCallId = subagentFocusToolCallId,
                 onDismiss = { subagentSheetOpen = false },
-            )
-        }
-
-        // Remembered above the `if` so the save/share coroutine scope (and the permission
-        // launcher) live as long as the chat screen, not just while the viewer is open — a
-        // save/share in flight survives the user dismissing the viewer mid-operation.
-        val saveImage = rememberSaveImageToGallery()
-        val shareImage = rememberShareImage()
-        if (mediaPreview != null) {
-            // Resolved once here (not inside the per-item actions slot) so paging doesn't
-            // re-resolve string resources on every swipe.
-            val saveDescription = stringResource(Res.string.cd_save_to_device)
-            val shareDescription = stringResource(Res.string.cd_share_image)
-            val imageDescription = stringResource(Res.string.cd_image)
-            ZoomableMediaPager(
-                items = mediaPreview.items,
-                initialIndex = mediaPreview.initialIndex,
-                onDismiss = onCloseMedia,
-                closeContentDescription = stringResource(Res.string.cd_close),
-                defaultContentDescription = imageDescription,
-                actions = { item ->
-                    MediaActionBar(
-                        item = item,
-                        onSave = saveImage,
-                        onShare = shareImage,
-                        saveContentDescription = saveDescription,
-                        shareContentDescription = shareDescription,
-                    )
-                },
             )
         }
 

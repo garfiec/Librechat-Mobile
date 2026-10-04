@@ -1,8 +1,5 @@
 package com.garfiec.librechat.core.ui.media
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.spring
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -15,7 +12,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Close
@@ -23,6 +19,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -34,9 +31,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.backhandler.PredictiveBackHandler
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.SingletonImageLoader
@@ -70,12 +69,14 @@ data class MediaPreviewState(
 )
 
 /**
- * Full-screen, Google-Photos-style media viewer.
+ * Full-screen, Google-Photos-style media viewer, shown by [MediaViewerHost].
  *
  * - Fit-to-screen is the rest state ([ContentScale.Fit]); pinch / double-tap zooms in,
  *   drag pans, and at fit scale a horizontal swipe pages to the previous/next item.
  *   Edge-of-image → pager handoff is handled by ZoomImage's nested-scroll integration.
  * - Subsampling (large-image tiling) is auto-enabled by the Coil integration.
+ * - A downward drag at fit scale, the back gesture and the close button all leave through
+ *   [MediaDismissTransition]: the image flies back into its thumbnail, then [onDismiss] runs.
  *
  * Images load through the app's Coil singleton ([SingletonImageLoader]); auth lives in that
  * loader's Ktor fetcher, exactly like every other `AsyncImage` call site. The pager therefore
@@ -84,20 +85,19 @@ data class MediaPreviewState(
  * Each surface supplies its own toolbar buttons (save / share / download) via [actions];
  * core/ui owns only the close button + page counter.
  *
- * Rendered as an in-composition full-screen overlay (not a `Dialog`) so it can drive a
- * predictive-back dismiss: a back-gesture shrinks the viewer and fades the scrim to reveal the
- * screen behind, committing on release and springing back if cancelled. Callers therefore host
- * it as the last child of a stacking layout (it overlays whatever it's emitted alongside).
+ * Rendered as an in-composition full-screen overlay (not a `Dialog`), so the screen behind shows
+ * through while it is dismissed and its thumbnails share the viewer's coordinate space.
  */
 // PredictiveBackHandler is deprecated in favour of NavigationEventHandler, which only lands in a
 // later Compose; this stays on the working API until the Compose version is bumped.
 @Suppress("DEPRECATION")
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun ZoomableMediaPager(
+internal fun ZoomableMediaPager(
     items: List<MediaItem>,
     initialIndex: Int,
     onDismiss: () -> Unit,
+    thumbnails: MediaThumbnailRegistry,
     modifier: Modifier = Modifier,
     closeContentDescription: String = "",
     defaultContentDescription: String = "",
@@ -110,132 +110,126 @@ fun ZoomableMediaPager(
     }
     val startIndex = initialIndex.coerceIn(0, items.size - 1)
 
-    // Drives the predictive-back animation: 0 = at rest, 1 = gesture fully committed. Snapped to
-    // the live gesture progress while dragging; commit dismisses, cancel springs back to 0.
-    val backProgress = remember { Animatable(0f) }
+    val pagerState = rememberPagerState(initialPage = startIndex) { items.size }
+    val transition = rememberMediaDismissTransition(thumbnails, onDismiss = { currentOnDismiss() })
+    // Each composed page by index, for the back gesture and the close button, which act on the
+    // current page from outside it. Read only in those callbacks, never in composition.
+    val pages = remember { mutableMapOf<Int, MediaPageSource>() }
+    val currentPage = { pages[pagerState.currentPage] }
+
     PredictiveBackHandler { progress ->
         try {
-            progress.collect { event -> backProgress.snapTo(event.progress) }
-            currentOnDismiss()
+            transition.track(currentPage())
+            progress.collect { event -> transition.back(event.progress) }
+            transition.dismiss(currentPage())
         } catch (cancellation: CancellationException) {
-            backProgress.animateTo(0f, animationSpec = spring())
+            transition.settle()
             throw cancellation
         }
     }
 
-    val pagerState = rememberPagerState(initialPage = startIndex) { items.size }
     val platformContext = LocalPlatformContext.current
     val imageLoader = remember(platformContext) { SingletonImageLoader.get(platformContext) }
     Box(
         modifier = modifier
             .fillMaxSize()
-            // Scrim dims with the gesture so the underlying screen shows through as the viewer
-            // shrinks, but only down to MIN_SCRIM_ALPHA — it never goes fully transparent, so the
-            // viewer stays visually distinct from the screen behind until it commits.
-            .background(Color.Black.copy(alpha = 1f - (1f - MIN_SCRIM_ALPHA) * backProgress.value)),
+            .drawBehind { drawRect(Color.Black, alpha = transition.scrimAlpha) },
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    val progress = backProgress.value
-                    val scale = 1f - 0.15f * progress
-                    scaleX = scale
-                    scaleY = scale
-                    clip = progress > 0f
-                    shape = RoundedCornerShape((28f * progress).dp)
-                },
-        ) {
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier.fillMaxSize(),
-                key = { items[it].url },
-            ) { page ->
-                val item = items[page]
-                val zoomState = rememberCoilZoomState()
-                // Reset zoom on pages that have scrolled off-screen so returning shows the
-                // fit-to-screen rest state rather than a stale zoomed view.
-                LaunchedEffect(pagerState.settledPage) {
-                    if (pagerState.settledPage != page) {
-                        zoomState.zoomable.reset()
-                    }
-                }
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    if (item.url.isNotBlank()) {
-                        var loadState by remember(item.url) { mutableStateOf(MediaLoadState.LOADING) }
-                        CoilZoomAsyncImage(
-                            model = item.url,
-                            contentDescription = item.contentDescription.ifBlank { defaultContentDescription },
-                            imageLoader = imageLoader,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Fit,
-                            zoomState = zoomState,
-                            onLoading = { loadState = MediaLoadState.LOADING },
-                            onSuccess = { loadState = MediaLoadState.SUCCESS },
-                            onError = { loadState = MediaLoadState.ERROR },
-                        )
-                        // Loading spinner / failure placeholder so a slow or failed load isn't an
-                        // indefinitely blank black screen (the old viewers had explicit states).
-                        when (loadState) {
-                            MediaLoadState.LOADING ->
-                                AdaptiveCircularProgressIndicator(color = Color.White)
-                            MediaLoadState.ERROR -> BrokenImagePlaceholder()
-                            MediaLoadState.SUCCESS -> Unit
-                        }
-                    } else {
-                        // A blank URL has nothing to load and no callbacks fire, so show the same
-                        // failure placeholder rather than an uninterpretable empty black page.
-                        BrokenImagePlaceholder()
-                    }
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize(),
+            key = { items[it].url },
+            userScrollEnabled = !transition.isDismissing,
+        ) { page ->
+            val item = items[page]
+            val zoomState = rememberCoilZoomState()
+            // Reset zoom on pages that have scrolled off-screen so returning shows the
+            // fit-to-screen rest state rather than a stale zoomed view.
+            LaunchedEffect(pagerState.settledPage) {
+                if (pagerState.settledPage != page) {
+                    zoomState.zoomable.reset()
                 }
             }
-
-            val currentItem = items[pagerState.currentPage.coerceIn(0, items.size - 1)]
-            Row(
+            val source = remember(item.url, zoomState) { MediaPageSource(item.url, zoomState.zoomable) }
+            DisposableEffect(source, page) {
+                pages[page] = source
+                onDispose { if (pages[page] === source) pages.remove(page) }
+            }
+            val dragHandler = remember(source, transition) {
+                transition.dragHandler(source, pagerIdle = { !pagerState.isScrollInProgress })
+            }
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    // Fade the toolbar out faster than the image so it's already gone by the time
-                    // the back gesture is partway through (TOOLBAR_FADE_END), leaving a clean image.
-                    .graphicsLayer {
-                        alpha = (1f - backProgress.value / TOOLBAR_FADE_END).coerceIn(0f, 1f)
+                    .fillMaxSize()
+                    .onPlaced { source.coordinates = it }
+                    .verticalDismissDrag(dragHandler)
+                    .dismissFrame { transition.frame(source) },
+                contentAlignment = Alignment.Center,
+            ) {
+                if (item.url.isNotBlank()) {
+                    var loadState by remember(item.url) { mutableStateOf(MediaLoadState.LOADING) }
+                    CoilZoomAsyncImage(
+                        model = item.url,
+                        contentDescription = item.contentDescription.ifBlank { defaultContentDescription },
+                        imageLoader = imageLoader,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit,
+                        zoomState = zoomState,
+                        onLoading = { loadState = MediaLoadState.LOADING },
+                        onSuccess = { loadState = MediaLoadState.SUCCESS },
+                        onError = { loadState = MediaLoadState.ERROR },
+                    )
+                    // Loading spinner / failure placeholder so a slow or failed load isn't an
+                    // indefinitely blank black screen (the old viewers had explicit states).
+                    when (loadState) {
+                        MediaLoadState.LOADING ->
+                            AdaptiveCircularProgressIndicator(color = Color.White)
+                        MediaLoadState.ERROR -> BrokenImagePlaceholder()
+                        MediaLoadState.SUCCESS -> Unit
                     }
-                    .padding(horizontal = 4.dp),
+                } else {
+                    // A blank URL has nothing to load and no callbacks fire, so show the same
+                    // failure placeholder rather than an uninterpretable empty black page.
+                    BrokenImagePlaceholder()
+                }
+            }
+        }
+
+        val currentItem = items[pagerState.currentPage.coerceIn(0, items.size - 1)]
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .graphicsLayer { alpha = transition.chromeAlpha }
+                .padding(horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = { transition.dismiss(currentPage()) }) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = closeContentDescription,
+                    tint = Color.White,
+                )
+            }
+            if (items.size > 1) {
+                Text(
+                    text = "${pagerState.currentPage + 1} / ${items.size}",
+                    color = Color.White,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.weight(1f),
+                )
+            } else {
+                Spacer(Modifier.weight(1f))
+            }
+            Row(
+                horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IconButton(onClick = onDismiss) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = closeContentDescription,
-                        tint = Color.White,
-                    )
-                }
-                if (items.size > 1) {
-                    Text(
-                        text = "${pagerState.currentPage + 1} / ${items.size}",
-                        color = Color.White,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.weight(1f),
-                    )
-                } else {
-                    Spacer(Modifier.weight(1f))
-                }
-                Row(
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    actions(currentItem)
-                }
+                actions(currentItem)
             }
         }
     }
 }
-
-/** Scrim opacity at full back-gesture progress — the viewer dims but never goes fully transparent. */
-private const val MIN_SCRIM_ALPHA = 0.6f
-
-/** Back-gesture progress at which the top toolbar has fully faded out (halfway through the swipe). */
-private const val TOOLBAR_FADE_END = 0.5f
 
 private enum class MediaLoadState { LOADING, SUCCESS, ERROR }
 

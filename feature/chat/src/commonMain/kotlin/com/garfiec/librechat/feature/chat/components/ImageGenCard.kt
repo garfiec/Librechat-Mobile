@@ -41,6 +41,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.media.mediaThumbnail
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import kotlinx.coroutines.delay
@@ -209,7 +210,7 @@ private fun GeneratedImage(url: String, contentDescription: String, onClick: () 
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(max = 300.dp)
-            .clip(RoundedCornerShape(8.dp))
+            .mediaThumbnail(url, RoundedCornerShape(8.dp))
             .clickable(onClick = onClick)
             .semantics { role = Role.Image },
         loading = {

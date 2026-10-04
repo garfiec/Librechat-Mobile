@@ -44,6 +44,7 @@ import coil3.compose.SubcomposeAsyncImage
 import com.garfiec.librechat.core.model.FileReference
 import com.garfiec.librechat.core.model.media.resolveFileReferenceUrl
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.media.mediaThumbnail
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -127,7 +128,7 @@ internal fun MessageImagePreview(
         modifier = modifier
             .widthIn(max = 300.dp)
             .heightIn(max = 300.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .mediaThumbnail(imageUrl, RoundedCornerShape(12.dp))
             .clickable { openMedia(imageUrl) }
             .semantics {
                 role = Role.Image
