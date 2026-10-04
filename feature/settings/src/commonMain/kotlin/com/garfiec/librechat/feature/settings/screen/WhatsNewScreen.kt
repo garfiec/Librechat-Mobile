@@ -37,7 +37,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
-import com.garfiec.librechat.feature.settings.util.openUri
+import com.garfiec.librechat.feature.settings.util.rememberUriOpener
 import com.garfiec.librechat.feature.settings.viewmodel.WhatsNewUiState
 import com.garfiec.librechat.feature.settings.viewmodel.WhatsNewViewModel
 import org.jetbrains.compose.resources.stringResource
@@ -162,7 +162,8 @@ private fun UpdateActions(
     channel: InstallChannel,
     onOpenInstaller: () -> Boolean,
 ) {
-    val download = { openUri(latest.apkUrl ?: latest.htmlUrl) }
+    val uriOpener = rememberUriOpener()
+    val download = { uriOpener.open(latest.apkUrl ?: latest.htmlUrl) }
     Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
         Column(
             modifier = Modifier
@@ -186,7 +187,7 @@ private fun UpdateActions(
                 )
             }
             AdaptiveOutlinedButton(
-                onClick = { openUri(latest.htmlUrl) },
+                onClick = { uriOpener.open(latest.htmlUrl) },
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(stringResource(Res.string.whats_new_view_on_github))

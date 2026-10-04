@@ -53,7 +53,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.feature.settings.model.SharedLinkDisplayData
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
-import com.garfiec.librechat.feature.settings.util.copyToClipboard
+import com.garfiec.librechat.feature.settings.util.rememberClipboardWriter
 import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -73,6 +73,7 @@ fun SharedLinksScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val clipboard = rememberClipboardWriter()
     val snackbarHostState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
     var deleteTarget by remember { mutableStateOf<SharedLinkDisplayData?>(null) }
@@ -148,7 +149,7 @@ fun SharedLinksScreen(
                             link = link,
                             serverUrl = serverUrl,
                             onCopy = { url ->
-                                copyToClipboard(url, "Share Link")
+                                clipboard.copy(url, "Share Link")
                             },
                             canUpdate = canUpdate,
                             onUpdateLink = { updateTarget = link },

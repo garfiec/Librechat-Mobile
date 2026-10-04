@@ -64,11 +64,11 @@ import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.util.clipboardHasImage
 import com.garfiec.librechat.feature.chat.util.collapseParallelToPrimary
-import com.garfiec.librechat.feature.chat.util.copyToClipboard
 import com.garfiec.librechat.feature.chat.util.openCamera
 import com.garfiec.librechat.feature.chat.util.openDocumentPicker
 import com.garfiec.librechat.feature.chat.util.openPhotoPicker
 import com.garfiec.librechat.feature.chat.util.readClipboardImage
+import com.garfiec.librechat.feature.chat.util.rememberClipboardWriter
 import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.asString
@@ -611,6 +611,7 @@ private fun IosChatBody(
     onShowSecondaryModelSheet: () -> Unit,
     onComparisonTabChange: (Int) -> Unit,
 ) {
+    val clipboard = rememberClipboardWriter()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isLandingPage = uiState.screenState == ChatScreenState.LANDING
     val isLoading = uiState.screenState == ChatScreenState.LOADING
@@ -672,7 +673,7 @@ private fun IosChatBody(
                 useKatex = useKatex,
                 bottomContentPadding = bottomContentPadding,
                 onCopyMessage = { messageId ->
-                    copyToClipboard(viewModel.getMessageClipboardText(messageId), "Message")
+                    clipboard.copy(viewModel.getMessageClipboardText(messageId), "Message")
                 },
                 onShowSecondaryModelSheet = onShowSecondaryModelSheet,
                 onComparisonTabChange = onComparisonTabChange,
@@ -695,7 +696,7 @@ private fun IosChatBody(
                 onEditMessage = viewModel::startEditing,
                 onRegenerateMessage = { messageId -> viewModel.regenerateMessage(messageId) },
                 onCopyMessage = { messageId ->
-                    copyToClipboard(viewModel.getMessageClipboardText(messageId), "Message")
+                    clipboard.copy(viewModel.getMessageClipboardText(messageId), "Message")
                 },
                 onFeedback = viewModel::submitFeedback,
                 feedbackEnabled = uiState.gates.feedbackEnabled,
