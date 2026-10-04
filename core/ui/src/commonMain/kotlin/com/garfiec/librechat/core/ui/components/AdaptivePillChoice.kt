@@ -4,8 +4,9 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
@@ -23,16 +24,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.util.VelocityTracker
-import androidx.compose.ui.input.pointer.util.addPointerInputChange
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
@@ -48,8 +44,8 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
+import kotlin.math.round
 import kotlin.math.roundToInt
-import kotlin.math.sign
 
 /**
  * A single-choice row of text segments with a thumb that slides between them: the sliding pill of
@@ -79,9 +75,6 @@ fun AdaptivePillChoice(
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val density = LocalDensity.current
     val flingPx = with(density) { FlingVelocity.toPx() }
-    val currentSelected by rememberUpdatedState(selectedIndex)
-    val currentOnSelect by rememberUpdatedState(onSelect)
-    val latestRtl by rememberUpdatedState(rtl)
 
     BoxWithConstraints(
         modifier = modifier
@@ -92,59 +85,21 @@ fun AdaptivePillChoice(
     ) {
         val cellWidth = maxWidth / count
         val cellPx = with(density) { cellWidth.toPx() }
-        val last = (count - 1).toFloat()
+        val last = count - 1
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight()
-                .pointerInput(thumb, count, cellPx) {
-                    awaitEachGesture {
-                        val down = awaitFirstDown(requireUnconsumed = false)
-                        var start = 0f
-                        var slop = 0f
-                        var at = 0f
-                        val direction = if (latestRtl) -1f else 1f
-                        val tracker = VelocityTracker()
-                        tracker.addPointerInputChange(down)
-                        var dragging = false
-                        var settled = false
-                        try {
-                            while (true) {
-                                val change = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
-                                tracker.addPointerInputChange(change)
-                                if (!change.pressed) break
-                                val dx = (change.position.x - down.position.x) * direction
-                                if (!dragging) {
-                                    if (abs(dx) <= viewConfiguration.touchSlop) continue
-                                    dragging = true
-                                    // Taken here, not at touch-down: a tap's settle may still be moving it.
-                                    start = thumb.position.value
-                                    // Fixed at the claim: re-signing it as dx crosses zero would jump the thumb.
-                                    slop = sign(dx) * viewConfiguration.touchSlop
-                                    thumb.startDrag()
-                                }
-                                // Consumed so the segment's tap cancels, and nothing behind scrolls.
-                                change.consume()
-                                at = (start + (dx - slop) / cellPx).coerceIn(0f, last)
-                                thumb.drag(at)
-                            }
-                            if (dragging) {
-                                val velocity = tracker.calculateVelocity().x * direction
-                                val index = when {
-                                    velocity > flingPx -> ceil(at)
-                                    velocity < -flingPx -> floor(at)
-                                    else -> at.roundToInt().toFloat()
-                                }.toInt()
-                                thumb.settle(index, velocity / cellPx)
-                                settled = true
-                                if (index != currentSelected) currentOnSelect(index)
-                            }
-                        } finally {
-                            // Cancelled mid-drag: never leave the thumb parked between segments.
-                            if (dragging && !settled) thumb.settle(currentSelected)
-                        }
-                    }
-                },
+                .draggable(
+                    state = rememberDraggableState { delta -> thumb.dragBy(delta / cellPx, last) },
+                    orientation = Orientation.Horizontal,
+                    reverseDirection = rtl,
+                    onDragStarted = { thumb.startDrag() },
+                    onDragStopped = { velocity ->
+                        val index = thumb.release(velocity / cellPx, flingPx / cellPx, last)
+                        if (index != selectedIndex) onSelect(index)
+                    },
+                ),
         ) {
             Box(
                 modifier = Modifier
@@ -223,13 +178,22 @@ private class PillThumb(private val scope: CoroutineScope, index: Int) {
     var dragging = false
         private set
 
+    // Where the drag has carried the thumb. Kept apart from [position], whose snaps land a frame later.
+    private var dragAt = 0f
+
     fun startDrag() {
         dragging = true
+        dragAt = position.value
     }
 
-    fun drag(to: Float) {
-        scope.launch { position.snapTo(to) }
+    fun dragBy(segments: Float, last: Int) {
+        dragAt = (dragAt + segments).coerceIn(0f, last.toFloat())
+        scope.launch { position.snapTo(dragAt) }
     }
+
+    /** Settles a drag on the segment [pillReleaseIndex] picks, and returns it; velocities are in segments per second. */
+    fun release(velocity: Float, flingVelocity: Float, last: Int): Int =
+        pillReleaseIndex(dragAt, velocity, flingVelocity, last).also { settle(it, velocity) }
 
     /** Springs to [index]; [velocity] is in segments per second. */
     fun settle(index: Int, velocity: Float = 0f) {
@@ -238,6 +202,13 @@ private class PillThumb(private val scope: CoroutineScope, index: Int) {
         scope.launch { position.animateTo(index.toFloat(), SettleSpring, velocity) }
     }
 }
+
+/** The segment a drag released at [at] settles on: the one it was flung toward, else the nearest. */
+internal fun pillReleaseIndex(at: Float, velocity: Float, flingVelocity: Float, last: Int): Int = when {
+    velocity > flingVelocity -> ceil(at)
+    velocity < -flingVelocity -> floor(at)
+    else -> round(at)
+}.toInt().coerceIn(0, last)
 
 private val SettleSpring =
     spring<Float>(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)
