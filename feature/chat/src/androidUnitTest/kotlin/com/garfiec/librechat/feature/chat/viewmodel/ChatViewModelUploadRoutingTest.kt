@@ -145,7 +145,12 @@ class ChatViewModelUploadRoutingTest {
             agentProvider = "anthropic",
             providerAnswer = { gate.await() },
         ) { vm ->
-            val prompt = PdfPasswordPrompt(chipKey = "chip", file = PickedFile(ref = "ref", name = "a.pdf", mimeType = PDF), incorrectPassword = false)
+            val prompt =
+                PdfPasswordPrompt(
+                    chipKey = "chip",
+                    file = PickedFile(ref = "ref", name = "a.pdf", mimeType = PDF),
+                    incorrectPassword = false,
+                )
             every { fileHandler.pdfPasswordPrompts } returns MutableStateFlow(listOf(prompt))
 
             vm.submitPdfPassword("hunter2")

@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.data.util
 
 import co.touchlab.kermit.Logger
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -23,11 +24,14 @@ class SessionTaskRunner(
     private val tasks: List<SessionTask>,
     private val applicationScope: CoroutineScope,
 ) {
+    @Suppress("TooGenericExceptionCaught") // one failing task must not stop the others
     fun runAll() {
         tasks.forEach { task ->
             applicationScope.launch {
                 try {
                     task.run()
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     Logger.w(e) { "SessionTask ${task::class.simpleName} failed" }
                 }

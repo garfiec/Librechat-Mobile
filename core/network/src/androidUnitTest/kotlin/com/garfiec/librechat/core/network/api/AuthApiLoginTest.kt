@@ -142,6 +142,7 @@ class AuthApiLoginTest {
 
     // --- 2FA setup wire shapes (upstream TwoFactorController.js) --------------------------------
 
+    @Suppress("MaxLineLength") // single-line wire JSON fixture
     @Test
     fun `enableTwoFactor parses the camelCase otpauthUrl and backupCodes`() = runTest {
         // enable2FA: `res.status(200).json({ otpauthUrl, backupCodes: plainCodes })` — camelCase.

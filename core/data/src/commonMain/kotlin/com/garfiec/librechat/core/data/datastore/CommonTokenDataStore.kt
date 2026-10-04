@@ -21,6 +21,7 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -68,6 +69,7 @@ import kotlin.time.Clock
  * if it changed, so a refresh that races a teardown can never resurrect the cleared session even
  * though the POST holds no lock — while another account's changes leave it valid.
  */
+@Suppress("TooManyFunctions") // debt: 51 functions
 abstract class CommonTokenDataStore(
     private val refreshClient: Lazy<HttpClient>,
     private val ioDispatcher: CoroutineDispatcher,
@@ -720,6 +722,7 @@ abstract class CommonTokenDataStore(
      * Caller owns the flight lock, and owns the coalescing check. Never takes the lock (the mutex is
      * not reentrant).
      */
+    @Suppress("ReturnCount") // debt: 10 returns
     private suspend fun refreshUnderFlightLock(
         accountKey: String?,
         absoluteRefreshUrl: String?,
@@ -847,6 +850,7 @@ abstract class CommonTokenDataStore(
     }
 
     /** One refresh POST + classification. Caller owns the flight lock and the retry/backoff loop. */
+    @Suppress("TooGenericExceptionCaught") // separates keystore corruption from transport failure; neither may throw
     private suspend fun attemptRefresh(
         accountKey: String?,
         epochAtStart: Int,
@@ -922,6 +926,8 @@ abstract class CommonTokenDataStore(
                 attrs = mapOf("event" to "refresh_gateway_blocked"),
             ) { "Access gateway rejected the token refresh" }
             RefreshAttempt.GatewayBlocked
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             if (isKeystoreException(e)) {
                 Diag.e(
@@ -1016,6 +1022,7 @@ abstract class CommonTokenDataStore(
         httpResponse.headers[HttpHeaders.RetryAfter]?.trim()?.toLongOrNull()?.let { it * 1000 }
 
     /** Parse + commit a 2xx refresh. A malformed body or a discarded commit is not a hard failure. */
+    @Suppress("TooGenericExceptionCaught") // a 2xx with a non-JSON body is recoverable, not a dead session
     private suspend fun handleSuccess(
         accountKey: String?,
         epochAtStart: Int,
@@ -1024,6 +1031,8 @@ abstract class CommonTokenDataStore(
     ): RefreshAttempt {
         val body: RefreshResponse = try {
             httpResponse.body()
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             // A 2xx whose body isn't the expected JSON (e.g. an HTML interstitial from a proxy).
             // Recoverable, not a dead session.

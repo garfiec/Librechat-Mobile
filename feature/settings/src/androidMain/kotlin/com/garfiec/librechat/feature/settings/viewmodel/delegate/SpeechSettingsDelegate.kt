@@ -255,6 +255,7 @@ class SpeechSettingsDelegate(
      * Plays audio bytes via MediaPlayer. Attaches listeners before calling prepare()
      * and wraps prepare/start in try-catch to release on failure (fixes resource leak).
      */
+    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     private suspend fun playAudioBytes(audioBytes: ByteArray, isPreview: Boolean = false) {
         try {
             // Stop any currently playing audio

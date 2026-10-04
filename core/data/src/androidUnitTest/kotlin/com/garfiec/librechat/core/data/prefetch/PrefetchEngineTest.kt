@@ -34,8 +34,8 @@ import kotlinx.coroutines.test.currentTime
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
-import kotlin.time.Duration.Companion.hours
 import kotlin.coroutines.coroutineContext
+import kotlin.time.Duration.Companion.hours
 
 /**
  * The prefetcher's behaviour under load and failure, on virtual time.

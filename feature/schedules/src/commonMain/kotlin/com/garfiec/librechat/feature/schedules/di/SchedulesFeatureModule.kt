@@ -10,9 +10,7 @@ val schedulesFeatureModule = module {
     viewModelOf(::SchedulesListViewModel)
 
     // The editor's scheduleId arrives via parametersOf from the nav layer, so the lambda form is
-    // required — viewModelOf cannot read parametersOf. Detekt's DeprecatedKoinApi is a blanket
-    // stylistic rule here, not a real @Deprecated API.
-    @Suppress("DeprecatedKoinApi")
+    // required — viewModelOf cannot read parametersOf.
     viewModel { params ->
         ScheduleEditorViewModel(
             scheduleRepository = get(),

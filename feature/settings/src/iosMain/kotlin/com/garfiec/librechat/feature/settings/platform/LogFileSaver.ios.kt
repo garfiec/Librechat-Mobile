@@ -27,6 +27,7 @@ import platform.UIKit.UIActivityViewController
  * - The presenting VC comes from the shared [currentTopmostViewController] (foreground-active scene).
  * - Presentation + iPad popover anchoring go through the shared [presentSheet] helper.
  */
+@Suppress("LambdaParameterInRestartableEffect") // rememberUpdatedState would change which callback a running effect calls
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 @Composable
 actual fun LogFileSaver(

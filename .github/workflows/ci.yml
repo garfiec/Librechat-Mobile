@@ -43,7 +43,7 @@ jobs:
         run: scripts/check-fdroid-metadata.py
 
       - name: Run lint
-        run: ./gradlew detekt detektMetadataCommonMain :app:lint --continue
+        run: ./gradlew detekt :app:lint --continue
 
       - name: Upload detekt SARIF
         if: always() && hashFiles('build/reports/detekt/merged.sarif') != ''

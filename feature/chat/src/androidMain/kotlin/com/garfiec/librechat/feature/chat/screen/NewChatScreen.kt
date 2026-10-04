@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
  * callback is invoked with the new conversationId, allowing navigation
  * to the full chat route.
  */
+@Suppress("LambdaParameterEventTrailing") // actual: the defaults live on the expect, which the rule can't see
 @Composable
 actual fun NewChatScreen(
     onConversationStart: (conversationId: String, isTemporary: Boolean) -> Unit,

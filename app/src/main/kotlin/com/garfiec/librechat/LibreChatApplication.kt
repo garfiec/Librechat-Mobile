@@ -29,6 +29,7 @@ class LibreChatApplication : Application(), SingletonImageLoader.Factory {
 
     private val httpClient: HttpClient by inject()
 
+    @Suppress("TooGenericExceptionCaught") // logs, then rethrows: DI failure is unrecoverable
     override fun onCreate() {
         super.onCreate()
         try {

@@ -38,6 +38,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlin.concurrent.Volatile
 
+@Suppress("TooManyFunctions") // debt: 67 functions
 class SettingsDataStore(
     private val dataStore: DataStore<Preferences>,
     private val activeAccountProvider: ActiveAccountProvider,

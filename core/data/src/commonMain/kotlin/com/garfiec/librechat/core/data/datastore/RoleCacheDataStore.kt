@@ -8,6 +8,7 @@ import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
 
@@ -23,6 +24,7 @@ class RoleCacheDataStore(
     private val activeAccountProvider: ActiveAccountProvider,
 ) {
 
+    @Suppress("TooGenericExceptionCaught") // best-effort cache: a failure must not break the caller
     suspend fun save(role: UserRolePermissions) {
         val accountId = activeAccountProvider.currentAccountId()?.value ?: run {
             Logger.w { "No active account; skipping role cache write" }
@@ -34,22 +36,28 @@ class RoleCacheDataStore(
                 prefs[key(accountId)] = serialized
                 prefs.remove(stringPreferencesKey(ROLE_BASE)) // drop the pre-keying bare entry once
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Logger.w(e) { "Failed to cache user role permissions" }
         }
     }
 
+    @Suppress("TooGenericExceptionCaught") // best-effort cache: a failure must not break the caller
     suspend fun load(): UserRolePermissions? {
         val accountId = activeAccountProvider.currentAccountId()?.value ?: return null
         return try {
             val serialized = dataStore.data.first()[key(accountId)] ?: return null
             json.decodeFromString(UserRolePermissions.serializer(), serialized)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Logger.w(e) { "Failed to load cached user role permissions" }
             null
         }
     }
 
+    @Suppress("TooGenericExceptionCaught") // best-effort cache: a failure must not break the caller
     suspend fun clear() {
         try {
             // Scope to the resolved account only: other roster accounts' cached roles are retained
@@ -59,6 +67,8 @@ class RoleCacheDataStore(
             // by AccountScopedPrefsPurger instead, so an unresolved clear has nothing left to do.
             val accountId = activeAccountProvider.currentAccountId()?.value ?: return
             dataStore.edit { prefs -> prefs.remove(key(accountId)) }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Logger.w(e) { "Failed to clear cached user role permissions" }
         }

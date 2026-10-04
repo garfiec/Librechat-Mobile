@@ -4,6 +4,7 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.KeyRepository
 import com.garfiec.librechat.core.model.EndpointConfig
+import com.garfiec.librechat.core.model.endpoint.KeyState
 import com.garfiec.librechat.core.model.request.UpdateKeyRequest
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.resources.provider_keys_field_api_key_label
@@ -11,11 +12,9 @@ import com.garfiec.librechat.feature.settings.resources.provider_keys_field_azur
 import com.garfiec.librechat.feature.settings.resources.provider_keys_field_azure_api_version
 import com.garfiec.librechat.feature.settings.resources.provider_keys_field_azure_deployment
 import com.garfiec.librechat.feature.settings.resources.provider_keys_field_azure_instance
-import com.garfiec.librechat.feature.settings.resources.provider_keys_field_base_url_label
 import com.garfiec.librechat.feature.settings.resources.provider_keys_field_bedrock_access_key_id
 import com.garfiec.librechat.feature.settings.resources.provider_keys_field_bedrock_secret_access_key
 import com.garfiec.librechat.feature.settings.resources.provider_keys_field_google_service_key_or_gemini
-import com.garfiec.librechat.core.model.endpoint.KeyState
 import com.garfiec.librechat.feature.settings.state.providerkeys.ProviderKeyExpiry
 import com.garfiec.librechat.feature.settings.state.providerkeys.ProviderKeyFormKind
 import com.garfiec.librechat.feature.settings.state.providerkeys.ProviderKeyFormState

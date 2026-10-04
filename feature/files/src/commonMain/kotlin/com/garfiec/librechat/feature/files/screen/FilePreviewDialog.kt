@@ -55,6 +55,7 @@ import com.garfiec.librechat.feature.files.FilePreviewDisplayData
 import com.garfiec.librechat.feature.files.platform.PdfPreview
 import com.garfiec.librechat.feature.files.resources.*
 import com.garfiec.librechat.feature.files.resources.Res
+import kotlinx.coroutines.CancellationException
 import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -126,6 +127,7 @@ private sealed interface TextLoadState {
     data class Error(val message: String) : TextLoadState
 }
 
+@Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
 @Composable
 private fun TextContentPreview(
     file: FilePreviewDisplayData,
@@ -149,6 +151,8 @@ private fun TextContentPreview(
                 content
             }
             loadState = TextLoadState.Success(truncated)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Logger.e(e) { "TextContentPreview: failed to load text content" }
             loadState = TextLoadState.Error(

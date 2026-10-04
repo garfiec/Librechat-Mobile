@@ -47,6 +47,7 @@ class SvgIntrinsicSizeTest {
         assertThat(parseSvgAspectRatio(svg)).isEqualTo(2.0f)
     }
 
+    @Suppress("MaxLineLength") // single-line SVG fixture copied from mermaid output
     @Test
     fun `mermaid-shaped svg output parses`() {
         val svg = """<svg aria-roledescription="flowchart-v2" role="graphics-document document" viewBox="0 0 312.5 354" style="max-width: 100%;" xmlns="http://www.w3.org/2000/svg" width="100%" id="rendered"><g></g></svg>"""

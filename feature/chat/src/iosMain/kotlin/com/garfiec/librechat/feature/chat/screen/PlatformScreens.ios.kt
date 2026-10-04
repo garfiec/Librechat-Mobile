@@ -80,6 +80,9 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
+// LambdaParameterEventTrailing: actual, so the defaults live on the expect, which the rule can't see.
+// LambdaParameterInRestartableEffect: rememberUpdatedState would change which callback a running effect calls.
+@Suppress("LambdaParameterEventTrailing", "LambdaParameterInRestartableEffect")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 actual fun ChatScreen(
@@ -149,7 +152,7 @@ actual fun ChatScreen(
     var showSavePresetDialog by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
     var showSecondaryModelSheet by remember { mutableStateOf(false) }
-    var activeComparisonTab by remember { mutableStateOf(0) }
+    var activeComparisonTab by remember { mutableIntStateOf(0) }
 
     // Secondary model on comparison tab 1, primary otherwise. Hoisted so IosChatInput and
     // ChatOptionsSheetHost share one computation rather than each re-running the agents scan.
@@ -328,7 +331,7 @@ actual fun ChatScreen(
                         IosChatInput(
                             inputText = uiState.inputText,
                             isStreaming = isAnyStreaming,
-                            onInputChanged = viewModel::onInputChanged,
+                            onInputChange = viewModel::onInputChanged,
                             onSend = {
                                 viewModel.sendMessage()
                             },
@@ -340,7 +343,7 @@ actual fun ChatScreen(
                             onQueue = { viewModel.queueMessage() },
                             canQueue = uiState.canQueueFollowUp,
                             promptSuggestions = uiState.availablePrompts,
-                            onSlashCommandSelected = viewModel::handleSlashCommand,
+                            onSlashCommandSelect = viewModel::handleSlashCommand,
                             onSteer = { viewModel.steerMessage() },
                             canSteer = uiState.canSteerNow,
                             duringRunAction = uiState.effectiveDuringRunAction,
@@ -591,6 +594,7 @@ actual fun ChatScreen(
  *
  * Collects `viewModel.uiState` at full rate — the one subtree that re-renders per streaming flush.
  */
+@Suppress("ViewModelForwarding") // debt: screen split across files; state not hoisted yet
 @Composable
 private fun IosChatBody(
     viewModel: ChatViewModel,
@@ -732,6 +736,7 @@ private fun IosChatBody(
     }
 }
 
+@Suppress("LambdaParameterEventTrailing") // actual: the defaults live on the expect, which the rule can't see
 @Composable
 actual fun NewChatScreen(
     onConversationStart: (conversationId: String, isTemporary: Boolean) -> Unit,

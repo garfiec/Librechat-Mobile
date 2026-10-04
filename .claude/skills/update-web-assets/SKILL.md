@@ -107,7 +107,7 @@ do not share code. Changing one and not the other is the easiest mistake to make
 scripts/vendor-web-assets.py --check
 ./gradlew :feature:chat:testDebugUnitTest --tests '*VendoredAssetReferenceTest*' \
                                           --tests '*ReactArtifactRenderTest*'
-./gradlew :feature:chat:detekt :feature:chat:detektMetadataCommonMain
+./gradlew :feature:chat:detekt
 ./gradlew :app:assembleDebug
 ```
 

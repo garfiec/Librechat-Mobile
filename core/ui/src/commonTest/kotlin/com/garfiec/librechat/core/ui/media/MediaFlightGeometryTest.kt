@@ -30,7 +30,8 @@ class MediaFlightGeometryTest {
     @Test
     fun flightStartsWhereThePageIsDrawnUnclipped() {
         val from = PageTransform.about(Offset(500f, 1000f), 0.8f, Offset(0f, 300f))
-        val flight = Flight(image, from, fromCorner = 0f, target = Rect(100f, 100f, 300f, 300f), targetCorner = 48f, fade = false)
+        val flight =
+            Flight(image, from, fromCorner = 0f, target = Rect(100f, 100f, 300f, 300f), targetCorner = 48f, fade = false)
         val frame = flight.frame(0f)
         assertEquals(from, frame.transform)
         assertRectEquals(from.map(image), frame.clip)

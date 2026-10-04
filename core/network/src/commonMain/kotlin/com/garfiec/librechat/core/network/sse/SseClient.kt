@@ -40,6 +40,10 @@ class SseClient(
      *   retries will wait for the network to become available before attempting reconnection,
      *   avoiding wasted retry attempts while offline.
      */
+    // debt — CyclomaticComplexMethod: complexity 30
+    // debt — LongMethod: 186 lines
+    // TooGenericExceptionCaught: transport boundary: every failure is classified or surfaced as a stream event
+    @Suppress("CyclomaticComplexMethod", "LongMethod", "TooGenericExceptionCaught")
     fun connect(
         streamPath: String,
         resume: Boolean = false,
@@ -250,6 +254,8 @@ class SseClient(
                             connectivityFlow.first { it }
                             Logger.d("SSE") { "SSE: network restored, proceeding with retry $attempt" }
                         }
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (e: Exception) {
                         Logger.w("SSE", e) { "SSE: error checking connectivity, falling back to delay" }
                     }

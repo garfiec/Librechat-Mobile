@@ -15,9 +15,7 @@ val skillsFeatureModule = module {
 
     // SkillDetail/SkillEditor VMs receive skillId via parametersOf from the nav
     // layer, so the lambda-form viewModel { params -> ... } DSL is required
-    // (viewModelOf can't read parametersOf). Detekt's DeprecatedKoinApi is a
-    // blanket stylistic rule, not a real @Deprecated API.
-    @Suppress("DeprecatedKoinApi")
+    // (viewModelOf can't read parametersOf).
     viewModel { params ->
         SkillDetailViewModel(
             skillsRepository = get(),
@@ -25,7 +23,6 @@ val skillsFeatureModule = module {
             skillId = params.get(),
         )
     }
-    @Suppress("DeprecatedKoinApi")
     viewModel { params ->
         SkillEditorViewModel(
             skillsRepository = get(),
@@ -33,7 +30,6 @@ val skillsFeatureModule = module {
             initialSkillId = params.getOrNull(),
         )
     }
-    @Suppress("DeprecatedKoinApi")
     viewModel { params ->
         SkillFilesViewModel(
             skillsRepository = get(),

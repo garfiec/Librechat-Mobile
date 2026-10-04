@@ -28,7 +28,7 @@ File: `.github/workflows/ci.yml`
 ### Jobs
 
 #### `lint`
-- `./gradlew detekt detektMetadataCommonMain :app:lint --continue`
+- `./gradlew detekt :app:lint --continue` (`detekt` covers every source set of every module; see `DetektConventionPlugin`)
 - Uploads merged detekt SARIF to GitHub Code Scanning + lint HTML report
 
 #### `test`

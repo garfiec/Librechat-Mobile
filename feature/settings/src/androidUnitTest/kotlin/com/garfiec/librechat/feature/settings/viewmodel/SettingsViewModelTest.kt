@@ -27,11 +27,11 @@ import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.logging.DiagnosticLogRepository
 import com.garfiec.librechat.core.model.User
-import com.garfiec.librechat.core.model.ui.UiStyle
 import com.garfiec.librechat.core.model.mcp.McpOboConfig
 import com.garfiec.librechat.core.model.mcp.McpServer
 import com.garfiec.librechat.core.model.mcp.McpServerType
 import com.garfiec.librechat.core.model.speech.SpeechConfig
+import com.garfiec.librechat.core.model.ui.UiStyle
 import com.garfiec.librechat.feature.settings.util.ContentReader
 import com.garfiec.librechat.feature.settings.util.PlatformCacheCleaner
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.SpeechSettingsContract
@@ -668,6 +668,7 @@ class SettingsViewModelTest {
     }
 
     /** The Settings path shows a coded refusal's own sentence too. */
+    @Suppress("MaxLineLength") // single-line wire JSON fixture
     @Test
     fun `a coded refusal shows the server's message in the Settings dialog`() = runTest {
         coEvery { mcpRepository.createServer(any(), any(), any(), any(), any(), any()) } returns

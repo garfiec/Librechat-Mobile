@@ -91,6 +91,7 @@ class AccountDelegate(
         stateHandle.update { copy(showAvatarDialog = false) }
     }
 
+    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     fun uploadAvatar(uri: Any) {
         stateHandle.scope.launch {
             stateHandle.update { copy(isAvatarUploading = true) }

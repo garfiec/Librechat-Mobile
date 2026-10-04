@@ -94,6 +94,7 @@ private data class AdditionalPreferences(
  * the matching write setters. The ViewModel keeps only imperative state and
  * forwards preference reads/writes here.
  */
+@Suppress("TooManyFunctions") // debt: 32 functions
 class SettingsPreferencesController(
     private val themeDataStore: ThemeDataStore,
     serverDataStore: ServerDataStore,

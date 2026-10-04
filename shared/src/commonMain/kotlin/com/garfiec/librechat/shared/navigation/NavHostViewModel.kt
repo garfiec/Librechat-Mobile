@@ -48,6 +48,7 @@ import kotlinx.coroutines.launch
  * .feature.conversations.drawer.DrawerViewModel] (extracted so `:shared` is nav glue, not a stealth
  * feature module); this VM keeps the account *list* the drawer footer renders, but not the drawer data.
  */
+@Suppress("LongParameterList") // debt: constructor dependencies
 class NavHostViewModel(
     private val authRepository: AuthRepository,
     bannerRepository: BannerRepository,
@@ -166,6 +167,7 @@ class NavHostViewModel(
     }
 
     init {
+        @Suppress("TooGenericExceptionCaught") // a failed startup check must not crash the root ViewModel
         viewModelScope.launch {
             try {
                 // Wait for the server URL's async warm-up before any startup network work, so a
@@ -196,6 +198,8 @@ class NavHostViewModel(
                     // connectivity returns instead of stranding them until a manual relaunch.
                     if (!accountResolved) retryAccountRestoreOnReconnect()
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Logger.w(e) { "Failed to check auth state on init" }
             }
@@ -296,6 +300,7 @@ class NavHostViewModel(
      * unaccounted and should be retried on reconnect. restoreAccountIfNeeded() self-guards, so it is
      * cheap and safe to call repeatedly.
      */
+    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     private suspend fun tryRestoreAccount(): Boolean =
         try {
             authRepository.restoreAccountIfNeeded()

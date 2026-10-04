@@ -48,6 +48,7 @@ data class ModelParameters(
      * Reads a parameter value by its registry key, bridging between the typed fields
      * in ModelParameters and the dynamic string-based system.
      */
+    @Suppress("CyclomaticComplexMethod") // debt: complexity 26
     fun getValueForKey(key: String): String = when (key) {
         "chatGptLabel", "modelLabel" -> customName
         "promptPrefix", "system" -> customInstructions
@@ -75,6 +76,7 @@ data class ModelParameters(
      * Returns a copy of ModelParameters with the given key updated to the new value.
      * Maps dynamic registry keys back to the typed fields.
      */
+    @Suppress("CyclomaticComplexMethod") // debt: complexity 27
     fun withUpdatedKey(key: String, value: String): ModelParameters = when (key) {
         "chatGptLabel", "modelLabel" -> copy(customName = value)
         "promptPrefix", "system" -> copy(customInstructions = value)

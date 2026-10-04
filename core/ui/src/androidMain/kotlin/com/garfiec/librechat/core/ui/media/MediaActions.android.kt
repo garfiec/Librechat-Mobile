@@ -27,6 +27,7 @@ import coil3.request.allowHardware
 import coil3.toBitmap
 import com.garfiec.librechat.core.common.media.detectImageMimeType
 import com.garfiec.librechat.core.common.media.imageExtensionForMimeType
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -121,6 +122,7 @@ actual fun rememberShareImage(): (url: String) -> Unit {
     }
 }
 
+@Suppress("TooGenericExceptionCaught") // user action: any failure becomes a toast
 @Composable
 actual fun rememberShareFile(): (bytes: ByteArray, filename: String, mime: String?) -> Unit {
     val context = LocalContext.current
@@ -149,6 +151,8 @@ actual fun rememberShareFile(): (bytes: ByteArray, filename: String, mime: Strin
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     }
                     context.startActivity(Intent.createChooser(shareIntent, null))
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     toast(context, "Failed to share file: ${e.localizedMessage ?: ""}")
                 }
@@ -161,6 +165,7 @@ actual fun rememberShareFile(): (bytes: ByteArray, filename: String, mime: Strin
 private fun sanitizeFilename(filename: String): String =
     filename.substringAfterLast('/').substringAfterLast('\\').ifBlank { "file" }
 
+@Suppress("TooGenericExceptionCaught") // user action: any failure becomes a toast
 private suspend fun saveUrlToGallery(context: Context, url: String) {
     try {
         val image = loadEncodedImage(context, url)
@@ -170,11 +175,14 @@ private suspend fun saveUrlToGallery(context: Context, url: String) {
         }
         withContext(Dispatchers.IO) { writeImageToGallery(context, image) }
         toast(context, "Image saved to gallery")
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: Exception) {
         toast(context, "Failed to save image: ${e.localizedMessage ?: ""}")
     }
 }
 
+@Suppress("TooGenericExceptionCaught") // removes the pending row, then rethrows
 private fun writeImageToGallery(context: Context, image: EncodedImage) {
     val fileName = "switchboard_${System.currentTimeMillis()}.${image.extension}"
     val contentValues = ContentValues().apply {

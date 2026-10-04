@@ -1,9 +1,6 @@
 package com.garfiec.librechat.feature.chat.screen
 
 import android.annotation.SuppressLint
-import com.garfiec.librechat.feature.chat.components.UpdateAvailableBanner
-import com.garfiec.librechat.feature.chat.viewmodel.UpdateBannerViewModel
-import com.garfiec.librechat.feature.chat.viewmodel.isEmptyLanding
 import android.content.ClipboardManager
 import android.content.Context
 import androidx.activity.compose.BackHandler
@@ -82,13 +79,16 @@ import com.garfiec.librechat.feature.chat.components.ChatOptionsPage
 import com.garfiec.librechat.feature.chat.components.ChatRoot
 import com.garfiec.librechat.feature.chat.components.ChatToolsSheetContent
 import com.garfiec.librechat.feature.chat.components.ToolApprovalPanel
+import com.garfiec.librechat.feature.chat.components.UpdateAvailableBanner
 import com.garfiec.librechat.feature.chat.components.UploadRoutingSheet
 import com.garfiec.librechat.feature.chat.components.addToChatSelectionItem
 import com.garfiec.librechat.feature.chat.components.rememberChatAttachmentActions
 import com.garfiec.librechat.feature.chat.components.rememberChatOptionsSheetController
 import com.garfiec.librechat.feature.chat.prompts.components.VariableInputDialog
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
+import com.garfiec.librechat.feature.chat.viewmodel.UpdateBannerViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.asString
+import com.garfiec.librechat.feature.chat.viewmodel.isEmptyLanding
 import com.garfiec.librechat.feature.chat.viewmodel.neutralizeStreamingChurn
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -115,6 +115,7 @@ private class PullUpGesture {
 // floating top bar applies its own statusBarsPadding, the composer its own nav-bar padding) and the
 // list reserves its insets from the measured bar heights instead. contentWindowInsets is still set
 // so the snackbar clears the navigation bar.
+@Suppress("LambdaParameterEventTrailing") // actual: the defaults live on the expect, which the rule can't see
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 actual fun ChatScreen(
@@ -170,7 +171,7 @@ actual fun ChatScreen(
     var showPresetPicker by remember { mutableStateOf(false) }
     var showSavePresetDialog by remember { mutableStateOf(false) }
     var showSecondaryModelSheet by remember { mutableStateOf(false) }
-    var activeComparisonTab by remember { mutableStateOf(0) }
+    var activeComparisonTab by remember { mutableIntStateOf(0) }
 
     // Header/composer model labels (agent name vs model name, with the "never a raw
     // model string under agents" rule). Shared with iOS via rememberChatModelLabel.
@@ -224,7 +225,7 @@ actual fun ChatScreen(
         ).orEmpty()
     }
     val attachmentActions = rememberChatAttachmentActions(
-        onFilesSelected = viewModel::onFilesSelected,
+        onFilesSelect = viewModel::onFilesSelected,
         filePickerMimeTypes = filePickerMimeTypes,
     )
 
@@ -582,7 +583,7 @@ actual fun ChatScreen(
                             ChatInput(
                                 inputText = uiState.inputText,
                                 isStreaming = isAnyStreaming,
-                                onInputChanged = viewModel::onInputChanged,
+                                onInputChange = viewModel::onInputChanged,
                                 onSend = {
                                     viewModel.sendMessage()
                                     if (dismissKeyboardOnSend) {
@@ -626,7 +627,7 @@ actual fun ChatScreen(
                                 attachedFiles = attachedFiles,
                                 onRemoveFile = viewModel::removeFile,
                                 promptSuggestions = uiState.availablePrompts,
-                                onSlashCommandSelected = viewModel::handleSlashCommand,
+                                onSlashCommandSelect = viewModel::handleSlashCommand,
                                 isRecording = uiState.isRecording,
                                 isTranscribing = uiState.isTranscribing,
                                 onStartRecording = onStartRecordingWithPermission,

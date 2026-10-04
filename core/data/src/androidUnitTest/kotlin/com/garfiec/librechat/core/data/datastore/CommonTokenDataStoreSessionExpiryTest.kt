@@ -33,7 +33,6 @@ class CommonTokenDataStoreSessionExpiryTest {
         const val SERVER = "https://chat.example.com"
     }
 
-
     private val noRefresh: Lazy<HttpClient> = lazy { error("refresh client not expected in this test") }
 
     private fun refreshClientAnswering(status: HttpStatusCode): Lazy<HttpClient> = lazy {

@@ -18,6 +18,9 @@ import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
  * snackbar, and back-navigation after a delete/archive clears the conversation. Share, fork,
  * duplicate and lifecycle live in [ChatScreenOutcomes], shared with iOS.
  */
+// debt — ViewModelForwarding: screen split across files; state not hoisted yet
+// LambdaParameterInRestartableEffect: rememberUpdatedState would change which callback a running effect calls.
+@Suppress("ViewModelForwarding", "LambdaParameterInRestartableEffect")
 @Composable
 internal fun ChatScreenEffects(
     uiState: ChatUiState,

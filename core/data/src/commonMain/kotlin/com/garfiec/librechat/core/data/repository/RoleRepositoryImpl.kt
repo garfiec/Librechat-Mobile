@@ -11,6 +11,7 @@ import com.garfiec.librechat.core.data.datastore.RoleCacheDataStore
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.core.model.request.UpdateRoleSkillsRequest
 import com.garfiec.librechat.core.network.api.RolesApi
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -53,6 +54,7 @@ class RoleRepositoryImpl(
         }
     }
 
+    @Suppress("TooGenericExceptionCaught") // any failure falls back to the cached role
     override suspend fun fetchUserRole(): Result<UserRolePermissions> {
         // The account this fetch is for. Captured before the first suspension: a switch while it is
         // in flight must not let the outgoing account's role gate the incoming one — nor land in the
@@ -76,6 +78,8 @@ class RoleRepositoryImpl(
             _userPermissions.value = role
             cacheDataStore.save(role)
             Result.Success(role)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             val cached = _userPermissions.value
             if (cached != null) {

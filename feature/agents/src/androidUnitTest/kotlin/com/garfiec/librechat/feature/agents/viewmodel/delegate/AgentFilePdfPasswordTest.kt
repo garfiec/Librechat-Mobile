@@ -69,7 +69,10 @@ class AgentFilePdfPasswordTest {
     @Test
     fun `the typed password retries the same file into the same slot`() = runTest(UnconfinedTestDispatcher()) {
         uploadAnswers(null, locked(incorrect = false))
-        uploadAnswers("hunter2", Result.Success(FileObject(fileId = "f1", filename = "grades.pdf", filepath = "/f1", type = "application/pdf", bytes = 10)))
+        uploadAnswers(
+            "hunter2",
+            Result.Success(FileObject(fileId = "f1", filename = "grades.pdf", filepath = "/f1", type = "application/pdf", bytes = 10)),
+        )
         val (delegate, flow) = delegateWith(this)
 
         delegate.uploadAgentFile("content://picked", AgentFileSlot.KNOWLEDGE)
@@ -123,8 +126,14 @@ class AgentFilePdfPasswordTest {
         every { contentReader.getFileName("content://a") } returns "a.pdf"
         every { contentReader.getFileName("content://b") } returns "b.pdf"
         uploadAnswers(null, locked(incorrect = false))
-        uploadAnswers("pa", Result.Success(FileObject(fileId = "fa", filename = "a.pdf", filepath = "/fa", type = "application/pdf", bytes = 10)))
-        uploadAnswers("pb", Result.Success(FileObject(fileId = "fb", filename = "b.pdf", filepath = "/fb", type = "application/pdf", bytes = 10)))
+        uploadAnswers(
+            "pa",
+            Result.Success(FileObject(fileId = "fa", filename = "a.pdf", filepath = "/fa", type = "application/pdf", bytes = 10)),
+        )
+        uploadAnswers(
+            "pb",
+            Result.Success(FileObject(fileId = "fb", filename = "b.pdf", filepath = "/fb", type = "application/pdf", bytes = 10)),
+        )
         val (delegate, flow) = delegateWith(this)
 
         delegate.uploadAgentFile("content://a", AgentFileSlot.KNOWLEDGE)

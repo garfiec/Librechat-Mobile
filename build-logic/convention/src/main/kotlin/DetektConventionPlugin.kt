@@ -5,6 +5,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.dependencies
+import org.gradle.kotlin.dsl.named
 import org.gradle.kotlin.dsl.withType
 
 class DetektConventionPlugin : Plugin<Project> {
@@ -35,6 +36,16 @@ class DetektConventionPlugin : Plugin<Project> {
                 exclude { element ->
                     element.file.invariantSeparatorsPath.contains("/build/generated/")
                 }
+            }
+
+            // `detekt` is the gate: one plain pass over every source set (androidMain, iosMain, every
+            // test set, :app). Out of the box it reads only the JVM default dirs, which KMP modules
+            // don't have, and the per-compilation tasks miss commonTest / iosTest entirely.
+            // The type-resolved tasks (detektAndroidDebug, detektDebug, …) stay out of the gate: detekt
+            // 1.23's embedded compiler predates the project's Kotlin and reports reachable code as
+            // unreachable and real suspend calls as redundant.
+            tasks.named<Detekt>("detekt") {
+                setSource(fileTree("src") { include("*/kotlin/**/*.kt", "*/kotlin/**/*.kts") })
             }
 
             dependencies {

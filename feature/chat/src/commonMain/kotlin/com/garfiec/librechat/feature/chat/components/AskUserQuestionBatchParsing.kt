@@ -1,3 +1,5 @@
+@file:Suppress("TooGenericExceptionCaught") // parses untrusted tool args; any malformed shape degrades to an empty result
+
 package com.garfiec.librechat.feature.chat.components
 
 import co.touchlab.kermit.Logger

@@ -149,6 +149,7 @@ class AgentFilesDelegate(
      * `agent_id` + `tool_resource` are supplied. New (unsaved) agents can't
      * accept files yet — the user is told to save first via a snackbar.
      */
+    @Suppress("TooGenericExceptionCaught") // upload boundary: any failure marks the attachment failed
     fun uploadAgentFile(fileRef: Any, slot: AgentFileSlot, pdfPassword: String? = null) {
         val agentId = stateHandle.state.agentId
         if (agentId.isNullOrBlank()) {
@@ -221,6 +222,8 @@ class AgentFilesDelegate(
                     }
                     is Result.Loading -> { /* no-op */ }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Logger.e(e) { "uploadAgentFile: unexpected error" }
                 stateHandle.update {
@@ -318,6 +321,7 @@ class AgentFilesDelegate(
         }
     }
 
+    @Suppress("TooGenericExceptionCaught") // upload boundary: any failure marks the attachment failed
     fun uploadAvatar(uri: Any) {
         val agentId = stateHandle.state.agentId ?: return
         stateHandle.scope.launch {

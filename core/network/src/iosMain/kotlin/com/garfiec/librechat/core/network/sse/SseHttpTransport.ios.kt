@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.network.client.SwitchGate
 import com.garfiec.librechat.core.network.client.TokenManager
 import com.garfiec.librechat.core.network.client.customHeaderLines
 import com.garfiec.librechat.core.network.client.refreshBearerFor
+import com.garfiec.librechat.core.network.sse.nwparams.librechat_make_default_tls_tcp_parameters
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
@@ -19,7 +20,6 @@ import kotlinx.cinterop.ptr
 import kotlinx.cinterop.readBytes
 import kotlinx.cinterop.usePinned
 import kotlinx.cinterop.value
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -37,22 +37,19 @@ import platform.Network.nw_connection_start
 import platform.Network.nw_connection_state_cancelled
 import platform.Network.nw_connection_state_failed
 import platform.Network.nw_connection_state_ready
-import platform.Network.nw_connection_state_t
 import platform.Network.nw_connection_t
 import platform.Network.nw_content_context_t
 import platform.Network.nw_endpoint_create_host
-import platform.Network.nw_error_get_error_code
-import platform.Network.nw_error_get_error_domain
 import platform.Network.nw_error_domain_posix
 import platform.Network.nw_error_domain_tls
+import platform.Network.nw_error_get_error_code
+import platform.Network.nw_error_get_error_domain
 import platform.Network.nw_error_t
 import platform.Network.nw_parameters_t
-import com.garfiec.librechat.core.network.sse.nwparams.librechat_make_default_tls_tcp_parameters
 import platform.darwin.dispatch_data_create
 import platform.darwin.dispatch_data_create_map
 import platform.darwin.dispatch_data_get_size
 import platform.darwin.dispatch_data_t
-import platform.darwin.dispatch_get_global_queue
 import platform.darwin.dispatch_queue_create
 import platform.posix.ECONNRESET
 import platform.posix.EPIPE
@@ -146,6 +143,9 @@ actual class SseHttpTransport(
         }
     }
 
+    // debt — CyclomaticComplexMethod: complexity 38
+    // debt — LongMethod: 100 lines
+    @Suppress("CyclomaticComplexMethod", "LongMethod")
     private fun openConnection(
         streamPath: String,
         resume: Boolean,

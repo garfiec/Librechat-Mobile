@@ -14,6 +14,7 @@ import com.garfiec.librechat.feature.chat.prompts.resolvePromptInsertion
 import com.garfiec.librechat.feature.chat.prompts.resolvePromptText
 import com.garfiec.librechat.feature.chat.viewmodel.PendingVariablePrompt
 import com.garfiec.librechat.feature.chat.viewmodel.PresetPromptHandle
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -98,6 +99,7 @@ class PresetPromptDelegate(
         }
     }
 
+    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     fun savePreset(name: String) {
         val state = handle.state
         val params = state.modelParameters
@@ -157,6 +159,8 @@ class PresetPromptDelegate(
             try {
                 presetRepository.create(preset)
                 loadPresets()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Logger.e(e) { "Could not save preset" }
                 handle.setError("Could not save preset")
@@ -276,6 +280,7 @@ class PresetPromptDelegate(
  * properties on [ModelParameters]; everything else lands in [ModelParameters.dynamicValues]
  * so dropdown / switch / text controls round-trip without losing data.
  */
+@Suppress("CyclomaticComplexMethod") // debt: complexity 33
 internal fun ModelParameters.mergedFromPreset(preset: Preset): ModelParameters {
     // Start from an empty map: a preset's dynamicValues fully describe the
     // dynamic-keyed parameters it was saved with. Carrying current entries

@@ -127,6 +127,7 @@ class TokenDataStore(
      * `commitRefresh` never reports a persisted token it silently dropped. Non-keystore exceptions are
      * real bugs and re-thrown.
      */
+    @Suppress("TooGenericExceptionCaught") // classifies keystore corruption and rethrows everything else
     private inline fun write(toMemory: () -> Unit, mutate: (SharedPreferences.Editor) -> Unit) {
         // store() builds on demand, so a `null` here means the keystore gave up — never "not built
         // yet". Conflating them lands a write in [memoryFallback], where it is lost at process death.
@@ -190,6 +191,7 @@ class TokenDataStore(
         )
     }
 
+    @Suppress("TooGenericExceptionCaught") // OEM keystores throw undocumented exceptions; recovery must not crash
     private fun wipeEncryptedPrefs(context: Context) {
         // security-crypto keeps the Tink keysets INSIDE this same prefs file, so deleting it drops the
         // corrupt keysets along with the data. Also delete the master key entry so a corrupt /

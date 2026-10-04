@@ -30,6 +30,7 @@ class RoomMigrationTest {
         LibreChatDatabase::class.java,
     )
 
+    @Suppress("LongMethod") // debt: 155 lines
     @Test
     fun migrateV1ToV3_allEntitiesPreserved() {
         // --- Create v1 database with all 6 entity types ---

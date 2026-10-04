@@ -1,3 +1,5 @@
+@file:Suppress("MaxLineLength") // wire-format JSON fixtures stay on one line, as the server sends them
+
 package com.garfiec.librechat.core.network.sse
 
 import com.garfiec.librechat.core.model.RunStepStatus
@@ -7,6 +9,7 @@ import kotlinx.serialization.json.Json
 import org.junit.Before
 import org.junit.Test
 
+@Suppress("LargeClass") // debt: 948-line file
 class SseEventMapperTest {
 
     private val json = Json {

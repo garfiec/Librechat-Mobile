@@ -40,6 +40,7 @@ class SkillsRepositoryImpl(
     override suspend fun getSkill(id: String): Result<Skill> =
         safeApiCall { skillsApi.getSkill(id) }
 
+    @Suppress("TooGenericExceptionCaught") // maps any API failure to a Result, as safeApiCall does
     override suspend fun createSkill(request: CreateSkillRequest): Result<Skill> {
         return try {
             Result.Success(onApiDispatcher { skillsApi.createSkill(request) })
@@ -54,6 +55,7 @@ class SkillsRepositoryImpl(
         }
     }
 
+    @Suppress("TooGenericExceptionCaught") // maps any API failure to a Result, as safeApiCall does
     override suspend fun updateSkill(id: String, request: UpdateSkillRequest): SkillUpdateResult {
         return try {
             SkillUpdateResult.Success(onApiDispatcher { skillsApi.updateSkill(id, request) })
@@ -81,6 +83,7 @@ class SkillsRepositoryImpl(
     override suspend fun listSkillFiles(skillId: String): Result<List<SkillFile>> =
         safeApiCall { skillsApi.listSkillFiles(skillId).files }
 
+    @Suppress("TooGenericExceptionCaught") // maps any API failure to a Result, as safeApiCall does
     override suspend fun uploadSkillFile(
         skillId: String,
         relativePath: String,
@@ -111,6 +114,7 @@ class SkillsRepositoryImpl(
         relativePath: String,
     ): Result<SkillFileContentResponse> = safeApiCall { skillsApi.getSkillFileContent(skillId, relativePath) }
 
+    @Suppress("TooGenericExceptionCaught") // maps any API failure to a Result, as safeApiCall does
     override suspend fun editSkillFile(
         skillId: String,
         relativePath: String,
@@ -136,6 +140,7 @@ class SkillsRepositoryImpl(
         SkillFileEditResult.Failed(e.message)
     }
 
+    @Suppress("TooGenericExceptionCaught") // maps any API failure to a Result, as safeApiCall does
     override suspend fun importSkill(bytes: ByteArray, filename: String, mimeType: String): Result<Skill> {
         return try {
             Result.Success(onApiDispatcher { skillsApi.importSkill(bytes, filename, mimeType) })

@@ -8,7 +8,7 @@ import kotlin.test.assertTrue
 
 class PickerMimeTypesTest {
 
-    private val DOCX =
+    private val docxMime =
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
     private fun config(vararg patterns: String, endpoint: String? = null) =
@@ -94,8 +94,8 @@ class PickerMimeTypesTest {
         // text route unreachable: the system picker never shows a .docx for the user to pick, so
         // no routing decision downstream can ever be made about one.
         val narrowed = config("^image/.*$", "^application/pdf$")
-        assertFalse(DOCX in narrowed.pickerMimeTypes())
-        assertContains(narrowed.pickerMimeTypes(includeTextRoute = true), DOCX)
+        assertFalse(docxMime in narrowed.pickerMimeTypes())
+        assertContains(narrowed.pickerMimeTypes(includeTextRoute = true), docxMime)
         assertContains(narrowed.pickerMimeTypes(includeTextRoute = true), "text/plain")
         // Still narrowed, not blown open: a zip is extractable by nobody and stays out.
         assertFalse("application/zip" in narrowed.pickerMimeTypes(includeTextRoute = true))
@@ -114,20 +114,20 @@ class PickerMimeTypesTest {
 
     // ---- .potx (v0.8.8-rc1, upstream 6c46fd12) ----
 
-    private val POTX = "application/vnd.openxmlformats-officedocument.presentationml.template"
+    private val potxMime = "application/vnd.openxmlformats-officedocument.presentationml.template"
 
     @Test
     fun potxIsOfferedOnAnRc1Server() {
         val types = config("presentationml").pickerMimeTypes(serverVersion = "0.8.8-rc1")
-        assertContains(types, POTX)
+        assertContains(types, potxMime)
     }
 
     @Test
     fun potxIsWithheldOnPreRc1AndUnknownServers() {
         // A pre-rc1 default allowlist rejects the upload, so the translated filter must not
         // offer a file the server will bounce.
-        assertFalse(POTX in config("presentationml").pickerMimeTypes(serverVersion = "0.8.7"))
-        assertFalse(POTX in config("presentationml").pickerMimeTypes())
+        assertFalse(potxMime in config("presentationml").pickerMimeTypes(serverVersion = "0.8.7"))
+        assertFalse(potxMime in config("presentationml").pickerMimeTypes())
         // The sibling pptx type is untouched by the gate.
         assertContains(
             config("presentationml").pickerMimeTypes(serverVersion = "0.8.7"),

@@ -85,6 +85,7 @@ class QueuedTurnRepositoryImpl(
      * which is precisely the collapse this feature cannot survive — and it logs at error level on
      * a path where an old server answering 404 is the expected, correct answer.
      */
+    @Suppress("TooGenericExceptionCaught") // maps any API failure to a Result, as safeApiCall does
     private suspend fun <T> call(
         block: suspend () -> QueuedTurnOutcome<T>,
     ): QueuedTurnOutcome<T> = try {

@@ -130,6 +130,7 @@ data class FilesUiState(
     val pdfPasswordPrompt: PdfPasswordPromptUi? = null,
 )
 
+@Suppress("TooManyFunctions") // debt: 31 functions
 class FilesViewModel(
     private val fileRepository: FileRepository,
     private val configRepository: ConfigRepository,

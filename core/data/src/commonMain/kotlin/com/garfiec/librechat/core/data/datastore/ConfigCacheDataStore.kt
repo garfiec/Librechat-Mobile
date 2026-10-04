@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.common.identity.deriveServerId
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.network.client.ServerUrlProvider
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
@@ -47,6 +48,7 @@ class ConfigCacheDataStore(
     suspend fun loadAvailableModels(): Map<String, List<String>>? =
         load(AVAILABLE_MODELS, "available models") { json.decodeFromString(modelsSerializer, it) }
 
+    @Suppress("TooGenericExceptionCaught") // best-effort cache: a failure must not break the caller
     suspend fun clear() {
         try {
             // Scope to the logged-out server only: logout keeps the base URL, so serverId() still
@@ -59,11 +61,14 @@ class ConfigCacheDataStore(
                 serverId?.let { id -> BASES.forEach { prefs.remove(key(id, it)) } }
                 BASES.forEach { prefs.remove(stringPreferencesKey(it)) }
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Logger.w(e) { "Failed to clear cached config" }
         }
     }
 
+    @Suppress("TooGenericExceptionCaught") // best-effort cache: a failure must not break the caller
     private suspend fun save(base: String, label: String, serialize: () -> String) {
         val serverId = serverId() ?: return
         try {
@@ -72,15 +77,20 @@ class ConfigCacheDataStore(
                 prefs[key(serverId, base)] = serialized
                 prefs.remove(stringPreferencesKey(base)) // drop the pre-keying bare entry once
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Logger.w(e) { "Failed to cache $label" }
         }
     }
 
+    @Suppress("TooGenericExceptionCaught") // best-effort cache: a failure must not break the caller
     private suspend fun <T> load(base: String, label: String, deserialize: (String) -> T): T? {
         val serverId = serverId() ?: return null
         return try {
             dataStore.data.first()[key(serverId, base)]?.let(deserialize)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Logger.w(e) { "Failed to load cached $label" }
             null

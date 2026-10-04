@@ -50,9 +50,12 @@ actual val settingsPlatformModule: Module = module {
             }
         }
     } bind ContentReader::class
+    // The rule reads the anonymous `object :` as a generic type; it binds one non-generic interface.
+    @Suppress("GenericDefinitionWithoutQualifier")
     single {
         @OptIn(ExperimentalForeignApi::class)
         object : PlatformCacheCleaner {
+            @Suppress("TooGenericExceptionCaught") // best-effort cache cleanup
             override suspend fun clearCache() {
                 withContext(Dispatchers.Default) {
                     try {
@@ -81,6 +84,7 @@ actual val settingsPlatformModule: Module = module {
                 }
             }
 
+            @Suppress("TooGenericExceptionCaught") // best-effort cache cleanup
             override suspend fun cacheSizeBytes(): Long = withContext(Dispatchers.Default) {
                 try {
                     val cachePath = NSSearchPathForDirectoriesInDomains(

@@ -16,6 +16,7 @@ import kotlin.time.Duration.Companion.minutes
  * afterwards. That avoids a custom `WorkerFactory` and a `Configuration.Provider` on the Application
  * for a single worker.
  */
+@Suppress("NoKoinComponentInterface", "NoInjectDelegate") // see KDoc: avoids a custom WorkerFactory for one worker
 class PrefetchWorker(
     context: Context,
     params: WorkerParameters,

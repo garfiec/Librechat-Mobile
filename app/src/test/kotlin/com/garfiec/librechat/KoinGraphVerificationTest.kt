@@ -125,6 +125,7 @@ class KoinGraphVerificationTest {
      * binds the Android engine). The iOS actuals and the iOS-only `LibreChatSDK`
      * binding are covered by `IosKoinGraphTest` (`:shared:iosSimulatorArm64Test`).
      */
+    @Suppress("LongMethod") // debt: 122 lines
     @OptIn(KoinExperimentalAPI::class)
     @Test
     fun verifyFullKoinGraph() {
