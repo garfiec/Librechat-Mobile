@@ -27,6 +27,7 @@ import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.logging.DiagnosticLogRepository
 import com.garfiec.librechat.core.model.User
+import com.garfiec.librechat.core.model.UserPersonalization
 import com.garfiec.librechat.core.model.mcp.McpOboConfig
 import com.garfiec.librechat.core.model.mcp.McpServer
 import com.garfiec.librechat.core.model.mcp.McpServerType
@@ -414,6 +415,28 @@ class SettingsViewModelTest {
         advanceUntilIdle()
 
         assertThat(viewModel.uiState.value.isTwoFactorEnabled).isTrue()
+    }
+
+    @Test
+    fun `memoriesEnabled is hydrated from the profile opt-out`() = runTest {
+        coEvery { userRepository.getUser() } returns Result.Success(
+            testUser.copy(personalization = UserPersonalization(memories = false)),
+        )
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.memoriesEnabled).isFalse()
+    }
+
+    @Test
+    fun `memoriesEnabled defaults on when the profile has no personalization block`() = runTest {
+        coEvery { userRepository.getUser() } returns Result.Success(testUser.copy(personalization = null))
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.memoriesEnabled).isTrue()
     }
 
     @Test
