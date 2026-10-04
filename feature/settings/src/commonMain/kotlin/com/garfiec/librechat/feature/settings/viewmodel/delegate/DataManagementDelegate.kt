@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.settings.viewmodel.delegate
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.KeyRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
@@ -12,7 +13,6 @@ import com.garfiec.librechat.feature.settings.model.SharedLinkDisplayData
 import com.garfiec.librechat.feature.settings.util.PlatformCacheCleaner
 import com.garfiec.librechat.feature.settings.viewmodel.LogsExportPayload
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 
@@ -97,17 +97,11 @@ class DataManagementDelegate(
     // ── Diagnostic logs (issue #96) ────────────────────────────────
 
     /** Loads the current on-disk buffer size into state so the UI can label the export button. */
-    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     fun loadLogsBufferSize() {
         stateHandle.scope.launch {
-            try {
-                val bytes = diagnosticLogRepository.bufferSizeBytes()
-                stateHandle.update { copy(logsBufferBytes = bytes) }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Logger.d(e) { "Failed to read diagnostic log buffer size" }
-            }
+            suspendRunCatching { diagnosticLogRepository.bufferSizeBytes() }
+                .onSuccess { bytes -> stateHandle.update { copy(logsBufferBytes = bytes) } }
+                .onFailure { e -> Logger.d(e) { "Failed to read diagnostic log buffer size" } }
         }
     }
 
@@ -116,29 +110,27 @@ class DataManagementDelegate(
      * one-shot payload. The screen observes it, launches the platform file saver, and calls
      * [consumeLogsExport] once handled.
      */
-    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     fun exportLogs() {
         stateHandle.scope.launch {
             stateHandle.update { copy(isLogsExporting = true) }
-            try {
-                val content = diagnosticLogRepository.exportText()
-                val fileName = "switchboard-logs-${Clock.System.now().toEpochMilliseconds()}.log"
-                stateHandle.update {
-                    copy(
-                        isLogsExporting = false,
-                        logsExportReady = LogsExportPayload(content = content, fileName = fileName),
-                    )
+            suspendRunCatching { diagnosticLogRepository.exportText() }
+                .onSuccess { content ->
+                    val fileName = "switchboard-logs-${Clock.System.now().toEpochMilliseconds()}.log"
+                    stateHandle.update {
+                        copy(
+                            isLogsExporting = false,
+                            logsExportReady = LogsExportPayload(content = content, fileName = fileName),
+                        )
+                    }
                 }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                stateHandle.update {
-                    copy(
-                        isLogsExporting = false,
-                        error = e.message ?: "Failed to export diagnostic logs",
-                    )
+                .onFailure { e ->
+                    stateHandle.update {
+                        copy(
+                            isLogsExporting = false,
+                            error = e.message ?: "Failed to export diagnostic logs",
+                        )
+                    }
                 }
-            }
         }
     }
 
@@ -148,17 +140,15 @@ class DataManagementDelegate(
     }
 
     /** Clears both log segments, then refreshes the displayed buffer size. */
-    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     fun clearLogs() {
         stateHandle.scope.launch {
             stateHandle.update { copy(isLogsClearing = true) }
-            try {
+            suspendRunCatching {
                 diagnosticLogRepository.clear()
-                val bytes = diagnosticLogRepository.bufferSizeBytes()
+                diagnosticLogRepository.bufferSizeBytes()
+            }.onSuccess { bytes ->
                 stateHandle.update { copy(isLogsClearing = false, logsBufferBytes = bytes) }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
+            }.onFailure { e ->
                 stateHandle.update {
                     copy(
                         isLogsClearing = false,
@@ -291,33 +281,25 @@ class DataManagementDelegate(
         }
     }
 
-    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     fun loadCacheSize() {
         stateHandle.scope.launch {
-            try {
-                val bytes = cacheCleaner.cacheSizeBytes()
-                stateHandle.update { copy(cacheSizeBytes = bytes) }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Logger.d(e) { "Failed to read cache size" }
-            }
+            suspendRunCatching { cacheCleaner.cacheSizeBytes() }
+                .onSuccess { bytes -> stateHandle.update { copy(cacheSizeBytes = bytes) } }
+                .onFailure { e -> Logger.d(e) { "Failed to read cache size" } }
         }
     }
 
-    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     fun clearCache() {
         stateHandle.scope.launch {
             stateHandle.update { copy(isCacheClearing = true) }
-            try {
+            suspendRunCatching {
                 cacheCleaner.clearCache()
                 // Re-read rather than assume zero: the directory is shared, and something may have
                 // written to it between the walk and the delete.
-                val bytes = cacheCleaner.cacheSizeBytes()
+                cacheCleaner.cacheSizeBytes()
+            }.onSuccess { bytes ->
                 stateHandle.update { copy(isCacheClearing = false, cacheSizeBytes = bytes) }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
+            }.onFailure { e ->
                 stateHandle.update {
                     copy(
                         isCacheClearing = false,

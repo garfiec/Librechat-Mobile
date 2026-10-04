@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
 import android.content.Context
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.common.speech.mapSttLanguageToLocale
 import com.garfiec.librechat.core.data.repository.ServerSttGate
 import com.garfiec.librechat.core.data.repository.SpeechRepository
@@ -12,7 +13,6 @@ import com.garfiec.librechat.feature.chat.audio.VoiceRecorder
 import com.garfiec.librechat.feature.chat.audio.appendToBase
 import com.garfiec.librechat.feature.chat.audio.shouldAutoSendTranscript
 import com.garfiec.librechat.feature.chat.viewmodel.VoiceHandle
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -221,7 +221,6 @@ class VoiceInputDelegate(
         }
     }
 
-    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     private fun beginExternalRecording() {
         if (!handle.state.serverSttEnabled) {
             // Distinguish "server reachable, STT genuinely off" from "couldn't reach the server to
@@ -246,11 +245,9 @@ class VoiceInputDelegate(
             error = null
         }
         startJob = handle.scope.launch {
-            try {
+            suspendRunCatching {
                 recorder.start()
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
+            }.onFailure { e ->
                 if (voiceRecorder === recorder) {
                     voiceRecorder = null
                     handle.update {

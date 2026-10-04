@@ -6,13 +6,13 @@ import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.ServerSttGate
 import com.garfiec.librechat.core.data.repository.SpeechRepository
 import com.garfiec.librechat.core.model.speech.TtsVoice
 import com.garfiec.librechat.feature.settings.screen.DeviceVoiceInfo
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -253,11 +253,10 @@ class SpeechSettingsDelegate(
 
     /**
      * Plays audio bytes via MediaPlayer. Attaches listeners before calling prepare()
-     * and wraps prepare/start in try-catch to release on failure (fixes resource leak).
+     * and releases the player if prepare/start fails.
      */
-    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     private suspend fun playAudioBytes(audioBytes: ByteArray, isPreview: Boolean = false) {
-        try {
+        suspendRunCatching {
             // Stop any currently playing audio
             currentMediaPlayer?.release()
             currentMediaPlayer = null
@@ -297,22 +296,23 @@ class SpeechSettingsDelegate(
                     }
                     true
                 }
+                var started = false
                 try {
                     mp.prepare()
                     mp.start()
-                } catch (e: Exception) {
+                    started = true
+                } finally {
                     // Release MediaPlayer if prepare() or start() throws
-                    mp.release()
-                    tempFile.delete()
-                    throw e
+                    if (!started) {
+                        mp.release()
+                        tempFile.delete()
+                    }
                 }
                 mp
             }
 
             currentMediaPlayer = mediaPlayer
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
+        }.onFailure { e ->
             Logger.e(e) { "Failed to play audio" }
             stateHandle.update {
                 copy(

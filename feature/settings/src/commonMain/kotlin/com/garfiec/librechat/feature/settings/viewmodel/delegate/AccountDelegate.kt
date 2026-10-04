@@ -2,13 +2,13 @@ package com.garfiec.librechat.feature.settings.viewmodel.delegate
 
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.repository.BalanceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.feature.settings.util.ContentReader
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
 import com.garfiec.librechat.feature.settings.viewmodel.isHttpStatus
 import com.garfiec.librechat.feature.settings.viewmodel.toDisplayData
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -91,19 +91,15 @@ class AccountDelegate(
         stateHandle.update { copy(showAvatarDialog = false) }
     }
 
-    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     fun uploadAvatar(uri: Any) {
         stateHandle.scope.launch {
             stateHandle.update { copy(isAvatarUploading = true) }
             // Reading bytes off the URI is blocking I/O — keep it off the Main
             // dispatcher (viewModelScope = Main.immediate) to avoid an ANR on
             // large images. Mirrors the FileAttachmentDelegate fix.
-            val bytes = try {
+            val bytes = suspendRunCatching {
                 withContext(ioDispatcher) { contentReader.readBytes(uri) }
-            } catch (e: CancellationException) {
-                // Cooperative cancellation must propagate (SKIE/iOS requirement).
-                throw e
-            } catch (e: Exception) {
+            }.getOrElse { e ->
                 stateHandle.update {
                     copy(isAvatarUploading = false, error = "Could not read selected image: ${e.message}")
                 }

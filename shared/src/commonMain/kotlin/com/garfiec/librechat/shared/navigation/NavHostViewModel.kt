@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.common.identity.AccountTransition
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.accountTransitions
 import com.garfiec.librechat.core.common.network.ConnectivityObserver
+import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.datastore.AccountEntry
 import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
@@ -300,13 +301,10 @@ class NavHostViewModel(
      * unaccounted and should be retried on reconnect. restoreAccountIfNeeded() self-guards, so it is
      * cheap and safe to call repeatedly.
      */
-    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     private suspend fun tryRestoreAccount(): Boolean =
-        try {
+        suspendRunCatching {
             authRepository.restoreAccountIfNeeded()
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
+        }.getOrElse { e ->
             Logger.w(e) { "Account restore failed on cold start; will retry on reconnect" }
             false
         }

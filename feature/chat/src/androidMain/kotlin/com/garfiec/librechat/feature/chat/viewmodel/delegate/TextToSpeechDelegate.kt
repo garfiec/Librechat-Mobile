@@ -6,10 +6,10 @@ import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.SpeechRepository
 import com.garfiec.librechat.feature.chat.viewmodel.TtsHandle
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -111,11 +111,10 @@ class TextToSpeechDelegate(
         }
     }
 
-    @Suppress("TooGenericExceptionCaught") // failure boundary: any error is logged or shown, never thrown into the scope
     internal suspend fun readAloudViaServer(text: String) {
         when (val result = speechRepository.synthesizeSpeech(text)) {
             is Result.Success -> {
-                try {
+                suspendRunCatching {
                     val audioBytes = result.data
                     serverTtsPlayer?.release()
                     serverTtsPlayer = withContext(ioDispatcher) {
@@ -153,9 +152,7 @@ class TextToSpeechDelegate(
                             start()
                         }
                     }
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
+                }.onFailure { e ->
                     handle.update {
                         voice = voice.copy(currentlyReadingMessageId = null)
                         error = "Server TTS playback failed: ${e.message}"
