@@ -63,6 +63,7 @@ import com.garfiec.librechat.core.ui.media.MediaItem
 import com.garfiec.librechat.core.ui.media.MediaPreviewState
 import com.garfiec.librechat.feature.chat.components.AttachedFile
 import com.garfiec.librechat.feature.chat.components.ParsedMarkdownCache
+import com.garfiec.librechat.feature.chat.components.PausePanelAutoAdvance
 import com.garfiec.librechat.feature.chat.model.PresetDisplayData
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
@@ -2060,6 +2061,14 @@ class ChatViewModel(
     fun selectToolCall(toolCallId: String) = pendingActionDelegate.selectToolCall(toolCallId)
 
     fun setToolPanelCollapsed(collapsed: Boolean) = pendingActionDelegate.setToolPanelCollapsed(collapsed)
+
+    fun pickAskOption(questionId: String, draft: AskAnswerDraft, advance: PausePanelAutoAdvance) =
+        pendingActionDelegate.pickAskOption(questionId, draft, advance)
+
+    fun pickToolDecision(toolCallId: String, draft: ToolDecisionDraft, advance: PausePanelAutoAdvance) =
+        pendingActionDelegate.pickToolDecision(toolCallId, draft, advance)
+
+    fun cancelPausePanelAutoAdvance() = pendingActionDelegate.cancelAutoAdvance()
 
     fun continueGeneration() {
         if (_uiState.value.isEditingQueued) return

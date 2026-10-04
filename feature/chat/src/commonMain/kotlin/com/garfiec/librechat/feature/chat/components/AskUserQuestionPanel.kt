@@ -37,11 +37,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -70,8 +70,6 @@ import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
 import com.garfiec.librechat.feature.chat.util.askFreeTextBudget
 import com.garfiec.librechat.feature.chat.util.composeAskAnswer
 import com.garfiec.librechat.feature.chat.util.nextBlankQuestionIndex
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 
 /** One question as the panel shows it: a batch item, or a single-question pause. */
@@ -158,8 +156,12 @@ fun AskUserQuestionPanel(
     activeQuestionId: String?,
     collapsed: Boolean,
     onDraftChange: (String, AskAnswerDraft) -> Unit,
+    /** An option row's tap, with the selection after it; whether it moves the panel on is the delegate's call. */
+    onPickOption: (String, AskAnswerDraft, PausePanelAutoAdvance) -> Unit,
     onSelectQuestion: (String) -> Unit,
     onCollapsedChange: (Boolean) -> Unit,
+    /** Drops a move a pick scheduled; called when the layout it was picked in leaves the screen. */
+    onCancelAutoAdvance: () -> Unit,
     onSubmitAnswer: (String) -> Unit,
     onSubmitAnswers: (Map<String, String>) -> Unit,
     modifier: Modifier = Modifier,
@@ -180,7 +182,7 @@ fun AskUserQuestionPanel(
     val answers = questions.associate { item ->
         item.id to composeAskAnswer(item.options, drafts[item.id] ?: AskAnswerDraft())
     }
-    val activeIndex = questions.indexOfFirst { it.id == activeQuestionId }.coerceAtLeast(0)
+    val activeIndex = pausePanelActiveIndex(questions.map { it.id }, activeQuestionId)
 
     val submit: (Map<String, String>) -> Unit = { filled ->
         if (model.isBatch) onSubmitAnswers(filled) else onSubmitAnswer(filled.getValue(questions.first().id))
@@ -196,6 +198,7 @@ fun AskUserQuestionPanel(
     val stop = onStop?.takeIf { resumeFailed }
     val actions = AskPanelActions(
         onDraftChange = onDraftChange,
+        onPick = onPickOption,
         onSelect = { index -> onSelectQuestion(questions[index].id) },
         onCollapsedChange = onCollapsedChange,
         onStop = stop,
@@ -212,6 +215,10 @@ fun AskUserQuestionPanel(
         // screen; the header and the action row stay pinned around it.
         val bodyMaxHeight = if (maxHeight == Dp.Infinity) FALLBACK_BODY_MAX_HEIGHT else maxHeight * BODY_HEIGHT_FRACTION
         val isWide = maxWidth >= PAUSE_PANEL_WIDE_MIN_WIDTH
+        val cancelAutoAdvance by rememberUpdatedState(onCancelAutoAdvance)
+        // A scheduled move belongs to the layout it was picked in: a fold or rotation inside the
+        // beat drops it rather than letting a compact pick submit under the wide layout.
+        DisposableEffect(isWide) { onDispose { cancelAutoAdvance() } }
         AdaptiveCard(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
@@ -246,6 +253,7 @@ private data class AskPanelState(
 
 private class AskPanelActions(
     val onDraftChange: (String, AskAnswerDraft) -> Unit,
+    val onPick: (String, AskAnswerDraft, PausePanelAutoAdvance) -> Unit,
     val onSelect: (Int) -> Unit,
     val onCollapsedChange: (Boolean) -> Unit,
     val onStop: (() -> Unit)?,
@@ -264,9 +272,6 @@ private fun CompactAskLayout(
 ) {
     val active = state.active
     val draft = state.activeDraft
-    val coroutineScope = rememberCoroutineScope()
-    val currentState by rememberUpdatedState(state)
-    val currentActions by rememberUpdatedState(actions)
     // Per question, so each one opens scrolled to its first line.
     val questionScroll = key(active.id) { rememberScrollState() }
 
@@ -337,30 +342,12 @@ private fun CompactAskLayout(
                                 multiSelect = active.multiSelect,
                                 enabled = !state.isResolving,
                                 onClick = {
-                                    val wasAnswered = state.isAnswered(active.id)
                                     val next = toggledSelection(draft.selectedOptions, option.value, active.multiSelect)
-                                    val updated = draft.copy(selectedOptions = next, skipped = false)
-                                    actions.onDraftChange(active.id, updated)
-                                    // A single-select pick is a complete answer: after a beat (so the
-                                    // pick is seen landing) move on — or submit, when it filled the
-                                    // last blank question. Re-picking an already answered question
-                                    // never submits on its own; the user may still be reviewing.
-                                    if (!active.multiSelect && !isSelected && !wasAnswered) {
-                                        val from = active.id
-                                        val picked = composeAskAnswer(active.options, updated)
-                                        coroutineScope.launch {
-                                            delay(PAUSE_PANEL_AUTO_ADVANCE_DELAY_MS)
-                                            // Decided on what is recorded NOW, not at the tap: a re-pick,
-                                            // a deselect or a typed qualifier inside the beat means the
-                                            // user is still editing, and the tap-time answers would submit
-                                            // the pick they just replaced.
-                                            val latest = currentState
-                                            val stillPicked = latest.active.id == from && latest.answers[from] == picked
-                                            if (stillPicked && !latest.isResolving) {
-                                                currentActions.advanceOrSubmit(latest.activeIndex, latest.answers)
-                                            }
-                                        }
-                                    }
+                                    actions.onPick(
+                                        active.id,
+                                        draft.copy(selectedOptions = next, skipped = false),
+                                        PausePanelAutoAdvance.AdvanceOrSubmit,
+                                    )
                                 },
                             )
                             AdaptiveDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
@@ -526,8 +513,6 @@ private fun WideAskLayout(
 ) {
     val questions = state.questions
     val active = state.active
-    val coroutineScope = rememberCoroutineScope()
-    val currentActiveId by rememberUpdatedState(active.id)
     val isTabbed = questions.size > 1
 
     Box {
@@ -586,16 +571,7 @@ private fun WideAskLayout(
                             draft = state.drafts[item.id] ?: AskAnswerDraft(),
                             isResolving = state.isResolving,
                             onDraftChange = { draft -> actions.onDraftChange(item.id, draft) },
-                            onPickedSingle = {
-                                // A single-select pick is a complete answer, so move on to the next tab —
-                                // after a beat, so the pick is seen landing.
-                                if (page < questions.lastIndex) {
-                                    coroutineScope.launch {
-                                        delay(PAUSE_PANEL_AUTO_ADVANCE_DELAY_MS)
-                                        if (currentActiveId == item.id) actions.onSelect(page + 1)
-                                    }
-                                }
-                            },
+                            onPick = { draft -> actions.onPick(item.id, draft, PausePanelAutoAdvance.NextTab) },
                         )
                     }
                 }
@@ -688,7 +664,8 @@ private fun AskQuestionBody(
     draft: AskAnswerDraft,
     isResolving: Boolean,
     onDraftChange: (AskAnswerDraft) -> Unit,
-    onPickedSingle: () -> Unit,
+    /** An option row's tap, with the selection after it. */
+    onPick: (AskAnswerDraft) -> Unit,
     modifier: Modifier = Modifier,
     optionsModifier: Modifier = Modifier,
 ) {
@@ -718,8 +695,7 @@ private fun AskQuestionBody(
                     val isSelected = option.value in selected
                     val onToggle = {
                         val next = toggledSelection(selected, option.value, item.multiSelect)
-                        onDraftChange(draft.copy(selectedOptions = next, skipped = false))
-                        if (!item.multiSelect && !isSelected) onPickedSingle()
+                        onPick(draft.copy(selectedOptions = next, skipped = false))
                     }
                     val rowModifier = if (item.multiSelect) {
                         Modifier.toggleable(

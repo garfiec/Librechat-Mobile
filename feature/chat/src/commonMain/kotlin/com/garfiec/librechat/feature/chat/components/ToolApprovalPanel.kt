@@ -28,11 +28,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,8 +59,6 @@ import com.garfiec.librechat.feature.chat.util.nextUndecidedCallIndex
 import com.garfiec.librechat.feature.chat.util.parseToolArgumentsOrNull
 import com.garfiec.librechat.feature.chat.util.toResolution
 import com.garfiec.librechat.feature.chat.util.toolBatchResolutions
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import org.jetbrains.compose.resources.StringResource
@@ -100,8 +98,12 @@ fun ToolApprovalPanel(
     activeCallId: String?,
     collapsed: Boolean,
     onDraftChange: (String, ToolDecisionDraft) -> Unit,
+    /** A decision's tap, with the call's draft after it; whether it moves the panel on is the delegate's call. */
+    onPickDecision: (String, ToolDecisionDraft, PausePanelAutoAdvance) -> Unit,
     onSelectCall: (String) -> Unit,
     onCollapsedChange: (Boolean) -> Unit,
+    /** Drops a move a pick scheduled; called when the layout it was picked in leaves the screen. */
+    onCancelAutoAdvance: () -> Unit,
     onSubmit: (List<ToolApprovalResolution>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -110,7 +112,7 @@ fun ToolApprovalPanel(
     val calls = payload.actionRequests
     if (calls.isEmpty()) return
     val allowed = remember(payload) { payload.allowedDecisionsByCallId() }
-    val activeIndex = calls.indexOfFirst { it.toolCallId == activeCallId }.coerceAtLeast(0)
+    val activeIndex = pausePanelActiveIndex(calls.map { it.toolCallId }, activeCallId)
 
     val submit: (Map<String, ToolDecisionDraft>) -> Unit = { latest ->
         toolBatchResolutions(payload, latest)?.let(onSubmit)
@@ -125,6 +127,7 @@ fun ToolApprovalPanel(
     )
     val actions = ToolPanelActions(
         onDraftChange = onDraftChange,
+        onPick = onPickDecision,
         onSelect = { index -> onSelectCall(calls[index].toolCallId) },
         onCollapsedChange = onCollapsedChange,
         submit = submit,
@@ -144,6 +147,10 @@ fun ToolApprovalPanel(
         // than the ask panel's, which stands in for the composer.
         val bodyMaxHeight = if (maxHeight == Dp.Infinity) FALLBACK_BODY_MAX_HEIGHT else maxHeight * BODY_HEIGHT_FRACTION
         val isWide = maxWidth >= PAUSE_PANEL_WIDE_MIN_WIDTH
+        val cancelAutoAdvance by rememberUpdatedState(onCancelAutoAdvance)
+        // A scheduled move belongs to the layout it was picked in: a fold or rotation inside the
+        // beat drops it rather than letting a compact pick submit under the wide layout.
+        DisposableEffect(isWide) { onDispose { cancelAutoAdvance() } }
         AdaptiveCard(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
@@ -190,6 +197,7 @@ private data class ToolPanelState(
 
 private class ToolPanelActions(
     val onDraftChange: (String, ToolDecisionDraft) -> Unit,
+    val onPick: (String, ToolDecisionDraft, PausePanelAutoAdvance) -> Unit,
     val onSelect: (Int) -> Unit,
     val onCollapsedChange: (Boolean) -> Unit,
     val submit: (Map<String, ToolDecisionDraft>) -> Unit,
@@ -206,9 +214,6 @@ private fun CompactToolLayout(
     bodyMaxHeight: Dp,
 ) {
     val active = state.active
-    val coroutineScope = rememberCoroutineScope()
-    val currentState by rememberUpdatedState(state)
-    val currentActions by rememberUpdatedState(actions)
 
     Box {
         Column(
@@ -244,22 +249,8 @@ private fun CompactToolLayout(
                         isResolving = state.isResolving,
                         bodyMaxHeight = bodyMaxHeight,
                         onDraftChange = { draft -> actions.onDraftChange(active.toolCallId, draft) },
-                        onPickedFinal = { decision ->
-                            // Approve and Reject are complete decisions: after a beat (so the pick is
-                            // seen landing) move on — or submit, when it completed the batch. A call
-                            // that was already decided never moves on by itself; the user is reviewing.
-                            val from = active.toolCallId
-                            coroutineScope.launch {
-                                delay(PAUSE_PANEL_AUTO_ADVANCE_DELAY_MS)
-                                // Decided on what is recorded NOW, not at the tap: a different pick
-                                // inside the beat means the user is still deciding.
-                                val latest = currentState
-                                val stillPicked = latest.active.toolCallId == from &&
-                                    latest.drafts[from]?.decision == decision
-                                if (stillPicked && !latest.isResolving) {
-                                    currentActions.advanceOrSubmit(latest.activeIndex, latest.drafts)
-                                }
-                            }
+                        onPick = { draft ->
+                            actions.onPick(active.toolCallId, draft, PausePanelAutoAdvance.AdvanceOrSubmit)
                         },
                     )
                 }
@@ -313,8 +304,6 @@ private fun WideToolLayout(
     bodyMaxHeight: Dp,
 ) {
     val active = state.active
-    val coroutineScope = rememberCoroutineScope()
-    val currentActiveId by rememberUpdatedState(active.toolCallId)
 
     Box {
         Column(
@@ -363,16 +352,7 @@ private fun WideToolLayout(
                             isResolving = state.isResolving,
                             bodyMaxHeight = bodyMaxHeight,
                             onDraftChange = { draft -> actions.onDraftChange(call.toolCallId, draft) },
-                            onPickedFinal = {
-                                // A complete decision moves on to the next tab, after a beat so the pick
-                                // is seen landing. The wide layout never submits on a pick: Continue does.
-                                if (page < state.calls.lastIndex) {
-                                    coroutineScope.launch {
-                                        delay(PAUSE_PANEL_AUTO_ADVANCE_DELAY_MS)
-                                        if (currentActiveId == call.toolCallId) actions.onSelect(page + 1)
-                                    }
-                                }
-                            },
+                            onPick = { draft -> actions.onPick(call.toolCallId, draft, PausePanelAutoAdvance.NextTab) },
                         )
                     }
                 }
@@ -458,8 +438,8 @@ private fun ToolCallBody(
     isResolving: Boolean,
     bodyMaxHeight: Dp,
     onDraftChange: (ToolDecisionDraft) -> Unit,
-    /** An Approve or Reject on a call that had no complete decision yet. */
-    onPickedFinal: (String) -> Unit,
+    /** A decision's tap, with the draft after it. */
+    onPick: (ToolDecisionDraft) -> Unit,
     modifier: Modifier = Modifier,
     decisionsModifier: Modifier = Modifier,
 ) {
@@ -505,15 +485,13 @@ private fun ToolCallBody(
             selected = draft.decision,
             enabled = !isResolving,
             onPick = { decision ->
-                val wasComplete = draft.toResolution(call.toolCallId) != null
-                val updated = if (decision == ToolApprovalDecisions.EDIT && draft.editedArguments.isBlank()) {
-                    draft.copy(decision = decision, editedArguments = arguments)
-                } else {
-                    draft.copy(decision = decision)
-                }
-                onDraftChange(updated)
-                val isFinal = decision == ToolApprovalDecisions.APPROVE || decision == ToolApprovalDecisions.REJECT
-                if (isFinal && !wasComplete) onPickedFinal(decision)
+                onPick(
+                    if (decision == ToolApprovalDecisions.EDIT && draft.editedArguments.isBlank()) {
+                        draft.copy(decision = decision, editedArguments = arguments)
+                    } else {
+                        draft.copy(decision = decision)
+                    },
+                )
             },
         )
 
