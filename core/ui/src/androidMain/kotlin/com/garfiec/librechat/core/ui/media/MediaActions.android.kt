@@ -114,6 +114,8 @@ actual fun rememberShareImage(): (url: String) -> Unit {
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     }
                     context.startActivity(Intent.createChooser(shareIntent, null))
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (_: Exception) {
                     shareUrlText(context, url)
                 }

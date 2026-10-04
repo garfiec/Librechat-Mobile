@@ -12,7 +12,10 @@ import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
@@ -46,6 +49,20 @@ class ConfigRepositoryImplTest {
         // account is active, and the cache key would derive from the LIVE url (poisoning it).
         assertThat(repo.startupConfig.value).isNull()
         coVerify(exactly = 0) { configCache.saveStartupConfig(any()) }
+    }
+
+    @Test
+    fun `a cancelled probe propagates instead of reporting an unreachable server`() = runTest {
+        coEvery { configApi.getStartupConfig() } coAnswers { awaitCancellation() }
+        val repo = repository()
+        var result: Result<StartupConfig>? = null
+
+        val job = launch { result = repo.probeServerUrl() }
+        runCurrent()
+        job.cancel()
+        job.join()
+
+        assertThat(result).isNull()
     }
 
     @Test

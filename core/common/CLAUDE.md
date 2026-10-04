@@ -43,6 +43,13 @@ DataStore work that sits in the same block as the call.
 classify their own failures (a bespoke validation message, or a first attempt whose failure is
 expected and must not be logged as an error). Prefer `safeApiCall` unless you are one of those.
 
+**Never let a catch around suspending code swallow `CancellationException`.** A cancelled job that
+catches it keeps running and writes a stale error to state after the user has left. Put
+`catch (e: CancellationException) { throw e }` ahead of any `catch (e: Exception)` whose `try`
+suspends, and use `suspendRunCatching { }` (`result/SuspendRunCatching.kt`) in place of
+`runCatching { }` when the block suspends. Import `kotlinx.coroutines.CancellationException`, never
+the `java.util.concurrent` one, in commonMain.
+
 ## Rules
 
 - **Pure Kotlin preferred.** Minimal Android dependencies (only what ConnectivityObserver and Koin require).

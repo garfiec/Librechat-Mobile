@@ -977,6 +977,8 @@ abstract class CommonTokenDataStore(
     private suspend fun classifyForbidden(httpResponse: HttpResponse): RefreshAttempt {
         val body = try {
             httpResponse.bodyAsText()
+        } catch (e: CancellationException) {
+            throw e
         } catch (_: Exception) {
             ""
         }

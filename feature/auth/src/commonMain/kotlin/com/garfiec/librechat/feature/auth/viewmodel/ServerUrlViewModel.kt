@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.ConfigRepository
@@ -314,7 +315,7 @@ class ServerUrlViewModel(
     private suspend fun validatePendingServer(url: String): Result<*> {
         // beginAdd requires a resolved active account; the switcher only offers "add" while one is
         // live, but a logout/expiry racing the tap must surface as an error, not a crash.
-        val begun = runCatching { accountSwitcher.beginAdd(url) }
+        val begun = suspendRunCatching { accountSwitcher.beginAdd(url) }
         if (begun.isFailure) {
             return Result.Error(
                 begun.exceptionOrNull(),

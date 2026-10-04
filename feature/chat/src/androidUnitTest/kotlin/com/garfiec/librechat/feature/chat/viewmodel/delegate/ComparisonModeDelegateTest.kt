@@ -8,12 +8,22 @@ import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ComparisonHandle
+import com.garfiec.librechat.feature.chat.viewmodel.ComparisonState
+import com.garfiec.librechat.feature.chat.viewmodel.ConversationMetaState
 import com.garfiec.librechat.feature.chat.viewmodel.MessagesState
 import com.google.common.truth.Truth.assertThat
+import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
 class ComparisonModeDelegateTest {
@@ -89,5 +99,30 @@ class ComparisonModeDelegateTest {
         delegate.rehydrateFromMessage(single)
 
         assertThat(flow.value.comparisonState.isEnabled).isFalse()
+    }
+
+    @Test
+    fun `cancelling a branch mid-request writes no error`() = runTest {
+        val messageRepository = mockk<MessageRepository>()
+        coEvery { messageRepository.branchMessage(any(), any(), any()) } coAnswers { awaitCancellation() }
+        val flow = MutableStateFlow(
+            ChatUiState(
+                conversation = ConversationMetaState(conversationId = "c1"),
+                comparisonState = ComparisonState(parallelMessageId = "m-parallel"),
+            ),
+        )
+        val scope = CoroutineScope(StandardTestDispatcher(testScheduler) + Job())
+        val delegate = ComparisonModeDelegate(
+            handle = ComparisonHandle(ChatStateHandle(flow, scope)),
+            messageRepository = messageRepository,
+            reloadConversation = {},
+        )
+
+        delegate.branchFromComparison("agent_secondary____1")
+        runCurrent()
+        scope.cancel()
+        advanceUntilIdle()
+
+        assertThat(flow.value.error).isNull()
     }
 }
