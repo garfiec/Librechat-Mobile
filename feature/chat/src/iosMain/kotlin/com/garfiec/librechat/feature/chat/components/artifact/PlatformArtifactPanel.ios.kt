@@ -65,13 +65,7 @@ actual fun ArtifactPreviewSurface(
 
 @Composable
 actual fun rememberShareArtifact(): (Artifact) -> Unit = remember {
-    { artifact ->
-        shareArtifact(
-            title = artifact.title,
-            content = artifact.content,
-            language = artifact.language ?: "",
-        )
-    }
+    { artifact -> shareArtifact(artifact.content) }
 }
 
 // iOS has no API to place a home-screen launcher icon, so the affordance is unavailable.

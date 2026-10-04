@@ -10,7 +10,6 @@ import com.garfiec.librechat.core.network.client.CookieHelper
 import com.garfiec.librechat.core.network.client.ImageCookieCredentials
 import com.garfiec.librechat.core.network.client.PinnedServerBaseUrlKey
 import com.garfiec.librechat.core.network.client.RefreshResult
-import com.garfiec.librechat.core.network.client.SecureTokenStorage
 import com.garfiec.librechat.core.network.client.SessionEndReason
 import com.garfiec.librechat.core.network.client.TokenManager
 import com.garfiec.librechat.core.network.client.expiresAtEpochMillisOrNull
@@ -72,7 +71,7 @@ import kotlin.time.Clock
 abstract class CommonTokenDataStore(
     private val refreshClient: Lazy<HttpClient>,
     private val ioDispatcher: CoroutineDispatcher,
-) : TokenManager, SecureTokenStorage, ImageCookieCredentials {
+) : TokenManager, ImageCookieCredentials {
 
     @Volatile
     private var cachedAccessToken: String? = null
@@ -1150,14 +1149,10 @@ abstract class CommonTokenDataStore(
         sessionExpiryReported = false
     }
 
-    // --- SecureTokenStorage ---
-
-    override suspend fun getRefreshToken(): String? = readValue(refreshKey(activeAccountKey))
-
     // --- ImageCookieCredentials ---
 
     /**
-     * Read directly off the account's own slot, unlocked, exactly like [getRefreshToken].
+     * Read directly off the account's own slot, unlocked.
      *
      * No [stateMutex]: this reads a keyed slot rather than the active-account binding the mutex
      * guards, and taking it would put a per-image keystore decrypt behind the same lock an account
@@ -1170,14 +1165,6 @@ abstract class CommonTokenDataStore(
      */
     override suspend fun refreshTokenFor(accountId: String?): String? =
         accountId?.let { readValue(refreshKey(it)).nonBlankOrNull() }
-
-    override suspend fun storeTokens(accessToken: String, refreshToken: String) {
-        setTokens(accessToken, refreshToken)
-    }
-
-    override suspend fun clearAll() {
-        clearTokens()
-    }
 
     protected open fun isKeystoreException(e: Exception): Boolean = false
 

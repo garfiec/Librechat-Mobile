@@ -63,10 +63,6 @@ class IosTokenDataStore(
         }
     }
 
-    override fun removeServerUrl() {
-        keychainDelete(KEY_SERVER_URL)
-    }
-
     override fun onKeystoreCorruption() {
         // Keychain access rarely "corrupts" like the Android keystore (isKeystoreException stays false
         // on iOS, so this isn't reached); clear the bare token slots defensively if it ever is.

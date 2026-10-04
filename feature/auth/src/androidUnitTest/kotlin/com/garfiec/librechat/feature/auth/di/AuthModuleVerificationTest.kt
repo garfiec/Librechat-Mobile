@@ -9,7 +9,6 @@ import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ServerRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.datastore.SsoRiskDataStore
-import com.garfiec.librechat.core.network.client.SecureTokenStorage
 import org.junit.Test
 import org.koin.test.verify.verify
 
@@ -25,7 +24,6 @@ class AuthModuleVerificationTest {
                 AuthRepository::class,
                 ConfigRepository::class,
                 UserRepository::class,
-                SecureTokenStorage::class,
                 SsoRiskDataStore::class,
                 AccountSwitcher::class,
                 // ServerUrlViewModel's addAccount mode flag, injected via parametersOf.

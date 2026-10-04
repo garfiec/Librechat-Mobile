@@ -41,7 +41,6 @@ Maps official TypeScript types from `packages/data-provider/src/` to Android Kot
 
 | Kotlin Class | File | Purpose |
 |-------------|------|---------|
-| `ServerConnection` | `ServerConnection.kt` | Saved server URL + metadata |
 | `LoginOutcome` | `LoginOutcome.kt` | Auth flow result sealed class |
 | `ConversationExport` | `ConversationExport.kt` | Export/import format |
 | `Feedback` | `Feedback.kt` | Message feedback (thumbs up/down) |
