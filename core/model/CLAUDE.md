@@ -4,7 +4,7 @@ All `@Serializable` data classes -- domain models, DTOs, request/response wrappe
 
 ## What This Module Provides
 
-- **Domain models**: `User`, `Conversation`, `Message`, `MessageContentPart`, `Agent`, `Preset`, `Prompt`, `PromptGroup`, `ConversationTag`, `SharedLink`, `FileObject`, `Balance`, `StartupConfig`, `ModelSpec`, `ServerConnection`
+- **Domain models**: `User`, `Conversation`, `Message`, `MessageContentPart`, `Agent`, `Preset`, `Prompt`, `PromptGroup`, `ConversationTag`, `SharedLink`, `FileObject`, `Balance`, `StartupConfig`, `ModelSpec`
 - **Enums**: `EModelEndpoint`, `ContentType`, `StepType`, `ToolCallType`, `FeedbackRating`, `Provider`
 - **StreamEvent sealed hierarchy**: `ContentDelta`, `ToolCallStart`, `ToolCallComplete`, `ThinkingDelta`, `Final`, `Sync`, `Error`, `Created`, `Step`, `AttachmentCreated`
 - **Request/response wrappers**: `LoginRequest`, `LoginResponse`, `RegisterRequest`, `ChatRequest`, `ConvoUpdateBody`, `ForkConvoRequest`, etc.

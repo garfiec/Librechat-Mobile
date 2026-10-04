@@ -135,11 +135,11 @@ class NavHostViewModel(
                 }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Seeded `null` (= "not resolved yet") and warmed up by the Eagerly-started collector. The
-    // previous synchronous `firstBlocking` read blocked the Main thread Koin instantiates the VM
-    // on. The nullable seed lets TabletLayout distinguish "unknown" from "closed" so it can snap
-    // to the persisted state on first resolution instead of animating false -> true (a visible
-    // sidebar jump on every tablet cold start).
+    // Seeded `null` (= "not resolved yet") and warmed up by the Eagerly-started collector, never a
+    // synchronous read — Koin instantiates the VM on the Main thread. The nullable seed lets
+    // TabletLayout distinguish "unknown" from "closed" so it can snap to the persisted state on
+    // first resolution instead of animating false -> true (a visible sidebar jump on every tablet
+    // cold start).
     val tabletSidebarOpen: StateFlow<Boolean?> = settingsDataStore.tabletSidebarOpen
         .map<Boolean, Boolean?> { it }
         .stateIn(

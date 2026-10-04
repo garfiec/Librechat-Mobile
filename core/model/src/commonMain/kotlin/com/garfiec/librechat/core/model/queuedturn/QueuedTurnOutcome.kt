@@ -41,6 +41,3 @@ sealed interface QueuedTurnOutcome<out T> {
         val message: String?,
     ) : QueuedTurnOutcome<Nothing>
 }
-
-fun <T> QueuedTurnOutcome<T>.valueOrNull(): T? =
-    (this as? QueuedTurnOutcome.Committed)?.value

@@ -513,9 +513,8 @@ onto a major version nothing here was tested against. Neither broke a build or a
 path exists in the manifest.
 
 ## Media Players
-- `VideoContentPlayer` uses ExoPlayer (media3) — 16:9 aspect ratio Card, lifecycle-aware release
-- `AudioContentPlayer` uses MediaPlayer — play/pause + seekbar, 250ms polling for progress
-- `AudioContentPlayerFromBytes` variant writes bytes to temp file for MediaPlayer
+- `VideoContent` uses ExoPlayer (media3) on Android, AVPlayer on iOS — 16:9, released on dispose
+- `AudioContent` decodes base64 audio and plays it via ExoPlayer on Android, AVAudioPlayer on iOS
 - **Gotcha**: Both players must release resources on dispose — use `DisposableEffect`
 
 ## Feedback: rating + reason tag + comment

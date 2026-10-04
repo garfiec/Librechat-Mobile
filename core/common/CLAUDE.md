@@ -6,7 +6,7 @@ Pure Kotlin utilities shared by all modules. This is the lowest layer -- no othe
 
 - **Result sealed class** (`result/Result.kt`): `Success<T>`, `Error(exception, message)`, `Loading`. Used by repositories and ViewModels to propagate outcomes.
 - **Dispatcher & Scope DI** (`di/CommonModule.kt`): Named Koin qualifiers (`named("io")`, `named("default")`, `named("main")`) for dispatchers and `named("applicationScope")` for coroutine scope. Always inject dispatchers -- never hardcode `Dispatchers.IO`. The sole exception is `safeApiCall` / `onApiDispatcher`, which read the platform `ioDispatcher` directly; see below for why.
-- **Extensions** (`extensions/`): `StringExt`, `DateExt`, `FlowExt` (includes `retryWithBackoff`, `throttleFirst`).
+- **Extensions** (`extensions/`): `StringExt`, `DateExt`.
 - **ConnectivityObserver**: Wraps Android `ConnectivityManager.NetworkCallback` to detect network changes. Used by SSE reconnection logic.
 
 ## safeApiCall Pattern

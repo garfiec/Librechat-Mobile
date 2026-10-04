@@ -4,11 +4,10 @@ package com.garfiec.librechat.core.network.client
  * Reads one account's **refresh token**, for the only request that needs it besides the refresh POST:
  * the cookie [ImageCookiePlugin] attaches to the server's local image mount.
  *
- * A narrow seam on purpose. The two existing ways to reach a refresh token are both wrong here:
- * [SecureTokenStorage.getRefreshToken] is active-account-only, so it would send the live account's
- * credential on a switched-away account's straggler image fetch; and widening [TokenManager] — the
- * interface every transport and half a dozen test fakes implement — to carry a second credential
- * would put it within reach of every one of them for one caller's sake.
+ * A narrow seam on purpose. An active-account read would send the live account's credential on a
+ * switched-away account's straggler image fetch, and widening [TokenManager] — the interface every
+ * transport and half a dozen test fakes implement — to carry a second credential would put it within
+ * reach of every one of them for one caller's sake.
  *
  * **Never cache what this returns.** Since upstream 0.8.8-rc2 the image middleware matches the token
  * against `session.refreshTokenHash`, which `generateRefreshToken` overwrites on every refresh, so

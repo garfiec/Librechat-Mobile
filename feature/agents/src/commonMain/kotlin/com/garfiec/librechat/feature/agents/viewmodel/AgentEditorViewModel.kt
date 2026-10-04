@@ -425,10 +425,6 @@ class AgentEditorViewModel(
         stateHandle.update { copy(instructions = instructions) }
     }
 
-    fun onModelChanged(model: String) {
-        stateHandle.update { copy(model = model) }
-    }
-
     fun onModelSelected(modelId: String, provider: String) {
         stateHandle.update { copy(model = modelId, provider = provider) }
     }
@@ -440,12 +436,6 @@ class AgentEditorViewModel(
     fun onToolToggled(toolId: String) {
         stateHandle.update {
             copy(selectedTools = if (toolId in selectedTools) selectedTools - toolId else selectedTools + toolId)
-        }
-    }
-
-    fun onToolAdded(toolId: String) {
-        stateHandle.update {
-            if (toolId in selectedTools) this else copy(selectedTools = selectedTools + toolId)
         }
     }
 
@@ -509,8 +499,6 @@ class AgentEditorViewModel(
     // --- Capability toggles ---
 
     fun onCodeInterpreterToggled(enabled: Boolean) = codeAuthDelegate.onCodeInterpreterToggled(enabled)
-
-    fun showCodeToolAuthDialog() = codeAuthDelegate.showCodeToolAuthDialog()
 
     fun dismissCodeToolAuthDialog() = codeAuthDelegate.dismissCodeToolAuthDialog()
 

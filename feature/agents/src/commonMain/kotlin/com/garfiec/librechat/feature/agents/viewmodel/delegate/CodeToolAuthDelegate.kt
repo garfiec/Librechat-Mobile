@@ -43,10 +43,6 @@ class CodeToolAuthDelegate(
         }
     }
 
-    fun showCodeToolAuthDialog() {
-        stateHandle.update { copy(showCodeAuthDialog = true) }
-    }
-
     fun dismissCodeToolAuthDialog() {
         stateHandle.update { copy(showCodeAuthDialog = false) }
     }
