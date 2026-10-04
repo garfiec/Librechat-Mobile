@@ -10,8 +10,8 @@ import org.junit.Test
  * Tests for [AccountScopedDaoRule].
  *
  * Every snippet is run through detekt-test's [lint], which compiles to PSI WITHOUT a binding
- * context — the same "no type resolution" condition the rule faces on `detektMetadataCommonMain`,
- * where the commonMain DAOs live. A rule that fires here fires on the metadata variant.
+ * context — the same "no type resolution" condition the rule faces under the plain `detekt` gate,
+ * where the commonMain DAOs are analysed. A rule that fires here fires in the gate.
  *
  * The DAO corpus below mirrors the production tenant DAOs so the positive cases stay anchored to
  * real query shapes; keep it in sync when those DAOs change.
