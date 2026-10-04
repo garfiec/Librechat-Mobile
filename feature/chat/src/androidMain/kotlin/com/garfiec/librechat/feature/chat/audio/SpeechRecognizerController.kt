@@ -66,22 +66,40 @@ class SpeechRecognizerController(private val appContext: Context) {
             fail("Speech recognition is not available on this device")
             return
         }
-        // Prefer the on-device recognizer when asked and supported (API 31+, via the shared capability
-        // seam). If the on-device model for the chosen language is missing, the recognizer errors with
-        // a language-unavailable code and we transparently fall back to the network recognizer (onError).
-        usingOnDevice = preferOnDevice && sttSupportsLiveRecognition()
+        // Prefer the on-device recognizer when asked, supported (API 31+), and configured by the ROM.
+        // isRecognitionAvailable() above only proves SOME recognizer exists; AOSP-based ROMs leave
+        // config_defaultOnDeviceSpeechRecognitionService empty, and createOnDeviceSpeechRecognizer
+        // then throws instead of returning null. If the on-device model for the chosen language is
+        // missing, the recognizer errors with a language-unavailable code and we transparently fall
+        // back to the network recognizer (onError).
+        usingOnDevice = preferOnDevice && sttSupportsLiveRecognition() &&
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            SpeechRecognizer.isOnDeviceRecognitionAvailable(appContext)
         createAndListen()
     }
 
     private fun createAndListen() {
         recognizer?.destroy()
+        recognizer = null
         // usingOnDevice is only ever set true behind sttSupportsLiveRecognition(), which IS the
         // API 31+ check — but lint can't see through the expect/actual seam, so the version test is
         // restated here to keep the createOnDeviceSpeechRecognizer call provably guarded.
-        val recognizer = if (usingOnDevice && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            SpeechRecognizer.createOnDeviceSpeechRecognizer(appContext)
-        } else {
-            SpeechRecognizer.createSpeechRecognizer(appContext)
+        val recognizer = try {
+            if (usingOnDevice && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                SpeechRecognizer.createOnDeviceSpeechRecognizer(appContext)
+            } else {
+                SpeechRecognizer.createSpeechRecognizer(appContext)
+            }
+        } catch (e: Exception) {
+            // Every caller (first tap, delayed restart, reuse-restart's catch) runs on the main
+            // thread with nothing above it, so a factory throw would crash the app.
+            log.w(e) { "recognizer creation failed (onDevice=$usingOnDevice)" }
+            if (usingOnDevice && !triedNetworkFallback) {
+                fallBackToNetwork(::createAndListen)
+            } else {
+                fail("Speech recognition is not available on this device")
+            }
+            return
         }
         recognizer.setRecognitionListener(listener)
         this.recognizer = recognizer
