@@ -29,6 +29,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -81,8 +82,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 // LambdaParameterEventTrailing: actual, so the defaults live on the expect, which the rule can't see.
-// LambdaParameterInRestartableEffect: rememberUpdatedState would change which callback a running effect calls.
-@Suppress("LambdaParameterEventTrailing", "LambdaParameterInRestartableEffect")
+@Suppress("LambdaParameterEventTrailing")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 actual fun ChatScreen(
@@ -134,13 +134,15 @@ actual fun ChatScreen(
     // Navigate when a new conversation is created from landing page.
     // Navigate first, then reset — matches Android order so the new
     // ViewModel can resume the active stream before the old one cancels it.
+    val currentOnConversationStart by rememberUpdatedState(onConversationStart)
     if (onConversationStart != null) {
         LaunchedEffect(uiState.pendingNavigationConversationId) {
             val navId = uiState.pendingNavigationConversationId
-            if (navId != null) {
+            val onStart = currentOnConversationStart
+            if (navId != null && onStart != null) {
                 // Carry temp-ness onto the Chat(id) route so the new VM stays temp-aware and
                 // never persists the server-hidden conversation to Room.
-                onConversationStart(navId, uiState.isTemporaryChat)
+                onStart(navId, uiState.isTemporaryChat)
                 viewModel.onPendingNavigationHandled()
             }
         }

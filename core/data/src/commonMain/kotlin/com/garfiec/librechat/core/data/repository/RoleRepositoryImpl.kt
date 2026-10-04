@@ -5,13 +5,13 @@ import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.common.result.Result
-import com.garfiec.librechat.core.common.result.onApiDispatcher
+import com.garfiec.librechat.core.common.result.apiCallCatching
 import com.garfiec.librechat.core.common.result.safeApiCall
+import com.garfiec.librechat.core.common.result.toSafeError
 import com.garfiec.librechat.core.data.datastore.RoleCacheDataStore
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.core.model.request.UpdateRoleSkillsRequest
 import com.garfiec.librechat.core.network.api.RolesApi
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -54,7 +54,6 @@ class RoleRepositoryImpl(
         }
     }
 
-    @Suppress("TooGenericExceptionCaught") // any failure falls back to the cached role
     override suspend fun fetchUserRole(): Result<UserRolePermissions> {
         // The account this fetch is for. Captured before the first suspension: a switch while it is
         // in flight must not let the outgoing account's role gate the incoming one — nor land in the
@@ -67,27 +66,23 @@ class RoleRepositoryImpl(
             is Result.Loading -> return Result.Error(message = "User load still in progress")
         }
 
-        return try {
-            // Not safeApiCall: the catch below falls back to the cached role rather than mapping
-            // the failure. The hop is still needed (#326).
-            val role = onApiDispatcher { rolesApi.getRole(user.role) }
+        // Not safeApiCall: a failure falls back to the cached role rather than mapping to an error.
+        return apiCallCatching({
+            val role = rolesApi.getRole(user.role)
             if (activeAccountProvider.currentAccountId() != origin) {
                 Logger.w { "fetchUserRole: account changed while in flight, dropping the result" }
-                return Result.Error(message = "Account changed while the role was loading")
+                return@apiCallCatching Result.Error(message = "Account changed while the role was loading")
             }
             _userPermissions.value = role
             cacheDataStore.save(role)
             Result.Success(role)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
+        }) { e ->
             val cached = _userPermissions.value
             if (cached != null) {
                 Logger.w(e) { "fetchUserRole failed, keeping cached role '${cached.name}'" }
                 Result.Success(cached)
             } else {
-                Logger.w(e) { "fetchUserRole failed with no cached value" }
-                Result.Error(e, e.message ?: "Failed to load role permissions")
+                e.toSafeError()
             }
         }
     }

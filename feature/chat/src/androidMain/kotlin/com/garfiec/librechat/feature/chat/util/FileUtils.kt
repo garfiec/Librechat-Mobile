@@ -178,7 +178,6 @@ internal fun computeInSampleSize(srcWidth: Int, srcHeight: Int, maxDimension: In
  * Returns null only when the bytes cannot be decoded as an image at all (caller should upload the
  * raw bytes, e.g. for a non-image file or a format BitmapFactory can't read).
  */
-@Suppress("TooGenericExceptionCaught") // any decode failure falls back to the original bytes
 internal fun processImageForUpload(
     bytes: ByteArray,
     mimeType: String,
@@ -205,7 +204,9 @@ internal fun processImageForUpload(
                 encodeToPngUnderLimit(bytes, mimeType, srcWidth, srcHeight, initialSampleSize, maxEncodedBytes)
             }
         }
-    } catch (e: Exception) {
+    } catch (e: IllegalArgumentException) {
+        // BitmapFactory and Bitmap.compress reject what they can't handle with this; bytes that
+        // simply aren't an image come back as a null bitmap instead, handled above.
         Logger.w(e) { "processImageForUpload: failed to process $mimeType, using original bytes" }
         null
     }

@@ -6,7 +6,7 @@ import com.garfiec.librechat.core.common.FeatureSupport
 import com.garfiec.librechat.core.common.di.ioDispatcher
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
-import com.garfiec.librechat.core.common.result.onApiDispatcher
+import com.garfiec.librechat.core.common.result.apiCallCatching
 import com.garfiec.librechat.core.common.result.safeApiCall
 import com.garfiec.librechat.core.data.pdf.PDF_DECRYPTION_UNAVAILABLE_MESSAGE
 import com.garfiec.librechat.core.data.pdf.PDF_INCORRECT_PASSWORD_MESSAGE
@@ -26,7 +26,6 @@ import com.garfiec.librechat.core.model.response.FileUploadConfig
 import com.garfiec.librechat.core.network.api.FILES_USAGE_MAX_IDS
 import com.garfiec.librechat.core.network.api.FilesApi
 import com.garfiec.librechat.core.network.api.FilesExtApi
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlin.concurrent.Volatile
@@ -227,20 +226,16 @@ class FileRepositoryImpl(
      * URL attempt's failures are swallowed (they're expected on non-CDN servers).
      */
     override suspend fun downloadFile(userId: String, fileId: String): Result<ByteArray> {
-        try {
-            // onApiDispatcher, not safeApiCall: safeApiCall would log every one of these expected
-            // failures at error level. The dispatcher hop is still required (#326).
-            return onApiDispatcher {
-                val urlResponse = filesApi.getDownloadUrl(userId, fileId)
-                Result.Success(filesApi.downloadFromUrl(urlResponse.url))
-            }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (_: Exception) {
+        // Not safeApiCall: it would log every one of these expected failures at error level.
+        val direct = apiCallCatching<Result<ByteArray>?>({
+            val urlResponse = filesApi.getDownloadUrl(userId, fileId)
+            Result.Success(filesApi.downloadFromUrl(urlResponse.url))
+        }) {
             // Expected on local-storage / OpenAI-storage / non-CDN servers, or a
             // transient CDN failure — fall through to the server-proxy download.
+            null
         }
-        return safeApiCall { filesApi.downloadFile(userId, fileId) }
+        return direct ?: safeApiCall { filesApi.downloadFile(userId, fileId) }
     }
 
     override suspend fun getAgentFiles(agentId: String): Result<List<FileObject>> =

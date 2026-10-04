@@ -13,82 +13,52 @@ package com.garfiec.librechat.core.common.media
  *
  * @return the detected MIME type, or `null` if the bytes match no recognized image signature.
  */
-// debt — ComplexCondition: one compound magic-byte check per format
-// debt — CyclomaticComplexMethod: complexity 54
-// debt — ReturnCount: 10 returns
-@Suppress("ComplexCondition", "CyclomaticComplexMethod", "ReturnCount")
-fun detectImageMimeType(bytes: ByteArray): String? {
-    if (bytes.size < 12) return null
+fun detectImageMimeType(bytes: ByteArray): String? =
+    if (bytes.size < MIN_SIGNATURE_BYTES) null else SIGNATURES.firstOrNull { it.matches(bytes) }?.mimeTypeOf(bytes)
 
-    // JPEG: FF D8 FF
-    if (bytes[0] == 0xFF.toByte() && bytes[1] == 0xD8.toByte() && bytes[2] == 0xFF.toByte()) {
-        return "image/jpeg"
-    }
+/** Every signature below reads within the first 12 bytes. */
+private const val MIN_SIGNATURE_BYTES = 12
 
-    // PNG: 89 50 4E 47 0D 0A 1A 0A
-    if (bytes[0] == 0x89.toByte() && bytes[1] == 0x50.toByte() &&
-        bytes[2] == 0x4E.toByte() && bytes[3] == 0x47.toByte() &&
-        bytes[4] == 0x0D.toByte() && bytes[5] == 0x0A.toByte() &&
-        bytes[6] == 0x1A.toByte() && bytes[7] == 0x0A.toByte()
-    ) {
-        return "image/png"
-    }
+private class Magic(val offset: Int, val bytes: ByteArray) {
+    fun matches(data: ByteArray): Boolean = bytes.indices.all { data[offset + it] == bytes[it] }
+}
 
-    // GIF: "GIF87a" or "GIF89a"
-    if (bytes[0] == 0x47.toByte() && bytes[1] == 0x49.toByte() &&
-        bytes[2] == 0x46.toByte() && bytes[3] == 0x38.toByte() &&
-        (bytes[4] == 0x37.toByte() || bytes[4] == 0x39.toByte()) &&
-        bytes[5] == 0x61.toByte()
-    ) {
-        return "image/gif"
-    }
+private class Signature(val magics: List<Magic>, val mimeTypeOf: (ByteArray) -> String?) {
+    fun matches(data: ByteArray): Boolean = magics.all { it.matches(data) }
+}
 
-    // WebP: "RIFF" at offset 0 and "WEBP" at offset 8
-    if (bytes[0] == 0x52.toByte() && bytes[1] == 0x49.toByte() &&
-        bytes[2] == 0x46.toByte() && bytes[3] == 0x46.toByte() &&
-        bytes[8] == 0x57.toByte() && bytes[9] == 0x45.toByte() &&
-        bytes[10] == 0x42.toByte() && bytes[11] == 0x50.toByte()
-    ) {
-        return "image/webp"
-    }
+private fun at(offset: Int, vararg bytes: Int) = Magic(offset, ByteArray(bytes.size) { bytes[it].toByte() })
 
-    // BMP: "BM"
-    if (bytes[0] == 0x42.toByte() && bytes[1] == 0x4D.toByte()) {
-        return "image/bmp"
-    }
+private fun at(offset: Int, ascii: String) = Magic(offset, ascii.encodeToByteArray())
 
-    // TIFF: "II" (little-endian) or "MM" (big-endian) followed by 42
-    if ((bytes[0] == 0x49.toByte() && bytes[1] == 0x49.toByte() &&
-            bytes[2] == 0x2A.toByte() && bytes[3] == 0x00.toByte()) ||
-        (bytes[0] == 0x4D.toByte() && bytes[1] == 0x4D.toByte() &&
-            bytes[2] == 0x00.toByte() && bytes[3] == 0x2A.toByte())
-    ) {
-        return "image/tiff"
-    }
+private fun format(mimeType: String, vararg magics: Magic) = Signature(magics.toList()) { mimeType }
 
-    // HEIF/HEIC and AVIF: ftyp box at offset 4, brand at offset 8
-    if (bytes[4] == 0x66.toByte() && bytes[5] == 0x74.toByte() &&
-        bytes[6] == 0x79.toByte() && bytes[7] == 0x70.toByte()
-    ) {
-        val brand = bytes.copyOfRange(8, 12).decodeToString()
-        return when {
-            brand.startsWith("heic") || brand.startsWith("heix") ||
-                brand.startsWith("heim") || brand.startsWith("heis") ||
-                brand.startsWith("mif1") -> "image/heic"
-            brand.startsWith("avif") || brand.startsWith("avis") -> "image/avif"
+private val HEIC_BRANDS = setOf("heic", "heix", "heim", "heis", "mif1")
+private val AVIF_BRANDS = setOf("avif", "avis")
+
+/**
+ * First match wins, so order matters: an ISO-BMFF `ftyp` box is claimed before ICO, and one with
+ * a brand that is not an image (MP4, QuickTime) is `null` rather than falling through — a box of
+ * exactly 256 bytes begins `00 00 01 00`, which is ICO's signature.
+ */
+private val SIGNATURES = listOf(
+    format("image/jpeg", at(0, 0xFF, 0xD8, 0xFF)),
+    format("image/png", at(0, 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)),
+    format("image/gif", at(0, "GIF87a")),
+    format("image/gif", at(0, "GIF89a")),
+    format("image/webp", at(0, "RIFF"), at(8, "WEBP")),
+    format("image/bmp", at(0, "BM")),
+    format("image/tiff", at(0, 0x49, 0x49, 0x2A, 0x00)), // "II", little-endian 42
+    format("image/tiff", at(0, 0x4D, 0x4D, 0x00, 0x2A)), // "MM", big-endian 42
+    Signature(listOf(at(4, "ftyp"))) { bytes ->
+        when (bytes.copyOfRange(8, 12).decodeToString()) {
+            in HEIC_BRANDS -> "image/heic"
+            in AVIF_BRANDS -> "image/avif"
             else -> null
         }
-    }
-
-    // ICO: 00 00 01 00
-    if (bytes[0] == 0x00.toByte() && bytes[1] == 0x00.toByte() &&
-        bytes[2] == 0x01.toByte() && bytes[3] == 0x00.toByte()
-    ) {
-        return "image/x-icon"
-    }
-
-    return null
-}
+    },
+    format("image/x-icon", at(0, 0x00, 0x00, 0x01, 0x00)),
+)
 
 /**
  * The canonical file extension (no leading dot) for an image MIME type, or `null` if unknown.
