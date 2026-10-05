@@ -56,7 +56,6 @@ class StreamingManagerDelegate(
     private val buffer = StreamTextBuffer(handle)
     private var wasStreaming = false
 
-    /** Armed by a network-error end; re-attaches (or reloads) once connectivity returns. */
     private val networkRecovery = NetworkRecoveryTrigger(connectivityObserver, handle.scope, ::attemptNetworkRecovery)
 
     /**
@@ -392,9 +391,6 @@ class StreamingManagerDelegate(
                 }
             }
             is StreamEvent.Sync -> {
-                // Resume snapshot: `aggregatedContent` is the authoritative state of the
-                // response so far, so the text buffers and the tool-call list are REPLACED
-                // from it rather than appended to.
                 networkRecovery.disarm()
                 buffer.replaceFrom(event.aggregatedContent)
                 liveReply.apply(event)

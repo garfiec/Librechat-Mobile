@@ -79,7 +79,6 @@ internal class StreamTextBuffer(private val handle: StreamingHandle) {
         flush()
     }
 
-    /** Writes the buffers to UI state if they changed since the last flush. */
     fun flush() {
         if (!dirty) return
         dirty = false

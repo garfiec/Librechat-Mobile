@@ -28,8 +28,7 @@ interface StreamingHost {
      * Un-sends a turn the server never persisted: removes its optimistic user message
      * ([optimisticId]) and puts that message's text and quotes back into the composer. Null when
      * the turn re-submitted a persisted message, which must never be removed — the live reply is
-     * still cleared. Lives on the ViewModel because streaming writes are scoped away from the
-     * composer slice.
+     * still cleared.
      */
     fun unsendTurn(optimisticId: String?)
 }
