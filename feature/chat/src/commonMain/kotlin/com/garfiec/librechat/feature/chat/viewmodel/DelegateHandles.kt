@@ -340,6 +340,32 @@ class ChatConfigHandle(root: ChatStateHandle) : DelegateHandle(root) {
         root.update { ChatConfigWrites(this).apply(block).applyTo(this) }
 }
 
+// ── ConversationLoadDelegate ──────────────────────────────────────────────
+// Owns the message slice wholesale (every Room emission rebuilds messages/displayMessages and
+// the load flags live there too). On the composer it may only put text and quote chips back,
+// and on the conversation slice only the title: identity, temp-chat and navigation stay with
+// the ViewModel's open/reset transactions.
+class ConversationLoadWrites internal constructor(state: ChatUiState) {
+    var content: MessagesState = state.content
+    var inputText: String = state.composer.inputText
+    var pendingQuotes: List<String> = state.composer.pendingQuotes
+    var conversationTitle: String? = state.conversation.conversationTitle
+    var error: String? = state.error
+    internal fun applyTo(s: ChatUiState) = s.copy(
+        content = content,
+        composer = s.composer.copy(inputText = inputText, pendingQuotes = pendingQuotes),
+        conversation = s.conversation.copy(conversationTitle = conversationTitle),
+        error = error,
+    )
+}
+
+class ConversationLoadHandle(root: ChatStateHandle) : DelegateHandle(root) {
+    /** Read-only observation of the full state (the active-branch `combine` input). */
+    val stateFlow: StateFlow<ChatUiState> get() = root.stateFlow
+    fun update(block: ConversationLoadWrites.() -> Unit) =
+        root.update { ConversationLoadWrites(this).apply(block).applyTo(this) }
+}
+
 // ── Platform voice input (VoiceInputDelegate / IosVoiceInput) ─────────────
 class VoiceWrites internal constructor(state: ChatUiState) {
     var voice: VoiceState = state.voice

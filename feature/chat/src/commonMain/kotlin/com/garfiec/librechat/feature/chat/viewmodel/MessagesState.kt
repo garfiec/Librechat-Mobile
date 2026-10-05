@@ -19,8 +19,8 @@ enum class ChatScreenState { LANDING, LOADING, ACTIVE }
  * attachments, retry/refresh flags, context/token usage). All five audited atomic transactions
  * (completion flash, begin-stream, reset, applyComposer, branch switch) live within this one
  * slice so they stay single StateFlow emissions. Written by [ChatViewModel],
- * StreamingManagerDelegate, MessageTreeDelegate, MessageEditingDelegate, ComparisonModeDelegate
- * and OfficePreviewDelegate.
+ * ConversationLoadDelegate (every Room emission), StreamingManagerDelegate, MessageTreeDelegate,
+ * MessageEditingDelegate, ComparisonModeDelegate and OfficePreviewDelegate.
  */
 @Immutable
 data class MessagesState(

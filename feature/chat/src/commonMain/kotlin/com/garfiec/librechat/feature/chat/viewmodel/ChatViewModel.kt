@@ -10,7 +10,6 @@ import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.common.network.ConnectivityObserver
 import com.garfiec.librechat.core.common.result.Result
-import com.garfiec.librechat.core.common.result.getOrNull
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
@@ -36,7 +35,6 @@ import com.garfiec.librechat.core.data.repository.TraceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.logging.Diag
-import com.garfiec.librechat.core.logging.LogOrigin
 import com.garfiec.librechat.core.model.FileReference
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.MinimalFeedback
@@ -61,19 +59,17 @@ import com.garfiec.librechat.feature.chat.components.PausePanelAutoAdvance
 import com.garfiec.librechat.feature.chat.model.PresetDisplayData
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
-import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.util.NEW_CHAT_DRAFT_KEY
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import com.garfiec.librechat.feature.chat.util.extractBranchMedia
-import com.garfiec.librechat.feature.chat.util.hasParallelParts
 import com.garfiec.librechat.feature.chat.util.isImageType
 import com.garfiec.librechat.feature.chat.util.serializeMessageForClipboard
-import com.garfiec.librechat.feature.chat.util.stabilizeMessageInstances
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ChatConfigDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ComparisonModeDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ContextProjectionDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ConversationActionsDelegate
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.ConversationLoadDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.EndpointKeyStatusDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.FavoritesDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.InConversationSearchDelegate
@@ -97,7 +93,6 @@ import com.garfiec.librechat.feature.chat.viewmodel.delegate.SubagentTraceDelega
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.UploadIntakeDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.toFileReference
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -108,7 +103,6 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
@@ -121,7 +115,7 @@ import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-// debt — LargeClass: 2476-line file
+// debt — LargeClass: 2189-line file
 @Suppress("TooManyFunctions", "LongParameterList", "LargeClass")
 class ChatViewModel(
     initialConversationId: String? = null,
@@ -160,7 +154,7 @@ class ChatViewModel(
     private val settingsDataStore: SettingsDataStore,
     platformDelegateFactory: PlatformDelegateFactory,
     private val json: Json,
-    private val defaultDispatcher: CoroutineDispatcher,
+    defaultDispatcher: CoroutineDispatcher,
     private val selectionHandoff: NewChatSelectionHandoff,
     private val serverFileSelectionHandoff: ServerFileSelectionHandoff,
     private val promptInsertionHandoff: PromptInsertionHandoff,
@@ -196,10 +190,12 @@ class ChatViewModel(
     // --- Delegates (each gets a narrowed handle that can write only its own slices) ---
     private val requestBuilder = ChatRequestBuilder { _uiState.value }
     private val treeDelegate = MessageTreeDelegate(MessageTreeHandle(stateHandle))
-    private val comparisonDelegate = ComparisonModeDelegate(
+
+    // Explicitly typed: inference cannot close the loop through conversationLoadDelegate.
+    private val comparisonDelegate: ComparisonModeDelegate = ComparisonModeDelegate(
         handle = ComparisonHandle(stateHandle),
         messageRepository = messageRepository,
-        reloadConversation = ::loadConversation,
+        reloadConversation = { id -> conversationLoadDelegate.loadConversation(id) },
     )
     private val contextProjectionDelegate = ContextProjectionDelegate(
         ContextProjectionHandle(stateHandle),
@@ -239,7 +235,7 @@ class ChatViewModel(
         treeDelegate = treeDelegate,
         tts = ttsDelegate,
         selectionHandoff = selectionHandoff,
-        reloadConversation = ::loadConversation,
+        reloadConversation = { id -> conversationLoadDelegate.loadConversation(id) },
     )
 
     // Channel-backed one-shot signal: N queued follow-ups were dropped on drain because they were
@@ -427,7 +423,19 @@ class ChatViewModel(
     private val _userKeyErrors = Channel<UserKeyError>(Channel.BUFFERED)
     val userKeyErrors: Flow<UserKeyError> = _userKeyErrors.receiveAsFlow()
 
-    private var roomObserverJob: Job? = null
+    private val conversationLoadDelegate = ConversationLoadDelegate(
+        handle = ConversationLoadHandle(stateHandle),
+        messageRepository = messageRepository,
+        conversationRepository = conversationRepository,
+        draftRepository = draftRepository,
+        defaultDispatcher = defaultDispatcher,
+        applyConversationModel = modelDelegate::applyConversationModel,
+        onModelLoadSettled = {
+            modelDelegate.conversationModelLoaded = true
+            modelDelegate.refilterModels(isNewConversation)
+        },
+        rehydrateComparison = comparisonDelegate::rehydrateFromMessage,
+    )
 
     private val uploadIntakeDelegate = UploadIntakeDelegate(
         handle = UploadIntakeHandle(stateHandle),
@@ -454,7 +462,7 @@ class ChatViewModel(
         fingerprintRejectedMessage = {
             "This paused response was started with a different setup, so it can't be answered here."
         },
-        restoreAnswer = { text -> restoreUnsentInput(text) },
+        restoreAnswer = { text -> conversationLoadDelegate.restoreUnsentInput(text) },
         resumePinStore = resumePinStore,
     )
 
@@ -496,13 +504,16 @@ class ChatViewModel(
             override fun emitUserKeyError(error: UserKeyError) {
                 _userKeyErrors.trySend(error)
             }
-            override fun reloadConversation(conversationId: String) = loadConversation(conversationId)
+            override fun reloadConversation(conversationId: String) =
+                conversationLoadDelegate.loadConversation(conversationId)
             override fun reloadRestoringUnsaved(conversationId: String, unsent: Message) =
-                loadConversation(conversationId, unsavedTurn = unsent)
+                conversationLoadDelegate.loadConversation(conversationId, unsavedTurn = unsent)
             override fun unsendTurn(optimisticId: String?) {
                 val unsent = optimisticId?.let { id -> _uiState.value.messages.firstOrNull { it.messageId == id } }
                 treeDelegate.unsendOptimisticTurn(optimisticId)
-                unsent?.text?.takeIf { it.isNotBlank() }?.let { restoreUnsentInput(it, unsent.quotes.orEmpty()) }
+                unsent?.text?.takeIf { it.isNotBlank() }?.let {
+                    conversationLoadDelegate.restoreUnsentInput(it, unsent.quotes.orEmpty())
+                }
             }
         },
     )
@@ -607,9 +618,9 @@ class ChatViewModel(
                     )
                 }
             }
-            loadConversation(conversationId, cacheFirst = true)
-            loadConversationModel(conversationId)
-            restoreDraft(conversationId)
+            conversationLoadDelegate.loadConversation(conversationId, cacheFirst = true)
+            conversationLoadDelegate.loadConversationModel(conversationId)
+            conversationLoadDelegate.restoreDraft(conversationId)
             // Check if there's an active stream for this conversation (e.g. when
             // navigating here from NewChat immediately after sending). If so,
             // resume it so the user sees streaming content on this screen.
@@ -619,7 +630,7 @@ class ChatViewModel(
             // For new chats, mark conversationModelLoaded so refilterModels
             // doesn't wait for a conversation model that will never arrive.
             modelDelegate.conversationModelLoaded = true
-            restoreDraft(NEW_CHAT_DRAFT_KEY)
+            conversationLoadDelegate.restoreDraft(NEW_CHAT_DRAFT_KEY)
         }
 
         // Content shared in from another app, addressed to this chat by the navigation layer.
@@ -822,289 +833,6 @@ class ChatViewModel(
     }
 
     // ── Core chat flow ──────────────────────────────────────────────
-
-    /**
-     * Fetches the conversation's messages and records the outcome.
-     *
-     * `getMessages` is `safeApiCall`-wrapped: it reports failure by RETURNING [Result.Error] and
-     * lets only `CancellationException` propagate, so the result must be consumed — a `try/catch`
-     * around it can never see a network failure. An `Error` also means the cache was empty: the
-     * repository falls back to cached rows and returns those as `Success`.
-     */
-    private suspend fun revalidateMessages(conversationId: String) {
-        when (val result = messageRepository.getMessages(conversationId)) {
-            is Result.Error -> {
-                Logger.e(result.exception) { "Failed to fetch messages for $conversationId" }
-                _uiState.update {
-                    // Only report when the failure actually leaves the screen empty. A revalidate
-                    // that fails over cached rows is the ordinary offline case, and a handed-off
-                    // new chat streams with just its seeded user message while the server persists
-                    // the request only on completion — this fetch is *expected* to fail there.
-                    if (it.isStreaming || it.displayMessages.isNotEmpty()) {
-                        it
-                    } else {
-                        it.copy(
-                            // App-authored copy only — Ktor builds exception messages out of
-                            // the request URL, so result.message can leak an access gateway's
-                            // redirect JWT on screen (#287).
-                            error = "Could not load messages",
-                            content = it.content.copy(
-                                screenState = ChatScreenState.ACTIVE,
-                                messagesLoadFailed = true,
-                            ),
-                        )
-                    }
-                }
-            }
-            else -> _uiState.update {
-                it.copy(content = it.content.copy(messagesLoadFailed = false))
-            }
-        }
-    }
-
-    /**
-     * Subscribes the Room read-through for [conversationId] and revalidates it from the server.
-     *
-     * [cacheFirst] picks the ordering. `false` (the default) awaits the fetch before subscribing,
-     * so the first emission is the authoritative one. Every other caller reloads precisely because
-     * the server holds something the cache does not — a just-finalized turn, a just-created branch,
-     * a stream that ended server-side, or an explicit refresh — so a cache emission there serves a
-     * snapshot that predates the thing being fetched. After a Final that is also the completion
-     * flash: the finalized turn is in memory and Room stays stale until `cacheMessages` lands, so
-     * painting the cache would re-render the pre-Final tree. `true` subscribes first and revalidates
-     * in the background; `init` is the only opt-in (#300).
-     *
-     * [unsavedTurn] is a failed turn's optimistic user message whose persistence is unknown: once
-     * the fetch settles, its text goes back into the composer if the server kept no copy of it.
-     */
-    private fun loadConversation(
-        conversationId: String,
-        cacheFirst: Boolean = false,
-        unsavedTurn: Message? = null,
-    ) {
-        // SECURITY: do not remove — temp-chat data-at-rest guard.
-        // Defense-in-depth for temporary chats: never route a temp conversation
-        // through the Room read-through, which would upsert its message rows to disk (the
-        // convo is hidden from history but the text would persist). The temp chat's
-        // display is finalized in memory by finalizeChatDisplay; any stray
-        // loadConversation call (safety-net, error/abort paths) must not touch the DB.
-        if (_uiState.value.isTemporaryChat) return
-        // Cancel any previous Room observer to avoid duplicate collectors
-        roomObserverJob?.cancel()
-        // Latch so comparison auto-rehydration runs at most once per load — on the first
-        // non-empty emission (the authoritative tail) — so a later Room re-emit can't
-        // re-enable comparison after the user has toggled it off for the session.
-        var autoRehydrateHandled = false
-        var pendingUnsavedTurn = unsavedTurn
-        roomObserverJob = viewModelScope.launch {
-            // A flow, not a plain flag: it is a `combine` input below, so settling re-runs the
-            // transform even when Room never emits again — a conversation with genuinely zero
-            // messages upserts nothing, and an empty cache offline emits `[]` once. Read as a
-            // flag inside `collect`, both spin forever.
-            val revalidated = MutableStateFlow(false)
-            if (cacheFirst) {
-                // A child of roomObserverJob, so re-entering loadConversation cancels it with the
-                // observer.
-                launch {
-                    _uiState.update { it.copy(content = it.content.copy(isRefreshingMessages = true)) }
-                    try {
-                        revalidateMessages(conversationId)
-                    } finally {
-                        _uiState.update { it.copy(content = it.content.copy(isRefreshingMessages = false)) }
-                    }
-                    revalidated.value = true
-                }
-            } else {
-                revalidateMessages(conversationId)
-                revalidated.value = true
-            }
-            // buildActiveMessagePath is pure/synchronous CPU work; computing it on the Default
-            // dispatcher keeps the tree walk off Main. Combining the active-branch selection in
-            // (rather than peeking _uiState.value inside the map) keeps the branch snapshot
-            // consistent with the emission — no torn read — and means switchBranch only has to
-            // mutate activeBranches: the heavy recompute happens here off Main, not on the click
-            // thread. The result feeds a StateFlow (not a Compose snapshot), so it's safe off-Main.
-            combine(
-                messageRepository.observeMessages(conversationId),
-                _uiState.map { it.activeBranches }.distinctUntilChanged(),
-                revalidated,
-            ) { messages, branches, settled ->
-                // Reuse on-screen Message instances that changed only in volatile fields, so
-                // the rebuilt path stays value-equal and the cosmetic Room reconcile conflates
-                // instead of re-rendering the list (see [stabilizeMessageInstances]). The
-                // baseline is read straight from _uiState.value, not a combine input: the
-                // completion path writes finalized messages into _uiState *outside* this flow
-                // (finalizeChatDisplay) and happens-before the cacheMessages write that
-                // triggers this emission, so _uiState.value reflects the true on-screen state.
-                val baseline = _uiState.value
-                val stabilized = stabilizeMessageInstances(messages, baseline.messages)
-                // A handed-off new chat seeds the just-sent user message (pendingResumeUserMessage):
-                // the server persists the request only when the reply completes, so the Room read is
-                // empty mid-stream and the user's message would otherwise vanish for the whole stream.
-                // Keep that seed appended until the server's own copy arrives, then drop it. The copy
-                // is matched by content as well as id (isServerCopyOf): rc3+ re-mints the id, so an
-                // id-only match never fires, and a run ending with no Final (a resume that 404s) would
-                // leave the seed as a newer root sibling that hides the persisted turn. finalizeChatDisplay
-                // also clears the seed at Final. Done here, off Main, so the path build stays on the
-                // Default dispatcher. The takeIf guarantees no copy of the seed is in stabilized, so
-                // this is a plain append — no by-id reconcile needed.
-                val pending = baseline.pendingResumeUserMessage
-                val retainedPending = pending?.takeIf { seed ->
-                    stabilized.none { it.messageId == seed.messageId || it.isServerCopyOf(seed) }
-                }
-                val merged = retainedPending?.let { stabilized + it } ?: stabilized
-                MessagePathEmission(
-                    messages = merged,
-                    displayMessages = buildActiveMessagePath(merged, branches),
-                    retainedPending = retainedPending,
-                    revalidated = settled,
-                )
-            }
-                .flowOn(defaultDispatcher)
-                .collect { emission ->
-                    val displayMessages = emission.displayMessages
-                    val settled = emission.revalidated
-                    _uiState.update {
-                        it.copy(
-                            content = it.content.copy(
-                                messages = emission.messages,
-                                displayMessages = displayMessages,
-                                // Cached rows go straight to ACTIVE; an empty cache keeps
-                                // spinning, so an uncached online open never flashes a blank
-                                // thread first. Settling releases it either way.
-                                screenState = if (displayMessages.isNotEmpty() || settled) {
-                                    ChatScreenState.ACTIVE
-                                } else {
-                                    it.content.screenState
-                                },
-                                // Null once the server's copy arrives (or there was never a seed) →
-                                // a later server-side delete can then still remove the row.
-                                pendingResumeUserMessage = emission.retainedPending,
-                            ),
-                        )
-                    }
-                    // Judged on the settled read only: a cached emission predates the failed turn
-                    // and would always look like the server dropped it. A fetch that failed also
-                    // settles, and then restores — duplicating text the server did keep is the
-                    // recoverable mistake; losing text it did not keep is not.
-                    pendingUnsavedTurn?.takeIf { settled }?.let { unsent ->
-                        pendingUnsavedTurn = null
-                        val kept = emission.messages.any {
-                            it.messageId == unsent.messageId || it.isServerCopyOf(unsent)
-                        }
-                        if (!kept && unsent.text.isNotBlank()) {
-                            restoreUnsentInput(unsent.text, unsent.quotes.orEmpty())
-                        }
-                    }
-                    // Restore comparison mode when reopening a Compare Models conversation: the
-                    // last assistant message carries both agents' attributed parts but nothing
-                    // else records it was a comparison. Only when not streaming and not already
-                    // comparing (respects a session toggle-off); the branched-away case has a
-                    // single-agent tail, so it naturally shows the normal view.
-                    // Gated on `settled` so the latch burns on the AUTHORITATIVE tail, not a stale
-                    // cached one: a comparison tail that exists only server-side would otherwise
-                    // never rehydrate.
-                    if (!autoRehydrateHandled && settled && displayMessages.isNotEmpty()) {
-                        autoRehydrateHandled = true
-                        val state = _uiState.value
-                        val tail = displayMessages.lastOrNull()?.message
-                        if (!state.isStreaming && !state.comparisonState.isEnabled &&
-                            tail != null && hasParallelParts(tail)
-                        ) {
-                            comparisonDelegate.rehydrateFromMessage(tail)
-                        }
-                    }
-                }
-        }
-    }
-
-    /**
-     * Restores a previously saved draft for the given key (conversation ID or [NEW_CHAT_DRAFT_KEY]).
-     */
-    /**
-     * Puts an early-aborted turn's text back into the composer (the un-send flow: the Stop
-     * landed before the server persisted anything, so the optimistic bubble was removed).
-     * Yields to anything the user has since typed — same rule as [restoreDraft] — and persists
-     * as a draft so the restored text survives process death, same as [onInputChanged].
-     */
-    private fun restoreUnsentInput(text: String, quotes: List<String> = emptyList()) {
-        _uiState.update {
-            if (it.inputText.isBlank()) {
-                it.copy(
-                    composer = it.composer.copy(
-                        inputText = text,
-                        // The chips were taken (and cleared) when the spec was minted, so an
-                        // un-send has to put them back or the retry silently loses the excerpts.
-                        // Anything staged since wins — same yield-to-the-user rule as the text.
-                        pendingQuotes = it.composer.pendingQuotes.ifEmpty { quotes },
-                    ),
-                )
-            } else {
-                it
-            }
-        }
-        if (_uiState.value.inputText != text) return
-        val draftKey = _uiState.value.conversationId ?: NEW_CHAT_DRAFT_KEY
-        viewModelScope.launch {
-            draftRepository.saveDraft(draftKey, text)
-        }
-    }
-
-    private fun restoreDraft(draftKey: String) {
-        viewModelScope.launch {
-            // awaitDraft (not getDraft) so a first launch that opens the chat screen while identity is
-            // still warming — e.g. straight after a cold start or the pre-tenancy DB migration — waits
-            // for the account to resolve instead of reading null and leaving a saved draft hidden until
-            // the next launch. The blank-check below still yields to anything the user has since typed.
-            val draft = draftRepository.awaitDraft(draftKey)
-            if (!draft.isNullOrBlank()) {
-                _uiState.update {
-                    if (it.inputText.isBlank()) it.copy(composer = it.composer.copy(inputText = draft)) else it
-                }
-            }
-        }
-    }
-
-    private fun loadConversationModel(conversationId: String) {
-        // SECURITY: do not remove — temp-chat data-at-rest guard. getConversation below
-        // round-trips through refreshConversation, which upserts the conversation row to Room.
-        // Temp chats must never persist, and their model/endpoint was already seeded from the
-        // NewChatSelectionHandoff in init — so there is nothing to load and nothing to write.
-        if (_uiState.value.isTemporaryChat) {
-            modelDelegate.conversationModelLoaded = true
-            modelDelegate.refilterModels(isNewConversation)
-            return
-        }
-        viewModelScope.launch {
-            val result = conversationRepository.getConversation(conversationId, originAccount = null)
-            val conversation = result.getOrNull()
-            if (conversation != null) {
-                _uiState.update { it.copy(conversation = it.conversation.copy(conversationTitle = conversation.title)) }
-                val applied = modelDelegate.applyConversationModel(conversation)
-                Diag.d(
-                    tag = "ModelSel",
-                    attrs = mapOf(
-                        "found" to "true",
-                        "applied" to applied.toString(),
-                        "endpoint" to (conversation.endpoint ?: "null"),
-                    ),
-                ) { "loadConversationModel resolved for $conversationId" }
-            } else {
-                // The just-created conversation isn't readable yet: the server emits the
-                // `created` SSE event before the unawaited save persists it, so this GET can
-                // race that save and 404. The in-process handoff already seeded the correct
-                // selection in init, so we deliberately leave it untouched here. Only mark
-                // "load attempted" — never "resolved" — so handleFinal can re-derive later.
-                Diag.w(
-                    tag = "ModelSel",
-                    origin = LogOrigin.SERVER,
-                    attrs = mapOf("found" to "false"),
-                ) { "loadConversationModel: conversation not readable for $conversationId" }
-            }
-            modelDelegate.conversationModelLoaded = true
-            modelDelegate.refilterModels(isNewConversation)
-        }
-    }
 
     fun switchBranch(parentMessageId: String, siblingIndex: Int) =
         treeDelegate.switchBranch(parentMessageId, siblingIndex)
@@ -2112,8 +1840,7 @@ class ChatViewModel(
 
     fun onPendingNavigationHandled() {
         streamingManager.reset()
-        roomObserverJob?.cancel()
-        roomObserverJob = null
+        conversationLoadDelegate.stopObserving()
         _uiState.update { current ->
             ChatUiState(
                 selection = ModelSelectionState(
@@ -2139,23 +1866,7 @@ class ChatViewModel(
 
     fun toggleTemporaryChat() = treeDelegate.toggleTemporaryChat()
 
-    fun refreshMessages() {
-        val conversationId = _uiState.value.conversationId ?: return
-        // SECURITY: do not remove — temp-chat data-at-rest guard.
-        // Temp chats aren't persisted server- or client-side; a pull-to-refresh would
-        // call refreshMessages → replaceAllForConversation, writing the temp message rows
-        // to Room. Skip — there's nothing to refresh for a temporary chat.
-        if (_uiState.value.isTemporaryChat) return
-        if (_uiState.value.isRefreshingMessages) return
-        _uiState.update { it.copy(content = it.content.copy(isRefreshingMessages = true)) }
-        viewModelScope.launch {
-            // Foreground pull-to-refresh: the user is looking at this conversation now, so entry is
-            // land time and the live account is the right one to attribute to.
-            messageRepository.refreshMessages(conversationId, originAccount = null)
-            loadConversation(conversationId)
-            _uiState.update { it.copy(content = it.content.copy(isRefreshingMessages = false)) }
-        }
-    }
+    fun refreshMessages() = conversationLoadDelegate.refreshMessages()
 
     /**
      * Resolves whether the trace entry point may render for the conversation on screen.
@@ -2477,10 +2188,3 @@ class ChatViewModel(
         }
     }
 }
-
-private data class MessagePathEmission(
-    val messages: List<Message>,
-    val displayMessages: List<MessageNode>,
-    val retainedPending: Message?,
-    val revalidated: Boolean,
-)

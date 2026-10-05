@@ -5,7 +5,8 @@ import androidx.compose.runtime.Immutable
 /**
  * Identity and top-level metadata of the current conversation. Written by [ChatViewModel],
  * StreamingManagerDelegate, SendCompletionDelegate, ConversationActionsDelegate,
- * ComparisonModeDelegate and MessageTreeDelegate; [sharedLinksEnabled] by ChatConfigDelegate.
+ * ComparisonModeDelegate and MessageTreeDelegate; [sharedLinksEnabled] by ChatConfigDelegate and
+ * [conversationTitle] also by ConversationLoadDelegate.
  */
 @Immutable
 data class ConversationMetaState(
