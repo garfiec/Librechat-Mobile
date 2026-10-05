@@ -297,6 +297,29 @@ class SteeringHandle(root: ChatStateHandle) : DelegateHandle(root) {
         root.update { SteeringWrites(this).apply(block).applyTo(this) }
 }
 
+// ── UploadIntakeDelegate ──────────────────────────────────────────────────
+// Narrow on purpose: this delegate owns only the upload-gate / routing-sheet / intake-count
+// fields of the composer, so it may not touch the draft text or the queued-edit session.
+class UploadIntakeWrites internal constructor(state: ChatUiState) {
+    var isAwaitingUploadSend: Boolean = state.composer.isAwaitingUploadSend
+    var pendingUploadRouting: PendingUploadRouting? = state.composer.pendingUploadRouting
+    var resolvingPickCount: Int = state.composer.resolvingPickCount
+    var error: String? = state.error
+    internal fun applyTo(s: ChatUiState) = s.copy(
+        composer = s.composer.copy(
+            isAwaitingUploadSend = isAwaitingUploadSend,
+            pendingUploadRouting = pendingUploadRouting,
+            resolvingPickCount = resolvingPickCount,
+        ),
+        error = error,
+    )
+}
+
+class UploadIntakeHandle(root: ChatStateHandle) : DelegateHandle(root) {
+    fun update(block: UploadIntakeWrites.() -> Unit) =
+        root.update { UploadIntakeWrites(this).apply(block).applyTo(this) }
+}
+
 // ── Platform voice input (VoiceInputDelegate / IosVoiceInput) ─────────────
 class VoiceWrites internal constructor(state: ChatUiState) {
     var voice: VoiceState = state.voice
