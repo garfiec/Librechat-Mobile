@@ -8,8 +8,8 @@ import com.garfiec.librechat.feature.chat.viewmodel.delegate.PickedFile
 
 /**
  * The editable composer surface: the draft text, any send-block reason, and the active
- * queued-edit session. Written by [ChatViewModel], PresetPromptDelegate, and the platform
- * voice-input delegates.
+ * queued-edit session. Written by [ChatViewModel], UploadIntakeDelegate, PresetPromptDelegate, and
+ * the platform voice-input delegates.
  */
 @Immutable
 data class ComposerState(
@@ -21,13 +21,14 @@ data class ComposerState(
      *  stashed new-message draft + the item's slot so both are restored on commit/cancel. */
     val editingQueuedItem: QueuedEditSession? = null,
     /** True while a tapped send is parked waiting for its attachment(s) to finish uploading (see
-     *  `ChatViewModel.withUploadGate`). Drives the composer's send button into a spinner the user
+     *  `UploadIntakeDelegate.withUploadGate`). Drives the composer's send button into a spinner the user
      *  can tap to cancel the deferred send. */
     val isAwaitingUploadSend: Boolean = false,
     /**
      * Files picked in Manual routing mode that are waiting on the user's choice. Non-null means
      * the routing sheet is open and NOTHING has been uploaded yet — cancelling leaves no orphaned
-     * server record. Written only by [ChatViewModel].
+     * server record. Written by `UploadIntakeDelegate`; [ChatViewModel]'s `applyComposer` / `clearComposer`
+     * also null it, inside their own atomic composer transactions.
      */
     val pendingUploadRouting: PendingUploadRouting? = null,
     /**
@@ -41,7 +42,7 @@ data class ComposerState(
      * A **count**, not a flag: nothing disables the attach affordance while intake runs, and a
      * share can arrive on top of a pick, so two intakes overlap readily. With a boolean the first
      * to finish clears the gate while the second is still resolving, re-opening the exact window
-     * this exists to close. Written only by [ChatViewModel].
+     * this exists to close. Written only by `UploadIntakeDelegate`.
      */
     val resolvingPickCount: Int = 0,
     /**
