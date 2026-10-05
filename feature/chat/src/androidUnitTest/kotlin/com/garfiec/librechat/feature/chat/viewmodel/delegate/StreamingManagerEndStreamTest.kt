@@ -245,7 +245,8 @@ class StreamingManagerEndStreamTest {
 
     /**
      * A send rejected before the server's `created` milestone persisted nothing — not even the user
-     * message — so the turn is un-sent and the text handed back, exactly as an early abort does.
+     * message — so the turn is un-sent and the text handed back, exactly as an early abort does. The
+     * restore itself is the ViewModel's (ChatViewModelFailedTurnRestoreTest); this pins the decision.
      *
      * Without this the typed text simply vanishes: on a new chat the optimistic bubble is never even
      * rendered (screenState stays LANDING until `created`), and on an existing conversation the
@@ -254,7 +255,7 @@ class StreamingManagerEndStreamTest {
      * `created`.
      */
     @Test
-    fun `a send that dies before created un-sends the turn and hands the text back`() =
+    fun `a send that dies before created has the host un-send the turn`() =
         runTest(StandardTestDispatcher()) {
             val events = Channel<StreamEvent>(Channel.UNLIMITED)
             val (delegate, flow) = delegateWith(this)

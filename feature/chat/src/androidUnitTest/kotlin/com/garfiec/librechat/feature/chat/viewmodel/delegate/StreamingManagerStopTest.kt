@@ -293,10 +293,11 @@ class StreamingManagerStopTest {
      * Early abort: the Stop landed before the server's `created` milestone, so NOTHING was
      * persisted — not even the user message. The turn is un-sent (optimistic bubble removed,
      * text handed back to the composer) instead of finalized; the next sync would have silently
-     * dropped any bubble kept here.
+     * dropped any bubble kept here. The restore itself is the ViewModel's
+     * (ChatViewModelFailedTurnRestoreTest); this pins the decision.
      */
     @Test
-    fun `an early abort un-sends the optimistic turn and restores the draft`() =
+    fun `an early abort has the host un-send the optimistic turn`() =
         runTest(StandardTestDispatcher()) {
             coEvery { chatRepository.abortChat("conv-1", any(), any()) } returns Result.Success(ChatAbortResponse())
             val events = Channel<StreamEvent>(Channel.UNLIMITED)
