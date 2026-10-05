@@ -320,6 +320,26 @@ class UploadIntakeHandle(root: ChatStateHandle) : DelegateHandle(root) {
         root.update { UploadIntakeWrites(this).apply(block).applyTo(this) }
 }
 
+// ── ChatConfigDelegate ────────────────────────────────────────────────────
+// Narrow on purpose: this delegate owns only the gates, the account slice and the share-link
+// bit, so it may not touch the rest of the conversation slice (identity, title, …) that the
+// streaming, send and conversation-action paths write.
+class ChatConfigWrites internal constructor(state: ChatUiState) {
+    var gates: FeatureGatesState = state.gates
+    var account: AccountConfigState = state.account
+    var sharedLinksEnabled: Boolean = state.conversation.sharedLinksEnabled
+    internal fun applyTo(s: ChatUiState) = s.copy(
+        gates = gates,
+        account = account,
+        conversation = s.conversation.copy(sharedLinksEnabled = sharedLinksEnabled),
+    )
+}
+
+class ChatConfigHandle(root: ChatStateHandle) : DelegateHandle(root) {
+    fun update(block: ChatConfigWrites.() -> Unit) =
+        root.update { ChatConfigWrites(this).apply(block).applyTo(this) }
+}
+
 // ── Platform voice input (VoiceInputDelegate / IosVoiceInput) ─────────────
 class VoiceWrites internal constructor(state: ChatUiState) {
     var voice: VoiceState = state.voice

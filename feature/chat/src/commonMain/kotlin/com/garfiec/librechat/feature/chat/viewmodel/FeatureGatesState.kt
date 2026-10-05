@@ -7,7 +7,9 @@ import kotlinx.serialization.json.JsonElement
  * Feature availability gates loaded from the server's `interface.*` config AND role
  * permissions (effective value = flag AND permission, matching the web client). Default
  * permissive (true) until both the RoleRepository and the interface config emit; fails open
- * when a flag is absent (older backends). Written only by [ChatViewModel]'s config load.
+ * when a flag is absent (older backends). The role/interface gates are written by
+ * `ChatConfigDelegate.loadFlags`; the version gates and [traceViewerConversationId] by
+ * [ChatViewModel]'s own collectors.
  */
 @Immutable
 data class FeatureGatesState(
