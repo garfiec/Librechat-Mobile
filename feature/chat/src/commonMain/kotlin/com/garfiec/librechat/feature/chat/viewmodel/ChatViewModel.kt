@@ -49,7 +49,6 @@ import com.garfiec.librechat.core.model.queuedturn.AgentQueuedTurnReceipt
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnFileRef
 import com.garfiec.librechat.core.model.request.ToolApprovalResolution
 import com.garfiec.librechat.core.model.response.UploadRoute
-import com.garfiec.librechat.core.model.steer.mergeRestagedQuotes
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.core.ui.media.MediaItem
 import com.garfiec.librechat.core.ui.media.MediaPreviewState
@@ -85,13 +84,14 @@ import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformDelegateFac
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PresetPromptDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.QueuedTurnDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.SendCompletionDelegate
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.SendDispatchDelegate
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.SendReadinessDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ShareData
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.SteeringDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.StreamingHost
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.StreamingManagerDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.SubagentTraceDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.UploadIntakeDelegate
-import com.garfiec.librechat.feature.chat.viewmodel.delegate.toFileReference
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.Channel
@@ -109,13 +109,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
-import kotlin.time.Clock
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-// debt — LargeClass: 2189-line file
+// debt — LargeClass: 1882-line file
 @Suppress("TooManyFunctions", "LongParameterList", "LargeClass")
 class ChatViewModel(
     initialConversationId: String? = null,
@@ -243,7 +240,8 @@ class ChatViewModel(
     private val _queuedMessagesDropped = Channel<Int>(Channel.BUFFERED)
     val queuedMessagesDropped: Flow<Int> = _queuedMessagesDropped.receiveAsFlow()
 
-    private val queueDelegate = MessageQueueDelegate(
+    // Explicitly typed: inference cannot close the loop through sendDispatchDelegate.
+    private val queueDelegate: MessageQueueDelegate = MessageQueueDelegate(
         handle = QueueHandle(stateHandle),
         // Drained items send with their snapshotted config but LIVE lineage. We first wait for
         // the previous reply to settle into the tree (the Final-triggered Room reload is async),
@@ -252,13 +250,13 @@ class ChatViewModel(
         // already resolved to FileReferences at queue time.
         sendWithSpec = { spec, awaitSettle ->
             viewModelScope.launch {
-                if (awaitSettle) awaitReplySettled()
+                if (awaitSettle) sendDispatchDelegate.awaitReplySettled()
                 // drainNext POPS before it sends, and this gate is allowed to refuse (no model
                 // selected, readiness timeout). Without putting the item back, a refusal silently
                 // destroys a queued message — including a steer that was re-homed here precisely
                 // so it could not be lost.
-                runWhenSendReady(onRefused = { requeueRefusedDrain(spec) }) {
-                    doSendWithSpec(spec)
+                sendReadinessDelegate.runWhenSendReady(onRefused = { requeueRefusedDrain(spec) }) {
+                    sendDispatchDelegate.doSendWithSpec(spec)
                 }
             }
         },
@@ -466,13 +464,14 @@ class ChatViewModel(
         resumePinStore = resumePinStore,
     )
 
-    private val steeringDelegate = SteeringDelegate(
+    // Explicitly typed: inference cannot close the loop through sendDispatchDelegate.
+    private val steeringDelegate: SteeringDelegate = SteeringDelegate(
         handle = SteeringHandle(stateHandle),
         chatRepository = chatRepository,
         // Snapshots the CURRENT send config. Only used for steers the server reported (a
         // reconnect, another device) — steers this client sent carry the spec they were
         // composed with, so a model switch mid-run never retro-edits them.
-        buildFollowUp = ::buildSendSpec,
+        buildFollowUp = { text -> sendDispatchDelegate.buildSendSpec(text) },
         // Always the queue, never the live-send path: `runWhenSendReady` is allowed to REFUSE
         // (no model selected, or a readiness timeout), and a degraded steer has nowhere to put
         // the text back — its composer was cleared at send time. `enqueueSpec` self-drains the
@@ -484,7 +483,7 @@ class ChatViewModel(
         enqueueParked = queueDelegate::enqueue,
         pauseQueue = { queueDelegate.pause() },
         isStreaming = { _uiState.value.isStreaming },
-        restageQuotes = ::restagePendingQuotes,
+        restageQuotes = { quotes -> sendDispatchDelegate.restagePendingQuotes(quotes) },
     )
 
     private val streamingManager = StreamingManagerDelegate(
@@ -518,6 +517,31 @@ class ChatViewModel(
         },
     )
 
+    private val sendReadinessDelegate = SendReadinessDelegate(
+        handle = SendReadinessHandle(stateHandle),
+        surfaceModelSheet = { reason -> surfaceModelSheet(reason) },
+    )
+
+    private val sendDispatchDelegate = SendDispatchDelegate(
+        handle = SendDispatchHandle(stateHandle),
+        chatRepository = chatRepository,
+        draftRepository = draftRepository,
+        settingsDataStore = settingsDataStore,
+        fileHandler = fileDelegate,
+        requestBuilder = requestBuilder,
+        activeAccountProvider = activeAccountProvider,
+        beginStreaming = { optimisticUserMessageId, turnSpec ->
+            streamingManager.beginStreaming(
+                isEdit = false,
+                optimisticUserMessageId = optimisticUserMessageId,
+                turnSpec = turnSpec,
+            )
+        },
+        launchStream = streamingManager::launchStream,
+        onComparisonSendStart = comparisonDelegate::onSendStart,
+        buildAddedConvo = comparisonDelegate::buildAddedConvo,
+    )
+
     private val editingDelegate = MessageEditingDelegate(
         handle = MessageEditingHandle(stateHandle),
         chatRepository = chatRepository,
@@ -526,19 +550,10 @@ class ChatViewModel(
         streamingManager = streamingManager,
         requestBuilder = requestBuilder,
         getMessageText = ::getMessageText,
-        runWhenSendReady = ::runWhenSendReady,
+        runWhenSendReady = { action -> sendReadinessDelegate.runWhenSendReady(action) },
     )
 
     companion object {
-        /** Timeout for the pre-send "is the endpoint/config ready" await. Snappier than the
-         *  5 s role-load timeout because this only needs one of role OR availableModels to
-         *  satisfy the check. */
-        private const val SEND_READY_TIMEOUT_MS = 3_000L
-
-        /** Upper bound on waiting for a finished reply to land in the tree before draining the
-         *  next queued message. Generous so a slow post-Final reload still chains correctly. */
-        private const val REPLY_SETTLE_TIMEOUT_MS = 8_000L
-
         // Plain strings, like every other message on this `error` channel. `getString(Res.string…)`
         // is not usable from a ViewModel here: compose-resources resolves through
         // `Resources.getSystem()`, which is null under this module's plain-JVM unit tests.
@@ -888,7 +903,9 @@ class ChatViewModel(
         }
         if (_uiState.value.isStreaming) return
         val text = _uiState.value.inputText.trim()
-        uploadIntakeDelegate.withUploadGate(text) { runWhenSendReady { sendNow(it) } }
+        uploadIntakeDelegate.withUploadGate(text) {
+            sendReadinessDelegate.runWhenSendReady { sendDispatchDelegate.sendNow(it) }
+        }
     }
 
     /**
@@ -935,9 +952,9 @@ class ChatViewModel(
                 // cleared only if the delegate took the text, so a send it cannot use leaves the
                 // words where the user put them.
                 if (state.renderablePendingAction?.payload?.questions != null) {
-                    if (pendingActionDelegate.answerNextBatchQuestion(answer)) clearComposer()
+                    if (pendingActionDelegate.answerNextBatchQuestion(answer)) sendDispatchDelegate.clearComposer()
                 } else {
-                    clearComposer()
+                    sendDispatchDelegate.clearComposer()
                     pendingActionDelegate.submitAnswerFromComposer(answer)
                 }
             }
@@ -976,9 +993,10 @@ class ChatViewModel(
         // The staged excerpts ride the spec, taken here rather than left behind: a steer carries
         // quotes from v0.8.8-rc2, and every path out of the delegate — injection, a rejection that
         // re-homes to the queue, a terminal leftover — delivers or restores what the spec holds.
-        val spec = buildSendSpec(state.inputText.trim())?.let { it.copy(quotes = takePendingQuotes(it.endpoint)) }
+        val spec = sendDispatchDelegate.buildSendSpec(state.inputText.trim())
+            ?.let { it.copy(quotes = sendDispatchDelegate.takePendingQuotes(it.endpoint)) }
             ?: return
-        clearComposer()
+        sendDispatchDelegate.clearComposer()
         steeringDelegate.steer(conversationId, spec)
     }
 
@@ -999,11 +1017,11 @@ class ChatViewModel(
     }
 
     private fun enqueueNow(text: String) {
-        val spec = buildSendSpec(text) ?: return
+        val spec = sendDispatchDelegate.buildSendSpec(text) ?: return
         // Composer-origin queue takes the staged quotes with it (web takeComposerContext): they
         // pair with THIS queued message instead of gluing onto whatever the user sends next.
-        val withQuotes = spec.copy(quotes = takePendingQuotes(spec.endpoint))
-        clearComposer()
+        val withQuotes = spec.copy(quotes = sendDispatchDelegate.takePendingQuotes(spec.endpoint))
+        sendDispatchDelegate.clearComposer()
         enqueueSpec(withQuotes)
     }
 
@@ -1222,7 +1240,7 @@ class ChatViewModel(
             // The upload wait is async — bail if the edit was cancelled (or replaced) meanwhile,
             // so we don't reinsert a duplicate after cancelQueuedEdit already restored the item.
             if (_uiState.value.editingQueuedItem != session) return@withUploadGate
-            val edited = buildSendSpec(text)
+            val edited = sendDispatchDelegate.buildSendSpec(text)
                 ?.copy(localId = session.original.localId, quotes = session.original.quotes)
             if (edited != null) {
                 restoreQueued(session, edited)
@@ -1423,249 +1441,6 @@ class ChatViewModel(
                 ),
             )
         }
-    }
-
-    /**
-     * Snapshots the current send config into a [QueuedMessage]. Used both for a normal send
-     * (fired immediately) and for queueing (fired later, unchanged by intervening config edits).
-     * Returns null when there is nothing to send (blank text and no uploaded files).
-     */
-    @OptIn(ExperimentalUuidApi::class)
-    private fun buildSendSpec(text: String): QueuedMessage? {
-        // Snapshot the uploaded AttachedFiles (not just FileReferences) so a queued item can
-        // round-trip losslessly back into the composer on edit — keeping its local-uri thumbnail.
-        val allFiles = fileDelegate.attachedFiles.value
-        val files = allFiles.filter { it.fileId != null }
-        // Surface attachments excluded from the send (still uploading or failed) so a dropped
-        // file leaves a diagnostic trail rather than vanishing silently.
-        val dropped = allFiles.filter { it.fileId == null }
-        if (dropped.isNotEmpty()) {
-            Logger.w {
-                "buildSendSpec: ${dropped.size} attachment(s) not yet uploaded, excluded from send: " +
-                    dropped.joinToString { it.name }
-            }
-        }
-        if (text.isBlank() && files.isEmpty()) return null
-        val state = _uiState.value
-        val isAgent = state.selectedEndpoint == EndpointConstants.AGENTS
-        return QueuedMessage(
-            localId = Uuid.random().toString(),
-            text = text,
-            attachments = files,
-            endpoint = state.selectedEndpoint,
-            model = state.selectedModel,
-            agentId = if (isAgent) state.selectedModel else null,
-            enabledTools = state.enabledTools,
-            mcpServerNames = state.selectedMcpServerNames,
-            modelParameters = state.modelParameters,
-            modelParamsPayload = requestBuilder.buildModelParams(),
-            ephemeralAgent = requestBuilder.buildEphemeralAgent(),
-            dispatch = requestBuilder.currentDispatch(),
-            isTemporary = state.isTemporaryChat,
-            // Capture the composing account so a drain after an account switch drops this item rather
-            // than POSTing it to the newly-active account's server.
-            accountId = activeAccountProvider.currentAccountId()?.value,
-        )
-    }
-
-    private fun sendNow(text: String) {
-        val spec = buildSendSpec(text) ?: return
-        doSendWithSpec(
-            spec.copy(quotes = takePendingQuotes(spec.endpoint)),
-            clearComposerOnSend = true,
-        )
-    }
-
-    /**
-     * Atomically takes (and clears) the staged quote chips for a send on [endpoint] — the
-     * fresh-submit / composer-queue drain of web's `pendingQuotesByConvoId` atom. Assistants
-     * endpoints take nothing and leave the chips staged: they bypass the server-side merge, and
-     * a selection staged elsewhere must not silently ride along (web's `quotesSupported` guard).
-     * Regenerate/continue/edit never call this — those flows replay a prior turn.
-     */
-    private fun takePendingQuotes(endpoint: String): List<String> {
-        if (!quotesSupportedOn(endpoint)) return emptyList()
-        var taken: List<String> = emptyList()
-        _uiState.update {
-            taken = it.composer.pendingQuotes
-            if (taken.isEmpty()) it else it.copy(composer = it.composer.copy(pendingQuotes = emptyList()))
-        }
-        return taken
-    }
-
-    /** Stages a selected excerpt as a pending quote chip (selection toolbar "Add to chat"). */
-    fun addPendingQuote(text: String) {
-        val excerpt = text.trim()
-        if (excerpt.isEmpty()) return
-        _uiState.update {
-            it.copy(composer = it.composer.copy(pendingQuotes = it.composer.pendingQuotes + excerpt))
-        }
-    }
-
-    /**
-     * Puts excerpts a steer lost back on the composer's chips, deduped and capped.
-     *
-     * Unlike [addPendingQuote] this is a RESTORE, not a new selection, so it goes through
-     * [mergeRestagedQuotes]: the same excerpts can arrive from more than one recovery trigger for
-     * one steer, and appending blindly would multiply the user's chips.
-     */
-    private fun restagePendingQuotes(quotes: List<String>) {
-        if (quotes.isEmpty()) return
-        _uiState.update {
-            val merged = mergeRestagedQuotes(it.composer.pendingQuotes, quotes)
-            if (merged === it.composer.pendingQuotes) it else it.copy(composer = it.composer.copy(pendingQuotes = merged))
-        }
-    }
-
-    /** Removes one staged quote chip (its ×). */
-    fun removePendingQuote(index: Int) {
-        _uiState.update {
-            val quotes = it.composer.pendingQuotes
-            if (index !in quotes.indices) return@update it
-            it.copy(
-                composer = it.composer.copy(
-                    pendingQuotes = quotes.filterIndexed { i, _ -> i != index },
-                ),
-            )
-        }
-    }
-
-    /**
-     * Suspends until the previous reply has settled into the message tree: streaming is over and
-     * the active path ends in an assistant message (the post-Final Room reload has landed). Used
-     * before draining a queued follow-up so its optimistic insert chains onto that reply. Bounded
-     * by [REPLY_SETTLE_TIMEOUT_MS]; on timeout (e.g. a failed reload) we proceed best-effort.
-     */
-    private suspend fun awaitReplySettled() {
-        withTimeoutOrNull(REPLY_SETTLE_TIMEOUT_MS) {
-            _uiState.first { state ->
-                !state.isStreaming &&
-                    state.displayMessages.lastOrNull()?.message?.isCreatedByUser == false
-            }
-        }
-    }
-
-    /** Clears the input, its persisted draft, and any attached files. */
-    private fun clearComposer() {
-        val draftKey = _uiState.value.conversationId ?: NEW_CHAT_DRAFT_KEY
-        // Drop any staged batch too: it belongs to the message just sent, and surviving here would
-        // attach it to the next one.
-        _uiState.update {
-            it.copy(composer = it.composer.copy(inputText = "", pendingUploadRouting = null))
-        }
-        viewModelScope.launch { draftRepository.deleteDraft(draftKey) }
-        fileDelegate.clearAttachedFiles()
-    }
-
-    /**
-     * Sends one message from a [QueuedMessage] config snapshot. The config (endpoint/model/
-     * tools/webSearch/attachments/dispatch/ephemeralAgent) comes from the spec, but the
-     * lineage — conversationId, parentMessageId, and the minted optimistic user-message id —
-     * is recomputed from the *current* tree, so a drained item chains onto the freshly-
-     * finalized turn.
-     *
-     * [clearComposerOnSend] clears the composer only once the streaming guard has passed — set
-     * true on the live-send path (so a lost readiness race can't wipe an unsent message) and
-     * false for drains (which must leave the user's in-progress composer untouched).
-     */
-    @OptIn(ExperimentalUuidApi::class)
-    private fun doSendWithSpec(spec: QueuedMessage, clearComposerOnSend: Boolean = false) {
-        val fileRefs = spec.attachments.map { it.toFileReference() }
-        val hasFiles = fileRefs.isNotEmpty()
-        val messageText = spec.text
-        if ((messageText.isBlank() && !hasFiles) || _uiState.value.isStreaming) return
-        // Guard passed: safe to clear the composer for a live send without risking message loss.
-        if (clearComposerOnSend) clearComposer()
-
-        // Count one "used" tick for the picked model — the real usage signal for the most-used
-        // ranking behind home-screen shortcuts. Fires on every dispatched send (live or a drained
-        // queue item, since both land here). Agents are excluded: their selection is an opaque
-        // agentId, which would surface as an unreadable shortcut label.
-        if (spec.endpoint != EndpointConstants.AGENTS && !spec.model.isNullOrBlank()) {
-            viewModelScope.launch { settingsDataStore.incrementModelUsage(spec.endpoint, spec.model) }
-        }
-
-        val conversationId = _uiState.value.conversationId
-        val lastMessageId = _uiState.value.displayMessages.lastOrNull()?.message?.messageId
-
-        // Add optimistic user message to display immediately
-        val optimisticMessage = Message(
-            messageId = Uuid.random().toString(),
-            conversationId = conversationId ?: "",
-            parentMessageId = lastMessageId,
-            text = messageText,
-            isCreatedByUser = true,
-            sender = "User",
-            createdAt = Clock.System.now().toString(),
-            files = fileRefs.takeIf { it.isNotEmpty() },
-            // The server persists and echoes them; painting them optimistically keeps the user
-            // bubble's quote blocks from popping in a turn later.
-            quotes = spec.quotes.takeIf { it.isNotEmpty() },
-        )
-        val isNewChat = conversationId == null
-        _uiState.update {
-            val updatedMessages = it.messages + optimisticMessage
-            val updatedDisplay = buildActiveMessagePath(updatedMessages, it.activeBranches, optimisticMessage.messageId)
-            it.copy(
-                content = it.content.copy(
-                    isStreaming = true,
-                    streamingContent = "",
-                    streamingThinking = "",
-                    activeToolCalls = emptyList(),
-                    streamingAttachments = emptyList(),
-                    screenState = if (isNewChat) ChatScreenState.LANDING else ChatScreenState.ACTIVE,
-                    messages = updatedMessages,
-                    displayMessages = updatedDisplay,
-                ),
-                error = null,
-            )
-        }
-        streamingManager.beginStreaming(
-            isEdit = false,
-            optimisticUserMessageId = optimisticMessage.messageId,
-            // The spec this turn actually dispatches, not the composer's current state: a
-            // human-review pause is resumed against the config the run was started with.
-            turnSpec = spec,
-        )
-
-        val isAgent = spec.endpoint == EndpointConstants.AGENTS
-        Logger.d {
-            "sendMessage: webSearch=${spec.modelParameters.webSearch}, " +
-                "endpoint=${spec.endpoint}, " +
-                "model=${spec.model}, " +
-                "files=${fileRefs.size}, " +
-                "ephemeralAgent=${spec.ephemeralAgent}"
-        }
-
-        // Resolve effective endpoint/agentId for comparison mode.
-        // All requests go through api/agents/chat/{endpoint} — the server's
-        // middleware creates ephemeral agents for non-agent endpoints, so no
-        // swapping is needed. Just keep the primary's original endpoint.
-        val effectiveEndpoint = spec.endpoint
-        val effectiveAgentId = if (isAgent) spec.agentId else null
-        comparisonDelegate.onSendStart()
-
-        val effectiveAddedConvo = comparisonDelegate.buildAddedConvo(parentMessageId = lastMessageId)
-        val stream = chatRepository.startChat(
-            text = messageText,
-            conversationId = conversationId,
-            endpoint = effectiveEndpoint,
-            endpointType = spec.dispatch.endpointType,
-            key = spec.dispatch.key,
-            modelDisplayLabel = spec.dispatch.modelDisplayLabel,
-            model = spec.model,
-            userMessageId = optimisticMessage.messageId,
-            parentMessageId = lastMessageId,
-            agentId = effectiveAgentId,
-            webSearch = spec.modelParameters.webSearch,
-            files = fileRefs.takeIf { it.isNotEmpty() },
-            addedConvo = effectiveAddedConvo,
-            ephemeralAgent = spec.ephemeralAgent,
-            isTemporary = spec.isTemporary,
-            modelParams = spec.modelParamsPayload,
-            quotes = spec.quotes.takeIf { it.isNotEmpty() },
-        )
-        streamingManager.launchStream(stream)
     }
 
     fun editMessage(messageId: String, newText: String) {
@@ -1926,94 +1701,8 @@ class ChatViewModel(
         }
     }
 
-    /**
-     * Suspends until [ChatUiState.isSendReady] becomes true, up to [timeoutMs]. Returns
-     * true if the state became ready; false on timeout. Used as a pre-flight guard on all
-     * send variants to avoid the cold-start race where endpoint/config hasn't arrived yet
-     * and firing `chatRepository.startChat(...)` would produce a mislabeled 403.
-     *
-     * 3 s chosen to be snappier than the role-load timeout (5 s) since this only needs
-     * one of the async inits (role OR availableModels) to complete enough to satisfy
-     * `isSendReady` — usually both have landed by the time a human can tap send.
-     */
-    private suspend fun awaitSendReady(timeoutMs: Long = SEND_READY_TIMEOUT_MS): Boolean {
-        if (_uiState.value.isSendReady) return true
-        return withTimeoutOrNull(timeoutMs) {
-            _uiState.map { it.isSendReady }.distinctUntilChanged().first { it }
-        } != null
-    }
-
-    /**
-     * Guard for each of the four send variants (send / edit / regenerate / continue).
-     * Runs a synchronous pre-flight that fails fast on user-input errors (e.g., no model
-     * selected, agents denied with role already loaded) so the user isn't made to wait
-     * for the readiness timeout just to be told something they could have acted on
-     * immediately. Otherwise, awaits readiness up to 3 s and falls back to a
-     * selection-aware availability message if the wait times out.
-     */
     /** Puts a drained item back at the head after the send gate refused it. */
     private fun requeueRefusedDrain(spec: QueuedMessage): Unit = queueDelegate.reinsert(0, spec)
-
-    private fun runWhenSendReady(action: () -> Unit) = runWhenSendReady(onRefused = {}, action = action)
-
-    private fun runWhenSendReady(onRefused: () -> Unit, action: () -> Unit) {
-        val current = _uiState.value
-        preflightSendBlockReason(current)?.let { reason ->
-            surfaceModelSheet(reason)
-            onRefused()
-            return
-        }
-        if (current.isSendReady) {
-            action()
-            return
-        }
-        viewModelScope.launch {
-            if (awaitSendReady()) {
-                action()
-            } else {
-                surfaceModelSheet(sendReadinessTimeoutReason(_uiState.value))
-                onRefused()
-            }
-        }
-    }
-
-    /**
-     * Synchronous pre-flight. Returns a typed reason when sending is guaranteed
-     * to fail regardless of outstanding async inits; null when we still need to wait
-     * for the readiness signal. This keeps "no model selected" and "agents denied"
-     * instantaneous instead of waiting out the readiness timeout.
-     */
-    private fun preflightSendBlockReason(state: ChatUiState): SendBlockReason? {
-        if (state.selectedModel == null) {
-            return if (state.selectedEndpoint == EndpointConstants.AGENTS) {
-                SendBlockReason.SelectAgent
-            } else {
-                SendBlockReason.SelectModel
-            }
-        }
-        if (state.selectedEndpoint == EndpointConstants.AGENTS && !state.agentsEnabled) {
-            return SendBlockReason.AgentsUnavailable
-        }
-        return null
-    }
-
-    /**
-     * Fallback for when readiness didn't resolve within the timeout. At this point the
-     * async model list is most likely in its final shape, so we can confidently flag
-     * stale selections that aren't in the available models.
-     */
-    private fun sendReadinessTimeoutReason(state: ChatUiState): SendBlockReason {
-        if (state.selectedEndpoint == EndpointConstants.AGENTS) {
-            return SendBlockReason.AgentNotAvailable
-        }
-        val modelsForEndpoint = state.availableModels[state.selectedEndpoint].orEmpty()
-        val selectedModel = state.selectedModel
-        return if (selectedModel != null && selectedModel !in modelsForEndpoint) {
-            SendBlockReason.ModelNotAvailable
-        } else {
-            SendBlockReason.ModelLoadFailed
-        }
-    }
 
     /** Opens the model-selector sheet. Called when the user taps the model chip. */
     fun openModelSheet() = surfaceModelSheet()
@@ -2143,6 +1832,10 @@ class ChatViewModel(
     fun retryUpload(file: AttachedFile) = uploadIntakeDelegate.retryUpload(file)
     fun submitPdfPassword(password: String) = uploadIntakeDelegate.submitPdfPassword(password)
     fun dismissPdfPassword() = uploadIntakeDelegate.dismissPdfPassword()
+
+    // Quote chips (selection toolbar "Add to chat")
+    fun addPendingQuote(text: String) = sendDispatchDelegate.addPendingQuote(text)
+    fun removePendingQuote(index: Int) = sendDispatchDelegate.removePendingQuote(index)
 
     // Presets and prompts
     fun savePreset(name: String) = presetPromptDelegate.savePreset(name)

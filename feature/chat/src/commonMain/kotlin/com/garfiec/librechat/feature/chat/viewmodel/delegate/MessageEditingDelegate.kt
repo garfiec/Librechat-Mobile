@@ -20,8 +20,8 @@ import kotlin.uuid.Uuid
  * sibling or a stream anchor via [MessageTreeDelegate]) and resubmits through
  * [StreamingManagerDelegate], reusing [ChatRequestBuilder] for the shared request pieces.
  *
- * The send-readiness gate and message-text extraction live in `ChatViewModel` (shared with
- * the new-message send path and TTS); they're injected as [runWhenSendReady] / [getMessageText].
+ * The send-readiness gate lives in [SendReadinessDelegate] and message-text extraction in
+ * `ChatViewModel` (shared with TTS); they're injected as [runWhenSendReady] / [getMessageText].
  */
 class MessageEditingDelegate(
     private val handle: MessageEditingHandle,

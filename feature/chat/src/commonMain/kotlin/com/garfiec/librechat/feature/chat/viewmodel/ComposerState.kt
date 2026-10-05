@@ -9,8 +9,8 @@ import com.garfiec.librechat.feature.chat.viewmodel.delegate.PickedFile
 /**
  * The editable composer surface: the draft text, any send-block reason, and the active
  * queued-edit session. Written by [ChatViewModel], UploadIntakeDelegate, PresetPromptDelegate,
- * ConversationLoadDelegate (draft / unsent-text restores only) and the platform voice-input
- * delegates.
+ * ConversationLoadDelegate (draft / unsent-text restores only), SendDispatchDelegate (the text,
+ * quote chips and staged batch a send consumes) and the platform voice-input delegates.
  */
 @Immutable
 data class ComposerState(
@@ -28,8 +28,8 @@ data class ComposerState(
     /**
      * Files picked in Manual routing mode that are waiting on the user's choice. Non-null means
      * the routing sheet is open and NOTHING has been uploaded yet — cancelling leaves no orphaned
-     * server record. Written by `UploadIntakeDelegate`; [ChatViewModel]'s `applyComposer` / `clearComposer`
-     * also null it, inside their own atomic composer transactions.
+     * server record. Written by `UploadIntakeDelegate`; [ChatViewModel]'s `applyComposer` and
+     * `SendDispatchDelegate.clearComposer` also null it, inside their own atomic composer transactions.
      */
     val pendingUploadRouting: PendingUploadRouting? = null,
     /**
@@ -49,7 +49,7 @@ data class ComposerState(
     /**
      * Verbatim excerpts staged via the selection toolbar's "Add to chat" (v0.8.7, upstream
      * #13868), one chip each above the composer until a fresh send or a composer-origin queue
-     * takes them. Taken atomically at spec-mint time (`ChatViewModel.takePendingQuotes`);
+     * takes them. Taken atomically at spec-mint time (`SendDispatchDelegate.takePendingQuotes`);
      * composer-origin steers leave them staged, and assistants endpoints never take them.
      */
     val pendingQuotes: List<String> = emptyList(),
