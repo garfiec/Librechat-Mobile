@@ -46,10 +46,7 @@ class StreamingManagerEndStreamTest {
     private val comparisonDelegate = mockk<ComparisonModeDelegate>(relaxed = true)
     private val completionDelegate = mockk<SendCompletionDelegate>(relaxed = true)
     private val queueDelegate = mockk<MessageQueueDelegate>(relaxed = true)
-    private val reloadConversation = mockk<(String) -> Unit>(relaxed = true)
-    private val reloadRestoringUnsaved = mockk<(String, Message) -> Unit>(relaxed = true)
-    private val treeDelegate = mockk<MessageTreeDelegate>(relaxed = true)
-    private val restoreUnsentInput = mockk<(String, List<String>) -> Unit>(relaxed = true)
+    private val host = mockk<StreamingHost>(relaxed = true)
 
     /**
      * Shared so a test can assert whether the connectivity observer was started — that is the only
@@ -85,19 +82,12 @@ class StreamingManagerEndStreamTest {
             activeAccountProvider = mockk<ActiveAccountProvider>(relaxed = true),
             connectivityObserver = connectivity,
             comparisonDelegate = comparisonDelegate,
-            subagentTraceDelegate = mockk(relaxed = true),
-            officePreviewDelegate = mockk(relaxed = true),
+            liveReply = LiveReplyDelegate(StreamingHandle(root), mockk(relaxed = true), mockk(relaxed = true)),
             completionDelegate = completionDelegate,
             queueDelegate = queueDelegate,
-            treeDelegate = treeDelegate,
             pendingActionDelegate = mockk(relaxed = true),
             steeringDelegate = mockk(relaxed = true),
-            emitUserKeyError = {},
-            reloadConversation = reloadConversation,
-            reloadRestoringUnsaved = reloadRestoringUnsaved,
-            restoreUnsentInput = restoreUnsentInput,
-            isNewConversation = { false },
-            isHandedOffNewChat = { false },
+            host = host,
         )
         return delegate to flow
     }
@@ -133,7 +123,7 @@ class StreamingManagerEndStreamTest {
             // could race the server's post-frame persistence.
             assertThat(flow.value.isStreaming).isFalse()
             assertThat(flow.value.streamingContent).isEqualTo("half an answer")
-            verify(exactly = 0) { reloadConversation(any()) }
+            verify(exactly = 0) { host.reloadConversation(any()) }
             verify { comparisonDelegate.endStreaming(clearContent = false) }
             verify(atLeast = 1) { queueDelegate.pause() }
             events.close()
@@ -161,7 +151,7 @@ class StreamingManagerEndStreamTest {
             completionDelegate.onFinal(any(), any(), any(), any(), any(), any(), any(), any(), true)
         }
         verify(exactly = 0) { comparisonDelegate.endStreaming(clearContent = false) }
-        verify(exactly = 0) { reloadConversation(any()) }
+        verify(exactly = 0) { host.reloadConversation(any()) }
         events.close()
         advanceUntilIdle()
     }
@@ -195,7 +185,7 @@ class StreamingManagerEndStreamTest {
         // rewritten it with the buffered partial. It must not have.
         assertThat(flow.value.streamingContent).isEmpty()
         verify(exactly = 0) { comparisonDelegate.endStreaming(clearContent = false) }
-        verify(exactly = 0) { reloadConversation(any()) }
+        verify(exactly = 0) { host.reloadConversation(any()) }
         events.close()
         advanceUntilIdle()
     }
@@ -226,7 +216,7 @@ class StreamingManagerEndStreamTest {
             // Stream N+1 untouched: no teardown state write, no queue pause beyond stream N's.
             assertThat(flow.value.isStreaming).isTrue()
             verify(exactly = 0) { comparisonDelegate.endStreaming(any()) }
-            verify(exactly = 0) { reloadConversation(any()) }
+            verify(exactly = 0) { host.reloadConversation(any()) }
             // beginStreaming started the throttled updater; end it so the scope can settle.
             delegate.reset()
             advanceUntilIdle()
@@ -248,14 +238,15 @@ class StreamingManagerEndStreamTest {
         assertThat(flow.value.error).isEqualTo("boom")
         verify(atLeast = 1) { queueDelegate.pause() }
         verify(exactly = 0) { queueDelegate.drainNext(any(), any()) }
-        verify(exactly = 1) { reloadConversation("conv-1") }
+        verify(exactly = 1) { host.reloadConversation("conv-1") }
         events.close()
         advanceUntilIdle()
     }
 
     /**
      * A send rejected before the server's `created` milestone persisted nothing — not even the user
-     * message — so the turn is un-sent and the text handed back, exactly as an early abort does.
+     * message — so the turn is un-sent and the text handed back, exactly as an early abort does. The
+     * restore itself is the ViewModel's (ChatViewModelFailedTurnRestoreTest); this pins the decision.
      *
      * Without this the typed text simply vanishes: on a new chat the optimistic bubble is never even
      * rendered (screenState stays LANDING until `created`), and on an existing conversation the
@@ -264,7 +255,7 @@ class StreamingManagerEndStreamTest {
      * `created`.
      */
     @Test
-    fun `a send that dies before created un-sends the turn and hands the text back`() =
+    fun `a send that dies before created has the host un-send the turn`() =
         runTest(StandardTestDispatcher()) {
             val events = Channel<StreamEvent>(Channel.UNLIMITED)
             val (delegate, flow) = delegateWith(this)
@@ -274,8 +265,7 @@ class StreamingManagerEndStreamTest {
             events.send(StreamEvent.Error(message = "Request failed (HTTP 302)"))
             runCurrent()
 
-            verify(exactly = 1) { treeDelegate.unsendOptimisticTurn("u1") }
-            verify(exactly = 1) { restoreUnsentInput("text-u1", any()) }
+            verify(exactly = 1) { host.unsendTurn("u1") }
             // The failure is still reported — un-sending is not the same as swallowing it.
             assertThat(flow.value.error).isEqualTo("Request failed (HTTP 302)")
 
@@ -301,8 +291,7 @@ class StreamingManagerEndStreamTest {
         events.send(StreamEvent.Error(message = "boom"))
         runCurrent()
 
-        verify(exactly = 0) { treeDelegate.unsendOptimisticTurn(any()) }
-        verify(exactly = 0) { restoreUnsentInput(any(), any()) }
+        verify(exactly = 0) { host.unsendTurn(any()) }
 
         events.close()
         delegate.reset()
@@ -323,8 +312,7 @@ class StreamingManagerEndStreamTest {
         events.send(StreamEvent.Error(message = "boom"))
         runCurrent()
 
-        verify(exactly = 0) { treeDelegate.unsendOptimisticTurn(any()) }
-        verify(exactly = 0) { restoreUnsentInput(any(), any()) }
+        verify(exactly = 0) { host.unsendTurn(any()) }
 
         events.close()
         delegate.reset()
@@ -402,6 +390,6 @@ class StreamingManagerEndStreamTest {
         assertThat(flow.value.error).doesNotContain("boom")
         verify(atLeast = 1) { queueDelegate.pause() }
         verify(exactly = 0) { queueDelegate.drainNext(any(), any()) }
-        verify(exactly = 1) { reloadConversation("conv-1") }
+        verify(exactly = 1) { host.reloadConversation("conv-1") }
     }
 }

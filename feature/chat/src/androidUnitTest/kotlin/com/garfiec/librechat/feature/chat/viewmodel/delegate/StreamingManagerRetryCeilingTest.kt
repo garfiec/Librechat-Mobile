@@ -44,8 +44,7 @@ import org.junit.Test
 class StreamingManagerRetryCeilingTest {
 
     private val chatRepository = mockk<ChatRepository>(relaxed = true)
-    private val reloadConversation = mockk<(String) -> Unit>(relaxed = true)
-    private val reloadRestoringUnsaved = mockk<(String, Message) -> Unit>(relaxed = true)
+    private val host = mockk<StreamingHost>(relaxed = true)
     private val connectivityObserver = mockk<ConnectivityObserver>(relaxed = true)
 
     private fun streamingState() = ChatUiState(
@@ -64,25 +63,19 @@ class StreamingManagerRetryCeilingTest {
     ): Pair<StreamingManagerDelegate, MutableStateFlow<ChatUiState>> {
         val flow = MutableStateFlow(streamingState())
         every { connectivityObserver.isConnected } returns flowOf(true)
+        val root = ChatStateHandle(flow, scope)
         val delegate = StreamingManagerDelegate(
-            handle = StreamingHandle(ChatStateHandle(flow, scope)),
+            handle = StreamingHandle(root),
             chatRepository = chatRepository,
             activeAccountProvider = accounts,
             connectivityObserver = connectivityObserver,
             comparisonDelegate = mockk(relaxed = true),
-            subagentTraceDelegate = mockk(relaxed = true),
-            officePreviewDelegate = mockk(relaxed = true),
+            liveReply = LiveReplyDelegate(StreamingHandle(root), mockk(relaxed = true), mockk(relaxed = true)),
             completionDelegate = mockk(relaxed = true),
             queueDelegate = mockk(relaxed = true),
-            treeDelegate = mockk(relaxed = true),
             pendingActionDelegate = mockk(relaxed = true),
             steeringDelegate = mockk(relaxed = true),
-            emitUserKeyError = {},
-            reloadConversation = reloadConversation,
-            reloadRestoringUnsaved = reloadRestoringUnsaved,
-            restoreUnsentInput = { _, _ -> },
-            isNewConversation = { false },
-            isHandedOffNewChat = { false },
+            host = host,
         )
         return delegate to flow
     }
@@ -104,7 +97,7 @@ class StreamingManagerRetryCeilingTest {
         verify(exactly = 1) { chatRepository.resumeStream("conv-1") }
         assertThat(state.value.isStreaming).isTrue()
         assertThat(state.value.error).isNull()
-        verify(exactly = 0) { reloadConversation(any()) }
+        verify(exactly = 0) { host.reloadConversation(any()) }
         verify(exactly = 0) { connectivityObserver.isConnected }
         delegate.reset()
     }
@@ -117,7 +110,7 @@ class StreamingManagerRetryCeilingTest {
         delegate.launchStream(flowOf(StreamEvent.ContentDelta(chunk = "half an answer"), exhausted))
         advanceUntilIdle()
 
-        verify(exactly = 1) { reloadConversation("conv-1") }
+        verify(exactly = 1) { host.reloadConversation("conv-1") }
         assertThat(state.value.isStreaming).isFalse()
         assertThat(state.value.error).isNull()
         verify(exactly = 0) { chatRepository.resumeStream(any()) }
@@ -177,7 +170,7 @@ class StreamingManagerRetryCeilingTest {
         switched.complete(Unit)
         runCurrent()
 
-        verify(exactly = 0) { reloadConversation(any()) }
+        verify(exactly = 0) { host.reloadConversation(any()) }
         delegate.reset()
     }
 
@@ -203,7 +196,7 @@ class StreamingManagerRetryCeilingTest {
         verify(exactly = 1) { chatRepository.resumeStream("conv-1") }
         assertThat(state.value.isStreaming).isTrue()
         assertThat(state.value.error).isNull()
-        verify(exactly = 0) { reloadConversation(any()) }
+        verify(exactly = 0) { host.reloadConversation(any()) }
         delegate.reset()
     }
 
@@ -242,7 +235,7 @@ class StreamingManagerRetryCeilingTest {
             runCurrent()
 
             verify(exactly = 0) { chatRepository.resumeStream(any()) }
-            verify(exactly = 0) { reloadConversation(any()) }
+            verify(exactly = 0) { host.reloadConversation(any()) }
             delegate.reset()
         }
 

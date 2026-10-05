@@ -82,6 +82,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.delegate.ConversationActions
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.EndpointKeyStatusDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.FavoritesDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.InConversationSearchDelegate
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.LiveReplyDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.MessageEditingDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.MessageQueueDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.MessageTreeDelegate
@@ -97,6 +98,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.delegate.RoutedFile
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.SendCompletionDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ShareData
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.SteeringDelegate
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.StreamingHost
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.StreamingManagerDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.SubagentTraceDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.toFileReference
@@ -482,19 +484,26 @@ class ChatViewModel(
         activeAccountProvider = activeAccountProvider,
         connectivityObserver = connectivityObserver,
         comparisonDelegate = comparisonDelegate,
-        subagentTraceDelegate = subagentTraceDelegate,
-        officePreviewDelegate = officePreviewDelegate,
+        liveReply = LiveReplyDelegate(StreamingHandle(stateHandle), subagentTraceDelegate, officePreviewDelegate),
         completionDelegate = completionDelegate,
         queueDelegate = queueDelegate,
-        treeDelegate = treeDelegate,
         pendingActionDelegate = pendingActionDelegate,
         steeringDelegate = steeringDelegate,
-        emitUserKeyError = { _userKeyErrors.trySend(it) },
-        reloadConversation = ::loadConversation,
-        reloadRestoringUnsaved = { id, unsent -> loadConversation(id, unsavedTurn = unsent) },
-        restoreUnsentInput = ::restoreUnsentInput,
-        isNewConversation = { isNewConversation },
-        isHandedOffNewChat = { isHandedOffNewChat },
+        host = object : StreamingHost {
+            override val isNewConversation get() = this@ChatViewModel.isNewConversation
+            override val isHandedOffNewChat get() = this@ChatViewModel.isHandedOffNewChat
+            override fun emitUserKeyError(error: UserKeyError) {
+                _userKeyErrors.trySend(error)
+            }
+            override fun reloadConversation(conversationId: String) = loadConversation(conversationId)
+            override fun reloadRestoringUnsaved(conversationId: String, unsent: Message) =
+                loadConversation(conversationId, unsavedTurn = unsent)
+            override fun unsendTurn(optimisticId: String?) {
+                val unsent = optimisticId?.let { id -> _uiState.value.messages.firstOrNull { it.messageId == id } }
+                treeDelegate.unsendOptimisticTurn(optimisticId)
+                unsent?.text?.takeIf { it.isNotBlank() }?.let { restoreUnsentInput(it, unsent.quotes.orEmpty()) }
+            }
+        },
     )
 
     private val editingDelegate = MessageEditingDelegate(
