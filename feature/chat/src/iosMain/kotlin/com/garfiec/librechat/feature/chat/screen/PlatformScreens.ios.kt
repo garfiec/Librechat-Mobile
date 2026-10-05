@@ -304,8 +304,10 @@ actual fun ChatScreen(
                             activeCallId = uiState.toolActiveCallId,
                             collapsed = uiState.toolPanelCollapsed,
                             onDraftChange = viewModel::updateToolDecisionDraft,
+                            onPickDecision = viewModel::pickToolDecision,
                             onSelectCall = viewModel::selectToolCall,
                             onCollapsedChange = viewModel::setToolPanelCollapsed,
+                            onCancelAutoAdvance = viewModel::cancelPausePanelAutoAdvance,
                             onSubmit = viewModel::resolveToolApproval,
                             modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp),
                         )
@@ -318,8 +320,10 @@ actual fun ChatScreen(
                             activeQuestionId = uiState.askActiveQuestionId,
                             collapsed = uiState.askPanelCollapsed,
                             onDraftChange = viewModel::updateAskAnswerDraft,
+                            onPickOption = viewModel::pickAskOption,
                             onSelectQuestion = viewModel::selectAskQuestion,
                             onCollapsedChange = viewModel::setAskPanelCollapsed,
+                            onCancelAutoAdvance = viewModel::cancelPausePanelAutoAdvance,
                             onSubmitAnswer = viewModel::answerPendingQuestion,
                             onSubmitAnswers = viewModel::answerPendingQuestions,
                             // The composer's Stop is hidden with it, and the run stays live across the pause.

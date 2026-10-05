@@ -94,6 +94,22 @@ internal val PAUSE_PANEL_WIDE_MIN_WIDTH = 600.dp
 internal const val PAUSE_PANEL_AUTO_ADVANCE_DELAY_MS = 250L
 
 /**
+ * Where a complete pick takes the panel once [PAUSE_PANEL_AUTO_ADVANCE_DELAY_MS] has passed, which
+ * the layout decides.
+ */
+enum class PausePanelAutoAdvance {
+    /** Compact: on to the next item still open, or submit once none is left. */
+    AdvanceOrSubmit,
+
+    /** Wide: on to the next tab only. The wide layout never submits on a pick: Continue does. */
+    NextTab,
+}
+
+/** The item a panel shows: the recorded active one, or the first while none is recorded. */
+internal fun pausePanelActiveIndex(ids: List<String>, activeId: String?): Int =
+    ids.indexOfFirst { it == activeId }.coerceAtLeast(0)
+
+/**
  * The compact layout's `‹ ● ● ━ ○ ›`: one dot per item, filled once the item is done, open while
  * it isn't, and stretched into a short bar for the one on screen. Dragging along the dots scrubs
  * through the items the way iOS's home-screen page dots do; the arrows step one at a time. Inert

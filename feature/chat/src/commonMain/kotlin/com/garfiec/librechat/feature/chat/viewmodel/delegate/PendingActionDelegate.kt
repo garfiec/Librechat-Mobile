@@ -8,18 +8,27 @@ import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.data.repository.ResumeTurnPin
 import com.garfiec.librechat.core.model.PendingAction
+import com.garfiec.librechat.core.model.ToolApprovalDecisions
 import com.garfiec.librechat.core.model.request.ChatResumeRequest
 import com.garfiec.librechat.core.model.request.EphemeralAgent
 import com.garfiec.librechat.core.model.request.ToolApprovalResolution
+import com.garfiec.librechat.feature.chat.components.PAUSE_PANEL_AUTO_ADVANCE_DELAY_MS
+import com.garfiec.librechat.feature.chat.components.PausePanelAutoAdvance
+import com.garfiec.librechat.feature.chat.components.pausePanelActiveIndex
+import com.garfiec.librechat.feature.chat.components.toAskPanelModel
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 import com.garfiec.librechat.feature.chat.util.askFreeTextBudget
 import com.garfiec.librechat.feature.chat.util.composeAskAnswer
 import com.garfiec.librechat.feature.chat.util.nextBlankQuestionIndex
+import com.garfiec.librechat.feature.chat.util.nextUndecidedCallIndex
+import com.garfiec.librechat.feature.chat.util.toResolution
+import com.garfiec.librechat.feature.chat.util.toolBatchResolutions
 import com.garfiec.librechat.feature.chat.viewmodel.ChatRequestBuilder
 import com.garfiec.librechat.feature.chat.viewmodel.PendingActionHandle
 import com.garfiec.librechat.feature.chat.viewmodel.PendingActionWrites
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -122,6 +131,12 @@ class PendingActionDelegate(
 
     /** Dismisses the card when [PendingAction.expiresAt] passes; see [scheduleExpiry]. */
     private var expiryJob: Job? = null
+
+    /**
+     * The move a complete pick has scheduled; see [pickAskOption] and [pickToolDecision]. A newer
+     * pick, moving to another item, a submit or the pause going away cancels it.
+     */
+    private val autoAdvance = AutoAdvanceSlot(handle.scope) { handle.state.isResolvingPendingAction }
 
     /**
      * The docked panel's editor state (ask answers or tool decisions) as [clear] found it, keyed
@@ -244,6 +259,7 @@ class PendingActionDelegate(
         // The same pause coming back after a session boundary cleared it (see [retainedPanel]).
         val restored = retainedPanel?.takeIf { !isSameAction && it.actionId == pendingAction.actionId }
         retainedPanel = null
+        if (!isSameAction) cancelAutoAdvance()
         handle.update {
             this.pendingAction = pendingAction
             if (!isSameActionMidSubmit) isResolvingPendingAction = false
@@ -297,6 +313,7 @@ class PendingActionDelegate(
         // inside the timer's own coroutine is safe (the remaining writes are non-suspending).
         expiryJob?.cancel()
         expiryJob = null
+        cancelAutoAdvance()
         retainedPanel = null
         pinnedTurn = null
         generationCreatedAt = null
@@ -325,6 +342,7 @@ class PendingActionDelegate(
     fun clear() {
         expiryJob?.cancel()
         expiryJob = null
+        cancelAutoAdvance()
         pinnedTurn = null
         generationCreatedAt = null
         epoch++
@@ -417,6 +435,7 @@ class PendingActionDelegate(
 
     fun selectAskQuestion(questionId: String) {
         if (handle.state.askActiveQuestionId == questionId) return
+        cancelAutoAdvance()
         handle.update { askActiveQuestionId = questionId }
     }
 
@@ -434,6 +453,7 @@ class PendingActionDelegate(
 
     fun selectToolCall(toolCallId: String) {
         if (handle.state.toolActiveCallId == toolCallId) return
+        cancelAutoAdvance()
         handle.update { toolActiveCallId = toolCallId }
     }
 
@@ -441,6 +461,87 @@ class PendingActionDelegate(
         if (handle.state.toolPanelCollapsed == collapsed) return
         handle.update { toolPanelCollapsed = collapsed }
     }
+
+    /**
+     * An option row's tap on the ask panel: records [draft], the selection after the tap.
+     *
+     * A single-select pick is a complete answer: after a beat (so the pick is seen landing) the
+     * panel moves on as [advance] says. Re-picking an already answered question never moves on by
+     * itself; the user may still be reviewing.
+     */
+    fun pickAskOption(questionId: String, draft: AskAnswerDraft, advance: PausePanelAutoAdvance) {
+        val question = handle.state.pendingAction?.toAskPanelModel()?.questions?.firstOrNull { it.id == questionId }
+        val wasAnswered = question != null &&
+            composeAskAnswer(question.options, handle.state.askAnswerDrafts[questionId] ?: AskAnswerDraft()).isNotBlank()
+        cancelAutoAdvance()
+        updateAskAnswerDraft(questionId, draft)
+        // An empty selection after the tap is a deselect.
+        if (question == null || question.multiSelect || draft.selectedOptions.isEmpty() || wasAnswered) return
+        val picked = composeAskAnswer(question.options, draft)
+        autoAdvance.schedule {
+            val model = handle.state.pendingAction?.toAskPanelModel() ?: return@schedule
+            val ids = model.questions.map { it.id }
+            val drafts = handle.state.askAnswerDrafts
+            val answers = model.questions.associate { it.id to composeAskAnswer(it.options, drafts[it.id] ?: AskAnswerDraft()) }
+            val activeIndex = pausePanelActiveIndex(ids, handle.state.askActiveQuestionId)
+            // Decided on what is recorded NOW, not at the tap: a re-pick, a deselect or a typed
+            // qualifier inside the beat means the user is still editing, and the tap-time answers
+            // would submit the pick they just replaced.
+            if (ids[activeIndex] != questionId || answers[questionId] != picked) return@schedule
+            moveOn(
+                advance = advance,
+                ids = ids,
+                activeIndex = activeIndex,
+                nextOpen = { nextBlankQuestionIndex(ids, answers, activeIndex) },
+                select = ::selectAskQuestion,
+                submit = {
+                    if (model.isBatch) submitAnswers(answers) else submitAnswer(answers.getValue(ids.first()))
+                },
+            )
+        }
+    }
+
+    /**
+     * A decision tapped on the tool-approval panel: records [draft], the call's draft after the tap.
+     *
+     * Approve and Reject are complete decisions: after a beat (so the pick is seen landing) the
+     * panel moves on as [advance] says. Edit and Respond reveal a field instead and never move on,
+     * and a call that was already decided never moves on by itself; the user is reviewing.
+     */
+    fun pickToolDecision(toolCallId: String, draft: ToolDecisionDraft, advance: PausePanelAutoAdvance) {
+        val wasComplete = handle.state.toolDecisionDrafts[toolCallId]?.toResolution(toolCallId) != null
+        cancelAutoAdvance()
+        updateToolDecisionDraft(toolCallId, draft)
+        val decision = draft.decision
+        val isFinal = decision == ToolApprovalDecisions.APPROVE || decision == ToolApprovalDecisions.REJECT
+        if (!isFinal || wasComplete) return
+        autoAdvance.schedule {
+            val payload = handle.state.pendingAction?.takeIf { it.isToolApproval }?.payload
+                ?: return@schedule
+            val ids = payload.actionRequests.map { it.toolCallId }
+            if (ids.isEmpty()) return@schedule
+            val drafts = handle.state.toolDecisionDrafts
+            val activeIndex = pausePanelActiveIndex(ids, handle.state.toolActiveCallId)
+            // Decided on what is recorded NOW, not at the tap: a different pick inside the beat
+            // means the user is still deciding.
+            if (ids[activeIndex] != toolCallId || drafts[toolCallId]?.decision != decision) return@schedule
+            moveOn(
+                advance = advance,
+                ids = ids,
+                activeIndex = activeIndex,
+                nextOpen = { nextUndecidedCallIndex(ids, drafts, activeIndex) },
+                select = ::selectToolCall,
+                submit = { toolBatchResolutions(payload, drafts)?.let(::submitToolDecisions) },
+            )
+        }
+    }
+
+    /**
+     * Drops a scheduled move. Besides the delegate's own cancel points, the panel calls this when
+     * the layout a pick was made in leaves the screen (a fold or rotation inside the beat), so a
+     * compact pick cannot submit under the wide layout, which never does.
+     */
+    fun cancelAutoAdvance() = autoAdvance.cancel()
 
     private fun PendingActionWrites.resetToolPanel() {
         toolDecisionDrafts = emptyMap()
@@ -516,6 +617,7 @@ class PendingActionDelegate(
         answerText: String?,
         withDecision: (ChatResumeRequest) -> ChatResumeRequest,
     ) {
+        cancelAutoAdvance()
         val state = handle.state
         val action = state.pendingAction ?: return
         val actionId = action.actionId ?: return
@@ -668,5 +770,41 @@ class PendingActionDelegate(
         /** The resume route's answer to a request fingerprint that does not match the paused run. */
         const val HTTP_FORBIDDEN = 403
         const val HTTP_CONFLICT = 409
+    }
+}
+
+/** Where a complete pick takes the panel from [activeIndex], once its beat has passed. */
+private inline fun moveOn(
+    advance: PausePanelAutoAdvance,
+    ids: List<String>,
+    activeIndex: Int,
+    nextOpen: () -> Int?,
+    select: (String) -> Unit,
+    submit: () -> Unit,
+) {
+    when (advance) {
+        PausePanelAutoAdvance.AdvanceOrSubmit -> {
+            val next = nextOpen()
+            if (next == null) submit() else select(ids[next])
+        }
+        PausePanelAutoAdvance.NextTab -> if (activeIndex < ids.lastIndex) select(ids[activeIndex + 1])
+    }
+}
+
+/** One scheduled auto-advance at a time: scheduling replaces it, and it never runs while a resolve is in flight. */
+private class AutoAdvanceSlot(private val scope: CoroutineScope, private val isResolving: () -> Boolean) {
+    private var job: Job? = null
+
+    fun schedule(proceed: () -> Unit) {
+        cancel()
+        job = scope.launch {
+            delay(PAUSE_PANEL_AUTO_ADVANCE_DELAY_MS)
+            if (!isResolving()) proceed()
+        }
+    }
+
+    fun cancel() {
+        job?.cancel()
+        job = null
     }
 }

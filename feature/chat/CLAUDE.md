@@ -330,6 +330,12 @@ one tab per call with Back / Next / Continue (n/N). Edit and Respond reveal thei
 advance on their own. Approve all / Reject all appear only when every call's policy permits that
 decision, and submit immediately.
 
+**Auto-advance is decided in `PendingActionDelegate`, not the panels**, for both panels
+(`pickAskOption` / `pickToolDecision`, tested in `PendingActionAutoAdvanceTest`). A panel only reports
+the pick and its layout's `PausePanelAutoAdvance` (compact: next open item or submit; wide: next tab,
+never submit). The delegate keeps one cancellable job, and the panel cancels it when the layout leaves
+the screen, so a fold inside the beat can't submit a compact pick under the wide layout.
+
 Paging is shared by both panels:
 - **Compact: page dots.** Filled = done, open = not yet, a short bar = on screen. Dragging along
   the dots scrubs (iOS home-screen style, a haptic tick per item) — relative to where the drag

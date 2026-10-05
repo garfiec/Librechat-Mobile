@@ -45,7 +45,8 @@ import org.junit.runner.RunWith
 /**
  * The docked tool-approval panel's own behaviour, driven through a host that hoists its state the
  * way `PendingActionDelegate` does — the panel is stateless, so a test that fed it fixed values
- * could not see a pick move it on.
+ * could not see it move. Whether a pick moves it on is the delegate's (`PendingActionAutoAdvanceTest`);
+ * this side checks that each layout reports its picks with the right [PausePanelAutoAdvance].
  */
 @RunWith(AndroidJUnit4::class)
 class ToolApprovalPanelInstrumentedTest {
@@ -57,36 +58,34 @@ class ToolApprovalPanelInstrumentedTest {
     private var activeCallId by mutableStateOf<String?>(null)
     private var collapsed by mutableStateOf(false)
     private var pending by mutableStateOf<PendingAction?>(null)
+    private var width by mutableStateOf(0.dp)
     private val submitted = mutableListOf<List<ToolApprovalResolution>>()
+    private val picks = mutableListOf<Triple<String, ToolDecisionDraft, PausePanelAutoAdvance>>()
+    private var autoAdvanceCancels = 0
 
     @Test
-    fun compactApprovingEachCallWalksTheBatchThenSubmitsIt() {
+    fun compactDecisionsArePicksThatMayAdvanceOrSubmit() {
         setPanel(batch("search_web", "read_file"), width = COMPACT)
 
         assertPage("1 of 2")
         composeRule.onNodeWithText("Approve").performClick()
-        afterTheBeat()
-        assertPage("2 of 2")
-        assertTrue("submitted before the batch was complete", submitted.isEmpty())
+        composeRule.waitForIdle()
 
-        composeRule.onNodeWithText("Reject").performClick()
-        afterTheBeat()
-
-        assertEquals(1, submitted.size)
-        assertEquals(
-            listOf(ToolApprovalDecisions.APPROVE, ToolApprovalDecisions.REJECT),
-            submitted.single().map { it.decision },
-        )
+        val (id, draft, advance) = picks.single()
+        assertEquals("call-1", id)
+        assertEquals(ToolApprovalDecisions.APPROVE, draft.decision)
+        assertEquals(PausePanelAutoAdvance.AdvanceOrSubmit, advance)
+        assertEquals(draft, drafts["call-1"])
     }
 
     @Test
-    fun anEditDoesNotAdvanceAndStartsFromTheModelsArguments() {
+    fun anEditStartsFromTheModelsArguments() {
         setPanel(batch("search_web", "read_file", allowEdit = true), width = COMPACT)
 
         composeRule.onNodeWithText("Edit").performClick()
-        afterTheBeat()
+        composeRule.waitForIdle()
 
-        assertPage("1 of 2")
+        assertEquals("""{"q":"call-1"}""", picks.single().second.editedArguments)
         assertEquals("""{"q":"call-1"}""", drafts["call-1"]?.editedArguments)
         assertTrue(submitted.isEmpty())
     }
@@ -119,20 +118,31 @@ class ToolApprovalPanelInstrumentedTest {
     }
 
     @Test
-    fun wideLayoutAdvancesTabsButOnlyContinueSubmits() {
+    fun wideDecisionsArePicksForTheNextTabAndOnlyContinueSubmits() {
         setPanel(batch("search_web", "read_file"), width = WIDE)
 
         composeRule.onNodeWithText("Approve").performClick()
-        afterTheBeat()
-        assertEquals("call-2", activeCallId)
-
-        composeRule.onNodeWithText("Approve").performClick()
-        afterTheBeat()
+        composeRule.waitForIdle()
+        assertEquals(PausePanelAutoAdvance.NextTab, picks.single().third)
         assertTrue("the wide layout submitted on a pick", submitted.isEmpty())
 
+        drafts = drafts + ("call-2" to ToolDecisionDraft(decision = ToolApprovalDecisions.APPROVE))
+        activeCallId = "call-2"
         composeRule.onNodeWithText("Continue (2/2)").performClick()
         composeRule.waitForIdle()
         assertEquals(1, submitted.size)
+    }
+
+    @Test
+    fun switchingLayoutDropsAScheduledMove() {
+        // A fold or rotation inside the beat: the compact pick must not submit under the wide layout.
+        setPanel(batch("search_web", "read_file"), width = COMPACT)
+        assertEquals(0, autoAdvanceCancels)
+
+        width = WIDE
+        composeRule.waitForIdle()
+
+        assertEquals(1, autoAdvanceCancels)
     }
 
     @Test
@@ -325,14 +335,9 @@ class ToolApprovalPanelInstrumentedTest {
         composeRule.onNode(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, page)).assertExists()
     }
 
-    /** Past the pause a pick waits before moving on, which idling alone does not advance. */
-    private fun afterTheBeat() {
-        composeRule.mainClock.advanceTimeBy(PAUSE_PANEL_AUTO_ADVANCE_DELAY_MS + BEAT_SLACK_MS)
-        composeRule.waitForIdle()
-    }
-
     private fun setPanel(action: PendingAction, width: Dp) {
         pending = action
+        this.width = width
         composeRule.setContent {
             // A phone-sized test device is ~420dp wide, which would clamp the wide layout's width
             // back under the 600dp split; a lower density fits it on screen at its real dp size.
@@ -345,10 +350,15 @@ class ToolApprovalPanelInstrumentedTest {
                         activeCallId = activeCallId,
                         collapsed = collapsed,
                         onDraftChange = { id, draft -> drafts = drafts + (id to draft) },
+                        onPickDecision = { id, draft, advance ->
+                            picks += Triple(id, draft, advance)
+                            drafts = drafts + (id to draft)
+                        },
                         onSelectCall = { activeCallId = it },
                         onCollapsedChange = { collapsed = it },
+                        onCancelAutoAdvance = { autoAdvanceCancels++ },
                         onSubmit = { submitted += it },
-                        modifier = Modifier.width(width),
+                        modifier = Modifier.width(this.width),
                     )
                 }
             }
@@ -389,7 +399,6 @@ class ToolApprovalPanelInstrumentedTest {
     private companion object {
         val COMPACT = 380.dp
         val WIDE = 720.dp
-        const val BEAT_SLACK_MS = 100L
         const val HARNESS_DENSITY = 1.5f
     }
 }
