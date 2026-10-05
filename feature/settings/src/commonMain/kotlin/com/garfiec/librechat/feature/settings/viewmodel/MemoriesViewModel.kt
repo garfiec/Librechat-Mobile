@@ -3,10 +3,12 @@ package com.garfiec.librechat.feature.settings.viewmodel
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.BackendVersion
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.MemoryRepository
+import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.model.MEMORY_KEY_PATTERN_MIN_VERSION
 import com.garfiec.librechat.core.model.Memory
 import com.garfiec.librechat.core.model.request.CreateMemoryRequest
@@ -37,6 +39,7 @@ data class MemoriesUiState(
 class MemoriesViewModel(
     private val memoryRepository: MemoryRepository,
     configRepository: ConfigRepository,
+    private val userRepository: UserRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MemoriesUiState())
@@ -44,6 +47,7 @@ class MemoriesViewModel(
 
     init {
         loadMemories()
+        loadMemoriesPreference()
         viewModelScope.launch {
             configRepository.detectedBackendVersion.collect { version ->
                 _uiState.value = _uiState.value.copy(
@@ -72,6 +76,27 @@ class MemoriesViewModel(
                         isRefreshing = false,
                         error = result.message ?: "Failed to load memories",
                     )
+                }
+                is Result.Loading -> { /* no-op */ }
+            }
+        }
+    }
+
+    /**
+     * The opt-out is stored on the user profile (`personalization.memories`), not returned by
+     * `GET /api/memories`, so it has to be read from `GET /api/user`. Without this the switch
+     * always starts ON after a restart even though the server kept the user's OFF.
+     */
+    private fun loadMemoriesPreference() {
+        viewModelScope.launch {
+            when (val result = userRepository.getUser()) {
+                is Result.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        memoriesEnabled = result.data.personalization?.memories ?: true,
+                    )
+                }
+                is Result.Error -> {
+                    Logger.d(result.exception) { "Failed to load memory preference: ${result.message}" }
                 }
                 is Result.Loading -> { /* no-op */ }
             }

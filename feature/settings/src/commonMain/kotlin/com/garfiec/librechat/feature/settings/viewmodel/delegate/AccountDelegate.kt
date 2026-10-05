@@ -42,6 +42,8 @@ class AccountDelegate(
                             user = result.data.toDisplayData(),
                             profileLoadError = null,
                             isTwoFactorEnabled = result.data.twoFactorEnabled,
+                            // The opt-out lives on the profile; absent block = server default (on).
+                            memoriesEnabled = result.data.personalization?.memories ?: true,
                             // Fail-CLOSED admin gate: the role-skills admin row shows
                             // only for the ADMIN system role (mirrors the server's
                             // manageRoles middleware). Server also 403s non-admins.

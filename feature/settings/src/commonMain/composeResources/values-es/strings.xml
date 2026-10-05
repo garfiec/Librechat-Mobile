@@ -138,7 +138,6 @@
     <string name="prefetch_cache_messages_value">%1$d mensajes</string>
     <string name="prefetch_cache_images">Imágenes y archivos</string>
     <string name="section_memories">Recuerdos</string>
-    <string name="section_personalization">Personalización</string>
     <string name="section_presets">Preajustes</string>
     <string name="section_profile">Perfil</string>
     <string name="section_security">Seguridad</string>
@@ -176,7 +175,6 @@
     <!-- Settings rows -->
     <string name="language">Idioma</string>
     <string name="language_system_default">Predeterminado del sistema</string>
-    <string name="personalization">Personalización</string>
     <string name="status_enabled">Activado</string>
     <string name="status_disabled">Desactivado</string>
     <string name="fork_behavior">Comportamiento de bifurcación</string>
@@ -494,11 +492,6 @@
     <string name="hint_search_languages">Buscar idiomas</string>
 
     <!-- Personalization dialog -->
-    <string name="enable_personalization">Activar personalización</string>
-    <string name="about_you_label">Sobre ti</string>
-    <string name="about_you_hint">¿Qué debería saber la IA sobre ti para tener contexto?</string>
-    <string name="response_style_label">¿Cómo debería responder la IA?</string>
-    <string name="response_style_hint">Tono, formato o estilo preferido para las respuestas</string>
 
     <!-- Avatar upload dialog -->
     <string name="dialog_title_update_avatar">Actualizar avatar</string>

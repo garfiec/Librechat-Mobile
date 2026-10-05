@@ -38,7 +38,7 @@
 - 2FA setup/disable in Account section
 
 ### New Settings Sections
-- `SettingsScreen` now organized into: Account, Appearance, General (Language, Personalization), Chat (Presets), Advanced (Fork Behavior, Commands), Server, About, Danger Zone
+- `SettingsScreen` now organized into: Account, Appearance, General (Language), Chat (Presets), Advanced (Fork Behavior, Commands), Server, About, Danger Zone
 - Each new setting opens a dialog or navigates to a dedicated screen
 
 ### Settings Sub-screens (via SettingsNavigation)
@@ -102,7 +102,6 @@
 ### Dialogs
 - `LanguageSelectorDialog` — 37+ locales with search, single-select radio
 - `ForkSettingsDialog` — 3 fork modes (`DIRECT_PATH`, `INCLUDE_BRANCHES`, `TARGET_LEVEL`); labels/descriptions come from `fork_mode_*` string resources via `forkModeLabel()` / `forkModeDescription()`, not from the enum
-- `PersonalizationDialog` — "About you" + "Response style" text areas with enable toggle
 
 ### MCP OAuth consent (v0.8.8)
 - `reinitialize` can answer `oauthRequired` + `oauthUrl`, meaning the server is waiting on the user

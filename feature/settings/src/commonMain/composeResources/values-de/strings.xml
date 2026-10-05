@@ -138,7 +138,6 @@
     <string name="prefetch_cache_messages_value">%1$d Nachrichten</string>
     <string name="prefetch_cache_images">Bilder und Dateien</string>
     <string name="section_memories">Erinnerungen</string>
-    <string name="section_personalization">Personalisierung</string>
     <string name="section_presets">Vorlagen</string>
     <string name="section_profile">Profil</string>
     <string name="section_security">Sicherheit</string>
@@ -176,7 +175,6 @@
     <!-- Settings rows -->
     <string name="language">Sprache</string>
     <string name="language_system_default">Systemstandard</string>
-    <string name="personalization">Personalisierung</string>
     <string name="status_enabled">Aktiviert</string>
     <string name="status_disabled">Deaktiviert</string>
     <string name="fork_behavior">Verzweigungsverhalten</string>
@@ -494,11 +492,6 @@
     <string name="hint_search_languages">Sprachen suchen</string>
 
     <!-- Personalization dialog -->
-    <string name="enable_personalization">Personalisierung aktivieren</string>
-    <string name="about_you_label">Über dich</string>
-    <string name="about_you_hint">Was sollte die KI für den Kontext über dich wissen?</string>
-    <string name="response_style_label">Wie soll die KI antworten?</string>
-    <string name="response_style_hint">Bevorzugter Ton, Format oder Stil für Antworten</string>
 
     <!-- Avatar upload dialog -->
     <string name="dialog_title_update_avatar">Avatar aktualisieren</string>

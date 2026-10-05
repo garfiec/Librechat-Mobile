@@ -24,7 +24,6 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Tablet
 import androidx.compose.material.icons.filled.Wallpaper
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -189,24 +188,6 @@ fun GeneralSettingsContent(
                     }
                 }
 
-                item(key = "personalization_header") {
-                    AdaptiveSectionHeader(stringResource(Res.string.section_personalization))
-                }
-                adaptiveSection {
-                    row(key = "personalization_row") {
-                        GeneralSettingsRow(
-                            icon = Icons.Default.Person,
-                            title = stringResource(Res.string.personalization),
-                            subtitle = if (uiState.personalizationEnabled) {
-                                stringResource(Res.string.status_enabled)
-                            } else {
-                                stringResource(Res.string.status_disabled)
-                            },
-                            onClick = viewModel::showPersonalizationDialog,
-                        )
-                    }
-                }
-
                 item(key = "about_header") {
                     AdaptiveSectionHeader(stringResource(Res.string.section_about))
                 }
@@ -267,17 +248,6 @@ fun GeneralSettingsContent(
                 selectedLanguage = uiState.selectedLanguage,
                 onLanguageSelect = viewModel::setLanguage,
                 onDismiss = viewModel::dismissLanguageDialog,
-            )
-        }
-
-        // Personalization dialog
-        if (uiState.showPersonalizationDialog) {
-            PersonalizationDialog(
-                aboutUser = uiState.aboutUser,
-                responseStyle = uiState.responseStyle,
-                enabled = uiState.personalizationEnabled,
-                onSave = viewModel::savePersonalization,
-                onDismiss = viewModel::dismissPersonalizationDialog,
             )
         }
 

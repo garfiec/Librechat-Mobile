@@ -138,7 +138,6 @@
     <string name="prefetch_cache_messages_value">%1$d 件のメッセージ</string>
     <string name="prefetch_cache_images">画像とファイル</string>
     <string name="section_memories">メモリ</string>
-    <string name="section_personalization">パーソナライズ</string>
     <string name="section_presets">プリセット</string>
     <string name="section_profile">プロフィール</string>
     <string name="section_security">セキュリティ</string>
@@ -176,7 +175,6 @@
     <!-- Settings rows -->
     <string name="language">言語</string>
     <string name="language_system_default">システムのデフォルト</string>
-    <string name="personalization">パーソナライズ</string>
     <string name="status_enabled">有効</string>
     <string name="status_disabled">無効</string>
     <string name="fork_behavior">フォークの動作</string>
@@ -494,11 +492,6 @@
     <string name="hint_search_languages">言語を検索</string>
 
     <!-- Personalization dialog -->
-    <string name="enable_personalization">パーソナライズを有効にする</string>
-    <string name="about_you_label">あなたについて</string>
-    <string name="about_you_hint">文脈としてAIが知っておくべきあなたの情報は何ですか？</string>
-    <string name="response_style_label">AIはどのように応答すべきですか？</string>
-    <string name="response_style_hint">応答に好みのトーン、形式、スタイル</string>
 
     <!-- Avatar upload dialog -->
     <string name="dialog_title_update_avatar">アバターを更新</string>

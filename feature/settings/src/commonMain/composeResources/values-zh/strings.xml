@@ -138,7 +138,6 @@
     <string name="prefetch_cache_messages_value">%1$d 条消息</string>
     <string name="prefetch_cache_images">图片和文件</string>
     <string name="section_memories">记忆</string>
-    <string name="section_personalization">个性化</string>
     <string name="section_presets">预设</string>
     <string name="section_profile">个人资料</string>
     <string name="section_security">安全</string>
@@ -176,7 +175,6 @@
     <!-- Settings rows -->
     <string name="language">语言</string>
     <string name="language_system_default">跟随系统</string>
-    <string name="personalization">个性化</string>
     <string name="status_enabled">已启用</string>
     <string name="status_disabled">已禁用</string>
     <string name="fork_behavior">分叉行为</string>
@@ -494,11 +492,6 @@
     <string name="hint_search_languages">搜索语言</string>
 
     <!-- Personalization dialog -->
-    <string name="enable_personalization">启用个性化</string>
-    <string name="about_you_label">关于你</string>
-    <string name="about_you_hint">为了提供上下文，AI 应该了解你的哪些信息？</string>
-    <string name="response_style_label">AI 应如何回复？</string>
-    <string name="response_style_hint">回复时偏好的语气、格式或风格</string>
 
     <!-- Avatar upload dialog -->
     <string name="dialog_title_update_avatar">更新头像</string>
