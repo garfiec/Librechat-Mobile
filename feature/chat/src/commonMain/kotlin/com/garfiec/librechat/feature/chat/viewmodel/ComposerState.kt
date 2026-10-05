@@ -8,8 +8,9 @@ import com.garfiec.librechat.feature.chat.viewmodel.delegate.PickedFile
 
 /**
  * The editable composer surface: the draft text, any send-block reason, and the active
- * queued-edit session. Written by [ChatViewModel], UploadIntakeDelegate, PresetPromptDelegate, and
- * the platform voice-input delegates.
+ * queued-edit session. Written by [ChatViewModel], UploadIntakeDelegate, PresetPromptDelegate,
+ * ConversationLoadDelegate (draft / unsent-text restores only) and the platform voice-input
+ * delegates.
  */
 @Immutable
 data class ComposerState(
