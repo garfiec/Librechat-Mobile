@@ -41,16 +41,12 @@ import com.garfiec.librechat.core.model.FileReference
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.MinimalFeedback
 import com.garfiec.librechat.core.model.Preset
-import com.garfiec.librechat.core.model.config.InterfaceConfig
 import com.garfiec.librechat.core.model.config.isTraceViewerEnabled
 import com.garfiec.librechat.core.model.error.UserKeyError
 import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 import com.garfiec.librechat.core.model.media.resolveFileReferenceUrl
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
-import com.garfiec.librechat.core.model.permissions.UserRolePermissions
-import com.garfiec.librechat.core.model.permissions.canCreateSharedLinks
-import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
 import com.garfiec.librechat.core.model.queuedturn.AgentQueuedTurnReceipt
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnFileRef
 import com.garfiec.librechat.core.model.request.ToolApprovalResolution
@@ -73,6 +69,7 @@ import com.garfiec.librechat.feature.chat.util.hasParallelParts
 import com.garfiec.librechat.feature.chat.util.isImageType
 import com.garfiec.librechat.feature.chat.util.serializeMessageForClipboard
 import com.garfiec.librechat.feature.chat.util.stabilizeMessageInstances
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.ChatConfigDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ComparisonModeDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ContextProjectionDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ConversationActionsDelegate
@@ -119,12 +116,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-// debt — LargeClass: 2623-line file
+// debt — LargeClass: 2476-line file
 @Suppress("TooManyFunctions", "LongParameterList", "LargeClass")
 class ChatViewModel(
     initialConversationId: String? = null,
@@ -154,8 +150,8 @@ class ChatViewModel(
     shareRepository: ShareRepository,
     private val traceRepository: TraceRepository,
     mcpRepository: McpRepository,
-    private val userRepository: UserRepository,
-    private val roleRepository: RoleRepository,
+    userRepository: UserRepository,
+    roleRepository: RoleRepository,
     private val permissionGate: PermissionGate,
     private val connectivityObserver: ConnectivityObserver,
     private val activeAccountProvider: ActiveAccountProvider,
@@ -290,15 +286,6 @@ class ChatViewModel(
     val attachedFiles: StateFlow<List<AttachedFile>> get() = fileDelegate.attachedFiles
     val pdfPasswordPrompts: StateFlow<List<PdfPasswordPrompt>> get() = fileDelegate.pdfPasswordPrompts
     val shareLinkUrl: StateFlow<String?> get() = conversationActionsDelegate.shareLinkUrl
-
-    /** The inputs of the feature-gate combine, named so the collector destructures readably. */
-    private data class GateInputs(
-        val role: UserRolePermissions?,
-        val iface: InterfaceConfig?,
-        val version: String?,
-        val dropParamsMap: Map<String, JsonElement>?,
-        val compactionEnabled: Boolean?,
-    )
 
     private data class TraceGateInputs(
         val conversationId: String?,
@@ -448,6 +435,14 @@ class ChatViewModel(
         awaitAgentProvider = { modelDelegate.awaitSelectedAgentProvider() },
         // Only the EXPOSED combine folds serverDataStore.currentUrlFlow into prefs.serverUrl.
         serverUrl = { uiState.value.serverUrl },
+    )
+
+    private val chatConfigDelegate = ChatConfigDelegate(
+        handle = ChatConfigHandle(stateHandle),
+        configRepository = configRepository,
+        roleRepository = roleRepository,
+        fileRepository = fileRepository,
+        userRepository = userRepository,
     )
 
     private val pendingActionDelegate = PendingActionDelegate(
@@ -798,10 +793,10 @@ class ChatViewModel(
         // Favorites is user-personal (not server-permission-gated upstream); load eagerly
         // so the chat-side pin stars and Settings → Favorites stay in sync from cold start.
         favoritesDelegate.load()
-        loadUserProfile()
-        loadFlags()
+        chatConfigDelegate.loadUserProfile()
+        chatConfigDelegate.loadFlags()
         observeTraceAvailability()
-        loadFileConfig()
+        chatConfigDelegate.loadFileConfig()
         voiceDelegate.loadSpeechConfig()
 
         // Gated loads share a single 5-second role-await budget so offline/timeout
@@ -2211,114 +2206,6 @@ class ChatViewModel(
         }
     }
 
-    private fun loadFlags() {
-        // Share visibility = server feature flag AND the SHARED_LINKS/CREATE role permission
-        // (v0.8.7). Permissive on unknown so older backends (no permission emitted) keep
-        // showing Share. Mirrors upstream ConvoOptions' sharedLinksEnabled && canCreate gate.
-        viewModelScope.launch {
-            combine(
-                configRepository.startupConfig,
-                roleRepository.userPermissions,
-            ) { config, role ->
-                role.canCreateSharedLinks(config?.sharedLinksEnabled ?: false)
-            }.distinctUntilChanged().collect { canShare ->
-                _uiState.update { it.copy(conversation = it.conversation.copy(sharedLinksEnabled = canShare)) }
-            }
-        }
-        // Feature gates. The effective rule mirrors web: `interface.* flag AND role permission`.
-        // Combining the two flows lets us AND them in one place. Both inputs fail open:
-        //  - Role permissions: null role (not loaded) → true; missing type/action → true
-        //    (see UserRolePermissions.hasAccess).
-        //  - Interface flags: an absent `interface` block (older backend) → null → treated
-        //    as enabled, so we never hide a control just because config is missing.
-        // The `interface.*` booleans (modelSelect/parameters/presets/multiConvo/temporaryChat/
-        // runCode/webSearch/fileSearch/bookmarks) default to true in InterfaceConfig, so an
-        // omitted individual flag is also fail-open.
-        viewModelScope.launch {
-            combine(
-                roleRepository.userPermissions,
-                configRepository.startupConfig,
-                configRepository.detectedBackendVersion,
-            ) { role, config, version ->
-                GateInputs(
-                    role,
-                    config?.interfaceConfig,
-                    version,
-                    config?.endpointsDropParamsMap,
-                    config?.compactionEnabled,
-                )
-            }.distinctUntilChanged().collect { gates ->
-                val role = gates.role
-                val iface = gates.iface
-                val version = gates.version
-                // Context gauge needs the on_context_usage SSE + /api/endpoints/token-config that
-                // drive it; both ship in v0.8.7-rc1. Fail-closed on older/unknown. The later
-                // /api/endpoints/context-projection (upstream fdc7e64bb, rc1 → final) is only an
-                // optional seed — ContextProjectionDelegate drops a failed projection and leaves
-                // the gauge to the SSE, the same arrangement used on the 0.8.8 line where the
-                // projection POST is deliberately suppressed.
-                val contextGaugeSupported = version != null &&
-                    BackendVersion.isCompatibleOrNewer(version, "0.8.7-rc1")
-
-                // Effective gate = role permission AND interface flag, both fail-open
-                // (null role → permissive; absent/omitted flag → enabled).
-                fun gate(type: PermissionType, action: Permission, flag: (InterfaceConfig) -> Boolean?) =
-                    role.hasAccessOrPermissive(type, action) && (iface?.let(flag) ?: true)
-                _uiState.update {
-                    it.copy(
-                        gates = it.gates.copy(
-                            promptsEnabled = role.hasAccessOrPermissive(PermissionType.PROMPTS, Permission.USE),
-                            promptsCreateEnabled = role.hasAccessOrPermissive(PermissionType.PROMPTS, Permission.CREATE),
-                            agentsEnabled = role.hasAccessOrPermissive(PermissionType.AGENTS, Permission.USE),
-                            agentsCreateEnabled = role.hasAccessOrPermissive(PermissionType.AGENTS, Permission.CREATE),
-                            mcpServersEnabled = role.hasAccessOrPermissive(PermissionType.MCP_SERVERS, Permission.USE),
-                            multiConvoEnabled = gate(PermissionType.MULTI_CONVO, Permission.USE) { it.multiConvo },
-                            temporaryChatEnabled = gate(PermissionType.TEMPORARY_CHAT, Permission.USE) { it.temporaryChat },
-                            webSearchEnabled = gate(PermissionType.WEB_SEARCH, Permission.USE) { it.webSearch },
-                            runCodeEnabled = gate(PermissionType.RUN_CODE, Permission.USE) { it.runCode },
-                            fileSearchEnabled = gate(PermissionType.FILE_SEARCH, Permission.USE) { it.fileSearch },
-                            bookmarksEnabled = gate(PermissionType.BOOKMARKS, Permission.USE) { it.bookmarks },
-                            // Interface-only gates (no role permission counterpart on web).
-                            modelSelectEnabled = iface?.modelSelect ?: true,
-                            parametersEnabled = iface?.parameters ?: true,
-                            // Web gates the presets menu on `presets && modelSelect` (Header.tsx).
-                            presetsEnabled = (iface?.presets ?: true) && (iface?.modelSelect ?: true),
-                            feedbackEnabled = iface?.feedback ?: true,
-                            // Context-usage gauge (v0.8.7): interface flag AND backend support.
-                            contextUsageEnabled = contextGaugeSupported && (iface?.contextUsage ?: true),
-                            // The inline memory tools WRITE, so the composer toggle needs the full
-                            // USE+CREATE+UPDATE set the backend's own memoryAvailable gate requires
-                            // — a read-only-memory role must not get a control the server would
-                            // refuse to wire up. The capability half of the gate is folded in at
-                            // read time (see ChatUiState.isMemoryToolAvailable), because the agents
-                            // endpoint config arrives on a different flow than this combine.
-                            memoryEnabled = role.hasAccessOrPermissive(PermissionType.MEMORIES, Permission.USE) &&
-                                role.hasAccessOrPermissive(PermissionType.MEMORIES, Permission.CREATE) &&
-                                role.hasAccessOrPermissive(PermissionType.MEMORIES, Permission.UPDATE),
-                            // Pinned tools (v0.8.7): raw interface list; mapped/filtered by pinnedToolChips.
-                            pinnedTools = iface?.defaultPinnedTools ?: emptyList(),
-                            dropParamsMap = gates.dropParamsMap,
-                            compactionEnabled = gates.compactionEnabled == true,
-                        ),
-                    )
-                }
-            }
-        }
-    }
-
-    /**
-     * Fetches the server's upload config once so the attach controls can be gated per
-     * endpoint (see [ChatUiState.fileUploadEnabled]). Fails open: on error the config
-     * stays null and attaching remains enabled.
-     */
-    private fun loadFileConfig() {
-        viewModelScope.launch {
-            fileRepository.getFileConfig().getOrNull()?.let { config ->
-                _uiState.update { it.copy(account = it.account.copy(fileUploadConfig = config)) }
-            }
-        }
-    }
-
     /**
      * Suspends until [ChatUiState.isSendReady] becomes true, up to [timeoutMs]. Returns
      * true if the state became ready; false on timeout. Used as a pre-flight guard on all
@@ -2440,51 +2327,8 @@ class ChatViewModel(
         _uiState.update { it.copy(selection = it.selection.copy(showModelSheet = false)) }
     }
 
-    private fun loadUserProfile() {
-        viewModelScope.launch {
-            when (val result = userRepository.getUser()) {
-                is Result.Success -> {
-                    val user = result.data
-                    cachedUserId = user.id
-                    _uiState.update {
-                        it.copy(
-                            account = it.account.copy(
-                                userName = user.name ?: user.username,
-                                userAvatarUrl = user.avatar,
-                                memoriesOptedOut = user.personalization?.memories == false,
-                            ),
-                        )
-                    }
-                }
-                is Result.Error -> {
-                    Logger.d(result.exception) { "Failed to load user profile: ${result.message}" }
-                }
-                is Result.Loading -> { /* no-op */ }
-            }
-        }
-    }
-
-    // Cached so tapping several generated-file chips doesn't re-fetch the user each time.
-    private var cachedUserId: String? = null
-
-    /**
-     * Downloads a generated tool-call file's bytes (authenticated) for the file-chip share action;
-     * null on failure. Backs [com.garfiec.librechat.feature.chat.components.LocalAttachmentDownloader].
-     * Mirrors `ConversationMediaViewModel.downloadFileBytes`.
-     */
-    suspend fun downloadFileBytes(fileId: String): ByteArray? {
-        val userId = cachedUserId
-            ?: (userRepository.getUser() as? Result.Success)?.data?.id?.also { cachedUserId = it }
-            ?: return null
-        return when (val result = fileRepository.downloadFile(userId, fileId)) {
-            is Result.Success -> result.data
-            is Result.Error -> {
-                Logger.e(result.exception) { "Failed to download file $fileId: ${result.message}" }
-                null
-            }
-            is Result.Loading -> null
-        }
-    }
+    /** Backs [com.garfiec.librechat.feature.chat.components.LocalAttachmentDownloader]; see [ChatConfigDelegate.downloadFileBytes]. */
+    suspend fun downloadFileBytes(fileId: String): ByteArray? = chatConfigDelegate.downloadFileBytes(fileId)
 
     fun dismissError() {
         _uiState.update { it.copy(error = null) }
