@@ -211,8 +211,9 @@ class MessageEditingDelegate(
      * server rebuilds the user message from `req.body.quotes` on a regenerate, so omitting
      * them silently drops the quoted context while the chips stay visible. Continue sends
      * none, matching web. The new-message send path
-     * (`doSendWithSpec`) stays in `ChatViewModel`: it additionally carries an added-conversation
-     * for comparison mode and a bespoke stream-terminated callback this helper deliberately omits.
+     * (`SendDispatchDelegate.doSendWithSpec`) is separate: it additionally carries an
+     * added-conversation for comparison mode and a bespoke stream-terminated callback this helper
+     * deliberately omits.
      */
     @Suppress("LongParameterList")
     private fun launchSend(
