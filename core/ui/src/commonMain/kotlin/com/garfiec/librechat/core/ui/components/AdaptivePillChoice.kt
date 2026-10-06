@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -52,6 +53,7 @@ import kotlin.math.roundToInt
  * the drawer's Chats/Projects toggle in Material, the iOS segmented control in Liquid Glass. Tapping
  * a segment selects it; dragging along the track scrubs the thumb, and the release settles on the
  * nearest segment (or the flung one). It fills its width, splitting it evenly between [options].
+ * While not [enabled] it ignores taps and drags and dims, as M3 dims a disabled control.
  */
 @Composable
 fun AdaptivePillChoice(
@@ -59,9 +61,10 @@ fun AdaptivePillChoice(
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     if (isLiquidGlass) {
-        LiquidSegmentedControl(options, selectedIndex, onSelect, modifier)
+        LiquidSegmentedControl(options, selectedIndex, onSelect, modifier, enabled)
         return
     }
     val count = options.size.coerceAtLeast(1)
@@ -79,6 +82,7 @@ fun AdaptivePillChoice(
     BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
+            .alpha(if (enabled) 1f else DISABLED_ALPHA)
             .background(MaterialTheme.colorScheme.surfaceContainerHighest, TrackShape)
             .padding(TrackPadding)
             .height(CellHeight),
@@ -93,6 +97,7 @@ fun AdaptivePillChoice(
                 .draggable(
                     state = rememberDraggableState { delta -> thumb.dragBy(delta / cellPx, last) },
                     orientation = Orientation.Horizontal,
+                    enabled = enabled,
                     reverseDirection = rtl,
                     onDragStarted = { thumb.startDrag() },
                     onDragStopped = { velocity ->
@@ -115,6 +120,7 @@ fun AdaptivePillChoice(
                     PillSegment(
                         label = label,
                         selected = index == selectedIndex,
+                        enabled = enabled,
                         onThumb = onThumb,
                         onClick = {
                             thumb.settle(index)
@@ -133,6 +139,7 @@ fun AdaptivePillChoice(
 private fun PillSegment(
     label: String,
     selected: Boolean,
+    enabled: Boolean,
     onThumb: Float,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -150,6 +157,7 @@ private fun PillSegment(
                 selected = selected,
                 interactionSource = null,
                 indication = null,
+                enabled = enabled,
                 role = Role.RadioButton,
                 onClick = onClick,
             )
@@ -218,6 +226,9 @@ private val TrackShape = RoundedCornerShape(12.dp)
 private val ThumbShape = RoundedCornerShape(8.dp)
 private val TrackPadding = 4.dp
 private val CellHeight = 36.dp
+
+// M3's disabled-content alpha.
+private const val DISABLED_ALPHA = 0.38f
 
 // A release this fast picks the segment it's heading to, however far the thumb got.
 private val FlingVelocity = 400.dp

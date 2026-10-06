@@ -33,9 +33,9 @@ import com.garfiec.librechat.core.model.usage.ContextDetailPreset
 import com.garfiec.librechat.core.model.usage.ContextDetailSections
 import com.garfiec.librechat.core.ui.components.AdaptiveCard
 import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
+import com.garfiec.librechat.core.ui.components.AdaptivePillChoice
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
-import com.garfiec.librechat.core.ui.components.AdaptiveSegmentedChoice
 import com.garfiec.librechat.core.ui.components.adaptiveSection
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
@@ -141,7 +141,7 @@ private fun DetailControls(
         modifier = Modifier.fillMaxWidth().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        AdaptiveSegmentedChoice(
+        AdaptivePillChoice(
             options = ContextDetailPreset.entries.map { presetLabel(it) },
             selectedIndex = ContextDetailPreset.entries.indexOf(state.preset),
             onSelect = { onPreset(ContextDetailPreset.entries[it]) },
@@ -215,7 +215,7 @@ private fun CustomSections(
             onChange = { on -> onSections { it.copy(totals = on) } },
         )
         Text(text = stringResource(Res.string.context_section_cost), style = MaterialTheme.typography.bodyLarge)
-        AdaptiveSegmentedChoice(
+        AdaptivePillChoice(
             options = ContextCostScope.entries.map { costScopeLabel(it) },
             selectedIndex = ContextCostScope.entries.indexOf(sections.cost),
             onSelect = { index -> onSections { it.copy(cost = ContextCostScope.entries[index]) } },
@@ -238,7 +238,7 @@ private fun CompactControls(threshold: Int, onThreshold: (Int) -> Unit) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(text = stringResource(Res.string.context_settings_compact_at), style = MaterialTheme.typography.bodyLarge)
-        AdaptiveSegmentedChoice(
+        AdaptivePillChoice(
             options = COMPACT_NUDGE_THRESHOLDS.map { if (it == 0) stringResource(Res.string.context_settings_compact_off) else "$it%" },
             selectedIndex = COMPACT_NUDGE_THRESHOLDS.indexOf(threshold).coerceAtLeast(0),
             onSelect = { onThreshold(COMPACT_NUDGE_THRESHOLDS[it]) },
