@@ -8,6 +8,7 @@ import com.garfiec.librechat.feature.settings.viewmodel.FavoritesViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.McpViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.MemoriesViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.PrefetchActivityViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.PrefetchSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.PresetManagerViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ReleaseNotesViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.RoleSkillsAdminViewModel
@@ -50,7 +51,6 @@ val settingsModule = module {
             configRepository = get(),
             diagnosticLogRepository = get(),
             appInfo = get(),
-            attachmentWarmer = get(),
             ioDispatcher = get(KoinQualifiers.IO),
         )
     }
@@ -71,6 +71,7 @@ val settingsModule = module {
             ioDispatcher = get(KoinQualifiers.IO),
         )
     }
+    viewModelOf(::PrefetchSettingsViewModel)
     viewModelOf(::ProviderKeysViewModel)
     viewModelOf(::RoleSkillsAdminViewModel)
     viewModelOf(::ServerHeadersViewModel)

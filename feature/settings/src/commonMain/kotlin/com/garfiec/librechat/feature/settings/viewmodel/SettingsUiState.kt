@@ -14,7 +14,6 @@ import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
-import com.garfiec.librechat.core.data.prefetch.PrefetchDepth
 import com.garfiec.librechat.core.model.Memory
 import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.config.BuildInfo
@@ -88,12 +87,6 @@ data class SettingsUiState(
     /** What the composer's send does mid-run (v0.8.8 steering): inject into the running reply,
      *  or queue for after it. Honoured only where the server supports steering. */
     val duringRunAction: DuringRunAction = DuringRunAction.QUEUE,
-    val prefetchEnabled: Boolean = false,
-    val prefetchAttachmentsEnabled: Boolean = false,
-    val prefetchOnMeteredEnabled: Boolean = false,
-    val prefetchDepth: Int = PrefetchDepth.DEFAULT,
-    /** Whether this platform has an image cache worth warming; false hides the toggle. */
-    val prefetchAttachmentsSupported: Boolean = false,
     /** Cached images and files, in bytes; null until read. Excludes the database — see
      *  [com.garfiec.librechat.feature.settings.util.PlatformCacheCleaner.cacheSizeBytes]. */
     val cacheSizeBytes: Long? = null,

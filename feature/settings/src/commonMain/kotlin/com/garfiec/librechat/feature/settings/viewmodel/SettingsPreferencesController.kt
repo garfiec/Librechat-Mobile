@@ -16,7 +16,6 @@ import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
-import com.garfiec.librechat.core.data.prefetch.PrefetchDepth
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -72,10 +71,6 @@ private data class AdditionalPreferences(
     val chatHeaderAlignment: ChatHeaderAlignment = ChatHeaderAlignment.LEFT,
     val contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
     val duringRunAction: DuringRunAction = DuringRunAction.QUEUE,
-    val prefetchEnabled: Boolean = false,
-    val prefetchAttachmentsEnabled: Boolean = false,
-    val prefetchOnMeteredEnabled: Boolean = false,
-    val prefetchDepth: Int = PrefetchDepth.DEFAULT,
     val uploadRoutingMode: UploadRoutingMode = UploadRoutingMode.AUTO,
     val showSiteIcons: Boolean = false,
 )
@@ -228,14 +223,6 @@ class SettingsPreferencesController(
         additional.copy(sttOnDevice = sttOnDevice)
     }.combine(settingsDataStore.sttEndOfSpeech) { additional, sttEndOfSpeech ->
         additional.copy(sttEndOfSpeech = sttEndOfSpeech)
-    }.combine(settingsDataStore.prefetchEnabled) { additional, prefetch ->
-        additional.copy(prefetchEnabled = prefetch)
-    }.combine(settingsDataStore.prefetchAttachmentsEnabled) { additional, prefetchAttachments ->
-        additional.copy(prefetchAttachmentsEnabled = prefetchAttachments)
-    }.combine(settingsDataStore.prefetchOnMeteredEnabled) { additional, prefetchOnMetered ->
-        additional.copy(prefetchOnMeteredEnabled = prefetchOnMetered)
-    }.combine(settingsDataStore.prefetchDepth) { additional, depth ->
-        additional.copy(prefetchDepth = depth)
     }.combine(settingsDataStore.siteIconsChoice) { additional, siteIcons ->
         // Never chosen reads as off: the chat screen asks before anything loads.
         additional.copy(showSiteIcons = siteIcons ?: false)
@@ -285,10 +272,6 @@ class SettingsPreferencesController(
             chatHeaderAlignment = additional.chatHeaderAlignment,
             contextBarPlacement = additional.contextBarPlacement,
             duringRunAction = additional.duringRunAction,
-            prefetchEnabled = additional.prefetchEnabled,
-            prefetchAttachmentsEnabled = additional.prefetchAttachmentsEnabled,
-            prefetchOnMeteredEnabled = additional.prefetchOnMeteredEnabled,
-            prefetchDepth = additional.prefetchDepth,
             uploadRoutingMode = additional.uploadRoutingMode,
             showSiteIcons = additional.showSiteIcons,
         )
@@ -318,22 +301,6 @@ class SettingsPreferencesController(
 
     fun setAutoScrollEnabled(enabled: Boolean) {
         scope.launch { settingsDataStore.setAutoScrollEnabled(enabled) }
-    }
-
-    fun setPrefetchEnabled(enabled: Boolean) {
-        scope.launch { settingsDataStore.setPrefetchEnabled(enabled) }
-    }
-
-    fun setPrefetchAttachmentsEnabled(enabled: Boolean) {
-        scope.launch { settingsDataStore.setPrefetchAttachmentsEnabled(enabled) }
-    }
-
-    fun setPrefetchDepth(depth: Int) {
-        scope.launch { settingsDataStore.setPrefetchDepth(depth) }
-    }
-
-    fun setPrefetchOnMeteredEnabled(enabled: Boolean) {
-        scope.launch { settingsDataStore.setPrefetchOnMeteredEnabled(enabled) }
     }
 
     fun setShowThinkingBlocks(show: Boolean) {

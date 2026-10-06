@@ -17,7 +17,6 @@ import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
-import com.garfiec.librechat.core.data.prefetch.AttachmentWarmer
 import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.BalanceRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
@@ -78,7 +77,6 @@ class SettingsViewModel(
     private val configRepository: ConfigRepository,
     diagnosticLogRepository: DiagnosticLogRepository,
     appInfo: AppInfo,
-    attachmentWarmer: AttachmentWarmer,
     ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
@@ -87,8 +85,6 @@ class SettingsViewModel(
         SettingsUiState(
             appVersion = appInfo.versionName,
             gitSha = appInfo.gitSha,
-            // Constant per platform, so it is seeded rather than observed.
-            prefetchAttachmentsSupported = attachmentWarmer.isSupported,
         ),
     )
 
@@ -244,22 +240,6 @@ class SettingsViewModel(
 
     fun setAutoScrollEnabled(enabled: Boolean) {
         prefsController.setAutoScrollEnabled(enabled)
-    }
-
-    fun setPrefetchEnabled(enabled: Boolean) {
-        prefsController.setPrefetchEnabled(enabled)
-    }
-
-    fun setPrefetchAttachmentsEnabled(enabled: Boolean) {
-        prefsController.setPrefetchAttachmentsEnabled(enabled)
-    }
-
-    fun setPrefetchDepth(depth: Int) {
-        prefsController.setPrefetchDepth(depth)
-    }
-
-    fun setPrefetchOnMeteredEnabled(enabled: Boolean) {
-        prefsController.setPrefetchOnMeteredEnabled(enabled)
     }
 
     fun setShowThinkingBlocks(show: Boolean) {
