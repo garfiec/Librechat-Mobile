@@ -306,7 +306,7 @@ internal fun RenderInlineDialog(
 }
 
 @Composable
-private fun <T> RadioGroup(
+internal fun <T> RadioGroup(
     options: List<T>,
     selected: T,
     onSelect: (T) -> Unit,

@@ -74,4 +74,31 @@
     <string name="context_usage_cost_all">Todos os ramos</string>
     <string name="context_usage_tools_all">Ferramentas</string>
     <string name="context_usage_used">Usado</string>
+    <string name="timestamp_just_now">Agora mesmo</string>
+    <plurals name="timestamp_minutes_ago">
+        <item quantity="one">há %1$d min</item>
+        <item quantity="many">há %1$d min</item>
+        <item quantity="other">há %1$d min</item>
+    </plurals>
+    <plurals name="timestamp_hours_ago">
+        <item quantity="one">há %1$d h</item>
+        <item quantity="many">há %1$d h</item>
+        <item quantity="other">há %1$d h</item>
+    </plurals>
+    <plurals name="timestamp_days_ago">
+        <item quantity="one">há %1$d dia</item>
+        <item quantity="many">há %1$d dias</item>
+        <item quantity="other">há %1$d dias</item>
+    </plurals>
+    <plurals name="timestamp_weeks_ago">
+        <item quantity="one">há %1$d semana</item>
+        <item quantity="many">há %1$d semanas</item>
+        <item quantity="other">há %1$d semanas</item>
+    </plurals>
+    <string name="timestamp_yesterday_at">Ontem, %1$s</string>
+    <string name="date_group_today">Hoje</string>
+    <string name="date_group_yesterday">Ontem</string>
+    <string name="date_group_previous_7_days">Últimos 7 dias</string>
+    <string name="date_group_previous_30_days">Últimos 30 dias</string>
+    <string name="date_group_unknown">Desconhecido</string>
 </resources>

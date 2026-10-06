@@ -74,4 +74,27 @@
     <string name="context_usage_cost_all">Alle Zweige</string>
     <string name="context_usage_tools_all">Tools</string>
     <string name="context_usage_used">Belegt</string>
+    <string name="timestamp_just_now">Gerade eben</string>
+    <plurals name="timestamp_minutes_ago">
+        <item quantity="one">vor %1$d Min.</item>
+        <item quantity="other">vor %1$d Min.</item>
+    </plurals>
+    <plurals name="timestamp_hours_ago">
+        <item quantity="one">vor %1$d Std.</item>
+        <item quantity="other">vor %1$d Std.</item>
+    </plurals>
+    <plurals name="timestamp_days_ago">
+        <item quantity="one">vor %1$d Tag</item>
+        <item quantity="other">vor %1$d Tagen</item>
+    </plurals>
+    <plurals name="timestamp_weeks_ago">
+        <item quantity="one">vor %1$d Woche</item>
+        <item quantity="other">vor %1$d Wochen</item>
+    </plurals>
+    <string name="timestamp_yesterday_at">Gestern %1$s</string>
+    <string name="date_group_today">Heute</string>
+    <string name="date_group_yesterday">Gestern</string>
+    <string name="date_group_previous_7_days">Letzte 7 Tage</string>
+    <string name="date_group_previous_30_days">Letzte 30 Tage</string>
+    <string name="date_group_unknown">Unbekannt</string>
 </resources>

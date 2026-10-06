@@ -3,6 +3,10 @@ package com.garfiec.librechat.core.data.datastore
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import com.garfiec.librechat.core.common.datetime.ClockFormat
+import com.garfiec.librechat.core.common.datetime.DateFormatStyle
+import com.garfiec.librechat.core.common.datetime.DateTimeFormatPrefs
+import com.garfiec.librechat.core.common.datetime.TimestampStyle
 import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
@@ -197,6 +201,23 @@ class DataStoreRoundTripTest {
 
         store.setChatFontSize(ChatFontSize.SMALL)
         assertThat(store.chatFontSize.first()).isEqualTo(ChatFontSize.SMALL)
+    }
+
+    @Test
+    fun dateTimePrefsStore_defaultThenRoundTrip() = runTest(testDispatcher) {
+        val ds = createDataStore("settings-datetime")
+        val store = DateTimePrefsStore(ds, CoroutineScope(testDispatcher), testDispatcher)
+        assertThat(store.prefs.first()).isEqualTo(DateTimeFormatPrefs())
+
+        val chosen = DateTimeFormatPrefs(TimestampStyle.SMART, ClockFormat.H24, DateFormatStyle.DMY_DOT)
+        store.set(chosen)
+        assertThat(store.prefs.first()).isEqualTo(chosen)
+
+        // A fresh instance seeds the first frame from disk. The warm-up is real file IO, which
+        // advanceUntilIdle doesn't wait for — await the ready flag instead.
+        val reopened = DateTimePrefsStore(ds, CoroutineScope(testDispatcher), testDispatcher)
+        reopened.isReady.first { it }
+        assertThat(reopened.initial).isEqualTo(chosen)
     }
 
     @Test

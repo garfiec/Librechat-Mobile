@@ -74,4 +74,23 @@
     <string name="context_usage_cost_all">全ブランチ</string>
     <string name="context_usage_tools_all">ツール</string>
     <string name="context_usage_used">使用済み</string>
+    <string name="timestamp_just_now">たった今</string>
+    <plurals name="timestamp_minutes_ago">
+        <item quantity="other">%1$d分前</item>
+    </plurals>
+    <plurals name="timestamp_hours_ago">
+        <item quantity="other">%1$d時間前</item>
+    </plurals>
+    <plurals name="timestamp_days_ago">
+        <item quantity="other">%1$d日前</item>
+    </plurals>
+    <plurals name="timestamp_weeks_ago">
+        <item quantity="other">%1$d週間前</item>
+    </plurals>
+    <string name="timestamp_yesterday_at">昨日 %1$s</string>
+    <string name="date_group_today">今日</string>
+    <string name="date_group_yesterday">昨日</string>
+    <string name="date_group_previous_7_days">過去7日間</string>
+    <string name="date_group_previous_30_days">過去30日間</string>
+    <string name="date_group_unknown">不明</string>
 </resources>

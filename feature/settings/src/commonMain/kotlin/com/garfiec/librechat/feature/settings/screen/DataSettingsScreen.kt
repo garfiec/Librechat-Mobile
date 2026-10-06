@@ -107,7 +107,6 @@ fun DataSettingsContent(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val prefetchState by prefetchViewModel.uiState.collectAsStateWithLifecycle()
-    val timeReference = rememberTickingTimeReference()
 
     var showClearCacheDialog by remember { mutableStateOf(false) }
     var showRevokeKeysDialog by remember { mutableStateOf(false) }
@@ -234,7 +233,7 @@ fun DataSettingsContent(
                         status = prefetchState.status,
                         warmedCount = prefetchState.warmedCount,
                         eligibleCount = prefetchState.eligibleCount,
-                        lastRunLabel = prefetchState.lastWarmedAt?.relativeLabel(timeReference),
+                        lastRunLabel = prefetchState.lastWarmedAt?.relativeLabel(),
                         onActivityClick = onNavigateToPrefetchActivity,
                     )
                 }

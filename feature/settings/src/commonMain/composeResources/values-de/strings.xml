@@ -69,7 +69,7 @@
     <string name="section_chat_preferences">Chat-Einstellungen</string>
     <string name="section_conversations">Unterhaltungen</string>
     <string name="section_danger_zone">Gefahrenzone</string>
-    <string name="section_language">Sprache</string>
+    <string name="section_language_region">Sprache &amp; Region</string>
     <string name="section_layout">Layout</string>
     <string name="section_mcp_servers">MCP-Server</string>
     <string name="section_prefetch">Vorabladen im Hintergrund</string>
@@ -673,4 +673,26 @@
     <string name="context_settings_compact_desc">Die Anzeige zeigt einen dezenten Hinweis, wenn sich die Unterhaltung füllt. Vor dem Komprimieren wird immer gefragt.</string>
     <string name="context_settings_pill_label">Kontext</string>
     <string name="context_settings_summary">%1$s · %2$s</string>
+    <string name="date_time_title">Datum &amp; Uhrzeit</string>
+    <string name="date_time_timestamps">Zeitstempel von Nachrichten</string>
+    <string name="date_time_style_relative">Relativ</string>
+    <string name="date_time_style_smart">Smart</string>
+    <string name="date_time_style_absolute">Absolut</string>
+    <string name="date_time_clock">Uhr</string>
+    <string name="date_time_clock_system">System</string>
+    <string name="date_time_clock_12h">12 Stunden</string>
+    <string name="date_time_clock_24h">24 Stunden</string>
+    <string name="date_time_system_is_24h">Dein Gerät verwendet das 24-Stunden-Format</string>
+    <string name="date_time_system_is_12h">Dein Gerät verwendet das 12-Stunden-Format</string>
+    <string name="date_time_date_format">Datumsformat</string>
+    <string name="date_format_system">System</string>
+    <string name="date_format_system_numeric">System (numerisch)</string>
+    <string name="date_format_dmy_dot">Tag.Monat.Jahr</string>
+    <string name="date_format_dmy_slash">Tag/Monat/Jahr</string>
+    <string name="date_format_dmy_dash">Tag-Monat-Jahr</string>
+    <string name="date_format_mdy_slash">Monat/Tag/Jahr</string>
+    <string name="date_format_ymd_dash">Jahr-Monat-Tag</string>
+    <string name="date_format_ymd_slash">Jahr/Monat/Tag</string>
+    <string name="date_format_long">Lang</string>
+    <string name="date_time_preview">Vorschau</string>
 </resources>

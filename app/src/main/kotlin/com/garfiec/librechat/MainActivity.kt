@@ -46,6 +46,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.network.ConnectivityObserver
+import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.ThemeDataStore
 import com.garfiec.librechat.core.data.datastore.ThemeMode
@@ -69,6 +70,7 @@ class MainActivity : ComponentActivity() {
     private val connectivityObserver: ConnectivityObserver by inject()
     private val themeDataStore: ThemeDataStore by inject()
     private val settingsDataStore: SettingsDataStore by inject()
+    private val dateTimePrefsStore: DateTimePrefsStore by inject()
 
     private var deepLinkUri by mutableStateOf<Uri?>(null)
 
@@ -127,6 +129,8 @@ class MainActivity : ComponentActivity() {
             val selectedLanguage by settingsDataStore.selectedLanguage.collectAsStateWithLifecycle(
                 initialValue = settingsDataStore.initialSelectedLanguage,
             )
+            // And on the date/time warm-up, so a non-default format is in place for the first timestamp.
+            val dateTimeReady by dateTimePrefsStore.isReady.collectAsStateWithLifecycle()
             // The DEFAULT_LANGUAGE sentinel ("system") maps to no override → keep the device locale.
             val appLocale = selectedLanguage.takeIf { it != SettingsDataStore.DEFAULT_LANGUAGE }
             val darkTheme = when (themeMode) {
@@ -145,7 +149,7 @@ class MainActivity : ComponentActivity() {
                 insetsController.isAppearanceLightNavigationBars = !darkTheme
             }
 
-            if (themeReady && localeReady) {
+            if (themeReady && localeReady && dateTimeReady) {
                 LibreChatTheme(
                     darkTheme = darkTheme,
                     accentColor = Color(accentColorArgb),

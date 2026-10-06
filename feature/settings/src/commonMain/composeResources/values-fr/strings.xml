@@ -69,7 +69,7 @@
     <string name="section_chat_preferences">Préférences de discussion</string>
     <string name="section_conversations">Conversations</string>
     <string name="section_danger_zone">Zone de danger</string>
-    <string name="section_language">Langue</string>
+    <string name="section_language_region">Langue et région</string>
     <string name="section_layout">Disposition</string>
     <string name="section_mcp_servers">Serveurs MCP</string>
     <string name="section_prefetch">Préchargement en arrière-plan</string>
@@ -673,4 +673,26 @@
     <string name="context_settings_compact_desc">La jauge affiche une suggestion discrète quand la conversation se remplit. Elle demande toujours avant de compacter.</string>
     <string name="context_settings_pill_label">Contexte</string>
     <string name="context_settings_summary">%1$s · %2$s</string>
+    <string name="date_time_title">Date et heure</string>
+    <string name="date_time_timestamps">Horodatage des messages</string>
+    <string name="date_time_style_relative">Relatif</string>
+    <string name="date_time_style_smart">Intelligent</string>
+    <string name="date_time_style_absolute">Absolu</string>
+    <string name="date_time_clock">Horloge</string>
+    <string name="date_time_clock_system">Système</string>
+    <string name="date_time_clock_12h">12 heures</string>
+    <string name="date_time_clock_24h">24 heures</string>
+    <string name="date_time_system_is_24h">Votre appareil utilise le format 24 heures</string>
+    <string name="date_time_system_is_12h">Votre appareil utilise le format 12 heures</string>
+    <string name="date_time_date_format">Format de date</string>
+    <string name="date_format_system">Système</string>
+    <string name="date_format_system_numeric">Système (numérique)</string>
+    <string name="date_format_dmy_dot">Jour.Mois.Année</string>
+    <string name="date_format_dmy_slash">Jour/Mois/Année</string>
+    <string name="date_format_dmy_dash">Jour-Mois-Année</string>
+    <string name="date_format_mdy_slash">Mois/Jour/Année</string>
+    <string name="date_format_ymd_dash">Année-Mois-Jour</string>
+    <string name="date_format_ymd_slash">Année/Mois/Jour</string>
+    <string name="date_format_long">Long</string>
+    <string name="date_time_preview">Aperçu</string>
 </resources>

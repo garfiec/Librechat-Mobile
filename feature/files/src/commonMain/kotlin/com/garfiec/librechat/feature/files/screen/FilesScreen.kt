@@ -85,6 +85,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarMenuSection
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTint
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
+import com.garfiec.librechat.core.ui.datetime.rememberAbsoluteTimestamp
 import com.garfiec.librechat.core.ui.media.MediaActionBar
 import com.garfiec.librechat.core.ui.media.MediaViewerHost
 import com.garfiec.librechat.core.ui.media.mediaThumbnail
@@ -645,10 +646,11 @@ private fun FileItem(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                val created = file.createdAt?.let { rememberAbsoluteTimestamp(it) }
                 Text(
                     text = buildString {
                         append(file.formattedSize)
-                        file.createdAt?.let { append(" \u00B7 $it") }
+                        created?.let { append(" \u00B7 $it") }
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

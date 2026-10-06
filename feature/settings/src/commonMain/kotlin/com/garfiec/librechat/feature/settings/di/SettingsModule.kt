@@ -38,6 +38,7 @@ val settingsModule = module {
             themeDataStore = get(),
             serverDataStore = get(),
             settingsDataStore = get(),
+            dateTimePrefsStore = get(),
             mcpRepository = get(),
             memoryRepository = get(),
             speechSettingsFactory = get(),

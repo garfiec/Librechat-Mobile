@@ -69,7 +69,7 @@
     <string name="section_chat_preferences">채팅 환경설정</string>
     <string name="section_conversations">대화</string>
     <string name="section_danger_zone">위험 구역</string>
-    <string name="section_language">언어</string>
+    <string name="section_language_region">언어 및 지역</string>
     <string name="section_layout">레이아웃</string>
     <string name="section_mcp_servers">MCP 서버</string>
     <string name="section_prefetch">백그라운드 미리 불러오기</string>
@@ -673,4 +673,26 @@
     <string name="context_settings_compact_desc">대화가 차면 게이지에 조용한 제안이 표시됩니다. 압축 전에는 항상 확인합니다.</string>
     <string name="context_settings_pill_label">컨텍스트</string>
     <string name="context_settings_summary">%1$s · %2$s</string>
+    <string name="date_time_title">날짜 및 시간</string>
+    <string name="date_time_timestamps">메시지 타임스탬프</string>
+    <string name="date_time_style_relative">상대</string>
+    <string name="date_time_style_smart">스마트</string>
+    <string name="date_time_style_absolute">절대</string>
+    <string name="date_time_clock">시계</string>
+    <string name="date_time_clock_system">시스템</string>
+    <string name="date_time_clock_12h">12시간</string>
+    <string name="date_time_clock_24h">24시간</string>
+    <string name="date_time_system_is_24h">기기가 24시간 형식을 사용합니다</string>
+    <string name="date_time_system_is_12h">기기가 12시간 형식을 사용합니다</string>
+    <string name="date_time_date_format">날짜 형식</string>
+    <string name="date_format_system">시스템</string>
+    <string name="date_format_system_numeric">시스템(숫자)</string>
+    <string name="date_format_dmy_dot">일.월.년</string>
+    <string name="date_format_dmy_slash">일/월/년</string>
+    <string name="date_format_dmy_dash">일-월-년</string>
+    <string name="date_format_mdy_slash">월/일/년</string>
+    <string name="date_format_ymd_dash">년-월-일</string>
+    <string name="date_format_ymd_slash">년/월/일</string>
+    <string name="date_format_long">긴 형식</string>
+    <string name="date_time_preview">미리보기</string>
 </resources>

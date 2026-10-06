@@ -57,7 +57,7 @@ data class AccountUiModel(
  */
 @Immutable
 data class DrawerUiState(
-    val groupedConversations: List<Pair<String, List<DrawerConversationDisplayData>>> = emptyList(),
+    val groupedConversations: List<Pair<DrawerGroupKey, List<DrawerConversationDisplayData>>> = emptyList(),
     val favoriteConversations: List<DrawerConversationDisplayData> = emptyList(),
     val pinnedConversations: List<DrawerConversationDisplayData> = emptyList(),
     val searchQuery: String = "",

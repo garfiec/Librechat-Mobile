@@ -24,6 +24,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Tablet
 import androidx.compose.material.icons.filled.Wallpaper
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -160,7 +161,7 @@ fun GeneralSettingsContent(
                 }
 
                 item(key = "general_header") {
-                    AdaptiveSectionHeader(stringResource(Res.string.section_language))
+                    AdaptiveSectionHeader(stringResource(Res.string.section_language_region))
                 }
                 adaptiveSection {
                     row(key = "language_row") {
@@ -172,6 +173,14 @@ fun GeneralSettingsContent(
                                 stringResource(Res.string.language_system_default),
                             ),
                             onClick = viewModel::showLanguageDialog,
+                        )
+                    }
+                    row(key = "date_time_row") {
+                        GeneralSettingsRow(
+                            icon = Icons.Default.Schedule,
+                            title = stringResource(Res.string.date_time_title),
+                            subtitle = dateTimeSummary(),
+                            onClick = viewModel::showDateTimeDialog,
                         )
                     }
                 }
@@ -248,6 +257,14 @@ fun GeneralSettingsContent(
                 selectedLanguage = uiState.selectedLanguage,
                 onLanguageSelect = viewModel::setLanguage,
                 onDismiss = viewModel::dismissLanguageDialog,
+            )
+        }
+
+        if (uiState.showDateTimeDialog) {
+            DateTimeSettingsDialog(
+                prefs = uiState.dateTimePrefs,
+                onSave = viewModel::saveDateTimePrefs,
+                onDismiss = viewModel::dismissDateTimeDialog,
             )
         }
 

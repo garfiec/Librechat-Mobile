@@ -35,7 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.garfiec.librechat.core.common.extensions.formatAbsoluteTimestamp
+import com.garfiec.librechat.core.common.datetime.ResolvedDateTimeFormat
 import com.garfiec.librechat.core.model.schedule.Schedule
 import com.garfiec.librechat.core.model.schedule.cadenceToCron
 import com.garfiec.librechat.core.model.schedule.pausedForUnattendedMcpAuth
@@ -51,6 +51,7 @@ import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
+import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
 import com.garfiec.librechat.feature.schedules.components.disabledReasonLabel
 import com.garfiec.librechat.feature.schedules.resources.Res
 import com.garfiec.librechat.feature.schedules.resources.schedule_cancel
@@ -251,14 +252,14 @@ private fun ScheduleCard(
             )
             schedule.nextRunAt?.takeIf { schedule.enabled }?.let {
                 Text(
-                    text = stringResource(Res.string.schedule_next_run, it.asScheduleTimestamp()),
+                    text = stringResource(Res.string.schedule_next_run, it.asScheduleTimestamp(LocalDateTimeFormat.current)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             schedule.lastRun?.firedAt?.let {
                 Text(
-                    text = stringResource(Res.string.schedule_last_run, it.asScheduleTimestamp()),
+                    text = stringResource(Res.string.schedule_last_run, it.asScheduleTimestamp(LocalDateTimeFormat.current)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -308,8 +309,8 @@ private fun ScheduleCard(
  * card reads "Next run 2026-09-22T14:00:23.681Z" directly under a cadence the same card states in
  * the schedule's own timezone.
  *
- * A value that will not parse falls back to itself rather than to [formatAbsoluteTimestamp]'s empty
- * result, which would leave "Next run " with nothing after it — worse than the raw stamp, and
- * undiagnosable.
+ * A value that will not parse falls back to itself rather than to blank, which would leave
+ * "Next run " with nothing after it — worse than the raw stamp, and undiagnosable.
  */
-internal fun String.asScheduleTimestamp(): String = formatAbsoluteTimestamp(this).ifEmpty { this }
+internal fun String.asScheduleTimestamp(format: ResolvedDateTimeFormat): String =
+    format.formatAbsoluteOrNull(this) ?: this

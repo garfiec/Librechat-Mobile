@@ -21,9 +21,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.garfiec.librechat.core.common.extensions.toRelativeTimeString
+import com.garfiec.librechat.core.common.datetime.listLabel
 import com.garfiec.librechat.core.model.EModelEndpoint
 import com.garfiec.librechat.core.ui.components.EndpointIcon
+import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
+import com.garfiec.librechat.core.ui.datetime.LocalRelativeTimeReference
+import com.garfiec.librechat.core.ui.datetime.resolve
 import com.garfiec.librechat.feature.conversations.resources.*
 import com.garfiec.librechat.feature.conversations.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -39,10 +42,11 @@ fun ConversationItem(
     // Keyed on the reference as well as the row: the reference is what advances with the wall clock,
     // so without it in the key this memo would outlive the label's correctness (see
     // LocalRelativeTimeReference).
+    val format = LocalDateTimeFormat.current
     val reference = LocalRelativeTimeReference.current
-    val relativeTime = remember(data.updatedAt, reference) {
-        data.updatedAt?.toRelativeTimeString(reference) ?: ""
-    }
+    val relativeTime = remember(data.updatedAt, format, reference) {
+        data.updatedAt?.listLabel(format, reference)
+    }?.resolve() ?: ""
 
     val endpointLabel = remember(data.endpoint) {
         data.endpoint?.toDisplayLabel() ?: "Chat"

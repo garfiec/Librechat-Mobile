@@ -13,7 +13,7 @@ import com.garfiec.librechat.core.model.resolveEndpointIconUrl
  * in particular is debounced, so it is usually unchanged between keystrokes.
  */
 internal data class DrawerDisplaySnapshot(
-    val grouped: List<Pair<String, List<DrawerConversationDisplayData>>> = emptyList(),
+    val grouped: List<Pair<DrawerGroupKey, List<DrawerConversationDisplayData>>> = emptyList(),
     val favorites: List<DrawerConversationDisplayData> = emptyList(),
     val pinned: List<DrawerConversationDisplayData> = emptyList(),
 )

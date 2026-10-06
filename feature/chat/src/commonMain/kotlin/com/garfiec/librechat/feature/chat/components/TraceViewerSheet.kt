@@ -40,7 +40,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.garfiec.librechat.core.common.extensions.formatAbsoluteTimestamp
 import com.garfiec.librechat.core.model.trace.TraceContent
 import com.garfiec.librechat.core.model.trace.TraceErrorCode
 import com.garfiec.librechat.core.model.trace.TraceRecord
@@ -55,6 +54,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
 import com.garfiec.librechat.core.ui.components.AdaptiveSegmentedChoice
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
+import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.trace_back
 import com.garfiec.librechat.feature.chat.resources.trace_content_unavailable
@@ -331,12 +331,10 @@ private fun TurnHeader(turn: TraceTurn, modifier: Modifier = Modifier) {
         // chronological — not a display value. Shown raw it reads
         // "2026-09-19T14:32:11.523Z", in UTC, directly above bubbles the same screen
         // renders with the formatted stamp this helper produces. An unparseable value
-        // formats to "", which falls back to the message id.
-        val heading = remember(turn.startTime, turn.messageId) {
-            turn.startTime.takeIf { it.isNotEmpty() }
-                ?.let(::formatAbsoluteTimestamp)
-                ?.takeIf { it.isNotEmpty() }
-                ?: turn.messageId
+        // falls back to the message id.
+        val format = LocalDateTimeFormat.current
+        val heading = remember(turn.startTime, turn.messageId, format) {
+            format.formatAbsoluteOrNull(turn.startTime) ?: turn.messageId
         }
         Text(
             text = heading,

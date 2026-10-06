@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.conversations.drawer
 
 import co.touchlab.kermit.Logger
+import com.garfiec.librechat.core.common.datetime.DateGroup
 import com.garfiec.librechat.core.common.extensions.RelativeTimeReference
 import com.garfiec.librechat.core.common.extensions.dayBoundaryReferences
 import com.garfiec.librechat.core.common.result.Result
@@ -36,8 +37,8 @@ class ConversationListStateHolder(
     private val _recentConversations = MutableStateFlow<List<Conversation>>(emptyList())
     val recentConversations: StateFlow<List<Conversation>> = _recentConversations.asStateFlow()
 
-    private val _groupedConversations = MutableStateFlow<List<Pair<String, List<Conversation>>>>(emptyList())
-    val groupedConversations: StateFlow<List<Pair<String, List<Conversation>>>> = _groupedConversations.asStateFlow()
+    private val _groupedConversations = MutableStateFlow<List<Pair<DateGroup, List<Conversation>>>>(emptyList())
+    val groupedConversations: StateFlow<List<Pair<DateGroup, List<Conversation>>>> = _groupedConversations.asStateFlow()
 
     private val _activeConversationId = MutableStateFlow<String?>(null)
     val activeConversationId: StateFlow<String?> = _activeConversationId.asStateFlow()

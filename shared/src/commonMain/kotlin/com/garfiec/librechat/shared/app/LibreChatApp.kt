@@ -15,6 +15,7 @@ import coil3.memory.MemoryCache
 import coil3.network.ktor3.KtorNetworkFetcherFactory
 import coil3.request.crossfade
 import coil3.svg.SvgDecoder
+import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.ThemeDataStore
 import com.garfiec.librechat.core.data.datastore.ThemeMode
@@ -71,6 +72,8 @@ fun LibreChatApp(modifier: Modifier = Modifier) {
     val selectedLanguage by settingsDataStore.selectedLanguage.collectAsState(
         initial = settingsDataStore.initialSelectedLanguage,
     )
+    // And on the date/time warm-up, so a non-default format is in place for the first timestamp.
+    val dateTimeReady by koinInject<DateTimePrefsStore>().isReady.collectAsState()
     // The DEFAULT_LANGUAGE sentinel ("system") maps to no override → keep the device locale.
     val appLocale = selectedLanguage.takeIf { it != SettingsDataStore.DEFAULT_LANGUAGE }
 
@@ -80,7 +83,7 @@ fun LibreChatApp(modifier: Modifier = Modifier) {
         ThemeMode.DARK -> true
         ThemeMode.SYSTEM -> systemDark
     }
-    if (themeReady && localeReady) {
+    if (themeReady && localeReady && dateTimeReady) {
         LibreChatTheme(
             darkTheme = darkTheme,
             accentColor = Color(accentColorArgb),

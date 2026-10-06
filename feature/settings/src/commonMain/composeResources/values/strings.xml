@@ -69,7 +69,7 @@
     <string name="section_chat_preferences">Chat Preferences</string>
     <string name="section_conversations">Conversations</string>
     <string name="section_danger_zone">Danger Zone</string>
-    <string name="section_language">Language</string>
+    <string name="section_language_region">Language &amp; region</string>
     <string name="section_layout">Layout</string>
     <string name="section_mcp_servers">MCP Servers</string>
     <string name="section_prefetch">Background prefetch</string>
@@ -685,4 +685,27 @@
     <string name="context_settings_compact_desc">The gauge shows a quiet suggestion when the conversation fills up. It always asks before compacting.</string>
     <string name="context_settings_pill_label">Context</string>
     <string name="context_settings_summary">%1$s · %2$s</string>
+    <!-- Date &amp; time settings (#445). The dialog previews each date format with a live sample -->
+    <string name="date_time_title">Date &amp; time</string>
+    <string name="date_time_timestamps">Message timestamps</string>
+    <string name="date_time_style_relative">Relative</string>
+    <string name="date_time_style_smart">Smart</string>
+    <string name="date_time_style_absolute">Absolute</string>
+    <string name="date_time_clock">Clock</string>
+    <string name="date_time_clock_system">System</string>
+    <string name="date_time_clock_12h">12-hour</string>
+    <string name="date_time_clock_24h">24-hour</string>
+    <string name="date_time_system_is_24h">Your device uses a 24-hour clock</string>
+    <string name="date_time_system_is_12h">Your device uses a 12-hour clock</string>
+    <string name="date_time_date_format">Date format</string>
+    <string name="date_format_system">System</string>
+    <string name="date_format_system_numeric">System (numeric)</string>
+    <string name="date_format_dmy_dot">Day.Month.Year</string>
+    <string name="date_format_dmy_slash">Day/Month/Year</string>
+    <string name="date_format_dmy_dash">Day-Month-Year</string>
+    <string name="date_format_mdy_slash">Month/Day/Year</string>
+    <string name="date_format_ymd_dash">Year-Month-Day</string>
+    <string name="date_format_ymd_slash">Year/Month/Day</string>
+    <string name="date_format_long">Long</string>
+    <string name="date_time_preview">Preview</string>
 </resources>

@@ -658,6 +658,10 @@ suggestion opens `CompactConfirmDialog`; it is never one tap. Three rules, each 
   fill suggests again from the start. A chat still loading has no reading and must not clear it.
 
 ## Message Timestamps
-- `MessageTimestamp` shows relative/absolute time, toggled on tap
-- Parses multiple ISO 8601 format variants; falls back gracefully on invalid input
+- `MessageTimestamp` renders in the user's style (Relative / Smart / Absolute, #445) from
+  `LocalDateTimeFormat`. Tapping it toggles to the full date and time; under Absolute the tap is off.
+- It is the only reader of the minute ticker (`LocalRelativeTimeReference`) in the chat tree, and it skips
+  the read under Absolute. Keep it that way: reading the ticker in a bubble or the list would recompose
+  them every minute.
+- An unparseable timestamp renders nothing.
 - Integrated into `MessageBubble` action row

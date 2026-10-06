@@ -1,4 +1,4 @@
-package com.garfiec.librechat.feature.conversations.components
+package com.garfiec.librechat.core.ui.datetime
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -17,7 +17,8 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 
 /**
- * The "now" that conversation rows format their relative-time labels against.
+ * The "now" that every relative-time label in the app formats against — message timestamps,
+ * conversation rows, prefetch status. Provided once, at the app root, by [ProvideDateTimeFormat].
  *
  * Deliberately a *changing* value. A relative label ("5m ago") is only correct for about a minute,
  * and neither of the obvious places to compute it ever refreshes: a ViewModel mapping re-runs only
@@ -39,7 +40,7 @@ import kotlin.time.Duration.Companion.minutes
  */
 val LocalRelativeTimeReference = compositionLocalOf<RelativeTimeReference> {
     error(
-        "No RelativeTimeReference provided. Wrap the surface in ProvideRelativeTimeReference — " +
+        "No RelativeTimeReference provided. Wrap the surface in ProvideDateTimeFormat — " +
             "without it, relative-time labels would silently freeze.",
     )
 }
@@ -47,13 +48,16 @@ val LocalRelativeTimeReference = compositionLocalOf<RelativeTimeReference> {
 /**
  * Ticks [LocalRelativeTimeReference] for [content].
  *
- * One coroutine per list surface, not one per row. [updateInterval] is the label's worst-case
+ * One coroutine for the whole app, not one per row. [updateInterval] is the label's worst-case
  * staleness; a minute matches the finest bucket the formatter produces ("1m ago"), so a shorter
  * interval would only buy recompositions that render identical text.
  *
  * Gated on RESUMED, which does two jobs. It stops the tick while the app is backgrounded — the
  * drawer is composed for the whole session (a closed `ModalNavigationDrawer` is offset off-screen,
- * not removed from the tree), so an ungated loop would recompose rows nobody can see, forever. And
+ * not removed from the tree), so an ungated loop would recompose rows nobody can see, forever.
+ *
+ * Readers should be leaves: read this in the `Text` that shows the label (`MessageTimestamp`, a
+ * row's subtitle), never in a list or bubble, so a tick recomposes a few labels and nothing else. And
  * because leaving RESUMED restarts the effect, coming back re-reads the clock immediately: `delay`
  * runs on a monotonic clock that does not advance during device sleep, so a phone asleep for eight
  * hours would otherwise resume still showing "2m ago" until the pending delay elapsed.

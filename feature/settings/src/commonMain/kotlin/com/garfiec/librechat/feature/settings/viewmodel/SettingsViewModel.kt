@@ -4,11 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.AppInfo
 import com.garfiec.librechat.core.common.BackendVersion
+import com.garfiec.librechat.core.common.datetime.DateTimeFormatPrefs
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
 import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
+import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
@@ -68,6 +70,7 @@ class SettingsViewModel(
     themeDataStore: ThemeDataStore,
     serverDataStore: ServerDataStore,
     settingsDataStore: SettingsDataStore,
+    dateTimePrefsStore: DateTimePrefsStore,
     mcpRepository: McpRepository,
     memoryRepository: MemoryRepository,
     speechSettingsFactory: SpeechSettingsFactory,
@@ -117,6 +120,7 @@ class SettingsViewModel(
         themeDataStore,
         serverDataStore,
         settingsDataStore,
+        dateTimePrefsStore,
         _uiState,
         viewModelScope,
     )
@@ -376,6 +380,21 @@ class SettingsViewModel(
     fun setLanguage(languageCode: String) {
         prefsController.setSelectedLanguage(languageCode)
         _uiState.update { it.copy(showLanguageDialog = false) }
+    }
+
+    // ── Date & time ────────────────────────────────────────────────
+
+    fun showDateTimeDialog() {
+        _uiState.update { it.copy(showDateTimeDialog = true) }
+    }
+
+    fun dismissDateTimeDialog() {
+        _uiState.update { it.copy(showDateTimeDialog = false) }
+    }
+
+    fun saveDateTimePrefs(prefs: DateTimeFormatPrefs) {
+        prefsController.setDateTimePrefs(prefs)
+        _uiState.update { it.copy(showDateTimeDialog = false) }
     }
 
     // ── Fork settings ──────────────────────────────────────────────

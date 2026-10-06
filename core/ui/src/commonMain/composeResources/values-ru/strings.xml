@@ -74,4 +74,35 @@
     <string name="context_usage_cost_all">Все ветки</string>
     <string name="context_usage_tools_all">Инструменты</string>
     <string name="context_usage_used">Использовано</string>
+    <string name="timestamp_just_now">Только что</string>
+    <plurals name="timestamp_minutes_ago">
+        <item quantity="one">%1$d мин. назад</item>
+        <item quantity="few">%1$d мин. назад</item>
+        <item quantity="many">%1$d мин. назад</item>
+        <item quantity="other">%1$d мин. назад</item>
+    </plurals>
+    <plurals name="timestamp_hours_ago">
+        <item quantity="one">%1$d ч назад</item>
+        <item quantity="few">%1$d ч назад</item>
+        <item quantity="many">%1$d ч назад</item>
+        <item quantity="other">%1$d ч назад</item>
+    </plurals>
+    <plurals name="timestamp_days_ago">
+        <item quantity="one">%1$d день назад</item>
+        <item quantity="few">%1$d дня назад</item>
+        <item quantity="many">%1$d дней назад</item>
+        <item quantity="other">%1$d дня назад</item>
+    </plurals>
+    <plurals name="timestamp_weeks_ago">
+        <item quantity="one">%1$d неделю назад</item>
+        <item quantity="few">%1$d недели назад</item>
+        <item quantity="many">%1$d недель назад</item>
+        <item quantity="other">%1$d недели назад</item>
+    </plurals>
+    <string name="timestamp_yesterday_at">Вчера в %1$s</string>
+    <string name="date_group_today">Сегодня</string>
+    <string name="date_group_yesterday">Вчера</string>
+    <string name="date_group_previous_7_days">Предыдущие 7 дней</string>
+    <string name="date_group_previous_30_days">Предыдущие 30 дней</string>
+    <string name="date_group_unknown">Неизвестно</string>
 </resources>
