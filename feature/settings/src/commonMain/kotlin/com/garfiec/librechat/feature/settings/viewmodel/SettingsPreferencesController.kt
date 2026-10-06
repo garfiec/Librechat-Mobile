@@ -15,14 +15,8 @@ import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
-import com.garfiec.librechat.core.data.datastore.ThemeDataStore
-import com.garfiec.librechat.core.data.datastore.ThemeMode
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
 import com.garfiec.librechat.core.data.prefetch.PrefetchDepth
-import com.garfiec.librechat.core.model.ui.UiStyle
-import com.garfiec.librechat.core.ui.theme.glassCapability
-import com.garfiec.librechat.core.ui.theme.platformDefaultUiStyle
-import com.garfiec.librechat.core.ui.theme.supportsDynamicColor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -32,14 +26,10 @@ import kotlinx.coroutines.launch
 
 /** Intermediate holder for the combined DataStore preferences. */
 private data class DataStorePreferences(
-    val themeMode: ThemeMode,
     val serverUrl: String,
     val chatFontSize: ChatFontSize,
     val autoScrollEnabled: Boolean,
     val showThinkingBlocks: Boolean,
-    val accentColor: Int = ThemeDataStore.DEFAULT_ACCENT_COLOR,
-    val useDynamicColor: Boolean = false,
-    val uiStyle: UiStyle? = null,
 )
 
 /** Extra DataStore preferences (separate combine since Kotlin combine maxes at 5). */
@@ -99,39 +89,26 @@ private data class AdditionalPreferences(
  */
 @Suppress("TooManyFunctions") // debt: 32 functions
 class SettingsPreferencesController(
-    private val themeDataStore: ThemeDataStore,
     serverDataStore: ServerDataStore,
     private val settingsDataStore: SettingsDataStore,
     private val dateTimePrefsStore: DateTimePrefsStore,
     baseState: StateFlow<SettingsUiState>,
     private val scope: CoroutineScope,
 ) {
-    /** Queried once, as the theme does: on iOS it asks the OS version and accessibility settings. */
-    private val glassCapability = glassCapability()
-
     /** Combined DataStore preferences flow. */
     private val dataStorePreferences: StateFlow<DataStorePreferences> = combine(
-        themeDataStore.themeMode,
         serverDataStore.currentUrlFlow,
         settingsDataStore.chatFontSize,
         settingsDataStore.autoScrollEnabled,
         settingsDataStore.showThinkingBlocks,
-    ) { theme, serverUrl, fontSize, autoScroll, showThinking ->
+    ) { serverUrl, fontSize, autoScroll, showThinking ->
         DataStorePreferences(
-            themeMode = theme,
             serverUrl = serverUrl,
             chatFontSize = fontSize,
             autoScrollEnabled = autoScroll,
             showThinkingBlocks = showThinking,
         )
-    }.combine(themeDataStore.accentColor) { prefs, accent ->
-        prefs.copy(accentColor = accent)
-    }.combine(themeDataStore.useDynamicColor) { prefs, dynamic ->
-        prefs.copy(useDynamicColor = dynamic)
-    }.combine(themeDataStore.uiStyle) { prefs, uiStyle ->
-        prefs.copy(uiStyle = uiStyle)
     }.stateIn(scope, SharingStarted.Eagerly, DataStorePreferences(
-        themeMode = ThemeMode.SYSTEM,
         serverUrl = "",
         chatFontSize = ChatFontSize.MEDIUM,
         autoScrollEnabled = true,
@@ -274,12 +251,6 @@ class SettingsPreferencesController(
     ) { state, prefs, extra, deviceTts, additional ->
         val selectedVoice = extra.selectedVoiceId?.let { id -> state.availableVoices.find { it.id == id } }
         state.copy(
-            themeMode = prefs.themeMode,
-            accentColor = prefs.accentColor,
-            useDynamicColor = prefs.useDynamicColor,
-            dynamicColorSupported = supportsDynamicColor(),
-            uiStyle = prefs.uiStyle ?: platformDefaultUiStyle(),
-            glassCapability = glassCapability,
             serverUrl = prefs.serverUrl,
             chatFontSize = prefs.chatFontSize,
             autoScrollEnabled = prefs.autoScrollEnabled,
@@ -324,26 +295,6 @@ class SettingsPreferencesController(
     }.stateIn(scope, SharingStarted.Eagerly, SettingsUiState())
 
     // ── Write setters (fire-and-forget; return Unit, not the launched Job) ──
-
-    fun setThemeMode(mode: ThemeMode) {
-        scope.launch { themeDataStore.setThemeMode(mode) }
-    }
-
-    fun setAccentColor(argb: Int) {
-        scope.launch { themeDataStore.setAccentColor(argb) }
-    }
-
-    fun setUseDynamicColor(enabled: Boolean) {
-        scope.launch { themeDataStore.setUseDynamicColor(enabled) }
-    }
-
-    /**
-     * Choosing the platform default clears the stored value instead of writing it, so the user keeps
-     * following the OS idiom rather than being pinned to whatever that idiom was when they chose it.
-     */
-    fun setUiStyle(style: UiStyle) {
-        scope.launch { themeDataStore.setUiStyle(style.takeIf { it != platformDefaultUiStyle() }) }
-    }
 
     fun setDateTimePrefs(prefs: DateTimeFormatPrefs) {
         scope.launch { dateTimePrefsStore.set(prefs) }

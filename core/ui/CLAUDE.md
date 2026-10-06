@@ -120,6 +120,11 @@ Rules — follow these when writing or reviewing UI:
    tells the tiers (NATIVE / FULL / SIMULATED / BLUR_ONLY / FLAT) apart, and `glassSurface` /
    `rememberGlassBackdrop` degrade by tier themselves. Never re-derive the flag another way
    (`rememberGlassStyle() != null` as a boolean, comparing styles, reading capability).
+   The one place outside `LibreChatTheme` that sets the style is `UiStylePreview(style)`, for a style
+   picker's previews: it draws its content in the given style (bars kept in Compose, window insets
+   taken as used, content hidden from accessibility). `ThemePreview(darkTheme, accent, dynamic)` is
+   its light/dark counterpart, building the scheme `LibreChatTheme` would. Previews only — never to
+   restyle part of a real screen.
 5. **Tokens, not literals.** Glass colours: `GlassControlColors` (reads `MaterialTheme.colorScheme`
    + `LocalDarkTheme`, so accent and dark mode carry over). Shared measures: `GlassDefaults`.
 6. **Self-gating, not caller-gating.** Adaptive sheets/dialogs call `CoversNativeBars` and provide

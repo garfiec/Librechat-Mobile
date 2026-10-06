@@ -65,6 +65,9 @@
     <string name="section_updates">Updates</string>
     <string name="section_advanced">Advanced</string>
     <string name="section_appearance">Appearance</string>
+    <string name="appearance_theme_and_style">Theme &amp; style</string>
+    <!-- The switch in the interface style previews: an in-joke, "go outside". -->
+    <string name="ui_style_preview_switch">Touch grass</string>
     <string name="section_balance">Balance</string>
     <string name="section_chat_preferences">Chat Preferences</string>
     <string name="section_conversations">Conversations</string>

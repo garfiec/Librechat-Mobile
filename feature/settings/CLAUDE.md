@@ -5,7 +5,7 @@
 
 ## Sections
 - **Account**: displays user profile from `UserApi.getUser()`
-- **Appearance**: theme toggle (System / Light / Dark) via `ThemeDataStore`
+- **Appearance**: its own page (General → Appearance): theme (System / Light / Dark), interface style, accent colour, wallpaper colours, via `ThemeDataStore`
 - **Server**: shows current server URL from `ServerDataStore`
 - **About**: app version info
 - **Danger Zone**: delete account with confirmation dialog
@@ -46,6 +46,7 @@
 - `McpServersScreen` — server list with status badges, CRUD, reinitialize, tools sheet (`McpViewModel`)
 - `PresetManagerScreen` — list/delete presets (`PresetManagerViewModel`)
 - `CommandsConfigScreen` — enable/disable slash commands
+- `AppearanceSettingsScreen` — theme, interface style, accent colour, wallpaper colours; reached from one summary row on the General tab (route `AppearanceSettings`, `AppearanceNavigation.kt`). Own ViewModel (`AppearanceSettingsViewModel`, ThemeDataStore only); the General tab's summary row reads it too, so opening the page doesn't re-run `SettingsViewModel`'s loads
 - Routes: `Memories`, `McpServers`, `PresetManager` (all `@Serializable` data objects extending `SettingsRoute`)
 - **Gotcha**: Memories and MCP navigation routes defined in their own files (`MemoriesNavigation.kt`, `McpNavigation.kt`) but wired through `SettingsNavigation.kt`
 - **Gotcha**: `McpServerDialog` uses `McpServerType` enum (SSE, STREAMABLE_HTTP) — must match backend expectations

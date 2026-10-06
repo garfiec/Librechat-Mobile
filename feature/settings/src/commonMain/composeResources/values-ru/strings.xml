@@ -65,6 +65,9 @@
     <string name="section_updates">Обновления</string>
     <string name="section_advanced">Дополнительно</string>
     <string name="section_appearance">Внешний вид</string>
+    <string name="appearance_theme_and_style">Тема и стиль</string>
+    <!-- The switch in the interface style previews: an in-joke, "go outside". -->
+    <string name="ui_style_preview_switch">Потрогай траву</string>
     <string name="section_balance">Баланс</string>
     <string name="section_chat_preferences">Настройки чата</string>
     <string name="section_conversations">Беседы</string>

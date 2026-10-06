@@ -65,6 +65,9 @@
     <string name="section_updates">التحديثات</string>
     <string name="section_advanced">متقدم</string>
     <string name="section_appearance">المظهر</string>
+    <string name="appearance_theme_and_style">السمة والنمط</string>
+    <!-- The switch in the interface style previews: an in-joke, "go outside". -->
+    <string name="ui_style_preview_switch">المس العشب</string>
     <string name="section_balance">الرصيد</string>
     <string name="section_chat_preferences">تفضيلات المحادثة</string>
     <string name="section_conversations">المحادثات</string>

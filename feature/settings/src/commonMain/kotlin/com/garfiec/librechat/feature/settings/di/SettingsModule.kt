@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.settings.di
 
 import com.garfiec.librechat.core.common.di.KoinQualifiers
 import com.garfiec.librechat.feature.settings.viewmodel.ApiKeysViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.AppearanceSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ContextUsageSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.FavoritesViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.McpViewModel
@@ -35,7 +36,6 @@ val settingsModule = module {
             userRepository = get(),
             authRepository = get(),
             conversationRepository = get(),
-            themeDataStore = get(),
             serverDataStore = get(),
             settingsDataStore = get(),
             dateTimePrefsStore = get(),
@@ -55,6 +55,7 @@ val settingsModule = module {
         )
     }
     viewModelOf(::ApiKeysViewModel)
+    viewModelOf(::AppearanceSettingsViewModel)
     viewModelOf(::ContextUsageSettingsViewModel)
     viewModelOf(::FavoritesViewModel)
     viewModelOf(::MemoriesViewModel)

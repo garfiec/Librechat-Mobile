@@ -65,6 +65,9 @@
     <string name="section_updates">更新</string>
     <string name="section_advanced">高级</string>
     <string name="section_appearance">外观</string>
+    <string name="appearance_theme_and_style">主题与样式</string>
+    <!-- The switch in the interface style previews: an in-joke, "go outside". -->
+    <string name="ui_style_preview_switch">去摸摸草</string>
     <string name="section_balance">余额</string>
     <string name="section_chat_preferences">聊天偏好</string>
     <string name="section_conversations">对话</string>

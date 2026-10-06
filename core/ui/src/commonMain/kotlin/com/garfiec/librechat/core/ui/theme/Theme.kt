@@ -57,13 +57,7 @@ fun LibreChatTheme(
     uiStyle: UiStyle? = null,
     content: @Composable () -> Unit,
 ) {
-    val seedScheme = rememberDynamicColorScheme(accentColor, darkTheme, style = PaletteStyle.TonalSpot)
-    val colorScheme = if (useDynamicColor && supportsDynamicColor()) {
-        platformColorScheme(darkTheme, dynamicColor = true) ?: seedScheme
-    } else {
-        seedScheme
-    }
-
+    val colorScheme = rememberLibreChatColorScheme(darkTheme, accentColor, useDynamicColor)
     val capability = remember { glassCapability() }
     CompositionLocalProvider(
         LocalGlassLevel provides capability.takeIf { (uiStyle ?: platformDefaultUiStyle()) == UiStyle.LIQUID_GLASS },
@@ -77,5 +71,38 @@ fun LibreChatTheme(
             shapes = libreChatShapes,
             content = content,
         )
+    }
+}
+
+/**
+ * Draws [content] in the light or dark theme the app would have with these settings, whatever theme
+ * the app is in now: the colour scheme [LibreChatTheme] would build, and the dark flag glass colours
+ * read. For a theme picker's previews only; the interface style is left as it is.
+ */
+@Composable
+fun ThemePreview(
+    darkTheme: Boolean,
+    accentColor: Color,
+    useDynamicColor: Boolean,
+    content: @Composable () -> Unit,
+) {
+    CompositionLocalProvider(LocalDarkTheme provides darkTheme) {
+        MaterialTheme(
+            colorScheme = rememberLibreChatColorScheme(darkTheme, accentColor, useDynamicColor),
+            typography = libreChatTypography,
+            shapes = libreChatShapes,
+            content = content,
+        )
+    }
+}
+
+/** The scheme for these settings, by the precedence [LibreChatTheme] documents. */
+@Composable
+private fun rememberLibreChatColorScheme(darkTheme: Boolean, accentColor: Color, useDynamicColor: Boolean): ColorScheme {
+    val seedScheme = rememberDynamicColorScheme(accentColor, darkTheme, style = PaletteStyle.TonalSpot)
+    return if (useDynamicColor && supportsDynamicColor()) {
+        platformColorScheme(darkTheme, dynamicColor = true) ?: seedScheme
+    } else {
+        seedScheme
     }
 }
