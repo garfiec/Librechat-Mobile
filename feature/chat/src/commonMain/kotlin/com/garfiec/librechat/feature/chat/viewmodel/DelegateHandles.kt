@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.chat.viewmodel
 import com.garfiec.librechat.core.model.PendingAction
 import com.garfiec.librechat.core.model.endpoint.KeyState
 import com.garfiec.librechat.core.model.usage.ContextUsage
+import com.garfiec.librechat.core.model.usage.ContextUsageTotals
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 import kotlinx.coroutines.CoroutineScope
@@ -231,13 +232,21 @@ class OfficePreviewHandle(root: ChatStateHandle) : DelegateHandle(root) {
 }
 
 // ── ContextProjectionDelegate ─────────────────────────────────────────────
-// Narrow on purpose: this delegate only seeds/clears the context-usage gauge, so it may write
-// nothing on the content slice but `contextUsage`.
+// Narrow on purpose: this delegate only resolves the context-usage gauge, so it may write
+// nothing on the content slice but the reading, its source and the totals derived from it.
 class ContextProjectionWrites internal constructor(state: ChatUiState) {
     var contextUsage: ContextUsage? = state.content.contextUsage
+    var contextUsageSource: ContextUsageSource? = state.content.contextUsageSource
+    var contextUsageTotals: ContextUsageTotals = state.content.contextUsageTotals
     var error: String? = state.error
-    internal fun applyTo(s: ChatUiState) =
-        s.copy(content = s.content.copy(contextUsage = contextUsage), error = error)
+    internal fun applyTo(s: ChatUiState) = s.copy(
+        content = s.content.copy(
+            contextUsage = contextUsage,
+            contextUsageSource = contextUsageSource,
+            contextUsageTotals = contextUsageTotals,
+        ),
+        error = error,
+    )
 }
 
 class ContextProjectionHandle(root: ChatStateHandle) : DelegateHandle(root) {

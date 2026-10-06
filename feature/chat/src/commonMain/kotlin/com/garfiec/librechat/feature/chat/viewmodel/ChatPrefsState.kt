@@ -10,6 +10,9 @@ import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.InlineArtifactPrefs
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
+import com.garfiec.librechat.core.model.usage.ContextDetailPreset
+import com.garfiec.librechat.core.model.usage.ContextDetailSections
+import com.garfiec.librechat.core.model.usage.DEFAULT_COMPACT_NUDGE_THRESHOLD
 
 /**
  * DataStore-backed chat preferences merged into [ChatUiState] by the `uiState` combine in
@@ -35,6 +38,12 @@ data class ChatPrefsState(
     val contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
     /** Whether the options-sheet context gauge's inline breakdown is expanded. */
     val contextGaugeExpanded: Boolean = false,
+    /** Which parts of the context breakdown the user wants (Settings → Chat → Context usage). */
+    val contextSections: ContextDetailSections = ContextDetailPreset.DEFAULT.sections,
+    /** Usage percent at which compacting is suggested; 0 means never. */
+    val compactNudgeThreshold: Int = DEFAULT_COMPACT_NUDGE_THRESHOLD,
+    /** Per conversation, the suggestion band the user answered "Not now" to. */
+    val compactNudgeSnoozes: Map<String, Int> = emptyMap(),
     /**
      * What the send control does while a reply is generating (v0.8.8 steering): inject into the
      * running turn, or queue for after it. Read through [ChatUiState.effectiveDuringRunAction],
@@ -99,6 +108,15 @@ data class ChatDisplayPrefs(
     val content: ChatHeaderContent = ChatHeaderContent.TITLE,
     val alignment: ChatHeaderAlignment = ChatHeaderAlignment.LEFT,
     val contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
-    val contextGaugeExpanded: Boolean = false,
+    val context: ContextUsagePrefs = ContextUsagePrefs(),
     val duringRunAction: DuringRunAction = DuringRunAction.QUEUE,
+)
+
+/** The context gauge's preferences, folded into one flow for the same 5-argument reason. */
+@Immutable
+data class ContextUsagePrefs(
+    val gaugeExpanded: Boolean = false,
+    val sections: ContextDetailSections = ContextDetailPreset.DEFAULT.sections,
+    val compactNudgeThreshold: Int = DEFAULT_COMPACT_NUDGE_THRESHOLD,
+    val compactNudgeSnoozes: Map<String, Int> = emptyMap(),
 )

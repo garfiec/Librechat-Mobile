@@ -47,7 +47,6 @@ internal enum class ChatSettingDialog {
     CHAT_LAYOUT,
     FONT_SIZE,
     LATEX_RENDERER,
-    CONTEXT_BAR,
     DURING_RUN_ACTION,
     UPLOAD_ROUTING,
     STARRED_MODELS,

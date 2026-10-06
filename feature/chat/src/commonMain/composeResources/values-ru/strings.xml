@@ -187,9 +187,6 @@
     <string name="cd_tool_call">Вызов инструмента</string>
     <string name="cd_collapse_tool_call">Свернуть вызов инструмента %1$s</string>
     <string name="cd_expand_tool_call">Развернуть вызов инструмента %1$s</string>
-    <string name="context_compact">Сжать беседу</string>
-    <string name="context_compacting">Сжатие…</string>
-    <string name="context_compact_info">Сводит всё сказанное в короткую заметку, которую модель продолжает читать, освобождая контекст для дальнейшего. Ничего не удаляется.</string>
     <string name="cd_tool_complete">Завершено</string>
     <string name="cd_tool_cancelled">Остановлено</string>
     <string name="cd_tool_failed">Ошибка</string>
@@ -481,14 +478,6 @@
     <string name="media_empty_links">В этой беседе нет ссылок</string>
     <string name="media_empty_artifacts">В этой беседе нет артефактов</string>
     <string name="context_usage_label">Контекст</string>
-    <string name="context_usage_window">Окно контекста</string>
-    <string name="context_usage_messages">Сообщения</string>
-    <string name="context_usage_tools">Схемы инструментов</string>
-    <string name="context_usage_summary">Сводка</string>
-    <string name="context_usage_system">Система</string>
-    <string name="context_usage_free">Свободно</string>
-    <string name="context_usage_input">Ввод</string>
-    <string name="context_usage_output">Вывод</string>
     <string name="tool_approval_title">Требуется одобрение</string>
     <string name="tool_approval_arguments">Аргументы</string>
     <string name="tool_approval_approve">Одобрить</string>
@@ -639,4 +628,11 @@
     <string name="site_icons_prompt_settings_hint">Это можно изменить в любой момент: Настройки → Чат → Показывать значки сайтов.</string>
     <string name="site_icons_prompt_allow">Показывать</string>
     <string name="site_icons_prompt_deny">Не показывать</string>
+    <string name="compact_nudge_short">Сжать…</string>
+    <string name="compact_nudge_action">Рекомендуется сжать</string>
+    <string name="compact_nudge_menu">Сжать беседу…</string>
+    <string name="compact_confirm_title">Сжать эту беседу?</string>
+    <string name="compact_confirm_body">Окно контекста заполнено на %1$d%. Сжатие кратко пересказывает беседу в заметке, которую модель продолжает читать, и освобождает место для продолжения. Ничего не удаляется.</string>
+    <string name="compact_confirm_not_now">Не сейчас</string>
+    <string name="compact_confirm_action">Сжать</string>
 </resources>

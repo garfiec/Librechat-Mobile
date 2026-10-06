@@ -82,7 +82,7 @@ class StreamingManagerStopTest {
             activeAccountProvider = mockk<ActiveAccountProvider>(relaxed = true),
             connectivityObserver = connectivity,
             comparisonDelegate = comparisonDelegate,
-            liveReply = LiveReplyDelegate(StreamingHandle(root), mockk(relaxed = true), mockk(relaxed = true)),
+            liveReply = LiveReplyDelegate(StreamingHandle(root), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true)),
             completionDelegate = completionDelegate,
             queueDelegate = queueDelegate,
             pendingActionDelegate = mockk(relaxed = true),

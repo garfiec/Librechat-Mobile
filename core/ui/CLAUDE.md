@@ -204,6 +204,14 @@ the controls bullet below.
   show through. Don't add `vibrancy()` back without measuring; it was the entire cost of glass while
   streaming.
 
+### Context usage breakdown (`contextusage/`)
+`ContextBreakdownCard` renders the context-window breakdown for both the chat gauge (`:feature:chat`)
+and the Settings preview (`:feature:settings`); features can't depend on each other, so the one
+renderer lives here. It takes a `ContextBreakdownModel` and the user's `ContextDetailSections`; the
+row math and filtering are pure and live in `:core:model` (`usage/ContextBreakdown.kt`,
+`usage/ContextDetail.kt`). Also here: `SegmentedMeter`, `pressureColor` (amber at a rounded 80%, error
+at 95%), `formatCost` with its platform currency actuals, and `SampleContextModel` for previews.
+
 ### Markdown
 - core/ui does NOT provide a shared markdown renderer. Features render markdown
   directly with the `com.mikepenz` multiplatform-markdown-renderer

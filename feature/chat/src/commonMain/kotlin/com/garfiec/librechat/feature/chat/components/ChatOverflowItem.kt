@@ -13,6 +13,9 @@ internal enum class ChatOverflowItem {
     COMPARE,
     TRACE,
     CONTEXT_USAGE,
+
+    /** "Compact conversation…": only while a compact suggestion is due, and only in this placement. */
+    COMPACT,
     SHARE,
     RENAME,
     DUPLICATE,
@@ -38,6 +41,8 @@ internal data class ChatOverflowGates(
     val contextUsageEnabled: Boolean,
     val contextBarPlacement: ContextBarPlacement,
     val sharedLinksEnabled: Boolean,
+    /** A compact suggestion is due. A Boolean, not the percent, so the sections aren't rebuilt per tick. */
+    val compactNudgeVisible: Boolean = false,
 )
 
 internal fun chatOverflowSections(gates: ChatOverflowGates): List<List<ChatOverflowItem>> = with(gates) {
@@ -60,6 +65,9 @@ internal fun chatOverflowSections(gates: ChatOverflowGates): List<List<ChatOverf
             contextUsage.usedTokens > 0
         ) {
             add(ChatOverflowItem.CONTEXT_USAGE)
+        }
+        if (contextBarPlacement == ContextBarPlacement.OVERFLOW_MENU && compactNudgeVisible) {
+            add(ChatOverflowItem.COMPACT)
         }
     }
     val conversation = if (conversationId == null) {

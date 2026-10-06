@@ -5,6 +5,7 @@ import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
 import com.garfiec.librechat.core.common.network.ConnectivityObserver
+import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
 import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
@@ -34,6 +35,8 @@ import com.garfiec.librechat.core.data.repository.TraceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnOutcome
+import com.garfiec.librechat.core.model.usage.ContextDetailPreset
+import com.garfiec.librechat.core.model.usage.DEFAULT_COMPACT_NUDGE_THRESHOLD
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformDelegateFactory
 import io.mockk.coEvery
 import io.mockk.every
@@ -105,6 +108,9 @@ internal class ChatViewModelTestFixture {
         every { agentRepository.revision } returns MutableStateFlow(0L)
         every { promptRepository.revision } returns promptRevision
         every { messageRepository.observeMessages(any()) } returns emptyFlow()
+        // A v0.8.8+ server: no projection, and no token-config unless a test supplies one.
+        coEvery { endpointTokenRepository.getContextProjection(any()) } returns Result.Success(null)
+        coEvery { endpointTokenRepository.getTokenConfig() } returns Result.Success(emptyMap())
         // A server WITHOUT queued turns by default, so the reconcile poll exits on its first tick
         // and no test that is not about the feature pays for it. A relaxed mock would instead hand
         // back an erased QueuedTurnOutcome whose payload fails the List cast inside applyReceipts.
@@ -124,6 +130,11 @@ internal class ChatViewModelTestFixture {
         every { settingsDataStore.chatHeaderAlignment } returns MutableStateFlow(ChatHeaderAlignment.CENTER)
         every { settingsDataStore.contextBarPlacement } returns MutableStateFlow(ContextBarPlacement.HIDDEN)
         every { settingsDataStore.contextGaugeExpanded } returns MutableStateFlow(false)
+        // The context prefs pre-fold reads these; an unstubbed relaxed Flow never emits and would
+        // stall the whole uiState combine.
+        every { settingsDataStore.effectiveContextSections } returns MutableStateFlow(ContextDetailPreset.STANDARD.sections)
+        every { settingsDataStore.compactNudgeThreshold } returns MutableStateFlow(DEFAULT_COMPACT_NUDGE_THRESHOLD)
+        every { settingsDataStore.compactNudgeSnoozes } returns MutableStateFlow(emptyMap())
         every { settingsDataStore.siteIconsChoice } returns MutableStateFlow(null)
         every { settingsDataStore.duringRunAction } returns MutableStateFlow(DuringRunAction.QUEUE)
     }

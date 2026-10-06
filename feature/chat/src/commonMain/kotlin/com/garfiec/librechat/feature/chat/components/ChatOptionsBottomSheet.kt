@@ -39,8 +39,6 @@ import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.endpoint.KeyState
-import com.garfiec.librechat.core.model.usage.ContextUsage
-import com.garfiec.librechat.core.model.usage.TokenUsage
 import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.core.ui.components.ModelParameterContent
@@ -52,6 +50,7 @@ import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_back
 import com.garfiec.librechat.feature.chat.resources.tool_model_parameters
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
+import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import org.jetbrains.compose.resources.stringResource
 
 /** Duration of the page slide + resize. */
@@ -81,12 +80,12 @@ data class ChatToolsPageParams(
     val memoryEnabled: Boolean = false,
     val mcpServersEnabled: Boolean = true,
     val gates: ChatInputGates = ChatInputGates(),
-    val contextUsage: ContextUsage? = null,
-    val tokenUsage: TokenUsage? = null,
+    val contextGauge: ContextGaugeDetails? = null,
     val contextUsageEnabled: Boolean = false,
-    val isCompacting: Boolean = false,
     /** Null when compaction is unavailable — see [ChatUiState.canCompactNow]. */
     val onCompact: (() -> Unit)? = null,
+    /** "Not now" on a compact suggestion. */
+    val onSnoozeCompact: () -> Unit = {},
     val contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
     val contextGaugeExpanded: Boolean = false,
     val onContextGaugeExpandedChange: (Boolean) -> Unit = {},
@@ -242,11 +241,10 @@ fun ChatOptionsBottomSheet(
                         memoryEnabled = tools.memoryEnabled,
                         mcpServersEnabled = tools.mcpServersEnabled,
                         gates = tools.gates,
-                        contextUsage = tools.contextUsage,
-                        tokenUsage = tools.tokenUsage,
+                        contextGauge = tools.contextGauge,
                         contextUsageEnabled = tools.contextUsageEnabled,
-                        isCompacting = tools.isCompacting,
                         onCompact = tools.onCompact,
+                        onSnoozeCompact = tools.onSnoozeCompact,
                         contextBarPlacement = tools.contextBarPlacement,
                         contextGaugeExpanded = tools.contextGaugeExpanded,
                         onContextGaugeExpandedChange = tools.onContextGaugeExpandedChange,

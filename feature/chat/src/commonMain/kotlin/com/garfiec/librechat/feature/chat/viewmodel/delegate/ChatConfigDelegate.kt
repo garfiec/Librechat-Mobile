@@ -136,6 +136,8 @@ class ChatConfigDelegate(
                         feedbackEnabled = iface?.feedback ?: true,
                         // Context-usage gauge (v0.8.7): interface flag AND backend support.
                         contextUsageEnabled = contextGaugeSupported && (iface?.contextUsage ?: true),
+                        costEnabled = iface?.contextCost == true,
+                        currency = iface?.currency,
                         // The inline memory tools WRITE, so the composer toggle needs the full
                         // USE+CREATE+UPDATE set the backend's own memoryAvailable gate requires
                         // — a read-only-memory role must not get a control the server would

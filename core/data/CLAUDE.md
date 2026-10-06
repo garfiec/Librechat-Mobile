@@ -149,6 +149,13 @@ every write there goes to memory and a test would pass for the wrong reason. It 
 - `AgentRepository.getAgentsPaginated()` — server-side paginated agent fetch, maps response to `PaginatedAgents` domain model
 - Both bound in `DataModule.kt` via `singleOf`, both use `safeApiCall`, no local caching
 
+### Compact-suggestion snoozes (`SettingsDataStore.compactNudgeSnoozes`)
+**Device-scoped by design**, like the other context-usage preferences: it maps conversation ids to the
+band the user answered "Not now" to, and holds no account data. `removeAllForAccount` sweeps only
+`acct:` keys, so it is not purged on logout; it is bounded instead (200 entries, oldest evicted by a
+sequence number, read-modify-write inside `dataStore.edit` under `NonCancellable`, mirroring
+`incrementModelUsage`).
+
 ### Per-server gateway headers (`servers` table)
 
 `ServerRepository` / `ServerRepositoryImpl` own the gateway headers of issue #287 and are the

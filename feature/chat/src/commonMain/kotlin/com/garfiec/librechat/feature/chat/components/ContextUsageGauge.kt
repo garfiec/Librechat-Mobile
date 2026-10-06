@@ -9,18 +9,22 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.Compress
 import androidx.compose.material.icons.outlined.DataUsage
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,62 +34,82 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.garfiec.librechat.core.model.usage.ContextUsage
-import com.garfiec.librechat.core.model.usage.TokenUsage
-import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.model.usage.percentOf
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
-import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
+import com.garfiec.librechat.core.ui.contextusage.ContextBreakdownCard
+import com.garfiec.librechat.core.ui.contextusage.pressureColor
 import com.garfiec.librechat.feature.chat.resources.Res
-import com.garfiec.librechat.feature.chat.resources.context_compact
-import com.garfiec.librechat.feature.chat.resources.context_compact_info
-import com.garfiec.librechat.feature.chat.resources.context_compacting
-import com.garfiec.librechat.feature.chat.resources.context_usage_free
-import com.garfiec.librechat.feature.chat.resources.context_usage_input
+import com.garfiec.librechat.feature.chat.resources.compact_confirm_action
+import com.garfiec.librechat.feature.chat.resources.compact_confirm_body
+import com.garfiec.librechat.feature.chat.resources.compact_confirm_not_now
+import com.garfiec.librechat.feature.chat.resources.compact_confirm_title
+import com.garfiec.librechat.feature.chat.resources.compact_nudge_action
+import com.garfiec.librechat.feature.chat.resources.compact_nudge_short
 import com.garfiec.librechat.feature.chat.resources.context_usage_label
-import com.garfiec.librechat.feature.chat.resources.context_usage_messages
-import com.garfiec.librechat.feature.chat.resources.context_usage_output
-import com.garfiec.librechat.feature.chat.resources.context_usage_summary
-import com.garfiec.librechat.feature.chat.resources.context_usage_system
-import com.garfiec.librechat.feature.chat.resources.context_usage_tools
-import com.garfiec.librechat.feature.chat.resources.context_usage_window
+import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import org.jetbrains.compose.resources.stringResource
-import kotlin.math.roundToInt
 
 /**
- * Compact context-window usage gauge (v0.8.7). A slim pill with a thin progress
- * bar and a "used / window" percentage; tapping opens a breakdown sheet. The
- * caller gates visibility on `contextUsageEnabled` and a non-null snapshot.
+ * Compact context-window usage gauge (v0.8.7). A slim pill with a thin progress bar and a
+ * "used / window" percentage; tapping opens a breakdown sheet. The caller gates visibility on
+ * `contextUsageEnabled` and a non-null snapshot.
+ *
+ * When compacting is suggested the pill turns tonal and gains a separate compact control, which
+ * opens a confirmation rather than compacting, so a stray tap near the composer does nothing.
  */
 @Composable
 fun ContextUsageGauge(
-    usage: ContextUsage,
+    details: ContextGaugeDetails,
     modifier: Modifier = Modifier,
-    tokenUsage: TokenUsage? = null,
-    isCompacting: Boolean = false,
     onCompact: (() -> Unit)? = null,
+    onSnoozeCompact: () -> Unit = {},
 ) {
     var showSheet by remember { mutableStateOf(false) }
-    val percent = (usage.usedFraction * 100).toInt()
+    var confirmCompact by remember { mutableStateOf(false) }
+    val usage = details.usage
+    val nudge = details.nudge.takeIf { onCompact != null }
 
     Surface(
         onClick = { showSheet = true },
         shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        color = if (nudge != null) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = modifier,
     ) {
-        ContextGaugePill(percent = percent, usedFraction = usage.usedFraction)
+        ContextGaugePill(
+            percent = percentOf(usage.usedTokens, usage.windowTokens),
+            usedFraction = usage.usedFraction,
+            isEstimate = details.isEstimate,
+        ) {
+            if (nudge != null) {
+                IconButton(onClick = { confirmCompact = true }, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        imageVector = Icons.Outlined.Compress,
+                        contentDescription = stringResource(Res.string.compact_nudge_action),
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+        }
     }
 
     if (showSheet) {
-        ContextUsageSheet(
-            usage = usage,
-            tokenUsage = tokenUsage,
-            onDismiss = { showSheet = false },
-            isCompacting = isCompacting,
-            onCompact = onCompact,
+        ContextUsageSheet(details = details, onDismiss = { showSheet = false }, onCompact = onCompact)
+    }
+    if (confirmCompact && nudge != null && onCompact != null) {
+        CompactConfirmDialog(
+            percent = nudge.percent,
+            onDismiss = { confirmCompact = false },
+            onNotNow = {
+                confirmCompact = false
+                onSnoozeCompact()
+            },
+            onCompact = {
+                confirmCompact = false
+                onCompact()
+            },
         )
     }
 }
@@ -102,11 +126,12 @@ fun ContextUsageGauge(
  */
 @Composable
 fun ContextUsageMenuItem(
-    usage: ContextUsage,
+    details: ContextGaugeDetails,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val percent = (usage.usedFraction * 100).toInt()
+    val usage = details.usage
+    val percent = percentOf(usage.usedTokens, usage.windowTokens)
     DropdownMenuItem(
         modifier = modifier,
         text = {
@@ -115,16 +140,14 @@ fun ContextUsageMenuItem(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text(
-                    text = stringResource(Res.string.context_usage_label),
-                    modifier = Modifier.weight(1f),
-                )
+                Text(text = stringResource(Res.string.context_usage_label), modifier = Modifier.weight(1f))
                 LinearProgressIndicator(
                     progress = { usage.usedFraction },
                     modifier = Modifier.width(72.dp),
+                    color = pressureColor(percent) ?: MaterialTheme.colorScheme.primary,
                     drawStopIndicator = {},
                 )
-                Text(text = "$percent%")
+                Text(text = percentLabel(percent, details.isEstimate), color = pressureColor(percent) ?: Color.Unspecified)
             }
         },
         onClick = onClick,
@@ -137,21 +160,23 @@ fun ContextUsageMenuItem(
 /**
  * Full-width gauge that expands in place to reveal the breakdown — for the composer "+" sheet,
  * where a tap can't open a modal sheet (that would nest modal surfaces) but the inline space is
- * available. The header pill fills the row; tapping it toggles the [ContextUsageBreakdown] below.
- * The expanded state is hoisted so the caller can persist it across sheet openings.
+ * available. The header pill fills the row; tapping it toggles the breakdown below. The expanded
+ * state is hoisted so the caller can persist it across sheet openings. A due compact suggestion
+ * adds a quiet "Compact…" button on the row, which asks for confirmation.
  */
 @Composable
 fun ContextUsageExpandableGauge(
-    usage: ContextUsage,
+    details: ContextGaugeDetails,
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
-    tokenUsage: TokenUsage? = null,
-    isCompacting: Boolean = false,
     onCompact: (() -> Unit)? = null,
+    onSnoozeCompact: () -> Unit = {},
 ) {
-    val percent = (usage.usedFraction * 100).toInt()
+    val usage = details.usage
     val chevronRotation by animateFloatAsState(if (expanded) 180f else 0f, label = "ctx_chevron")
+    var confirmCompact by remember { mutableStateOf(false) }
+    val nudge = details.nudge.takeIf { onCompact != null }
 
     Surface(
         shape = RoundedCornerShape(8.dp),
@@ -164,7 +189,17 @@ fun ContextUsageExpandableGauge(
                 color = Color.Transparent,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
             ) {
-                ContextGaugePill(percent = percent, usedFraction = usage.usedFraction, fillWidth = true) {
+                ContextGaugePill(
+                    percent = percentOf(usage.usedTokens, usage.windowTokens),
+                    usedFraction = usage.usedFraction,
+                    isEstimate = details.isEstimate,
+                    fillWidth = true,
+                ) {
+                    if (nudge != null) {
+                        TextButton(onClick = { confirmCompact = true }) {
+                            Text(stringResource(Res.string.compact_nudge_short))
+                        }
+                    }
                     Icon(
                         imageVector = Icons.Default.KeyboardArrowDown,
                         contentDescription = null,
@@ -174,33 +209,45 @@ fun ContextUsageExpandableGauge(
                 }
             }
             AnimatedVisibility(visible = expanded) {
-                ContextUsageBreakdown(
-                    usage = usage,
-                    tokenUsage = tokenUsage,
-                    isCompacting = isCompacting,
+                ContextBreakdownCard(
+                    model = details.model,
+                    sections = details.sections,
                     onCompact = onCompact,
-                    // The header pill above already shows the progress bar, so suppress the
-                    // breakdown's own bar here to avoid two identical bars stacked.
-                    showProgressBar = false,
                     modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
                 )
             }
         }
     }
+    if (confirmCompact && nudge != null && onCompact != null) {
+        CompactConfirmDialog(
+            percent = nudge.percent,
+            onDismiss = { confirmCompact = false },
+            onNotNow = {
+                confirmCompact = false
+                onSnoozeCompact()
+            },
+            onCompact = {
+                confirmCompact = false
+                onCompact()
+            },
+        )
+    }
 }
 
 /**
- * The shared pill visual: "Context" label, a thin progress bar, and the used percentage. When
- * [fillWidth] is set the bar stretches to fill the row (the rest hug their content); [trailing]
- * appends an optional element (e.g. an expand chevron) after the percentage.
+ * The shared pill visual: "Context" label, a thin progress bar, and the used percentage, tinted
+ * amber from 80% and red from 95%. When [fillWidth] is set the bar stretches to fill the row (the
+ * rest hug their content); [trailing] appends optional elements after the percentage.
  */
 @Composable
 private fun ContextGaugePill(
     percent: Int,
     usedFraction: Float,
+    isEstimate: Boolean,
     fillWidth: Boolean = false,
     trailing: @Composable RowScope.() -> Unit = {},
 ) {
+    val tint = pressureColor(percent)
     Row(
         modifier = Modifier
             .then(if (fillWidth) Modifier.fillMaxWidth() else Modifier)
@@ -216,42 +263,35 @@ private fun ContextGaugePill(
         LinearProgressIndicator(
             progress = { usedFraction },
             modifier = if (fillWidth) Modifier.weight(1f) else Modifier.width(72.dp),
+            color = tint ?: MaterialTheme.colorScheme.primary,
             // Drop the M3 track stop indicator (the dot at the 100% end) so a low
             // percentage reads as a single thin bar, not "tiny dot … dot".
             drawStopIndicator = {},
         )
         Text(
-            text = "$percent%",
+            text = percentLabel(percent, isEstimate),
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = tint ?: MaterialTheme.colorScheme.onSurface,
         )
         trailing()
     }
 }
 
-/**
- * Breakdown sheet mirroring the web client's `Breakdown.tsx`: a header line with
- * `used / window (percent)`, a progress bar, the per-component rows (each with its
- * share of the window), and — when a live token-usage snapshot exists — a divided
- * Input/Output section.
- */
+/** The breakdown in a modal sheet, for surfaces that can open one (the composer pill, the ⋮ menu). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ContextUsageSheet(
-    usage: ContextUsage,
-    tokenUsage: TokenUsage?,
+    details: ContextGaugeDetails,
     onDismiss: () -> Unit,
-    isCompacting: Boolean = false,
     onCompact: (() -> Unit)? = null,
 ) {
     AdaptiveModalBottomSheet(
         onDismissRequest = onDismiss,
         dragHandle = { LowProfileDragHandle() },
     ) {
-        ContextUsageBreakdown(
-            usage = usage,
-            tokenUsage = tokenUsage,
-            isCompacting = isCompacting,
+        ContextBreakdownCard(
+            model = details.model,
+            sections = details.sections,
             onCompact = onCompact,
             modifier = Modifier
                 .fillMaxWidth()
@@ -262,146 +302,26 @@ internal fun ContextUsageSheet(
 }
 
 /**
- * The breakdown body shared by the modal sheet ([ContextUsageSheet]) and the inline expand
- * ([ContextUsageExpandableGauge]): a header line with `used / window (percent)`, a progress bar,
- * the per-component rows (each with its share of the window), and — when a live token-usage
- * snapshot exists — a divided Input/Output section.
+ * Confirms a compaction started from a suggestion. Every suggestion goes through it: compacting
+ * changes what the model reads from then on, so it is never one tap. "Not now" quiets the
+ * suggestion for this conversation until usage reaches the next band.
  */
 @Composable
-private fun ContextUsageBreakdown(
-    usage: ContextUsage,
-    tokenUsage: TokenUsage?,
-    modifier: Modifier = Modifier,
-    showProgressBar: Boolean = true,
-    isCompacting: Boolean = false,
-    onCompact: (() -> Unit)? = null,
+internal fun CompactConfirmDialog(
+    percent: Int,
+    onDismiss: () -> Unit,
+    onNotNow: () -> Unit,
+    onCompact: () -> Unit,
 ) {
-    val maxTokens = usage.maxContextTokens
-    val used = usage.usedTokens
-    val percent = (usage.usedFraction * 100).roundToInt()
-
-    // Mirror the web breakdown math (Breakdown.tsx): split `used` into its parts.
-    val instructionTokens = usage.effectiveInstructionTokens ?: usage.breakdown.instructionTokens
-    val systemTokens = usage.breakdown.systemMessageTokens + usage.breakdown.dynamicInstructionTokens
-    val summaryTokens = usage.breakdown.summaryTokens
-    val messageTokens = (used - instructionTokens - summaryTokens).coerceAtLeast(0)
-    val freeTokens = (maxTokens - used).coerceAtLeast(0)
-
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = stringResource(Res.string.context_usage_window),
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Text(
-                text = if (maxTokens > 0) {
-                    "${formatTokens(used)} / ${formatTokens(maxTokens)} ($percent%)"
-                } else {
-                    formatTokens(used)
-                },
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-
-        if (showProgressBar) {
-            LinearProgressIndicator(
-                progress = { usage.usedFraction },
-                modifier = Modifier.fillMaxWidth(),
-                drawStopIndicator = {},
-            )
-        }
-
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            UsageRow(stringResource(Res.string.context_usage_messages), messageTokens, maxTokens)
-            if (systemTokens > 0) {
-                UsageRow(stringResource(Res.string.context_usage_system), systemTokens, maxTokens)
-            }
-            UsageRow(stringResource(Res.string.context_usage_tools), usage.breakdown.toolSchemaTokens, maxTokens)
-            if (summaryTokens > 0) {
-                UsageRow(stringResource(Res.string.context_usage_summary), summaryTokens, maxTokens)
-            }
-            UsageRow(stringResource(Res.string.context_usage_free), freeTokens, maxTokens)
-        }
-
-        val input = tokenUsage?.inputTokens
-        val output = tokenUsage?.outputTokens
-        if (input != null || output != null) {
-            AdaptiveDivider()
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                UsageRow(stringResource(Res.string.context_usage_input), input ?: 0, max = 0)
-                UsageRow(stringResource(Res.string.context_usage_output), output ?: 0, max = 0)
-            }
-        }
-
-        // Where the context usage is already being read, matching upstream's placement. Withheld
-        // entirely rather than disabled when the server does not offer compaction.
-        if (onCompact != null) {
-            AdaptiveDivider()
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                AdaptiveOutlinedButton(
-                    onClick = onCompact,
-                    enabled = !isCompacting,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        stringResource(
-                            if (isCompacting) Res.string.context_compacting else Res.string.context_compact,
-                        ),
-                    )
-                }
-                Text(
-                    text = stringResource(Res.string.context_compact_info),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-    }
+    AdaptiveAlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(Res.string.compact_confirm_title)) },
+        text = { Text(stringResource(Res.string.compact_confirm_body, percent)) },
+        confirmButton = { TextButton(onClick = onCompact) { Text(stringResource(Res.string.compact_confirm_action)) } },
+        dismissButton = { TextButton(onClick = onNotNow) { Text(stringResource(Res.string.compact_confirm_not_now)) } },
+    )
 }
 
-@Composable
-private fun UsageRow(label: String, tokens: Int, max: Int) {
-    val percent = if (max > 0) ((tokens.toFloat() / max) * 100).coerceAtMost(100f).roundToInt() else null
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Row(verticalAlignment = Alignment.Bottom) {
-            Text(
-                text = formatTokens(tokens),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            if (percent != null) {
-                Text(
-                    text = " ($percent%)",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-    }
-}
-
-private fun formatTokens(n: Int): String =
-    if (n >= 1000) {
-        val rounded = (n / 1000.0 * 10).roundToInt() / 10.0
-        val text = if (rounded % 1.0 == 0.0) rounded.toInt().toString() else rounded.toString()
-        "${text}K"
-    } else {
-        n.toString()
-    }
+/** A computed estimate reads as approximate (`~42%`), matching the breakdown's `~used` header. */
+internal fun percentLabel(percent: Int, isEstimate: Boolean): String =
+    if (isEstimate) "~$percent%" else "$percent%"

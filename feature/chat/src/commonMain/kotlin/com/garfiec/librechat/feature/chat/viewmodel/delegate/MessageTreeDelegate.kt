@@ -39,12 +39,10 @@ class MessageTreeDelegate(
         handle.update {
             val newBranches = content.activeBranches.toMutableMap()
             newBranches[parentMessageId] = siblingIndex
-            // The sibling we're switching to has a different message history, so the seeded context
-            // gauge no longer describes it. Clear it (we're !isStreaming here, so no live SSE to
-            // disturb) and let ContextProjectionDelegate re-project once displayMessages rebuilds
-            // with the new tail. sameWindowAs() ignores the tail, so without this the stale numerator
-            // would linger until the next send.
-            content = content.copy(activeBranches = newBranches, contextUsage = null)
+            // The context gauge is left alone: ContextProjectionDelegate re-resolves it from the
+            // rebuilt displayMessages one dispatch later. Clearing it here would flash the gauge
+            // hidden in between.
+            content = content.copy(activeBranches = newBranches)
         }
     }
 

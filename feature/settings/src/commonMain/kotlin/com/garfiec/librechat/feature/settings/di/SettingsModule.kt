@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.settings.di
 
 import com.garfiec.librechat.core.common.di.KoinQualifiers
 import com.garfiec.librechat.feature.settings.viewmodel.ApiKeysViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.ContextUsageSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.FavoritesViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.McpViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.MemoriesViewModel
@@ -53,6 +54,7 @@ val settingsModule = module {
         )
     }
     viewModelOf(::ApiKeysViewModel)
+    viewModelOf(::ContextUsageSettingsViewModel)
     viewModelOf(::FavoritesViewModel)
     viewModelOf(::MemoriesViewModel)
     viewModelOf(::McpViewModel)

@@ -187,9 +187,6 @@
     <string name="cd_tool_call">工具调用</string>
     <string name="cd_collapse_tool_call">收起工具调用 %1$s</string>
     <string name="cd_expand_tool_call">展开工具调用 %1$s</string>
-    <string name="context_compact">压缩对话</string>
-    <string name="context_compacting">正在压缩…</string>
-    <string name="context_compact_info">将目前为止的全部内容总结为一段较短的摘要供模型继续读取，为后续内容腾出上下文空间。不会删除任何内容。</string>
     <string name="cd_tool_complete">已完成</string>
     <string name="cd_tool_cancelled">已停止</string>
     <string name="cd_tool_failed">失败</string>
@@ -481,14 +478,6 @@
     <string name="media_empty_links">此对话中没有链接</string>
     <string name="media_empty_artifacts">此对话中没有 artifact</string>
     <string name="context_usage_label">上下文</string>
-    <string name="context_usage_window">上下文窗口</string>
-    <string name="context_usage_messages">消息</string>
-    <string name="context_usage_tools">工具定义</string>
-    <string name="context_usage_summary">摘要</string>
-    <string name="context_usage_system">系统</string>
-    <string name="context_usage_free">剩余空间</string>
-    <string name="context_usage_input">输入</string>
-    <string name="context_usage_output">输出</string>
     <string name="tool_approval_title">需要批准</string>
     <string name="tool_approval_arguments">参数</string>
     <string name="tool_approval_approve">批准</string>
@@ -639,4 +628,11 @@
     <string name="site_icons_prompt_settings_hint">你可以随时在“设置 → 聊天 → 显示网站图标”中更改此设置。</string>
     <string name="site_icons_prompt_allow">显示图标</string>
     <string name="site_icons_prompt_deny">不显示</string>
+    <string name="compact_nudge_short">压缩…</string>
+    <string name="compact_nudge_action">建议压缩</string>
+    <string name="compact_nudge_menu">压缩对话…</string>
+    <string name="compact_confirm_title">压缩此对话？</string>
+    <string name="compact_confirm_body">已使用上下文窗口的 %1$d%。压缩会将目前为止的对话总结为模型继续读取的简短笔记，为接下来的内容腾出空间。不会删除任何内容。</string>
+    <string name="compact_confirm_not_now">暂不</string>
+    <string name="compact_confirm_action">压缩</string>
 </resources>

@@ -190,9 +190,6 @@
     <string name="cd_tool_call">Tool call</string>
     <string name="cd_collapse_tool_call">Collapse tool call %1$s</string>
     <string name="cd_expand_tool_call">Expand tool call %1$s</string>
-    <string name="context_compact">Compact conversation</string>
-    <string name="context_compacting">Compacting…</string>
-    <string name="context_compact_info">Summarizes everything so far into a shorter note the model keeps reading, freeing context for what comes next. Nothing is deleted.</string>
     <string name="cd_tool_complete">Complete</string>
     <string name="cd_tool_cancelled">Stopped</string>
     <string name="cd_tool_failed">Failed</string>
@@ -499,14 +496,6 @@
 
     <!-- Context usage gauge (v0.8.7) -->
     <string name="context_usage_label">Context</string>
-    <string name="context_usage_window">Context window</string>
-    <string name="context_usage_messages">Messages</string>
-    <string name="context_usage_tools">Tool schemas</string>
-    <string name="context_usage_summary">Summary</string>
-    <string name="context_usage_system">System</string>
-    <string name="context_usage_free">Free space</string>
-    <string name="context_usage_input">Input</string>
-    <string name="context_usage_output">Output</string>
 
     <!-- Human-in-the-loop pauses (v0.8.8): tool approval + ask_user_question -->
     <string name="tool_approval_title">Approval needed</string>
@@ -665,4 +654,11 @@
     <string name="site_icons_prompt_settings_hint">You can change this anytime in Settings → Chat → Show website icons.</string>
     <string name="site_icons_prompt_allow">Show icons</string>
     <string name="site_icons_prompt_deny">Don't show</string>
+    <string name="compact_nudge_short">Compact…</string>
+    <string name="compact_nudge_action">Suggest compacting</string>
+    <string name="compact_nudge_menu">Compact conversation…</string>
+    <string name="compact_confirm_title">Compact this conversation?</string>
+    <string name="compact_confirm_body">%1$d% of the context window is used. Compacting summarizes the conversation so far into a shorter note the model keeps reading, freeing room for what comes next. Nothing is deleted.</string>
+    <string name="compact_confirm_not_now">Not now</string>
+    <string name="compact_confirm_action">Compact</string>
 </resources>

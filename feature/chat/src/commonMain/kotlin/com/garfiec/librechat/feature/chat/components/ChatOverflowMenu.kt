@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Compare
+import androidx.compose.material.icons.outlined.Compress
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Edit
@@ -30,7 +31,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
-import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
 import com.garfiec.librechat.core.ui.components.MenuDragSelection
@@ -44,12 +44,14 @@ import com.garfiec.librechat.feature.chat.resources.action_search
 import com.garfiec.librechat.feature.chat.resources.action_share
 import com.garfiec.librechat.feature.chat.resources.action_show_all_media
 import com.garfiec.librechat.feature.chat.resources.cd_comparison_enabled
+import com.garfiec.librechat.feature.chat.resources.compact_nudge_menu
 import com.garfiec.librechat.feature.chat.resources.compare_models
 import com.garfiec.librechat.feature.chat.resources.delete
 import com.garfiec.librechat.feature.chat.resources.load_preset
 import com.garfiec.librechat.feature.chat.resources.prompts_library
 import com.garfiec.librechat.feature.chat.resources.save_as_preset
 import com.garfiec.librechat.feature.chat.resources.trace_open
+import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -64,7 +66,7 @@ internal fun ChatOverflowMenu(
     onDismiss: () -> Unit,
     sections: List<List<ChatOverflowItem>>,
     isComparisonEnabled: Boolean,
-    contextUsage: ContextUsage?,
+    contextGauge: ContextGaugeDetails?,
     onItem: (ChatOverflowItem) -> Unit,
     dragSelection: MenuDragSelection? = null,
 ) {
@@ -106,7 +108,12 @@ internal fun ChatOverflowMenu(
                     // Opening the breakdown sheet is the host's job: that modal can't be opened from
                     // inside this popup without nesting modal surfaces.
                     ChatOverflowItem.CONTEXT_USAGE ->
-                        contextUsage?.let { ContextUsageMenuItem(usage = it, onClick = select, modifier = dragTarget) }
+                        contextGauge?.let {
+                            ContextUsageMenuItem(details = it, onClick = select, modifier = dragTarget)
+                        }
+                    // Opens the confirmation in the host, like the breakdown sheet.
+                    ChatOverflowItem.COMPACT ->
+                        OverflowItem(stringResource(Res.string.compact_nudge_menu), Icons.Outlined.Compress, select, dragTarget)
                     ChatOverflowItem.SHARE ->
                         OverflowItem(stringResource(Res.string.action_share), Icons.Outlined.Share, select, dragTarget)
                     ChatOverflowItem.RENAME ->

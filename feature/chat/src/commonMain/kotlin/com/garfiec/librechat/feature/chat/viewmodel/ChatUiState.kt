@@ -24,14 +24,18 @@ import com.garfiec.librechat.core.model.response.isProviderUnknown
 import com.garfiec.librechat.core.model.response.isTextExtractable
 import com.garfiec.librechat.core.model.response.resolveUploadRoute
 import com.garfiec.librechat.core.model.usage.ContextUsage
-import com.garfiec.librechat.core.model.usage.TokenUsage
+import com.garfiec.librechat.core.model.usage.ContextUsageTotals
+import com.garfiec.librechat.core.model.usage.compactNudgeBand
+import com.garfiec.librechat.core.model.usage.percentOf
 import com.garfiec.librechat.core.ui.components.ModelParameters
+import com.garfiec.librechat.core.ui.contextusage.ContextBreakdownModel
 import com.garfiec.librechat.core.ui.media.MediaPreviewState
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.model.PresetDisplayData
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
 import com.garfiec.librechat.feature.chat.util.MessageNode
+import com.garfiec.librechat.feature.chat.util.PendingUsage
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 
 /**
@@ -216,7 +220,66 @@ data class ChatUiState(
     val isRefreshingMessages: Boolean get() = content.isRefreshingMessages
     val messagesLoadFailed: Boolean get() = content.messagesLoadFailed
     val contextUsage: ContextUsage? get() = content.contextUsage
-    val tokenUsage: TokenUsage? get() = content.tokenUsage
+    val contextUsageSource: ContextUsageSource? get() = content.contextUsageSource
+    val contextUsageIsEstimate: Boolean get() = content.contextUsageSource == ContextUsageSource.ESTIMATE
+    val pendingUsage: PendingUsage get() = content.pendingUsage
+    val contextUsageTotals: ContextUsageTotals get() = content.contextUsageTotals
+
+    /** Everything a gauge surface renders, or null when there is no reading. */
+    val contextGaugeDetails: ContextGaugeDetails?
+        get() = content.contextUsage?.let { usage ->
+            ContextGaugeDetails(
+                model = ContextBreakdownModel(
+                    usage = usage,
+                    isEstimate = contextUsageIsEstimate,
+                    totals = content.contextUsageTotals,
+                    costEnabled = gates.costEnabled,
+                    currency = gates.currency,
+                    isCompacting = content.isCompacting,
+                    compactionAvailable = canCompactNow,
+                ),
+                sections = prefs.contextSections,
+                nudge = compactNudge,
+            )
+        }
+
+    /**
+     * The suggestion to compact, or null. Shown from the user's threshold in the active
+     * placement, re-armed band by band after a "Not now", and driven only by a real server
+     * reading: a device-side estimate is too rough to prompt an action on.
+     */
+    val compactNudge: CompactNudge?
+        get() {
+            if (!compactNudgeEligible) return null
+            val usage = content.contextUsage ?: return null
+            val percent = percentOf(usage.usedTokens, usage.windowTokens)
+            val band = compactNudgeBand(percent, prefs.compactNudgeThreshold) ?: return null
+            val snoozed = conversationId?.let { prefs.compactNudgeSnoozes[it] }
+            return CompactNudge(band, percent).takeIf { snoozed == null || band > snoozed }
+        }
+
+    /**
+     * The options-sheet placement keeps the gauge inside the + sheet, out of sight, so a due
+     * suggestion also marks the + button.
+     */
+    val compactNudgeOnToolsButton: Boolean
+        get() = prefs.contextBarPlacement == ContextBarPlacement.OPTIONS_SHEET && compactNudge != null
+
+    /** Compacting is possible right now and the user can see a gauge to suggest it from. */
+    private val compactNudgeEligible: Boolean
+        get() {
+            val realReading = content.contextUsage != null && content.contextUsageSource != ContextUsageSource.ESTIMATE
+            val visible = gates.contextUsageEnabled && prefs.contextBarPlacement != ContextBarPlacement.HIDDEN
+            return canCompactNow && !content.isCompacting && realReading && visible
+        }
+
+    /** A real reading sits below the compact threshold (or the suggestion is off). */
+    internal val isBelowCompactThreshold: Boolean
+        get() {
+            val usage = content.contextUsage ?: return false
+            if (content.contextUsageSource == ContextUsageSource.ESTIMATE) return false
+            return compactNudgeBand(percentOf(usage.usedTokens, usage.windowTokens), prefs.compactNudgeThreshold) == null
+        }
     val pendingAction: PendingAction? get() = content.pendingAction
     val isResolvingPendingAction: Boolean get() = content.isResolvingPendingAction
     val pendingActionResumeFailed: Boolean get() = content.pendingActionResumeFailed

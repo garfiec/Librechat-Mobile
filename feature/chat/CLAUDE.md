@@ -619,6 +619,44 @@ parameter by that name. Upstream injects it at position zero, and that ordering 
 of the contract this side can check. Lifted labels are stripped from the expanded args dump.
 Shipped ahead of upstream's own presentation, which scopes rendering as a follow-up.
 
+## Context gauge (v0.8.8)
+v0.8.8 removed the context-projection endpoint, so outside a stream `ContextProjectionDelegate`
+resolves the gauge from the displayed branch: the finished turn's saved snapshot
+(`metadata.contextUsage`), the live reading while its turn is on the branch, the deepest saved
+snapshot, the projection (older servers), then an on-device estimate (`util/ContextGaugeResolver.kt`,
+ported from upstream `tokens.ts`; registered in `scripts/mirrors.json`). Two rules are load-bearing:
+- **It re-runs on the branch itself, not its tail id.** A Room emission and the network refresh that
+  follows it usually share a tail id and differ only in `metadata`. Keying on the tail (as the old
+  `ProjectionKey` did) leaves the cached estimate on screen after the server's snapshot has arrived.
+- **`ContextUsageSource.LIVE` alone does not prove a live reading.** The stamp survives into the next
+  run until something replaces it, so the delegate records the gauge's value at stream start and only
+  carries over a reading that replaced it. Otherwise a run that reported nothing pins the previous
+  run's value.
+
+The breakdown (`util/ContextBreakdown.kt`, rendered by `ContextUsageGauge.kt`) ports web's
+`Breakdown.tsx`; Totals and Cost come from `util/UsageTotals.kt`. One more load-bearing rule:
+- **Live usage is attributed to the Final frame's response id, never the tail.** `LiveReplyDelegate`
+  folds every `on_token_usage` (buckets included, deduped by `runId:seq`, plus the resume frame's
+  `collectedUsage`) into `pendingUsage`, which counts until its reply carries `metadata.usage`.
+  `onStreamEnded` runs before the reply is swapped in, so the tail there is the user message;
+  anchoring on it makes the reply's own usage never cancel pending, and Totals and Cost double for
+  the rest of the session (`ChatViewModelUsageTotalsTest` fails with 2000 instead of 1000).
+
+**Detail levels and the compact suggestion.** The breakdown is always computed in full and filtered
+at render by the user's `ContextDetailSections` (Settings → Chat → Context usage: Simple / Standard /
+Detailed presets, or a custom mix), through `visibleBreakdown` in `:core:model`. The rendering itself
+is `ContextBreakdownCard` in `:core:ui`, so the Settings preview draws exactly what the chat does.
+`ChatUiState.compactNudge` suggests compacting from the user's threshold (default 70%), in the active
+placement only (+ a dot on the + button under the default options-sheet placement), and every
+suggestion opens `CompactConfirmDialog`; it is never one tap. Three rules, each with a test in
+`ChatUiStateCompactNudgeTest`:
+- **`canCompactNow` does not exclude an in-flight compaction**, so the nudge checks `isCompacting`
+  itself; `MessageEditingDelegate` sets it before `isStreaming` flips.
+- **An estimate never suggests compacting.** Only a real server reading (snapshot, live, projection).
+- **"Not now" snoozes a band, per conversation, persisted**, and the snooze clears once a real reading
+  is back under the threshold (`ChatViewModel.clearCompactNudgeSnoozeWhenBelowThreshold`), so the next
+  fill suggests again from the start. A chat still loading has no reading and must not clear it.
+
 ## Message Timestamps
 - `MessageTimestamp` shows relative/absolute time, toggled on tap
 - Parses multiple ISO 8601 format variants; falls back gracefully on invalid input

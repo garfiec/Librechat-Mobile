@@ -187,9 +187,6 @@
     <string name="cd_tool_call">도구 호출</string>
     <string name="cd_collapse_tool_call">도구 호출 %1$s 접기</string>
     <string name="cd_expand_tool_call">도구 호출 %1$s 펼치기</string>
-    <string name="context_compact">대화 압축</string>
-    <string name="context_compacting">압축 중…</string>
-    <string name="context_compact_info">지금까지의 내용을 모델이 계속 참고하는 짧은 메모로 요약하여 이후 내용을 위한 컨텍스트 공간을 확보합니다. 삭제되는 내용은 없습니다.</string>
     <string name="cd_tool_complete">완료</string>
     <string name="cd_tool_cancelled">중지됨</string>
     <string name="cd_tool_failed">실패</string>
@@ -481,14 +478,6 @@
     <string name="media_empty_links">이 대화에 링크가 없습니다</string>
     <string name="media_empty_artifacts">이 대화에 아티팩트가 없습니다</string>
     <string name="context_usage_label">컨텍스트</string>
-    <string name="context_usage_window">컨텍스트 창</string>
-    <string name="context_usage_messages">메시지</string>
-    <string name="context_usage_tools">도구 스키마</string>
-    <string name="context_usage_summary">요약</string>
-    <string name="context_usage_system">시스템</string>
-    <string name="context_usage_free">여유 공간</string>
-    <string name="context_usage_input">입력</string>
-    <string name="context_usage_output">출력</string>
     <string name="tool_approval_title">승인 필요</string>
     <string name="tool_approval_arguments">인수</string>
     <string name="tool_approval_approve">승인</string>
@@ -639,4 +628,11 @@
     <string name="site_icons_prompt_settings_hint">'설정 → 채팅 → 웹사이트 아이콘 표시'에서 언제든지 변경할 수 있습니다.</string>
     <string name="site_icons_prompt_allow">아이콘 표시</string>
     <string name="site_icons_prompt_deny">표시 안 함</string>
+    <string name="compact_nudge_short">압축…</string>
+    <string name="compact_nudge_action">압축 권장</string>
+    <string name="compact_nudge_menu">대화 압축…</string>
+    <string name="compact_confirm_title">이 대화를 압축할까요?</string>
+    <string name="compact_confirm_body">컨텍스트 창의 %1$d%를 사용 중입니다. 압축하면 지금까지의 대화가 모델이 계속 읽는 짧은 메모로 요약되어 앞으로를 위한 공간이 생깁니다. 아무것도 삭제되지 않습니다.</string>
+    <string name="compact_confirm_not_now">나중에</string>
+    <string name="compact_confirm_action">압축</string>
 </resources>

@@ -109,6 +109,7 @@ internal fun ChatFloatingTopBar(
     onOpenPromptsLibrary: (() -> Unit)? = null,
 ) {
     var showContextSheet by remember { mutableStateOf(false) }
+    var showCompactConfirm by remember { mutableStateOf(false) }
     var showTraceViewer by remember { mutableStateOf(false) }
     val conversationId = uiState.conversationId
     val conversationTitle = uiState.conversationTitle
@@ -129,6 +130,7 @@ internal fun ChatFloatingTopBar(
         contextUsage = uiState.contextUsage,
         contextUsageEnabled = uiState.contextUsageEnabled,
         contextBarPlacement = uiState.contextBarPlacement,
+        compactNudgeVisible = uiState.compactNudge != null,
         sharedLinksEnabled = uiState.sharedLinksEnabled,
     )
     val overflowSections = remember(overflowGates) { chatOverflowSections(overflowGates) }
@@ -142,6 +144,7 @@ internal fun ChatFloatingTopBar(
             ChatOverflowItem.COMPARE -> viewModel.toggleComparison()
             ChatOverflowItem.TRACE -> showTraceViewer = true
             ChatOverflowItem.CONTEXT_USAGE -> showContextSheet = true
+            ChatOverflowItem.COMPACT -> showCompactConfirm = true
             ChatOverflowItem.SHARE -> viewModel.shareConversation()
             ChatOverflowItem.RENAME -> onRename()
             ChatOverflowItem.DUPLICATE -> viewModel.duplicateConversation()
@@ -187,13 +190,28 @@ internal fun ChatFloatingTopBar(
     // The context-usage gauge's default home is just above the composer (Settings → Chat picks
     // its placement); see CommonChatInputCore. When the user routes it to the overflow menu, the
     // menu item hands the trigger here so the breakdown sheet opens outside the menu popup.
-    val sheetContextUsage = uiState.contextUsage
-    if (showContextSheet && sheetContextUsage != null) {
+    // The ⋮ menu's compact suggestion confirms here, outside the popup, like the sheet above.
+    val compactNudge = uiState.compactNudge
+    if (showCompactConfirm && compactNudge != null) {
+        CompactConfirmDialog(
+            percent = compactNudge.percent,
+            onDismiss = { showCompactConfirm = false },
+            onNotNow = {
+                showCompactConfirm = false
+                viewModel.snoozeCompactNudge()
+            },
+            onCompact = {
+                showCompactConfirm = false
+                viewModel.compactConversation()
+            },
+        )
+    }
+
+    val sheetContextGauge = uiState.contextGaugeDetails
+    if (showContextSheet && sheetContextGauge != null) {
         ContextUsageSheet(
-            usage = sheetContextUsage,
-            tokenUsage = uiState.tokenUsage,
+            details = sheetContextGauge,
             onDismiss = { showContextSheet = false },
-            isCompacting = uiState.isCompacting,
             onCompact = viewModel::compactConversation.takeIf { uiState.canCompactNow },
         )
     }
@@ -375,7 +393,7 @@ private fun MaterialChatTopBar(
                     onDismiss = { showOverflowMenu = false },
                     sections = sections,
                     isComparisonEnabled = uiState.comparisonState.isEnabled,
-                    contextUsage = uiState.contextUsage,
+                    contextGauge = uiState.contextGaugeDetails,
                     onItem = onItem,
                     dragSelection = overflowDrag.takeIf { !isLiquidGlass },
                 )

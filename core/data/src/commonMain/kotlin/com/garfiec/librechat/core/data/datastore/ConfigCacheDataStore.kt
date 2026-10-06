@@ -8,6 +8,7 @@ import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.identity.deriveServerId
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.config.StartupConfig
+import com.garfiec.librechat.core.model.usage.ModelTokenomics
 import com.garfiec.librechat.core.network.client.ServerUrlProvider
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.builtins.ListSerializer
@@ -16,10 +17,10 @@ import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 
 /**
- * Server-scoped config cache. Startup config / endpoint configs / available models are cached under
- * `srv:<serverId>:<name>` so switching servers (multi-server, issue #179) never surfaces another
- * deployment's endpoints or models. `serverId` is derived from the warmed base URL — config is only
- * ever read/written after a server is selected, so the URL is available.
+ * Server-scoped config cache. Startup config / endpoint configs / available models / token config
+ * are cached under `srv:<serverId>:<name>` so switching servers (multi-server, issue #179) never
+ * surfaces another deployment's endpoints or models. `serverId` is derived from the warmed base
+ * URL — config is only ever read/written after a server is selected, so the URL is available.
  */
 class ConfigCacheDataStore(
     private val dataStore: DataStore<Preferences>,
@@ -46,6 +47,12 @@ class ConfigCacheDataStore(
 
     suspend fun loadAvailableModels(): Map<String, List<String>>? =
         load(AVAILABLE_MODELS, "available models") { json.decodeFromString(modelsSerializer, it) }
+
+    suspend fun saveTokenConfig(config: Map<String, Map<String, ModelTokenomics>>) =
+        save(TOKEN_CONFIG, "token config") { json.encodeToString(tokenConfigSerializer, config) }
+
+    suspend fun loadTokenConfig(): Map<String, Map<String, ModelTokenomics>>? =
+        load(TOKEN_CONFIG, "token config") { json.decodeFromString(tokenConfigSerializer, it) }
 
     suspend fun clear() {
         // Scope to the logged-out server only: logout keeps the base URL, so serverId() still
@@ -92,9 +99,14 @@ class ConfigCacheDataStore(
         const val STARTUP_CONFIG = "cached_startup_config"
         const val ENDPOINT_CONFIGS = "cached_endpoint_configs"
         const val AVAILABLE_MODELS = "cached_available_models"
-        val BASES = listOf(STARTUP_CONFIG, ENDPOINT_CONFIGS, AVAILABLE_MODELS)
+        const val TOKEN_CONFIG = "cached_token_config"
+        val BASES = listOf(STARTUP_CONFIG, ENDPOINT_CONFIGS, AVAILABLE_MODELS, TOKEN_CONFIG)
 
         val endpointSerializer = MapSerializer(String.serializer(), EndpointConfig.serializer())
         val modelsSerializer = MapSerializer(String.serializer(), ListSerializer(String.serializer()))
+        val tokenConfigSerializer = MapSerializer(
+            String.serializer(),
+            MapSerializer(String.serializer(), ModelTokenomics.serializer()),
+        )
     }
 }
