@@ -64,8 +64,8 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
- * The detail behind the prefetch summary in Data settings: why prefetching is or is not running,
- * what it has cached, and what it still intends to fetch.
+ * The detail behind the prefetch summary on the Background prefetch page: why prefetching is or is
+ * not running, what it has cached, and what it still intends to fetch.
  *
  * Every figure but one is derived live from the watermark table and the gate, so it cannot report a
  * pass that did not happen, and equally cannot show any history beyond what the watermarks still
@@ -78,8 +78,9 @@ fun PrefetchActivityScreen(onNavigateBack: () -> Unit, modifier: Modifier = Modi
     val viewModel: PrefetchActivityViewModel = koinViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // Read here rather than on construction: Data settings resolves this ViewModel for the status
-    // summary alone, and these two reads are a recursive directory walk and a full table scan.
+    // Read here rather than on construction: the Data tab and the Background prefetch page resolve this
+    // ViewModel for the status summary alone, and these two reads are a recursive directory walk and a
+    // full table scan.
     LaunchedEffect(Unit) { viewModel.loadCacheFigures() }
 
     AdaptiveScaffold(

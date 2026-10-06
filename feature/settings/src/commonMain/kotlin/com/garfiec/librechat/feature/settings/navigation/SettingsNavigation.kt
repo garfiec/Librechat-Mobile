@@ -67,7 +67,7 @@ fun EntryProviderScope<NavKey>.settingsEntries(
             onNavigateToArchive = onNavigateToArchive,
             onNavigateToSharedLinks = { onNavigate(SharedLinks) },
             onNavigateToArtifactShortcuts = { onNavigate(ArtifactShortcuts) },
-            onNavigateToPrefetchActivity = { onNavigate(PrefetchActivity) },
+            onNavigateToPrefetchSettings = { onNavigate(PrefetchSettings) },
             onNavigateToPresets = { onNavigate(PresetManager) },
             onNavigateToContextUsage = { onNavigate(ContextUsageSettings) },
             onNavigateToApiKeys = { onNavigate(ApiKeys) },
@@ -109,7 +109,7 @@ fun EntryProviderScope<NavKey>.settingsEntries(
             onNavigateToArchive = onNavigateToArchive,
             onNavigateToSharedLinks = { onNavigate(SharedLinks) },
             onNavigateToArtifactShortcuts = { onNavigate(ArtifactShortcuts) },
-            onNavigateToPrefetchActivity = { onNavigate(PrefetchActivity) },
+            onNavigateToPrefetchSettings = { onNavigate(PrefetchSettings) },
         )
     }
     entry<SharedLinks> {
@@ -152,7 +152,7 @@ fun EntryProviderScope<NavKey>.settingsEntries(
     favoritesEntry(onBack = onBack)
     roleSkillsAdminEntry(onBack = onBack)
     artifactShortcutsEntry(onBack = onBack)
-    prefetchActivityEntry(onBack = onBack)
+    prefetchEntries(onNavigate = onNavigate, onBack = onBack)
     contextUsageSettingsEntry(onBack = onBack)
     appearanceSettingsEntry(onBack = onBack)
     whatsNewEntry(onBack = onBack)
@@ -175,6 +175,7 @@ val settingsSerializersModule = SerializersModule {
         subclass(Favorites::class, Favorites.serializer())
         subclass(RoleSkillsAdmin::class, RoleSkillsAdmin.serializer())
         subclass(ArtifactShortcuts::class, ArtifactShortcuts.serializer())
+        subclass(PrefetchSettings::class, PrefetchSettings.serializer())
         subclass(PrefetchActivity::class, PrefetchActivity.serializer())
         subclass(ContextUsageSettings::class, ContextUsageSettings.serializer())
         subclass(AppearanceSettings::class, AppearanceSettings.serializer())

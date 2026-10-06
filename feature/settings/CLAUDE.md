@@ -47,6 +47,7 @@
 - `PresetManagerScreen` — list/delete presets (`PresetManagerViewModel`)
 - `CommandsConfigScreen` — enable/disable slash commands
 - `AppearanceSettingsScreen` — theme, interface style, accent colour, wallpaper colours; reached from one summary row on the General tab (route `AppearanceSettings`, `AppearanceNavigation.kt`). Own ViewModel (`AppearanceSettingsViewModel`, ThemeDataStore only); the General tab's summary row reads it too, so opening the page doesn't re-run `SettingsViewModel`'s loads
+- `PrefetchSettingsScreen` — background prefetch switches, depth and status summary; reached from one row in the Data tab (route `PrefetchSettings`, `PrefetchNavigation.kt`, which also holds `PrefetchActivity`). Own ViewModel (`PrefetchSettingsViewModel`, SettingsDataStore only) plus `PrefetchActivityViewModel` for status
 - Routes: `Memories`, `McpServers`, `PresetManager` (all `@Serializable` data objects extending `SettingsRoute`)
 - **Gotcha**: Memories and MCP navigation routes defined in their own files (`MemoriesNavigation.kt`, `McpNavigation.kt`) but wired through `SettingsNavigation.kt`
 - **Gotcha**: `McpServerDialog` uses `McpServerType` enum (SSE, STREAMABLE_HTTP) — must match backend expectations

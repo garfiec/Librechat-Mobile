@@ -58,7 +58,7 @@ fun DataSettingsScreen(
     onNavigateToArchive: () -> Unit,
     onNavigateToSharedLinks: () -> Unit,
     onNavigateToArtifactShortcuts: () -> Unit,
-    onNavigateToPrefetchActivity: () -> Unit,
+    onNavigateToPrefetchSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -80,7 +80,7 @@ fun DataSettingsScreen(
             onNavigateToArchive = onNavigateToArchive,
             onNavigateToSharedLinks = onNavigateToSharedLinks,
             onNavigateToArtifactShortcuts = onNavigateToArtifactShortcuts,
-            onNavigateToPrefetchActivity = onNavigateToPrefetchActivity,
+            onNavigateToPrefetchSettings = onNavigateToPrefetchSettings,
             snackbarHostState = snackbarHostState,
             modifier = Modifier
                 .fillMaxSize()
@@ -98,7 +98,7 @@ fun DataSettingsContent(
     onNavigateToArchive: () -> Unit,
     onNavigateToSharedLinks: () -> Unit,
     onNavigateToArtifactShortcuts: () -> Unit,
-    onNavigateToPrefetchActivity: () -> Unit,
+    onNavigateToPrefetchSettings: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
@@ -220,21 +220,11 @@ fun DataSettingsContent(
             }
             adaptiveSection {
                 row(key = "prefetch_settings") {
-                    PrefetchSettingsSection(
-                        prefetchEnabled = uiState.prefetchEnabled,
-                        prefetchOnMeteredEnabled = uiState.prefetchOnMeteredEnabled,
-                        prefetchAttachmentsEnabled = uiState.prefetchAttachmentsEnabled,
-                        prefetchAttachmentsSupported = uiState.prefetchAttachmentsSupported,
-                        onPrefetchEnabledChange = viewModel::setPrefetchEnabled,
-                        onPrefetchOnMeteredChange = viewModel::setPrefetchOnMeteredEnabled,
-                        onPrefetchAttachmentsChange = viewModel::setPrefetchAttachmentsEnabled,
-                        prefetchDepth = uiState.prefetchDepth,
-                        onPrefetchDepthChange = viewModel::setPrefetchDepth,
-                        status = prefetchState.status,
-                        warmedCount = prefetchState.warmedCount,
-                        eligibleCount = prefetchState.eligibleCount,
-                        lastRunLabel = prefetchState.lastWarmedAt?.relativeLabel(),
-                        onActivityClick = onNavigateToPrefetchActivity,
+                    SelectorRow(
+                        title = stringResource(Res.string.prefetch_enabled),
+                        value = prefetchState.status.label(),
+                        onClick = onNavigateToPrefetchSettings,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     )
                 }
             }
