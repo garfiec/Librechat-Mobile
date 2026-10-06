@@ -375,6 +375,43 @@ class ConversationLoadHandle(root: ChatStateHandle) : DelegateHandle(root) {
         root.update { ConversationLoadWrites(this).apply(block).applyTo(this) }
 }
 
+// ── SendReadinessDelegate ─────────────────────────────────────────────────
+// Reads only: the gate decides whether a send may go and surfaces the selector through the
+// ViewModel, so it has no writer at all.
+class SendReadinessHandle(root: ChatStateHandle) : DelegateHandle(root) {
+    /** Read-only observation of the full state (the readiness await). */
+    val stateFlow: StateFlow<ChatUiState> get() = root.stateFlow
+}
+
+// ── SendDispatchDelegate ──────────────────────────────────────────────────
+// Owns the message slice for the optimistic insert that starts a turn (the same whole-slice
+// write StreamingManagerDelegate makes), and on the composer only what a send consumes: the
+// text, the quote chips and a staged routing batch. The queued-edit session and the send-block
+// reason stay with the ViewModel.
+class SendDispatchWrites internal constructor(state: ChatUiState) {
+    var content: MessagesState = state.content
+    var inputText: String = state.composer.inputText
+    var pendingQuotes: List<String> = state.composer.pendingQuotes
+    var pendingUploadRouting: PendingUploadRouting? = state.composer.pendingUploadRouting
+    var error: String? = state.error
+    internal fun applyTo(s: ChatUiState) = s.copy(
+        content = content,
+        composer = s.composer.copy(
+            inputText = inputText,
+            pendingQuotes = pendingQuotes,
+            pendingUploadRouting = pendingUploadRouting,
+        ),
+        error = error,
+    )
+}
+
+class SendDispatchHandle(root: ChatStateHandle) : DelegateHandle(root) {
+    /** Read-only observation of the full state (the reply-settled await before a drain). */
+    val stateFlow: StateFlow<ChatUiState> get() = root.stateFlow
+    fun update(block: SendDispatchWrites.() -> Unit) =
+        root.update { SendDispatchWrites(this).apply(block).applyTo(this) }
+}
+
 // ── Platform voice input (VoiceInputDelegate / IosVoiceInput) ─────────────
 class VoiceWrites internal constructor(state: ChatUiState) {
     var voice: VoiceState = state.voice

@@ -20,8 +20,8 @@ import kotlin.uuid.Uuid
  * sibling or a stream anchor via [MessageTreeDelegate]) and resubmits through
  * [StreamingManagerDelegate], reusing [ChatRequestBuilder] for the shared request pieces.
  *
- * The send-readiness gate and message-text extraction live in `ChatViewModel` (shared with
- * the new-message send path and TTS); they're injected as [runWhenSendReady] / [getMessageText].
+ * The send-readiness gate lives in [SendReadinessDelegate] and message-text extraction in
+ * `ChatViewModel` (shared with TTS); they're injected as [runWhenSendReady] / [getMessageText].
  */
 class MessageEditingDelegate(
     private val handle: MessageEditingHandle,
@@ -211,8 +211,9 @@ class MessageEditingDelegate(
      * server rebuilds the user message from `req.body.quotes` on a regenerate, so omitting
      * them silently drops the quoted context while the chips stay visible. Continue sends
      * none, matching web. The new-message send path
-     * (`doSendWithSpec`) stays in `ChatViewModel`: it additionally carries an added-conversation
-     * for comparison mode and a bespoke stream-terminated callback this helper deliberately omits.
+     * (`SendDispatchDelegate.doSendWithSpec`) is separate: it additionally carries an
+     * added-conversation for comparison mode and a bespoke stream-terminated callback this helper
+     * deliberately omits.
      */
     @Suppress("LongParameterList")
     private fun launchSend(

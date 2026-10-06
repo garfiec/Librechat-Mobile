@@ -28,8 +28,8 @@ import kotlinx.coroutines.launch
  * `uploadRouteIsAmbiguous`; this delegate only decides when to ask and what to hand over.
  *
  * Owns `ComposerState.isAwaitingUploadSend`, `pendingUploadRouting` and `resolvingPickCount`. The
- * send paths' composer transactions (`ChatViewModel.applyComposer` / `clearComposer`) still clear a
- * staged batch themselves, inside their own single-emission writes. The parked-send job stays on
+ * send paths' composer transactions (`ChatViewModel.applyComposer` / `SendDispatchDelegate.clearComposer`)
+ * still clear a staged batch themselves, inside their own single-emission writes. The parked-send job stays on
  * the platform handler ([PlatformFileHandler.pendingUploadSendJob]).
  */
 class UploadIntakeDelegate(
