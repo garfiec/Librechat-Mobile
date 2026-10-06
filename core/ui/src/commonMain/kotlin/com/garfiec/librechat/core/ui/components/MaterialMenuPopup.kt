@@ -46,7 +46,6 @@ import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.geometry.lerp
-import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Shape
@@ -200,7 +199,6 @@ internal fun MaterialMenuPopup(
                     StaggeredColumnPolicy(
                         rowProgress = { index -> rowProgress(rowsProgress.value, index) },
                         rowShiftPx = with(density) { RowShift.toPx() },
-                        blurPx = with(density) { RowBlur.toPx() },
                         opensDown = opensDown,
                     )
                 },
@@ -295,7 +293,6 @@ private class RoundRectShape(private val rect: Rect, private val radius: Float) 
 internal class StaggeredColumnPolicy(
     private val rowProgress: (index: Int) -> Float,
     private val rowShiftPx: Float,
-    private val blurPx: Float,
     private val opensDown: () -> Boolean,
 ) : MeasurePolicy {
     override fun MeasureScope.measure(measurables: List<Measurable>, constraints: Constraints): MeasureResult {
@@ -313,8 +310,6 @@ internal class StaggeredColumnPolicy(
                     val scale = ROW_START_SCALE + (1f - ROW_START_SCALE) * t
                     scaleX = scale
                     scaleY = scale
-                    val blur = (1f - t) * blurPx
-                    renderEffect = if (blur > MIN_BLUR_PX) BlurEffect(blur, blur) else null
                 }
                 y += placeable.height
             }
@@ -406,9 +401,7 @@ private val Offset0 = Offset.Zero
 private val MenuVerticalMargin = 48.dp
 internal val MenuVerticalPadding = 8.dp
 internal val RowShift = 8.dp
-internal val RowBlur = 8.dp
 private const val ROW_START_SCALE = 0.92f
-private const val MIN_BLUR_PX = 0.5f
 private val StretchCap = 12.dp
 private val PanelLeanCap = 4.dp
 private const val STRETCH_SOFTNESS = 0.3f

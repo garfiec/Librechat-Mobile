@@ -304,7 +304,6 @@ private fun MorphingMenu(
                             StaggeredColumnPolicy(
                                 rowProgress = { index -> rows.value(index) },
                                 rowShiftPx = with(density) { RowShift.toPx() },
-                                blurPx = with(density) { RowBlur.toPx() },
                                 opensDown = { opensDown },
                             )
                         },
