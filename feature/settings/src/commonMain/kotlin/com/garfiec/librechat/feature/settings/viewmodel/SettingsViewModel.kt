@@ -16,8 +16,6 @@ import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
-import com.garfiec.librechat.core.data.datastore.ThemeDataStore
-import com.garfiec.librechat.core.data.datastore.ThemeMode
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
 import com.garfiec.librechat.core.data.prefetch.AttachmentWarmer
 import com.garfiec.librechat.core.data.repository.AuthRepository
@@ -42,7 +40,6 @@ import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
 import com.garfiec.librechat.core.model.speech.TtsVoice
-import com.garfiec.librechat.core.model.ui.UiStyle
 import com.garfiec.librechat.feature.settings.util.ContentReader
 import com.garfiec.librechat.feature.settings.util.PlatformCacheCleaner
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.AccountDelegate
@@ -67,7 +64,6 @@ class SettingsViewModel(
     userRepository: UserRepository,
     authRepository: AuthRepository,
     conversationRepository: ConversationRepository,
-    themeDataStore: ThemeDataStore,
     serverDataStore: ServerDataStore,
     settingsDataStore: SettingsDataStore,
     dateTimePrefsStore: DateTimePrefsStore,
@@ -117,7 +113,6 @@ class SettingsViewModel(
 
     /** Owns the DataStore read flows + write setters; merges them with [_uiState]. */
     private val prefsController = SettingsPreferencesController(
-        themeDataStore,
         serverDataStore,
         settingsDataStore,
         dateTimePrefsStore,
@@ -228,32 +223,6 @@ class SettingsViewModel(
     fun showAvatarDialog() = accountDelegate.showAvatarDialog()
     fun dismissAvatarDialog() = accountDelegate.dismissAvatarDialog()
     fun uploadAvatar(uri: Any) = accountDelegate.uploadAvatar(uri)
-
-    // ── Theme & appearance ─────────────────────────────────────────
-
-    fun setThemeMode(mode: ThemeMode) {
-        prefsController.setThemeMode(mode)
-    }
-
-    fun setAccentColor(argb: Int) {
-        prefsController.setAccentColor(argb)
-    }
-
-    fun setUseDynamicColor(enabled: Boolean) {
-        prefsController.setUseDynamicColor(enabled)
-    }
-
-    fun setUiStyle(style: UiStyle) {
-        prefsController.setUiStyle(style)
-    }
-
-    fun showAccentColorDialog() {
-        _uiState.update { it.copy(showAccentColorDialog = true) }
-    }
-
-    fun dismissAccentColorDialog() {
-        _uiState.update { it.copy(showAccentColorDialog = false) }
-    }
 
     // ── Chat preferences ───────────────────────────────────────────
 

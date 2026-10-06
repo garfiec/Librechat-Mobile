@@ -63,6 +63,7 @@ fun EntryProviderScope<NavKey>.settingsEntries(
         TabbedSettingsScreen(
             onNavigateBack = onBack,
             onLogout = onLogout,
+            onNavigateToAppearance = { onNavigate(AppearanceSettings) },
             onNavigateToArchive = onNavigateToArchive,
             onNavigateToSharedLinks = { onNavigate(SharedLinks) },
             onNavigateToArtifactShortcuts = { onNavigate(ArtifactShortcuts) },
@@ -80,6 +81,7 @@ fun EntryProviderScope<NavKey>.settingsEntries(
     entry<SettingsGeneral> {
         GeneralSettingsScreen(
             onNavigateBack = onBack,
+            onNavigateToAppearance = { onNavigate(AppearanceSettings) },
             onNavigateToWhatsNew = { onNavigate(WhatsNew) },
             onNavigateToReleaseNotes = { onNavigate(ReleaseNotes) },
         )
@@ -152,6 +154,7 @@ fun EntryProviderScope<NavKey>.settingsEntries(
     artifactShortcutsEntry(onBack = onBack)
     prefetchActivityEntry(onBack = onBack)
     contextUsageSettingsEntry(onBack = onBack)
+    appearanceSettingsEntry(onBack = onBack)
     whatsNewEntry(onBack = onBack)
     releaseNotesEntry(onBack = onBack)
 }
@@ -174,6 +177,7 @@ val settingsSerializersModule = SerializersModule {
         subclass(ArtifactShortcuts::class, ArtifactShortcuts.serializer())
         subclass(PrefetchActivity::class, PrefetchActivity.serializer())
         subclass(ContextUsageSettings::class, ContextUsageSettings.serializer())
+        subclass(AppearanceSettings::class, AppearanceSettings.serializer())
         subclass(WhatsNew::class, WhatsNew.serializer())
         subclass(ReleaseNotes::class, ReleaseNotes.serializer())
     }

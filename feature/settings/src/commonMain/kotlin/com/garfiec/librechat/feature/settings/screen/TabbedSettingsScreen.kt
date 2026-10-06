@@ -45,6 +45,7 @@ private const val SETTINGS_TAB_COUNT = 4
 fun TabbedSettingsScreen(
     onNavigateBack: () -> Unit,
     onLogout: () -> Unit,
+    onNavigateToAppearance: () -> Unit,
     onNavigateToArchive: () -> Unit,
     onNavigateToSharedLinks: () -> Unit,
     onNavigateToArtifactShortcuts: () -> Unit,
@@ -123,6 +124,7 @@ fun TabbedSettingsScreen(
         ) { page ->
             when (page) {
                 0 -> GeneralSettingsContent(
+                    onNavigateToAppearance = onNavigateToAppearance,
                     onNavigateToWhatsNew = onNavigateToWhatsNew,
                     onNavigateToReleaseNotes = onNavigateToReleaseNotes,
                     modifier = Modifier.fillMaxSize(),

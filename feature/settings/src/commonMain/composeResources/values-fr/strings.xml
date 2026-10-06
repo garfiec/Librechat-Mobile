@@ -65,6 +65,9 @@
     <string name="section_updates">Mises à jour</string>
     <string name="section_advanced">Avancé</string>
     <string name="section_appearance">Apparence</string>
+    <string name="appearance_theme_and_style">Thème et style</string>
+    <!-- The switch in the interface style previews: an in-joke, "go outside". -->
+    <string name="ui_style_preview_switch">Va toucher de l'herbe</string>
     <string name="section_balance">Solde</string>
     <string name="section_chat_preferences">Préférences de discussion</string>
     <string name="section_conversations">Conversations</string>

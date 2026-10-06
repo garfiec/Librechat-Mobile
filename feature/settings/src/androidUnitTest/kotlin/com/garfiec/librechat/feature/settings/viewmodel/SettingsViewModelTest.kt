@@ -13,8 +13,6 @@ import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
-import com.garfiec.librechat.core.data.datastore.ThemeDataStore
-import com.garfiec.librechat.core.data.datastore.ThemeMode
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
 import com.garfiec.librechat.core.data.prefetch.AttachmentWarmer
 import com.garfiec.librechat.core.data.prefetch.PrefetchDepth
@@ -37,7 +35,6 @@ import com.garfiec.librechat.core.model.mcp.McpOboConfig
 import com.garfiec.librechat.core.model.mcp.McpServer
 import com.garfiec.librechat.core.model.mcp.McpServerType
 import com.garfiec.librechat.core.model.speech.SpeechConfig
-import com.garfiec.librechat.core.model.ui.UiStyle
 import com.garfiec.librechat.feature.settings.util.ContentReader
 import com.garfiec.librechat.feature.settings.util.PlatformCacheCleaner
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.SpeechSettingsContract
@@ -73,7 +70,6 @@ class SettingsViewModelTest {
     private val userRepository = mockk<UserRepository>(relaxed = true)
     private val authRepository = mockk<AuthRepository>(relaxed = true)
     private val conversationRepository = mockk<ConversationRepository>(relaxed = true)
-    private val themeDataStore = mockk<ThemeDataStore>(relaxed = true)
     private val serverDataStore = mockk<ServerDataStore>(relaxed = true)
     private val settingsDataStore = mockk<SettingsDataStore>(relaxed = true)
     private val dateTimePrefsStore = mockk<DateTimePrefsStore>(relaxed = true)
@@ -107,7 +103,6 @@ class SettingsViewModelTest {
         Dispatchers.setMain(testDispatcher)
 
         // Setup DataStore flows
-        every { themeDataStore.themeMode } returns MutableStateFlow(ThemeMode.SYSTEM)
         every { serverDataStore.currentUrlFlow } returns MutableStateFlow("https://chat.example.com")
         every { settingsDataStore.chatFontSize } returns MutableStateFlow(ChatFontSize.MEDIUM)
         every { settingsDataStore.autoScrollEnabled } returns MutableStateFlow(true)
@@ -175,7 +170,6 @@ class SettingsViewModelTest {
         userRepository = userRepository,
         authRepository = authRepository,
         conversationRepository = conversationRepository,
-        themeDataStore = themeDataStore,
         serverDataStore = serverDataStore,
         settingsDataStore = settingsDataStore,
         dateTimePrefsStore = dateTimePrefsStore,
@@ -318,58 +312,6 @@ class SettingsViewModelTest {
 
         coVerify { settingsDataStore.setShowSiteIcons(true) }
         assertThat(viewModel.uiState.value.showSiteIcons).isTrue()
-    }
-
-    @Test
-    fun `setThemeMode calls themeDataStore`() = runTest {
-        viewModel = createViewModel()
-        advanceUntilIdle()
-
-        viewModel.setThemeMode(ThemeMode.DARK)
-        advanceUntilIdle()
-
-        coVerify { themeDataStore.setThemeMode(ThemeMode.DARK) }
-    }
-
-    @Test
-    fun `setUiStyle to the platform default clears the stored choice`() = runTest {
-        viewModel = createViewModel()
-        advanceUntilIdle()
-
-        // Android's platform default is Material: storing it would pin the user to today's
-        // default instead of following the platform.
-        viewModel.setUiStyle(UiStyle.MATERIAL)
-        advanceUntilIdle()
-
-        coVerify { themeDataStore.setUiStyle(null) }
-    }
-
-    @Test
-    fun `setUiStyle away from the platform default stores it`() = runTest {
-        viewModel = createViewModel()
-        advanceUntilIdle()
-
-        viewModel.setUiStyle(UiStyle.LIQUID_GLASS)
-        advanceUntilIdle()
-
-        coVerify { themeDataStore.setUiStyle(UiStyle.LIQUID_GLASS) }
-    }
-
-    @Test
-    fun `uiState resolves an unset style to the platform default and a stored one as stored`() = runTest {
-        // Every theme flow must emit: the preferences state is one combine chain.
-        val stored = MutableStateFlow<UiStyle?>(null)
-        every { themeDataStore.accentColor } returns MutableStateFlow(ThemeDataStore.DEFAULT_ACCENT_COLOR)
-        every { themeDataStore.useDynamicColor } returns MutableStateFlow(false)
-        every { themeDataStore.uiStyle } returns stored
-
-        viewModel = createViewModel()
-        advanceUntilIdle()
-        assertThat(viewModel.uiState.value.uiStyle).isEqualTo(UiStyle.MATERIAL)
-
-        stored.value = UiStyle.LIQUID_GLASS
-        advanceUntilIdle()
-        assertThat(viewModel.uiState.value.uiStyle).isEqualTo(UiStyle.LIQUID_GLASS)
     }
 
     @Test
