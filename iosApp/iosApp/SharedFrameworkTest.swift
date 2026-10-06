@@ -76,7 +76,8 @@ func verifySharedFrameworkImport() {
          .thinkingDelta, .attachmentCreated, .retrying, .sync,
          .step, .created, .contextSummary, .subagentUpdate,
          .titleUpdate, .tokenUsageUpdate, .contextUsageUpdate,
-         .pendingActionRequested, .pendingSteersSynced, .steerApplied:
+         .pendingActionRequested, .pendingSteersSynced, .steerApplied,
+         .usageBackfill:
         assertionFailure("Wrong case")
     }
 
