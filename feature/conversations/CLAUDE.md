@@ -10,7 +10,7 @@
 - Pull-to-refresh via `refresh()` which resets to first page
 
 ## Date Grouping
-- `DateGroupHeader` renders section labels: Today, Yesterday, Previous 7 Days, Previous 30 Days, month-year
+- `DateGroupHeader` renders section labels: Today, Yesterday, Previous 7 Days, Previous 30 Days, month-year. Grouping keys are `DateGroup` (core/common), localized at render via `DateGroup.resolve()`; the drawer wraps them as `DrawerGroupKey` to add its Running group. Row timestamps read the app-wide `LocalRelativeTimeReference` ticker (core/ui), so no list provides its own
 - Conversations are flattened into a sealed `ConversationListItem` (DateHeader | ConvoItem)
 
 ## Search

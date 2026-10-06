@@ -295,6 +295,8 @@ kotlin {
         }
         named("androidUnitTest").dependencies {
             implementation(libs.koin.test)
+            // Real ICU for the date-format actuals; the android.jar stubs return null.
+            implementation(libs.robolectric)
         }
     }
 }

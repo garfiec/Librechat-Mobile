@@ -40,6 +40,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
+import com.garfiec.librechat.core.ui.datetime.rememberAbsoluteTimestamp
 import com.garfiec.librechat.feature.agents.components.model.AgentVersion
 import com.garfiec.librechat.feature.agents.resources.Res
 import com.garfiec.librechat.feature.agents.resources.no_version_history
@@ -153,7 +154,8 @@ private fun VersionCard(
                         }
                     }
                     Text(
-                        text = version.updatedAt ?: stringResource(Res.string.version_no_date),
+                        text = version.updatedAt?.let { rememberAbsoluteTimestamp(it) }
+                            ?: stringResource(Res.string.version_no_date),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

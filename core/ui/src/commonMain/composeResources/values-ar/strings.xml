@@ -74,4 +74,43 @@
     <string name="context_usage_cost_all">كل الفروع</string>
     <string name="context_usage_tools_all">الأدوات</string>
     <string name="context_usage_used">المستخدم</string>
+    <string name="timestamp_just_now">الآن</string>
+    <plurals name="timestamp_minutes_ago">
+        <item quantity="zero">منذ %1$d دقيقة</item>
+        <item quantity="one">منذ دقيقة</item>
+        <item quantity="two">منذ دقيقتين</item>
+        <item quantity="few">منذ %1$d دقائق</item>
+        <item quantity="many">منذ %1$d دقيقة</item>
+        <item quantity="other">منذ %1$d دقيقة</item>
+    </plurals>
+    <plurals name="timestamp_hours_ago">
+        <item quantity="zero">منذ %1$d ساعة</item>
+        <item quantity="one">منذ ساعة</item>
+        <item quantity="two">منذ ساعتين</item>
+        <item quantity="few">منذ %1$d ساعات</item>
+        <item quantity="many">منذ %1$d ساعة</item>
+        <item quantity="other">منذ %1$d ساعة</item>
+    </plurals>
+    <plurals name="timestamp_days_ago">
+        <item quantity="zero">منذ %1$d يوم</item>
+        <item quantity="one">منذ يوم</item>
+        <item quantity="two">منذ يومين</item>
+        <item quantity="few">منذ %1$d أيام</item>
+        <item quantity="many">منذ %1$d يومًا</item>
+        <item quantity="other">منذ %1$d يوم</item>
+    </plurals>
+    <plurals name="timestamp_weeks_ago">
+        <item quantity="zero">منذ %1$d أسبوع</item>
+        <item quantity="one">منذ أسبوع</item>
+        <item quantity="two">منذ أسبوعين</item>
+        <item quantity="few">منذ %1$d أسابيع</item>
+        <item quantity="many">منذ %1$d أسبوعًا</item>
+        <item quantity="other">منذ %1$d أسبوع</item>
+    </plurals>
+    <string name="timestamp_yesterday_at">أمس %1$s</string>
+    <string name="date_group_today">اليوم</string>
+    <string name="date_group_yesterday">أمس</string>
+    <string name="date_group_previous_7_days">آخر 7 أيام</string>
+    <string name="date_group_previous_30_days">آخر 30 يومًا</string>
+    <string name="date_group_unknown">غير معروف</string>
 </resources>

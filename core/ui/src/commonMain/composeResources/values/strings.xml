@@ -81,4 +81,30 @@
     <string name="context_usage_cost_all">All branches</string>
     <string name="context_usage_tools_all">Tools</string>
     <string name="context_usage_used">Used</string>
+    <!-- Message and conversation timestamps (#445). Compact on purpose: they sit under a bubble or in a row subtitle -->
+    <string name="timestamp_just_now">Just now</string>
+    <plurals name="timestamp_minutes_ago">
+        <item quantity="one">%1$dm ago</item>
+        <item quantity="other">%1$dm ago</item>
+    </plurals>
+    <plurals name="timestamp_hours_ago">
+        <item quantity="one">%1$dh ago</item>
+        <item quantity="other">%1$dh ago</item>
+    </plurals>
+    <plurals name="timestamp_days_ago">
+        <item quantity="one">%1$dd ago</item>
+        <item quantity="other">%1$dd ago</item>
+    </plurals>
+    <plurals name="timestamp_weeks_ago">
+        <item quantity="one">%1$dw ago</item>
+        <item quantity="other">%1$dw ago</item>
+    </plurals>
+    <!-- %1$s is a clock time, already formatted, e.g. "20:58" -->
+    <string name="timestamp_yesterday_at">Yesterday %1$s</string>
+    <!-- Conversation list section headers -->
+    <string name="date_group_today">Today</string>
+    <string name="date_group_yesterday">Yesterday</string>
+    <string name="date_group_previous_7_days">Previous 7 Days</string>
+    <string name="date_group_previous_30_days">Previous 30 Days</string>
+    <string name="date_group_unknown">Unknown</string>
 </resources>

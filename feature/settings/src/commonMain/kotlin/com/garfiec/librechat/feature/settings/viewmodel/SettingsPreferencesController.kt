@@ -1,12 +1,14 @@
 package com.garfiec.librechat.feature.settings.viewmodel
 
 import com.garfiec.librechat.core.common.ChatLayoutConstants
+import com.garfiec.librechat.core.common.datetime.DateTimeFormatPrefs
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayPrefs
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
 import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
+import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.InlineArtifactPrefs
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
@@ -75,6 +77,7 @@ private data class AdditionalPreferences(
     val artifactDisplayPrefs: ArtifactDisplayPrefs = ArtifactDisplayPrefs(),
     val starredModelsDisplay: StarredModelsDisplay = StarredModelsDisplay.OFF,
     val selectedLanguage: String = SettingsDataStore.DEFAULT_LANGUAGE,
+    val dateTimePrefs: DateTimeFormatPrefs = DateTimeFormatPrefs(),
     val chatHeaderContent: ChatHeaderContent = ChatHeaderContent.TITLE,
     val chatHeaderAlignment: ChatHeaderAlignment = ChatHeaderAlignment.LEFT,
     val contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
@@ -99,6 +102,7 @@ class SettingsPreferencesController(
     private val themeDataStore: ThemeDataStore,
     serverDataStore: ServerDataStore,
     private val settingsDataStore: SettingsDataStore,
+    private val dateTimePrefsStore: DateTimePrefsStore,
     baseState: StateFlow<SettingsUiState>,
     private val scope: CoroutineScope,
 ) {
@@ -187,6 +191,9 @@ class SettingsPreferencesController(
     private val selectedLanguagePref: StateFlow<String> = settingsDataStore.selectedLanguage
         .stateIn(scope, SharingStarted.Eagerly, SettingsDataStore.DEFAULT_LANGUAGE)
 
+    private val dateTimePrefsPref: StateFlow<DateTimeFormatPrefs> = dateTimePrefsStore.prefs
+        .stateIn(scope, SharingStarted.Eagerly, DateTimeFormatPrefs())
+
     private val chatHeaderContentPref: StateFlow<ChatHeaderContent> = settingsDataStore.chatHeaderContent
         .stateIn(scope, SharingStarted.Eagerly, ChatHeaderContent.TITLE)
 
@@ -228,6 +235,8 @@ class SettingsPreferencesController(
         additional.copy(starredModelsDisplay = starredDisplay)
     }.combine(selectedLanguagePref) { additional, selectedLanguage ->
         additional.copy(selectedLanguage = selectedLanguage)
+    }.combine(dateTimePrefsPref) { additional, dateTimePrefs ->
+        additional.copy(dateTimePrefs = dateTimePrefs)
     }.combine(chatHeaderContentPref) { additional, headerContent ->
         additional.copy(chatHeaderContent = headerContent)
     }.combine(chatHeaderAlignmentPref) { additional, headerAlignment ->
@@ -300,6 +309,7 @@ class SettingsPreferencesController(
             artifactDisplayPrefs = additional.artifactDisplayPrefs,
             starredModelsDisplay = additional.starredModelsDisplay,
             selectedLanguage = additional.selectedLanguage,
+            dateTimePrefs = additional.dateTimePrefs,
             chatHeaderContent = additional.chatHeaderContent,
             chatHeaderAlignment = additional.chatHeaderAlignment,
             contextBarPlacement = additional.contextBarPlacement,
@@ -333,6 +343,10 @@ class SettingsPreferencesController(
      */
     fun setUiStyle(style: UiStyle) {
         scope.launch { themeDataStore.setUiStyle(style.takeIf { it != platformDefaultUiStyle() }) }
+    }
+
+    fun setDateTimePrefs(prefs: DateTimeFormatPrefs) {
+        scope.launch { dateTimePrefsStore.set(prefs) }
     }
 
     fun setChatFontSize(size: ChatFontSize) {

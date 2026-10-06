@@ -57,10 +57,12 @@ import com.garfiec.librechat.core.common.conversation.OpenConversationRegistry
 import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.lifecycle.DeferredWorkWindow
 import com.garfiec.librechat.core.common.lifecycle.ForegroundSignal
+import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.logging.Diag
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.BannerDisplay
 import com.garfiec.librechat.core.ui.components.topbar.CoversNativeBars
+import com.garfiec.librechat.core.ui.datetime.ProvideDateTimeFormat
 import com.garfiec.librechat.core.ui.glass.GlassSheetHost
 import com.garfiec.librechat.core.ui.glass.glassBackdropSource
 import com.garfiec.librechat.core.ui.glass.rememberGlassBackdrop
@@ -288,24 +290,32 @@ fun LibreChatNavHost(
     // UI so every stringResource re-resolves, while the back stack created above survives the swap
     // and the user stays on their current screen.
     AppLocale(tag = appLocaleTag) {
+        // Date/time format + the app-wide relative-time ticker. Inside AppLocale, which is where
+        // the language override reaches the configuration the format resolves its locale from.
+        val dateTimePrefsStore = koinInject<DateTimePrefsStore>()
+        val dateTimePrefs by dateTimePrefsStore.prefs.collectAsStateWithLifecycle(
+            initialValue = dateTimePrefsStore.initial,
+        )
         // Liquid Glass sheets are drawn over the whole app from here (see GlassSheetHost) — around
         // both the shared layouts and a platform's own [content] (Android's), or sheets there fall
         // back to the opaque M3 sheet.
-        GlassSheetHost {
-            if (content != null) {
-                content(navigator, navHostViewModel, modifier)
-            } else {
-                // Read from the window rather than a size class so iPad Split View / Slide Over, which
-                // resize the window without a rotation, flip the layout too. iOS resizes in place, so
-                // both layouts share one movable NavDisplay; see rememberMovableNavDisplay.
-                val navDisplay = rememberMovableNavDisplay(navigator)
-                val windowWidth = with(LocalDensity.current) {
-                    LocalWindowInfo.current.containerSize.width.toDp()
-                }
-                if (windowWidth >= TabletMinWidth) {
-                    TabletLayout(navigator = navigator, modifier = modifier, navDisplay = navDisplay)
+        ProvideDateTimeFormat(dateTimePrefs) {
+            GlassSheetHost {
+                if (content != null) {
+                    content(navigator, navHostViewModel, modifier)
                 } else {
-                    PhoneLayout(navigator = navigator, modifier = modifier, navDisplay = navDisplay)
+                    // Read from the window rather than a size class so iPad Split View / Slide Over, which
+                    // resize the window without a rotation, flip the layout too. iOS resizes in place, so
+                    // both layouts share one movable NavDisplay; see rememberMovableNavDisplay.
+                    val navDisplay = rememberMovableNavDisplay(navigator)
+                    val windowWidth = with(LocalDensity.current) {
+                        LocalWindowInfo.current.containerSize.width.toDp()
+                    }
+                    if (windowWidth >= TabletMinWidth) {
+                        TabletLayout(navigator = navigator, modifier = modifier, navDisplay = navDisplay)
+                    } else {
+                        PhoneLayout(navigator = navigator, modifier = modifier, navDisplay = navDisplay)
+                    }
                 }
             }
         }

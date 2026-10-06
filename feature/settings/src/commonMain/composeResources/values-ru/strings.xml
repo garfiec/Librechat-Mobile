@@ -69,7 +69,7 @@
     <string name="section_chat_preferences">Настройки чата</string>
     <string name="section_conversations">Беседы</string>
     <string name="section_danger_zone">Опасная зона</string>
-    <string name="section_language">Язык</string>
+    <string name="section_language_region">Язык и регион</string>
     <string name="section_layout">Макет</string>
     <string name="section_mcp_servers">Серверы MCP</string>
     <string name="section_prefetch">Фоновая предзагрузка</string>
@@ -673,4 +673,26 @@
     <string name="context_settings_compact_desc">Индикатор ненавязчиво подскажет, когда беседа заполнится. Перед сжатием всегда спрашивается подтверждение.</string>
     <string name="context_settings_pill_label">Контекст</string>
     <string name="context_settings_summary">%1$s · %2$s</string>
+    <string name="date_time_title">Дата и время</string>
+    <string name="date_time_timestamps">Время сообщений</string>
+    <string name="date_time_style_relative">Относительное</string>
+    <string name="date_time_style_smart">Умное</string>
+    <string name="date_time_style_absolute">Абсолютное</string>
+    <string name="date_time_clock">Часы</string>
+    <string name="date_time_clock_system">Системные</string>
+    <string name="date_time_clock_12h">12 часов</string>
+    <string name="date_time_clock_24h">24 часа</string>
+    <string name="date_time_system_is_24h">На устройстве используется 24-часовой формат</string>
+    <string name="date_time_system_is_12h">На устройстве используется 12-часовой формат</string>
+    <string name="date_time_date_format">Формат даты</string>
+    <string name="date_format_system">Системный</string>
+    <string name="date_format_system_numeric">Системный (цифровой)</string>
+    <string name="date_format_dmy_dot">День.Месяц.Год</string>
+    <string name="date_format_dmy_slash">День/Месяц/Год</string>
+    <string name="date_format_dmy_dash">День-Месяц-Год</string>
+    <string name="date_format_mdy_slash">Месяц/День/Год</string>
+    <string name="date_format_ymd_dash">Год-Месяц-День</string>
+    <string name="date_format_ymd_slash">Год/Месяц/День</string>
+    <string name="date_format_long">Полный</string>
+    <string name="date_time_preview">Предпросмотр</string>
 </resources>

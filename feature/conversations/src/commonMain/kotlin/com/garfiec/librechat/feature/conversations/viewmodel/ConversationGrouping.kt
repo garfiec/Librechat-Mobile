@@ -1,15 +1,16 @@
 package com.garfiec.librechat.feature.conversations.viewmodel
 
+import com.garfiec.librechat.core.common.datetime.DateGroup
+import com.garfiec.librechat.core.common.datetime.toDateGroup
 import com.garfiec.librechat.core.common.extensions.RelativeTimeReference
-import com.garfiec.librechat.core.common.extensions.toRelativeDateGroup
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.feature.conversations.components.ConversationDisplayData
 import com.garfiec.librechat.feature.conversations.components.toDisplayData
 
 /**
- * Buckets conversations by date label (Today / Yesterday / Previous 7 Days / … / month-year),
- * preserving order within each bucket.
+ * Buckets conversations by [DateGroup] (Today / Yesterday / Previous 7 Days / … / month-year),
+ * preserving order within each bucket. The key is localized at render, via `DateGroup.resolve()`.
  *
  * The drawer keeps the raw conversations and the full-screen list maps them to display rows, so the
  * two differ only in that trailing map — the bucketing itself lives here once.
@@ -20,8 +21,8 @@ import com.garfiec.librechat.feature.conversations.components.toDisplayData
  */
 internal fun List<Conversation>.groupedByDateBucket(
     reference: RelativeTimeReference = RelativeTimeReference.current(),
-): List<Pair<String, List<Conversation>>> =
-    groupBy { it.updatedAt?.toRelativeDateGroup(reference) ?: "Unknown" }.toList()
+): List<Pair<DateGroup, List<Conversation>>> =
+    groupBy { it.updatedAt?.toDateGroup(reference) ?: DateGroup.Unknown }.toList()
 
 /**
  * Flattens conversations into date-grouped display rows. Shared by the all-conversations list and
@@ -31,7 +32,7 @@ internal fun groupConversationsByDate(
     conversations: List<Conversation>,
     endpointConfigs: Map<String, EndpointConfig>,
     reference: RelativeTimeReference = RelativeTimeReference.current(),
-): List<Pair<String, List<ConversationDisplayData>>> =
+): List<Pair<DateGroup, List<ConversationDisplayData>>> =
     conversations.groupedByDateBucket(reference).map { (group, convos) ->
         group to convos.map { it.toDisplayData(endpointConfigs) }
     }

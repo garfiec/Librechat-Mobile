@@ -52,6 +52,7 @@ import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
+import com.garfiec.librechat.core.ui.datetime.rememberAbsoluteTimestamp
 import com.garfiec.librechat.feature.files.FilePreviewDisplayData
 import com.garfiec.librechat.feature.files.platform.PdfPreview
 import com.garfiec.librechat.feature.files.resources.*
@@ -276,7 +277,7 @@ private fun TextErrorFallback(
                 ) {
                     InfoRow(stringResource(Res.string.info_type), file.type)
                     InfoRow(stringResource(Res.string.info_size), file.formattedSize)
-                    file.createdAt?.let { InfoRow(stringResource(Res.string.info_created), it) }
+                    file.createdAt?.let { InfoRow(stringResource(Res.string.info_created), rememberAbsoluteTimestamp(it)) }
                     file.source?.let { InfoRow(stringResource(Res.string.info_source), it) }
                 }
             }
@@ -324,7 +325,7 @@ private fun FileInfoCard(
                 ) {
                     InfoRow(stringResource(Res.string.info_type), file.type)
                     InfoRow(stringResource(Res.string.info_size), file.formattedSize)
-                    file.createdAt?.let { InfoRow(stringResource(Res.string.info_created), it) }
+                    file.createdAt?.let { InfoRow(stringResource(Res.string.info_created), rememberAbsoluteTimestamp(it)) }
                     file.source?.let { InfoRow(stringResource(Res.string.info_source), it) }
                 }
             }

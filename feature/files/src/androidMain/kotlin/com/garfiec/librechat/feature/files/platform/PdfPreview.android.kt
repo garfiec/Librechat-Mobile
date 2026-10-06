@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.datetime.rememberAbsoluteTimestamp
 import com.garfiec.librechat.core.ui.pdf.PdfDocumentHolder
 import com.garfiec.librechat.core.ui.pdf.PdfPageContent
 import com.garfiec.librechat.feature.files.FilePreviewDisplayData
@@ -238,7 +239,7 @@ private fun PdfErrorFallback(
                 ) {
                     InfoRow(stringResource(Res.string.info_type), file.type)
                     InfoRow(stringResource(Res.string.info_size), file.formattedSize)
-                    file.createdAt?.let { InfoRow(stringResource(Res.string.info_created), it) }
+                    file.createdAt?.let { InfoRow(stringResource(Res.string.info_created), rememberAbsoluteTimestamp(it)) }
                     file.source?.let { InfoRow(stringResource(Res.string.info_source), it) }
                 }
             }

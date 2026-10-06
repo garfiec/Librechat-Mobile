@@ -212,6 +212,18 @@ row math and filtering are pure and live in `:core:model` (`usage/ContextBreakdo
 `usage/ContextDetail.kt`). Also here: `SegmentedMeter`, `pressureColor` (amber at a rounded 80%, error
 at 95%), `formatCost` with its platform currency actuals, and `SampleContextModel` for previews.
 
+### Date & time (`datetime/`, #445)
+- `ProvideDateTimeFormat` sits once inside `AppLocale` in `LibreChatNavHost`. It sits there rather than at the
+  activity root because Android's language override reaches the configuration inside `AppLocale`. It provides two locals:
+  - `LocalDateTimeFormat`: static, and changes only on Save, on a locale change, or on a device 12/24h
+    change seen on resume.
+  - `LocalRelativeTimeReference`: the app-wide minute ticker.
+- Show a date via `rememberAbsoluteTimestamp(iso)` (unparseable shows raw, never blank), or compute a
+  `TimestampLabel` inside `remember(…, format, reference)` and call `.resolve()` outside it. Plural
+  resources only resolve in composition.
+- `rememberSystemIs24Hour()` reads the device clock setting (not the locale convention, which was the
+  #445 bug) and re-reads it on resume.
+
 ### Markdown
 - core/ui does NOT provide a shared markdown renderer. Features render markdown
   directly with the `com.mikepenz` multiplatform-markdown-renderer

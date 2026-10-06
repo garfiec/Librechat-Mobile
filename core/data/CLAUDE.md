@@ -149,6 +149,12 @@ every write there goes to memory and a test would pass for the wrong reason. It 
 - `AgentRepository.getAgentsPaginated()` — server-side paginated agent fetch, maps response to `PaginatedAgents` domain model
 - Both bound in `DataModule.kt` via `singleOf`, both use `safeApiCall`, no local caching
 
+### Date/time format (`DateTimePrefsStore`)
+Timestamp style, clock and date format, global (not per-account). Its own class on the shared
+preferences `DataStore` rather than more members on `SettingsDataStore`, which sits at detekt's
+`LargeClass` limit. It warms its first-frame seed like `ThemeDataStore`, and both app roots
+(`MainActivity`, `LibreChatApp`) gate the first frame on its `isReady`.
+
 ### Compact-suggestion snoozes (`SettingsDataStore.compactNudgeSnoozes`)
 **Device-scoped by design**, like the other context-usage preferences: it maps conversation ids to the
 band the user answered "Not now" to, and holds no account data. `removeAllForAccount` sweeps only

@@ -74,4 +74,31 @@
     <string name="context_usage_cost_all">Toutes les branches</string>
     <string name="context_usage_tools_all">Outils</string>
     <string name="context_usage_used">Utilisé</string>
+    <string name="timestamp_just_now">À l'instant</string>
+    <plurals name="timestamp_minutes_ago">
+        <item quantity="one">il y a %1$d min</item>
+        <item quantity="many">il y a %1$d min</item>
+        <item quantity="other">il y a %1$d min</item>
+    </plurals>
+    <plurals name="timestamp_hours_ago">
+        <item quantity="one">il y a %1$d h</item>
+        <item quantity="many">il y a %1$d h</item>
+        <item quantity="other">il y a %1$d h</item>
+    </plurals>
+    <plurals name="timestamp_days_ago">
+        <item quantity="one">il y a %1$d jour</item>
+        <item quantity="many">il y a %1$d jours</item>
+        <item quantity="other">il y a %1$d jours</item>
+    </plurals>
+    <plurals name="timestamp_weeks_ago">
+        <item quantity="one">il y a %1$d semaine</item>
+        <item quantity="many">il y a %1$d semaines</item>
+        <item quantity="other">il y a %1$d semaines</item>
+    </plurals>
+    <string name="timestamp_yesterday_at">Hier à %1$s</string>
+    <string name="date_group_today">Aujourd'hui</string>
+    <string name="date_group_yesterday">Hier</string>
+    <string name="date_group_previous_7_days">7 derniers jours</string>
+    <string name="date_group_previous_30_days">30 derniers jours</string>
+    <string name="date_group_unknown">Inconnu</string>
 </resources>

@@ -74,4 +74,23 @@
     <string name="context_usage_cost_all">所有分支</string>
     <string name="context_usage_tools_all">工具</string>
     <string name="context_usage_used">已使用</string>
+    <string name="timestamp_just_now">刚刚</string>
+    <plurals name="timestamp_minutes_ago">
+        <item quantity="other">%1$d分钟前</item>
+    </plurals>
+    <plurals name="timestamp_hours_ago">
+        <item quantity="other">%1$d小时前</item>
+    </plurals>
+    <plurals name="timestamp_days_ago">
+        <item quantity="other">%1$d天前</item>
+    </plurals>
+    <plurals name="timestamp_weeks_ago">
+        <item quantity="other">%1$d周前</item>
+    </plurals>
+    <string name="timestamp_yesterday_at">昨天 %1$s</string>
+    <string name="date_group_today">今天</string>
+    <string name="date_group_yesterday">昨天</string>
+    <string name="date_group_previous_7_days">过去 7 天</string>
+    <string name="date_group_previous_30_days">过去 30 天</string>
+    <string name="date_group_unknown">未知</string>
 </resources>

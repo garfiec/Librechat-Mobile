@@ -38,7 +38,7 @@
 - 2FA setup/disable in Account section
 
 ### New Settings Sections
-- `SettingsScreen` now organized into: Account, Appearance, General (Language), Chat (Presets), Advanced (Fork Behavior, Commands), Server, About, Danger Zone
+- `SettingsScreen` now organized into: Account, Appearance, General (Language & region: Language, Date & time), Chat (Presets), Advanced (Fork Behavior, Commands), Server, About, Danger Zone
 - Each new setting opens a dialog or navigates to a dedicated screen
 
 ### Settings Sub-screens (via SettingsNavigation)
@@ -101,6 +101,7 @@
 
 ### Dialogs
 - `LanguageSelectorDialog` — 37+ locales with search, single-select radio
+- `DateTimeSettingsDialog` (#445) — timestamp style, clock and date format in one dialog with a live preview of the pending choices; Save writes all three in one DataStore edit. The General-tab row shows only a summary (a live sample + style name) — keep new date options in the dialog, not on the tab
 - `ForkSettingsDialog` — 3 fork modes (`DIRECT_PATH`, `INCLUDE_BRANCHES`, `TARGET_LEVEL`); labels/descriptions come from `fork_mode_*` string resources via `forkModeLabel()` / `forkModeDescription()`, not from the enum
 
 ### MCP OAuth consent (v0.8.8)

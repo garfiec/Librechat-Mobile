@@ -2,9 +2,14 @@ package com.garfiec.librechat.feature.settings.viewmodel
 
 import com.garfiec.librechat.core.common.AppInfo
 import com.garfiec.librechat.core.common.ChatLayoutConstants
+import com.garfiec.librechat.core.common.datetime.ClockFormat
+import com.garfiec.librechat.core.common.datetime.DateFormatStyle
+import com.garfiec.librechat.core.common.datetime.DateTimeFormatPrefs
+import com.garfiec.librechat.core.common.datetime.TimestampStyle
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
+import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
@@ -71,7 +76,9 @@ class SettingsViewModelTest {
     private val themeDataStore = mockk<ThemeDataStore>(relaxed = true)
     private val serverDataStore = mockk<ServerDataStore>(relaxed = true)
     private val settingsDataStore = mockk<SettingsDataStore>(relaxed = true)
+    private val dateTimePrefsStore = mockk<DateTimePrefsStore>(relaxed = true)
     private val selectedLanguageFlow = MutableStateFlow(SettingsDataStore.DEFAULT_LANGUAGE)
+    private val dateTimePrefsFlow = MutableStateFlow(DateTimeFormatPrefs())
     private val uploadRoutingModeFlow = MutableStateFlow(UploadRoutingMode.AUTO)
     private val siteIconsChoiceFlow = MutableStateFlow<Boolean?>(null)
     private val mcpRepository = mockk<McpRepository>(relaxed = true)
@@ -138,6 +145,8 @@ class SettingsViewModelTest {
         every { settingsDataStore.uploadRoutingMode } returns uploadRoutingModeFlow
         coEvery { settingsDataStore.setUploadRoutingMode(any()) } answers { uploadRoutingModeFlow.value = firstArg() }
         coEvery { settingsDataStore.setSelectedLanguage(any()) } answers { selectedLanguageFlow.value = firstArg() }
+        every { dateTimePrefsStore.prefs } returns dateTimePrefsFlow
+        coEvery { dateTimePrefsStore.set(any()) } answers { dateTimePrefsFlow.value = firstArg() }
 
         // Setup default API responses
         coEvery { userRepository.getUser() } returns Result.Success(testUser)
@@ -169,6 +178,7 @@ class SettingsViewModelTest {
         themeDataStore = themeDataStore,
         serverDataStore = serverDataStore,
         settingsDataStore = settingsDataStore,
+        dateTimePrefsStore = dateTimePrefsStore,
         mcpRepository = mcpRepository,
         memoryRepository = memoryRepository,
         speechSettingsFactory = SpeechSettingsFactory { speechSettingsContract },
@@ -482,6 +492,37 @@ class SettingsViewModelTest {
         coVerify { settingsDataStore.setSelectedLanguage("fr") }
         assertThat(viewModel.uiState.value.selectedLanguage).isEqualTo("fr")
         assertThat(viewModel.uiState.value.showLanguageDialog).isFalse()
+    }
+
+    @Test
+    fun `saveDateTimePrefs writes all three choices and dismisses dialog`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.showDateTimeDialog()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.showDateTimeDialog).isTrue()
+
+        val chosen = DateTimeFormatPrefs(TimestampStyle.SMART, ClockFormat.H24, DateFormatStyle.YMD_DASH)
+        viewModel.saveDateTimePrefs(chosen)
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { dateTimePrefsStore.set(chosen) }
+        assertThat(viewModel.uiState.value.dateTimePrefs).isEqualTo(chosen)
+        assertThat(viewModel.uiState.value.showDateTimeDialog).isFalse()
+    }
+
+    @Test
+    fun `dismissing the date-time dialog writes nothing`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.showDateTimeDialog()
+        viewModel.dismissDateTimeDialog()
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { dateTimePrefsStore.set(any()) }
+        assertThat(viewModel.uiState.value.showDateTimeDialog).isFalse()
     }
 
     @Test

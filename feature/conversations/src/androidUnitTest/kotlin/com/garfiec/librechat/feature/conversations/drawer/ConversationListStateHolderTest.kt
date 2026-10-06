@@ -86,13 +86,13 @@ class ConversationListStateHolderTest {
         val holder = ConversationListStateHolder(conversationRepository, scope, dayBoundaries = emptyFlow())
         advanceUntilIdle()
         assertThat(holder.groupedConversations.value.withRunningFirst(setOf("c2")).map { it.first })
-            .doesNotContain(RUNNING_CHATS_GROUP)
+            .doesNotContain(DrawerGroupKey.Running)
 
         holder.onSearchQueryChanged("Alpha")
         advanceUntilIdle()
 
         val grouped = holder.groupedConversations.value.withRunningFirst(setOf("c2"))
-        assertThat(grouped.first().first).isEqualTo(RUNNING_CHATS_GROUP)
+        assertThat(grouped.first().first).isEqualTo(DrawerGroupKey.Running)
         assertThat(grouped.first().second.map { it.conversationId }).containsExactly("c2")
     }
 

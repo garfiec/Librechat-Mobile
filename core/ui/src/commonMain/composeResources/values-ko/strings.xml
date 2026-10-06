@@ -74,4 +74,23 @@
     <string name="context_usage_cost_all">모든 분기</string>
     <string name="context_usage_tools_all">도구</string>
     <string name="context_usage_used">사용됨</string>
+    <string name="timestamp_just_now">방금</string>
+    <plurals name="timestamp_minutes_ago">
+        <item quantity="other">%1$d분 전</item>
+    </plurals>
+    <plurals name="timestamp_hours_ago">
+        <item quantity="other">%1$d시간 전</item>
+    </plurals>
+    <plurals name="timestamp_days_ago">
+        <item quantity="other">%1$d일 전</item>
+    </plurals>
+    <plurals name="timestamp_weeks_ago">
+        <item quantity="other">%1$d주 전</item>
+    </plurals>
+    <string name="timestamp_yesterday_at">어제 %1$s</string>
+    <string name="date_group_today">오늘</string>
+    <string name="date_group_yesterday">어제</string>
+    <string name="date_group_previous_7_days">지난 7일</string>
+    <string name="date_group_previous_30_days">지난 30일</string>
+    <string name="date_group_unknown">알 수 없음</string>
 </resources>

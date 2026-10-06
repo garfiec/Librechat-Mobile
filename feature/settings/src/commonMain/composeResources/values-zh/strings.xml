@@ -69,7 +69,7 @@
     <string name="section_chat_preferences">聊天偏好</string>
     <string name="section_conversations">对话</string>
     <string name="section_danger_zone">危险操作区</string>
-    <string name="section_language">语言</string>
+    <string name="section_language_region">语言和地区</string>
     <string name="section_layout">布局</string>
     <string name="section_mcp_servers">MCP 服务器</string>
     <string name="section_prefetch">后台预加载</string>
@@ -673,4 +673,26 @@
     <string name="context_settings_compact_desc">对话快满时，仪表会显示一条低调的提示。压缩前总会先询问。</string>
     <string name="context_settings_pill_label">上下文</string>
     <string name="context_settings_summary">%1$s · %2$s</string>
+    <string name="date_time_title">日期和时间</string>
+    <string name="date_time_timestamps">消息时间戳</string>
+    <string name="date_time_style_relative">相对</string>
+    <string name="date_time_style_smart">智能</string>
+    <string name="date_time_style_absolute">绝对</string>
+    <string name="date_time_clock">时钟</string>
+    <string name="date_time_clock_system">系统</string>
+    <string name="date_time_clock_12h">12 小时制</string>
+    <string name="date_time_clock_24h">24 小时制</string>
+    <string name="date_time_system_is_24h">您的设备使用 24 小时制</string>
+    <string name="date_time_system_is_12h">您的设备使用 12 小时制</string>
+    <string name="date_time_date_format">日期格式</string>
+    <string name="date_format_system">系统</string>
+    <string name="date_format_system_numeric">系统（数字）</string>
+    <string name="date_format_dmy_dot">日.月.年</string>
+    <string name="date_format_dmy_slash">日/月/年</string>
+    <string name="date_format_dmy_dash">日-月-年</string>
+    <string name="date_format_mdy_slash">月/日/年</string>
+    <string name="date_format_ymd_dash">年-月-日</string>
+    <string name="date_format_ymd_slash">年/月/日</string>
+    <string name="date_format_long">长格式</string>
+    <string name="date_time_preview">预览</string>
 </resources>

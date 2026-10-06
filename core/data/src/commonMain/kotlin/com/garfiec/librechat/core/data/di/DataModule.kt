@@ -8,6 +8,7 @@ import com.garfiec.librechat.core.data.datastore.AccountRegistry
 import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.datastore.AccountScopedPrefsPurger
 import com.garfiec.librechat.core.data.datastore.ConfigCacheDataStore
+import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.RoleCacheDataStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
@@ -252,6 +253,13 @@ val dataModule = module {
     } bind ServerHeadersProvider::class
     singleOf(::ConfigCacheDataStore)
     singleOf(::RoleCacheDataStore)
+    single {
+        DateTimePrefsStore(
+            dataStore = get(),
+            appScope = get<CoroutineScope>(KoinQualifiers.ApplicationScope),
+            ioDispatcher = get(KoinQualifiers.IO),
+        )
+    }
     single {
         SettingsDataStore(
             dataStore = get(),

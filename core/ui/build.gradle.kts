@@ -26,6 +26,8 @@ kotlin {
             implementation(libs.material.kolor)
             implementation(libs.compose.ui.backhandler)
             implementation(libs.kyant.backdrop)
+            // LifecycleResumeEffect / currentStateAsState for the app-wide time ticker.
+            implementation(libs.lifecycle.runtime.compose.kmp)
         }
         androidMain.dependencies {
             // Runtime-permission launcher for saving images to the gallery (API < 29).

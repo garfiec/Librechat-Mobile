@@ -28,7 +28,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.garfiec.librechat.core.common.extensions.RelativeTimeReference
 import com.garfiec.librechat.core.data.prefetch.PrefetchConversationStatus
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
@@ -78,7 +77,6 @@ import org.koin.compose.viewmodel.koinViewModel
 fun PrefetchActivityScreen(onNavigateBack: () -> Unit, modifier: Modifier = Modifier) {
     val viewModel: PrefetchActivityViewModel = koinViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val timeReference = rememberTickingTimeReference()
 
     // Read here rather than on construction: Data settings resolves this ViewModel for the status
     // summary alone, and these two reads are a recursive directory walk and a full table scan.
@@ -108,7 +106,7 @@ fun PrefetchActivityScreen(onNavigateBack: () -> Unit, modifier: Modifier = Modi
                     DetailRow(stringResource(Res.string.prefetch_summary_status), uiState.status.label())
                     DetailRow(
                         stringResource(Res.string.prefetch_summary_last_run),
-                        uiState.lastWarmedAt?.relativeLabel(timeReference)
+                        uiState.lastWarmedAt?.relativeLabel()
                             ?: stringResource(Res.string.prefetch_summary_last_run_never),
                     )
                     DetailRow(
@@ -122,7 +120,7 @@ fun PrefetchActivityScreen(onNavigateBack: () -> Unit, modifier: Modifier = Modi
                     // Absent, not "Never", where the platform schedules nothing — the row would
                     // otherwise read as a broken feature rather than an unbuilt one.
                     if (uiState.scheduledRunsSupported) {
-                        val ranAt = uiState.lastScheduledRunAt?.relativeLabel(timeReference)
+                        val ranAt = uiState.lastScheduledRunAt?.relativeLabel()
                         val outcome = uiState.lastScheduledRunOutcome?.label()
                         DetailRow(
                             stringResource(Res.string.prefetch_summary_scheduled_run),
@@ -172,7 +170,7 @@ fun PrefetchActivityScreen(onNavigateBack: () -> Unit, modifier: Modifier = Modi
                 }
             }
             items(uiState.warmed, key = { "warmed_${it.conversationId}" }) { row ->
-                ConversationRow(row, timeReference)
+                ConversationRow(row)
             }
 
             item(key = "pending_header") {
@@ -184,7 +182,7 @@ fun PrefetchActivityScreen(onNavigateBack: () -> Unit, modifier: Modifier = Modi
                 }
             }
             items(uiState.pending, key = { "pending_${it.conversationId}" }) { row ->
-                ConversationRow(row, timeReference)
+                ConversationRow(row)
             }
 
             item(key = "cache_header") {
@@ -276,7 +274,7 @@ private fun ConditionRow(row: PrefetchConditionRow) {
 }
 
 @Composable
-private fun ConversationRow(row: PrefetchConversationStatus, reference: RelativeTimeReference) {
+private fun ConversationRow(row: PrefetchConversationStatus) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -298,7 +296,7 @@ private fun ConversationRow(row: PrefetchConversationStatus, reference: Relative
             modifier = Modifier.weight(1f),
         )
         Text(
-            text = row.warmedAt?.relativeLabel(reference)
+            text = row.warmedAt?.relativeLabel()
                 ?: stringResource(Res.string.prefetch_row_never_warmed),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,

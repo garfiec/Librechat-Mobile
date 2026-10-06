@@ -6,7 +6,21 @@ Pure Kotlin utilities shared by all modules. This is the lowest layer -- no othe
 
 - **Result sealed class** (`result/Result.kt`): `Success<T>`, `Error(exception, message)`, `Loading`. Used by repositories and ViewModels to propagate outcomes.
 - **Dispatcher & Scope DI** (`di/CommonModule.kt`): Named Koin qualifiers (`named("io")`, `named("default")`, `named("main")`) for dispatchers and `named("applicationScope")` for coroutine scope. Always inject dispatchers -- never hardcode `Dispatchers.IO`. The sole exception is `safeApiCall` / `apiCallCatching`, which read the platform `ioDispatcher` directly; see below for why.
-- **Extensions** (`extensions/`): `StringExt`, `DateExt`.
+- **Extensions** (`extensions/`): `StringExt`, `RelativeTimeReference`, `DayBoundary`.
+- **Date/time formatting** (`datetime/`, #445): the pure half of every displayed date. Read it before
+  adding a date anywhere.
+  - `DateTimeFormatPrefs` (style / clock / date format) resolves once into `ResolvedDateTimeFormat`, which holds
+    every LDML pattern. Resolving is the expensive part (a skeleton lookup); formatting against a
+    resolved pattern is cached per (pattern, locale, zone) and cheap enough per row.
+  - `messageLabel` / `listLabel` / `toDateGroup` return descriptors (`TimestampLabel`, `DateGroup`),
+    not strings: the relative wording is plural resources in core/ui, resolved in composition.
+  - The actuals format with **ICU on Android** (not java.time — ICU skeletons can emit `B`, which
+    API 26 java.time rejects) and with a **constructed NSLocale on iOS**, never `currentLocale`,
+    which ignores the in-app language until relaunch and lets the device 12/24h toggle override an
+    explicit `HH`.
+  - Under plain JVM unit tests the ICU stubs return null, so tests pass a fake
+    `InstantPatternFormatter`. `PlatformDateFormatAndroidTest` (Robolectric) and
+    `PlatformDateFormatIosTest` cover the real platforms.
 - **ConnectivityObserver**: Wraps Android `ConnectivityManager.NetworkCallback` to detect network changes. Used by SSE reconnection logic.
 
 ## safeApiCall Pattern

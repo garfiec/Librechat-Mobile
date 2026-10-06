@@ -69,7 +69,7 @@
     <string name="section_chat_preferences">تفضيلات المحادثة</string>
     <string name="section_conversations">المحادثات</string>
     <string name="section_danger_zone">منطقة الخطر</string>
-    <string name="section_language">اللغة</string>
+    <string name="section_language_region">اللغة والمنطقة</string>
     <string name="section_layout">التخطيط</string>
     <string name="section_mcp_servers">خوادم MCP</string>
     <string name="section_prefetch">التحميل المسبق في الخلفية</string>
@@ -673,4 +673,26 @@
     <string name="context_settings_compact_desc">يعرض المؤشر اقتراحًا هادئًا عندما تمتلئ المحادثة، ويسأل دائمًا قبل الضغط.</string>
     <string name="context_settings_pill_label">السياق</string>
     <string name="context_settings_summary">%1$s · %2$s</string>
+    <string name="date_time_title">التاريخ والوقت</string>
+    <string name="date_time_timestamps">طوابع وقت الرسائل</string>
+    <string name="date_time_style_relative">نسبي</string>
+    <string name="date_time_style_smart">ذكي</string>
+    <string name="date_time_style_absolute">مطلق</string>
+    <string name="date_time_clock">الساعة</string>
+    <string name="date_time_clock_system">النظام</string>
+    <string name="date_time_clock_12h">12 ساعة</string>
+    <string name="date_time_clock_24h">24 ساعة</string>
+    <string name="date_time_system_is_24h">يستخدم جهازك نظام 24 ساعة</string>
+    <string name="date_time_system_is_12h">يستخدم جهازك نظام 12 ساعة</string>
+    <string name="date_time_date_format">تنسيق التاريخ</string>
+    <string name="date_format_system">النظام</string>
+    <string name="date_format_system_numeric">النظام (رقمي)</string>
+    <string name="date_format_dmy_dot">يوم.شهر.سنة</string>
+    <string name="date_format_dmy_slash">يوم/شهر/سنة</string>
+    <string name="date_format_dmy_dash">يوم-شهر-سنة</string>
+    <string name="date_format_mdy_slash">شهر/يوم/سنة</string>
+    <string name="date_format_ymd_dash">سنة-شهر-يوم</string>
+    <string name="date_format_ymd_slash">سنة/شهر/يوم</string>
+    <string name="date_format_long">طويل</string>
+    <string name="date_time_preview">معاينة</string>
 </resources>
