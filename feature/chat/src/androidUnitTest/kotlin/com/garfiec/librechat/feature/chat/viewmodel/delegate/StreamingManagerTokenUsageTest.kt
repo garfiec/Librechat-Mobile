@@ -27,9 +27,9 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
 /**
- * `on_token_usage` handling. The handler is last-write-wins, so a bucketed event — a summary pass,
- * a subagent run, a hidden sequential call, or an activity-label header — must be dropped rather
- * than allowed to overwrite the turn's own figures in the breakdown sheet.
+ * `on_token_usage` handling for the breakdown's Totals. Every billed call counts, buckets included
+ * (summary passes, subagent runs, activity labels), and each call counts once: a resume replays
+ * calls already seen live, both as live events and as the sync frame's backfill.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class StreamingManagerTokenUsageTest {
@@ -59,7 +59,7 @@ class StreamingManagerTokenUsageTest {
             activeAccountProvider = mockk<ActiveAccountProvider>(relaxed = true),
             connectivityObserver = connectivity,
             comparisonDelegate = mockk(relaxed = true),
-            liveReply = LiveReplyDelegate(StreamingHandle(root), mockk(relaxed = true), mockk(relaxed = true)),
+            liveReply = LiveReplyDelegate(StreamingHandle(root), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true)),
             completionDelegate = mockk(relaxed = true),
             queueDelegate = mockk(relaxed = true),
             pendingActionDelegate = mockk(relaxed = true),
@@ -69,85 +69,91 @@ class StreamingManagerTokenUsageTest {
         return delegate to flow
     }
 
+    private fun usage(seq: Int, input: Int, output: Int, bucket: String? = null) = TokenUsage(
+        inputTokens = input,
+        outputTokens = output,
+        provider = "anthropic",
+        usageType = bucket,
+        runId = "run-1",
+        seq = seq,
+    )
+
     @Test
-    fun `a primary usage event lands in state`() = runTest(StandardTestDispatcher()) {
+    fun `a usage event folds into the pending totals`() = runTest(StandardTestDispatcher()) {
         val events = Channel<StreamEvent>(Channel.UNLIMITED)
         val (delegate, flow) = delegateWith(this)
         delegate.launchStream(events.receiveAsFlow())
 
-        events.send(
-            StreamEvent.TokenUsageUpdate(
-                TokenUsage(inputTokens = 4000, outputTokens = 900, model = "claude-opus-5"),
-            ),
-        )
+        events.send(StreamEvent.TokenUsageUpdate(usage(seq = 1, input = 4000, output = 900)))
         runCurrent()
 
-        assertThat(flow.value.tokenUsage?.inputTokens).isEqualTo(4000)
-        assertThat(flow.value.tokenUsage?.outputTokens).isEqualTo(900)
+        assertThat(flow.value.pendingUsage.usage.input).isEqualTo(4000)
+        assertThat(flow.value.pendingUsage.usage.output).isEqualTo(900)
         events.close()
         advanceUntilIdle()
     }
 
-    /**
-     * An activity-label header runs on a cheap fast model and emits its own usage once per tool
-     * batch, so without the exclusion the sheet ends up showing a two-digit count for a turn that
-     * spent thousands.
-     */
+    /** A summary pass or activity label is a billed call too; web's Totals count it. */
     @Test
-    fun `a bucketed usage event does not overwrite the primary figures`() =
+    fun `bucketed calls count toward the totals, subagent ones also on their own`() =
         runTest(StandardTestDispatcher()) {
             val events = Channel<StreamEvent>(Channel.UNLIMITED)
             val (delegate, flow) = delegateWith(this)
             delegate.launchStream(events.receiveAsFlow())
 
-            events.send(
-                StreamEvent.TokenUsageUpdate(
-                    TokenUsage(inputTokens = 4000, outputTokens = 900, model = "claude-opus-5"),
-                ),
-            )
+            events.send(StreamEvent.TokenUsageUpdate(usage(seq = 1, input = 4000, output = 900)))
+            events.send(StreamEvent.TokenUsageUpdate(usage(seq = 2, input = 30, output = 8, bucket = "activity-label")))
+            events.send(StreamEvent.TokenUsageUpdate(usage(seq = 3, input = 200, output = 50, bucket = "subagent")))
             runCurrent()
 
-            for (bucket in listOf("activity-label", "summarization", "subagent", "sequential")) {
-                events.send(
-                    StreamEvent.TokenUsageUpdate(
-                        TokenUsage(
-                            inputTokens = 30,
-                            outputTokens = 8,
-                            model = "claude-haiku-4-5",
-                            usageType = bucket,
-                        ),
-                    ),
-                )
-                runCurrent()
-                assertThat(flow.value.tokenUsage?.inputTokens).isEqualTo(4000)
-                assertThat(flow.value.tokenUsage?.outputTokens).isEqualTo(900)
-            }
-
+            assertThat(flow.value.pendingUsage.usage.input).isEqualTo(4230)
+            assertThat(flow.value.pendingUsage.usage.output).isEqualTo(958)
+            assertThat(flow.value.pendingUsage.subagent.input).isEqualTo(200)
             events.close()
             advanceUntilIdle()
         }
 
-    /** A bucket upstream adds later is unknown, non-null, and therefore excluded like the rest. */
     @Test
-    fun `an unrecognized bucket is excluded rather than failing open`() =
+    fun `a call replayed live and in a resume backfill is counted once`() = runTest(StandardTestDispatcher()) {
+        val events = Channel<StreamEvent>(Channel.UNLIMITED)
+        val (delegate, flow) = delegateWith(this)
+        delegate.launchStream(events.receiveAsFlow())
+
+        events.send(StreamEvent.TokenUsageUpdate(usage(seq = 1, input = 4000, output = 900)))
+        events.send(StreamEvent.TokenUsageUpdate(usage(seq = 1, input = 4000, output = 900)))
+        events.send(
+            StreamEvent.UsageBackfill(
+                listOf(usage(seq = 1, input = 4000, output = 900), usage(seq = 2, input = 100, output = 10)),
+            ),
+        )
+        runCurrent()
+
+        assertThat(flow.value.pendingUsage.usage.input).isEqualTo(4100)
+        assertThat(flow.value.pendingUsage.usage.output).isEqualTo(910)
+        events.close()
+        advanceUntilIdle()
+    }
+
+    /** No final frame means no reply to attribute the usage to, unless the run re-attaches. */
+    @Test
+    fun `a non-network error drops the pending usage, a network error keeps it`() =
         runTest(StandardTestDispatcher()) {
-            val events = Channel<StreamEvent>(Channel.UNLIMITED)
+            val failed = Channel<StreamEvent>(Channel.UNLIMITED)
             val (delegate, flow) = delegateWith(this)
-            delegate.launchStream(events.receiveAsFlow())
-
-            events.send(
-                StreamEvent.TokenUsageUpdate(TokenUsage(inputTokens = 4000, outputTokens = 900)),
-            )
-            runCurrent()
-            events.send(
-                StreamEvent.TokenUsageUpdate(
-                    TokenUsage(inputTokens = 1, outputTokens = 1, usageType = "some-future-bucket"),
-                ),
-            )
-            runCurrent()
-
-            assertThat(flow.value.tokenUsage?.inputTokens).isEqualTo(4000)
-            events.close()
+            delegate.launchStream(failed.receiveAsFlow())
+            failed.send(StreamEvent.TokenUsageUpdate(usage(seq = 1, input = 4000, output = 900)))
+            failed.send(StreamEvent.Error(message = "boom"))
+            failed.close()
             advanceUntilIdle()
+            assertThat(flow.value.pendingUsage.isEmpty).isTrue()
+
+            val dropped = Channel<StreamEvent>(Channel.UNLIMITED)
+            val (networkDelegate, networkFlow) = delegateWith(this)
+            networkDelegate.launchStream(dropped.receiveAsFlow())
+            dropped.send(StreamEvent.TokenUsageUpdate(usage(seq = 1, input = 4000, output = 900)))
+            dropped.send(StreamEvent.Error(message = "offline", isNetworkError = true))
+            dropped.close()
+            advanceUntilIdle()
+            assertThat(networkFlow.value.pendingUsage.usage.input).isEqualTo(4000)
         }
 }

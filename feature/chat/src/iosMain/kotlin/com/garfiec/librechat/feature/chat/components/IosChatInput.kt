@@ -2,13 +2,16 @@
 
 package com.garfiec.librechat.feature.chat.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -26,8 +29,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
-import com.garfiec.librechat.core.model.usage.ContextUsage
-import com.garfiec.librechat.core.model.usage.TokenUsage
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
@@ -35,6 +36,7 @@ import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_attach_file
 import com.garfiec.librechat.feature.chat.resources.cd_paste_image
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
+import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import com.garfiec.librechat.feature.chat.viewmodel.DuringRunSendTarget
 import com.garfiec.librechat.feature.chat.viewmodel.PendingSteerChip
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
@@ -94,11 +96,13 @@ fun IosChatInput(
     hasClipboardImage: Boolean = false,
     onPasteImage: (() -> Unit)? = null,
     gates: ChatInputGates = ChatInputGates(),
-    contextUsage: ContextUsage? = null,
-    tokenUsage: TokenUsage? = null,
+    contextGauge: ContextGaugeDetails? = null,
     contextUsageEnabled: Boolean = false,
-    isCompacting: Boolean = false,
     onCompact: (() -> Unit)? = null,
+    /** "Not now" on a compact suggestion. */
+    onSnoozeCompact: () -> Unit = {},
+    /** A compact suggestion is due under the options-sheet placement: hint at it on the + button. */
+    compactSuggested: Boolean = false,
     contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
     promptSuggestions: List<PromptMentionDisplayData> = emptyList(),
     onSlashCommandSelect: (PromptMentionDisplayData) -> Unit = {},
@@ -127,11 +131,10 @@ fun IosChatInput(
         isEditingQueued = isEditingQueued,
         isAwaitingUploadSend = isAwaitingUploadSend,
         arePicksUnsettled = arePicksUnsettled,
-        contextUsage = contextUsage,
-        tokenUsage = tokenUsage,
+        contextGauge = contextGauge,
         contextUsageEnabled = contextUsageEnabled,
-        isCompacting = isCompacting,
         onCompact = onCompact,
+        onSnoozeCompact = onSnoozeCompact,
         contextBarPlacement = contextBarPlacement,
         promptSuggestions = promptSuggestions,
     )
@@ -162,15 +165,27 @@ fun IosChatInput(
         modifier = modifier,
         leadingButtons = {
             // "+" button to open tools bottom sheet (matches Android behavior)
-            FilledTonalIconButton(
-                onClick = onOpenTools,
-                colors = ChatInputDefaults.toolsButtonColors(),
-                modifier = Modifier.size(48.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = stringResource(Res.string.cd_attach_file),
-                )
+            Box {
+                FilledTonalIconButton(
+                    onClick = onOpenTools,
+                    colors = ChatInputDefaults.toolsButtonColors(),
+                    modifier = Modifier.size(48.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = stringResource(Res.string.cd_attach_file),
+                    )
+                }
+                // Compact suggestion under the options-sheet placement (same dot as Android).
+                if (compactSuggested) {
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .align(Alignment.BottomEnd)
+                            .offset(x = (-2).dp, y = (-2).dp)
+                            .background(color = MaterialTheme.colorScheme.tertiary, shape = CircleShape),
+                    )
+                }
             }
 
             // Paste image button (shown when clipboard has image content)

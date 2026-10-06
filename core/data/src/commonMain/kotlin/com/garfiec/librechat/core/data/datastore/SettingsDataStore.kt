@@ -15,6 +15,9 @@ import com.garfiec.librechat.core.data.prefetch.PrefetchDepth
 import com.garfiec.librechat.core.data.prefetch.PrefetchRunOutcome
 import com.garfiec.librechat.core.data.prefetch.ScheduledRunRecord
 import com.garfiec.librechat.core.model.ModelRef
+import com.garfiec.librechat.core.model.usage.ContextDetailPreset
+import com.garfiec.librechat.core.model.usage.ContextDetailSections
+import com.garfiec.librechat.core.model.usage.DEFAULT_COMPACT_NUDGE_THRESHOLD
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -144,6 +147,45 @@ class SettingsDataStore(
     val contextGaugeExpanded: Flow<Boolean> = dataStore.data.map { prefs ->
         prefs[KEY_CONTEXT_GAUGE_EXPANDED] ?: false
     }
+
+    /** The context breakdown's detail preset. Default [ContextDetailPreset.STANDARD]. */
+    val contextDetailPreset: Flow<ContextDetailPreset> = dataStore.data.map { prefs ->
+        ContextDetailPreset.fromString(prefs[KEY_CONTEXT_DETAIL_PRESET])
+    }
+
+    /** Whether the user's own mix of sections ("Custom") replaces the preset. */
+    val contextDetailAdvanced: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_CONTEXT_DETAIL_ADVANCED] ?: false
+    }
+
+    /**
+     * The user's own mix of sections, or null before Advanced was first turned on. Kept when
+     * Advanced is turned off, so turning it back on restores the mix.
+     */
+    val contextDetailCustom: Flow<ContextDetailSections?> = dataStore.data.map { prefs ->
+        decodeSections(prefs[KEY_CONTEXT_DETAIL_CUSTOM])
+    }
+
+    /** What the breakdown shows: the custom mix under Advanced, else the preset. One source for chat and Settings. */
+    val effectiveContextSections: Flow<ContextDetailSections> = dataStore.data.map { prefs ->
+        val preset = ContextDetailPreset.fromString(prefs[KEY_CONTEXT_DETAIL_PRESET])
+        val custom = decodeSections(prefs[KEY_CONTEXT_DETAIL_CUSTOM])
+        if (prefs[KEY_CONTEXT_DETAIL_ADVANCED] == true) custom ?: preset.sections else preset.sections
+    }.distinctUntilChanged()
+
+    /** Usage percentage at which compacting is suggested; 0 means never. Default 70. */
+    val compactNudgeThreshold: Flow<Int> = dataStore.data.map { prefs ->
+        prefs[KEY_COMPACT_NUDGE_THRESHOLD] ?: DEFAULT_COMPACT_NUDGE_THRESHOLD
+    }
+
+    /**
+     * Per conversation, the compact-suggestion band the user answered "Not now" to. Device-wide
+     * on purpose: it holds conversation ids and a band, no account data, and is bounded by
+     * [MAX_COMPACT_SNOOZES].
+     */
+    val compactNudgeSnoozes: Flow<Map<String, Int>> = dataStore.data.map { prefs ->
+        decodeSnoozes(prefs[KEY_COMPACT_NUDGE_SNOOZES]).mapValues { it.value.band }
+    }.distinctUntilChanged()
 
     /**
      * What the send control does mid-run (v0.8.8 steering). Default [DuringRunAction.QUEUE] —
@@ -445,6 +487,72 @@ class SettingsDataStore(
             prefs[KEY_CONTEXT_GAUGE_EXPANDED] = expanded
         }
     }
+
+    suspend fun setContextDetailPreset(preset: ContextDetailPreset) {
+        dataStore.edit { prefs -> prefs[KEY_CONTEXT_DETAIL_PRESET] = preset.name }
+    }
+
+    /**
+     * Turns the custom mix on or off. The first time it turns on, the mix starts as the current
+     * preset's sections, so switching to Custom changes nothing until a switch is flipped.
+     */
+    suspend fun setContextDetailAdvanced(advanced: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[KEY_CONTEXT_DETAIL_ADVANCED] = advanced
+            if (advanced && decodeSections(prefs[KEY_CONTEXT_DETAIL_CUSTOM]) == null) {
+                val preset = ContextDetailPreset.fromString(prefs[KEY_CONTEXT_DETAIL_PRESET])
+                prefs[KEY_CONTEXT_DETAIL_CUSTOM] = usageJson.encodeToString(preset.sections)
+            }
+        }
+    }
+
+    suspend fun setContextDetailCustom(sections: ContextDetailSections) {
+        dataStore.edit { prefs -> prefs[KEY_CONTEXT_DETAIL_CUSTOM] = usageJson.encodeToString(sections) }
+    }
+
+    suspend fun setCompactNudgeThreshold(threshold: Int) {
+        dataStore.edit { prefs -> prefs[KEY_COMPACT_NUDGE_THRESHOLD] = threshold.coerceAtLeast(0) }
+    }
+
+    /** "Not now" on the compact suggestion: hide it for [conversationId] until usage passes [band]. */
+    suspend fun snoozeCompactNudge(conversationId: String, band: Int) {
+        if (conversationId.isBlank()) return
+        // A durable write; keep it off the caller's cancellation, like incrementModelUsage.
+        withContext(NonCancellable) {
+            dataStore.edit { prefs ->
+                val current = decodeSnoozes(prefs[KEY_COMPACT_NUDGE_SNOOZES])
+                val nextSeq = (current.values.maxOfOrNull { it.seq } ?: 0L) + 1
+                val merged = current + (conversationId to SnoozeEntry(band, nextSeq))
+                // Bounded by recency: the oldest snoozes go first.
+                val trimmed = if (merged.size > MAX_COMPACT_SNOOZES) {
+                    merged.entries.sortedByDescending { it.value.seq }.take(MAX_COMPACT_SNOOZES).associate { it.toPair() }
+                } else {
+                    merged
+                }
+                prefs[KEY_COMPACT_NUDGE_SNOOZES] = usageJson.encodeToString(trimmed)
+            }
+        }
+    }
+
+    /** Usage fell back below the threshold (compacted, or a shorter branch): forget the "Not now". */
+    suspend fun clearCompactNudgeSnooze(conversationId: String) {
+        withContext(NonCancellable) {
+            dataStore.edit { prefs ->
+                val current = decodeSnoozes(prefs[KEY_COMPACT_NUDGE_SNOOZES])
+                if (conversationId in current) {
+                    prefs[KEY_COMPACT_NUDGE_SNOOZES] = usageJson.encodeToString(current - conversationId)
+                }
+            }
+        }
+    }
+
+    /** Tolerant decode — a malformed or absent blob reads as "no custom mix". */
+    private fun decodeSections(raw: String?): ContextDetailSections? =
+        raw?.let { runCatching { usageJson.decodeFromString<ContextDetailSections>(it) }.getOrNull() }
+
+    private fun decodeSnoozes(raw: String?): Map<String, SnoozeEntry> =
+        raw?.let { runCatching { usageJson.decodeFromString<Map<String, SnoozeEntry>>(it) }.getOrNull() }
+            ?: emptyMap()
 
     suspend fun setAutoReadEnabled(enabled: Boolean) {
         dataStore.edit { prefs ->
@@ -826,6 +934,12 @@ class SettingsDataStore(
         private val KEY_DURING_RUN_ACTION = stringPreferencesKey("during_run_action")
         private val KEY_UPLOAD_ROUTING_MODE = stringPreferencesKey("upload_routing_mode")
         private val KEY_CONTEXT_GAUGE_EXPANDED = booleanPreferencesKey("context_gauge_expanded")
+        private val KEY_CONTEXT_DETAIL_PRESET = stringPreferencesKey("context_detail_preset")
+        private val KEY_CONTEXT_DETAIL_ADVANCED = booleanPreferencesKey("context_detail_advanced")
+        private val KEY_CONTEXT_DETAIL_CUSTOM = stringPreferencesKey("context_detail_custom")
+        private val KEY_COMPACT_NUDGE_THRESHOLD = intPreferencesKey("compact_nudge_threshold")
+        private val KEY_COMPACT_NUDGE_SNOOZES = stringPreferencesKey("compact_nudge_snoozes")
+        private const val MAX_COMPACT_SNOOZES = 200
         private val KEY_AUTO_READ_ENABLED = booleanPreferencesKey("auto_read_enabled")
         private val KEY_SHOW_IMAGE_DESCRIPTIONS = booleanPreferencesKey("show_image_descriptions")
         private val KEY_SHOW_SITE_ICONS = booleanPreferencesKey("show_site_icons")
@@ -874,5 +988,9 @@ class SettingsDataStore(
 /** Per-model usage record: total send [count], plus a monotonic [seq] for the recency tie-break. */
 @Serializable
 private data class UsageEntry(val count: Int, val seq: Long)
+
+/** A "Not now" on the compact suggestion; [seq] orders entries for the size cap. */
+@Serializable
+private data class SnoozeEntry(val band: Int, val seq: Long)
 
 private val usageJson = Json { ignoreUnknownKeys = true }

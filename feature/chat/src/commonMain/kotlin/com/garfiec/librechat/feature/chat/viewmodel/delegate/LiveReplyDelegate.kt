@@ -1,10 +1,19 @@
 package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
+import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.common.ToolConstants
+import com.garfiec.librechat.core.data.repository.EndpointTokenRepository
+import com.garfiec.librechat.core.data.repository.contextOverheadKey
 import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.StreamEvent
+import com.garfiec.librechat.core.model.usage.ContextUsage
+import com.garfiec.librechat.core.model.usage.TokenUsage
+import com.garfiec.librechat.core.model.usage.UsageAmount
 import com.garfiec.librechat.feature.chat.components.artifact.ArtifactType
+import com.garfiec.librechat.feature.chat.util.PendingUsage
+import com.garfiec.librechat.feature.chat.util.fold
 import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
+import com.garfiec.librechat.feature.chat.viewmodel.ContextUsageSource
 import com.garfiec.librechat.feature.chat.viewmodel.MessagesState
 import com.garfiec.librechat.feature.chat.viewmodel.RetryInfo
 import com.garfiec.librechat.feature.chat.viewmodel.StreamingHandle
@@ -18,12 +27,54 @@ class LiveReplyDelegate(
     private val handle: StreamingHandle,
     private val subagentTraceDelegate: SubagentTraceDelegate,
     private val officePreviewDelegate: OfficePreviewDelegate,
+    private val endpointTokenRepository: EndpointTokenRepository,
 ) {
 
-    /** A new turn: the previous one's traces and preview polls must not carry into it. */
+    /** A new turn: the previous one's traces, preview polls and usage must not carry into it. */
     fun onTurnStarted() {
         subagentTraceDelegate.reset()
         officePreviewDelegate.reset()
+        // Its own emission, after the atomic begin-stream reset: safe, because on v0.8.8 the
+        // previous turn's pending usage is already represented by its reply's metadata.usage, so
+        // dropping it changes no total (older servers lose that share; see ContextProjectionDelegate).
+        // Skipped when there is nothing to drop.
+        if (!handle.state.pendingUsage.isEmpty) {
+            handle.update { content = content.copy(pendingUsage = PendingUsage.EMPTY) }
+        }
+    }
+
+    /**
+     * The final frame arrived for [responseId]: the run's usage now belongs to that reply, and is
+     * counted until the reply carries its own `metadata.usage` (usually in this same frame). Its
+     * subagent share moves to the session figure. Without a reply (an early abort, or a response
+     * the server never saved) there is nothing to attribute it to, so it is dropped.
+     *
+     * Called before the reply is swapped into the branch, while the stream still counts as live,
+     * so the swap and the hand-over land in the same emission.
+     */
+    fun onFinal(responseId: String?) {
+        handle.update {
+            val pending = content.pendingUsage
+            content = if (responseId == null) {
+                content.copy(pendingUsage = PendingUsage.EMPTY)
+            } else {
+                content.copy(
+                    pendingUsage = pending.copy(subagent = UsageAmount.EMPTY, anchorResponseId = responseId),
+                    sessionSubagentUsage = content.sessionSubagentUsage + pending.subagent,
+                )
+            }
+        }
+    }
+
+    /** A run that ended without a final frame left no reply to attribute its usage to. */
+    fun discardPendingUsage() {
+        handle.update { content = content.copy(pendingUsage = PendingUsage.EMPTY) }
+    }
+
+    private fun foldUsage(events: List<TokenUsage>) {
+        handle.update {
+            content = content.copy(pendingUsage = events.fold(content.pendingUsage) { pending, event -> pending.fold(event) })
+        }
     }
 
     /**
@@ -65,27 +116,32 @@ class LiveReplyDelegate(
             is StreamEvent.Sync -> onSync(event)
             is StreamEvent.SubagentUpdate -> subagentTraceDelegate.onUpdate(event)
             is StreamEvent.TitleUpdate -> onTitleUpdate(event)
-            is StreamEvent.ContextUsageUpdate -> {
-                // Latest context-window snapshot drives the gauge. In-memory only.
-                handle.update { content = content.copy(contextUsage = event.usage) }
-            }
-            is StreamEvent.TokenUsageUpdate -> {
-                // Per-call provider usage; the gauge denominator comes from the context
-                // snapshot, but the breakdown sheet shows Input/Output from this. In-memory only.
-                //
-                // A non-null `usageType` marks a non-primary bucket — a summary pass, an
-                // isolated subagent run, a hidden sequential-agent call, or an activity-label
-                // header. Those are separate model calls, so letting one through would overwrite
-                // the turn's own figures: this handler is last-write-wins. Activity labels make
-                // that acute, emitting one usage event per tool batch (default up to 20 per run)
-                // from a cheap fast model, so the sheet would end up showing the label model's
-                // counts rather than the turn's.
-                if (event.usage.usageType == null) {
-                    handle.update { content = content.copy(tokenUsage = event.usage) }
-                }
-            }
+            is StreamEvent.ContextUsageUpdate -> onContextUsage(event.usage)
+            // Every billed call counts toward the breakdown's Totals, buckets included (summary
+            // passes, subagent runs, activity labels), exactly once: a resume can replay calls
+            // already seen live, and its backfill repeats them.
+            is StreamEvent.TokenUsageUpdate -> foldUsage(listOf(event.usage))
+            is StreamEvent.UsageBackfill -> foldUsage(event.usages)
             else -> Unit
         }
+    }
+
+    /**
+     * A live context reading drives the gauge (in memory only), and its instruction + tool-schema
+     * share is remembered for this config so a branch with no saved snapshot can count it in its
+     * estimate. Keyed by the event's own agent, as upstream does: a comparison run emits a reading
+     * per agent, and keying by the current selection would file the second agent's overhead
+     * under the first.
+     */
+    private fun onContextUsage(usage: ContextUsage) {
+        handle.update { content = content.copy(contextUsage = usage, contextUsageSource = ContextUsageSource.LIVE) }
+        val state = handle.state
+        val agentId = usage.agentId
+            ?: state.selectedModel.takeIf { state.selectedEndpoint == EndpointConstants.AGENTS }
+        endpointTokenRepository.recordContextOverhead(
+            contextOverheadKey(state.selectedEndpoint, state.selectedModel, agentId),
+            usage.effectiveInstructionTokens ?: usage.breakdown.instructionTokens,
+        )
     }
 
     private fun onAttachment(attachment: Attachment) {

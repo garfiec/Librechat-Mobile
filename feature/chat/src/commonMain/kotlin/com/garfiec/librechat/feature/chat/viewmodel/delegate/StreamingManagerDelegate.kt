@@ -429,6 +429,7 @@ class StreamingManagerDelegate(
             is StreamEvent.TitleUpdate,
             is StreamEvent.ContextUsageUpdate,
             is StreamEvent.TokenUsageUpdate,
+            is StreamEvent.UsageBackfill,
             -> liveReply.apply(event)
         }
     }
@@ -474,6 +475,7 @@ class StreamingManagerDelegate(
         // No completionDelegate.onFinal — there is no conversation save, cache, title, or TTS
         // for a turn that never existed.
         if (aborted && rawEvent.earlyAbort) {
+            liveReply.onFinal(responseId = null)
             host.unsendTurn(currentTurnOptimisticUserMessageId)
             endStream(StreamEndReason.Finalized(aborted = true))
             return
@@ -482,6 +484,9 @@ class StreamingManagerDelegate(
         // `text` for a persisted response, DROP a response the server never saved — once, here,
         // before anything renders or caches it. See applyAbortContract.
         val event = if (aborted) rawEvent.applyAbortContract() else rawEvent
+        // Before anything below clears isStreaming: the usage hand-over to the reply must land
+        // no later than the reply itself, or Totals counts the run twice for an emission.
+        liveReply.onFinal((event.responseMessage ?: event.message)?.messageId)
         val isComparison = handle.state.comparisonState.isEnabled
         val conversationId = handle.state.conversationId
             ?: event.conversation?.conversationId
@@ -645,6 +650,9 @@ class StreamingManagerDelegate(
         // so the text held locally is re-homed here or it is lost. Converting on Finalized too
         // would double-send any steer whose applied event this client happened to miss.
         if (reason !is StreamEndReason.Finalized) steeringDelegate.reclaimLocalChips()
+        // A Final attributed the run's usage to its reply. Any other ending leaves no reply to
+        // attribute it to, except a network error, after which the run re-attaches and goes on.
+        if (reason !is StreamEndReason.Finalized && !keepPause) liveReply.discardPendingUsage()
         steeringDelegate.clear()
         // Before the branch, so every ending retires it: a compaction that errors, is stopped or
         // has its resume expire would otherwise leave the action labelled "Compacting…" forever.

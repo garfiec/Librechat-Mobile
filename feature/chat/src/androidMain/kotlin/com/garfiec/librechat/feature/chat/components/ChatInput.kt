@@ -40,8 +40,6 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
-import com.garfiec.librechat.core.model.usage.ContextUsage
-import com.garfiec.librechat.core.model.usage.TokenUsage
 import com.garfiec.librechat.core.ui.components.pressBounce
 import com.garfiec.librechat.core.ui.components.rememberPressBounce
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
@@ -50,6 +48,7 @@ import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
+import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import com.garfiec.librechat.feature.chat.viewmodel.DuringRunSendTarget
 import com.garfiec.librechat.feature.chat.viewmodel.PendingSteerChip
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
@@ -110,11 +109,13 @@ fun ChatInput(
     selectedModelDisplay: String? = null,
     isCodeInterpreterAvailable: Boolean = true,
     gates: ChatInputGates = ChatInputGates(),
-    contextUsage: ContextUsage? = null,
-    tokenUsage: TokenUsage? = null,
+    contextGauge: ContextGaugeDetails? = null,
     contextUsageEnabled: Boolean = false,
-    isCompacting: Boolean = false,
     onCompact: (() -> Unit)? = null,
+    /** "Not now" on a compact suggestion. */
+    onSnoozeCompact: () -> Unit = {},
+    /** A compact suggestion is due under the options-sheet placement: hint at it on the + button. */
+    compactSuggested: Boolean = false,
     contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
 ) {
     val cdOpenToolsMenu = stringResource(Res.string.cd_open_tools_menu)
@@ -164,11 +165,10 @@ fun ChatInput(
         isEditingQueued = isEditingQueued,
         isAwaitingUploadSend = isAwaitingUploadSend,
         arePicksUnsettled = arePicksUnsettled,
-        contextUsage = contextUsage,
-        tokenUsage = tokenUsage,
+        contextGauge = contextGauge,
         contextUsageEnabled = contextUsageEnabled,
-        isCompacting = isCompacting,
         onCompact = onCompact,
+        onSnoozeCompact = onSnoozeCompact,
         contextBarPlacement = contextBarPlacement,
         promptSuggestions = promptSuggestions,
     )
@@ -214,6 +214,17 @@ fun ChatInput(
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = null,
+                    )
+                }
+                // Compact suggestion (options-sheet placement): the gauge lives in the sheet, so hint
+                // at it here. Bottom corner and the tertiary colour, apart from the tools badge.
+                if (compactSuggested) {
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .align(Alignment.BottomEnd)
+                            .offset(x = (-2).dp, y = (-2).dp)
+                            .background(color = MaterialTheme.colorScheme.tertiary, shape = CircleShape),
                     )
                 }
                 // Active tools badge

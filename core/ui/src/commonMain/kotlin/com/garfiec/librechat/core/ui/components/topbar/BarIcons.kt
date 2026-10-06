@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Compare
+import androidx.compose.material.icons.outlined.Compress
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.DataUsage
 import androidx.compose.material.icons.outlined.DeleteOutline
@@ -55,6 +56,7 @@ object BarIcons {
     val Compare = BarIcon(Icons.Outlined.Compare, "rectangle.split.2x1")
     val Trace = BarIcon(Icons.Outlined.Timeline, "point.3.connected.trianglepath.dotted")
     val ContextUsage = BarIcon(Icons.Outlined.DataUsage, "chart.pie")
+    val Compact = BarIcon(Icons.Outlined.Compress, "arrow.down.right.and.arrow.up.left")
     val Share = BarIcon(Icons.Outlined.Share, "square.and.arrow.up")
     val Edit = BarIcon(Icons.Outlined.Edit, "pencil")
     val Duplicate = BarIcon(Icons.Outlined.ContentCopy, "doc.on.doc")
@@ -81,7 +83,7 @@ object BarIcons {
 
     val all: List<BarIcon> = listOf(
         Back, Menu, Close, More, Search, Visible, Hidden, Media, LoadPreset, SavePreset, Prompts,
-        Compare, Trace, ContextUsage, Share, Edit, Duplicate, Archive, Delete,
+        Compare, Trace, ContextUsage, Compact, Share, Edit, Duplicate, Archive, Delete,
         EditFilled, DuplicateFilled, DeleteFilled, ShareFilled, History, Sort, NewFolder, Tools, Import,
         SelectAll, GridView, ListView, Filter, Source, Rendered,
     )

@@ -421,6 +421,75 @@ class SseEventMapperTest {
     }
 
     @Test
+    fun `a sync frame carrying the run's context reading emits it after the snapshot`() {
+        val event = SseEvent(
+            event = "",
+            data = """{"sync":true,"resumeState":{"aggregatedContent":[{"type":"text","text":"hi"}],
+                "contextUsage":{"breakdown":{"maxContextTokens":100000,"instructionTokens":4000,"messageTokens":6000},
+                "remainingContextTokens":88000,"resumedOutputTokens":500}}}""",
+        )
+
+        val events = mapper.mapFrame(event).filterNot { it is StreamEvent.PendingSteersSynced }
+
+        assertThat(events[0]).isInstanceOf(StreamEvent.Sync::class.java)
+        val usage = (events[1] as StreamEvent.ContextUsageUpdate).usage
+        assertThat(usage.remainingContextTokens).isEqualTo(88_000)
+        assertThat(usage.resumedOutputTokens).isEqualTo(500)
+        assertThat(usage.usedTokens).isEqualTo(12_500)
+    }
+
+    @Test
+    fun `a sync frame's collected usage becomes a backfill, after the context reading`() {
+        val event = SseEvent(
+            event = "",
+            data = """{"sync":true,"resumeState":{"aggregatedContent":[{"type":"text","text":"hi"}],
+                "contextUsage":{"breakdown":{"maxContextTokens":100000}},
+                "collectedUsage":[
+                  {"input_tokens":4000,"output_tokens":900,"runId":"r1","seq":1,"cost":0.02,
+                   "input_token_details":{"cache_creation":10,"cache_read":3000},"provider":"anthropic"},
+                  {"input_tokens":30,"output_tokens":8,"runId":"r1","seq":2,"usage_type":"activity-label"}
+                ]}}""",
+        )
+
+        val events = mapper.mapFrame(event).filterNot { it is StreamEvent.PendingSteersSynced }
+
+        assertThat(events[1]).isInstanceOf(StreamEvent.ContextUsageUpdate::class.java)
+        val backfill = events[2] as StreamEvent.UsageBackfill
+        assertThat(backfill.usages).hasSize(2)
+        val first = backfill.usages[0]
+        assertThat(first.runId).isEqualTo("r1")
+        assertThat(first.seq).isEqualTo(1)
+        assertThat(first.cost).isEqualTo(0.02)
+        assertThat(first.inputTokenDetails?.cacheRead).isEqualTo(3000)
+        assertThat(first.inputTokenDetails?.cacheCreation).isEqualTo(10)
+        assertThat(backfill.usages[1].usageType).isEqualTo("activity-label")
+    }
+
+    @Test
+    fun `a sync frame without collected usage emits no backfill`() {
+        val event = SseEvent(
+            event = "",
+            data = """{"sync":true,"resumeState":{"aggregatedContent":[{"type":"text","text":"hi"}],"collectedUsage":[]}}""",
+        )
+
+        assertThat(mapper.mapFrame(event).filterIsInstance<StreamEvent.UsageBackfill>()).isEmpty()
+    }
+
+    @Test
+    fun `a malformed resume context reading is dropped without losing the rest of the frame`() {
+        val event = SseEvent(
+            event = "",
+            data = """{"sync":true,"resumeState":{"aggregatedContent":[{"type":"text","text":"hi"}],
+                "contextUsage":{"breakdown":"not an object"}}}""",
+        )
+
+        val events = mapper.mapFrame(event)
+
+        assertThat(events.filterIsInstance<StreamEvent.ContextUsageUpdate>()).isEmpty()
+        assertThat(events.filterIsInstance<StreamEvent.Sync>()).hasSize(1)
+    }
+
+    @Test
     fun `sync aggregatedContent carries in-progress and completed tool_call parts`() {
         val event = SseEvent(
             event = "",

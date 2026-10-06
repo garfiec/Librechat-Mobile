@@ -187,9 +187,6 @@
     <string name="cd_tool_call">Llamada a herramienta</string>
     <string name="cd_collapse_tool_call">Contraer llamada a herramienta %1$s</string>
     <string name="cd_expand_tool_call">Expandir llamada a herramienta %1$s</string>
-    <string name="context_compact">Compactar conversación</string>
-    <string name="context_compacting">Compactando…</string>
-    <string name="context_compact_info">Resume todo lo anterior en una nota más corta que el modelo sigue leyendo, liberando contexto para lo que viene. No se elimina nada.</string>
     <string name="cd_tool_complete">Completada</string>
     <string name="cd_tool_cancelled">Detenida</string>
     <string name="cd_tool_failed">Fallida</string>
@@ -481,14 +478,6 @@
     <string name="media_empty_links">No hay enlaces en esta conversación</string>
     <string name="media_empty_artifacts">No hay artefactos en esta conversación</string>
     <string name="context_usage_label">Contexto</string>
-    <string name="context_usage_window">Ventana de contexto</string>
-    <string name="context_usage_messages">Mensajes</string>
-    <string name="context_usage_tools">Esquemas de herramientas</string>
-    <string name="context_usage_summary">Resumen</string>
-    <string name="context_usage_system">Sistema</string>
-    <string name="context_usage_free">Espacio libre</string>
-    <string name="context_usage_input">Entrada</string>
-    <string name="context_usage_output">Salida</string>
     <string name="tool_approval_title">Se requiere aprobación</string>
     <string name="tool_approval_arguments">Argumentos</string>
     <string name="tool_approval_approve">Aprobar</string>
@@ -639,4 +628,11 @@
     <string name="site_icons_prompt_settings_hint">Puedes cambiarlo cuando quieras en Ajustes → Chat → Mostrar iconos de sitios web.</string>
     <string name="site_icons_prompt_allow">Mostrar iconos</string>
     <string name="site_icons_prompt_deny">No mostrar</string>
+    <string name="compact_nudge_short">Compactar…</string>
+    <string name="compact_nudge_action">Sugerencia de compactar</string>
+    <string name="compact_nudge_menu">Compactar conversación…</string>
+    <string name="compact_confirm_title">¿Compactar esta conversación?</string>
+    <string name="compact_confirm_body">Se usa el %1$d% de la ventana de contexto. Compactar resume la conversación hasta ahora en una nota más breve que el modelo sigue leyendo, liberando espacio para lo que viene. No se borra nada.</string>
+    <string name="compact_confirm_not_now">Ahora no</string>
+    <string name="compact_confirm_action">Compactar</string>
 </resources>

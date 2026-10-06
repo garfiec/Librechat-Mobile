@@ -45,8 +45,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
-import com.garfiec.librechat.core.model.usage.ContextUsage
-import com.garfiec.librechat.core.model.usage.TokenUsage
 import com.garfiec.librechat.core.ui.components.AdaptiveCheckbox
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
@@ -59,6 +57,7 @@ import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
+import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -104,14 +103,13 @@ fun ChatToolsSheetContent(
      * Camera / Photos / Files attach controls. See [ChatInputGates].
      */
     gates: ChatInputGates = ChatInputGates(),
-    /** Latest context-window usage snapshot; drives the optional context gauge above the model row. */
-    contextUsage: ContextUsage? = null,
-    /** Latest per-call token usage, for the gauge's expanded Input/Output breakdown rows. */
-    tokenUsage: TokenUsage? = null,
+    /** The context gauge's reading and breakdown; drives the optional gauge above the model row. */
+    contextGauge: ContextGaugeDetails? = null,
     /** Server/version gate for the context gauge (`interface.contextUsage` AND backend ≥ 0.8.7). */
     contextUsageEnabled: Boolean = false,
-    isCompacting: Boolean = false,
     onCompact: (() -> Unit)? = null,
+    /** "Not now" on a compact suggestion. */
+    onSnoozeCompact: () -> Unit = {},
     /** Where the user chose to surface the gauge; the sheet only renders it when [ContextBarPlacement.OPTIONS_SHEET]. */
     contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
     /** Persisted expanded/collapsed state of the gauge's inline breakdown. */
@@ -188,19 +186,18 @@ fun ChatToolsSheetContent(
 
         // Context-usage gauge, surfaced here when the user picked the options-sheet placement.
         // Full-width; tapping expands the breakdown inline (no nested modal sheet).
-        val sheetContextUsage = contextUsage
+        val sheetContextGauge = contextGauge
         if (contextBarPlacement == ContextBarPlacement.OPTIONS_SHEET &&
             contextUsageEnabled &&
-            sheetContextUsage != null &&
-            sheetContextUsage.usedTokens > 0
+            sheetContextGauge != null &&
+            sheetContextGauge.usage.usedTokens > 0
         ) {
             ContextUsageExpandableGauge(
-                usage = sheetContextUsage,
+                details = sheetContextGauge,
                 expanded = contextGaugeExpanded,
                 onExpandedChange = onContextGaugeExpandedChange,
-                tokenUsage = tokenUsage,
-                isCompacting = isCompacting,
                 onCompact = onCompact,
+                onSnoozeCompact = onSnoozeCompact,
                 modifier = Modifier
                     .padding(horizontal = 16.dp)
                     .padding(bottom = 8.dp),

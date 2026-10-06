@@ -50,6 +50,7 @@ fun TabbedSettingsScreen(
     onNavigateToArtifactShortcuts: () -> Unit,
     onNavigateToPrefetchActivity: () -> Unit,
     onNavigateToPresets: () -> Unit,
+    onNavigateToContextUsage: () -> Unit,
     onNavigateToApiKeys: () -> Unit,
     onNavigateToFavorites: () -> Unit,
     onNavigateToProviderKeys: () -> Unit,
@@ -129,6 +130,7 @@ fun TabbedSettingsScreen(
                 )
                 1 -> ChatSettingsContent(
                     onNavigateToPresets = onNavigateToPresets,
+                    onNavigateToContextUsage = onNavigateToContextUsage,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = contentPadding,
                 )

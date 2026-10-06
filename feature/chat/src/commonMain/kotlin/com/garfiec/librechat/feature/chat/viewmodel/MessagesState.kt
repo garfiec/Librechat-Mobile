@@ -6,9 +6,11 @@ import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.PendingAction
 import com.garfiec.librechat.core.model.RunStepStatus
 import com.garfiec.librechat.core.model.usage.ContextUsage
-import com.garfiec.librechat.core.model.usage.TokenUsage
+import com.garfiec.librechat.core.model.usage.ContextUsageTotals
+import com.garfiec.librechat.core.model.usage.UsageAmount
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
 import com.garfiec.librechat.feature.chat.util.MessageNode
+import com.garfiec.librechat.feature.chat.util.PendingUsage
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 
 enum class ChatScreenState { LANDING, LOADING, ACTIVE }
@@ -89,10 +91,19 @@ data class MessagesState(
      * any load that succeeds (including an offline cache hit).
      */
     val messagesLoadFailed: Boolean = false,
-    /** Latest context-window usage snapshot for the gauge (`on_context_usage` SSE / projection). */
+    /**
+     * The gauge's context-window reading: live from the stream, or, outside one, resolved by
+     * `ContextProjectionDelegate` from the displayed branch.
+     */
     val contextUsage: ContextUsage? = null,
-    /** Latest per-call provider token usage (`on_token_usage` SSE). */
-    val tokenUsage: TokenUsage? = null,
+    /** Where [contextUsage] came from; written together with it, null when it is null. */
+    val contextUsageSource: ContextUsageSource? = null,
+    /** Usage folded from the run's live `on_token_usage` events, until its reply carries its own. */
+    val pendingUsage: PendingUsage = PendingUsage.EMPTY,
+    /** Subagent usage committed this session (shown as "all branches"). */
+    val sessionSubagentUsage: UsageAmount = UsageAmount.EMPTY,
+    /** The breakdown's branch-wide figures, derived by `ContextProjectionDelegate`. */
+    val contextUsageTotals: ContextUsageTotals = ContextUsageTotals(),
     /**
      * The live human-review pause blocking this run, or null when nothing is awaiting the user
      * (v0.8.8 HITL). Set from `on_pending_action`, from `resumeState.pendingAction` on a

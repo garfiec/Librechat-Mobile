@@ -187,9 +187,6 @@
     <string name="cd_tool_call">ツール呼び出し</string>
     <string name="cd_collapse_tool_call">ツール呼び出し %1$s を折りたたむ</string>
     <string name="cd_expand_tool_call">ツール呼び出し %1$s を展開</string>
-    <string name="context_compact">会話を圧縮</string>
-    <string name="context_compacting">圧縮中…</string>
-    <string name="context_compact_info">これまでの内容を、モデルが引き続き参照する短い要約にまとめ、今後のためにコンテキストを空けます。何も削除されません。</string>
     <string name="cd_tool_complete">完了</string>
     <string name="cd_tool_cancelled">停止済み</string>
     <string name="cd_tool_failed">失敗</string>
@@ -481,14 +478,6 @@
     <string name="media_empty_links">この会話にリンクはありません</string>
     <string name="media_empty_artifacts">この会話にアーティファクトはありません</string>
     <string name="context_usage_label">コンテキスト</string>
-    <string name="context_usage_window">コンテキストウィンドウ</string>
-    <string name="context_usage_messages">メッセージ</string>
-    <string name="context_usage_tools">ツールスキーマ</string>
-    <string name="context_usage_summary">要約</string>
-    <string name="context_usage_system">システム</string>
-    <string name="context_usage_free">空き容量</string>
-    <string name="context_usage_input">入力</string>
-    <string name="context_usage_output">出力</string>
     <string name="tool_approval_title">承認が必要です</string>
     <string name="tool_approval_arguments">引数</string>
     <string name="tool_approval_approve">承認</string>
@@ -639,4 +628,11 @@
     <string name="site_icons_prompt_settings_hint">この設定はいつでも「設定 → チャット → サイトのアイコンを表示」で変更できます。</string>
     <string name="site_icons_prompt_allow">アイコンを表示</string>
     <string name="site_icons_prompt_deny">表示しない</string>
+    <string name="compact_nudge_short">圧縮…</string>
+    <string name="compact_nudge_action">圧縮をおすすめします</string>
+    <string name="compact_nudge_menu">会話を圧縮…</string>
+    <string name="compact_confirm_title">この会話を圧縮しますか？</string>
+    <string name="compact_confirm_body">コンテキストウィンドウの%1$d%を使用しています。圧縮すると、これまでの会話がモデルが読み続ける短いメモに要約され、この先のための余裕ができます。何も削除されません。</string>
+    <string name="compact_confirm_not_now">後で</string>
+    <string name="compact_confirm_action">圧縮</string>
 </resources>

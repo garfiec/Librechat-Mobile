@@ -23,7 +23,6 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
 import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
-import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
@@ -39,7 +38,7 @@ internal fun ChatSettingsSection(
     fontSize: ChatFontSize,
     autoScrollEnabled: Boolean,
     showThinkingBlocks: Boolean,
-    contextBarPlacement: ContextBarPlacement,
+    contextUsageSummary: String,
     duringRunAction: DuringRunAction,
     uploadRoutingMode: UploadRoutingMode,
     showImageDescriptions: Boolean,
@@ -60,6 +59,7 @@ internal fun ChatSettingsSection(
     onShowAvatarsChange: (Boolean) -> Unit,
     onShowBubblesChange: (Boolean) -> Unit,
     onOpenDialog: (ChatSettingDialog) -> Unit,
+    onOpenContextUsage: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
@@ -159,8 +159,8 @@ internal fun ChatSettingsSection(
 
                 SelectorRow(
                     title = stringResource(Res.string.context_bar_title),
-                    value = contextBarPlacementLabel(contextBarPlacement),
-                    onClick = { onOpenDialog(ChatSettingDialog.CONTEXT_BAR) },
+                    value = contextUsageSummary,
+                    onClick = onOpenContextUsage,
                 )
 
                 SelectorRow(

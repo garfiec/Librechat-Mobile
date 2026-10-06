@@ -229,6 +229,15 @@ sealed interface StreamEvent {
     ) : StreamEvent
 
     /**
+     * The run's usage so far, carried on a resume `sync` frame (`resumeState.collectedUsage`): a
+     * client attaching mid-run missed the live `on_token_usage` events these stand for. Folded
+     * like them, deduplicated by run and sequence, so an event seen live is not counted twice.
+     */
+    data class UsageBackfill(
+        val usages: List<TokenUsage>,
+    ) : StreamEvent
+
+    /**
      * Emitted when the server compacts earlier turns of a long agent chat into
      * a summary. The final summarized text is carried here; the chat UI surfaces
      * it as a "Summarized earlier messages" affordance rather than a normal

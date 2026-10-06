@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
 import androidx.compose.runtime.Immutable
+import com.garfiec.librechat.core.model.config.CurrencyConfig
 import kotlinx.serialization.json.JsonElement
 
 /**
@@ -53,6 +54,10 @@ data class FeatureGatesState(
      * Fails closed on older/unknown servers (the gauge has no data source there).
      */
     val contextUsageEnabled: Boolean = false,
+    /** `interface.contextCost`: the breakdown shows the branch's cost. */
+    val costEnabled: Boolean = false,
+    /** `interface.currency`: the display currency for that cost; null means USD. */
+    val currency: CurrencyConfig? = null,
     /**
      * Composer memory toggle. = MEMORIES USE+CREATE+UPDATE (the write set the inline
      * `set_memory`/`delete_memory` tools need) AND the agents endpoint's `memory` capability

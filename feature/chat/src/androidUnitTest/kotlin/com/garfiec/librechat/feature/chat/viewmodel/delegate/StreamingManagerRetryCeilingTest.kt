@@ -70,7 +70,7 @@ class StreamingManagerRetryCeilingTest {
             activeAccountProvider = accounts,
             connectivityObserver = connectivityObserver,
             comparisonDelegate = mockk(relaxed = true),
-            liveReply = LiveReplyDelegate(StreamingHandle(root), mockk(relaxed = true), mockk(relaxed = true)),
+            liveReply = LiveReplyDelegate(StreamingHandle(root), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true)),
             completionDelegate = mockk(relaxed = true),
             queueDelegate = mockk(relaxed = true),
             pendingActionDelegate = mockk(relaxed = true),

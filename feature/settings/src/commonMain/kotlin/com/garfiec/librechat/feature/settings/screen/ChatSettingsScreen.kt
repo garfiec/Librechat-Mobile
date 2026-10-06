@@ -35,7 +35,6 @@ import com.garfiec.librechat.core.common.ChatLayoutConstants
 import com.garfiec.librechat.core.common.speech.sttLanguageOptions
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
-import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.InlineArtifactPrefs
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
@@ -55,6 +54,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
+import com.garfiec.librechat.feature.settings.viewmodel.ContextUsageSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsViewModel
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -64,6 +64,7 @@ import org.koin.compose.viewmodel.koinViewModel
 fun ChatSettingsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToPresets: () -> Unit,
+    onNavigateToContextUsage: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     AdaptiveScaffold(
@@ -80,6 +81,7 @@ fun ChatSettingsScreen(
     ) { innerPadding ->
         ChatSettingsContent(
             onNavigateToPresets = onNavigateToPresets,
+            onNavigateToContextUsage = onNavigateToContextUsage,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
@@ -94,11 +96,14 @@ fun ChatSettingsScreen(
 @Composable
 fun ChatSettingsContent(
     onNavigateToPresets: () -> Unit,
+    onNavigateToContextUsage: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
     viewModel: SettingsViewModel = koinViewModel(),
+    contextUsageViewModel: ContextUsageSettingsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val contextUsage by contextUsageViewModel.uiState.collectAsStateWithLifecycle()
     var openDialog by remember { mutableStateOf<ChatSettingDialog?>(null) }
     val dismissDialog = { openDialog = null }
     fun <T> saveAndClose(setter: (T) -> Unit): (T) -> Unit = {
@@ -121,7 +126,8 @@ fun ChatSettingsContent(
                         fontSize = uiState.chatFontSize,
                         autoScrollEnabled = uiState.autoScrollEnabled,
                         showThinkingBlocks = uiState.showThinkingBlocks,
-                        contextBarPlacement = uiState.contextBarPlacement,
+                        contextUsageSummary = contextUsageSummary(contextUsage.placement, contextUsage.preset, contextUsage.advanced),
+                        onOpenContextUsage = onNavigateToContextUsage,
                         duringRunAction = uiState.duringRunAction,
                         uploadRoutingMode = uiState.uploadRoutingMode,
                         showImageDescriptions = uiState.showImageDescriptions,
@@ -269,18 +275,6 @@ fun ChatSettingsContent(
                         LatexRenderer.NATIVE -> stringResource(Res.string.latex_native_desc)
                     }
                 },
-            )
-        }
-
-        if (openDialog == ChatSettingDialog.CONTEXT_BAR) {
-            RadioSelectionDialog(
-                title = stringResource(Res.string.context_bar_title),
-                description = stringResource(Res.string.context_bar_desc),
-                options = ContextBarPlacement.entries,
-                selected = uiState.contextBarPlacement,
-                onSave = saveAndClose(viewModel::setContextBarPlacement),
-                onDismiss = dismissDialog,
-                optionLabel = { contextBarPlacementLabel(it) },
             )
         }
 

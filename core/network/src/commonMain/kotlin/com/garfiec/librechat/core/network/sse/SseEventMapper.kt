@@ -276,8 +276,8 @@ class SseEventMapper(private val json: Json) {
 
     /**
      * Expands a resume `sync` frame's `resumeState` into the events it stands for: the content
-     * snapshot, the pending action if the run reconnected into a live human-review pause, and
-     * the steers still queued for injection.
+     * snapshot, the latest context-window reading, the pending action if the run reconnected into
+     * a live human-review pause, and the steers still queued for injection.
      *
      * All three are independent. A run can pause before emitting any content (an
      * `ask_user_question` on the first turn), so the pending action must NOT be gated on
@@ -310,6 +310,18 @@ class SseEventMapper(private val json: Json) {
             StreamEvent.Sync(aggregatedContent = contentParts)
         }
 
+        // The run's latest context snapshot. A client that attaches after the live
+        // `on_context_usage` already fired (a reopened chat, or the new-chat screen handing off
+        // to the conversation screen) gets no other reading until the next model call.
+        val contextUsage = (resumeState["contextUsage"] as? JsonObject)?.let(::mapContextUsage)
+
+        // The run's per-call usage so far, persisted server-side so it survives the reconnect.
+        // The live `on_token_usage` events it stands for were missed by this client.
+        val usageBackfill = (resumeState["collectedUsage"] as? JsonArray)
+            ?.mapNotNull { (it as? JsonObject)?.let(::decodeTokenUsage) }
+            ?.takeIf { it.isNotEmpty() }
+            ?.let(StreamEvent::UsageBackfill)
+
         val pendingAction = resumeState["pendingAction"]?.let(::parsePendingAction)
 
         // Steers still waiting to be injected, as an authoritative snapshot of the server-side
@@ -326,7 +338,7 @@ class SseEventMapper(private val json: Json) {
             parsePendingSteers(resumeState["pendingSteers"]),
         )
 
-        return listOfNotNull(snapshot, pendingAction, pendingSteers)
+        return listOfNotNull(snapshot, contextUsage, usageBackfill, pendingAction, pendingSteers)
     }
 
     /** Decodes a `TPendingSteer[]` payload, dropping entries that carry no id to cancel by. */
@@ -684,17 +696,18 @@ class SseEventMapper(private val json: Json) {
         return StreamEvent.TitleUpdate(conversationId = conversationId, title = title)
     }
 
+    private fun mapTokenUsage(data: JsonObject): StreamEvent? =
+        decodeTokenUsage(data)?.let(StreamEvent::TokenUsageUpdate)
+
     @Suppress("TooGenericExceptionCaught") // one malformed SSE frame must not end the stream
-    private fun mapTokenUsage(data: JsonObject): StreamEvent? {
-        // data is a TTokenUsageEvent: {input_tokens, output_tokens, total_tokens, model, provider}.
-        val usage = try {
+    private fun decodeTokenUsage(data: JsonObject): com.garfiec.librechat.core.model.usage.TokenUsage? =
+        // data is a TTokenUsageEvent: {input_tokens, output_tokens, input_token_details, runId, seq, cost, …}.
+        try {
             json.decodeFromJsonElement(com.garfiec.librechat.core.model.usage.TokenUsage.serializer(), data)
         } catch (e: Exception) {
-            Logger.w("SSE", e) { "Failed to parse on_token_usage" }
-            return null
+            Logger.w("SSE", e) { "Failed to parse token usage" }
+            null
         }
-        return StreamEvent.TokenUsageUpdate(usage)
-    }
 
     @Suppress("TooGenericExceptionCaught") // one malformed SSE frame must not end the stream
     private fun mapContextUsage(data: JsonObject): StreamEvent? {

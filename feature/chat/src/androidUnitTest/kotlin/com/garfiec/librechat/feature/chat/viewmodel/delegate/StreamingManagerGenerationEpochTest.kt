@@ -81,7 +81,7 @@ class StreamingManagerGenerationEpochTest {
             activeAccountProvider = mockk<ActiveAccountProvider>(relaxed = true),
             connectivityObserver = connectivity,
             comparisonDelegate = mockk(relaxed = true),
-            liveReply = LiveReplyDelegate(StreamingHandle(root), mockk(relaxed = true), mockk(relaxed = true)),
+            liveReply = LiveReplyDelegate(StreamingHandle(root), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true)),
             completionDelegate = mockk(relaxed = true),
             queueDelegate = mockk(relaxed = true),
             pendingActionDelegate = pendingActionDelegate,

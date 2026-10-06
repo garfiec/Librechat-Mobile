@@ -1044,6 +1044,127 @@
       },
       "why": "The byte scan the server runs on every PDF sent to an Anthropic agent (`/Encrypt `, `/U (`, `/O (`). The upload path strips permission-only encryption so a copy-protected PDF passes it; the tests assert the normalized bytes clear exactly these needles.",
       "failure_mode": "Upstream changes what it scans for, and a normalized PDF that the tests call clean is still refused at send time with \"PDF is password-protected or encrypted\" -- or upstream drops the scan and the stripping becomes an unneeded rewrite."
+    },
+    {
+      "id": "context-gauge-estimate",
+      "upstream": {
+        "file": "client/src/utils/tokens.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/ContextGaugeResolver.kt",
+        "symbol": "estimateContextUsage / deepestPersistedSnapshot"
+      },
+      "why": "The context gauge on a v0.8.8+ server, which removed the projection endpoint: the saved-snapshot walk (`findBranchSnapshotAnchor`, stopping at a summary without its own snapshot) and the snapshot-less estimate (`toEntry`'s chars/4 and quoted-turn rules, `sumBranch`'s summary cap, `prunedBranchTokens`' newest-that-fits break).",
+      "failure_mode": "The gauge disagrees with web for the same branch -- a different percentage, a pre-summary snapshot revived, or an over-window branch pinned at 100% -- with nothing failing."
+    },
+    {
+      "id": "context-gauge-used-tokens",
+      "upstream": {
+        "file": "client/src/hooks/Chat/useTokenUsage.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/usage/ContextUsage.kt",
+        "symbol": "ContextUsage.usedTokens / windowTokens (precedence: ContextProjectionDelegate)"
+      },
+      "why": "How a snapshot becomes the gauge's numbers (denominator `contextBudget ?? maxContextTokens`, the breakdown floor, the post-snapshot `completedOutputTokens`/`retainedToolTokens` additions) and the live / saved / estimate precedence. The precedence diverges deliberately (the saved snapshot replaces the finished turn's live reading); see the delegate KDoc. The breakdown's Totals and Cost come from the same file's view (branchUsage / totalUsage); see the context-breakdown-rows and usage-totals-folding entries.",
+      "failure_mode": "The gauge reads a different percentage from web for the same snapshot, or shows a stale source after a reload."
+    },
+    {
+      "id": "context-overhead-key",
+      "upstream": {
+        "file": "client/src/store/usage.ts",
+        "symbol": "overheadKey",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/repository/EndpointTokenRepository.kt",
+        "symbol": "contextOverheadKey"
+      },
+      "why": "The key the live reading records a config's instruction overhead under and the estimate reads it back by. The writer keys by the event's agent, the reader by the selection, so both must build it the same way.",
+      "failure_mode": "The estimate never finds the overhead and under-reports by the instruction and tool-schema share."
+    },
+    {
+      "id": "context-breakdown-rows",
+      "upstream": {
+        "file": "client/src/components/Chat/Input/TokenUsage/Breakdown.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/usage/ContextBreakdown.kt",
+        "symbol": "buildContextBreakdown + visibleBreakdown (ContextDetail.kt), rendered by core/ui ContextBreakdownCard.kt"
+      },
+      "why": "Which rows the context breakdown shows and how each is computed: the Messages / Tool calls split (widened by retained tool results, clamped three ways), System = system message + dynamic instructions, the per-tool clamp, the cached subtotals, the 80% / 95% pressure thresholds, the insights, and the Totals and Cost gating.",
+      "failure_mode": "A row reads a different number from web for the same snapshot, a new row web added is missing, or a row shows that web hides. Nothing fails."
+    },
+    {
+      "id": "usage-totals-folding",
+      "upstream": {
+        "file": "client/src/hooks/SSE/useUsageHandler.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/delegate/LiveReplyDelegate.kt",
+        "symbol": "foldUsage / onFinal / discardPendingUsage (math in util/UsageTotals.kt)"
+      },
+      "why": "How live `on_token_usage` events become the breakdown's Totals: every bucket counts, each call once (runId:seq), the run's usage is attributed to its reply at the final frame, and a resume backfill folds through the same dedupe.",
+      "failure_mode": "Totals or Cost double-count a reply at completion, drop buckets web counts, or count a replayed call twice after a reconnect."
+    },
+    {
+      "id": "cache-subset-providers",
+      "upstream": {
+        "file": "packages/data-provider/src/schemas.ts",
+        "symbol": "cacheSubsetProviders",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/UsageTotals.kt",
+        "symbol": "CACHE_SUBSET_PROVIDERS"
+      },
+      "why": "Providers whose `input_tokens` already include the cached share; normalizeUsageUnits subtracts cache only for these.",
+      "failure_mode": "Input is double-counted (or under-counted) for a provider upstream reclassified, so Totals disagree with web."
+    },
+    {
+      "id": "group-tool-tokens",
+      "upstream": {
+        "file": "client/src/utils/tokens.ts",
+        "symbol": "groupToolTokens",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/usage/ContextBreakdown.kt",
+        "symbol": "groupToolTokens"
+      },
+      "why": "How tool schemas split into System tools / MCP tools / Skills / Subagents (deferred hatched), keyed on the `skill` and `subagent` tool names and the `_mcp_` delimiter.",
+      "failure_mode": "A tool lands in the wrong group, or a new group upstream added shows as System tools."
+    },
+    {
+      "id": "format-cost",
+      "upstream": {
+        "file": "client/src/utils/tokens.ts",
+        "symbol": "formatCost",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/contextusage/ContextCost.kt",
+        "symbol": "formatCost (+ platform currency actuals)"
+      },
+      "why": "How a USD cost renders in the server's `interface.currency`: unknown codes fall back to USD at rate 1, `<` below one minor unit, two extra decimals below one major unit.",
+      "failure_mode": "The cost shows a converted amount under the wrong symbol, or with different precision than web."
+    },
+    {
+      "id": "series-palette",
+      "upstream": {
+        "file": "client/src/style.css",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/theme/SeriesColors.kt",
+        "symbol": "SeriesColors"
+      },
+      "why": "The categorical `--series-1..8` colours (light and dark blocks) the context meter and its legend use. A CSS property run has no declaration a block anchor can find, so the whole file is watched; only the `--series-*` lines matter.",
+      "failure_mode": "The app's meter colours drift from web's, so the same category reads as a different colour on the two clients."
     }
   ]
 }

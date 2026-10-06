@@ -7,6 +7,8 @@ import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
 import com.garfiec.librechat.core.model.ModelRef
+import com.garfiec.librechat.core.model.usage.ContextDetailPreset
+import com.garfiec.librechat.core.model.usage.ModelTokenomics
 import com.garfiec.librechat.core.network.client.ServerUrlProvider
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.CoroutineScope
@@ -378,6 +380,53 @@ class DataStoreRoundTripTest {
         assertThat(store.selectedMcpServers.first()).isEmpty()
     }
 
+    @Test
+    fun settingsDataStore_contextDetail_defaultsToStandardAndKeepsTheCustomMix() = runTest(testDispatcher) {
+        val store = settingsStore(createDataStore("settings-context-detail"))
+
+        assertThat(store.effectiveContextSections.first()).isEqualTo(ContextDetailPreset.STANDARD.sections)
+
+        store.setContextDetailPreset(ContextDetailPreset.SIMPLE)
+        store.setContextDetailAdvanced(true)
+        // Seeded from the preset in force when Advanced first turned on.
+        assertThat(store.effectiveContextSections.first()).isEqualTo(ContextDetailPreset.SIMPLE.sections)
+
+        val mix = ContextDetailPreset.SIMPLE.sections.copy(totals = true)
+        store.setContextDetailCustom(mix)
+        store.setContextDetailAdvanced(false)
+        assertThat(store.effectiveContextSections.first()).isEqualTo(ContextDetailPreset.SIMPLE.sections)
+        store.setContextDetailAdvanced(true)
+        assertThat(store.effectiveContextSections.first()).isEqualTo(mix)
+    }
+
+    @Test
+    fun settingsDataStore_compactNudge_thresholdAndSnoozes() = runTest(testDispatcher) {
+        val store = settingsStore(createDataStore("settings-compact-nudge"))
+
+        assertThat(store.compactNudgeThreshold.first()).isEqualTo(70)
+        store.setCompactNudgeThreshold(0)
+        assertThat(store.compactNudgeThreshold.first()).isEqualTo(0)
+
+        store.snoozeCompactNudge("c1", band = 0)
+        store.snoozeCompactNudge("c2", band = 1)
+        assertThat(store.compactNudgeSnoozes.first()).containsExactly("c1", 0, "c2", 1)
+
+        store.clearCompactNudgeSnooze("c1")
+        assertThat(store.compactNudgeSnoozes.first()).containsExactly("c2", 1)
+    }
+
+    @Test
+    fun settingsDataStore_compactNudgeSnoozes_evictTheOldestPastTheCap() = runTest(testDispatcher) {
+        val store = settingsStore(createDataStore("settings-compact-cap"))
+
+        repeat(201) { store.snoozeCompactNudge("c$it", band = 0) }
+
+        val snoozes = store.compactNudgeSnoozes.first()
+        assertThat(snoozes).hasSize(200)
+        assertThat(snoozes).doesNotContainKey("c0")
+        assertThat(snoozes).containsKey("c200")
+    }
+
     // --- ConfigCacheDataStore ---
 
     @Test
@@ -408,5 +457,17 @@ class DataStoreRoundTripTest {
         assertThat(store.loadStartupConfig()).isNull()
         assertThat(store.loadEndpointConfigs()).isNull()
         assertThat(store.loadAvailableModels()).isNull()
+        assertThat(store.loadTokenConfig()).isNull()
+    }
+
+    @Test
+    fun configCacheDataStore_roundTrip_tokenConfig() = runTest(testDispatcher) {
+        val ds = createDataStore("config-token")
+        val json = Json { ignoreUnknownKeys = true; isLenient = true }
+        val store = ConfigCacheDataStore(ds, json, fakeServerUrlProvider)
+
+        store.saveTokenConfig(mapOf("openAI" to mapOf("gpt-4o" to ModelTokenomics(context = 128_000))))
+
+        assertThat(store.loadTokenConfig()?.get("openAI")?.get("gpt-4o")?.context).isEqualTo(128_000)
     }
 }

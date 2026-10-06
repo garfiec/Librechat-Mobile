@@ -367,26 +367,29 @@ class ChatViewModel(
     // stale state). The persisted value only seeds the session until the first tap.
     private val contextGaugeExpandedOverride = MutableStateFlow<Boolean?>(null)
 
-    // Bundled into one source so the uiState combine below stays within Kotlin's
-    // 5-argument typed `combine` ceiling.
     // Folded first so the display combine below stays within Kotlin's 5-argument typed ceiling.
-    private val gaugeExpanded: Flow<Boolean> = combine(
+    private val contextUsagePrefs: Flow<ContextUsagePrefs> = combine(
         settingsDataStore.contextGaugeExpanded,
         contextGaugeExpandedOverride,
-    ) { persisted, override -> override ?: persisted }
+        settingsDataStore.effectiveContextSections,
+        settingsDataStore.compactNudgeThreshold,
+        settingsDataStore.compactNudgeSnoozes,
+    ) { persisted, override, sections, threshold, snoozes ->
+        ContextUsagePrefs(override ?: persisted, sections, threshold, snoozes)
+    }
 
     private val chatDisplayPrefs: Flow<ChatDisplayPrefs> = combine(
         settingsDataStore.chatHeaderContent,
         settingsDataStore.chatHeaderAlignment,
         settingsDataStore.contextBarPlacement,
-        gaugeExpanded,
+        contextUsagePrefs,
         settingsDataStore.duringRunAction,
-    ) { content, alignment, contextBarPlacement, gaugeExpanded, duringRunAction ->
+    ) { content, alignment, contextBarPlacement, contextPrefs, duringRunAction ->
         ChatDisplayPrefs(
             content,
             alignment,
             contextBarPlacement,
-            gaugeExpanded,
+            contextPrefs,
             duringRunAction,
         )
     }
@@ -406,7 +409,10 @@ class ChatViewModel(
                 chatHeaderContent = displayPrefs.content,
                 chatHeaderAlignment = displayPrefs.alignment,
                 contextBarPlacement = displayPrefs.contextBarPlacement,
-                contextGaugeExpanded = displayPrefs.contextGaugeExpanded,
+                contextGaugeExpanded = displayPrefs.context.gaugeExpanded,
+                contextSections = displayPrefs.context.sections,
+                compactNudgeThreshold = displayPrefs.context.compactNudgeThreshold,
+                compactNudgeSnoozes = displayPrefs.context.compactNudgeSnoozes,
                 duringRunAction = displayPrefs.duringRunAction,
             ),
             // The user record carries a RELATIVE `/images/…` avatar, which Coil has no fetcher for.
@@ -493,7 +499,12 @@ class ChatViewModel(
         activeAccountProvider = activeAccountProvider,
         connectivityObserver = connectivityObserver,
         comparisonDelegate = comparisonDelegate,
-        liveReply = LiveReplyDelegate(StreamingHandle(stateHandle), subagentTraceDelegate, officePreviewDelegate),
+        liveReply = LiveReplyDelegate(
+            StreamingHandle(stateHandle),
+            subagentTraceDelegate,
+            officePreviewDelegate,
+            endpointTokenRepository,
+        ),
         completionDelegate = completionDelegate,
         queueDelegate = queueDelegate,
         pendingActionDelegate = pendingActionDelegate,
@@ -651,6 +662,7 @@ class ChatViewModel(
 
         // Seed/refresh the context-usage gauge for a loaded or snapshot-less branch (v0.8.7).
         contextProjectionDelegate.start()
+        clearCompactNudgeSnoozeWhenBelowThreshold()
 
         // Queued turns are reconciled by polling, so the poll has to be (re)aimed whenever the
         // conversation it is about changes — including the moment a new chat's id resolves, which
@@ -1755,6 +1767,32 @@ class ChatViewModel(
 
     /** Manual context compaction (v0.8.8-rc3). See [ChatUiState.canCompactNow]. */
     fun compactConversation() = editingDelegate.compactConversation()
+
+    /** "Not now" on the compact suggestion: hide it in this conversation until usage reaches the next band. */
+    fun snoozeCompactNudge() {
+        val state = uiState.value
+        val conversationId = state.conversationId ?: return
+        val nudge = state.compactNudge ?: return
+        viewModelScope.launch { settingsDataStore.snoozeCompactNudge(conversationId, nudge.band) }
+    }
+
+    /**
+     * Forgets a "Not now" once a real reading is back below the threshold (the user compacted, or
+     * moved to a shorter branch), so the next fill suggests compacting again from the start.
+     * Only a real reading counts: a chat still loading has none, and an estimate is a heuristic.
+     */
+    private fun clearCompactNudgeSnoozeWhenBelowThreshold() {
+        viewModelScope.launch {
+            uiState
+                .map { state -> state.conversationId.takeIf { state.isBelowCompactThreshold } }
+                .distinctUntilChanged()
+                .collect { conversationId ->
+                    if (conversationId != null && conversationId in uiState.value.prefs.compactNudgeSnoozes) {
+                        settingsDataStore.clearCompactNudgeSnooze(conversationId)
+                    }
+                }
+        }
+    }
 
     /**
      * Bumped when any prompt is created, edited or deleted — the signal the composer's `/` picker

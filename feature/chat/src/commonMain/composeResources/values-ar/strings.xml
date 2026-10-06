@@ -187,9 +187,6 @@
     <string name="cd_tool_call">استدعاء أداة</string>
     <string name="cd_collapse_tool_call">طي استدعاء الأداة %1$s</string>
     <string name="cd_expand_tool_call">توسيع استدعاء الأداة %1$s</string>
-    <string name="context_compact">ضغط المحادثة</string>
-    <string name="context_compacting">جارٍ الضغط…</string>
-    <string name="context_compact_info">يلخّص كل ما سبق في ملاحظة أقصر يواصل النموذج قراءتها، مما يحرر السياق لما يأتي لاحقًا. لا يُحذف أي شيء.</string>
     <string name="cd_tool_complete">مكتمل</string>
     <string name="cd_tool_cancelled">متوقف</string>
     <string name="cd_tool_failed">فشل</string>
@@ -481,14 +478,6 @@
     <string name="media_empty_links">لا توجد روابط في هذه المحادثة</string>
     <string name="media_empty_artifacts">لا توجد عناصر تفاعلية في هذه المحادثة</string>
     <string name="context_usage_label">السياق</string>
-    <string name="context_usage_window">نافذة السياق</string>
-    <string name="context_usage_messages">الرسائل</string>
-    <string name="context_usage_tools">مخططات الأدوات</string>
-    <string name="context_usage_summary">الملخص</string>
-    <string name="context_usage_system">النظام</string>
-    <string name="context_usage_free">مساحة متاحة</string>
-    <string name="context_usage_input">المدخلات</string>
-    <string name="context_usage_output">المخرجات</string>
     <string name="tool_approval_title">مطلوب موافقة</string>
     <string name="tool_approval_arguments">الوسائط</string>
     <string name="tool_approval_approve">موافقة</string>
@@ -639,4 +628,11 @@
     <string name="site_icons_prompt_settings_hint">يمكنك تغيير ذلك في أي وقت من الإعدادات ← المحادثة ← إظهار أيقونات المواقع.</string>
     <string name="site_icons_prompt_allow">إظهار الأيقونات</string>
     <string name="site_icons_prompt_deny">عدم الإظهار</string>
+    <string name="compact_nudge_short">ضغط…</string>
+    <string name="compact_nudge_action">يُقترح الضغط</string>
+    <string name="compact_nudge_menu">ضغط المحادثة…</string>
+    <string name="compact_confirm_title">ضغط هذه المحادثة؟</string>
+    <string name="compact_confirm_body">تم استخدام %1$d% من نافذة السياق. يلخّص الضغط المحادثة حتى الآن في ملاحظة أقصر يواصل النموذج قراءتها، مما يفسح المجال لما يلي. لا يُحذف أي شيء.</string>
+    <string name="compact_confirm_not_now">ليس الآن</string>
+    <string name="compact_confirm_action">ضغط</string>
 </resources>

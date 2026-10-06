@@ -41,10 +41,10 @@ data class InterfaceConfig(
     /** Whether the context-usage gauge is enabled. Server default is `true`. Gates the
      *  chat-screen context gauge (combined with a `BackendVersion.isCompatibleOrNewer("0.8.7-rc1")` check). */
     val contextUsage: Boolean = true,
-    /** Whether the gauge surfaces USD cost alongside token usage. Server default is `false`.
-     *  Retained for wire fidelity (real `/api/config` key); not read yet — the cost readout
-     *  isn't built. */
+    /** Whether the context breakdown shows the cost of the branch. Server default is `false`. */
     val contextCost: Boolean = false,
+    /** Display currency for that cost; absent means USD. */
+    val currency: CurrencyConfig? = null,
     /** When `"immediate"`, the server emits a mid-stream `title` SSE frame so the conversation
      *  title can be revealed eagerly; `"final"` (or null) keeps the post-stream reveal. */
     val titleTiming: String? = null,
@@ -141,3 +141,13 @@ fun isSchedulesEnabled(schedules: JsonElement?): Boolean {
     val obj = element as? JsonObject ?: return false
     return (obj["use"] as? JsonPrimitive)?.booleanOrNull != false
 }
+
+/**
+ * Display currency for the context cost (`interface.currency`). [rate] is a static USD→local
+ * multiplier; [code] an ISO-4217 code.
+ */
+@Serializable
+data class CurrencyConfig(
+    val code: String,
+    val rate: Double = 1.0,
+)

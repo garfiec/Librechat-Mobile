@@ -18,6 +18,7 @@ import com.garfiec.librechat.feature.chat.components.ChatOverflowItem.SHOW_ALL_M
 import com.garfiec.librechat.feature.chat.components.ChatOverflowItem.TRACE
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 
 /**
  * The Material dropdown and the native iOS menu both render this list, so its gating and order are
@@ -39,12 +40,25 @@ class ChatOverflowSectionsTest {
         contextUsageEnabled: Boolean = true,
         contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OVERFLOW_MENU,
         sharedLinksEnabled: Boolean = true,
+        compactNudgeVisible: Boolean = false,
     ) = chatOverflowSections(
         ChatOverflowGates(
             conversationId, hasShowAllMedia, presetsEnabled, hasPromptsLibrary, promptsEnabled, multiConvoEnabled,
             traceViewerAvailable, contextUsage, contextUsageEnabled, contextBarPlacement, sharedLinksEnabled,
+            compactNudgeVisible,
         ),
     )
+
+    @Test
+    fun compactAppearsUnderContextOnlyWhenDueAndTheGaugeLivesInTheMenu() {
+        val tools = sections(compactNudgeVisible = true).first()
+        assertEquals(ChatOverflowItem.COMPACT, tools[tools.indexOf(ChatOverflowItem.CONTEXT_USAGE) + 1])
+        assertFalse(ChatOverflowItem.COMPACT in sections(compactNudgeVisible = false).flatten())
+        assertFalse(
+            ChatOverflowItem.COMPACT in
+                sections(compactNudgeVisible = true, contextBarPlacement = ContextBarPlacement.ABOVE_INPUT).flatten(),
+        )
+    }
 
     @Test
     fun everythingOnGivesThreeSectionsInMenuOrder() {

@@ -187,9 +187,6 @@
     <string name="cd_tool_call">Tool-Aufruf</string>
     <string name="cd_collapse_tool_call">Tool-Aufruf %1$s einklappen</string>
     <string name="cd_expand_tool_call">Tool-Aufruf %1$s ausklappen</string>
-    <string name="context_compact">Unterhaltung komprimieren</string>
-    <string name="context_compacting">Wird komprimiert…</string>
-    <string name="context_compact_info">Fasst alles Bisherige in einer kürzeren Notiz zusammen, die das Modell weiterhin liest, und schafft so Platz im Kontext für das Weitere. Es wird nichts gelöscht.</string>
     <string name="cd_tool_complete">Abgeschlossen</string>
     <string name="cd_tool_cancelled">Gestoppt</string>
     <string name="cd_tool_failed">Fehlgeschlagen</string>
@@ -481,14 +478,6 @@
     <string name="media_empty_links">Keine Links in dieser Unterhaltung</string>
     <string name="media_empty_artifacts">Keine Artefakte in dieser Unterhaltung</string>
     <string name="context_usage_label">Kontext</string>
-    <string name="context_usage_window">Kontextfenster</string>
-    <string name="context_usage_messages">Nachrichten</string>
-    <string name="context_usage_tools">Tool-Schemas</string>
-    <string name="context_usage_summary">Zusammenfassung</string>
-    <string name="context_usage_system">System</string>
-    <string name="context_usage_free">Freier Platz</string>
-    <string name="context_usage_input">Eingabe</string>
-    <string name="context_usage_output">Ausgabe</string>
     <string name="tool_approval_title">Genehmigung erforderlich</string>
     <string name="tool_approval_arguments">Argumente</string>
     <string name="tool_approval_approve">Genehmigen</string>
@@ -639,4 +628,11 @@
     <string name="site_icons_prompt_settings_hint">Du kannst das jederzeit unter Einstellungen → Chat → Website-Symbole anzeigen ändern.</string>
     <string name="site_icons_prompt_allow">Symbole anzeigen</string>
     <string name="site_icons_prompt_deny">Nicht anzeigen</string>
+    <string name="compact_nudge_short">Komprimieren…</string>
+    <string name="compact_nudge_action">Komprimieren empfohlen</string>
+    <string name="compact_nudge_menu">Unterhaltung komprimieren…</string>
+    <string name="compact_confirm_title">Diese Unterhaltung komprimieren?</string>
+    <string name="compact_confirm_body">%1$d % des Kontextfensters sind belegt. Beim Komprimieren wird die bisherige Unterhaltung zu einer kürzeren Notiz zusammengefasst, die das Modell weiter liest – so wird Platz für Neues frei. Es wird nichts gelöscht.</string>
+    <string name="compact_confirm_not_now">Nicht jetzt</string>
+    <string name="compact_confirm_action">Komprimieren</string>
 </resources>

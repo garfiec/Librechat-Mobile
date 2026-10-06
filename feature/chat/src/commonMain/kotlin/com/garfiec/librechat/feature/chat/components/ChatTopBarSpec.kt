@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.chat.components
 import androidx.compose.runtime.Composable
 import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
 import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
+import com.garfiec.librechat.core.model.usage.percentOf
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarAction
 import com.garfiec.librechat.core.ui.components.topbar.BarIcon
@@ -25,6 +26,7 @@ import com.garfiec.librechat.feature.chat.resources.cancel
 import com.garfiec.librechat.feature.chat.resources.cd_more_options
 import com.garfiec.librechat.feature.chat.resources.cd_open_drawer
 import com.garfiec.librechat.feature.chat.resources.cd_temporary_chat
+import com.garfiec.librechat.feature.chat.resources.compact_nudge_menu
 import com.garfiec.librechat.feature.chat.resources.compare_models
 import com.garfiec.librechat.feature.chat.resources.context_usage_label
 import com.garfiec.librechat.feature.chat.resources.delete
@@ -145,8 +147,11 @@ private fun overflowMenuItem(item: ChatOverflowItem, uiState: ChatUiState, onCli
         ChatOverflowItem.CONTEXT_USAGE -> entry(
             stringResource(Res.string.context_usage_label),
             BarIcons.ContextUsage,
-            subtitle = uiState.contextUsage?.let { "${(it.usedFraction * 100).toInt()}%" },
+            subtitle = uiState.contextUsage?.let {
+                percentLabel(percentOf(it.usedTokens, it.windowTokens), uiState.contextUsageIsEstimate)
+            },
         )
+        ChatOverflowItem.COMPACT -> entry(stringResource(Res.string.compact_nudge_menu), BarIcons.Compact)
         ChatOverflowItem.SHARE -> entry(stringResource(Res.string.action_share), BarIcons.Share)
         ChatOverflowItem.RENAME -> entry(stringResource(Res.string.action_rename), BarIcons.Edit)
         ChatOverflowItem.DUPLICATE -> entry(stringResource(Res.string.action_duplicate), BarIcons.Duplicate)
