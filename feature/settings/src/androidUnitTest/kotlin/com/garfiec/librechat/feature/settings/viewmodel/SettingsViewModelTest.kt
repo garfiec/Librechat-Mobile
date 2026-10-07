@@ -78,7 +78,6 @@ class SettingsViewModelTest {
         // Setup default API responses
         coEvery { speechRepository.getVoices() } returns Result.Success(emptyList())
         coEvery { speechRepository.getSpeechConfig() } returns Result.Success(SpeechConfig())
-
     }
 
     @After

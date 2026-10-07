@@ -42,6 +42,7 @@ import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import org.jetbrains.compose.resources.stringResource
+import kotlin.math.roundToLong
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -389,7 +390,7 @@ internal fun TtsDetailDialog(
 
                     // Speech rate slider
                     Text(
-                        text = stringResource(Res.string.tts_speech_rate, rate),
+                        text = stringResource(Res.string.tts_speech_rate, oneDecimal(rate)),
                         style = MaterialTheme.typography.labelMedium,
                     )
                     Slider(
@@ -402,7 +403,7 @@ internal fun TtsDetailDialog(
 
                     // Pitch slider
                     Text(
-                        text = stringResource(Res.string.tts_pitch, currentPitch),
+                        text = stringResource(Res.string.tts_pitch, oneDecimal(currentPitch)),
                         style = MaterialTheme.typography.labelMedium,
                     )
                     Slider(
@@ -564,3 +565,14 @@ internal fun TtsDetailDialog(
         },
     )
 }
+
+/**
+ * Compose resources substitutes only `%N$s` / `%N$d`, so a `%.1f` in the string would render as
+ * written; the number is formatted here instead.
+ */
+internal fun oneDecimal(value: Float): String {
+    val tenths = (value * TENTHS).roundToLong()
+    return "${tenths / TENTHS}.${tenths % TENTHS}"
+}
+
+private const val TENTHS = 10L

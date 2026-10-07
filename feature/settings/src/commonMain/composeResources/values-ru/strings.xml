@@ -425,8 +425,8 @@
     <string name="tts_source_server">Сервер</string>
     <string name="tts_voice_label">Голос</string>
     <string name="tts_system_default">Системный</string>
-    <string name="tts_speech_rate">Скорость речи: %1$.1fx</string>
-    <string name="tts_pitch">Высота тона: %1$.1f</string>
+    <string name="tts_speech_rate">Скорость речи: %1$sx</string>
+    <string name="tts_pitch">Высота тона: %1$s</string>
     <string name="tts_cache_audio">Кэшировать аудио</string>
     <string name="tts_preview_text">Это образец выбранного голоса.</string>
     <string name="tts_stop_preview">Остановить прослушивание</string>

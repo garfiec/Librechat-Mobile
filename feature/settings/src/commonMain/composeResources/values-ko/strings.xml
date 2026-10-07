@@ -425,8 +425,8 @@
     <string name="tts_source_server">서버</string>
     <string name="tts_voice_label">음성</string>
     <string name="tts_system_default">시스템 기본값</string>
-    <string name="tts_speech_rate">말하기 속도: %1$.1fx</string>
-    <string name="tts_pitch">음높이: %1$.1f</string>
+    <string name="tts_speech_rate">말하기 속도: %1$sx</string>
+    <string name="tts_pitch">음높이: %1$s</string>
     <string name="tts_cache_audio">오디오 캐시</string>
     <string name="tts_preview_text">선택한 음성의 미리듣기입니다.</string>
     <string name="tts_stop_preview">미리듣기 중지</string>

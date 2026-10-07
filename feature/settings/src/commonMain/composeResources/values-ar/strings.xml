@@ -425,8 +425,8 @@
     <string name="tts_source_server">الخادم</string>
     <string name="tts_voice_label">الصوت</string>
     <string name="tts_system_default">افتراضي النظام</string>
-    <string name="tts_speech_rate">سرعة الكلام: %1$.1fx</string>
-    <string name="tts_pitch">طبقة الصوت: %1$.1f</string>
+    <string name="tts_speech_rate">سرعة الكلام: %1$sx</string>
+    <string name="tts_pitch">طبقة الصوت: %1$s</string>
     <string name="tts_cache_audio">تخزين الصوت مؤقتًا</string>
     <string name="tts_preview_text">هذه معاينة للصوت المحدد.</string>
     <string name="tts_stop_preview">إيقاف المعاينة</string>

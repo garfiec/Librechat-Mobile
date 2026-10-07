@@ -431,8 +431,8 @@
     <string name="tts_source_server">Server</string>
     <string name="tts_voice_label">Voice</string>
     <string name="tts_system_default">System default</string>
-    <string name="tts_speech_rate">Speech Rate: %1$.1fx</string>
-    <string name="tts_pitch">Pitch: %1$.1f</string>
+    <string name="tts_speech_rate">Speech Rate: %1$sx</string>
+    <string name="tts_pitch">Pitch: %1$s</string>
     <string name="tts_cache_audio">Cache audio</string>
     <string name="tts_preview_text">This is a preview of the selected voice.</string>
     <string name="tts_stop_preview">Stop Preview</string>
