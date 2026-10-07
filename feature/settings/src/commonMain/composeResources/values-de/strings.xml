@@ -36,7 +36,6 @@
     <string name="cd_delete_preset">Vorlage löschen</string>
     <string name="cd_delete_server">Server löschen</string>
     <string name="cd_delete_shared_link">Geteilten Link löschen</string>
-    <string name="cd_edit">Bearbeiten</string>
     <string name="cd_edit_memory">Erinnerung bearbeiten</string>
     <string name="memory_redacted_key">Verborgener Eintrag</string>
     <string name="memory_redacted_value">Die Inhaltsrichtlinie dieses Servers verbirgt, was hier gespeichert ist. Du kannst den Eintrag trotzdem löschen.</string>
@@ -450,7 +449,6 @@
     <!-- MCP -->
     <string name="add_mcp_server">MCP-Server hinzufügen</string>
     <string name="edit_mcp_server">MCP-Server bearbeiten</string>
-    <string name="mcp_not_available">MCP ist auf diesem Server nicht verfügbar</string>
     <string name="no_mcp_servers">Keine MCP-Server konfiguriert</string>
     <string name="mcp_add_hint">Tippe auf die +-Schaltfläche, um einen Server hinzuzufügen</string>
     <string name="mcp_name_label">Name</string>
@@ -698,4 +696,14 @@
     <string name="date_format_ymd_slash">Jahr/Monat/Tag</string>
     <string name="date_format_long">Lang</string>
     <string name="date_time_preview">Vorschau</string>
+    <string name="data_summary_off">Aus</string>
+    <string name="data_summary_none">Keine</string>
+    <plurals name="data_memories_count">
+        <item quantity="one">%1$d gespeichert</item>
+        <item quantity="other">%1$d gespeichert</item>
+    </plurals>
+    <plurals name="data_mcp_servers_count">
+        <item quantity="one">%1$d Server</item>
+        <item quantity="other">%1$d Server</item>
+    </plurals>
 </resources>

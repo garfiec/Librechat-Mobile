@@ -4,11 +4,7 @@ import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.model.error.ServerErrorCode
 
-/**
- * A refused MCP server save, read once for both save paths: the MCP servers screen
- * ([McpViewModel]) and the Settings section (`McpServerDelegate`) reach the same routes and must
- * report a refusal identically.
- */
+/** A refused MCP server save, as [McpViewModel] reports it. */
 internal data class McpSaveFailure(
     /** `MCP_OAUTH_SECRET_REENTRY_REQUIRED`: the client secret must be typed again. */
     val secretReentry: Boolean,

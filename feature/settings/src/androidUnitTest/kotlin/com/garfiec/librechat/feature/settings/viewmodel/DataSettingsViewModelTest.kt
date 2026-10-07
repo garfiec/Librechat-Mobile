@@ -13,16 +13,13 @@ import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.logging.DiagnosticLogRepository
 import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.UserPersonalization
-import com.garfiec.librechat.core.model.mcp.McpOboConfig
 import com.garfiec.librechat.core.model.mcp.McpServer
-import com.garfiec.librechat.core.model.mcp.McpServerType
 import com.garfiec.librechat.feature.settings.util.PlatformCacheCleaner
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -144,28 +141,6 @@ class DataSettingsViewModelTest {
     }
 
     @Test
-    fun `memoriesEnabled is hydrated from the profile opt-out`() = runTest {
-        coEvery { userRepository.getUser() } returns Result.Success(
-            testUser.copy(personalization = UserPersonalization(memories = false)),
-        )
-
-        viewModel = createViewModel()
-        advanceUntilIdle()
-
-        assertThat(viewModel.uiState.value.memoriesEnabled).isFalse()
-    }
-
-    @Test
-    fun `memoriesEnabled defaults on when the profile has no personalization block`() = runTest {
-        coEvery { userRepository.getUser() } returns Result.Success(testUser.copy(personalization = null))
-
-        viewModel = createViewModel()
-        advanceUntilIdle()
-
-        assertThat(viewModel.uiState.value.memoriesEnabled).isTrue()
-    }
-
-    @Test
     fun `revokeAllKeys calls keyRepository`() = runTest {
         coEvery { keyRepository.deleteAllKeys() } returns Result.Success(Unit)
 
@@ -228,204 +203,6 @@ class DataSettingsViewModelTest {
     }
 
     @Test
-    fun `a refused MCP edit asks for the API key again`() = runTest {
-        coEvery { mcpRepository.updateServer(any(), any(), any(), any(), any(), any(), any()) } returns
-            Result.Error(
-                exception = ApiException(
-                    statusCode = 400,
-                    message = "Re-enter apiKey.key",
-                    body = """{"error":"MCP_API_KEY_REENTRY_REQUIRED","message":"Re-enter apiKey.key"}""",
-                ),
-            )
-        viewModel = createViewModel()
-        advanceUntilIdle()
-        viewModel.showEditMcpServerDialog(
-            McpServer(name = "docs_mcp", url = "https://docs.example.test/mcp", type = McpServerType.SSE),
-        )
-
-        viewModel.saveMcpServer(name = "Docs", url = "https://moved.example.test/mcp", type = McpServerType.SSE)
-        advanceUntilIdle()
-
-        assertThat(viewModel.uiState.value.mcpApiKeyReentryRequired).isTrue()
-        assertThat(viewModel.uiState.value.mcpOAuthSecretReentryRequired).isFalse()
-        assertThat(viewModel.uiState.value.showMcpServerDialog).isTrue()
-    }
-
-    /** The Settings path's copy of the same rule: the prompt is cleared when its dialog closes or reopens. */
-    @Test
-    fun `MCP re-entry prompts do not survive the Settings dialog closing or reopening`() = runTest {
-        coEvery { mcpRepository.updateServer(any(), any(), any(), any(), any(), any(), any()) } returns
-            Result.Error(
-                exception = ApiException(
-                    statusCode = 400,
-                    message = "x",
-                    body = """{"error":"MCP_API_KEY_REENTRY_REQUIRED"}""",
-                ),
-            )
-        val server = McpServer(name = "docs_mcp", url = "https://docs.example.test/mcp", type = McpServerType.SSE)
-        viewModel = createViewModel()
-        advanceUntilIdle()
-        fun refused() {
-            viewModel.showEditMcpServerDialog(server)
-            viewModel.saveMcpServer(name = "Docs", url = "https://moved.example.test/mcp", type = McpServerType.SSE)
-            advanceUntilIdle()
-            assertThat(viewModel.uiState.value.mcpApiKeyReentryRequired).isTrue()
-        }
-
-        refused()
-        viewModel.dismissMcpServerDialog()
-        advanceUntilIdle()
-        assertThat(viewModel.uiState.value.mcpApiKeyReentryRequired).isFalse()
-
-        refused()
-        viewModel.showAddMcpServerDialog()
-        advanceUntilIdle()
-        assertThat(viewModel.uiState.value.mcpApiKeyReentryRequired).isFalse()
-        assertThat(viewModel.uiState.value.mcpOAuthSecretReentryRequired).isFalse()
-    }
-
-    /**
-     * A failed save keeps the MCP dialog open, and `error` is a snackbar in the screen the dialog
-     * covers: reported there, the failure times out unseen and the save looks like it did nothing.
-     */
-    @Test
-    fun `a failed MCP save is reported inside the dialog, not behind it`() = runTest {
-        coEvery { mcpRepository.createServer(any(), any(), any(), any(), any(), any()) } returns
-            Result.Error(exception = IllegalStateException("boom"), message = "Something went wrong")
-        viewModel = createViewModel()
-        advanceUntilIdle()
-        viewModel.showAddMcpServerDialog()
-
-        viewModel.saveMcpServer(name = "Docs", url = "https://docs.example.test/mcp", type = McpServerType.SSE)
-        advanceUntilIdle()
-
-        assertThat(viewModel.uiState.value.showMcpServerDialog).isTrue()
-        assertThat(viewModel.uiState.value.mcpServerDialogError).isEqualTo("Something went wrong")
-        assertThat(viewModel.uiState.value.error).isNull()
-
-        viewModel.dismissMcpServerDialog()
-        advanceUntilIdle()
-        assertThat(viewModel.uiState.value.mcpServerDialogError).isNull()
-    }
-
-    /** The Settings path's copy of the rule: a save whose dialog closed reports through the snackbar. */
-    @Test
-    fun `an MCP save failure after the Settings dialog closed is reported as a snackbar`() = runTest {
-        val reply = CompletableDeferred<Result<McpServer>>()
-        coEvery { mcpRepository.createServer(any(), any(), any(), any(), any(), any()) } coAnswers { reply.await() }
-        viewModel = createViewModel()
-        advanceUntilIdle()
-        viewModel.showAddMcpServerDialog()
-        viewModel.saveMcpServer(name = "Docs", url = "https://docs.example.test/mcp", type = McpServerType.SSE)
-        advanceUntilIdle()
-        assertThat(viewModel.uiState.value.mcpServerSaving).isTrue()
-
-        viewModel.dismissMcpServerDialog()
-        reply.complete(Result.Error(exception = IllegalStateException("boom"), message = "Something went wrong"))
-        advanceUntilIdle()
-
-        assertThat(viewModel.uiState.value.error).isEqualTo("Something went wrong")
-        assertThat(viewModel.uiState.value.mcpServerDialogError).isNull()
-        assertThat(viewModel.uiState.value.mcpServerSaving).isFalse()
-    }
-
-    /** The Settings path reads the same `errors[]` reasons as the MCP screen. */
-    @Test
-    fun `a validation refusal shows the server's specific reason in the Settings dialog`() = runTest {
-        coEvery { mcpRepository.createServer(any(), any(), any(), any(), any(), any()) } returns
-            Result.Error(
-                exception = ApiException(
-                    statusCode = 400,
-                    message = "Invalid configuration",
-                    body = """{"message":"Invalid configuration","errors":[{"message":"url: Invalid url"}]}""",
-                ),
-                message = "Invalid configuration",
-            )
-        viewModel = createViewModel()
-        advanceUntilIdle()
-        viewModel.showAddMcpServerDialog()
-
-        viewModel.saveMcpServer(name = "Docs", url = "not a url", type = McpServerType.SSE)
-        advanceUntilIdle()
-
-        assertThat(viewModel.uiState.value.mcpServerDialogError).isEqualTo("url: Invalid url")
-    }
-
-    /** The Settings path shows a coded refusal's own sentence too. */
-    @Suppress("MaxLineLength") // single-line wire JSON fixture
-    @Test
-    fun `a coded refusal shows the server's message in the Settings dialog`() = runTest {
-        coEvery { mcpRepository.createServer(any(), any(), any(), any(), any(), any()) } returns
-            Result.Error(
-                exception = ApiException(statusCode = 403, message = "x", body = """{"error":"MCP_DOMAIN_NOT_ALLOWED","message":"Domain \"http://evil.example.org\" is not allowed"}"""),
-                message = "Something went wrong. Please try again.",
-            )
-        viewModel = createViewModel()
-        advanceUntilIdle()
-        viewModel.showAddMcpServerDialog()
-
-        viewModel.saveMcpServer(name = "Docs", url = "http://evil.example.org/mcp", type = McpServerType.SSE)
-        advanceUntilIdle()
-
-        assertThat(viewModel.uiState.value.mcpServerDialogError)
-            .isEqualTo("Domain \"http://evil.example.org\" is not allowed")
-    }
-
-    /** The Settings path resends the stored icon and OBO scopes on an edit too. */
-    @Test
-    fun `a Settings MCP edit resends the stored icon and OBO scopes`() = runTest {
-        val server = McpServer(
-            name = "obo_mcp",
-            url = "https://obo.example.test/mcp",
-            type = McpServerType.STREAMABLE_HTTP,
-            title = "Obo",
-            iconPath = "https://obo.example.test/icon.png",
-            obo = McpOboConfig(scopes = "api://obo/Mcp.Tools"),
-        )
-        viewModel = createViewModel()
-        advanceUntilIdle()
-        viewModel.showEditMcpServerDialog(server)
-
-        viewModel.saveMcpServer(name = "Obo (renamed)", url = server.url, type = server.type)
-        advanceUntilIdle()
-
-        coVerify(exactly = 1) {
-            mcpRepository.updateServer(
-                serverName = "obo_mcp",
-                name = "Obo (renamed)",
-                description = null,
-                url = server.url,
-                type = server.type,
-                apiKey = null,
-                oauth = null,
-                iconPath = "https://obo.example.test/icon.png",
-                obo = McpOboConfig(scopes = "api://obo/Mcp.Tools"),
-            )
-        }
-    }
-
-    /** The Settings path reports a re-entry refusal by its field alone too. */
-    @Test
-    fun `a Settings MCP re-entry refusal is reported by its field alone`() = runTest {
-        for (code in listOf("MCP_API_KEY_REENTRY_REQUIRED", "MCP_OAUTH_SECRET_REENTRY_REQUIRED")) {
-            coEvery { mcpRepository.updateServer(any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns
-                Result.Error(exception = ApiException(statusCode = 400, message = "x", body = """{"error":"$code"}"""))
-            viewModel = createViewModel()
-            advanceUntilIdle()
-            viewModel.showEditMcpServerDialog(
-                McpServer(name = "docs_mcp", url = "https://docs.example.test/mcp", type = McpServerType.SSE),
-            )
-
-            viewModel.saveMcpServer(name = "Docs", url = "https://moved.example.test/mcp", type = McpServerType.SSE)
-            advanceUntilIdle()
-
-            val state = viewModel.uiState.value
-            assertThat(state.mcpApiKeyReentryRequired || state.mcpOAuthSecretReentryRequired).isTrue()
-            assertThat(state.mcpServerDialogError).isNull()
-        }
-    }
-
-    @Test
     fun `archive-all is offered on an unresolved server and withdrawn once it answers 404`() = runTest {
         coEvery { conversationRepository.archiveAll() } returns
             Result.Error(exception = ApiException(statusCode = 404, message = "Not Found"))
@@ -438,5 +215,39 @@ class DataSettingsViewModelTest {
 
         assertThat(viewModel.uiState.value.archiveAllSupported).isFalse()
         assertThat(viewModel.uiState.value.error).contains("doesn't support archiving")
+    }
+
+    @Test
+    fun `summaries are read on refresh, not on creation`() = runTest {
+        coEvery { mcpRepository.listServers() } returns Result.Success(
+            listOf(
+                McpServer(name = "a", url = "http://a"),
+                McpServer(name = "b", url = "http://b"),
+            ),
+        )
+        coEvery { memoryRepository.getMemories() } returns Result.Success(emptyList())
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.mcpServerCount).isNull()
+        coVerify(exactly = 0) { mcpRepository.listServers() }
+
+        viewModel.refreshSummaries()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.mcpServerCount).isEqualTo(2)
+        assertThat(viewModel.uiState.value.memoryCount).isEqualTo(0)
+        assertThat(viewModel.uiState.value.memoriesEnabled).isTrue()
+    }
+
+    @Test
+    fun `the memories opt-out is read from the profile`() = runTest {
+        coEvery { userRepository.getUser() } returns Result.Success(
+            testUser.copy(personalization = UserPersonalization(memories = false)),
+        )
+        viewModel = createViewModel()
+        viewModel.refreshSummaries()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.memoriesEnabled).isFalse()
     }
 }

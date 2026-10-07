@@ -36,7 +36,6 @@
     <string name="cd_delete_preset">Delete preset</string>
     <string name="cd_delete_server">Delete server</string>
     <string name="cd_delete_shared_link">Delete shared link</string>
-    <string name="cd_edit">Edit</string>
     <string name="cd_edit_memory">Edit memory</string>
     <string name="memory_redacted_key">Hidden entry</string>
     <string name="memory_redacted_value">This server's content policy hides what's stored here. You can still delete it.</string>
@@ -456,7 +455,6 @@
     <!-- MCP -->
     <string name="add_mcp_server">Add MCP Server</string>
     <string name="edit_mcp_server">Edit MCP Server</string>
-    <string name="mcp_not_available">MCP is not available on this server</string>
     <string name="no_mcp_servers">No MCP servers configured</string>
     <string name="mcp_add_hint">Tap the + button to add a server</string>
     <string name="mcp_name_label">Name</string>
@@ -711,4 +709,14 @@
     <string name="date_format_ymd_slash">Year/Month/Day</string>
     <string name="date_format_long">Long</string>
     <string name="date_time_preview">Preview</string>
+    <string name="data_summary_off">Off</string>
+    <string name="data_summary_none">None</string>
+    <plurals name="data_memories_count">
+        <item quantity="one">%1$d saved</item>
+        <item quantity="other">%1$d saved</item>
+    </plurals>
+    <plurals name="data_mcp_servers_count">
+        <item quantity="one">%1$d server</item>
+        <item quantity="other">%1$d servers</item>
+    </plurals>
 </resources>

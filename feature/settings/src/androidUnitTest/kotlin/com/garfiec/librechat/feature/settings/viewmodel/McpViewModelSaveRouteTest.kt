@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.settings.viewmodel
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.McpRepository
+import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.model.mcp.McpApiKeyConfig
 import com.garfiec.librechat.core.model.mcp.McpOAuthConfig
 import com.garfiec.librechat.core.model.mcp.McpOboConfig
@@ -12,10 +13,12 @@ import com.garfiec.librechat.core.model.mcp.McpToolCatalog
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -36,6 +39,9 @@ import org.junit.Test
 class McpViewModelSaveRouteTest {
 
     private val mcpRepository = mockk<McpRepository>(relaxed = true)
+    private val roleRepository = mockk<RoleRepository> {
+        every { userPermissions } returns MutableStateFlow(null)
+    }
 
     @Before
     fun setUp() {
@@ -57,7 +63,7 @@ class McpViewModelSaveRouteTest {
     /** The dialog's own name field is the title; the record is addressed by its stored name. */
     @Test
     fun `saving an edited server patches the stored server`() = runTest {
-        val vm = McpViewModel(mcpRepository)
+        val vm = McpViewModel(mcpRepository, roleRepository)
         vm.showEditServerDialog(SERVER)
 
         vm.saveServer(name = "Docs (renamed)", url = URL, type = McpServerType.SSE)
@@ -78,7 +84,7 @@ class McpViewModelSaveRouteTest {
 
     @Test
     fun `saving a new server still posts a create`() = runTest {
-        val vm = McpViewModel(mcpRepository)
+        val vm = McpViewModel(mcpRepository, roleRepository)
         vm.showAddServerDialog()
 
         vm.saveServer(name = "Docs", url = URL, type = McpServerType.SSE)
@@ -111,7 +117,7 @@ class McpViewModelSaveRouteTest {
                     body = """{"error":"MCP_OAUTH_SECRET_REENTRY_REQUIRED"}""",
                 ),
             )
-        val vm = McpViewModel(mcpRepository)
+        val vm = McpViewModel(mcpRepository, roleRepository)
         vm.showEditServerDialog(SERVER)
 
         vm.saveServer(
@@ -139,7 +145,7 @@ class McpViewModelSaveRouteTest {
                     body = """{"error":"MCP_API_KEY_REENTRY_REQUIRED","message":"Re-enter apiKey.key"}""",
                 ),
             )
-        val vm = McpViewModel(mcpRepository)
+        val vm = McpViewModel(mcpRepository, roleRepository)
         vm.showEditServerDialog(SERVER)
 
         vm.saveServer(name = "Docs", url = "https://moved.example.test/mcp", type = McpServerType.SSE)
@@ -158,7 +164,7 @@ class McpViewModelSaveRouteTest {
         for (code in listOf("MCP_API_KEY_REENTRY_REQUIRED", "MCP_OAUTH_SECRET_REENTRY_REQUIRED")) {
             coEvery { mcpRepository.updateServer(any(), any(), any(), any(), any(), any(), any()) } returns
                 Result.Error(exception = ApiException(statusCode = 400, message = "x", body = """{"error":"$code"}"""))
-            val vm = McpViewModel(mcpRepository)
+            val vm = McpViewModel(mcpRepository, roleRepository)
             fun refused() {
                 vm.showEditServerDialog(SERVER)
                 vm.saveServer(name = "Docs", url = URL, type = McpServerType.SSE)
@@ -191,7 +197,7 @@ class McpViewModelSaveRouteTest {
                 ),
                 message = "Invalid configuration",
             )
-        val vm = McpViewModel(mcpRepository)
+        val vm = McpViewModel(mcpRepository, roleRepository)
         vm.showAddServerDialog()
 
         vm.saveServer(name = "Docs", url = URL, type = McpServerType.SSE)
@@ -212,7 +218,7 @@ class McpViewModelSaveRouteTest {
                 exception = ApiException(statusCode = 403, message = "x", body = """{"error":"MCP_DOMAIN_NOT_ALLOWED","message":"Domain \"http://evil.example.org\" is not allowed"}"""),
                 message = "Something went wrong. Please try again.",
             )
-        val vm = McpViewModel(mcpRepository)
+        val vm = McpViewModel(mcpRepository, roleRepository)
         vm.showAddServerDialog()
 
         vm.saveServer(name = "Docs", url = "http://evil.example.org/mcp", type = McpServerType.SSE)
@@ -237,7 +243,7 @@ class McpViewModelSaveRouteTest {
             iconPath = "https://obo.example.test/icon.png",
             obo = McpOboConfig(scopes = "api://obo/Mcp.Tools"),
         )
-        val vm = McpViewModel(mcpRepository)
+        val vm = McpViewModel(mcpRepository, roleRepository)
         vm.showEditServerDialog(server)
         vm.saveServer(name = "Obo (renamed)", url = server.url, type = server.type)
 
@@ -282,7 +288,7 @@ class McpViewModelSaveRouteTest {
         for (code in listOf("MCP_API_KEY_REENTRY_REQUIRED", "MCP_OAUTH_SECRET_REENTRY_REQUIRED")) {
             coEvery { mcpRepository.updateServer(any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns
                 Result.Error(exception = ApiException(statusCode = 400, message = "x", body = """{"error":"$code"}"""))
-            val vm = McpViewModel(mcpRepository)
+            val vm = McpViewModel(mcpRepository, roleRepository)
             vm.showEditServerDialog(SERVER)
 
             vm.saveServer(name = "Docs", url = URL, type = McpServerType.SSE)
@@ -297,7 +303,7 @@ class McpViewModelSaveRouteTest {
     fun `an unrelated failure does not ask for the client secret`() = runTest {
         coEvery { mcpRepository.updateServer(any(), any(), any(), any(), any(), any(), any()) } returns
             Result.Error(message = "Server unreachable")
-        val vm = McpViewModel(mcpRepository)
+        val vm = McpViewModel(mcpRepository, roleRepository)
         vm.showEditServerDialog(SERVER)
 
         vm.saveServer(name = "Docs", url = URL, type = McpServerType.SSE)
@@ -316,7 +322,7 @@ class McpViewModelSaveRouteTest {
     fun `a failure that lands after the dialog closed is reported as a snackbar`() = runTest {
         val reply = CompletableDeferred<Result<McpServer>>()
         coEvery { mcpRepository.updateServer(any(), any(), any(), any(), any(), any(), any()) } coAnswers { reply.await() }
-        val vm = McpViewModel(mcpRepository)
+        val vm = McpViewModel(mcpRepository, roleRepository)
         vm.showEditServerDialog(SERVER)
         vm.saveServer(name = "Docs", url = URL, type = McpServerType.SSE)
 
@@ -332,7 +338,7 @@ class McpViewModelSaveRouteTest {
     fun `a late outcome leaves the dialog opened since alone`() = runTest {
         val refusal = CompletableDeferred<Result<McpServer>>()
         coEvery { mcpRepository.updateServer(any(), any(), any(), any(), any(), any(), any()) } coAnswers { refusal.await() }
-        val vm = McpViewModel(mcpRepository)
+        val vm = McpViewModel(mcpRepository, roleRepository)
         vm.showEditServerDialog(SERVER)
         vm.saveServer(name = "Docs", url = URL, type = McpServerType.SSE)
 
@@ -364,7 +370,7 @@ class McpViewModelSaveRouteTest {
     fun `a second tap while a save is in flight sends nothing`() = runTest {
         val reply = CompletableDeferred<Result<McpServer>>()
         coEvery { mcpRepository.createServer(any(), any(), any(), any(), any(), any()) } coAnswers { reply.await() }
-        val vm = McpViewModel(mcpRepository)
+        val vm = McpViewModel(mcpRepository, roleRepository)
         vm.showAddServerDialog()
 
         vm.saveServer(name = "Docs", url = URL, type = McpServerType.SSE)

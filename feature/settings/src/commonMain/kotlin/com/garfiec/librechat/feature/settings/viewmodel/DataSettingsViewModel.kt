@@ -3,7 +3,9 @@ package com.garfiec.librechat.feature.settings.viewmodel
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.BackendVersion
+import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.KeyRepository
@@ -13,20 +15,13 @@ import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.logging.DiagnosticLogRepository
-import com.garfiec.librechat.core.model.MEMORY_KEY_PATTERN_MIN_VERSION
-import com.garfiec.librechat.core.model.Memory
-import com.garfiec.librechat.core.model.mcp.McpApiKeyConfig
-import com.garfiec.librechat.core.model.mcp.McpOAuthConfig
-import com.garfiec.librechat.core.model.mcp.McpServer
-import com.garfiec.librechat.core.model.mcp.McpServerStatus
-import com.garfiec.librechat.core.model.mcp.McpServerType
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
 import com.garfiec.librechat.feature.settings.util.PlatformCacheCleaner
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.DataManagementDelegate
-import com.garfiec.librechat.feature.settings.viewmodel.delegate.McpServerDelegate
-import com.garfiec.librechat.feature.settings.viewmodel.delegate.MemoryManagementDelegate
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -76,63 +71,28 @@ data class DataSettingsUiState(
      * has no events SharedFlow.
      */
     val logsExportReady: LogsExportPayload? = null,
-    // MCP
-    val mcpServers: List<McpServer> = emptyList(),
-    val mcpConnectionStatus: Map<String, McpServerStatus> = emptyMap(),
-    val mcpError: String? = null,
-    val showMcpServerDialog: Boolean = false,
-    val editingMcpServer: McpServer? = null,
-    val mcpReinitializingServers: Set<String> = emptySet(),
-    val mcpReinitializeMessage: String? = null,
-    /**
-     * The last MCP server save was refused with `OAUTH_SECRET_REENTRY_REQUIRED` — the stored
-     * client secret was bound to the OAuth endpoints it was issued for and one of them changed,
-     * so the write keeps failing until the secret is supplied again.
-     */
-    val mcpOAuthSecretReentryRequired: Boolean = false,
-    /**
-     * The last MCP server save was refused with `API_KEY_REENTRY_REQUIRED` (v0.8.8-rc4) — the
-     * retained admin API key was bound to the connection it was entered for and the edit changed
-     * it, so the write keeps failing until the key is supplied again.
-     */
-    val mcpApiKeyReentryRequired: Boolean = false,
-    /**
-     * Why the last MCP server save failed, shown inside the server dialog rather than through
-     * [error]: the dialog stays open on failure and would cover [error]'s snackbar.
-     */
-    val mcpServerDialogError: String? = null,
-    /** The open MCP server dialog's save is in flight; see `McpUiState.isSavingServer`. */
-    val mcpServerSaving: Boolean = false,
-    // Memories
-    val memories: List<Memory> = emptyList(),
+    // Summary rows for the Memories and MCP servers pages; null until read.
+    val memoryCount: Int? = null,
+    /** The user's own opt-out (`user.personalization.memories`); off shows the row as "Off". */
     val memoriesEnabled: Boolean = true,
-    val showMemoryDialog: Boolean = false,
-    val editingMemory: Memory? = null,
-    /**
-     * Whether the server is KNOWN to enforce the memory-key shape (v0.8.8-rc3+). False on an older
-     * or unresolved version, where the key field still shows the hint but does not refuse: rc1 and
-     * rc2 accept keys rc3 rejects, so blocking there would withhold a key those servers take.
-     */
-    val memoryKeyPatternEnforced: Boolean = false,
+    val mcpServerCount: Int? = null,
     // Role-permission gates. `serverMemoriesEnabled` is the SERVER-level MEMORIES.USE
-    // gate and is orthogonal to [memoriesEnabled], which is the user's own opt-out
-    // stored on their profile (`user.personalization.memories`).
+    // gate and is orthogonal to [memoriesEnabled]. Each hides its row entirely.
     val mcpServersEnabled: Boolean = true,
-    val mcpServersCreateEnabled: Boolean = true,
     val serverMemoriesEnabled: Boolean = true,
 )
 
-/** Backs the Data tab: conversations, cache, keys, diagnostic logs, MCP servers and memories. */
-// TooManyFunctions: one-line forwarders to the three delegates.
+/** Backs the Data tab: conversations, cache, keys, diagnostic logs, and the Memories / MCP summary rows. */
+// TooManyFunctions: one-line forwarders to the data delegate.
 @Suppress("LongParameterList", "TooManyFunctions")
 class DataSettingsViewModel(
     cacheCleaner: PlatformCacheCleaner,
     conversationRepository: ConversationRepository,
     keyRepository: KeyRepository,
     diagnosticLogRepository: DiagnosticLogRepository,
-    mcpRepository: McpRepository,
-    memoryRepository: MemoryRepository,
-    userRepository: UserRepository,
+    private val mcpRepository: McpRepository,
+    private val memoryRepository: MemoryRepository,
+    private val userRepository: UserRepository,
     roleRepository: RoleRepository,
     private val permissionGate: PermissionGate,
     configRepository: ConfigRepository,
@@ -149,8 +109,6 @@ class DataSettingsViewModel(
         keyRepository,
         diagnosticLogRepository,
     )
-    private val mcpDelegate = McpServerDelegate(stateHandle, mcpRepository)
-    private val memoryDelegate = MemoryManagementDelegate(stateHandle, memoryRepository, userRepository)
 
     /**
      * Role gates are permissive while the role is null. `archiveAllSupported` is offered unless
@@ -160,27 +118,45 @@ class DataSettingsViewModel(
     val uiState: StateFlow<DataSettingsUiState> = combine(
         _uiState,
         roleRepository.userPermissions,
-        configRepository.detectedBackendVersion,
         configRepository.detectedBackend,
-    ) { state, role, version, backend ->
+    ) { state, role, backend ->
         state.copy(
             mcpServersEnabled = role.hasAccessOrPermissive(PermissionType.MCP_SERVERS, Permission.USE),
-            mcpServersCreateEnabled = role.hasAccessOrPermissive(PermissionType.MCP_SERVERS, Permission.CREATE),
             serverMemoriesEnabled = role.hasAccessOrPermissive(PermissionType.MEMORIES, Permission.USE),
             archiveAllSupported = state.archiveAllSupported &&
                 !BackendVersion.featureSupport(backend, minVersion = "0.8.8-rc2").isRuledOut,
-            // Fail-OPEN, unlike the gates above: this one refuses input rather than hiding an
-            // affordance, and only rc3+ validates the key server-side.
-            memoryKeyPatternEnforced = version != null &&
-                BackendVersion.isCompatibleOrNewer(version, MEMORY_KEY_PATTERN_MIN_VERSION),
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, DataSettingsUiState())
 
     init {
-        memoryDelegate.loadOptOut()
-        loadRoleGatedData()
         dataDelegate.loadLogsBufferSize()
         dataDelegate.loadCacheSize()
+    }
+
+    /**
+     * Re-reads what the Memories and MCP rows summarise. The screen calls it on every resume, so
+     * the rows catch up after the user edits on either page and comes back.
+     */
+    fun refreshSummaries() {
+        // The pager recomposes this page on tab swipes; one refresh at a time is enough.
+        if (summariesJob?.isActive == true) return
+        summariesJob = viewModelScope.launch {
+            launch { loadOptOut() }
+            loadRoleGatedCounts()
+        }
+    }
+
+    private var summariesJob: Job? = null
+
+    /** The opt-out lives on the user profile; an absent block is the server default (on). */
+    private suspend fun loadOptOut() {
+        when (val result = userRepository.getUser()) {
+            is Result.Success -> _uiState.update {
+                it.copy(memoriesEnabled = result.data.personalization?.memories ?: true)
+            }
+            is Result.Error -> Logger.d(result.exception) { "Failed to load memories opt-out: ${result.message}" }
+            is Result.Loading -> { /* no-op */ }
+        }
     }
 
     /**
@@ -188,14 +164,20 @@ class DataSettingsViewModel(
      * don't serialize into N×5s. `role?.hasAccess(...) != false` preserves permissive
      * default: null role → true, missing type/action → true.
      */
-    private fun loadRoleGatedData() {
-        viewModelScope.launch {
+    private suspend fun loadRoleGatedCounts() {
+        coroutineScope {
             val role = permissionGate.awaitRole()
             if (role?.hasAccess(PermissionType.MCP_SERVERS, Permission.USE) != false) {
-                mcpDelegate.loadMcpServers()
+                launch {
+                    val result = mcpRepository.listServers()
+                    if (result is Result.Success) _uiState.update { it.copy(mcpServerCount = result.data.size) }
+                }
             }
             if (role?.hasAccess(PermissionType.MEMORIES, Permission.USE) != false) {
-                memoryDelegate.loadMemories()
+                launch {
+                    val result = memoryRepository.getMemories()
+                    if (result is Result.Success) _uiState.update { it.copy(memoryCount = result.data.size) }
+                }
             }
         }
     }
@@ -217,28 +199,4 @@ class DataSettingsViewModel(
     fun exportLogs() = dataDelegate.exportLogs()
     fun clearLogs() = dataDelegate.clearLogs()
     fun consumeLogsExport() = dataDelegate.consumeLogsExport()
-
-    // Memory management
-    fun showAddMemoryDialog() = memoryDelegate.showAddMemoryDialog()
-    fun showEditMemoryDialog(memory: Memory) = memoryDelegate.showEditMemoryDialog(memory)
-    fun dismissMemoryDialog() = memoryDelegate.dismissMemoryDialog()
-    fun saveMemory(key: String, value: String) = memoryDelegate.saveMemory(key, value)
-    fun deleteMemory(memory: Memory) = memoryDelegate.deleteMemory(memory)
-    fun toggleMemoriesEnabled(enabled: Boolean) = memoryDelegate.toggleMemoriesEnabled(enabled)
-
-    // MCP server management
-    fun showAddMcpServerDialog() = mcpDelegate.showAddMcpServerDialog()
-    fun showEditMcpServerDialog(server: McpServer) = mcpDelegate.showEditMcpServerDialog(server)
-    fun dismissMcpServerDialog() = mcpDelegate.dismissMcpServerDialog()
-    fun saveMcpServer(
-        name: String,
-        description: String? = null,
-        url: String,
-        type: McpServerType,
-        apiKey: McpApiKeyConfig? = null,
-        oauth: McpOAuthConfig? = null,
-    ) = mcpDelegate.saveMcpServer(name, description, url, type, apiKey, oauth)
-    fun deleteMcpServer(serverName: String) = mcpDelegate.deleteMcpServer(serverName)
-    fun reinitializeMcpServer(serverName: String) = mcpDelegate.reinitializeMcpServer(serverName)
-    fun dismissMcpReinitializeMessage() = mcpDelegate.dismissMcpReinitializeMessage()
 }

@@ -120,11 +120,13 @@ fun McpServersScreen(
             )
         },
         floatingActionButton = {
-            AdaptiveFloatingActionButton(onClick = viewModel::showAddServerDialog) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = stringResource(Res.string.cd_add_server),
-                )
+            if (uiState.canCreateServer) {
+                AdaptiveFloatingActionButton(onClick = viewModel::showAddServerDialog) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = stringResource(Res.string.cd_add_server),
+                    )
+                }
             }
         },
     ) { innerPadding ->
