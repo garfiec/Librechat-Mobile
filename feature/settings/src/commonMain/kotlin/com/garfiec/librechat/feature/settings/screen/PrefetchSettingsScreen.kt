@@ -15,6 +15,7 @@ import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
+import com.garfiec.librechat.core.ui.glass.GlassControlColors
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.resources.cd_back
 import com.garfiec.librechat.feature.settings.resources.section_prefetch
@@ -37,6 +38,8 @@ fun PrefetchSettingsScreen(
 
     AdaptiveScaffold(
         modifier = modifier,
+        // Matches the grouped page, so the bar and system-bar insets share its colour.
+        containerColor = GlassControlColors.groupedBackground,
         topBar = {
             AdaptiveTopBar(
                 spec = AdaptiveTopBarSpec(

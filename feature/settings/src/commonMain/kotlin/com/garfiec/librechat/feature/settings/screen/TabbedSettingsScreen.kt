@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -76,7 +75,7 @@ fun TabbedSettingsScreen(
     AdaptiveScaffold(
         modifier = modifier,
         // Grouped sections sit on the grouped background, so the page behind the bar and tabs matches.
-        containerColor = if (glass) GlassControlColors.groupedBackground else MaterialTheme.colorScheme.background,
+        containerColor = GlassControlColors.groupedBackground,
         snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
         topBar = {
             Column {

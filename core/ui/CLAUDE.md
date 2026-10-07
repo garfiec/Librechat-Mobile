@@ -196,7 +196,8 @@ the controls bullet below.
   `AdaptiveScaffold` backdrop) and `AdaptiveCircularProgressIndicator` (iOS activity indicator when
   indeterminate). Each mirrors the M3 signature and passes straight through in Material, and detekt
   bans the raw M3 control. Scrolling tab rows have no glass counterpart and stay M3. Settings
-  pages group rows with `adaptiveSection { row(key) { … } }` inside `AdaptiveGroupedPage`; a row's own
+  pages group rows with `adaptiveSection { row(key) { … } }` inside `AdaptiveGroupedPage` (rounded,
+  inset cells on a grouped background in both styles); a row's own
   `Surface` takes `adaptiveRowColor`; title a section with `AdaptiveSectionHeader`. A cell is a
   Column, because a lazy item stacks several root children vertically.
 - **Glass primitives** (`glass/`): the backdrop library is an `implementation` dependency, so only this
