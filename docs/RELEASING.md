@@ -202,34 +202,20 @@ second full shrink on every pull request.
 
 ## Cutting a release
 
-> **Every release needs a changelog, and the workflow now enforces it.** Write the
-> user-facing text to `fastlane/metadata/android/en-US/changelogs/next.txt` when the work
-> lands — not at release time — and commit it on the feature branch. The release job renames
-> it to `<versionCode>.txt` once the code is known and stages it into the release commit.
+> **The changelog is written by CI, never by hand.** After the bump, the release job runs
+> `scripts/generate-changelog.sh --out changelogs/<versionCode>.txt` and stages the file into
+> the release commit. It lists the `feat`/`fix`/`perf` commit subjects since the last stable
+> tag, features first, skipping the `release`, `fdroid`, `skill`, `ci`, `build` and `ios`
+> scopes, and cuts whole items to stay under F-Droid's **500-character** cap with a closing
+> "And N more" bullet pointing at the GitHub release notes. Commit subjects are therefore
+> user-facing text: write them for someone browsing an app store.
 >
-> `scripts/draft-changelog.sh` seeds that file from the commit log so you are never starting
-> from a blank page. It is a seed, not an answer: it writes a `# DRAFT` first line that
-> `scripts/check-fdroid-metadata.py --release` refuses to release with, because the generated
-> bullets overrun F-Droid's **500-character** cap on any busy release, conventional-commit
-> type does not mean user-facing, and the thing most worth saying — what a change broke — is
-> never in a commit message. Rewrite it as prose and delete that line.
->
-> Author it as `next.txt`, not as `<versionCode>.txt` — with one exception, an rc train, where
-> the candidate's own run has already created `<versionCode>.txt` and any further lines must be
-> appended **there**. The versionCode is
-> `YEAR*10000 + MONTH*100 + PATCH` derived from the **UTC date at dispatch**, so a hand-named
-> file goes stale the moment a cut slips into the next month. **v2026.10.0 shipped with no
-> changelog** this way: it was cut on 1 October, a day after `2026.09.0`, and the tagged tree
-> carries `20260804.txt` and `20260900.txt` but no `20261000.txt`. Nothing failed — the
-> release simply published without one. It could not be fixed afterwards either, because
-> F-Droid reads changelogs from the
-> **tagged commit**, and re-tagging would change the APK and break the reproducible-build
-> match.
->
-> The dispatch now **fails** if neither `next.txt` nor `<versionCode>.txt` is present, and
-> also if both are (ambiguous — merge them and delete `next.txt`). Finalizing a release
-> candidate finds `<versionCode>.txt` already in place from the candidate's run, because an
-> `-rcN` and its final share one versionCode; that is a pass.
+> It has to happen at dispatch: F-Droid reads changelogs only from the **tagged commit**, and
+> the versionCode (`YEAR*10000 + MONTH*100 + PATCH`) comes from the **UTC date at dispatch**,
+> so the filename is not known any earlier. **v2026.10.0 shipped with no changelog** because
+> nothing produced one; re-tagging to add it would have changed the APK and broken the
+> reproducible-build match. An `-rcN` and its final share one versionCode, and each run
+> regenerates the file from the last stable tag, so the final lists the whole train.
 >
 > **The changelog is not the only file that freezes at the tag.** F-Droid reads the whole
 > store listing — description, summary, icon, screenshots — from the tagged commit, so a
@@ -257,9 +243,8 @@ second full shrink on every pull request.
 1. Actions → **Release** → *Run workflow* → choose the bump (`patch` for a stable
    release, or `prepatch`/`rc`/`finalize` for the candidate flow). Year/month are
    derived from the current UTC date automatically.
-2. The job bumps `version.properties`, resolves the changelog filename (failing the run if
-   there is none), commits and tags `vYYYY.MM.P` **locally**, builds a
-   signed universal APK, **asserts it carries the published signing certificate**, re-verifies
+2. The job bumps `version.properties`, generates the changelog, commits and tags
+   `vYYYY.MM.P` **locally**, builds a signed universal APK, **asserts it carries the published signing certificate**, re-verifies
    that the unsigned build path still works, signs a SLSA build-provenance attestation, and
    **only then pushes** the commit and tag and creates a **draft** GitHub Release with
    auto-generated notes and a `.sha256` checksum. Candidate versions are flagged as

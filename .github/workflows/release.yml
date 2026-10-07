@@ -94,45 +94,26 @@ jobs:
         run: ./scripts/bump-version.sh "${{ inputs.bump }}"
 
       # F-Droid reads "What's New" from `changelogs/<versionCode>.txt` **in the tagged commit**,
-      # so a changelog added after the tag is unreachable and silently never appears. The code
-      # is only known at dispatch (UTC date), hence authoring as `next.txt` and renaming here.
-      # An -rcN and its final share one code, so `finalize` finding <code>.txt is a pass.
+      # so it is written here, after the bump makes the code known (UTC date at dispatch), and
+      # staged into the release commit below. It is always regenerated: an -rcN and its final
+      # share one code, and each run lists everything since the last stable tag.
       # Full rationale: docs/RELEASING.md § Cutting a release.
-      - name: Resolve the changelog filename, and require one
+      - name: Generate the changelog
         env:
           VERSION_CODE: ${{ steps.bump.outputs.version_code }}
         run: |
           set -euo pipefail
-          # An empty VERSION_CODE resolves to "$dir/.txt" — a dotfile no file test below trips
-          # over, so the guard would pass on a release with no reachable changelog.
+          # An empty VERSION_CODE would write "changelogs/.txt", a dotfile F-Droid never reads.
           if [[ ! "$VERSION_CODE" =~ ^[0-9]+$ ]]; then
             echo "::error title=No versionCode::bump-version.sh did not emit a numeric version_code (got '$VERSION_CODE')."
             exit 1
           fi
-          dir="fastlane/metadata/android/en-US/changelogs"
-          coded="$dir/$VERSION_CODE.txt"
-          next="$dir/next.txt"
-
-          if [ -f "$coded" ] && [ -f "$next" ]; then
-            echo "::error title=Ambiguous changelog::Both $coded and $next exist. Merge them into $coded and delete $next; refusing to guess which is intended."
-            exit 1
-          fi
-
-          if [ -f "$next" ]; then
-            git mv "$next" "$coded"
-            echo "Renamed next.txt -> $VERSION_CODE.txt"
-          elif [ -f "$coded" ]; then
-            echo "$coded already present (expected when finalizing a release candidate)."
-          else
-            echo "::error title=Missing changelog::No $coded and no $next. Run scripts/draft-changelog.sh to seed $next from the commit log, rewrite it as prose, and re-run; F-Droid can only read it from the tagged commit, so it cannot be added after the fact."
-            exit 1
-          fi
-
+          coded="fastlane/metadata/android/en-US/changelogs/$VERSION_CODE.txt"
+          scripts/generate-changelog.sh --out "$coded"
           echo "--- changelog for $VERSION_CODE ---"
           cat "$coded"
 
-      # The step above only renames the changelog into place; --release is what refuses an
-      # empty one, or one still carrying the scripts/draft-changelog.sh marker.
+      # Enforces every limit fdroidserver applies, including on the changelog just written.
       - name: Verify F-Droid store listing
         env:
           VERSION_CODE: ${{ steps.bump.outputs.version_code }}
@@ -185,7 +166,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # The changelog dir must be staged too: the rename above is worthless unless it
+          # The changelog dir must be staged too: the generated file is worthless unless it
           # lands in the tagged commit, which is the only place F-Droid looks for it.
           git add version.properties fastlane/metadata/android/en-US/changelogs/
           git commit -m "chore(release): $TAG"
