@@ -13,8 +13,6 @@ import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
-import com.garfiec.librechat.core.data.repository.AuthRepository
-import com.garfiec.librechat.core.data.repository.BalanceRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.KeyRepository
@@ -34,15 +32,11 @@ import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
 import com.garfiec.librechat.core.model.speech.TtsVoice
-import com.garfiec.librechat.feature.settings.util.ContentReader
 import com.garfiec.librechat.feature.settings.util.PlatformCacheCleaner
-import com.garfiec.librechat.feature.settings.viewmodel.delegate.AccountDelegate
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.DataManagementDelegate
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.McpServerDelegate
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.MemoryManagementDelegate
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.SpeechSettingsFactory
-import com.garfiec.librechat.feature.settings.viewmodel.delegate.TwoFactorSecurityDelegate
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -53,22 +47,18 @@ import kotlinx.coroutines.launch
 // count tracks how many settings exist rather than how much this class does.
 @Suppress("LongParameterList", "TooManyFunctions")
 class SettingsViewModel(
-    contentReader: ContentReader,
     cacheCleaner: PlatformCacheCleaner,
     userRepository: UserRepository,
-    authRepository: AuthRepository,
     conversationRepository: ConversationRepository,
     settingsDataStore: SettingsDataStore,
     mcpRepository: McpRepository,
     memoryRepository: MemoryRepository,
     speechSettingsFactory: SpeechSettingsFactory,
-    balanceRepository: BalanceRepository,
     keyRepository: KeyRepository,
     private val roleRepository: RoleRepository,
     private val permissionGate: PermissionGate,
     private val configRepository: ConfigRepository,
     diagnosticLogRepository: DiagnosticLogRepository,
-    ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
     /** Raw state for everything not driven by DataStore flows. */
@@ -78,9 +68,8 @@ class SettingsViewModel(
 
     // --- Delegates ---
     private val speechDelegate = speechSettingsFactory.create(stateHandle)
-    private val memoryDelegate = MemoryManagementDelegate(stateHandle, memoryRepository)
+    private val memoryDelegate = MemoryManagementDelegate(stateHandle, memoryRepository, userRepository)
     private val mcpDelegate = McpServerDelegate(stateHandle, mcpRepository)
-    private val twoFactorDelegate = TwoFactorSecurityDelegate(stateHandle, authRepository)
     private val dataDelegate =
         DataManagementDelegate(
             stateHandle,
@@ -89,8 +78,6 @@ class SettingsViewModel(
             keyRepository,
             diagnosticLogRepository,
         )
-    private val accountDelegate =
-        AccountDelegate(stateHandle, userRepository, balanceRepository, contentReader, ioDispatcher)
 
     /** Owns the DataStore read flows + write setters; merges them with [_uiState]. */
     private val prefsController = SettingsPreferencesController(
@@ -103,14 +90,13 @@ class SettingsViewModel(
     val uiState: StateFlow<SettingsUiState> = prefsController.uiState
 
     init {
-        accountDelegate.loadUser()
+        memoryDelegate.loadOptOut()
         speechDelegate.loadVoices()
         speechDelegate.loadSpeechConfig()
-        accountDelegate.loadBalance()
         speechDelegate.loadDeviceVoices()
         loadRoleGatedData()
         observePermissionFlags()
-        observeAccountDeletionPolicy()
+        observeServerVersionGates()
         dataDelegate.loadLogsBufferSize()
         dataDelegate.loadCacheSize()
     }
@@ -152,23 +138,17 @@ class SettingsViewModel(
         }
     }
 
-    /**
-     * Observes the v0.8.5+ `allowAccountDeletion` flag from `/api/config`.
-     * Defaults to `true` (older-server behavior) when the field is absent or
-     * the config hasn't loaded yet — see VERSION_GATES.md guideline #2.
-     */
-    private fun observeAccountDeletionPolicy() {
+    /** Server-version gates for the Data tab's archive-all and memory-key checks. See VERSION_GATES.md. */
+    private fun observeServerVersionGates() {
         viewModelScope.launch {
             combine(
-                configRepository.startupConfig,
                 configRepository.detectedBackendVersion,
                 configRepository.detectedBackend,
-            ) { config, version, backend ->
-                Triple(config, version, backend)
-            }.collect { (config, version, backend) ->
+            ) { version, backend ->
+                version to backend
+            }.collect { (version, backend) ->
                 _uiState.update {
                     it.copy(
-                        allowAccountDeletion = config?.allowAccountDeletion ?: true,
                         // Offered unless the server is KNOWN to predate the route: a dev build
                         // reporting the previous release, or one built past the commit-map pin,
                         // is the population most likely to HAVE it. See VERSION_GATES.md.
@@ -185,12 +165,6 @@ class SettingsViewModel(
             }
         }
     }
-
-    // ── Account & user profile ─────────────────────────────────────
-
-    fun showAvatarDialog() = accountDelegate.showAvatarDialog()
-    fun dismissAvatarDialog() = accountDelegate.dismissAvatarDialog()
-    fun uploadAvatar(uri: Any) = accountDelegate.uploadAvatar(uri)
 
     // ── Chat preferences ───────────────────────────────────────────
 
@@ -296,14 +270,9 @@ class SettingsViewModel(
         _uiState.update { it.copy(forkMode = mode, showForkSettingsDialog = false) }
     }
 
-    // ── Auth actions ───────────────────────────────────────────────
-
-    fun logout() = accountDelegate.logout()
-    fun deleteAccount(token: String? = null, backupCode: String? = null) =
-        accountDelegate.deleteAccount(token = token, backupCode = backupCode)
-    fun dismissDeleteAccountOtpDialog() = accountDelegate.dismissDeleteAccountOtpDialog()
-    fun retry() = accountDelegate.retry()
-    fun dismissError() = accountDelegate.dismissError()
+    fun dismissError() {
+        _uiState.update { it.copy(error = null) }
+    }
 
     // ── Delegated public API ───────────────────────────────────────
 
@@ -330,21 +299,6 @@ class SettingsViewModel(
     fun deleteMcpServer(serverName: String) = mcpDelegate.deleteMcpServer(serverName)
     fun reinitializeMcpServer(serverName: String) = mcpDelegate.reinitializeMcpServer(serverName)
     fun dismissMcpReinitializeMessage() = mcpDelegate.dismissMcpReinitializeMessage()
-
-    // Two-factor security
-    fun toggleTwoFactor() = twoFactorDelegate.toggleTwoFactor()
-    fun enableTwoFactorWithOtp(token: String?, backupCode: String?) =
-        twoFactorDelegate.enableTwoFactor(token = token, backupCode = backupCode)
-    fun dismissEnableTwoFactorOtpDialog() = twoFactorDelegate.dismissEnableTwoFactorOtpDialog()
-    fun confirmEnableTwoFactor(code: String) = twoFactorDelegate.confirmEnableTwoFactor(code)
-    fun confirmDisableTwoFactor(code: String) = twoFactorDelegate.confirmDisableTwoFactor(code)
-    fun dismissTwoFactorSetupDialog() = twoFactorDelegate.dismissTwoFactorSetupDialog()
-    fun dismissDisableTwoFactorDialog() = twoFactorDelegate.dismissDisableTwoFactorDialog()
-    fun dismissBackupCodesDialog() = twoFactorDelegate.dismissBackupCodesDialog()
-    fun viewBackupCodes() = twoFactorDelegate.viewBackupCodes()
-    fun viewBackupCodesWithOtp(token: String?, backupCode: String?) =
-        twoFactorDelegate.viewBackupCodes(token = token, backupCode = backupCode)
-    fun dismissBackupCodesOtpDialog() = twoFactorDelegate.dismissBackupCodesOtpDialog()
 
     // Data management
     fun clearAllChats() = dataDelegate.clearAllChats()

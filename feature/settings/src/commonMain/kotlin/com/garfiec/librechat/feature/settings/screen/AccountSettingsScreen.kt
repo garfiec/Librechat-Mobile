@@ -63,8 +63,8 @@ import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.screen.sections.BackupCodesDialog
 import com.garfiec.librechat.feature.settings.screen.sections.TwoFactorCodeDialog
 import com.garfiec.librechat.feature.settings.screen.sections.TwoFactorSetupDialog
+import com.garfiec.librechat.feature.settings.viewmodel.AccountSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ServerHeadersViewModel
-import com.garfiec.librechat.feature.settings.viewmodel.SettingsViewModel
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import com.garfiec.librechat.core.ui.resources.Res as UiRes
@@ -123,7 +123,7 @@ fun AccountSettingsContent(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
-    viewModel: SettingsViewModel = koinViewModel(),
+    viewModel: AccountSettingsViewModel = koinViewModel(),
     // Hoisted rather than resolved inside the dialog: the save confirmation has to outlive the
     // dialog that triggered it, since the dialog closes as soon as the save lands.
     serverHeadersViewModel: ServerHeadersViewModel = koinViewModel(),

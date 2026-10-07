@@ -17,11 +17,11 @@
 - Applied via Compose `MaterialTheme` with `isSystemInDarkTheme()` for SYSTEM mode
 
 ## Logout
-- `SettingsViewModel.logout()` calls `AuthRepository.logout()` which clears tokens from `EncryptedSharedPreferences`
+- `AccountSettingsViewModel.logout()` calls `AuthRepository.logout()` which clears tokens from `EncryptedSharedPreferences`
 - Sets `isLoggedOut = true` in UI state; screen calls `onLogout` callback to navigate to auth graph
 
 ## Delete Account
-- `SettingsViewModel.deleteAccount()` calls `UserApi.deleteUser()` then `AuthRepository.logout()`
+- `AccountSettingsViewModel.deleteAccount()` calls `UserApi.deleteUser()` then `AuthRepository.logout()`
 - Sets `isAccountDeleted = true` in UI state; triggers navigation to auth graph
 
 ## ViewModel Dependencies
@@ -49,6 +49,7 @@
 - `AppearanceSettingsScreen` — theme, interface style, accent colour, wallpaper colours; reached from one summary row on the General tab (route `AppearanceSettings`, `AppearanceNavigation.kt`). Own ViewModel (`AppearanceSettingsViewModel`, ThemeDataStore only); the General tab's summary row reads it too, so opening the page doesn't re-run `SettingsViewModel`'s loads
 - `PrefetchSettingsScreen` — background prefetch switches, depth and status summary; reached from one row in the Data tab (route `PrefetchSettings`, `PrefetchNavigation.kt`, which also holds `PrefetchActivity`). Own ViewModel (`PrefetchSettingsViewModel`, SettingsDataStore only) plus `PrefetchActivityViewModel` for status
 - `GeneralSettingsScreen` (General tab) — language, date & time, tablet gesture, About. Own ViewModel (`GeneralSettingsViewModel`): DataStore + `/api/config` only, no network loads; the language and date & time dialog flags live there too
+- `AccountSettingsScreen` (Account tab) — profile, avatar, balance, 2FA, sign out, delete account. Own ViewModel (`AccountSettingsViewModel`, hosting `AccountDelegate` + `TwoFactorSecurityDelegate`): loads the profile and balance only. The memories opt-out on the Data tab is read from the profile separately (`MemoryManagementDelegate.loadOptOut`), not from this load
 - `SharedLinksScreen` — list, re-publish and delete shared links (route `SharedLinks`, from the Data tab). Own ViewModel (`SharedLinksViewModel`): loads the links on creation and nothing else; errors show in the page's own snackbar
 - Delegates take a `SettingsStateHandle<S>` typed to their host ViewModel's state, so a delegate moves with the page that uses it
 - Routes: `Memories`, `McpServers`, `PresetManager` (all `@Serializable` data objects extending `SettingsRoute`)
