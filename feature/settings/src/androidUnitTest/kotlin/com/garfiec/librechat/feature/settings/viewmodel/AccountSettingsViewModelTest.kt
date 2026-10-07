@@ -5,7 +5,9 @@ import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.BalanceRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
+import com.garfiec.librechat.core.model.Balance
 import com.garfiec.librechat.core.model.User
+import com.garfiec.librechat.core.model.config.BalanceConfig
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.feature.settings.util.ContentReader
 import com.google.common.truth.Truth.assertThat
@@ -208,5 +210,28 @@ class AccountSettingsViewModelTest {
         startupConfig.value = StartupConfig(allowAccountDeletion = false)
         advanceUntilIdle()
         assertThat(viewModel.uiState.value.allowAccountDeletion).isFalse()
+    }
+
+    @Test
+    fun `balance is neither fetched nor shown while the server has it off`() = runTest {
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.balanceEnabled).isFalse()
+        coVerify(exactly = 0) { balanceRepository.getBalance() }
+    }
+
+    @Test
+    fun `balance is fetched once the config turns it on`() = runTest {
+        coEvery { balanceRepository.getBalance() } returns Result.Success(Balance(tokenCredits = 1234))
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        startupConfig.value = StartupConfig(balance = BalanceConfig(enabled = true))
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.balanceEnabled).isTrue()
+        assertThat(viewModel.uiState.value.tokenCredits).isEqualTo(1234)
+        coVerify(exactly = 1) { balanceRepository.getBalance() }
     }
 }

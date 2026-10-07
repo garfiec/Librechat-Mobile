@@ -17,7 +17,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 @Immutable
 data class AccountSettingsUiState(
@@ -40,6 +44,12 @@ data class AccountSettingsUiState(
      *  admin role-skills row fail-CLOSED (defaults false until the profile loads). */
     val isAdmin: Boolean = false,
     // Balance
+    /**
+     * Mirrors `StartupConfig.balance.enabled`, as the web client does. With balance tracking off the
+     * server answers `GET /api/balance` with an empty 204, so the section is hidden rather than
+     * showing a zero it never sent.
+     */
+    val balanceEnabled: Boolean = false,
     val tokenCredits: Long = 0,
     val isBalanceLoading: Boolean = false,
     // Avatar
@@ -93,12 +103,22 @@ class AccountSettingsViewModel(
      */
     val uiState: StateFlow<AccountSettingsUiState> =
         combine(_uiState, configRepository.startupConfig) { state, config ->
-            state.copy(allowAccountDeletion = config?.allowAccountDeletion ?: true)
+            state.copy(
+                allowAccountDeletion = config?.allowAccountDeletion ?: true,
+                balanceEnabled = config?.balance?.enabled == true,
+            )
         }.stateIn(viewModelScope, SharingStarted.Eagerly, AccountSettingsUiState())
 
     init {
         accountDelegate.loadUser()
-        accountDelegate.loadBalance()
+        // Fetched only once the config says balance tracking is on; the config may land after init.
+        viewModelScope.launch {
+            configRepository.startupConfig
+                .map { it?.balance?.enabled == true }
+                .distinctUntilChanged()
+                .filter { it }
+                .collect { accountDelegate.loadBalance() }
+        }
     }
 
     // Profile & avatar
