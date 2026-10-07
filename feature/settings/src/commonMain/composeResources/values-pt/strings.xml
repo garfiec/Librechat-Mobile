@@ -425,8 +425,8 @@
     <string name="tts_source_server">Servidor</string>
     <string name="tts_voice_label">Voz</string>
     <string name="tts_system_default">Padrão do sistema</string>
-    <string name="tts_speech_rate">Velocidade da fala: %1$.1fx</string>
-    <string name="tts_pitch">Tom: %1$.1f</string>
+    <string name="tts_speech_rate">Velocidade da fala: %1$sx</string>
+    <string name="tts_pitch">Tom: %1$s</string>
     <string name="tts_cache_audio">Armazenar áudio em cache</string>
     <string name="tts_preview_text">Esta é uma pré-audição da voz selecionada.</string>
     <string name="tts_stop_preview">Parar pré-audição</string>

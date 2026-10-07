@@ -425,8 +425,8 @@
     <string name="tts_source_server">服务器</string>
     <string name="tts_voice_label">语音</string>
     <string name="tts_system_default">跟随系统</string>
-    <string name="tts_speech_rate">语速：%1$.1fx</string>
-    <string name="tts_pitch">音调：%1$.1f</string>
+    <string name="tts_speech_rate">语速：%1$sx</string>
+    <string name="tts_pitch">音调：%1$s</string>
     <string name="tts_cache_audio">缓存音频</string>
     <string name="tts_preview_text">这是所选语音的试听。</string>
     <string name="tts_stop_preview">停止试听</string>

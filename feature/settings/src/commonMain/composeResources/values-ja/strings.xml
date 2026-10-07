@@ -425,8 +425,8 @@
     <string name="tts_source_server">サーバー</string>
     <string name="tts_voice_label">音声</string>
     <string name="tts_system_default">システムのデフォルト</string>
-    <string name="tts_speech_rate">読み上げ速度: %1$.1fx</string>
-    <string name="tts_pitch">ピッチ: %1$.1f</string>
+    <string name="tts_speech_rate">読み上げ速度: %1$sx</string>
+    <string name="tts_pitch">ピッチ: %1$s</string>
     <string name="tts_cache_audio">音声をキャッシュ</string>
     <string name="tts_preview_text">これは選択した音声のプレビューです。</string>
     <string name="tts_stop_preview">プレビューを停止</string>

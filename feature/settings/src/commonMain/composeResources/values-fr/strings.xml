@@ -425,8 +425,8 @@
     <string name="tts_source_server">Serveur</string>
     <string name="tts_voice_label">Voix</string>
     <string name="tts_system_default">Par défaut du système</string>
-    <string name="tts_speech_rate">Débit de parole : %1$.1fx</string>
-    <string name="tts_pitch">Hauteur : %1$.1f</string>
+    <string name="tts_speech_rate">Débit de parole : %1$sx</string>
+    <string name="tts_pitch">Hauteur : %1$s</string>
     <string name="tts_cache_audio">Mettre l'audio en cache</string>
     <string name="tts_preview_text">Ceci est un aperçu de la voix sélectionnée.</string>
     <string name="tts_stop_preview">Arrêter l'aperçu</string>
