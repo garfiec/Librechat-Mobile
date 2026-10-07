@@ -2,7 +2,6 @@ package com.garfiec.librechat.feature.settings.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.garfiec.librechat.core.common.BackendVersion
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
@@ -13,52 +12,18 @@ import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
-import com.garfiec.librechat.core.data.repository.ConfigRepository
-import com.garfiec.librechat.core.data.repository.ConversationRepository
-import com.garfiec.librechat.core.data.repository.KeyRepository
-import com.garfiec.librechat.core.data.repository.McpRepository
-import com.garfiec.librechat.core.data.repository.MemoryRepository
-import com.garfiec.librechat.core.data.repository.RoleRepository
-import com.garfiec.librechat.core.data.repository.UserRepository
-import com.garfiec.librechat.core.data.util.PermissionGate
-import com.garfiec.librechat.core.logging.DiagnosticLogRepository
-import com.garfiec.librechat.core.model.MEMORY_KEY_PATTERN_MIN_VERSION
-import com.garfiec.librechat.core.model.Memory
-import com.garfiec.librechat.core.model.mcp.McpApiKeyConfig
-import com.garfiec.librechat.core.model.mcp.McpOAuthConfig
-import com.garfiec.librechat.core.model.mcp.McpServer
-import com.garfiec.librechat.core.model.mcp.McpServerType
-import com.garfiec.librechat.core.model.permissions.Permission
-import com.garfiec.librechat.core.model.permissions.PermissionType
-import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
 import com.garfiec.librechat.core.model.speech.TtsVoice
-import com.garfiec.librechat.feature.settings.util.PlatformCacheCleaner
-import com.garfiec.librechat.feature.settings.viewmodel.delegate.DataManagementDelegate
-import com.garfiec.librechat.feature.settings.viewmodel.delegate.McpServerDelegate
-import com.garfiec.librechat.feature.settings.viewmodel.delegate.MemoryManagementDelegate
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.SpeechSettingsFactory
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 
 // TooManyFunctions: the members are one-line forwarders to controllers, one per setting, so the
 // count tracks how many settings exist rather than how much this class does.
 @Suppress("LongParameterList", "TooManyFunctions")
 class SettingsViewModel(
-    cacheCleaner: PlatformCacheCleaner,
-    userRepository: UserRepository,
-    conversationRepository: ConversationRepository,
     settingsDataStore: SettingsDataStore,
-    mcpRepository: McpRepository,
-    memoryRepository: MemoryRepository,
     speechSettingsFactory: SpeechSettingsFactory,
-    keyRepository: KeyRepository,
-    private val roleRepository: RoleRepository,
-    private val permissionGate: PermissionGate,
-    private val configRepository: ConfigRepository,
-    diagnosticLogRepository: DiagnosticLogRepository,
 ) : ViewModel() {
 
     /** Raw state for everything not driven by DataStore flows. */
@@ -68,16 +33,6 @@ class SettingsViewModel(
 
     // --- Delegates ---
     private val speechDelegate = speechSettingsFactory.create(stateHandle)
-    private val memoryDelegate = MemoryManagementDelegate(stateHandle, memoryRepository, userRepository)
-    private val mcpDelegate = McpServerDelegate(stateHandle, mcpRepository)
-    private val dataDelegate =
-        DataManagementDelegate(
-            stateHandle,
-            cacheCleaner,
-            conversationRepository,
-            keyRepository,
-            diagnosticLogRepository,
-        )
 
     /** Owns the DataStore read flows + write setters; merges them with [_uiState]. */
     private val prefsController = SettingsPreferencesController(
@@ -90,80 +45,9 @@ class SettingsViewModel(
     val uiState: StateFlow<SettingsUiState> = prefsController.uiState
 
     init {
-        memoryDelegate.loadOptOut()
         speechDelegate.loadVoices()
         speechDelegate.loadSpeechConfig()
         speechDelegate.loadDeviceVoices()
-        loadRoleGatedData()
-        observePermissionFlags()
-        observeServerVersionGates()
-        dataDelegate.loadLogsBufferSize()
-        dataDelegate.loadCacheSize()
-    }
-
-    /**
-     * Gated loads share a single 5-second role-await budget so offline/timeout launches
-     * don't serialize into N×5s. `role?.hasAccess(...) != false` preserves permissive
-     * default: null role → true, missing type/action → true.
-     */
-    private fun loadRoleGatedData() {
-        viewModelScope.launch {
-            val role = permissionGate.awaitRole()
-            if (role?.hasAccess(PermissionType.MCP_SERVERS, Permission.USE) != false) {
-                mcpDelegate.loadMcpServers()
-            }
-            if (role?.hasAccess(PermissionType.MEMORIES, Permission.USE) != false) {
-                memoryDelegate.loadMemories()
-            }
-        }
-    }
-
-    /**
-     * Continuous collector — the 5 role-driven flags on SettingsUiState stay in sync
-     * with the current role. Permissive while role is null.
-     */
-    private fun observePermissionFlags() {
-        viewModelScope.launch {
-            roleRepository.userPermissions.collect { role ->
-                _uiState.update {
-                    it.copy(
-                        mcpServersEnabled = role.hasAccessOrPermissive(PermissionType.MCP_SERVERS, Permission.USE),
-                        mcpServersCreateEnabled = role.hasAccessOrPermissive(PermissionType.MCP_SERVERS, Permission.CREATE),
-                        serverMemoriesEnabled = role.hasAccessOrPermissive(PermissionType.MEMORIES, Permission.USE),
-                        remoteAgentsEnabled = role.hasAccessOrPermissive(PermissionType.REMOTE_AGENTS, Permission.USE),
-                        remoteAgentsCreateEnabled = role.hasAccessOrPermissive(PermissionType.REMOTE_AGENTS, Permission.CREATE),
-                    )
-                }
-            }
-        }
-    }
-
-    /** Server-version gates for the Data tab's archive-all and memory-key checks. See VERSION_GATES.md. */
-    private fun observeServerVersionGates() {
-        viewModelScope.launch {
-            combine(
-                configRepository.detectedBackendVersion,
-                configRepository.detectedBackend,
-            ) { version, backend ->
-                version to backend
-            }.collect { (version, backend) ->
-                _uiState.update {
-                    it.copy(
-                        // Offered unless the server is KNOWN to predate the route: a dev build
-                        // reporting the previous release, or one built past the commit-map pin,
-                        // is the population most likely to HAVE it. See VERSION_GATES.md.
-                        archiveAllSupported = !BackendVersion.featureSupport(
-                            backend,
-                            minVersion = "0.8.8-rc2",
-                        ).isRuledOut,
-                        // Fail-OPEN, unlike the flags above: this one refuses input rather than
-                        // hiding an affordance, and only rc3+ validates the key server-side.
-                        memoryKeyPatternEnforced = version != null &&
-                            BackendVersion.isCompatibleOrNewer(version, MEMORY_KEY_PATTERN_MIN_VERSION),
-                    )
-                }
-            }
-        }
     }
 
     // ── Chat preferences ───────────────────────────────────────────
@@ -275,44 +159,6 @@ class SettingsViewModel(
     }
 
     // ── Delegated public API ───────────────────────────────────────
-
-    // Memory management
-    fun showAddMemoryDialog() = memoryDelegate.showAddMemoryDialog()
-    fun showEditMemoryDialog(memory: Memory) = memoryDelegate.showEditMemoryDialog(memory)
-    fun dismissMemoryDialog() = memoryDelegate.dismissMemoryDialog()
-    fun saveMemory(key: String, value: String) = memoryDelegate.saveMemory(key, value)
-    fun deleteMemory(memory: Memory) = memoryDelegate.deleteMemory(memory)
-    fun toggleMemoriesEnabled(enabled: Boolean) = memoryDelegate.toggleMemoriesEnabled(enabled)
-
-    // MCP server management
-    fun showAddMcpServerDialog() = mcpDelegate.showAddMcpServerDialog()
-    fun showEditMcpServerDialog(server: McpServer) = mcpDelegate.showEditMcpServerDialog(server)
-    fun dismissMcpServerDialog() = mcpDelegate.dismissMcpServerDialog()
-    fun saveMcpServer(
-        name: String,
-        description: String? = null,
-        url: String,
-        type: McpServerType,
-        apiKey: McpApiKeyConfig? = null,
-        oauth: McpOAuthConfig? = null,
-    ) = mcpDelegate.saveMcpServer(name, description, url, type, apiKey, oauth)
-    fun deleteMcpServer(serverName: String) = mcpDelegate.deleteMcpServer(serverName)
-    fun reinitializeMcpServer(serverName: String) = mcpDelegate.reinitializeMcpServer(serverName)
-    fun dismissMcpReinitializeMessage() = mcpDelegate.dismissMcpReinitializeMessage()
-
-    // Data management
-    fun clearAllChats() = dataDelegate.clearAllChats()
-    fun archiveAllChats() = dataDelegate.archiveAllChats()
-    fun consumeArchivedAllCount() = dataDelegate.consumeArchivedAllCount()
-    fun exportAllData() = dataDelegate.exportAllData()
-    fun dismissExportComingSoon() = dataDelegate.dismissExportComingSoon()
-    fun clearCache() = dataDelegate.clearCache()
-    fun revokeAllKeys() = dataDelegate.revokeAllKeys()
-
-    // Diagnostic logs (issue #96)
-    fun exportLogs() = dataDelegate.exportLogs()
-    fun clearLogs() = dataDelegate.clearLogs()
-    fun consumeLogsExport() = dataDelegate.consumeLogsExport()
 
     // Speech settings
     fun setAutoSendAfterStt(enabled: Boolean) = speechDelegate.setAutoSendAfterStt(enabled)

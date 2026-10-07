@@ -5,6 +5,7 @@ import com.garfiec.librechat.feature.settings.viewmodel.AccountSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ApiKeysViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.AppearanceSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ContextUsageSettingsViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.DataSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.FavoritesViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.GeneralSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.McpViewModel
@@ -44,19 +45,23 @@ val settingsModule = module {
         )
     }
     viewModel {
-        SettingsViewModel(
+        DataSettingsViewModel(
             cacheCleaner = get(),
-            userRepository = get(),
             conversationRepository = get(),
-            settingsDataStore = get(),
+            keyRepository = get(),
+            diagnosticLogRepository = get(),
             mcpRepository = get(),
             memoryRepository = get(),
-            speechSettingsFactory = get(),
-            keyRepository = get(),
+            userRepository = get(),
             roleRepository = get(),
             permissionGate = get(),
             configRepository = get(),
-            diagnosticLogRepository = get(),
+        )
+    }
+    viewModel {
+        SettingsViewModel(
+            settingsDataStore = get(),
+            speechSettingsFactory = get(),
         )
     }
     viewModelOf(::ApiKeysViewModel)
