@@ -72,10 +72,6 @@ SCREENSHOT_DIRS = (
 )
 ALLOWED_EXTENSIONS = ("png", "jpg", "jpeg")
 
-# Must stay a prefix of MARKER in scripts/draft-changelog.sh. fdroidserver strips nothing,
-# so a draft left in place ships verbatim.
-DRAFT_MARKER = "# DRAFT"
-
 # The version sits mid-sentence, so match the token and drop the sentence's full stop. The
 # `0.8.7+dev.9f8e7d6c` partial-sync form contains dots of its own, which is why this cannot
 # simply stop at the first one.
@@ -174,10 +170,11 @@ def check_changelogs(problems):
         if ext != ".txt":
             problems.append("%s: only .txt changelogs are read" % rel(path))
             continue
-        if base != "next" and not base.isdigit():
+        if not base.isdigit():
             problems.append(
-                "%s: a changelog filename must be a versionCode or 'next' -- a non-numeric "
-                "name is swallowed by a bare `except ValueError: pass` and never appears"
+                "%s: a changelog filename must be a versionCode -- a non-numeric name is "
+                "swallowed by a bare `except ValueError: pass` and never appears. Changelogs "
+                "are written by release.yml (scripts/generate-changelog.sh), not by hand."
                 % rel(path)
             )
         text = read_text(path)
@@ -255,30 +252,20 @@ def check_images(problems):
 
 
 def check_release_changelog(problems, version_code):
-    """Release mode: the changelog this version will ship must exist and be shippable.
+    """Release mode: the changelog release.yml just generated must exist and not be empty.
 
     Length is already covered by the generic pass over every changelog.
     """
     path = os.path.join(CHANGELOGS, "%s.txt" % version_code)
     if not os.path.exists(path):
         problems.append(
-            "%s: missing. Write the user-facing changelog to changelogs/next.txt (seed one "
-            "with scripts/draft-changelog.sh) -- F-Droid reads it from the tagged commit, so "
-            "it cannot be added afterwards." % rel(path)
+            "%s: missing. release.yml writes it with scripts/generate-changelog.sh before this "
+            "check -- F-Droid reads it from the tagged commit, so it cannot be added afterwards."
+            % rel(path)
         )
         return
-    text = read_text(path)
-    if not text.strip():
+    if not read_text(path).strip():
         problems.append("%s: empty -- it would ship a blank 'What's New'" % rel(path))
-        return
-    for line in text.splitlines():
-        if line.startswith(DRAFT_MARKER):
-            problems.append(
-                "%s: still has the '%s' line from scripts/draft-changelog.sh. Rewrite the "
-                "generated bullets as prose and delete that line -- nothing strips it, so it "
-                "would ship verbatim." % (rel(path), DRAFT_MARKER)
-            )
-            break
 
 
 def main():
