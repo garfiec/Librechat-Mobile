@@ -1,18 +1,15 @@
 package com.garfiec.librechat.feature.settings.viewmodel
 
 import com.garfiec.librechat.core.common.ChatLayoutConstants
-import com.garfiec.librechat.core.common.datetime.DateTimeFormatPrefs
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayPrefs
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
 import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
-import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.InlineArtifactPrefs
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
-import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
@@ -25,7 +22,6 @@ import kotlinx.coroutines.launch
 
 /** Intermediate holder for the combined DataStore preferences. */
 private data class DataStorePreferences(
-    val serverUrl: String,
     val chatFontSize: ChatFontSize,
     val autoScrollEnabled: Boolean,
     val showThinkingBlocks: Boolean,
@@ -51,7 +47,6 @@ private data class DeviceTtsPreferences(
 
 /** Additional preferences combined separately to stay within the 5-arg combine limit. */
 private data class AdditionalPreferences(
-    val tabletSidebarGestureEnabled: Boolean,
     val autoSendAfterStt: Boolean,
     val sttEngine: String,
     val sttLanguage: String,
@@ -65,8 +60,6 @@ private data class AdditionalPreferences(
     val inlineArtifactPrefs: InlineArtifactPrefs = InlineArtifactPrefs(),
     val artifactDisplayPrefs: ArtifactDisplayPrefs = ArtifactDisplayPrefs(),
     val starredModelsDisplay: StarredModelsDisplay = StarredModelsDisplay.OFF,
-    val selectedLanguage: String = SettingsDataStore.DEFAULT_LANGUAGE,
-    val dateTimePrefs: DateTimeFormatPrefs = DateTimeFormatPrefs(),
     val chatHeaderContent: ChatHeaderContent = ChatHeaderContent.TITLE,
     val chatHeaderAlignment: ChatHeaderAlignment = ChatHeaderAlignment.LEFT,
     val contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
@@ -82,29 +75,24 @@ private data class AdditionalPreferences(
  * the matching write setters. The ViewModel keeps only imperative state and
  * forwards preference reads/writes here.
  */
-@Suppress("TooManyFunctions") // debt: 32 functions
+@Suppress("TooManyFunctions") // debt: 22 functions
 class SettingsPreferencesController(
-    serverDataStore: ServerDataStore,
     private val settingsDataStore: SettingsDataStore,
-    private val dateTimePrefsStore: DateTimePrefsStore,
     baseState: StateFlow<SettingsUiState>,
     private val scope: CoroutineScope,
 ) {
     /** Combined DataStore preferences flow. */
     private val dataStorePreferences: StateFlow<DataStorePreferences> = combine(
-        serverDataStore.currentUrlFlow,
         settingsDataStore.chatFontSize,
         settingsDataStore.autoScrollEnabled,
         settingsDataStore.showThinkingBlocks,
-    ) { serverUrl, fontSize, autoScroll, showThinking ->
+    ) { fontSize, autoScroll, showThinking ->
         DataStorePreferences(
-            serverUrl = serverUrl,
             chatFontSize = fontSize,
             autoScrollEnabled = autoScroll,
             showThinkingBlocks = showThinking,
         )
     }.stateIn(scope, SharingStarted.Eagerly, DataStorePreferences(
-        serverUrl = "",
         chatFontSize = ChatFontSize.MEDIUM,
         autoScrollEnabled = true,
         showThinkingBlocks = true,
@@ -134,10 +122,6 @@ class SettingsPreferencesController(
     private val ttsCachingPreference: StateFlow<Boolean> = settingsDataStore.ttsCaching
         .stateIn(scope, SharingStarted.Eagerly, true)
 
-    /** Tablet-specific preferences. */
-    private val tabletSidebarGestureEnabled: StateFlow<Boolean> = settingsDataStore.tabletSidebarGestureEnabled
-        .stateIn(scope, SharingStarted.Eagerly, true)
-
     /** Chat layout preferences. */
     private val chatLayoutStylePref: StateFlow<String> = settingsDataStore.chatLayoutStyle
         .stateIn(scope, SharingStarted.Eagerly, ChatLayoutConstants.THREAD)
@@ -160,12 +144,6 @@ class SettingsPreferencesController(
     private val starredModelsDisplayPref: StateFlow<StarredModelsDisplay> = settingsDataStore.starredModelsDisplay
         .stateIn(scope, SharingStarted.Eagerly, StarredModelsDisplay.OFF)
 
-    private val selectedLanguagePref: StateFlow<String> = settingsDataStore.selectedLanguage
-        .stateIn(scope, SharingStarted.Eagerly, SettingsDataStore.DEFAULT_LANGUAGE)
-
-    private val dateTimePrefsPref: StateFlow<DateTimeFormatPrefs> = dateTimePrefsStore.prefs
-        .stateIn(scope, SharingStarted.Eagerly, DateTimeFormatPrefs())
-
     private val chatHeaderContentPref: StateFlow<ChatHeaderContent> = settingsDataStore.chatHeaderContent
         .stateIn(scope, SharingStarted.Eagerly, ChatHeaderContent.TITLE)
 
@@ -182,13 +160,12 @@ class SettingsPreferencesController(
         .stateIn(scope, SharingStarted.Eagerly, UploadRoutingMode.AUTO)
 
     private val baseAdditionalPreferences = combine(
-        tabletSidebarGestureEnabled,
         settingsDataStore.autoSendAfterStt,
         settingsDataStore.sttEngine,
         settingsDataStore.sttLanguage,
         ttsCachingPreference,
-    ) { tabletGesture, autoSendStt, sttEngine, sttLanguage, ttsCaching ->
-        AdditionalPreferences(tabletGesture, autoSendStt, sttEngine, sttLanguage, ttsCaching)
+    ) { autoSendStt, sttEngine, sttLanguage, ttsCaching ->
+        AdditionalPreferences(autoSendStt, sttEngine, sttLanguage, ttsCaching)
     }
 
     private val additionalPreferences: StateFlow<AdditionalPreferences> = combine(
@@ -205,10 +182,6 @@ class SettingsPreferencesController(
         additional.copy(artifactDisplayPrefs = artifactDisplay)
     }.combine(starredModelsDisplayPref) { additional, starredDisplay ->
         additional.copy(starredModelsDisplay = starredDisplay)
-    }.combine(selectedLanguagePref) { additional, selectedLanguage ->
-        additional.copy(selectedLanguage = selectedLanguage)
-    }.combine(dateTimePrefsPref) { additional, dateTimePrefs ->
-        additional.copy(dateTimePrefs = dateTimePrefs)
     }.combine(chatHeaderContentPref) { additional, headerContent ->
         additional.copy(chatHeaderContent = headerContent)
     }.combine(chatHeaderAlignmentPref) { additional, headerAlignment ->
@@ -226,7 +199,7 @@ class SettingsPreferencesController(
     }.combine(settingsDataStore.siteIconsChoice) { additional, siteIcons ->
         // Never chosen reads as off: the chat screen asks before anything loads.
         additional.copy(showSiteIcons = siteIcons ?: false)
-    }.stateIn(scope, SharingStarted.Eagerly, AdditionalPreferences(true, false, "", "", true))
+    }.stateIn(scope, SharingStarted.Eagerly, AdditionalPreferences(false, "", "", true))
 
     /** The single public UI state that merges DataStore preferences with imperative state. */
     val uiState: StateFlow<SettingsUiState> = combine(
@@ -238,7 +211,6 @@ class SettingsPreferencesController(
     ) { state, prefs, extra, deviceTts, additional ->
         val selectedVoice = extra.selectedVoiceId?.let { id -> state.availableVoices.find { it.id == id } }
         state.copy(
-            serverUrl = prefs.serverUrl,
             chatFontSize = prefs.chatFontSize,
             autoScrollEnabled = prefs.autoScrollEnabled,
             showThinkingBlocks = prefs.showThinkingBlocks,
@@ -253,7 +225,6 @@ class SettingsPreferencesController(
             ttsEngine = deviceTts.ttsEngine,
             ttsVoice = deviceTts.ttsVoice,
             ttsCaching = additional.ttsCaching,
-            tabletSidebarGestureEnabled = additional.tabletSidebarGestureEnabled,
             sttAutoSend = additional.autoSendAfterStt,
             sttEngine = additional.sttEngine,
             sttLanguage = additional.sttLanguage,
@@ -266,8 +237,6 @@ class SettingsPreferencesController(
             inlineArtifactPrefs = additional.inlineArtifactPrefs,
             artifactDisplayPrefs = additional.artifactDisplayPrefs,
             starredModelsDisplay = additional.starredModelsDisplay,
-            selectedLanguage = additional.selectedLanguage,
-            dateTimePrefs = additional.dateTimePrefs,
             chatHeaderContent = additional.chatHeaderContent,
             chatHeaderAlignment = additional.chatHeaderAlignment,
             contextBarPlacement = additional.contextBarPlacement,
@@ -278,10 +247,6 @@ class SettingsPreferencesController(
     }.stateIn(scope, SharingStarted.Eagerly, SettingsUiState())
 
     // ── Write setters (fire-and-forget; return Unit, not the launched Job) ──
-
-    fun setDateTimePrefs(prefs: DateTimeFormatPrefs) {
-        scope.launch { dateTimePrefsStore.set(prefs) }
-    }
 
     fun setChatFontSize(size: ChatFontSize) {
         scope.launch { settingsDataStore.setChatFontSize(size) }
@@ -369,13 +334,5 @@ class SettingsPreferencesController(
 
     fun setArtifactDisplayMode(mode: ArtifactDisplayMode) {
         scope.launch { settingsDataStore.setArtifactDisplayMode(mode) }
-    }
-
-    fun setTabletSidebarGestureEnabled(enabled: Boolean) {
-        scope.launch { settingsDataStore.setTabletSidebarGestureEnabled(enabled) }
-    }
-
-    fun setSelectedLanguage(languageCode: String) {
-        scope.launch { settingsDataStore.setSelectedLanguage(languageCode) }
     }
 }

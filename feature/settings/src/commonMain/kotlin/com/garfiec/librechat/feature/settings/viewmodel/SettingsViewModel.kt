@@ -2,18 +2,14 @@ package com.garfiec.librechat.feature.settings.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.garfiec.librechat.core.common.AppInfo
 import com.garfiec.librechat.core.common.BackendVersion
-import com.garfiec.librechat.core.common.datetime.DateTimeFormatPrefs
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
 import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
-import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
-import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
@@ -62,9 +58,7 @@ class SettingsViewModel(
     userRepository: UserRepository,
     authRepository: AuthRepository,
     conversationRepository: ConversationRepository,
-    serverDataStore: ServerDataStore,
     settingsDataStore: SettingsDataStore,
-    dateTimePrefsStore: DateTimePrefsStore,
     mcpRepository: McpRepository,
     memoryRepository: MemoryRepository,
     speechSettingsFactory: SpeechSettingsFactory,
@@ -74,17 +68,11 @@ class SettingsViewModel(
     private val permissionGate: PermissionGate,
     private val configRepository: ConfigRepository,
     diagnosticLogRepository: DiagnosticLogRepository,
-    appInfo: AppInfo,
     ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
     /** Raw state for everything not driven by DataStore flows. */
-    private val _uiState = MutableStateFlow(
-        SettingsUiState(
-            appVersion = appInfo.versionName,
-            gitSha = appInfo.gitSha,
-        ),
-    )
+    private val _uiState = MutableStateFlow(SettingsUiState())
 
     private val stateHandle = SettingsStateHandle(_uiState, viewModelScope)
 
@@ -106,9 +94,7 @@ class SettingsViewModel(
 
     /** Owns the DataStore read flows + write setters; merges them with [_uiState]. */
     private val prefsController = SettingsPreferencesController(
-        serverDataStore,
         settingsDataStore,
-        dateTimePrefsStore,
         _uiState,
         viewModelScope,
     )
@@ -183,8 +169,6 @@ class SettingsViewModel(
                 _uiState.update {
                     it.copy(
                         allowAccountDeletion = config?.allowAccountDeletion ?: true,
-                        buildInfo = config?.buildInfo,
-                        serverVersion = version,
                         // Offered unless the server is KNOWN to predate the route: a dev build
                         // reporting the previous release, or one built past the commit-map pin,
                         // is the population most likely to HAVE it. See VERSION_GATES.md.
@@ -296,42 +280,6 @@ class SettingsViewModel(
 
     fun setArtifactDisplayMode(mode: ArtifactDisplayMode) {
         prefsController.setArtifactDisplayMode(mode)
-    }
-
-    // ── Tablet preferences ─────────────────────────────────────────
-
-    fun setTabletSidebarGestureEnabled(enabled: Boolean) {
-        prefsController.setTabletSidebarGestureEnabled(enabled)
-    }
-
-    // ── Language ───────────────────────────────────────────────────
-
-    fun showLanguageDialog() {
-        _uiState.update { it.copy(showLanguageDialog = true) }
-    }
-
-    fun dismissLanguageDialog() {
-        _uiState.update { it.copy(showLanguageDialog = false) }
-    }
-
-    fun setLanguage(languageCode: String) {
-        prefsController.setSelectedLanguage(languageCode)
-        _uiState.update { it.copy(showLanguageDialog = false) }
-    }
-
-    // ── Date & time ────────────────────────────────────────────────
-
-    fun showDateTimeDialog() {
-        _uiState.update { it.copy(showDateTimeDialog = true) }
-    }
-
-    fun dismissDateTimeDialog() {
-        _uiState.update { it.copy(showDateTimeDialog = false) }
-    }
-
-    fun saveDateTimePrefs(prefs: DateTimeFormatPrefs) {
-        prefsController.setDateTimePrefs(prefs)
-        _uiState.update { it.copy(showDateTimeDialog = false) }
     }
 
     // ── Fork settings ──────────────────────────────────────────────

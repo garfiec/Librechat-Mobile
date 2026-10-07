@@ -5,6 +5,7 @@ import com.garfiec.librechat.feature.settings.viewmodel.ApiKeysViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.AppearanceSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ContextUsageSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.FavoritesViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.GeneralSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.McpViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.MemoriesViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.PrefetchActivityViewModel
@@ -38,9 +39,7 @@ val settingsModule = module {
             userRepository = get(),
             authRepository = get(),
             conversationRepository = get(),
-            serverDataStore = get(),
             settingsDataStore = get(),
-            dateTimePrefsStore = get(),
             mcpRepository = get(),
             memoryRepository = get(),
             speechSettingsFactory = get(),
@@ -50,7 +49,6 @@ val settingsModule = module {
             permissionGate = get(),
             configRepository = get(),
             diagnosticLogRepository = get(),
-            appInfo = get(),
             ioDispatcher = get(KoinQualifiers.IO),
         )
     }
@@ -58,6 +56,7 @@ val settingsModule = module {
     viewModelOf(::AppearanceSettingsViewModel)
     viewModelOf(::ContextUsageSettingsViewModel)
     viewModelOf(::FavoritesViewModel)
+    viewModelOf(::GeneralSettingsViewModel)
     viewModelOf(::MemoriesViewModel)
     viewModelOf(::McpViewModel)
     viewModelOf(::PresetManagerViewModel)

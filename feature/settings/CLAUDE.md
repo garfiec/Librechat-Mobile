@@ -48,6 +48,7 @@
 - `CommandsConfigScreen` — enable/disable slash commands
 - `AppearanceSettingsScreen` — theme, interface style, accent colour, wallpaper colours; reached from one summary row on the General tab (route `AppearanceSettings`, `AppearanceNavigation.kt`). Own ViewModel (`AppearanceSettingsViewModel`, ThemeDataStore only); the General tab's summary row reads it too, so opening the page doesn't re-run `SettingsViewModel`'s loads
 - `PrefetchSettingsScreen` — background prefetch switches, depth and status summary; reached from one row in the Data tab (route `PrefetchSettings`, `PrefetchNavigation.kt`, which also holds `PrefetchActivity`). Own ViewModel (`PrefetchSettingsViewModel`, SettingsDataStore only) plus `PrefetchActivityViewModel` for status
+- `GeneralSettingsScreen` (General tab) — language, date & time, tablet gesture, About. Own ViewModel (`GeneralSettingsViewModel`): DataStore + `/api/config` only, no network loads; the language and date & time dialog flags live there too
 - `SharedLinksScreen` — list, re-publish and delete shared links (route `SharedLinks`, from the Data tab). Own ViewModel (`SharedLinksViewModel`): loads the links on creation and nothing else; errors show in the page's own snackbar
 - Delegates take a `SettingsStateHandle<S>` typed to their host ViewModel's state, so a delegate moves with the page that uses it
 - Routes: `Memories`, `McpServers`, `PresetManager` (all `@Serializable` data objects extending `SettingsRoute`)
