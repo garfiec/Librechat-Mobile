@@ -6,24 +6,21 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.KeyRepository
-import com.garfiec.librechat.core.data.repository.ShareRepository
 import com.garfiec.librechat.core.logging.DiagnosticLogRepository
-import com.garfiec.librechat.core.model.SharedLink
-import com.garfiec.librechat.feature.settings.model.SharedLinkDisplayData
 import com.garfiec.librechat.feature.settings.util.PlatformCacheCleaner
 import com.garfiec.librechat.feature.settings.viewmodel.LogsExportPayload
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
+import com.garfiec.librechat.feature.settings.viewmodel.SettingsUiState
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 
 /**
- * Handles clear conversations, export, shared links, cache clearing, and key revocation.
+ * Handles clear conversations, export, cache clearing, and key revocation.
  */
 class DataManagementDelegate(
-    private val stateHandle: SettingsStateHandle,
+    private val stateHandle: SettingsStateHandle<SettingsUiState>,
     private val cacheCleaner: PlatformCacheCleaner,
     private val conversationRepository: ConversationRepository,
-    private val shareRepository: ShareRepository,
     private val keyRepository: KeyRepository,
     private val diagnosticLogRepository: DiagnosticLogRepository,
 ) {
@@ -159,128 +156,6 @@ class DataManagementDelegate(
         }
     }
 
-    fun loadSharedLinks() {
-        stateHandle.scope.launch {
-            stateHandle.update { copy(isSharedLinksLoading = true) }
-            when (val result = shareRepository.getSharedLinksPaginated()) {
-                is Result.Success -> {
-                    stateHandle.update {
-                        copy(
-                            sharedLinks = result.data.links.map { it.toDisplayData() },
-                            sharedLinksNextCursor = result.data.nextCursor,
-                            sharedLinksHasNextPage = result.data.hasNextPage ?: false,
-                            isSharedLinksLoading = false,
-                        )
-                    }
-                }
-                is Result.Error -> {
-                    stateHandle.update {
-                        copy(
-                            isSharedLinksLoading = false,
-                            error = result.message ?: "Failed to load shared links",
-                        )
-                    }
-                }
-                is Result.Loading -> { /* no-op */ }
-            }
-        }
-    }
-
-    fun loadMoreSharedLinks() {
-        val cursor = stateHandle.state.sharedLinksNextCursor ?: return
-        stateHandle.scope.launch {
-            stateHandle.update { copy(isSharedLinksLoading = true) }
-            when (val result = shareRepository.getSharedLinksPaginated(cursor = cursor)) {
-                is Result.Success -> {
-                    stateHandle.update {
-                        copy(
-                            sharedLinks = sharedLinks + result.data.links.map { it.toDisplayData() },
-                            sharedLinksNextCursor = result.data.nextCursor,
-                            sharedLinksHasNextPage = result.data.hasNextPage ?: false,
-                            isSharedLinksLoading = false,
-                        )
-                    }
-                }
-                is Result.Error -> {
-                    stateHandle.update {
-                        copy(
-                            isSharedLinksLoading = false,
-                            error = result.message ?: "Failed to load more shared links",
-                        )
-                    }
-                }
-                is Result.Loading -> { /* no-op */ }
-            }
-        }
-    }
-
-    /**
-     * Re-publishes a shared link against the conversation as it stands now.
-     *
-     * On v0.8.8-rc1+ the link's id and URL survive, so anything already handed out keeps working;
-     * earlier servers mint a new id and orphan the old URL, which is what the confirmation copy
-     * is gated on. Either way this changes what is behind the link, which is why the route now
-     * demands SHARED_LINKS CREATE and why the caller confirms first.
-     *
-     * The response carries only `{_id, shareId, conversationId, targetMessageId}` — no title, no
-     * `createdAt`, no `isPublic` — on BOTH versions, so the row is patched rather than replaced.
-     * Rebuilding it from the response relabels every updated link "Untitled Conversation" and
-     * drops its date; adopting the returned `shareId` is what keeps a pre-rc1 row pointing at the
-     * link that now exists.
-     */
-    fun updateSharedLink(shareId: String) {
-        stateHandle.scope.launch {
-            when (val result = shareRepository.updateShareLink(shareId)) {
-                is Result.Success -> {
-                    stateHandle.update {
-                        copy(
-                            sharedLinks = sharedLinks.map { link ->
-                                if (link.shareId == shareId) {
-                                    link.copy(shareId = result.data.shareId ?: link.shareId)
-                                } else {
-                                    link
-                                }
-                            },
-                        )
-                    }
-                }
-                is Result.Error -> {
-                    // 403 is now a distinct, permanent outcome rather than a transient failure:
-                    // the role may still hold SHARED_LINKS.USE (and may still DELETE), so a
-                    // generic "failed" reads as something worth retrying when it never will be.
-                    val forbidden = (result.exception as? ApiException)?.statusCode == HTTP_FORBIDDEN
-                    stateHandle.update {
-                        copy(
-                            error = if (forbidden) {
-                                "You don't have permission to update shared links. " +
-                                    "You can still delete this link."
-                            } else {
-                                result.message ?: "Failed to update the shared link"
-                            },
-                        )
-                    }
-                }
-                is Result.Loading -> { /* no-op */ }
-            }
-        }
-    }
-
-    fun deleteSharedLink(shareId: String) {
-        stateHandle.scope.launch {
-            when (val result = shareRepository.deleteShareLink(shareId)) {
-                is Result.Success -> {
-                    stateHandle.update {
-                        copy(sharedLinks = sharedLinks.filter { it.shareId != shareId })
-                    }
-                }
-                is Result.Error -> {
-                    stateHandle.update { copy(error = result.message ?: "Failed to delete shared link") }
-                }
-                is Result.Loading -> { /* no-op */ }
-            }
-        }
-    }
-
     fun loadCacheSize() {
         stateHandle.scope.launch {
             suspendRunCatching { cacheCleaner.cacheSizeBytes() }
@@ -331,15 +206,5 @@ class DataManagementDelegate(
     }
 }
 
-/** The route answers 403 when the caller's role lost SHARED_LINKS CREATE. */
-private const val HTTP_FORBIDDEN = 403
-
 /** A server predating `POST /api/convos/archive/all`. */
 private const val HTTP_NOT_FOUND = 404
-
-private fun SharedLink.toDisplayData() = SharedLinkDisplayData(
-    shareId = shareId ?: "",
-    title = title ?: "Untitled Conversation",
-    createdAt = createdAt,
-    isPublic = isPublic,
-)

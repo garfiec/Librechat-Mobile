@@ -8,13 +8,14 @@ import com.garfiec.librechat.core.model.request.CreateMemoryRequest
 import com.garfiec.librechat.core.model.request.UpdateMemoryPreferencesRequest
 import com.garfiec.librechat.core.model.request.UpdateMemoryRequest
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
+import com.garfiec.librechat.feature.settings.viewmodel.SettingsUiState
 import kotlinx.coroutines.launch
 
 /**
  * Handles memory CRUD operations and memory preferences.
  */
 class MemoryManagementDelegate(
-    private val stateHandle: SettingsStateHandle,
+    private val stateHandle: SettingsStateHandle<SettingsUiState>,
     private val memoryRepository: MemoryRepository,
 ) {
 

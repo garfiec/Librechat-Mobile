@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.data.repository.SpeechRepository
 import com.garfiec.librechat.core.model.speech.TtsVoice
 import com.garfiec.librechat.feature.settings.screen.DeviceVoiceInfo
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
+import com.garfiec.librechat.feature.settings.viewmodel.SettingsUiState
 import kotlinx.cinterop.ObjCSignatureOverride
 import kotlinx.coroutines.launch
 import platform.AVFAudio.AVSpeechBoundary
@@ -21,7 +22,7 @@ private const val MIN_SPEECH_RATE = 0.0f
 private const val MAX_SPEECH_RATE = 1.0f
 
 class IosSpeechSettingsDelegate(
-    private val stateHandle: SettingsStateHandle,
+    private val stateHandle: SettingsStateHandle<SettingsUiState>,
     private val speechRepository: SpeechRepository,
     private val settingsDataStore: SettingsDataStore,
 ) : SpeechSettingsContract {

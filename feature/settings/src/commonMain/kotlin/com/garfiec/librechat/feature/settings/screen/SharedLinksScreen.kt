@@ -40,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
@@ -55,11 +56,37 @@ import com.garfiec.librechat.feature.settings.model.SharedLinkDisplayData
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.util.rememberClipboardWriter
+import com.garfiec.librechat.feature.settings.viewmodel.SharedLinksViewModel
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.viewmodel.koinViewModel
+
+@Composable
+fun SharedLinksScreen(
+    onNavigateBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: SharedLinksViewModel = koinViewModel(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    SharedLinksContent(
+        links = state.links,
+        isLoading = state.isLoading,
+        hasNextPage = state.hasNextPage,
+        serverUrl = state.serverUrl,
+        onLoadMore = viewModel::loadMore,
+        canUpdate = state.updateEnabled,
+        updateKeepsUrl = state.updateKeepsUrl,
+        onUpdateLink = viewModel::update,
+        onDelete = viewModel::delete,
+        error = state.error,
+        onDismissError = viewModel::dismissError,
+        onNavigateBack = onNavigateBack,
+        modifier = modifier,
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SharedLinksScreen(
+private fun SharedLinksContent(
     links: List<SharedLinkDisplayData>,
     isLoading: Boolean,
     hasNextPage: Boolean,
@@ -71,11 +98,20 @@ fun SharedLinksScreen(
     updateKeepsUrl: Boolean,
     onUpdateLink: (String) -> Unit,
     onDelete: (String) -> Unit,
+    error: String?,
+    onDismissError: () -> Unit,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val clipboard = rememberClipboardWriter()
     val snackbarHostState = remember { SnackbarHostState() }
+    val currentOnDismissError by rememberUpdatedState(onDismissError)
+
+    LaunchedEffect(error) {
+        val message = error ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(message = message)
+        currentOnDismissError()
+    }
     val listState = rememberLazyListState()
     var deleteTarget by remember { mutableStateOf<SharedLinkDisplayData?>(null) }
     var updateTarget by remember { mutableStateOf<SharedLinkDisplayData?>(null) }
