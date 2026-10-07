@@ -6,8 +6,8 @@ import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.repository.BalanceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.feature.settings.util.ContentReader
+import com.garfiec.librechat.feature.settings.viewmodel.AccountSettingsUiState
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
-import com.garfiec.librechat.feature.settings.viewmodel.SettingsUiState
 import com.garfiec.librechat.feature.settings.viewmodel.isHttpStatus
 import com.garfiec.librechat.feature.settings.viewmodel.toDisplayData
 import kotlinx.coroutines.CoroutineDispatcher
@@ -21,7 +21,7 @@ import kotlinx.coroutines.withContext
  * job so a retry cancels a hung request before starting a fresh one.
  */
 class AccountDelegate(
-    private val stateHandle: SettingsStateHandle<SettingsUiState>,
+    private val stateHandle: SettingsStateHandle<AccountSettingsUiState>,
     private val userRepository: UserRepository,
     private val balanceRepository: BalanceRepository,
     private val contentReader: ContentReader,
@@ -43,8 +43,6 @@ class AccountDelegate(
                             user = result.data.toDisplayData(),
                             profileLoadError = null,
                             isTwoFactorEnabled = result.data.twoFactorEnabled,
-                            // The opt-out lives on the profile; absent block = server default (on).
-                            memoriesEnabled = result.data.personalization?.memories ?: true,
                             // Fail-CLOSED admin gate: the role-skills admin row shows
                             // only for the ADMIN system role (mirrors the server's
                             // manageRoles middleware). Server also 403s non-admins.

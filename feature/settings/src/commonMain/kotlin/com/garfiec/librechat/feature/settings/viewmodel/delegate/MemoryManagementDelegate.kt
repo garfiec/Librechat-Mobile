@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.settings.viewmodel.delegate
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.MemoryRepository
+import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.model.Memory
 import com.garfiec.librechat.core.model.request.CreateMemoryRequest
 import com.garfiec.librechat.core.model.request.UpdateMemoryPreferencesRequest
@@ -17,7 +18,21 @@ import kotlinx.coroutines.launch
 class MemoryManagementDelegate(
     private val stateHandle: SettingsStateHandle<SettingsUiState>,
     private val memoryRepository: MemoryRepository,
+    private val userRepository: UserRepository,
 ) {
+
+    /** The opt-out lives on the user profile; an absent block is the server default (on). */
+    fun loadOptOut() {
+        stateHandle.scope.launch {
+            when (val result = userRepository.getUser()) {
+                is Result.Success -> stateHandle.update {
+                    copy(memoriesEnabled = result.data.personalization?.memories ?: true)
+                }
+                is Result.Error -> Logger.d(result.exception) { "Failed to load memories opt-out: ${result.message}" }
+                is Result.Loading -> { /* no-op */ }
+            }
+        }
+    }
 
     fun loadMemories() {
         stateHandle.scope.launch {

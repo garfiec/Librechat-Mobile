@@ -2,8 +2,8 @@ package com.garfiec.librechat.feature.settings.viewmodel.delegate
 
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.AuthRepository
+import com.garfiec.librechat.feature.settings.viewmodel.AccountSettingsUiState
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
-import com.garfiec.librechat.feature.settings.viewmodel.SettingsUiState
 import com.garfiec.librechat.feature.settings.viewmodel.isHttpStatus
 import kotlinx.coroutines.launch
 
@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
  * Handles 2FA setup, backup codes, and disable flow.
  */
 class TwoFactorSecurityDelegate(
-    private val stateHandle: SettingsStateHandle<SettingsUiState>,
+    private val stateHandle: SettingsStateHandle<AccountSettingsUiState>,
     private val authRepository: AuthRepository,
 ) {
 

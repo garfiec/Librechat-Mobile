@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.settings.di
 
 import com.garfiec.librechat.core.common.di.KoinQualifiers
+import com.garfiec.librechat.feature.settings.viewmodel.AccountSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ApiKeysViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.AppearanceSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ContextUsageSettingsViewModel
@@ -33,23 +34,29 @@ val settingsModule = module {
     // Explicit block (not viewModelOf) so the IO dispatcher can be resolved by
     // qualifier — constructor-DSL resolves CoroutineDispatcher by type only.
     viewModel {
-        SettingsViewModel(
-            contentReader = get(),
-            cacheCleaner = get(),
+        AccountSettingsViewModel(
             userRepository = get(),
             authRepository = get(),
+            balanceRepository = get(),
+            contentReader = get(),
+            configRepository = get(),
+            ioDispatcher = get(KoinQualifiers.IO),
+        )
+    }
+    viewModel {
+        SettingsViewModel(
+            cacheCleaner = get(),
+            userRepository = get(),
             conversationRepository = get(),
             settingsDataStore = get(),
             mcpRepository = get(),
             memoryRepository = get(),
             speechSettingsFactory = get(),
-            balanceRepository = get(),
             keyRepository = get(),
             roleRepository = get(),
             permissionGate = get(),
             configRepository = get(),
             diagnosticLogRepository = get(),
-            ioDispatcher = get(KoinQualifiers.IO),
         )
     }
     viewModelOf(::ApiKeysViewModel)
@@ -60,7 +67,7 @@ val settingsModule = module {
     viewModelOf(::MemoriesViewModel)
     viewModelOf(::McpViewModel)
     viewModelOf(::PresetManagerViewModel)
-    // Explicit block for the same reason as SettingsViewModel: the IO dispatcher is resolved by
+    // Explicit block for the same reason as AccountSettingsViewModel: the IO dispatcher is resolved by
     // qualifier, which the constructor DSL cannot express.
     viewModel {
         PrefetchActivityViewModel(

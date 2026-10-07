@@ -13,11 +13,9 @@ import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
 import com.garfiec.librechat.core.model.Memory
-import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.mcp.McpServer
 import com.garfiec.librechat.core.model.mcp.McpServerStatus
 import com.garfiec.librechat.core.model.speech.TtsVoice
-import com.garfiec.librechat.feature.settings.model.UserDisplayData
 import com.garfiec.librechat.feature.settings.screen.DeviceVoiceInfo
 
 /** One-shot diagnostic-log export payload handed from the ViewModel to the platform file saver. */
@@ -29,34 +27,11 @@ data class LogsExportPayload(
 
 @Immutable
 data class SettingsUiState(
-    val user: UserDisplayData? = null,
-    val isDeletingAccount: Boolean = false,
     /**
      * Transient errors surfaced via snackbar; cleared by [SettingsViewModel.dismissError]
-     * after the snackbar is shown/acted on. Used for one-shot failures: avatar upload,
-     * account-deletion submit, 2FA mutations, etc. Do NOT use this for profile-fetch
-     * failures — those are sticky and must remain visible until the user retries.
-     * See [profileLoadError].
+     * after the snackbar is shown/acted on.
      */
     val error: String? = null,
-    /**
-     * Sticky inline error for profile-fetch failures. Rendered as an `ErrorBanner` inside
-     * the Account section so the rest of the screen (Sign Out, Delete Account, etc.) stays
-     * reachable while the server is unreachable. Cleared at the start of each `loadUser()`.
-     */
-    val profileLoadError: String? = null,
-    val isLoggedOut: Boolean = false,
-    val isAccountDeleted: Boolean = false,
-    /**
-     * Mirrors `StartupConfig.allowAccountDeletion`. New in v0.8.5 — older servers
-     * don't send the flag, so it defaults to `true` and the Delete Account button
-     * stays visible. When the server sends `false`, mobile hides the button to
-     * avoid a guaranteed 403 on submission.
-     */
-    val allowAccountDeletion: Boolean = true,
-    /** True only when the authenticated user's system role is ADMIN. Gates the
-     *  admin role-skills row fail-CLOSED (defaults false until the profile loads). */
-    val isAdmin: Boolean = false,
     // Chat preferences
     val chatFontSize: ChatFontSize = ChatFontSize.MEDIUM,
     val autoScrollEnabled: Boolean = true,
@@ -99,17 +74,6 @@ data class SettingsUiState(
      * has no events SharedFlow.
      */
     val logsExportReady: LogsExportPayload? = null,
-    // Security (2FA)
-    val isTwoFactorEnabled: Boolean = false,
-    val isTwoFactorLoading: Boolean = false,
-    val showTwoFactorSetupDialog: Boolean = false,
-    val twoFactorOtpauthUrl: String? = null,
-    val showBackupCodesDialog: Boolean = false,
-    val backupCodes: List<String> = emptyList(),
-    val showDisableTwoFactorDialog: Boolean = false,
-    val showEnableTwoFactorOtpDialog: Boolean = false,
-    val showBackupCodesOtpDialog: Boolean = false,
-    val showDeleteAccountOtpDialog: Boolean = false,
     // MCP
     val mcpServers: List<McpServer> = emptyList(),
     val mcpConnectionStatus: Map<String, McpServerStatus> = emptyMap(),
@@ -127,12 +91,6 @@ data class SettingsUiState(
     val memoriesEnabled: Boolean = true,
     val showMemoryDialog: Boolean = false,
     val editingMemory: Memory? = null,
-    // Balance
-    val tokenCredits: Long = 0,
-    val isBalanceLoading: Boolean = false,
-    // Avatar
-    val showAvatarDialog: Boolean = false,
-    val isAvatarUploading: Boolean = false,
     // Speech detail dialogs
     val showSttDetailDialog: Boolean = false,
     val showTtsDetailDialog: Boolean = false,
@@ -203,11 +161,4 @@ data class SettingsUiState(
     val mcpServerDialogError: String? = null,
     /** The open MCP server dialog's save is in flight; see `McpUiState.isSavingServer`. */
     val mcpServerSaving: Boolean = false,
-)
-
-internal fun User.toDisplayData() = UserDisplayData(
-    name = name ?: "",
-    email = email,
-    username = username ?: "",
-    avatar = avatar,
 )
