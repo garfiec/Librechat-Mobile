@@ -11,7 +11,8 @@ import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 /**
  * Endpoint/model selection, per-request tool + MCP config, model parameters, and the
  * model-selector sheet's open state. Written by [ChatViewModel], ModelSelectionDelegate,
- * PresetPromptDelegate and EndpointKeyStatusDelegate.
+ * PresetPromptDelegate, EndpointKeyStatusDelegate and QueueOrchestrationDelegate (the composer
+ * swap around a queued edit).
  */
 @Immutable
 data class ModelSelectionState(

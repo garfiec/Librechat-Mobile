@@ -4,6 +4,7 @@ import com.garfiec.librechat.core.model.PendingAction
 import com.garfiec.librechat.core.model.endpoint.KeyState
 import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.model.usage.ContextUsageTotals
+import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 import kotlinx.coroutines.CoroutineScope
@@ -386,8 +387,8 @@ class SendReadinessHandle(root: ChatStateHandle) : DelegateHandle(root) {
 // ── SendDispatchDelegate ──────────────────────────────────────────────────
 // Owns the message slice for the optimistic insert that starts a turn (the same whole-slice
 // write StreamingManagerDelegate makes), and on the composer only what a send consumes: the
-// text, the quote chips and a staged routing batch. The queued-edit session and the send-block
-// reason stay with the ViewModel.
+// text, the quote chips and a staged routing batch. The queued-edit session belongs to
+// QueueOrchestrationDelegate; the send-block reason stays with the ViewModel.
 class SendDispatchWrites internal constructor(state: ChatUiState) {
     var content: MessagesState = state.content
     var inputText: String = state.composer.inputText
@@ -410,6 +411,43 @@ class SendDispatchHandle(root: ChatStateHandle) : DelegateHandle(root) {
     val stateFlow: StateFlow<ChatUiState> get() = root.stateFlow
     fun update(block: SendDispatchWrites.() -> Unit) =
         root.update { SendDispatchWrites(this).apply(block).applyTo(this) }
+}
+
+// ── QueueOrchestrationDelegate ────────────────────────────────────────────
+// Writes nothing on the queue slice: every row change goes through MessageQueueDelegate and
+// QueuedTurnDelegate. What it owns is the composer swap a queued edit makes — the text, a staged
+// batch, the edit session — and the five selection fields that swap carries, so `applyComposer`
+// stays one emission.
+class QueueOrchestrationWrites internal constructor(state: ChatUiState) {
+    var inputText: String = state.composer.inputText
+    var pendingUploadRouting: PendingUploadRouting? = state.composer.pendingUploadRouting
+    var editingQueuedItem: QueuedEditSession? = state.composer.editingQueuedItem
+    var selectedEndpoint: String = state.selection.selectedEndpoint
+    var selectedModel: String? = state.selection.selectedModel
+    var enabledTools: Set<String> = state.selection.enabledTools
+    var selectedMcpServerNames: Set<String> = state.selection.selectedMcpServerNames
+    var modelParameters: ModelParameters = state.selection.modelParameters
+    var error: String? = state.error
+    internal fun applyTo(s: ChatUiState) = s.copy(
+        composer = s.composer.copy(
+            inputText = inputText,
+            pendingUploadRouting = pendingUploadRouting,
+            editingQueuedItem = editingQueuedItem,
+        ),
+        selection = s.selection.copy(
+            selectedEndpoint = selectedEndpoint,
+            selectedModel = selectedModel,
+            enabledTools = enabledTools,
+            selectedMcpServerNames = selectedMcpServerNames,
+            modelParameters = modelParameters,
+        ),
+        error = error,
+    )
+}
+
+class QueueOrchestrationHandle(root: ChatStateHandle) : DelegateHandle(root) {
+    fun update(block: QueueOrchestrationWrites.() -> Unit) =
+        root.update { QueueOrchestrationWrites(this).apply(block).applyTo(this) }
 }
 
 // ── Platform voice input (VoiceInputDelegate / IosVoiceInput) ─────────────

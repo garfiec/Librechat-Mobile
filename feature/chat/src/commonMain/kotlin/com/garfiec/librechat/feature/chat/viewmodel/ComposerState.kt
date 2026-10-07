@@ -10,7 +10,8 @@ import com.garfiec.librechat.feature.chat.viewmodel.delegate.PickedFile
  * The editable composer surface: the draft text, any send-block reason, and the active
  * queued-edit session. Written by [ChatViewModel], UploadIntakeDelegate, PresetPromptDelegate,
  * ConversationLoadDelegate (draft / unsent-text restores only), SendDispatchDelegate (the text,
- * quote chips and staged batch a send consumes) and the platform voice-input delegates.
+ * quote chips and staged batch a send consumes), QueueOrchestrationDelegate (the composer swap
+ * around a queued edit) and the platform voice-input delegates.
  */
 @Immutable
 data class ComposerState(
@@ -28,7 +29,7 @@ data class ComposerState(
     /**
      * Files picked in Manual routing mode that are waiting on the user's choice. Non-null means
      * the routing sheet is open and NOTHING has been uploaded yet — cancelling leaves no orphaned
-     * server record. Written by `UploadIntakeDelegate`; [ChatViewModel]'s `applyComposer` and
+     * server record. Written by `UploadIntakeDelegate`; `QueueOrchestrationDelegate.applyComposer` and
      * `SendDispatchDelegate.clearComposer` also null it, inside their own atomic composer transactions.
      */
     val pendingUploadRouting: PendingUploadRouting? = null,
@@ -113,7 +114,7 @@ sealed interface SendBlockReason {
  * the user was already composing.
  *
  * These fields mirror [QueuedMessage]'s source-config fields (model/endpoint/tools/mcp/params) and
- * are captured/applied by `ChatViewModel.captureComposer`/`applyComposer`/`toComposerSnapshot` — a
+ * are captured/applied by `QueueOrchestrationDelegate.captureComposer`/`applyComposer`/`toComposerSnapshot` — a
  * new composer setting must be threaded through all of them (no compiler enforcement).
  */
 @Immutable
