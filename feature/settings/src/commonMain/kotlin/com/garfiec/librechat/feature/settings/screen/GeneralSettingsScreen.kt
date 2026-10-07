@@ -48,7 +48,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.viewmodel.AppearanceSettingsViewModel
-import com.garfiec.librechat.feature.settings.viewmodel.SettingsViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.GeneralSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.UpdateCheckViewModel
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -96,7 +96,7 @@ fun GeneralSettingsContent(
     onNavigateToReleaseNotes: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
-    viewModel: SettingsViewModel = koinViewModel(),
+    viewModel: GeneralSettingsViewModel = koinViewModel(),
     updateViewModel: UpdateCheckViewModel = koinViewModel(),
     appearanceViewModel: AppearanceSettingsViewModel = koinViewModel(),
 ) {

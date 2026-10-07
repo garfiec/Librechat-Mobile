@@ -2,7 +2,6 @@ package com.garfiec.librechat.feature.settings.viewmodel
 
 import androidx.compose.runtime.Immutable
 import com.garfiec.librechat.core.common.ChatLayoutConstants
-import com.garfiec.librechat.core.common.datetime.DateTimeFormatPrefs
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayPrefs
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
@@ -11,12 +10,10 @@ import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.InlineArtifactPrefs
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
-import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
 import com.garfiec.librechat.core.model.Memory
 import com.garfiec.librechat.core.model.User
-import com.garfiec.librechat.core.model.config.BuildInfo
 import com.garfiec.librechat.core.model.mcp.McpServer
 import com.garfiec.librechat.core.model.mcp.McpServerStatus
 import com.garfiec.librechat.core.model.speech.TtsVoice
@@ -33,11 +30,6 @@ data class LogsExportPayload(
 @Immutable
 data class SettingsUiState(
     val user: UserDisplayData? = null,
-    val serverUrl: String = "",
-    /** Human-facing app version (e.g. `0.1.0`), sourced from the installed package. */
-    val appVersion: String = "",
-    /** Short git commit the build was cut from (e.g. `1a2b3c4d`), or `unknown`. */
-    val gitSha: String = "",
     val isDeletingAccount: Boolean = false,
     /**
      * Transient errors surfaced via snackbar; cleared by [SettingsViewModel.dismissError]
@@ -62,19 +54,6 @@ data class SettingsUiState(
      * avoid a guaranteed 403 on submission.
      */
     val allowAccountDeletion: Boolean = true,
-    /**
-     * Server build metadata (commit/branch/buildDate) from `/api/config`
-     * (`StartupConfig.buildInfo`, gated by `interface.buildInfo`). null when the
-     * server doesn't report it; the About section omits the rows in that case.
-     */
-    val buildInfo: BuildInfo? = null,
-    /**
-     * Resolved LibreChat backend version (e.g. `0.8.7`), from
-     * `ConfigRepository.detectedBackendVersion`. null when the version can't be determined
-     * (LibreChat exposes no version endpoint; we infer it from the build commit).
-     * The About section shows an explicit "Unknown" in that case rather than hiding the row.
-     */
-    val serverVersion: String? = null,
     /** True only when the authenticated user's system role is ADMIN. Gates the
      *  admin role-skills row fail-CLOSED (defaults false until the profile loads). */
     val isAdmin: Boolean = false,
@@ -179,18 +158,10 @@ data class SettingsUiState(
     // Cache / Keys
     val isCacheClearing: Boolean = false,
     val isKeyRevoking: Boolean = false,
-    // Language
-    val selectedLanguage: String = SettingsDataStore.DEFAULT_LANGUAGE,
-    val showLanguageDialog: Boolean = false,
-    // Date & time
-    val dateTimePrefs: DateTimeFormatPrefs = DateTimeFormatPrefs(),
-    val showDateTimeDialog: Boolean = false,
     // Fork settings
     val forkMode: String = "targetLevel",
     val showForkSettingsDialog: Boolean = false,
     // Commands
-    // Tablet
-    val tabletSidebarGestureEnabled: Boolean = true,
     // Chat layout
     val chatLayoutStyle: String = ChatLayoutConstants.THREAD,
     val showAvatars: Boolean = true,

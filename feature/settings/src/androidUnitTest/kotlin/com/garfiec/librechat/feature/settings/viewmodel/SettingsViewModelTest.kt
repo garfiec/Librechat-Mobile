@@ -1,17 +1,10 @@
 package com.garfiec.librechat.feature.settings.viewmodel
 
-import com.garfiec.librechat.core.common.AppInfo
 import com.garfiec.librechat.core.common.ChatLayoutConstants
-import com.garfiec.librechat.core.common.datetime.ClockFormat
-import com.garfiec.librechat.core.common.datetime.DateFormatStyle
-import com.garfiec.librechat.core.common.datetime.DateTimeFormatPrefs
-import com.garfiec.librechat.core.common.datetime.TimestampStyle
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
-import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
-import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
 import com.garfiec.librechat.core.data.repository.AuthRepository
@@ -67,11 +60,7 @@ class SettingsViewModelTest {
     private val userRepository = mockk<UserRepository>(relaxed = true)
     private val authRepository = mockk<AuthRepository>(relaxed = true)
     private val conversationRepository = mockk<ConversationRepository>(relaxed = true)
-    private val serverDataStore = mockk<ServerDataStore>(relaxed = true)
     private val settingsDataStore = mockk<SettingsDataStore>(relaxed = true)
-    private val dateTimePrefsStore = mockk<DateTimePrefsStore>(relaxed = true)
-    private val selectedLanguageFlow = MutableStateFlow(SettingsDataStore.DEFAULT_LANGUAGE)
-    private val dateTimePrefsFlow = MutableStateFlow(DateTimeFormatPrefs())
     private val uploadRoutingModeFlow = MutableStateFlow(UploadRoutingMode.AUTO)
     private val siteIconsChoiceFlow = MutableStateFlow<Boolean?>(null)
     private val mcpRepository = mockk<McpRepository>(relaxed = true)
@@ -99,7 +88,6 @@ class SettingsViewModelTest {
         Dispatchers.setMain(testDispatcher)
 
         // Setup DataStore flows
-        every { serverDataStore.currentUrlFlow } returns MutableStateFlow("https://chat.example.com")
         every { settingsDataStore.chatFontSize } returns MutableStateFlow(ChatFontSize.MEDIUM)
         every { settingsDataStore.autoScrollEnabled } returns MutableStateFlow(true)
         every { settingsDataStore.showThinkingBlocks } returns MutableStateFlow(true)
@@ -114,7 +102,6 @@ class SettingsViewModelTest {
         every { settingsDataStore.ttsEngine } returns MutableStateFlow("")
         every { settingsDataStore.ttsVoice } returns MutableStateFlow("")
         every { settingsDataStore.ttsCaching } returns MutableStateFlow(true)
-        every { settingsDataStore.tabletSidebarGestureEnabled } returns MutableStateFlow(true)
         every { settingsDataStore.autoSendAfterStt } returns MutableStateFlow(false)
         every { settingsDataStore.sttEngine } returns MutableStateFlow("")
         every { settingsDataStore.sttLanguage } returns MutableStateFlow("")
@@ -128,12 +115,8 @@ class SettingsViewModelTest {
         every { settingsDataStore.showAvatars } returns MutableStateFlow(true)
         every { settingsDataStore.showBubbles } returns MutableStateFlow(false)
         every { settingsDataStore.latexRenderer } returns MutableStateFlow(LatexRenderer.KATEX)
-        every { settingsDataStore.selectedLanguage } returns selectedLanguageFlow
         every { settingsDataStore.uploadRoutingMode } returns uploadRoutingModeFlow
         coEvery { settingsDataStore.setUploadRoutingMode(any()) } answers { uploadRoutingModeFlow.value = firstArg() }
-        coEvery { settingsDataStore.setSelectedLanguage(any()) } answers { selectedLanguageFlow.value = firstArg() }
-        every { dateTimePrefsStore.prefs } returns dateTimePrefsFlow
-        coEvery { dateTimePrefsStore.set(any()) } answers { dateTimePrefsFlow.value = firstArg() }
 
         // Setup default API responses
         coEvery { userRepository.getUser() } returns Result.Success(testUser)
@@ -162,9 +145,7 @@ class SettingsViewModelTest {
         userRepository = userRepository,
         authRepository = authRepository,
         conversationRepository = conversationRepository,
-        serverDataStore = serverDataStore,
         settingsDataStore = settingsDataStore,
-        dateTimePrefsStore = dateTimePrefsStore,
         mcpRepository = mcpRepository,
         memoryRepository = memoryRepository,
         speechSettingsFactory = SpeechSettingsFactory { speechSettingsContract },
@@ -174,11 +155,6 @@ class SettingsViewModelTest {
         permissionGate = permissionGate,
         configRepository = configRepository,
         diagnosticLogRepository = diagnosticLogRepository,
-        appInfo = object : AppInfo {
-            override val versionName = "0.1.0"
-            override val versionCode = 1L
-            override val gitSha = "testsha0"
-        },
         ioDispatcher = testDispatcher,
     )
 
@@ -404,54 +380,6 @@ class SettingsViewModelTest {
         advanceUntilIdle()
 
         assertThat(viewModel.uiState.value.error).isEqualTo("Failed to revoke")
-    }
-
-    @Test
-    fun `setLanguage updates language and dismisses dialog`() = runTest {
-        viewModel = createViewModel()
-        advanceUntilIdle()
-
-        viewModel.showLanguageDialog()
-        advanceUntilIdle()
-        assertThat(viewModel.uiState.value.showLanguageDialog).isTrue()
-
-        viewModel.setLanguage("fr")
-        advanceUntilIdle()
-
-        coVerify { settingsDataStore.setSelectedLanguage("fr") }
-        assertThat(viewModel.uiState.value.selectedLanguage).isEqualTo("fr")
-        assertThat(viewModel.uiState.value.showLanguageDialog).isFalse()
-    }
-
-    @Test
-    fun `saveDateTimePrefs writes all three choices and dismisses dialog`() = runTest {
-        viewModel = createViewModel()
-        advanceUntilIdle()
-
-        viewModel.showDateTimeDialog()
-        advanceUntilIdle()
-        assertThat(viewModel.uiState.value.showDateTimeDialog).isTrue()
-
-        val chosen = DateTimeFormatPrefs(TimestampStyle.SMART, ClockFormat.H24, DateFormatStyle.YMD_DASH)
-        viewModel.saveDateTimePrefs(chosen)
-        advanceUntilIdle()
-
-        coVerify(exactly = 1) { dateTimePrefsStore.set(chosen) }
-        assertThat(viewModel.uiState.value.dateTimePrefs).isEqualTo(chosen)
-        assertThat(viewModel.uiState.value.showDateTimeDialog).isFalse()
-    }
-
-    @Test
-    fun `dismissing the date-time dialog writes nothing`() = runTest {
-        viewModel = createViewModel()
-        advanceUntilIdle()
-
-        viewModel.showDateTimeDialog()
-        viewModel.dismissDateTimeDialog()
-        advanceUntilIdle()
-
-        coVerify(exactly = 0) { dateTimePrefsStore.set(any()) }
-        assertThat(viewModel.uiState.value.showDateTimeDialog).isFalse()
     }
 
     @Test
