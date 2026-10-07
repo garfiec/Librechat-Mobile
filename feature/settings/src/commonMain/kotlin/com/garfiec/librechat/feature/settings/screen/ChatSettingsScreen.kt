@@ -19,9 +19,11 @@ import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,6 +47,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
+import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.adaptiveRowColor
 import com.garfiec.librechat.core.ui.components.adaptiveSection
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
@@ -54,8 +57,8 @@ import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
+import com.garfiec.librechat.feature.settings.viewmodel.ChatSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ContextUsageSettingsViewModel
-import com.garfiec.librechat.feature.settings.viewmodel.SettingsViewModel
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -67,8 +70,10 @@ fun ChatSettingsScreen(
     onNavigateToContextUsage: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
     AdaptiveScaffold(
         modifier = modifier,
+        snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
         topBar = {
             AdaptiveTopBar(
                 spec = AdaptiveTopBarSpec(
@@ -82,6 +87,7 @@ fun ChatSettingsScreen(
         ChatSettingsContent(
             onNavigateToPresets = onNavigateToPresets,
             onNavigateToContextUsage = onNavigateToContextUsage,
+            snackbarHostState = snackbarHostState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
@@ -99,7 +105,8 @@ fun ChatSettingsContent(
     onNavigateToContextUsage: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
-    viewModel: SettingsViewModel = koinViewModel(),
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    viewModel: ChatSettingsViewModel = koinViewModel(),
     contextUsageViewModel: ContextUsageSettingsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -109,6 +116,13 @@ fun ChatSettingsContent(
     fun <T> saveAndClose(setter: (T) -> Unit): (T) -> Unit = {
         setter(it)
         openDialog = null
+    }
+
+    // Voice test, preview and playback failures land here.
+    LaunchedEffect(uiState.error) {
+        val error = uiState.error ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(message = error)
+        viewModel.dismissError()
     }
 
     AdaptiveGroupedPage(modifier = modifier) {

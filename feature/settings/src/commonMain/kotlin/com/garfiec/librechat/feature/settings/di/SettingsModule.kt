@@ -4,6 +4,7 @@ import com.garfiec.librechat.core.common.di.KoinQualifiers
 import com.garfiec.librechat.feature.settings.viewmodel.AccountSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ApiKeysViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.AppearanceSettingsViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.ChatSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ContextUsageSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.DataSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.FavoritesViewModel
@@ -16,7 +17,6 @@ import com.garfiec.librechat.feature.settings.viewmodel.PresetManagerViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ReleaseNotesViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.RoleSkillsAdminViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ServerHeadersViewModel
-import com.garfiec.librechat.feature.settings.viewmodel.SettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.SharedLinksViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.UpdateCheckViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.WhatsNewViewModel
@@ -59,7 +59,7 @@ val settingsModule = module {
         )
     }
     viewModel {
-        SettingsViewModel(
+        ChatSettingsViewModel(
             settingsDataStore = get(),
             speechSettingsFactory = get(),
         )

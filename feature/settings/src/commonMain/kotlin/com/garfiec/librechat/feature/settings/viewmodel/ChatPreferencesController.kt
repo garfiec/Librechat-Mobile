@@ -69,16 +69,16 @@ private data class AdditionalPreferences(
 )
 
 /**
- * Owns the DataStore side of settings: the read flows (the multi-stage `combine`
+ * Owns the DataStore side of the Chat tab: the read flows (the multi-stage `combine`
  * machinery, split across holders because Kotlin's `combine` maxes at 5 sources)
  * merged with the ViewModel's imperative [baseState] into a single [uiState], plus
  * the matching write setters. The ViewModel keeps only imperative state and
  * forwards preference reads/writes here.
  */
 @Suppress("TooManyFunctions") // debt: 22 functions
-class SettingsPreferencesController(
+class ChatPreferencesController(
     private val settingsDataStore: SettingsDataStore,
-    baseState: StateFlow<SettingsUiState>,
+    baseState: StateFlow<ChatSettingsUiState>,
     private val scope: CoroutineScope,
 ) {
     /** Combined DataStore preferences flow. */
@@ -202,7 +202,7 @@ class SettingsPreferencesController(
     }.stateIn(scope, SharingStarted.Eagerly, AdditionalPreferences(false, "", "", true))
 
     /** The single public UI state that merges DataStore preferences with imperative state. */
-    val uiState: StateFlow<SettingsUiState> = combine(
+    val uiState: StateFlow<ChatSettingsUiState> = combine(
         baseState,
         dataStorePreferences,
         extraPreferences,
@@ -244,7 +244,7 @@ class SettingsPreferencesController(
             uploadRoutingMode = additional.uploadRoutingMode,
             showSiteIcons = additional.showSiteIcons,
         )
-    }.stateIn(scope, SharingStarted.Eagerly, SettingsUiState())
+    }.stateIn(scope, SharingStarted.Eagerly, ChatSettingsUiState())
 
     // ── Write setters (fire-and-forget; return Unit, not the launched Job) ──
 

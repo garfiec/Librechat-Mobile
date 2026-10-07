@@ -12,8 +12,8 @@ import com.garfiec.librechat.core.data.repository.ServerSttGate
 import com.garfiec.librechat.core.data.repository.SpeechRepository
 import com.garfiec.librechat.core.model.speech.TtsVoice
 import com.garfiec.librechat.feature.settings.screen.DeviceVoiceInfo
+import com.garfiec.librechat.feature.settings.viewmodel.ChatSettingsUiState
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
-import com.garfiec.librechat.feature.settings.viewmodel.SettingsUiState
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -23,7 +23,7 @@ import java.io.File
  * Handles TTS voice selection, test playback, device voice loading, and MediaPlayer lifecycle.
  */
 class SpeechSettingsDelegate(
-    private val stateHandle: SettingsStateHandle<SettingsUiState>,
+    private val stateHandle: SettingsStateHandle<ChatSettingsUiState>,
     private val context: Context,
     private val speechRepository: SpeechRepository,
     private val settingsDataStore: SettingsDataStore,

@@ -64,7 +64,7 @@ suspend fun <T> apiCallCatching(
         withContext(ioDispatcher) { block() }
     } catch (e: CancellationException) {
         // Cooperative cancellation must propagate — callers rely on cancel()ed jobs
-        // not writing stale errors back to state (e.g. SettingsViewModel.loadUserJob).
+        // not writing stale errors back to state (e.g. AccountDelegate.loadUserJob).
         throw e
     } catch (e: Exception) {
         onFailure(e)

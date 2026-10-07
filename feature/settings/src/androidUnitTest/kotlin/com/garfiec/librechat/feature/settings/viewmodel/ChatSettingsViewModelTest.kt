@@ -28,7 +28,7 @@ import org.junit.Before
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class SettingsViewModelTest {
+class ChatSettingsViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
 
@@ -38,7 +38,7 @@ class SettingsViewModelTest {
     private val siteIconsChoiceFlow = MutableStateFlow<Boolean?>(null)
     private val speechRepository = mockk<SpeechRepository>(relaxed = true)
 
-    private lateinit var viewModel: SettingsViewModel
+    private lateinit var viewModel: ChatSettingsViewModel
 
     @Before
     fun setup() {
@@ -85,7 +85,7 @@ class SettingsViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun createViewModel() = SettingsViewModel(
+    private fun createViewModel() = ChatSettingsViewModel(
         settingsDataStore = settingsDataStore,
         speechSettingsFactory = SpeechSettingsFactory { speechSettingsContract },
     )
