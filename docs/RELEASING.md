@@ -202,17 +202,17 @@ second full shrink on every pull request.
 
 ## Cutting a release
 
-> **Every release needs a changelog, and the workflow now enforces it.** Write the
-> user-facing text to `fastlane/metadata/android/en-US/changelogs/next.txt` when the work
-> lands — not at release time — and commit it on the feature branch. The release job renames
-> it to `<versionCode>.txt` once the code is known and stages it into the release commit.
+> **Every release gets a changelog.** If `fastlane/metadata/android/en-US/changelogs/next.txt`
+> exists, the release job renames it to `<versionCode>.txt` once the code is known and stages it
+> into the release commit. If it does not, the job generates `<versionCode>.txt` with
+> `scripts/draft-changelog.sh --auto`: the `feat`/`fix`/`perf` commit subjects since the last
+> tag, features first, cut at whole items to stay under F-Droid's **500-character** cap, with
+> a closing "And N more" line pointing at the GitHub release notes.
 >
-> `scripts/draft-changelog.sh` seeds that file from the commit log so you are never starting
-> from a blank page. It is a seed, not an answer: it writes a `# DRAFT` first line that
-> `scripts/check-fdroid-metadata.py --release` refuses to release with, because the generated
-> bullets overrun F-Droid's **500-character** cap on any busy release, conventional-commit
-> type does not mean user-facing, and the thing most worth saying — what a change broke — is
-> never in a commit message. Rewrite it as prose and delete that line.
+> To ship prose instead, commit a hand-written `next.txt` before the cut.
+> `scripts/draft-changelog.sh` (without `--auto`) seeds one from the commit log with a
+> `# DRAFT` first line that `scripts/check-fdroid-metadata.py --release` refuses to release
+> with, so a half-edited seed cannot ship.
 >
 > Author it as `next.txt`, not as `<versionCode>.txt` — with one exception, an rc train, where
 > the candidate's own run has already created `<versionCode>.txt` and any further lines must be
@@ -226,8 +226,8 @@ second full shrink on every pull request.
 > **tagged commit**, and re-tagging would change the APK and break the reproducible-build
 > match.
 >
-> The dispatch now **fails** if neither `next.txt` nor `<versionCode>.txt` is present, and
-> also if both are (ambiguous — merge them and delete `next.txt`). Finalizing a release
+> The dispatch **fails** if both `next.txt` and `<versionCode>.txt` are present (ambiguous —
+> merge them and delete `next.txt`). Finalizing a release
 > candidate finds `<versionCode>.txt` already in place from the candidate's run, because an
 > `-rcN` and its final share one versionCode; that is a pass.
 >
@@ -257,7 +257,7 @@ second full shrink on every pull request.
 1. Actions → **Release** → *Run workflow* → choose the bump (`patch` for a stable
    release, or `prepatch`/`rc`/`finalize` for the candidate flow). Year/month are
    derived from the current UTC date automatically.
-2. The job bumps `version.properties`, resolves the changelog filename (failing the run if
+2. The job bumps `version.properties`, resolves the changelog filename (generating one if
    there is none), commits and tags `vYYYY.MM.P` **locally**, builds a
    signed universal APK, **asserts it carries the published signing certificate**, re-verifies
    that the unsigned build path still works, signs a SLSA build-provenance attestation, and

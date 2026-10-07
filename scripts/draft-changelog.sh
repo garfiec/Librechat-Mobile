@@ -1,35 +1,27 @@
 #!/usr/bin/env bash
 #
-# Seed fastlane/metadata/android/en-US/changelogs/next.txt from the commit log.
+# Build the F-Droid "What's New" text from the commit log.
 #
-# This exists to kill the blank page, not to write the changelog. v2026.10.0 shipped with no
-# "What's New" at all, and the reason was not disagreement about the wording -- it was that
-# nobody started the file. A seed that is always there turns writing it into editing.
+# Two modes:
 #
-# It is deliberately NOT a generator you can ship unreviewed, and the first line it writes is
-# a marker that `scripts/check-fdroid-metadata.py --release` refuses to release with. That
-# refusal is the whole design:
-#
-#   * The output overruns F-Droid's 500-character cap on any busy release. Measured over
-#     v2026.08.4..v2026.09.0: 12 items, 624 characters. fdroidserver truncates the overflow
-#     silently, so an unreviewed seed ships a sentence cut in half.
-#   * Conventional-commit type does not mean user-facing. Two `feat(sync):` commits tracking
-#     backend release candidates are invisible to users; a `feat(fdroid):` commit about
-#     submission docs is not a feature at all.
-#   * It cannot know the things worth saying. The hand-written 20260900.txt warns that React
-#     artifacts importing recharts or lucide-react now report the missing package instead of
-#     loading it -- a consequence of the change that appears in zero commit messages.
-#   * House style is hard-wrapped prose (compare changelogs/20260804.txt), not bullets.
-#
-# Without the marker this script would make things worse: next.txt would always exist, the
-# release guard would never fire again, and a list of internal commit subjects would ship
-# every time.
+#   * Seed (default) writes fastlane/metadata/android/en-US/changelogs/next.txt with a
+#     `# DRAFT` first line that `scripts/check-fdroid-metadata.py --release` refuses to release
+#     with. Use it to start a hand-written changelog: commit subjects are not prose, and the
+#     things most worth saying (what a change broke) are never in them.
+#   * --auto writes a release-ready list to --out. release.yml runs it when no hand-written
+#     next.txt exists, so a release never stops for want of a changelog. Only feat/fix/perf
+#     subjects are listed, minus scopes no user sees (release, fdroid, skill, ci, build, ios),
+#     features first; whole items are dropped from the end to stay under
+#     F-Droid's 500-character cap, which fdroidserver otherwise truncates silently mid-sentence.
 #
 # Usage:
 #   scripts/draft-changelog.sh [--range <git-range>] [--force]
+#   scripts/draft-changelog.sh --auto --out <file> [--range <git-range>]
 #
 #   --range   override the default "<last tag>..HEAD"
 #   --force   overwrite an existing next.txt (refused otherwise -- it may be hand-written)
+#   --auto    write a release-ready changelog (no DRAFT line) to --out
+#   --out     destination for --auto
 #
 set -euo pipefail
 
@@ -41,13 +33,17 @@ LIMIT=500
 
 range=""
 force=false
+auto=false
+out=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --range) range="${2:-}"; shift 2 ;;
     --force) force=true; shift ;;
+    --auto) auto=true; shift ;;
+    --out) out="${2:-}"; shift 2 ;;
     # Keep the end of this range on the last line of the header block above, or --help
     # silently stops printing partway through it.
-    -h|--help) sed -n '3,32p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    -h|--help) sed -n '3,24p' "${BASH_SOURCE[0]}"; exit 0 ;;
     *) echo "unknown argument: $1" >&2; exit 1 ;;
   esac
 done
@@ -58,12 +54,6 @@ if [[ -z "$range" ]]; then
     exit 1
   fi
   range="${last_tag}..HEAD"
-fi
-
-if [[ -e "$DEST" && "$force" != true ]]; then
-  echo "$DEST already exists; refusing to overwrite it." >&2
-  echo "It may be hand-written. Append to it, or pass --force." >&2
-  exit 1
 fi
 
 # feat/fix/perf only: everything else (chore, docs, ci, build, test, refactor) is invisible to
@@ -79,6 +69,51 @@ items="$(
 )"
 
 total="$(git -C "$REPO" log --oneline "$range" | wc -l | tr -d ' ')"
+
+if [[ "$auto" == true ]]; then
+  if [[ -z "$out" ]]; then
+    echo "--auto needs --out <file>." >&2
+    exit 1
+  fi
+  # Features before fixes, so the cap drops fixes first. Characters, not bytes, as in
+  # scripts/check-fdroid-metadata.py.
+  # The subjects travel by environment: the heredoc is python's stdin.
+  SUBJECTS="$(git -C "$REPO" log --format='%s' "$range")" python3 - "$out" "$LIMIT" <<'PY'
+import os, re, sys
+out, limit = sys.argv[1], int(sys.argv[2])
+pattern = re.compile(r"^(feat|fix|perf)(\([^)]*\))?!?: (.+?)( \(#\d+\))*$")
+order = {"feat": 0, "perf": 1, "fix": 2}
+# Scopes no F-Droid user sees.
+hidden = {"release", "fdroid", "skill", "ci", "build", "ios"}
+found = []
+for subject in os.environ["SUBJECTS"].splitlines():
+    m = pattern.match(subject)
+    if m and (m.group(2) or "()")[1:-1] not in hidden:
+        text = m.group(3)
+        found.append((order[m.group(1)], len(found), "- " + text[:1].upper() + text[1:]))
+items = [line for _, _, line in sorted(found)]
+more = "- And %d more; see the release notes on GitHub."
+kept = []
+for i, item in enumerate(items):
+    rest = len(items) - i - 1
+    candidate = kept + [item] + ([more % rest] if rest else [])
+    if len("\n".join(candidate)) + 1 > limit:
+        break
+    kept.append(item)
+lines = kept + ([more % (len(items) - len(kept))] if len(kept) < len(items) else [])
+text = "\n".join(lines or ["Maintenance release with internal improvements only."]) + "\n"
+with open(out, "w", encoding="utf-8") as f:
+    f.write(text)
+print("Wrote %s: %d of %d user-facing items, %d characters" % (out, len(kept), len(items), len(text)))
+PY
+  exit 0
+fi
+
+if [[ -e "$DEST" && "$force" != true ]]; then
+  echo "$DEST already exists; refusing to overwrite it." >&2
+  echo "It may be hand-written. Append to it, or pass --force." >&2
+  exit 1
+fi
 
 {
   printf '%s\n' "$MARKER"

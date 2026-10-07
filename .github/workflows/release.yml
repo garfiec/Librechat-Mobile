@@ -97,8 +97,9 @@ jobs:
       # so a changelog added after the tag is unreachable and silently never appears. The code
       # is only known at dispatch (UTC date), hence authoring as `next.txt` and renaming here.
       # An -rcN and its final share one code, so `finalize` finding <code>.txt is a pass.
+      # With neither file, the changelog is generated from the feat/fix/perf commit subjects.
       # Full rationale: docs/RELEASING.md § Cutting a release.
-      - name: Resolve the changelog filename, and require one
+      - name: Resolve the changelog filename, or generate one
         env:
           VERSION_CODE: ${{ steps.bump.outputs.version_code }}
         run: |
@@ -124,14 +125,13 @@ jobs:
           elif [ -f "$coded" ]; then
             echo "$coded already present (expected when finalizing a release candidate)."
           else
-            echo "::error title=Missing changelog::No $coded and no $next. Run scripts/draft-changelog.sh to seed $next from the commit log, rewrite it as prose, and re-run; F-Droid can only read it from the tagged commit, so it cannot be added after the fact."
-            exit 1
+            scripts/draft-changelog.sh --auto --out "$coded"
           fi
 
           echo "--- changelog for $VERSION_CODE ---"
           cat "$coded"
 
-      # The step above only renames the changelog into place; --release is what refuses an
+      # The step above only puts the changelog in place; --release is what refuses an
       # empty one, or one still carrying the scripts/draft-changelog.sh marker.
       - name: Verify F-Droid store listing
         env:
