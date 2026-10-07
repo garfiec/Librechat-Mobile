@@ -131,10 +131,4 @@ class ChatSettingsViewModelTest {
         coVerify { settingsDataStore.setUploadRoutingMode(UploadRoutingMode.MANUAL) }
         assertThat(viewModel.uiState.value.uploadRoutingMode).isEqualTo(UploadRoutingMode.MANUAL)
     }
-
-    /**
-     * The Settings screen's own MCP dialog is the second save path (McpServerDelegate); a key
-     * binding refusal has to reach its state too, or that dialog reports a failure every retry
-     * repeats.
-     */
 }

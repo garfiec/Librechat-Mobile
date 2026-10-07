@@ -29,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
@@ -48,6 +49,7 @@ import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.viewmodel.DataSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.PrefetchActivityViewModel
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -59,6 +61,8 @@ fun DataSettingsScreen(
     onNavigateToSharedLinks: () -> Unit,
     onNavigateToArtifactShortcuts: () -> Unit,
     onNavigateToPrefetchSettings: () -> Unit,
+    onNavigateToMemories: () -> Unit,
+    onNavigateToMcpServers: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -81,6 +85,8 @@ fun DataSettingsScreen(
             onNavigateToSharedLinks = onNavigateToSharedLinks,
             onNavigateToArtifactShortcuts = onNavigateToArtifactShortcuts,
             onNavigateToPrefetchSettings = onNavigateToPrefetchSettings,
+            onNavigateToMemories = onNavigateToMemories,
+            onNavigateToMcpServers = onNavigateToMcpServers,
             snackbarHostState = snackbarHostState,
             modifier = Modifier
                 .fillMaxSize()
@@ -99,6 +105,8 @@ fun DataSettingsContent(
     onNavigateToSharedLinks: () -> Unit,
     onNavigateToArtifactShortcuts: () -> Unit,
     onNavigateToPrefetchSettings: () -> Unit,
+    onNavigateToMemories: () -> Unit,
+    onNavigateToMcpServers: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
@@ -169,10 +177,10 @@ fun DataSettingsContent(
         logsSaverResult = null
     }
 
-    LaunchedEffect(uiState.mcpReinitializeMessage) {
-        val message = uiState.mcpReinitializeMessage ?: return@LaunchedEffect
-        snackbarHostState.showSnackbar(message)
-        viewModel.dismissMcpReinitializeMessage()
+    // Fires on first show and on every return from the Memories / MCP pages.
+    LifecycleResumeEffect(viewModel) {
+        viewModel.refreshSummaries()
+        onPauseOrDispose { }
     }
 
     AdaptiveGroupedPage(modifier = modifier) {
@@ -229,71 +237,42 @@ fun DataSettingsContent(
                 }
             }
 
-            // Memories section — hidden entirely when the server's MEMORIES.USE role
-            // permission is denied. The user-level opt-out (`memoriesEnabled`) stays
-            // independent and only hides the list inside this section.
+            // Memories and MCP servers each live on their own page; the tab shows a summary row.
+            // A row is hidden when the role denies its USE permission.
             if (uiState.serverMemoriesEnabled) {
                 item(key = "memories_header") {
                     AdaptiveSectionHeader(stringResource(Res.string.section_memories))
                 }
                 adaptiveSection {
-                    row(key = "memories_settings") {
-                        MemoriesSettingsSection(
-                            memories = uiState.memories,
-                            memoriesEnabled = uiState.memoriesEnabled,
-                            showMemoryDialog = uiState.showMemoryDialog,
-                            editingMemory = uiState.editingMemory,
-                            enforceKeyPattern = uiState.memoryKeyPatternEnforced,
-                            onToggleEnable = viewModel::toggleMemoriesEnabled,
-                            onAddMemory = viewModel::showAddMemoryDialog,
-                            onEditMemory = viewModel::showEditMemoryDialog,
-                            onDeleteMemory = viewModel::deleteMemory,
-                            onDismissDialog = viewModel::dismissMemoryDialog,
-                            onSaveMemory = viewModel::saveMemory,
+                    row(key = "memories_row") {
+                        SelectorRow(
+                            title = stringResource(Res.string.section_memories),
+                            value = memoriesSummary(uiState.memoriesEnabled, uiState.memoryCount),
+                            onClick = onNavigateToMemories,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         )
                     }
                 }
             }
 
-            // MCP section — always shown, but the section body degrades to
-            // "not available" and the "+ Add" button disappears when role denies.
-            item(key = "mcp_header") {
-                AdaptiveSectionHeader(stringResource(Res.string.section_mcp_servers))
-            }
-            adaptiveSection {
-                row(key = "mcp_settings") {
-                    McpSettingsSection(
-                        servers = uiState.mcpServers,
-                        connectionStatus = uiState.mcpConnectionStatus,
-                        reinitializingServers = uiState.mcpReinitializingServers,
-                        error = uiState.mcpError,
-                        mcpServersEnabled = uiState.mcpServersEnabled,
-                        mcpServersCreateEnabled = uiState.mcpServersCreateEnabled,
-                        onAddServer = viewModel::showAddMcpServerDialog,
-                        onEditServer = viewModel::showEditMcpServerDialog,
-                        onDeleteServer = viewModel::deleteMcpServer,
-                        onReinitialize = viewModel::reinitializeMcpServer,
-                    )
+            if (uiState.mcpServersEnabled) {
+                item(key = "mcp_header") {
+                    AdaptiveSectionHeader(stringResource(Res.string.section_mcp_servers))
+                }
+                adaptiveSection {
+                    row(key = "mcp_row") {
+                        SelectorRow(
+                            title = stringResource(Res.string.section_mcp_servers),
+                            value = mcpSummary(uiState.mcpServerCount),
+                            onClick = onNavigateToMcpServers,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        )
+                    }
                 }
             }
 
             // Bottom spacing
             item { Spacer(modifier = Modifier.height(32.dp)) }
-        }
-
-        // MCP server add/edit dialog
-        if (uiState.showMcpServerDialog) {
-            McpServerDialog(
-                editingServer = uiState.editingMcpServer,
-                oauthSecretReentryRequired = uiState.mcpOAuthSecretReentryRequired,
-                apiKeyReentryRequired = uiState.mcpApiKeyReentryRequired,
-                saveError = uiState.mcpServerDialogError,
-                isSaving = uiState.mcpServerSaving,
-                onDismiss = viewModel::dismissMcpServerDialog,
-                onSave = { name, description, url, type, apiKey, oauth ->
-                    viewModel.saveMcpServer(name, description, url, type, apiKey, oauth)
-                },
-            )
         }
 
         // Clear cache confirmation
@@ -437,4 +416,19 @@ private fun DataExtraActions(
         }
         AdaptiveDivider(modifier = Modifier.padding(top = 8.dp))
     }
+}
+
+@Composable
+private fun memoriesSummary(enabled: Boolean, count: Int?): String = when {
+    !enabled -> stringResource(Res.string.data_summary_off)
+    count == null -> ""
+    count == 0 -> stringResource(Res.string.data_summary_none)
+    else -> pluralStringResource(Res.plurals.data_memories_count, count, count)
+}
+
+@Composable
+private fun mcpSummary(count: Int?): String = when (count) {
+    null -> ""
+    0 -> stringResource(Res.string.data_summary_none)
+    else -> pluralStringResource(Res.plurals.data_mcp_servers_count, count, count)
 }

@@ -36,7 +36,6 @@
     <string name="cd_delete_preset">Excluir predefinição</string>
     <string name="cd_delete_server">Excluir servidor</string>
     <string name="cd_delete_shared_link">Excluir link compartilhado</string>
-    <string name="cd_edit">Editar</string>
     <string name="cd_edit_memory">Editar memória</string>
     <string name="memory_redacted_key">Entrada oculta</string>
     <string name="memory_redacted_value">A política de conteúdo deste servidor oculta o que está armazenado aqui. Você ainda pode excluí-la.</string>
@@ -450,7 +449,6 @@
     <!-- MCP -->
     <string name="add_mcp_server">Adicionar servidor MCP</string>
     <string name="edit_mcp_server">Editar servidor MCP</string>
-    <string name="mcp_not_available">O MCP não está disponível neste servidor</string>
     <string name="no_mcp_servers">Nenhum servidor MCP configurado</string>
     <string name="mcp_add_hint">Toque no botão + para adicionar um servidor</string>
     <string name="mcp_name_label">Nome</string>
@@ -698,4 +696,14 @@
     <string name="date_format_ymd_slash">Ano/Mês/Dia</string>
     <string name="date_format_long">Longo</string>
     <string name="date_time_preview">Pré-visualização</string>
+    <string name="data_summary_off">Desativado</string>
+    <string name="data_summary_none">Nenhum</string>
+    <plurals name="data_memories_count">
+        <item quantity="one">%1$d salva</item>
+        <item quantity="other">%1$d salvas</item>
+    </plurals>
+    <plurals name="data_mcp_servers_count">
+        <item quantity="one">%1$d servidor</item>
+        <item quantity="other">%1$d servidores</item>
+    </plurals>
 </resources>

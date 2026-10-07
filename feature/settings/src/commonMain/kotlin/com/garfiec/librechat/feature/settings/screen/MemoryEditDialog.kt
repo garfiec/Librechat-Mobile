@@ -27,9 +27,8 @@ import org.jetbrains.compose.resources.stringResource
 /**
  * Add/edit memory dialog; key field is immutable when editing an existing memory.
  *
- * Validation matches [MemoryDialog]'s in `MemoriesSettingsSection` exactly — same rule, same gate,
- * same hint — because these are two entry points to one server route, and a shape refused on one
- * screen must not be accepted on the other.
+ * Validation follows the server's memory-key rule, enforced only where the server is known to
+ * enforce it (see `MemoriesUiState.keyPatternEnforced`).
  */
 @Composable
 internal fun MemoryEditDialog(

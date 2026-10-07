@@ -36,7 +36,6 @@
     <string name="cd_delete_preset">حذف الإعداد المسبق</string>
     <string name="cd_delete_server">حذف الخادم</string>
     <string name="cd_delete_shared_link">حذف الرابط المشترك</string>
-    <string name="cd_edit">تعديل</string>
     <string name="cd_edit_memory">تعديل الذاكرة</string>
     <string name="memory_redacted_key">إدخال مخفي</string>
     <string name="memory_redacted_value">تُخفي سياسة المحتوى في هذا الخادم ما هو مخزّن هنا. لا يزال بإمكانك حذفه.</string>
@@ -450,7 +449,6 @@
     <!-- MCP -->
     <string name="add_mcp_server">إضافة خادم MCP</string>
     <string name="edit_mcp_server">تعديل خادم MCP</string>
-    <string name="mcp_not_available">MCP غير متاح على هذا الخادم</string>
     <string name="no_mcp_servers">لا توجد خوادم MCP مُهيأة</string>
     <string name="mcp_add_hint">انقر على زر + لإضافة خادم</string>
     <string name="mcp_name_label">الاسم</string>
@@ -698,4 +696,22 @@
     <string name="date_format_ymd_slash">سنة/شهر/يوم</string>
     <string name="date_format_long">طويل</string>
     <string name="date_time_preview">معاينة</string>
+    <string name="data_summary_off">متوقف</string>
+    <string name="data_summary_none">لا شيء</string>
+    <plurals name="data_memories_count">
+        <item quantity="zero">المحفوظة: %1$d</item>
+        <item quantity="one">المحفوظة: %1$d</item>
+        <item quantity="two">المحفوظة: %1$d</item>
+        <item quantity="few">المحفوظة: %1$d</item>
+        <item quantity="many">المحفوظة: %1$d</item>
+        <item quantity="other">المحفوظة: %1$d</item>
+    </plurals>
+    <plurals name="data_mcp_servers_count">
+        <item quantity="zero">الخوادم: %1$d</item>
+        <item quantity="one">الخوادم: %1$d</item>
+        <item quantity="two">الخوادم: %1$d</item>
+        <item quantity="few">الخوادم: %1$d</item>
+        <item quantity="many">الخوادم: %1$d</item>
+        <item quantity="other">الخوادم: %1$d</item>
+    </plurals>
 </resources>

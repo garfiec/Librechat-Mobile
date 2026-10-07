@@ -36,7 +36,6 @@
     <string name="cd_delete_preset">删除预设</string>
     <string name="cd_delete_server">删除服务器</string>
     <string name="cd_delete_shared_link">删除分享链接</string>
-    <string name="cd_edit">编辑</string>
     <string name="cd_edit_memory">编辑记忆</string>
     <string name="memory_redacted_key">已隐藏的条目</string>
     <string name="memory_redacted_value">此服务器的内容策略隐藏了此处存储的内容。你仍可以将其删除。</string>
@@ -450,7 +449,6 @@
     <!-- MCP -->
     <string name="add_mcp_server">添加 MCP 服务器</string>
     <string name="edit_mcp_server">编辑 MCP 服务器</string>
-    <string name="mcp_not_available">此服务器不支持 MCP</string>
     <string name="no_mcp_servers">未配置 MCP 服务器</string>
     <string name="mcp_add_hint">点击 + 按钮添加服务器</string>
     <string name="mcp_name_label">名称</string>
@@ -698,4 +696,12 @@
     <string name="date_format_ymd_slash">年/月/日</string>
     <string name="date_format_long">长格式</string>
     <string name="date_time_preview">预览</string>
+    <string name="data_summary_off">关闭</string>
+    <string name="data_summary_none">无</string>
+    <plurals name="data_memories_count">
+        <item quantity="other">已保存 %1$d 条</item>
+    </plurals>
+    <plurals name="data_mcp_servers_count">
+        <item quantity="other">%1$d 个服务器</item>
+    </plurals>
 </resources>

@@ -36,7 +36,6 @@
     <string name="cd_delete_preset">프리셋 삭제</string>
     <string name="cd_delete_server">서버 삭제</string>
     <string name="cd_delete_shared_link">공유 링크 삭제</string>
-    <string name="cd_edit">편집</string>
     <string name="cd_edit_memory">메모리 편집</string>
     <string name="memory_redacted_key">숨겨진 항목</string>
     <string name="memory_redacted_value">이 서버의 콘텐츠 정책에 따라 저장된 내용이 숨겨져 있습니다. 삭제는 계속 할 수 있습니다.</string>
@@ -450,7 +449,6 @@
     <!-- MCP -->
     <string name="add_mcp_server">MCP 서버 추가</string>
     <string name="edit_mcp_server">MCP 서버 편집</string>
-    <string name="mcp_not_available">이 서버에서는 MCP를 사용할 수 없습니다</string>
     <string name="no_mcp_servers">구성된 MCP 서버가 없습니다</string>
     <string name="mcp_add_hint">+ 버튼을 탭하여 서버를 추가하세요</string>
     <string name="mcp_name_label">이름</string>
@@ -698,4 +696,12 @@
     <string name="date_format_ymd_slash">년/월/일</string>
     <string name="date_format_long">긴 형식</string>
     <string name="date_time_preview">미리보기</string>
+    <string name="data_summary_off">꺼짐</string>
+    <string name="data_summary_none">없음</string>
+    <plurals name="data_memories_count">
+        <item quantity="other">%1$d개 저장됨</item>
+    </plurals>
+    <plurals name="data_mcp_servers_count">
+        <item quantity="other">서버 %1$d개</item>
+    </plurals>
 </resources>

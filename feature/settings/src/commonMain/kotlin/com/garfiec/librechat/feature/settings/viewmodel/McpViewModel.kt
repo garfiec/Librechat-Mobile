@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.McpRepository
+import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.model.mcp.McpApiKeyConfig
 import com.garfiec.librechat.core.model.mcp.McpOAuthConfig
 import com.garfiec.librechat.core.model.mcp.McpServer
@@ -14,14 +15,20 @@ import com.garfiec.librechat.core.model.mcp.McpServerStatus
 import com.garfiec.librechat.core.model.mcp.McpServerType
 import com.garfiec.librechat.core.model.mcp.McpTool
 import com.garfiec.librechat.core.model.mcp.applyDiscoveryAuthorizationState
+import com.garfiec.librechat.core.model.permissions.Permission
+import com.garfiec.librechat.core.model.permissions.PermissionType
+import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 @Immutable
 data class McpUiState(
     val servers: List<McpServer> = emptyList(),
+    val canCreateServer: Boolean = true,
     val connectionStatus: Map<String, McpServerStatus> = emptyMap(),
     /** Per-server verdicts from `GET /api/mcp/tools`, retained so either fetch can re-fold them. */
     val discovery: Map<String, McpServerDiscovery> = emptyMap(),
@@ -81,10 +88,16 @@ data class McpOAuthPrompt(
 
 class McpViewModel(
     private val mcpRepository: McpRepository,
+    roleRepository: RoleRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(McpUiState())
-    val uiState: StateFlow<McpUiState> = _uiState.asStateFlow()
+
+    /** MCP_SERVERS CREATE gates adding a server; permissive while the role is unknown. */
+    val uiState: StateFlow<McpUiState> =
+        combine(_uiState, roleRepository.userPermissions) { state, role ->
+            state.copy(canCreateServer = role.hasAccessOrPermissive(PermissionType.MCP_SERVERS, Permission.CREATE))
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, McpUiState())
 
     /** Bumped whenever the server dialog opens or closes, so a save can tell its dialog is gone. */
     private var serverDialogSession = 0

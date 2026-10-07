@@ -36,7 +36,6 @@
     <string name="cd_delete_preset">Удалить пресет</string>
     <string name="cd_delete_server">Удалить сервер</string>
     <string name="cd_delete_shared_link">Удалить общую ссылку</string>
-    <string name="cd_edit">Изменить</string>
     <string name="cd_edit_memory">Изменить запись памяти</string>
     <string name="memory_redacted_key">Скрытая запись</string>
     <string name="memory_redacted_value">Политика содержимого этого сервера скрывает сохранённые здесь данные. Удалить запись всё равно можно.</string>
@@ -450,7 +449,6 @@
     <!-- MCP -->
     <string name="add_mcp_server">Добавить сервер MCP</string>
     <string name="edit_mcp_server">Изменить сервер MCP</string>
-    <string name="mcp_not_available">MCP недоступен на этом сервере</string>
     <string name="no_mcp_servers">Серверы MCP не настроены</string>
     <string name="mcp_add_hint">Нажмите кнопку +, чтобы добавить сервер</string>
     <string name="mcp_name_label">Имя</string>
@@ -698,4 +696,18 @@
     <string name="date_format_ymd_slash">Год/Месяц/День</string>
     <string name="date_format_long">Полный</string>
     <string name="date_time_preview">Предпросмотр</string>
+    <string name="data_summary_off">Выкл.</string>
+    <string name="data_summary_none">Нет</string>
+    <plurals name="data_memories_count">
+        <item quantity="one">Сохранено: %1$d</item>
+        <item quantity="few">Сохранено: %1$d</item>
+        <item quantity="many">Сохранено: %1$d</item>
+        <item quantity="other">Сохранено: %1$d</item>
+    </plurals>
+    <plurals name="data_mcp_servers_count">
+        <item quantity="one">Серверов: %1$d</item>
+        <item quantity="few">Серверов: %1$d</item>
+        <item quantity="many">Серверов: %1$d</item>
+        <item quantity="other">Серверов: %1$d</item>
+    </plurals>
 </resources>

@@ -36,7 +36,6 @@
     <string name="cd_delete_preset">プリセットを削除</string>
     <string name="cd_delete_server">サーバーを削除</string>
     <string name="cd_delete_shared_link">共有リンクを削除</string>
-    <string name="cd_edit">編集</string>
     <string name="cd_edit_memory">メモリを編集</string>
     <string name="memory_redacted_key">非表示の項目</string>
     <string name="memory_redacted_value">このサーバーのコンテンツポリシーにより、保存内容は非表示になっています。削除は引き続き可能です。</string>
@@ -450,7 +449,6 @@
     <!-- MCP -->
     <string name="add_mcp_server">MCPサーバーを追加</string>
     <string name="edit_mcp_server">MCPサーバーを編集</string>
-    <string name="mcp_not_available">このサーバーではMCPを利用できません</string>
     <string name="no_mcp_servers">MCPサーバーが設定されていません</string>
     <string name="mcp_add_hint">＋ボタンをタップしてサーバーを追加</string>
     <string name="mcp_name_label">名前</string>
@@ -698,4 +696,12 @@
     <string name="date_format_ymd_slash">年/月/日</string>
     <string name="date_format_long">長い形式</string>
     <string name="date_time_preview">プレビュー</string>
+    <string name="data_summary_off">オフ</string>
+    <string name="data_summary_none">なし</string>
+    <plurals name="data_memories_count">
+        <item quantity="other">%1$d件保存済み</item>
+    </plurals>
+    <plurals name="data_mcp_servers_count">
+        <item quantity="other">%1$d件のサーバー</item>
+    </plurals>
 </resources>
