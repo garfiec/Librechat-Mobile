@@ -7,8 +7,8 @@ import com.garfiec.librechat.core.model.mcp.McpApiKeyConfig
 import com.garfiec.librechat.core.model.mcp.McpOAuthConfig
 import com.garfiec.librechat.core.model.mcp.McpServer
 import com.garfiec.librechat.core.model.mcp.McpServerType
+import com.garfiec.librechat.feature.settings.viewmodel.DataSettingsUiState
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
-import com.garfiec.librechat.feature.settings.viewmodel.SettingsUiState
 import com.garfiec.librechat.feature.settings.viewmodel.preservedFieldsFor
 import com.garfiec.librechat.feature.settings.viewmodel.toMcpSaveFailure
 import kotlinx.coroutines.launch
@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
  * Handles MCP server management, connection status, and reinitialization.
  */
 class McpServerDelegate(
-    private val stateHandle: SettingsStateHandle<SettingsUiState>,
+    private val stateHandle: SettingsStateHandle<DataSettingsUiState>,
     private val mcpRepository: McpRepository,
 ) {
 
@@ -186,7 +186,7 @@ class McpServerDelegate(
 }
 
 /** See `McpViewModel`'s counterpart: a save's feedback belongs to the dialog that raised it. */
-private fun SettingsUiState.withoutMcpSaveFeedback() = copy(
+private fun DataSettingsUiState.withoutMcpSaveFeedback() = copy(
     mcpOAuthSecretReentryRequired = false,
     mcpApiKeyReentryRequired = false,
     mcpServerDialogError = null,

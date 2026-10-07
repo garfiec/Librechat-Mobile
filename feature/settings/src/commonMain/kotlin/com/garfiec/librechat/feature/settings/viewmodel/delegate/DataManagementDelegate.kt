@@ -8,9 +8,9 @@ import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.KeyRepository
 import com.garfiec.librechat.core.logging.DiagnosticLogRepository
 import com.garfiec.librechat.feature.settings.util.PlatformCacheCleaner
+import com.garfiec.librechat.feature.settings.viewmodel.DataSettingsUiState
 import com.garfiec.librechat.feature.settings.viewmodel.LogsExportPayload
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
-import com.garfiec.librechat.feature.settings.viewmodel.SettingsUiState
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 
@@ -18,7 +18,7 @@ import kotlin.time.Clock
  * Handles clear conversations, export, cache clearing, and key revocation.
  */
 class DataManagementDelegate(
-    private val stateHandle: SettingsStateHandle<SettingsUiState>,
+    private val stateHandle: SettingsStateHandle<DataSettingsUiState>,
     private val cacheCleaner: PlatformCacheCleaner,
     private val conversationRepository: ConversationRepository,
     private val keyRepository: KeyRepository,
@@ -103,7 +103,7 @@ class DataManagementDelegate(
     }
 
     /**
-     * Reads the redacted JSONL buffer and stashes it in [SettingsUiState.logsExportReady] as a
+     * Reads the redacted JSONL buffer and stashes it in [DataSettingsUiState.logsExportReady] as a
      * one-shot payload. The screen observes it, launches the platform file saver, and calls
      * [consumeLogsExport] once handled.
      */

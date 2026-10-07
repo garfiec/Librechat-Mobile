@@ -12,18 +12,8 @@ import com.garfiec.librechat.core.data.datastore.InlineArtifactPrefs
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
-import com.garfiec.librechat.core.model.Memory
-import com.garfiec.librechat.core.model.mcp.McpServer
-import com.garfiec.librechat.core.model.mcp.McpServerStatus
 import com.garfiec.librechat.core.model.speech.TtsVoice
 import com.garfiec.librechat.feature.settings.screen.DeviceVoiceInfo
-
-/** One-shot diagnostic-log export payload handed from the ViewModel to the platform file saver. */
-@Immutable
-data class LogsExportPayload(
-    val content: String,
-    val fileName: String,
-)
 
 @Immutable
 data class SettingsUiState(
@@ -40,57 +30,14 @@ data class SettingsUiState(
     /** What the composer's send does mid-run (v0.8.8 steering): inject into the running reply,
      *  or queue for after it. Honoured only where the server supports steering. */
     val duringRunAction: DuringRunAction = DuringRunAction.QUEUE,
-    /** Cached images and files, in bytes; null until read. Excludes the database — see
-     *  [com.garfiec.librechat.feature.settings.util.PlatformCacheCleaner.cacheSizeBytes]. */
-    val cacheSizeBytes: Long? = null,
     val uploadRoutingMode: UploadRoutingMode = UploadRoutingMode.AUTO,
     val showImageDescriptions: Boolean = false,
     val showSiteIcons: Boolean = false,
     val dismissKeyboardOnSend: Boolean = false,
-    // Data management
-    val archivedCount: Int = 0,
-    val isClearing: Boolean = false,
-    val isArchivingAll: Boolean = false,
-    /** `POST /api/convos/archive/all` (v0.8.8-rc2). See VERSION_GATES.md. */
-    val archiveAllSupported: Boolean = false,
-    /**
-     * Whether the server is KNOWN to enforce the memory-key shape (v0.8.8-rc3+). False on an older
-     * or unresolved version, where the key field still shows the hint but does not refuse: rc1 and
-     * rc2 accept keys rc3 rejects, so blocking there would withhold a key those servers take.
-     */
-    val memoryKeyPatternEnforced: Boolean = false,
-    /** One-shot count from the last successful archive-all, for the confirmation snackbar. */
-    val archivedAllCount: Int? = null,
-    val showExportComingSoon: Boolean = false,
-    // Diagnostic logs (issue #96)
-    val isLogsExporting: Boolean = false,
-    val isLogsClearing: Boolean = false,
-    val logsBufferBytes: Long = 0,
-    /**
-     * One-shot export payload. Set when [SettingsViewModel.exportLogs] finishes reading the
-     * buffer; the screen observes it, hands it to the platform `LogFileSaver`, then calls
-     * [SettingsViewModel.consumeLogsExport] to clear it (so a recomposition doesn't re-trigger
-     * the save). Mirrors the conversations `ExportReady` event but state-based, since Settings
-     * has no events SharedFlow.
-     */
-    val logsExportReady: LogsExportPayload? = null,
-    // MCP
-    val mcpServers: List<McpServer> = emptyList(),
-    val mcpConnectionStatus: Map<String, McpServerStatus> = emptyMap(),
-    val mcpError: String? = null,
-    val showMcpServerDialog: Boolean = false,
-    val editingMcpServer: McpServer? = null,
-    val mcpReinitializingServers: Set<String> = emptySet(),
-    val mcpReinitializeMessage: String? = null,
     // Speech settings
     val autoReadEnabled: Boolean = false,
     val selectedVoice: TtsVoice? = null,
     val availableVoices: List<TtsVoice> = emptyList(),
-    // Memories
-    val memories: List<Memory> = emptyList(),
-    val memoriesEnabled: Boolean = true,
-    val showMemoryDialog: Boolean = false,
-    val editingMemory: Memory? = null,
     // Speech detail dialogs
     val showSttDetailDialog: Boolean = false,
     val showTtsDetailDialog: Boolean = false,
@@ -113,13 +60,9 @@ data class SettingsUiState(
     val availableDeviceVoices: List<DeviceVoiceInfo> = emptyList(),
     // TTS preview
     val isTtsPreviewPlaying: Boolean = false,
-    // Cache / Keys
-    val isCacheClearing: Boolean = false,
-    val isKeyRevoking: Boolean = false,
     // Fork settings
     val forkMode: String = "targetLevel",
     val showForkSettingsDialog: Boolean = false,
-    // Commands
     // Chat layout
     val chatLayoutStyle: String = ChatLayoutConstants.THREAD,
     val showAvatars: Boolean = true,
@@ -134,31 +77,4 @@ data class SettingsUiState(
     val inlineArtifactPrefs: InlineArtifactPrefs = InlineArtifactPrefs(),
     // Artifact viewer presentation (bottom sheet vs full screen + selector visibility)
     val artifactDisplayPrefs: ArtifactDisplayPrefs = ArtifactDisplayPrefs(),
-    // Role-permission gates. `serverMemoriesEnabled` is the SERVER-level MEMORIES.USE
-    // gate and is orthogonal to [memoriesEnabled], which is the user's own opt-out
-    // stored on their profile (`user.personalization.memories`).
-    val mcpServersEnabled: Boolean = true,
-    val mcpServersCreateEnabled: Boolean = true,
-    val serverMemoriesEnabled: Boolean = true,
-    val remoteAgentsEnabled: Boolean = true,
-    val remoteAgentsCreateEnabled: Boolean = true,
-    /**
-     * The last MCP server save was refused with `OAUTH_SECRET_REENTRY_REQUIRED` — the stored
-     * client secret was bound to the OAuth endpoints it was issued for and one of them changed,
-     * so the write keeps failing until the secret is supplied again.
-     */
-    val mcpOAuthSecretReentryRequired: Boolean = false,
-    /**
-     * The last MCP server save was refused with `API_KEY_REENTRY_REQUIRED` (v0.8.8-rc4) — the
-     * retained admin API key was bound to the connection it was entered for and the edit changed
-     * it, so the write keeps failing until the key is supplied again.
-     */
-    val mcpApiKeyReentryRequired: Boolean = false,
-    /**
-     * Why the last MCP server save failed, shown inside the server dialog rather than through
-     * [error]: the dialog stays open on failure and would cover [error]'s snackbar.
-     */
-    val mcpServerDialogError: String? = null,
-    /** The open MCP server dialog's save is in flight; see `McpUiState.isSavingServer`. */
-    val mcpServerSaving: Boolean = false,
 )
