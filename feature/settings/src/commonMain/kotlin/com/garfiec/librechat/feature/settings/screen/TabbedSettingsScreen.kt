@@ -133,6 +133,7 @@ fun TabbedSettingsScreen(
                 1 -> ChatSettingsContent(
                     onNavigateToPresets = onNavigateToPresets,
                     onNavigateToContextUsage = onNavigateToContextUsage,
+                    snackbarHostState = snackbarHostState,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = contentPadding,
                 )

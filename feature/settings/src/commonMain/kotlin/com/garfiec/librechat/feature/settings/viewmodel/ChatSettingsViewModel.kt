@@ -18,16 +18,17 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 
+/** Backs the Chat tab: display and behaviour preferences, artifacts, speech, and fork mode. */
 // TooManyFunctions: the members are one-line forwarders to controllers, one per setting, so the
 // count tracks how many settings exist rather than how much this class does.
-@Suppress("LongParameterList", "TooManyFunctions")
-class SettingsViewModel(
+@Suppress("TooManyFunctions")
+class ChatSettingsViewModel(
     settingsDataStore: SettingsDataStore,
     speechSettingsFactory: SpeechSettingsFactory,
 ) : ViewModel() {
 
     /** Raw state for everything not driven by DataStore flows. */
-    private val _uiState = MutableStateFlow(SettingsUiState())
+    private val _uiState = MutableStateFlow(ChatSettingsUiState())
 
     private val stateHandle = SettingsStateHandle(_uiState, viewModelScope)
 
@@ -35,14 +36,14 @@ class SettingsViewModel(
     private val speechDelegate = speechSettingsFactory.create(stateHandle)
 
     /** Owns the DataStore read flows + write setters; merges them with [_uiState]. */
-    private val prefsController = SettingsPreferencesController(
+    private val prefsController = ChatPreferencesController(
         settingsDataStore,
         _uiState,
         viewModelScope,
     )
 
     /** The single public UI state that merges DataStore preferences with imperative state. */
-    val uiState: StateFlow<SettingsUiState> = prefsController.uiState
+    val uiState: StateFlow<ChatSettingsUiState> = prefsController.uiState
 
     init {
         speechDelegate.loadVoices()

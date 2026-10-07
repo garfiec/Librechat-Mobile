@@ -16,9 +16,9 @@ import com.garfiec.librechat.core.model.speech.TtsVoice
 import com.garfiec.librechat.feature.settings.screen.DeviceVoiceInfo
 
 @Immutable
-data class SettingsUiState(
+data class ChatSettingsUiState(
     /**
-     * Transient errors surfaced via snackbar; cleared by [SettingsViewModel.dismissError]
+     * Transient errors surfaced via snackbar; cleared by [ChatSettingsViewModel.dismissError]
      * after the snackbar is shown/acted on.
      */
     val error: String? = null,
