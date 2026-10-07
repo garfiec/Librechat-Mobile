@@ -45,6 +45,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.contextusage.ContextBreakdownCard
 import com.garfiec.librechat.core.ui.contextusage.SampleContextModel
 import com.garfiec.librechat.core.ui.contextusage.pressureColor
+import com.garfiec.librechat.core.ui.glass.GlassControlColors
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.viewmodel.ContextUsageSettingsUiState
@@ -68,6 +69,8 @@ fun ContextUsageSettingsScreen(
 
     AdaptiveScaffold(
         modifier = modifier,
+        // Matches the grouped page, so the bar and system-bar insets share its colour.
+        containerColor = GlassControlColors.groupedBackground,
         topBar = {
             AdaptiveTopBar(
                 spec = AdaptiveTopBarSpec(

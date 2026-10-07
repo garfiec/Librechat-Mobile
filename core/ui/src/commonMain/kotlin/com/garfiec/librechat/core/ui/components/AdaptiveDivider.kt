@@ -16,10 +16,10 @@ import com.garfiec.librechat.core.ui.glass.GlassDefaults
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 
 /**
- * An M3 [HorizontalDivider] in Material. In Liquid Glass it is an iOS hairline: thinner, in the
- * separator colour, inset from the leading edge inside a grouped cell, and left out after the last
- * cell of a group (whose rounded edge already ends it). A [thickness] or [color] the caller sets wins
- * in either style.
+ * An M3 [HorizontalDivider] in Material, an iOS hairline (thinner, in the separator colour) in Liquid
+ * Glass. In both, it is inset from the leading edge inside a grouped cell and left out after the
+ * last cell of a group, whose rounded edge already ends it. A [thickness] or [color] the caller sets
+ * wins in either style.
  */
 @Composable
 fun AdaptiveDivider(
@@ -27,22 +27,23 @@ fun AdaptiveDivider(
     thickness: Dp = Dp.Unspecified,
     color: Color = Color.Unspecified,
 ) {
-    if (!isLiquidGlass) {
-        HorizontalDivider(
-            modifier = modifier,
-            thickness = if (thickness.isSpecified) thickness else DividerDefaults.Thickness,
-            color = if (color.isSpecified) color else DividerDefaults.color,
-        )
-        return
-    }
+    val glass = isLiquidGlass
     val position = LocalGroupPosition.current
     when {
         // Keep the caller's spacing (a divider often carries a top padding) but draw nothing.
         position?.isLast == true -> Spacer(modifier)
         else -> HorizontalDivider(
             modifier = modifier.padding(start = if (position != null) SeparatorInset else 0.dp),
-            thickness = if (thickness.isSpecified) thickness else GlassDefaults.Hairline,
-            color = if (color.isSpecified) color else GlassControlColors.separator,
+            thickness = when {
+                thickness.isSpecified -> thickness
+                glass -> GlassDefaults.Hairline
+                else -> DividerDefaults.Thickness
+            },
+            color = when {
+                color.isSpecified -> color
+                glass -> GlassControlColors.separator
+                else -> DividerDefaults.color
+            },
         )
     }
 }

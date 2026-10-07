@@ -34,7 +34,7 @@ enum class GroupPosition {
     val isLast: Boolean get() = this == LAST || this == ONLY
 }
 
-/** The position of the grouped cell being composed, or null outside a grouped section (and in Material). */
+/** The position of the grouped cell being composed, or null outside a grouped section. */
 internal val LocalGroupPosition = staticCompositionLocalOf<GroupPosition?> { null }
 
 class AdaptiveSectionScope internal constructor() {
@@ -65,46 +65,36 @@ internal fun AdaptiveGroupedCell(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    val glass = isLiquidGlass
-    val cell = if (glass) {
-        Modifier
-            .padding(horizontal = GroupInset)
-            .clip(position.shape)
-            .background(GlassControlColors.cell)
-    } else {
-        Modifier
-    }
-    CompositionLocalProvider(LocalGroupPosition provides position.takeIf { glass }) {
+    val cell = Modifier
+        .padding(horizontal = GroupInset)
+        .clip(position.shape)
+        .background(GlassControlColors.cell)
+    CompositionLocalProvider(LocalGroupPosition provides position) {
         // A Column, not a Box: a lazy item stacks several root children vertically, and so must its cell.
         Column(modifier = modifier.then(cell)) { content() }
     }
 }
 
 /**
- * The background for a row's own `Surface`: transparent inside a Liquid Glass grouped cell, so the
- * cell colour shows through, and the M3 surface default everywhere else.
+ * The background for a row's own `Surface`: transparent inside a grouped cell, so the cell colour
+ * shows through, and the M3 surface default everywhere else.
  */
 val adaptiveRowColor: Color
     @Composable @ReadOnlyComposable
     get() = if (LocalGroupPosition.current != null) Color.Transparent else MaterialTheme.colorScheme.surface
 
-/** A page of grouped sections: the grouped-background colour in Liquid Glass, nothing in Material. */
+/** A page of grouped sections: rounded cells inset on the grouped-background colour, in both styles. */
 @Composable
 fun AdaptiveGroupedPage(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    val background = if (isLiquidGlass) {
-        Modifier.background(GlassControlColors.groupedBackground)
-    } else {
-        Modifier
-    }
-    Box(modifier.then(background)) { content() }
+    Box(modifier.background(GlassControlColors.groupedBackground)) { content() }
 }
 
 /**
- * The title above an [adaptiveSection]: an accent `titleSmall` in Material, the iOS grouped header
- * (small, upper-case, secondary colour, aligned with the cell text) in Liquid Glass.
+ * The title above an [adaptiveSection], aligned with the cell text: an accent `titleSmall` in
+ * Material, the iOS grouped header (small, upper-case, secondary colour) in Liquid Glass.
  */
 @Composable
 fun AdaptiveSectionHeader(title: String, modifier: Modifier = Modifier) {
@@ -117,7 +107,8 @@ fun AdaptiveSectionHeader(title: String, modifier: Modifier = Modifier) {
         style = MaterialTheme.typography.titleSmall,
         color = MaterialTheme.colorScheme.primary,
         modifier = modifier
-            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .fillMaxWidth()
+            .padding(start = GroupInset * 2, end = GroupInset * 2, top = 24.dp, bottom = 8.dp)
             .semantics { heading() },
     )
 }

@@ -68,6 +68,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarAction
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
+import com.garfiec.librechat.core.ui.glass.GlassControlColors
 import com.garfiec.librechat.core.ui.glass.ReducedGlassNote
 import com.garfiec.librechat.core.ui.glass.reducedEffectNote
 import com.garfiec.librechat.core.ui.theme.ThemePreview
@@ -92,6 +93,8 @@ fun AppearanceSettingsScreen(
 
     AdaptiveScaffold(
         modifier = modifier,
+        // Matches the grouped page, so the bar and system-bar insets share its colour.
+        containerColor = GlassControlColors.groupedBackground,
         topBar = {
             AdaptiveTopBar(
                 spec = AdaptiveTopBarSpec(

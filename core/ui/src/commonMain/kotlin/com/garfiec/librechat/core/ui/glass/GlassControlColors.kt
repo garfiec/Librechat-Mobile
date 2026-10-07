@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.ui.theme.LocalDarkTheme
 /**
  * Liquid Glass control colours, mapped onto the M3 scheme so the accent and dark mode carry over.
  * Grouped lists follow iOS: white cells on a grey page in light mode, lighter cells on near-black in dark.
+ * [groupedBackground] and [cell] paint grouped settings pages in Material too.
  */
 object GlassControlColors {
     val groupedBackground: Color
