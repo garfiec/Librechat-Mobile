@@ -212,16 +212,18 @@ fun AccountSettingsContent(
                 }
             }
 
-            // Balance section
-            item(key = "balance_header") {
-                AdaptiveSectionHeader(stringResource(Res.string.section_balance))
-            }
-            adaptiveSection {
-                row(key = "balance_section") {
-                    BalanceSection(
-                        tokenCredits = uiState.tokenCredits,
-                        isLoading = uiState.isBalanceLoading,
-                    )
+            // Balance section — only when the server tracks balances
+            if (uiState.balanceEnabled) {
+                item(key = "balance_header") {
+                    AdaptiveSectionHeader(stringResource(Res.string.section_balance))
+                }
+                adaptiveSection {
+                    row(key = "balance_section") {
+                        BalanceSection(
+                            tokenCredits = uiState.tokenCredits,
+                            isLoading = uiState.isBalanceLoading,
+                        )
+                    }
                 }
             }
 
