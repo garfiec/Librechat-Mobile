@@ -22,7 +22,6 @@ import com.garfiec.librechat.core.data.repository.KeyRepository
 import com.garfiec.librechat.core.data.repository.McpRepository
 import com.garfiec.librechat.core.data.repository.MemoryRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
-import com.garfiec.librechat.core.data.repository.ShareRepository
 import com.garfiec.librechat.core.data.repository.SpeechRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
@@ -79,7 +78,6 @@ class SettingsViewModelTest {
     private val memoryRepository = mockk<MemoryRepository>(relaxed = true)
     private val speechRepository = mockk<SpeechRepository>(relaxed = true)
     private val balanceRepository = mockk<BalanceRepository>(relaxed = true)
-    private val shareRepository = mockk<ShareRepository>(relaxed = true)
     private val keyRepository = mockk<KeyRepository>(relaxed = true)
     private val roleRepository = mockk<RoleRepository>(relaxed = true)
     private val permissionGate = mockk<PermissionGate>(relaxed = true)
@@ -171,7 +169,6 @@ class SettingsViewModelTest {
         memoryRepository = memoryRepository,
         speechSettingsFactory = SpeechSettingsFactory { speechSettingsContract },
         balanceRepository = balanceRepository,
-        shareRepository = shareRepository,
         keyRepository = keyRepository,
         roleRepository = roleRepository,
         permissionGate = permissionGate,

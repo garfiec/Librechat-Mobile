@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
  * Handles MCP server management, connection status, and reinitialization.
  */
 class McpServerDelegate(
-    private val stateHandle: SettingsStateHandle,
+    private val stateHandle: SettingsStateHandle<SettingsUiState>,
     private val mcpRepository: McpRepository,
 ) {
 

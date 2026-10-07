@@ -25,7 +25,6 @@ import com.garfiec.librechat.core.data.repository.KeyRepository
 import com.garfiec.librechat.core.data.repository.McpRepository
 import com.garfiec.librechat.core.data.repository.MemoryRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
-import com.garfiec.librechat.core.data.repository.ShareRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.logging.DiagnosticLogRepository
@@ -70,7 +69,6 @@ class SettingsViewModel(
     memoryRepository: MemoryRepository,
     speechSettingsFactory: SpeechSettingsFactory,
     balanceRepository: BalanceRepository,
-    shareRepository: ShareRepository,
     keyRepository: KeyRepository,
     private val roleRepository: RoleRepository,
     private val permissionGate: PermissionGate,
@@ -100,7 +98,6 @@ class SettingsViewModel(
             stateHandle,
             cacheCleaner,
             conversationRepository,
-            shareRepository,
             keyRepository,
             diagnosticLogRepository,
         )
@@ -163,11 +160,6 @@ class SettingsViewModel(
                         serverMemoriesEnabled = role.hasAccessOrPermissive(PermissionType.MEMORIES, Permission.USE),
                         remoteAgentsEnabled = role.hasAccessOrPermissive(PermissionType.REMOTE_AGENTS, Permission.USE),
                         remoteAgentsCreateEnabled = role.hasAccessOrPermissive(PermissionType.REMOTE_AGENTS, Permission.CREATE),
-                        // Only the update affordance is gated — DELETE stays ungated server-side.
-                        // Permissive on unknown: an older server emits no such permission and
-                        // still accepts the call, and the server enforces with 403 either way.
-                        sharedLinksUpdateEnabled =
-                            role.hasAccessOrPermissive(PermissionType.SHARED_LINKS, Permission.CREATE),
                     )
                 }
             }
@@ -193,10 +185,6 @@ class SettingsViewModel(
                         allowAccountDeletion = config?.allowAccountDeletion ?: true,
                         buildInfo = config?.buildInfo,
                         serverVersion = version,
-                        // Fail-safe false: only a CONFIRMED rc1+ server keeps the shareId across
-                        // a re-publish, so an unresolved version warns instead of promising it.
-                        sharedLinkUpdateKeepsUrl = version != null &&
-                            BackendVersion.isCompatibleOrNewer(version, "0.8.8-rc1"),
                         // Offered unless the server is KNOWN to predate the route: a dev build
                         // reporting the previous release, or one built past the commit-map pin,
                         // is the population most likely to HAVE it. See VERSION_GATES.md.
@@ -416,10 +404,6 @@ class SettingsViewModel(
     fun consumeArchivedAllCount() = dataDelegate.consumeArchivedAllCount()
     fun exportAllData() = dataDelegate.exportAllData()
     fun dismissExportComingSoon() = dataDelegate.dismissExportComingSoon()
-    fun loadSharedLinks() = dataDelegate.loadSharedLinks()
-    fun loadMoreSharedLinks() = dataDelegate.loadMoreSharedLinks()
-    fun updateSharedLink(shareId: String) = dataDelegate.updateSharedLink(shareId)
-    fun deleteSharedLink(shareId: String) = dataDelegate.deleteSharedLink(shareId)
     fun clearCache() = dataDelegate.clearCache()
     fun revokeAllKeys() = dataDelegate.revokeAllKeys()
 

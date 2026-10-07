@@ -1,7 +1,5 @@
 package com.garfiec.librechat.feature.settings.navigation
 
-import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import com.garfiec.librechat.feature.settings.screen.AccountSettingsScreen
@@ -13,12 +11,10 @@ import com.garfiec.librechat.feature.settings.screen.PresetManagerScreen
 import com.garfiec.librechat.feature.settings.screen.SharedLinksScreen
 import com.garfiec.librechat.feature.settings.screen.TabbedSettingsScreen
 import com.garfiec.librechat.feature.settings.screen.providerkeys.ProviderKeysScreen
-import com.garfiec.librechat.feature.settings.viewmodel.SettingsViewModel
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.subclass
-import org.koin.compose.viewmodel.koinViewModel
 
 @Serializable sealed interface SettingsRoute : NavKey
 
@@ -113,25 +109,7 @@ fun EntryProviderScope<NavKey>.settingsEntries(
         )
     }
     entry<SharedLinks> {
-        val viewModel: SettingsViewModel = koinViewModel()
-        val uiState = viewModel.uiState.collectAsStateWithLifecycle()
-
-        LaunchedEffect(Unit) {
-            viewModel.loadSharedLinks()
-        }
-
-        SharedLinksScreen(
-            links = uiState.value.sharedLinks,
-            isLoading = uiState.value.isSharedLinksLoading,
-            hasNextPage = uiState.value.sharedLinksHasNextPage,
-            serverUrl = uiState.value.serverUrl,
-            onLoadMore = viewModel::loadMoreSharedLinks,
-            canUpdate = uiState.value.sharedLinksUpdateEnabled,
-            updateKeepsUrl = uiState.value.sharedLinkUpdateKeepsUrl,
-            onUpdateLink = viewModel::updateSharedLink,
-            onDelete = viewModel::deleteSharedLink,
-            onNavigateBack = onBack,
-        )
+        SharedLinksScreen(onNavigateBack = onBack)
     }
     entry<PresetManager> {
         PresetManagerScreen(

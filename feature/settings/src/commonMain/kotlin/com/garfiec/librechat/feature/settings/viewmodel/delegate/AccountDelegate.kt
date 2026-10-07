@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.data.repository.BalanceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.feature.settings.util.ContentReader
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
+import com.garfiec.librechat.feature.settings.viewmodel.SettingsUiState
 import com.garfiec.librechat.feature.settings.viewmodel.isHttpStatus
 import com.garfiec.librechat.feature.settings.viewmodel.toDisplayData
 import kotlinx.coroutines.CoroutineDispatcher
@@ -20,7 +21,7 @@ import kotlinx.coroutines.withContext
  * job so a retry cancels a hung request before starting a fresh one.
  */
 class AccountDelegate(
-    private val stateHandle: SettingsStateHandle,
+    private val stateHandle: SettingsStateHandle<SettingsUiState>,
     private val userRepository: UserRepository,
     private val balanceRepository: BalanceRepository,
     private val contentReader: ContentReader,

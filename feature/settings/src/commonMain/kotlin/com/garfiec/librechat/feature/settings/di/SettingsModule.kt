@@ -14,6 +14,7 @@ import com.garfiec.librechat.feature.settings.viewmodel.ReleaseNotesViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.RoleSkillsAdminViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ServerHeadersViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.SharedLinksViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.UpdateCheckViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.WhatsNewViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.providerkeys.ProviderKeysViewModel
@@ -44,7 +45,6 @@ val settingsModule = module {
             memoryRepository = get(),
             speechSettingsFactory = get(),
             balanceRepository = get(),
-            shareRepository = get(),
             keyRepository = get(),
             roleRepository = get(),
             permissionGate = get(),
@@ -75,6 +75,7 @@ val settingsModule = module {
     viewModelOf(::ProviderKeysViewModel)
     viewModelOf(::RoleSkillsAdminViewModel)
     viewModelOf(::ServerHeadersViewModel)
+    viewModelOf(::SharedLinksViewModel)
     viewModelOf(::UpdateCheckViewModel)
     viewModelOf(::WhatsNewViewModel)
     viewModelOf(::ReleaseNotesViewModel)
