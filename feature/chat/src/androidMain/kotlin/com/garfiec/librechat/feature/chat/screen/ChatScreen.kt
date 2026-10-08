@@ -40,8 +40,8 @@ import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.PdfPasswordDialog
 import com.garfiec.librechat.core.ui.glass.glassBackdropSource
 import com.garfiec.librechat.feature.chat.components.AskUserQuestionPanel
+import com.garfiec.librechat.feature.chat.components.ChatComposer
 import com.garfiec.librechat.feature.chat.components.ChatFloatingTopBar
-import com.garfiec.librechat.feature.chat.components.ChatInput
 import com.garfiec.librechat.feature.chat.components.ChatRoot
 import com.garfiec.librechat.feature.chat.components.ToolApprovalPanel
 import com.garfiec.librechat.feature.chat.components.UpdateAvailableBanner
@@ -347,7 +347,7 @@ actual fun ChatScreen(
                                     .padding(horizontal = 12.dp, vertical = 8.dp),
                             )
                         } else {
-                            ChatInput(
+                            ChatComposer(
                                 inputText = uiState.inputText,
                                 isStreaming = isAnyStreaming,
                                 onInputChange = viewModel::onInputChanged,
@@ -393,6 +393,7 @@ actual fun ChatScreen(
                                 onSetDuringRunAction = viewModel::setDuringRunAction,
                                 attachedFiles = attachedFiles,
                                 onRemoveFile = viewModel::removeFile,
+                                onPasteFiles = viewModel::onFilesSelected,
                                 promptSuggestions = uiState.availablePrompts,
                                 onSlashCommandSelect = viewModel::handleSlashCommand,
                                 isRecording = uiState.isRecording,

@@ -31,7 +31,7 @@ import kotlinx.coroutines.launch
  * Rebuilt on each recomposition so it always sees the latest [sttEngine]/[sttLanguage].
  */
 @Composable
-internal fun rememberChatStartRecording(
+internal actual fun rememberChatStartRecording(
     viewModel: ChatViewModel,
     sttEngine: String,
     sttLanguage: String,
