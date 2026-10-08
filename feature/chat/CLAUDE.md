@@ -24,8 +24,8 @@
   (`MessagesState`) because all five couple them.
 - Adding a field: put it on the owning slice, add a flat compat accessor on `ChatUiState`, and
   add the slice to the writer of whichever delegate(s) own it.
-- **Chrome/hot collection split (both `ChatScreen` actuals).** The screen collects `uiState` twice:
-  the thread subtree (`ChatContent` on Android, `IosChatBody` on iOS) at full rate, the rest — top
+- **Chrome/hot collection split (`ChatScreen`).** The screen collects `uiState` twice:
+  the thread subtree (`ChatContent`) at full rate, the rest — top
   bar, composer, dialogs, sheets, effects ("chrome") — as
   `map { it.neutralizeStreamingChurn() }.distinctUntilChanged()`
   (`ChatChromeEquivalence.kt`), so the 50ms flush doesn't re-execute the whole screen ~20×/s.
@@ -35,6 +35,19 @@
   `subagentProgress` is chrome-visible by design (ChatRoot → `LocalSubagentProgress`) and written
   per SSE envelope unthrottled, so subagent-heavy runs still re-execute the chrome — needs a
   separate collection path or a write-side throttle in `SubagentTraceDelegate` (open follow-up).
+
+## One screen, four platform seams
+`ChatScreen` / `NewChatScreen` are a single commonMain composable for both platforms. Where the
+platforms genuinely differ, the screen calls an `expect`, never an `if (platform)`:
+- `ChatComposer` — `ChatInput` on Android, `IosChatInput` on iOS. iOS's clipboard-image paste lives
+  inside its actual (`onPasteFiles` is ignored on Android).
+- `rememberChatAttachmentActions` — activity-result launchers vs the native iOS pickers.
+- `rememberChatStartRecording` — Android routes API 26–30 through the system recognizer overlay.
+- `Modifier.addToChatSelectionItem` — a no-op on iOS.
+
+Known iOS gaps behind those seams: the document picker ignores the endpoint's MIME allowlist, and
+there is no "Add to chat" selection item. A feature added to the screen reaches both platforms; a
+feature added to only one composer does not.
 
 ## Screen States
 `ChatScreenState` enum: `LANDING` | `LOADING` | `ACTIVE`
@@ -276,7 +289,7 @@ Two consequences worth knowing before touching that block:
 A clarifying question reaches the screen twice over its life, and the two must never overlap.
 
 - **While the run is paused** it is the interactive `AskUserQuestionPanel`, which takes the
-  composer's place (both `ChatScreen` actuals hide the composer while it is up) with one tab per
+  composer's place (`ChatScreen` hides the composer while it is up) with one tab per
   question of a batch — the only thing that can resolve it. Below 600dp (phones, a folded Fold) it
   is a Claude-style card with a page-dot pager (see the next section) where a pick or a
   per-question Skip advances and the answer filling the last blank submits; at 600dp and up it is
@@ -317,7 +330,7 @@ rendering it as unanswered would be a lie.
 ## Tool approval: one call at a time, above the composer (v0.8.8)
 
 A run paused on a `tool_approval` batch shows `ToolApprovalPanel` docked **above** the composer
-(both `ChatScreen` actuals stack it over `ChatInput` in the measured bottom box), and the thread
+(`ChatScreen` stacks it over the composer in the measured bottom box), and the thread
 keeps a one-line `ToolApprovalWaitingMarker`. Above rather than in place of the composer, unlike
 the ask panel: a decision does not compete with the composer, which keeps its Stop and queue — so
 this panel carries no Stop of its own.
