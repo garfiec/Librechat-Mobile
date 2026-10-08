@@ -1,6 +1,5 @@
 package com.garfiec.librechat.feature.chat.screen
 
-import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -57,30 +56,44 @@ import kotlinx.coroutines.flow.map
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
+/** The chat screen, shared by Android and iOS; platform differences sit behind the expects it calls. */
 @OptIn(ExperimentalMaterial3Api::class)
 // The Scaffold's content padding is deliberately unused: the thread draws under both bars (the
 // floating top bar applies its own statusBarsPadding, the composer its own nav-bar padding) and the
 // list reserves its insets from the measured bar heights instead. contentWindowInsets is still set
 // so the snackbar clears the navigation bar.
-@Suppress("LambdaParameterEventTrailing") // actual: the defaults live on the expect, which the rule can't see
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+@Suppress("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-actual fun ChatScreen(
-    modifier: Modifier,
-    conversationId: String?,
-    isTemporaryRoute: Boolean,
-    initialAgentId: String?,
-    initialEndpoint: String?,
-    initialModel: String?,
-    onConversationStart: ((conversationId: String, isTemporary: Boolean) -> Unit)?,
-    onNavigateToConversation: ((String) -> Unit)?,
-    onOpenDrawer: (() -> Unit)?,
-    onNavigateToPromptsLibrary: (() -> Unit)?,
-    onNavigateBack: (() -> Unit)?,
-    onShowAllMedia: (() -> Unit)?,
-    onAttachFromServer: () -> Unit,
-    onOpenWhatsNew: () -> Unit,
+fun ChatScreen(
+    /**
+     * Deep-link CTA from the user-provided-key error snackbar and the
+     * model-selector "Set API Key" CTA on greyed endpoint groups. Tap navigates to
+     * Settings → Provider API Keys. When [endpointName] is non-null, the destination
+     * screen auto-opens the Set Key bottom-sheet for that endpoint.
+     */
     onNavigateToProviderKeys: (endpointName: String?) -> Unit,
+    modifier: Modifier = Modifier,
+    conversationId: String? = null,
+    /** True when this Chat(id) entry was created as (or restored as) a temporary chat. Seeds the
+     *  VM temp-aware so it never persists the server-hidden conversation. See Chat.isTemporary. */
+    isTemporaryRoute: Boolean = false,
+    initialAgentId: String? = null,
+    /** Explicit (endpoint, model) to pre-select on a new chat — set when launched from a
+     *  home-screen model shortcut / quick action. Mutually exclusive with [initialAgentId]. */
+    initialEndpoint: String? = null,
+    initialModel: String? = null,
+    onConversationStart: ((conversationId: String, isTemporary: Boolean) -> Unit)? = null,
+    onNavigateToConversation: ((String) -> Unit)? = null,
+    onOpenDrawer: (() -> Unit)? = null,
+    onNavigateToPromptsLibrary: (() -> Unit)? = null,
+    onNavigateBack: (() -> Unit)? = null,
+    /** Opens the "Show all media" gallery for the current conversation. Null (and the menu item
+     *  hidden) on a brand-new chat that has no conversation id yet. */
+    onShowAllMedia: (() -> Unit)? = null,
+    /** Opens the server-file picker so the user can attach an already-uploaded file by reference. */
+    onAttachFromServer: () -> Unit = {},
+    /** Opens What's new from the update banner shown on an empty chat. */
+    onOpenWhatsNew: () -> Unit = {},
 ) {
     val viewModel: ChatViewModel =
         koinViewModel {
@@ -119,7 +132,7 @@ actual fun ChatScreen(
     var activeComparisonTab by remember { mutableIntStateOf(0) }
 
     // Header/composer model labels (agent name vs model name, with the "never a raw
-    // model string under agents" rule). Shared with iOS via rememberChatModelLabel.
+    // model string under agents" rule).
     val (agentName, displayModel) = rememberChatModelLabel(
         selectedEndpoint = uiState.selectedEndpoint,
         selectedModel = uiState.selectedModel,
@@ -521,4 +534,37 @@ actual fun ChatScreen(
         )
     }
     }
+}
+
+/**
+ * [ChatScreen] with no conversation id. When a conversation starts streaming, [onConversationStart]
+ * gets its id so the caller can navigate to the full chat route. [initialAgentId], when non-null,
+ * pre-selects that agent (set when starting from an agent detail/card); [initialEndpoint] and
+ * [initialModel] pre-select a concrete model (home-screen shortcut).
+ */
+@Composable
+fun NewChatScreen(
+    onConversationStart: (conversationId: String, isTemporary: Boolean) -> Unit,
+    onNavigateToProviderKeys: (endpointName: String?) -> Unit,
+    modifier: Modifier = Modifier,
+    initialAgentId: String? = null,
+    initialEndpoint: String? = null,
+    initialModel: String? = null,
+    onOpenDrawer: (() -> Unit)? = null,
+    onNavigateToPromptsLibrary: (() -> Unit)? = null,
+    onAttachFromServer: () -> Unit = {},
+    onOpenWhatsNew: () -> Unit = {},
+) {
+    ChatScreen(
+        modifier = modifier,
+        initialAgentId = initialAgentId,
+        initialEndpoint = initialEndpoint,
+        initialModel = initialModel,
+        onConversationStart = onConversationStart,
+        onOpenDrawer = onOpenDrawer,
+        onNavigateToPromptsLibrary = onNavigateToPromptsLibrary,
+        onNavigateToProviderKeys = onNavigateToProviderKeys,
+        onAttachFromServer = onAttachFromServer,
+        onOpenWhatsNew = onOpenWhatsNew,
+    )
 }

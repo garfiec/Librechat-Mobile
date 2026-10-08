@@ -17,7 +17,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
  * Hosts the chat screen's one-shot side effects so [ChatScreen] reads as layout.
  * Covers: new-conversation navigation handoff, error snackbars, the provider-key error
  * snackbar, and back-navigation after a delete/archive clears the conversation. Share, fork,
- * duplicate and lifecycle live in [ChatScreenOutcomes], shared with iOS.
+ * duplicate and lifecycle live in [ChatScreenOutcomes].
  */
 // debt — ViewModelForwarding: screen split across files; state not hoisted yet
 @Suppress("ViewModelForwarding")

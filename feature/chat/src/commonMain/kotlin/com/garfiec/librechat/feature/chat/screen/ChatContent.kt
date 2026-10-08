@@ -91,7 +91,7 @@ internal fun ColumnScope.ChatContent(
                     model ?: fallbackSenderName
                 }
             }
-            // Ahead of the comparison branch, matching iOS: with nothing to show, empty comparison
+            // Ahead of the comparison branch: with nothing to show, empty comparison
             // panes are less use than the failure state. !isStreaming is load-bearing — a
             // handed-off new chat is legitimately empty until the first message lands.
             if (uiState.messagesLoadFailed && uiState.displayMessages.isEmpty() &&
