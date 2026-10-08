@@ -1,8 +1,6 @@
 package com.garfiec.librechat.feature.chat.screen
 
 import android.annotation.SuppressLint
-import android.content.ClipboardManager
-import android.content.Context
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -28,7 +26,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
@@ -116,8 +113,6 @@ actual fun ChatScreen(
     }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
-    val context = LocalContext.current
-    val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     var showPresetPicker by remember { mutableStateOf(false) }
     var showSavePresetDialog by remember { mutableStateOf(false) }
     var showSecondaryModelSheet by remember { mutableStateOf(false) }
@@ -265,7 +260,6 @@ actual fun ChatScreen(
                         listPullUpModifier = pullUp.listModifier,
                         pullUpModifier = pullUp.landingModifier,
                         viewModel = viewModel,
-                        clipboardManager = clipboardManager,
                         agentName = agentName,
                         displayModel = displayModel,
                         fontSizeMultiplier = fontSizeMultiplier,

@@ -91,7 +91,7 @@ internal fun ChatScreenDialogs(
 
     if (uiState.showDeleteConfirmation) {
         ChatDeleteConfirmationDialog(
-            conversationTitle = uiState.conversationTitle ?: "this conversation",
+            conversationTitle = uiState.conversationTitle?.takeIf { it.isNotBlank() },
             onDismiss = viewModel::dismissDeleteConfirmation,
             onConfirm = viewModel::deleteConversation,
         )
@@ -131,12 +131,7 @@ private fun ChatRenameDialog(
         title = { Text(stringResource(Res.string.dialog_title_rename)) },
         text = {
             Column {
-                Text(
-                    text = "Enter a new title for this conversation.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 AdaptiveOutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
@@ -164,7 +159,7 @@ private fun ChatRenameDialog(
 
 @Composable
 private fun ChatDeleteConfirmationDialog(
-    conversationTitle: String,
+    conversationTitle: String?,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
 ) {
@@ -172,10 +167,16 @@ private fun ChatDeleteConfirmationDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.dialog_title_delete_conversation)) },
         text = {
-            Text(
-                text = "Are you sure you want to delete \"$conversationTitle\"? This action cannot be undone.",
-                style = MaterialTheme.typography.bodyMedium,
-            )
+            Column {
+                conversationTitle?.let { title ->
+                    Text(text = title, style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                Text(
+                    text = stringResource(Res.string.dialog_delete_conversation_message),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {

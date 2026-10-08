@@ -1,7 +1,5 @@
 package com.garfiec.librechat.feature.chat.screen
 
-import android.content.ClipData
-import android.content.ClipboardManager
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -15,12 +13,17 @@ import com.garfiec.librechat.core.ui.components.LoadingIndicator
 import com.garfiec.librechat.feature.chat.components.LandingContent
 import com.garfiec.librechat.feature.chat.components.MessageList
 import com.garfiec.librechat.feature.chat.components.MessagesUnavailable
+import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.resources.sender_assistant
+import com.garfiec.librechat.feature.chat.util.ClipboardWriter
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.util.collapseParallelToPrimary
+import com.garfiec.librechat.feature.chat.util.rememberClipboardWriter
 import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
 import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Renders the chat screen's main content area for each [ChatScreenState]: the
@@ -36,7 +39,6 @@ import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
 @Composable
 internal fun ColumnScope.ChatContent(
     viewModel: ChatViewModel,
-    clipboardManager: ClipboardManager,
     agentName: String?,
     displayModel: String?,
     fontSizeMultiplier: Float,
@@ -56,6 +58,8 @@ internal fun ColumnScope.ChatContent(
     pullUpModifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val clipboard = rememberClipboardWriter()
+    val fallbackSenderName = stringResource(Res.string.sender_assistant)
     // Non-scrolling bodies (landing, loading, comparison panes) clear the floating bar with a
     // plain top padding; only the single active MessageList takes the inset as scrollable
     // contentPadding so its content scrolls up behind the bar's scrim.
@@ -84,7 +88,7 @@ internal fun ColumnScope.ChatContent(
                 if (uiState.selectedEndpoint == EndpointConstants.AGENTS && model != null) {
                     uiState.agents.find { it.id == model }?.name ?: model
                 } else {
-                    model ?: "Assistant"
+                    model ?: fallbackSenderName
                 }
             }
             // Ahead of the comparison branch, matching iOS: with nothing to show, empty comparison
@@ -110,7 +114,7 @@ internal fun ColumnScope.ChatContent(
                     showBubbles = showBubbles,
                     useKatex = useKatex,
                     bottomContentPadding = bottomContentPadding,
-                    onCopyMessage = { messageId -> copyMessageToClipboard(viewModel, clipboardManager, messageId) },
+                    onCopyMessage = { messageId -> copyMessageToClipboard(viewModel, clipboard, messageId) },
                     onShowSecondaryModelSheet = onShowSecondaryModelSheet,
                     onComparisonTabChange = onComparisonTabChange,
                     modifier = topInsetModifier,
@@ -122,7 +126,7 @@ internal fun ColumnScope.ChatContent(
                 ChatMessageListPane(
                     uiState = uiState,
                     viewModel = viewModel,
-                    clipboardManager = clipboardManager,
+                    clipboard = clipboard,
                     fontSizeMultiplier = fontSizeMultiplier,
                     showImageDescriptions = showImageDescriptions,
                     chatLayoutStyle = chatLayoutStyle,
@@ -147,12 +151,12 @@ internal fun ColumnScope.ChatContent(
 
 private fun copyMessageToClipboard(
     viewModel: ChatViewModel,
-    clipboardManager: ClipboardManager,
+    clipboard: ClipboardWriter,
     messageId: String,
 ) {
     val text = viewModel.getMessageClipboardText(messageId)
     if (text.isNotBlank()) {
-        clipboardManager.setPrimaryClip(ClipData.newPlainText("Message", text))
+        clipboard.copy(text, "Message")
     }
 }
 
@@ -166,7 +170,7 @@ private fun copyMessageToClipboard(
 private fun ChatMessageListPane(
     uiState: ChatUiState,
     viewModel: ChatViewModel,
-    clipboardManager: ClipboardManager,
+    clipboard: ClipboardWriter,
     fontSizeMultiplier: Float,
     showImageDescriptions: Boolean,
     chatLayoutStyle: String,
@@ -194,7 +198,7 @@ private fun ChatMessageListPane(
         onSiblingNavigation = viewModel::switchBranch,
         onEditMessage = viewModel::startEditing,
         onRegenerateMessage = viewModel::regenerateMessage,
-        onCopyMessage = { messageId -> copyMessageToClipboard(viewModel, clipboardManager, messageId) },
+        onCopyMessage = { messageId -> copyMessageToClipboard(viewModel, clipboard, messageId) },
         onFeedback = viewModel::submitFeedback,
         feedbackEnabled = uiState.gates.feedbackEnabled,
         onContinue = { viewModel.continueGeneration() },
