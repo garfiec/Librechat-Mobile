@@ -36,7 +36,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import coil3.SingletonImageLoader
 import coil3.compose.LocalPlatformContext
@@ -75,7 +77,8 @@ data class MediaPreviewState(
  *   drag pans, and at fit scale a horizontal swipe pages to the previous/next item.
  *   Edge-of-image → pager handoff is handled by ZoomImage's nested-scroll integration.
  * - Subsampling (large-image tiling) is auto-enabled by the Coil integration.
- * - A downward drag at fit scale, the back gesture and the close button all leave through
+ * - A drag at fit scale in any direction (sideways only where there is no page to swipe to),
+ *   the back gesture and the close button all leave through
  *   [MediaDismissTransition]: the image flies back into its thumbnail, then [onDismiss] runs.
  *
  * Images load through the app's Coil singleton ([SingletonImageLoader]); auth lives in that
@@ -128,6 +131,7 @@ internal fun ZoomableMediaPager(
         }
     }
 
+    val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val platformContext = LocalPlatformContext.current
     val imageLoader = remember(platformContext) { SingletonImageLoader.get(platformContext) }
     Box(
@@ -155,14 +159,21 @@ internal fun ZoomableMediaPager(
                 pages[page] = source
                 onDispose { if (pages[page] === source) pages.remove(page) }
             }
-            val dragHandler = remember(source, transition) {
-                transition.dragHandler(source, pagerIdle = { !pagerState.isScrollInProgress })
+            val dragHandler = remember(source, transition, isRtl) {
+                transition.dragHandler(
+                    source,
+                    pagerIdle = { !pagerState.isScrollInProgress },
+                    // A finger moving toward the start edge (left in LTR) brings in the next page.
+                    canPage = { dx ->
+                        if ((dx < 0f) != isRtl) pagerState.canScrollForward else pagerState.canScrollBackward
+                    },
+                )
             }
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .onPlaced { source.coordinates = it }
-                    .verticalDismissDrag(dragHandler)
+                    .dismissDrag(dragHandler)
                     .dismissFrame { transition.frame(source) },
                 contentAlignment = Alignment.Center,
             ) {
