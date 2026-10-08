@@ -254,7 +254,6 @@ fun ChatScreen(
         Box(
             modifier = Modifier.fillMaxSize(),
         ) {
-            // Pull-up tools sheet; see ChatPullUpSheetState.
             val pullUp = rememberChatPullUpSheetState()
             Box(Modifier.fillMaxSize().glassBackdropSource(pullUp.backdrop.takeIf { pullUp.visible })) {
                 Column(

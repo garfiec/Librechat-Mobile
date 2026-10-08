@@ -21,8 +21,7 @@ import java.io.File
  * Registers the file-picker, photo-picker, camera, and camera-permission activity-result launchers
  * and returns the [ChatAttachmentActions] that drive them, handing [Uri]s to [onFilesSelect]. A
  * launcher stays usable from any descendant composition while the one that registered it is alive,
- * so the chat screen registers a single set and passes it down to both the composer's "+" sheet and
- * the pull-up sheet — no need for a second copy.
+ * so one set registered by the chat screen serves both the composer's "+" sheet and the pull-up sheet.
  */
 @Composable
 actual fun rememberChatAttachmentActions(
