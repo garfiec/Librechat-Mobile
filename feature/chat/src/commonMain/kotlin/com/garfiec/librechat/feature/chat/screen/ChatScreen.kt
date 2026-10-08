@@ -401,6 +401,7 @@ fun ChatScreen(
                                 attachedFiles = attachedFiles,
                                 onRemoveFile = viewModel::removeFile,
                                 onPasteFiles = viewModel::onFilesSelected,
+                                pasteScope = coroutineScope,
                                 promptSuggestions = uiState.availablePrompts,
                                 onSlashCommandSelect = viewModel::handleSlashCommand,
                                 isRecording = uiState.isRecording,

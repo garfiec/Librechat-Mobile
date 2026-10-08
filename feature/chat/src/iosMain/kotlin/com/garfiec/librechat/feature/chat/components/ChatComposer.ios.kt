@@ -5,7 +5,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
@@ -19,6 +18,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import com.garfiec.librechat.feature.chat.viewmodel.DuringRunSendTarget
 import com.garfiec.librechat.feature.chat.viewmodel.PendingSteerChip
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 @Suppress("LongParameterList", "LambdaParameterEventTrailing")
@@ -45,6 +45,7 @@ internal actual fun ChatComposer(
     attachedFiles: List<AttachedFile>,
     onRemoveFile: (AttachedFile) -> Unit,
     onPasteFiles: (List<Any>) -> Unit,
+    pasteScope: CoroutineScope,
     promptSuggestions: List<PromptMentionDisplayData>,
     onSlashCommandSelect: (PromptMentionDisplayData) -> Unit,
     isRecording: Boolean,
@@ -80,7 +81,6 @@ internal actual fun ChatComposer(
     fontSizeMultiplier: Float,
     modifier: Modifier,
 ) {
-    val coroutineScope = rememberCoroutineScope()
     var hasClipboardImage by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         hasClipboardImage = clipboardHasImage()
@@ -141,7 +141,8 @@ internal actual fun ChatComposer(
         fontSizeMultiplier = fontSizeMultiplier,
         hasClipboardImage = hasClipboardImage,
         onPasteImage = {
-            coroutineScope.launch {
+            // The screen's scope: a pause panel can swap this composer out mid-decode.
+            pasteScope.launch {
                 readClipboardImage()?.let { onPasteFiles(listOf(it)) }
                 hasClipboardImage = clipboardHasImage()
             }

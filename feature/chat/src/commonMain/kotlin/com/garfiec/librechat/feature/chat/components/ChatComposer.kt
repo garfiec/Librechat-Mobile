@@ -11,11 +11,13 @@ import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import com.garfiec.librechat.feature.chat.viewmodel.DuringRunSendTarget
 import com.garfiec.librechat.feature.chat.viewmodel.PendingSteerChip
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
+import kotlinx.coroutines.CoroutineScope
 
 /**
  * The chat composer: [ChatInput] on Android, [IosChatInput] on iOS. The two differ in what they do
  * on their own (iOS offers to paste a copied image, handing it to [onPasteFiles]), so the screen
- * hands both everything and each takes what it uses.
+ * hands both everything and each takes what it uses. [pasteScope] must outlive the composer, which
+ * a pause panel can replace while a paste is still decoding.
  */
 @Suppress("LongParameterList", "LambdaParameterEventTrailing")
 @Composable
@@ -41,6 +43,7 @@ internal expect fun ChatComposer(
     attachedFiles: List<AttachedFile>,
     onRemoveFile: (AttachedFile) -> Unit,
     onPasteFiles: (List<Any>) -> Unit,
+    pasteScope: CoroutineScope,
     promptSuggestions: List<PromptMentionDisplayData>,
     onSlashCommandSelect: (PromptMentionDisplayData) -> Unit,
     isRecording: Boolean,

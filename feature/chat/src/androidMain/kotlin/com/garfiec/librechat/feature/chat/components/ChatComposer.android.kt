@@ -11,6 +11,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import com.garfiec.librechat.feature.chat.viewmodel.DuringRunSendTarget
 import com.garfiec.librechat.feature.chat.viewmodel.PendingSteerChip
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
+import kotlinx.coroutines.CoroutineScope
 
 @Suppress("LongParameterList", "LambdaParameterEventTrailing", "UnusedParameter")
 @Composable
@@ -36,6 +37,7 @@ internal actual fun ChatComposer(
     attachedFiles: List<AttachedFile>,
     onRemoveFile: (AttachedFile) -> Unit,
     onPasteFiles: (List<Any>) -> Unit,
+    pasteScope: CoroutineScope,
     promptSuggestions: List<PromptMentionDisplayData>,
     onSlashCommandSelect: (PromptMentionDisplayData) -> Unit,
     isRecording: Boolean,

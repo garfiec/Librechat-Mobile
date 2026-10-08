@@ -15,6 +15,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -32,6 +33,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -47,7 +49,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
@@ -55,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveSheetSurface
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.core.ui.components.PlatformBackHandler
+import com.garfiec.librechat.core.ui.components.topbar.CoversNativeBars
 import com.garfiec.librechat.core.ui.glass.GlassBackdrop
 import com.garfiec.librechat.core.ui.glass.rememberGlassBackdrop
 import com.garfiec.librechat.feature.chat.components.ChatOptionsPage
@@ -121,18 +123,19 @@ internal class ChatPullUpSheetState(
     // Velocity-aware settle, only once the sheet is already partly open (so a fling that merely
     // reaches the list bottom can't fling it open). Velocity wins, else position at 40%.
     // animateToWithDecay, NOT settle(velocity) — the latter throws for this threshold-less state.
-    private suspend fun settle(velocity: Float) {
+    // Returns whether it moved the sheet, so a hidden sheet leaves the fling to the list.
+    private suspend fun settle(velocity: Float): Boolean {
         val h = heightPx.toFloat()
         val o = anchored.offset
-        if (h > 0f && !o.isNaN() && o < h) {
-            val target = when {
-                velocity <= -minFlingVelocityPx -> PullUpAnchor.Revealed
-                velocity >= minFlingVelocityPx -> PullUpAnchor.Hidden
-                o < h * 0.6f -> PullUpAnchor.Revealed
-                else -> PullUpAnchor.Hidden
-            }
-            anchored.animateToWithDecay(target, velocity)
+        if (h <= 0f || o.isNaN() || o >= h) return false
+        val target = when {
+            velocity <= -minFlingVelocityPx -> PullUpAnchor.Revealed
+            velocity >= minFlingVelocityPx -> PullUpAnchor.Hidden
+            o < h * 0.6f -> PullUpAnchor.Revealed
+            else -> PullUpAnchor.Hidden
         }
+        anchored.animateToWithDecay(target, velocity)
+        return true
     }
 
     // Bridges the message-list over-scroll into the sheet: reveal on leftover upward drag once the
@@ -169,10 +172,8 @@ internal class ChatPullUpSheetState(
                 Velocity.Zero
             }
 
-        override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
-            settle(available.y)
-            return available
-        }
+        override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity =
+            if (settle(available.y)) available else Velocity.Zero
     }
 
     // Bridges the sheet's own content scroll into the surface: anchoredDraggable is pointer-input only
@@ -213,10 +214,8 @@ internal class ChatPullUpSheetState(
             }
         }
 
-        override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
-            settle(available.y)
-            return available
-        }
+        override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity =
+            if (settle(available.y)) available else Velocity.Zero
     }
 
     /**
@@ -260,7 +259,7 @@ internal fun rememberChatPullUpSheetState(): ChatPullUpSheetState {
         ChatPullUpSheetState(anchored, flingBehavior, minFlingVelocityPx, backdrop, height, gesture)
     }
     // Dismiss the IME the moment the sheet starts to reveal (the screens' Scaffolds use imePadding()).
-    val keyboardController = LocalSoftwareKeyboardController.current
+    val keyboardController by rememberUpdatedState(LocalSoftwareKeyboardController.current)
     LaunchedEffect(anchored) {
         snapshotFlow {
             val o = anchored.offset
@@ -302,12 +301,20 @@ internal fun BoxScope.ChatPullUpSheetOverlay(
     var mcpExpanded by remember { mutableStateOf(false) }
     // Cap the sheet's height to the space below the top bar so tall content (e.g. many MCP servers)
     // can't push the bottom-anchored surface up past the screen top and clip the attachment cards
-    // off-screen. Excess content scrolls inside the sheet instead. No minimum floor: in a very short
-    // window (split-screen/freeform) a floor could itself exceed the window and reintroduce the
-    // top-clip. coerceAtLeast(0) only guards heightIn against a negative on a pathologically small
-    // window.
-    val windowHeight = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
-    val maxSheetHeight = (windowHeight - topContentPadding - 8.dp).coerceAtLeast(0.dp)
+    // off-screen. Excess content scrolls inside the sheet instead. Measured from the box the sheet
+    // sits in, not the window: that box shrinks under the IME and is a pane, not the screen, on a
+    // tablet. No minimum floor: in a very short window (split-screen/freeform) a floor could itself
+    // exceed the box and reintroduce the top-clip. Uncapped until the box has been measured.
+    var boxHeightPx by remember { mutableIntStateOf(0) }
+    Spacer(Modifier.matchParentSize().onSizeChanged { boxHeightPx = it.height })
+    val maxSheetHeight = if (boxHeightPx > 0) {
+        with(LocalDensity.current) { (boxHeightPx.toDp() - topContentPadding - 8.dp).coerceAtLeast(0.dp) }
+    } else {
+        Dp.Unspecified
+    }
+
+    // A native glass top bar draws above the Compose canvas, so the scrim must hide it.
+    CoversNativeBars(active = state.visible)
 
     if (state.visible) {
         Box(
@@ -319,7 +326,7 @@ internal fun BoxScope.ChatPullUpSheetOverlay(
                     orientation = Orientation.Vertical,
                     flingBehavior = state.flingBehavior,
                 )
-                .pointerInput(Unit) {
+                .pointerInput(state) {
                     detectTapGestures { hide() }
                 }
                 .drawBehind {
