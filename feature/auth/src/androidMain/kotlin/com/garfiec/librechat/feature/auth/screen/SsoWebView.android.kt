@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.auth.screen
 
 import android.annotation.SuppressLint
 import android.net.Uri
+import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
@@ -51,6 +52,13 @@ actual fun SsoWebView(
         modifier = modifier,
         factory = { context ->
             WebView(context).apply {
+                // Without explicit MATCH_PARENT, Chromium resolves CSS `100vh` to 0 here, and any
+                // provider page that centres itself in a viewport-height box (Pocket ID) collapses
+                // to the top of the screen, clipped.
+                layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                )
                 settings.userAgentString = SSO_ANDROID_USER_AGENT
                 settings.javaScriptEnabled = true
                 settings.domStorageEnabled = true
