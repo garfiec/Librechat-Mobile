@@ -29,7 +29,7 @@ data class ChatSettingsUiState(
     val contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
     /** What the composer's send does mid-run (v0.8.8 steering): inject into the running reply,
      *  or queue for after it. Honoured only where the server supports steering. */
-    val duringRunAction: DuringRunAction = DuringRunAction.QUEUE,
+    val duringRunAction: DuringRunAction = DuringRunAction.STEER,
     val uploadRoutingMode: UploadRoutingMode = UploadRoutingMode.AUTO,
     val showImageDescriptions: Boolean = false,
     val showSiteIcons: Boolean = false,
@@ -69,7 +69,7 @@ data class ChatSettingsUiState(
     val showBubbles: Boolean = false,
     val latexRenderer: LatexRenderer = LatexRenderer.KATEX,
     // Mobile-only: how pinned models/agents surface in the model-selection sheet
-    val starredModelsDisplay: StarredModelsDisplay = StarredModelsDisplay.OFF,
+    val starredModelsDisplay: StarredModelsDisplay = StarredModelsDisplay.GROUPED,
     // Mobile-only: what the chat floating top bar shows + how its bubble is aligned
     val chatHeaderContent: ChatHeaderContent = ChatHeaderContent.TITLE,
     val chatHeaderAlignment: ChatHeaderAlignment = ChatHeaderAlignment.LEFT,

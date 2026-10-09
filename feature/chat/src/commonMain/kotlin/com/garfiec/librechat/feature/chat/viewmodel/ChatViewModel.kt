@@ -766,9 +766,9 @@ class ChatViewModel(
 
         // The during-run preference is folded into `prefs` by the `uiState` combine below, but that
         // copy exists only on the EXPOSED state. `sendDuringRun` decides from `_uiState`, which
-        // carries `ChatPrefsState()`'s default — so without this collector the send reads QUEUE no
-        // matter what the user chose, while the very same button renders itself "Steer this reply"
-        // (it takes its icon from the exposed state). Behaviour must never be decided from a slice
+        // carries `ChatPrefsState()`'s default — so without this collector the send reads that default
+        // whatever the user chose, while the very same button renders the user's choice (it takes
+        // its icon from the exposed state). Behaviour must never be decided from a slice
         // only the edge populates.
         viewModelScope.launch {
             settingsDataStore.duringRunAction.collect { action ->

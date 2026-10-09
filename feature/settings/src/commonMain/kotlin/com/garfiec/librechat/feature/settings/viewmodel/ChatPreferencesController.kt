@@ -59,11 +59,11 @@ private data class AdditionalPreferences(
     val latexRenderer: LatexRenderer = LatexRenderer.KATEX,
     val inlineArtifactPrefs: InlineArtifactPrefs = InlineArtifactPrefs(),
     val artifactDisplayPrefs: ArtifactDisplayPrefs = ArtifactDisplayPrefs(),
-    val starredModelsDisplay: StarredModelsDisplay = StarredModelsDisplay.OFF,
+    val starredModelsDisplay: StarredModelsDisplay = StarredModelsDisplay.GROUPED,
     val chatHeaderContent: ChatHeaderContent = ChatHeaderContent.TITLE,
     val chatHeaderAlignment: ChatHeaderAlignment = ChatHeaderAlignment.LEFT,
     val contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
-    val duringRunAction: DuringRunAction = DuringRunAction.QUEUE,
+    val duringRunAction: DuringRunAction = DuringRunAction.STEER,
     val uploadRoutingMode: UploadRoutingMode = UploadRoutingMode.AUTO,
     val showSiteIcons: Boolean = false,
 )
@@ -142,7 +142,7 @@ class ChatPreferencesController(
         .stateIn(scope, SharingStarted.Eagerly, ArtifactDisplayPrefs())
 
     private val starredModelsDisplayPref: StateFlow<StarredModelsDisplay> = settingsDataStore.starredModelsDisplay
-        .stateIn(scope, SharingStarted.Eagerly, StarredModelsDisplay.OFF)
+        .stateIn(scope, SharingStarted.Eagerly, StarredModelsDisplay.GROUPED)
 
     private val chatHeaderContentPref: StateFlow<ChatHeaderContent> = settingsDataStore.chatHeaderContent
         .stateIn(scope, SharingStarted.Eagerly, ChatHeaderContent.TITLE)
@@ -154,7 +154,7 @@ class ChatPreferencesController(
         .stateIn(scope, SharingStarted.Eagerly, ContextBarPlacement.OPTIONS_SHEET)
 
     private val duringRunActionPref: StateFlow<DuringRunAction> = settingsDataStore.duringRunAction
-        .stateIn(scope, SharingStarted.Eagerly, DuringRunAction.QUEUE)
+        .stateIn(scope, SharingStarted.Eagerly, DuringRunAction.STEER)
 
     private val uploadRoutingModePref: StateFlow<UploadRoutingMode> = settingsDataStore.uploadRoutingMode
         .stateIn(scope, SharingStarted.Eagerly, UploadRoutingMode.AUTO)

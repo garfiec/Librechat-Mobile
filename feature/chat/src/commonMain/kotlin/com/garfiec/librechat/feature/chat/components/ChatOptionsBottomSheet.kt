@@ -114,7 +114,7 @@ data class ModelSelectorPageParams(
     val favoriteModelKeys: Set<String> = emptySet(),
     val onToggleAgentFavorite: ((agentId: String) -> Unit)? = null,
     val onToggleModelFavorite: ((endpoint: String, model: String) -> Unit)? = null,
-    val starredDisplay: StarredModelsDisplay = StarredModelsDisplay.OFF,
+    val starredDisplay: StarredModelsDisplay = StarredModelsDisplay.GROUPED,
     val endpointKeyStates: Map<String, KeyState> = emptyMap(),
 )
 

@@ -58,11 +58,11 @@ import org.junit.Test
  *
  * The defect this locks down: `ChatPrefsState` is merged into the state by the `uiState` combine,
  * i.e. onto the EXPOSED flow only, while [ChatViewModel.sendDuringRun] decides from the private
- * backing state — where the slice still held `ChatPrefsState()`'s `QUEUE` default. Every during-run
- * send queued, and steering was unreachable from the composer no matter what the user chose.
+ * backing state — where the slice still held `ChatPrefsState()`'s default. Every during-run send
+ * followed that default, and the other route was unreachable from the composer whatever the user chose.
  *
  * It failed *invisibly*, which is why nothing caught it: the send button takes its icon from the
- * exposed state, so it rendered itself "Steer this reply" and then queued. Asserting on
+ * exposed state, so it showed the user's choice and then did the default. Asserting on
  * `uiState.value` cannot reproduce that — the combine populates the copy a test would read. Only
  * driving the real send path does, so this test builds the whole ViewModel and calls
  * [ChatViewModel.sendDuringRun], the exact entry point the composer's send button routes to.

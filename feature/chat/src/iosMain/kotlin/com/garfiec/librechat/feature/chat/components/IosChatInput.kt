@@ -60,7 +60,7 @@ fun IosChatInput(
     onDuringRunSend: () -> Unit = {},
     onSteer: () -> Unit = {},
     canSteer: Boolean = false,
-    duringRunAction: DuringRunAction = DuringRunAction.QUEUE,
+    duringRunAction: DuringRunAction = DuringRunAction.STEER,
     duringRunSendTarget: DuringRunSendTarget = DuringRunSendTarget.QUEUE,
     pendingSteers: List<PendingSteerChip> = emptyList(),
     onCancelSteer: (steerId: String) -> Unit = {},

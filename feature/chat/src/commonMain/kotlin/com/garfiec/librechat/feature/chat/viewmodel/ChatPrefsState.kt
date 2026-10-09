@@ -27,7 +27,7 @@ data class ChatPrefsState(
      * Mobile-only preference for how pinned models/agents are surfaced in [ModelSelectorSheet]:
      * off (float within group), grouped (collapsible top section), or top (flat top list).
      */
-    val starredModelsDisplay: StarredModelsDisplay = StarredModelsDisplay.OFF,
+    val starredModelsDisplay: StarredModelsDisplay = StarredModelsDisplay.GROUPED,
     /**
      * Mobile-only preferences for the chat floating top bar: what its bubble shows
      * ([chatHeaderContent]) and how the bubble is positioned ([chatHeaderAlignment]).
@@ -56,7 +56,7 @@ data class ChatPrefsState(
      * became unreachable from the composer while the send button still drew itself as "Steer this
      * reply". Anything added here that a non-UI code path branches on needs the same treatment.
      */
-    val duringRunAction: DuringRunAction = DuringRunAction.QUEUE,
+    val duringRunAction: DuringRunAction = DuringRunAction.STEER,
 )
 
 /**
@@ -109,7 +109,7 @@ data class ChatDisplayPrefs(
     val alignment: ChatHeaderAlignment = ChatHeaderAlignment.LEFT,
     val contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
     val context: ContextUsagePrefs = ContextUsagePrefs(),
-    val duringRunAction: DuringRunAction = DuringRunAction.QUEUE,
+    val duringRunAction: DuringRunAction = DuringRunAction.STEER,
 )
 
 /** The context gauge's preferences, folded into one flow for the same 5-argument reason. */
