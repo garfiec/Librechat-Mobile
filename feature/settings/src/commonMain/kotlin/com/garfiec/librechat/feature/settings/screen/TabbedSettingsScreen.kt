@@ -19,6 +19,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.AdaptiveTabRow
 import com.garfiec.librechat.core.ui.components.AdaptiveTabRowKind
+import com.garfiec.librechat.core.ui.components.selectedTabIndex
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
@@ -88,7 +89,7 @@ fun TabbedSettingsScreen(
                 )
                 AdaptiveTabRow(
                     titles = tabTitles,
-                    selectedIndex = pagerState.currentPage,
+                    selectedIndex = pagerState.selectedTabIndex(),
                     onSelect = { index -> scope.launch { pagerState.animateScrollToPage(index) } },
                     kind = AdaptiveTabRowKind.SECONDARY,
                     // The bar slot: the strip samples the pages scrolling beneath it.

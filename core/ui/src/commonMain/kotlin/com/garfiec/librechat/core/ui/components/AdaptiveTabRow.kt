@@ -1,11 +1,14 @@
 package com.garfiec.librechat.core.ui.components
 
+import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -20,6 +23,17 @@ enum class AdaptiveTabRowKind {
 
     /** Tabs inside a section, under a top bar: `SecondaryTabRow`. */
     SECONDARY,
+}
+
+/**
+ * The tab an [AdaptiveTabRow] over this pager shows selected: the page under the finger while it's
+ * dragged, otherwise the page it is settling on. A tapped tab stays selected while the pager scrolls
+ * to it, rather than stepping through the pages in between (which [PagerState.currentPage] does).
+ */
+@Composable
+fun PagerState.selectedTabIndex(): Int {
+    val dragged by interactionSource.collectIsDraggedAsState()
+    return if (dragged) currentPage else targetPage
 }
 
 /**

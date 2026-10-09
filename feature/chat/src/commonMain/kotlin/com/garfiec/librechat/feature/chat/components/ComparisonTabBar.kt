@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveTabRow
+import com.garfiec.librechat.core.ui.components.selectedTabIndex
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import kotlinx.coroutines.launch
@@ -57,7 +58,7 @@ fun ComparisonTabBar(
     Column(modifier = modifier.fillMaxSize()) {
         AdaptiveTabRow(
             titles = listOf(primaryModelName, secondaryModelName),
-            selectedIndex = pagerState.currentPage,
+            selectedIndex = pagerState.selectedTabIndex(),
             onSelect = { page -> coroutineScope.launch { pagerState.animateScrollToPage(page) } },
         )
 
