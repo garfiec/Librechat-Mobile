@@ -31,6 +31,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
@@ -72,6 +73,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -483,8 +485,8 @@ private class LiquidThumbMotion(private val scope: CoroutineScope, initial: Floa
     }
 
     /**
-     * [linger] (a tap) holds the bubble a moment after it arrives, then swells it once more and
-     * pops it flat; otherwise (a drag, a selection from outside) it deflates as it arrives.
+     * [linger] (a tap) bounces the bubble as it lands, holds it a moment, then swells it once more
+     * and pops it flat; otherwise (a drag, a selection from outside) it deflates as it arrives.
      */
     fun moveTo(to: Float, count: Int, linger: Boolean = false) {
         val range = (count - 1).coerceAtLeast(1)
@@ -499,7 +501,12 @@ private class LiquidThumbMotion(private val scope: CoroutineScope, initial: Floa
             }
             snapshotFlow { abs(position.value - to) < range * RELEASE_FRACTION }.first { it }
             if (linger) {
-                delay(LINGER_MILLIS)
+                // Bounce again on landing: a long slide has already spent the swell's bounce on the way.
+                launch { swellX.animateTo(pressedScaleX, TapSwellSpec, initialVelocity = pressedScaleX * LANDING_KICK) }
+                launch { swellY.animateTo(pressedScaleY, TapSwellSpec, initialVelocity = pressedScaleY * LANDING_KICK) }
+                // Scaled like the springs, so with animations off the thumb doesn't sit swollen.
+                val durationScale = currentCoroutineContext()[MotionDurationScale]?.scaleFactor ?: 1f
+                delay(((LANDING_MILLIS + LINGER_MILLIS) * durationScale).toLong())
                 coroutineScope {
                     launch { swellX.animateTo(pressedScaleX * POP_SWELL, PopSwellSpec) }
                     launch { swellY.animateTo(pressedScaleY * POP_SWELL, PopSwellSpec) }
@@ -550,9 +557,17 @@ private class LiquidThumbMotion(private val scope: CoroutineScope, initial: Floa
         val PressSpec = spring(dampingRatio = 1f, stiffness = 1000f, visibilityThreshold = VISIBILITY)
         val SwellSpec = spring(dampingRatio = 0.6f, stiffness = 250f, visibilityThreshold = VISIBILITY)
 
-        // A tap: the bubble bounces in, holds, swells once more, then pops flat.
+        // A tap: the bubble bounces in, bounces again on landing, holds, swells once more, then pops flat.
         val TapSwellSpec = spring(dampingRatio = 0.4f, stiffness = 300f, visibilityThreshold = VISIBILITY)
+
+        /** The landing bounce's outward speed, in pressed scales per second. */
+        const val LANDING_KICK = 1.7f
+
+        /** How long the landing bounce plays, then how long the bubble holds before the pop. */
+        const val LANDING_MILLIS = 180L
         const val LINGER_MILLIS = 60L
+
+        /** The last swell before the pop, as a multiple of the pressed size. */
         const val POP_SWELL = 1.08f
         val PopSwellSpec = spring(dampingRatio = 1f, stiffness = 900f, visibilityThreshold = VISIBILITY)
         val PopSpec = spring(dampingRatio = 0.6f, stiffness = 700f, visibilityThreshold = VISIBILITY)
