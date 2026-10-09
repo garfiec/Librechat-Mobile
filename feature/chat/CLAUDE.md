@@ -380,8 +380,7 @@ doesn't cost the user their decisions.
 Two different things can happen when the user sends while a reply is generating, and they are not
 interchangeable.
 - **Queue** (`MessageQueueDelegate`, `QueueState`) — the message becomes the *next turn*, drained FIFO
-  when the run ends. Works against every supported server; the long-standing mobile behaviour and the
-  default.
+  when the run ends. Works against every supported server, and is what steer degrades to.
 - **Steer** (`SteeringDelegate`, `SteerState`) — the message goes into the reply *being written*, injected
   at the run's next tool boundary and announced back as `on_steer_applied`. Needs a server with
   `POST /api/agents/chat/steer` (`FeatureGatesState.steeringSupported`, a date gate — see VERSION_GATES.md).

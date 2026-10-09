@@ -188,8 +188,8 @@ class SettingsDataStore(
     }.distinctUntilChanged()
 
     /**
-     * What the send control does mid-run (v0.8.8 steering). Default [DuringRunAction.QUEUE] —
-     * steering needs a server that has the route, queueing works everywhere.
+     * What the send control does mid-run (v0.8.8 steering). Default [DuringRunAction.STEER],
+     * which falls back to queueing on a server without the route.
      */
     val duringRunAction: Flow<DuringRunAction> = dataStore.data.map { prefs ->
         DuringRunAction.fromString(prefs[KEY_DURING_RUN_ACTION])

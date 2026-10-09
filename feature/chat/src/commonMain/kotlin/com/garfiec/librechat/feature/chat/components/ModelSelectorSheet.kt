@@ -119,10 +119,10 @@ fun ModelSelectorSheet(
     onToggleModelFavorite: ((endpoint: String, model: String) -> Unit)? = null,
     /**
      * Mobile-only preference controlling whether pinned items also appear in a
-     * dedicated section at the top of the sheet. [StarredModelsDisplay.OFF] keeps the
-     * historical behavior (favorites float to the top within their own group).
+     * dedicated section at the top of the sheet. [StarredModelsDisplay.OFF] skips it
+     * (favorites float to the top within their own group).
      */
-    starredDisplay: StarredModelsDisplay = StarredModelsDisplay.OFF,
+    starredDisplay: StarredModelsDisplay = StarredModelsDisplay.GROUPED,
     /**
      * Per-endpoint user-provided-key state. Endpoints whose key is [KeyState.Unset]
      * or [KeyState.Expired] render a greyed group with a "Set API Key" CTA. Absent
@@ -194,10 +194,10 @@ fun ModelSelectorSheetContent(
     onToggleModelFavorite: ((endpoint: String, model: String) -> Unit)? = null,
     /**
      * Mobile-only preference controlling whether pinned items also appear in a
-     * dedicated section at the top of the sheet. [StarredModelsDisplay.OFF] keeps the
-     * historical behavior (favorites float to the top within their own group).
+     * dedicated section at the top of the sheet. [StarredModelsDisplay.OFF] skips it
+     * (favorites float to the top within their own group).
      */
-    starredDisplay: StarredModelsDisplay = StarredModelsDisplay.OFF,
+    starredDisplay: StarredModelsDisplay = StarredModelsDisplay.GROUPED,
     /**
      * Per-endpoint user-provided-key state. Endpoints whose key is [KeyState.Unset]
      * or [KeyState.Expired] render a greyed group with a "Set API Key" CTA. Absent
