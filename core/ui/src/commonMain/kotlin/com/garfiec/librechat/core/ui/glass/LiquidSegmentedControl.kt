@@ -31,6 +31,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
@@ -71,6 +72,9 @@ import com.kyant.backdrop.shadow.Shadow
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -245,7 +249,8 @@ internal fun LiquidSegmentedControl(
                             dragging -> motion.target.roundToInt()
                             else -> pressed
                         }.coerceIn(0, latestCount - 1)
-                        motion.touchUp(target.toFloat(), latestCount)
+                        // A tap on another segment lingers in the bubble before popping flat.
+                        motion.touchUp(target.toFloat(), latestCount, linger = released && !dragging && target != currentSelected)
                         finished = true
                         if (target != currentSelected) currentOnSelect(target)
                     } finally {
@@ -409,7 +414,10 @@ private fun SegmentLabels(
     }
 }
 
-/** The thumb's springs. [moveTo] releases the swell just before arriving, so its wobble overlaps the slide's end. */
+/**
+ * The thumb's springs. [moveTo] releases the swell just before arriving, so its wobble overlaps the
+ * slide's end; a tap's move instead holds it past arrival and pops it.
+ */
 @Stable
 private class LiquidThumbMotion(private val scope: CoroutineScope, initial: Float) {
     private val position = Animatable(initial)
@@ -466,28 +474,47 @@ private class LiquidThumbMotion(private val scope: CoroutineScope, initial: Floa
         scope.launch { glowAnim.animateTo(1f, GlowSpec) }
     }
 
-    fun touchUp(target: Float, count: Int) {
+    fun touchUp(target: Float, count: Int, linger: Boolean = false) {
         scope.launch { dragDx.animateTo(0f, LeanSpec) }
         scope.launch { glowAnim.animateTo(0f, GlowSpec) }
-        moveTo(target, count)
+        moveTo(target, count, linger)
     }
 
     fun follow(to: Float) {
         scope.launch { slide(to, FollowSpec) }
     }
 
-    fun moveTo(to: Float, count: Int) {
+    /**
+     * [linger] (a tap) bounces the bubble as it lands, holds it a moment, then swells it once more
+     * and pops it flat; otherwise (a drag, a selection from outside) it deflates as it arrives.
+     */
+    fun moveTo(to: Float, count: Int, linger: Boolean = false) {
         val range = (count - 1).coerceAtLeast(1)
         job?.cancel()
         job = scope.launch {
-            animatePress(1f, pressedScaleX, pressedScaleY)
+            // A bouncier swell on a tap, so the bubble springs into view.
+            animatePress(1f, pressedScaleX, pressedScaleY, if (linger) TapSwellSpec else SwellSpec)
             launch {
                 slide(to, PositionSpec)
                 launch { sheen.animateTo(0f, StretchSpec) }
                 stretch.animateTo(0f, StretchSpec)
             }
             snapshotFlow { abs(position.value - to) < range * RELEASE_FRACTION }.first { it }
-            animatePress(0f, 1f, 1f)
+            if (linger) {
+                // Bounce again on landing: a long slide has already spent the swell's bounce on the way.
+                launch { swellX.animateTo(pressedScaleX, TapSwellSpec, initialVelocity = pressedScaleX * LANDING_KICK) }
+                launch { swellY.animateTo(pressedScaleY, TapSwellSpec, initialVelocity = pressedScaleY * LANDING_KICK) }
+                // Scaled like the springs, so with animations off the thumb doesn't sit swollen.
+                val durationScale = currentCoroutineContext()[MotionDurationScale]?.scaleFactor ?: 1f
+                delay(((LANDING_MILLIS + LINGER_MILLIS) * durationScale).toLong())
+                coroutineScope {
+                    launch { swellX.animateTo(pressedScaleX * POP_SWELL, PopSwellSpec) }
+                    launch { swellY.animateTo(pressedScaleY * POP_SWELL, PopSwellSpec) }
+                }
+                animatePress(0f, 1f, 1f, PopSpec)
+            } else {
+                animatePress(0f, 1f, 1f)
+            }
         }
     }
 
@@ -504,10 +531,15 @@ private class LiquidThumbMotion(private val scope: CoroutineScope, initial: Floa
      * Animatable over at the call: a later call (the release) always wins over an earlier one (the
      * swell), even when the release comes straight after it, as on a tap of the selected segment.
      */
-    private fun CoroutineScope.animatePress(progress: Float, scaleX: Float, scaleY: Float) {
+    private fun CoroutineScope.animatePress(
+        progress: Float,
+        scaleX: Float,
+        scaleY: Float,
+        swellSpec: SpringSpec<Float> = SwellSpec,
+    ) {
         launch(start = CoroutineStart.UNDISPATCHED) { press.animateTo(progress, PressSpec) }
-        launch(start = CoroutineStart.UNDISPATCHED) { swellX.animateTo(scaleX, SwellXSpec) }
-        launch(start = CoroutineStart.UNDISPATCHED) { swellY.animateTo(scaleY, SwellYSpec) }
+        launch(start = CoroutineStart.UNDISPATCHED) { swellX.animateTo(scaleX, swellSpec) }
+        launch(start = CoroutineStart.UNDISPATCHED) { swellY.animateTo(scaleY, swellSpec) }
     }
 
     private companion object {
@@ -523,8 +555,22 @@ private class LiquidThumbMotion(private val scope: CoroutineScope, initial: Floa
         val PositionSpec = spring(dampingRatio = 0.8f, stiffness = 500f, visibilityThreshold = VISIBILITY)
         val FollowSpec = spring(dampingRatio = 0.55f, stiffness = 380f, visibilityThreshold = VISIBILITY)
         val PressSpec = spring(dampingRatio = 1f, stiffness = 1000f, visibilityThreshold = VISIBILITY)
-        val SwellXSpec = spring(dampingRatio = 0.6f, stiffness = 250f, visibilityThreshold = VISIBILITY)
-        val SwellYSpec = spring(dampingRatio = 0.6f, stiffness = 250f, visibilityThreshold = VISIBILITY)
+        val SwellSpec = spring(dampingRatio = 0.6f, stiffness = 250f, visibilityThreshold = VISIBILITY)
+
+        // A tap: the bubble bounces in, bounces again on landing, holds, swells once more, then pops flat.
+        val TapSwellSpec = spring(dampingRatio = 0.4f, stiffness = 300f, visibilityThreshold = VISIBILITY)
+
+        /** The landing bounce's outward speed, in pressed scales per second. */
+        const val LANDING_KICK = 1.7f
+
+        /** How long the landing bounce plays, then how long the bubble holds before the pop. */
+        const val LANDING_MILLIS = 180L
+        const val LINGER_MILLIS = 60L
+
+        /** The last swell before the pop, as a multiple of the pressed size. */
+        const val POP_SWELL = 1.08f
+        val PopSwellSpec = spring(dampingRatio = 1f, stiffness = 900f, visibilityThreshold = VISIBILITY)
+        val PopSpec = spring(dampingRatio = 0.6f, stiffness = 700f, visibilityThreshold = VISIBILITY)
         val LeanSpec = spring(dampingRatio = 0.6f, stiffness = 300f, visibilityThreshold = VISIBILITY)
         val GlowSpec = spring(dampingRatio = 0.5f, stiffness = 300f, visibilityThreshold = VISIBILITY)
         val StretchSpec = spring(dampingRatio = 0.3f, stiffness = 170f, visibilityThreshold = VISIBILITY)
