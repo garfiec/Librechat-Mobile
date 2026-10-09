@@ -80,4 +80,5 @@
     <string name="skill_import_reason_archive_entry_changed">Wurde geändert, während das Archiv gelesen wurde</string>
     <string name="skill_import_reason_persistence_failed">Konnte nicht gespeichert werden</string>
     <string name="skill_import_reason_unknown">Konnte nicht importiert werden</string>
+    <string name="skill_toggle_source">Quelltext anzeigen</string>
 </resources>

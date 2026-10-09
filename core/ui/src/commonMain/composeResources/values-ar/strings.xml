@@ -113,4 +113,5 @@
     <string name="date_group_previous_7_days">آخر 7 أيام</string>
     <string name="date_group_previous_30_days">آخر 30 يومًا</string>
     <string name="date_group_unknown">غير معروف</string>
+    <string name="snackbar_dismiss">إغلاق</string>
 </resources>

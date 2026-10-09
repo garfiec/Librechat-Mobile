@@ -635,4 +635,5 @@
     <string name="compact_confirm_body">コンテキストウィンドウの%1$d%を使用しています。圧縮すると、これまでの会話がモデルが読み続ける短いメモに要約され、この先のための余裕ができます。何も削除されません。</string>
     <string name="compact_confirm_not_now">後で</string>
     <string name="compact_confirm_action">圧縮</string>
+    <string name="cd_temporary_chat">一時チャット</string>
 </resources>

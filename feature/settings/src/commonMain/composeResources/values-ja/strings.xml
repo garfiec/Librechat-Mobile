@@ -704,4 +704,10 @@
     <plurals name="data_mcp_servers_count">
         <item quantity="other">%1$d件のサーバー</item>
     </plurals>
+    <string name="ui_style">インターフェースのスタイル</string>
+    <string name="ui_style_material">Material</string>
+    <string name="ui_style_liquid_glass">Liquid Glass</string>
+    <string name="ui_style_note_simulated">このバージョンのiOSではLiquid Glassをシミュレートしています。iOS 26以降ではネイティブに描画されます。</string>
+    <string name="ui_style_note_blur_only">このデバイスではLiquid Glassが屈折のないぼかしとして表示されます。Android 13以降では完全な効果が表示されます。</string>
+    <string name="ui_style_note_flat">このデバイスではLiquid Glassが平らな半透明の面として表示されます。</string>
 </resources>

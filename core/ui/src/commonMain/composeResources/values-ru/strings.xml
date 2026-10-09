@@ -105,4 +105,5 @@
     <string name="date_group_previous_7_days">Предыдущие 7 дней</string>
     <string name="date_group_previous_30_days">Предыдущие 30 дней</string>
     <string name="date_group_unknown">Неизвестно</string>
+    <string name="snackbar_dismiss">Закрыть</string>
 </resources>

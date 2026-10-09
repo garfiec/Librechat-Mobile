@@ -93,4 +93,5 @@
     <string name="date_group_previous_7_days">지난 7일</string>
     <string name="date_group_previous_30_days">지난 30일</string>
     <string name="date_group_unknown">알 수 없음</string>
+    <string name="snackbar_dismiss">닫기</string>
 </resources>

@@ -80,4 +80,5 @@
     <string name="skill_import_reason_archive_entry_changed">Cambió mientras se leía el archivo comprimido</string>
     <string name="skill_import_reason_persistence_failed">No se pudo guardar</string>
     <string name="skill_import_reason_unknown">No se pudo importar</string>
+    <string name="skill_toggle_source">Ver código fuente</string>
 </resources>

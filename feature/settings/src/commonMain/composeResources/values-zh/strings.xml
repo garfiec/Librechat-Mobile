@@ -704,4 +704,10 @@
     <plurals name="data_mcp_servers_count">
         <item quantity="other">%1$d 个服务器</item>
     </plurals>
+    <string name="ui_style">界面风格</string>
+    <string name="ui_style_material">Material</string>
+    <string name="ui_style_liquid_glass">Liquid Glass</string>
+    <string name="ui_style_note_simulated">此 iOS 版本上的 Liquid Glass 为模拟效果。iOS 26 或更高版本会原生绘制。</string>
+    <string name="ui_style_note_blur_only">此设备将 Liquid Glass 显示为模糊效果，没有折射。Android 13 或更高版本可显示完整效果。</string>
+    <string name="ui_style_note_flat">此设备将 Liquid Glass 显示为平面半透明表面。</string>
 </resources>

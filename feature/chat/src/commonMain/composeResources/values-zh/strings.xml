@@ -635,4 +635,5 @@
     <string name="compact_confirm_body">已使用上下文窗口的 %1$d%。压缩会将目前为止的对话总结为模型继续读取的简短笔记，为接下来的内容腾出空间。不会删除任何内容。</string>
     <string name="compact_confirm_not_now">暂不</string>
     <string name="compact_confirm_action">压缩</string>
+    <string name="cd_temporary_chat">临时聊天</string>
 </resources>

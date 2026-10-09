@@ -635,4 +635,5 @@
     <string name="compact_confirm_body">Se usa el %1$d% de la ventana de contexto. Compactar resume la conversación hasta ahora en una nota más breve que el modelo sigue leyendo, liberando espacio para lo que viene. No se borra nada.</string>
     <string name="compact_confirm_not_now">Ahora no</string>
     <string name="compact_confirm_action">Compactar</string>
+    <string name="cd_temporary_chat">Chat temporal</string>
 </resources>

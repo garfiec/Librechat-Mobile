@@ -80,4 +80,5 @@
     <string name="skill_import_reason_archive_entry_changed">读取压缩包时发生了更改</string>
     <string name="skill_import_reason_persistence_failed">无法保存</string>
     <string name="skill_import_reason_unknown">无法导入</string>
+    <string name="skill_toggle_source">查看源代码</string>
 </resources>

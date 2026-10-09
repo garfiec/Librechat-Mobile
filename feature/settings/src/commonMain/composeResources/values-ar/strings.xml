@@ -714,4 +714,10 @@
         <item quantity="many">الخوادم: %1$d</item>
         <item quantity="other">الخوادم: %1$d</item>
     </plurals>
+    <string name="ui_style">نمط الواجهة</string>
+    <string name="ui_style_material">Material</string>
+    <string name="ui_style_liquid_glass">Liquid Glass</string>
+    <string name="ui_style_note_simulated">تتم محاكاة Liquid Glass في إصدار iOS هذا. يعرضه iOS 26 أو الأحدث بشكل أصلي.</string>
+    <string name="ui_style_note_blur_only">يعرض هذا الجهاز Liquid Glass كتمويه دون انكسار. يعرض Android 13 أو الأحدث التأثير الكامل.</string>
+    <string name="ui_style_note_flat">يعرض هذا الجهاز Liquid Glass كسطح شفاف مسطح.</string>
 </resources>

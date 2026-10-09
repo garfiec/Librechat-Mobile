@@ -80,4 +80,5 @@
     <string name="skill_import_reason_archive_entry_changed">アーカイブの読み込み中に変更されました</string>
     <string name="skill_import_reason_persistence_failed">保存できませんでした</string>
     <string name="skill_import_reason_unknown">インポートできませんでした</string>
+    <string name="skill_toggle_source">ソースを表示</string>
 </resources>

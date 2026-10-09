@@ -80,4 +80,5 @@
     <string name="skill_import_reason_archive_entry_changed">압축 파일을 읽는 동안 변경되었습니다</string>
     <string name="skill_import_reason_persistence_failed">저장할 수 없습니다</string>
     <string name="skill_import_reason_unknown">가져올 수 없습니다</string>
+    <string name="skill_toggle_source">소스 보기</string>
 </resources>

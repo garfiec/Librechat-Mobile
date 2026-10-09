@@ -706,4 +706,10 @@
         <item quantity="one">%1$d Server</item>
         <item quantity="other">%1$d Server</item>
     </plurals>
+    <string name="ui_style">Oberflächenstil</string>
+    <string name="ui_style_material">Material</string>
+    <string name="ui_style_liquid_glass">Liquid Glass</string>
+    <string name="ui_style_note_simulated">Liquid Glass wird auf dieser iOS-Version simuliert. Ab iOS 26 wird es nativ dargestellt.</string>
+    <string name="ui_style_note_blur_only">Dieses Gerät zeigt Liquid Glass als Unschärfe ohne Lichtbrechung. Ab Android 13 wird der volle Effekt angezeigt.</string>
+    <string name="ui_style_note_flat">Dieses Gerät zeigt Liquid Glass als flache, durchscheinende Fläche.</string>
 </resources>

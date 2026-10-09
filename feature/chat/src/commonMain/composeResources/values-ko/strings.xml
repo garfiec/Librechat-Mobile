@@ -635,4 +635,5 @@
     <string name="compact_confirm_body">컨텍스트 창의 %1$d%를 사용 중입니다. 압축하면 지금까지의 대화가 모델이 계속 읽는 짧은 메모로 요약되어 앞으로를 위한 공간이 생깁니다. 아무것도 삭제되지 않습니다.</string>
     <string name="compact_confirm_not_now">나중에</string>
     <string name="compact_confirm_action">압축</string>
+    <string name="cd_temporary_chat">임시 채팅</string>
 </resources>
