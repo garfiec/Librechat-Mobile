@@ -635,4 +635,22 @@
     <string name="compact_confirm_body">تم استخدام %1$d% من نافذة السياق. يلخّص الضغط المحادثة حتى الآن في ملاحظة أقصر يواصل النموذج قراءتها، مما يفسح المجال لما يلي. لا يُحذف أي شيء.</string>
     <string name="compact_confirm_not_now">ليس الآن</string>
     <string name="compact_confirm_action">ضغط</string>
+    <string name="cd_temporary_chat">محادثة مؤقتة</string>
+    <string name="notice_rename_failed">تعذّرت إعادة تسمية المحادثة</string>
+    <string name="notice_delete_failed">تعذّر حذف المحادثة</string>
+    <string name="notice_archive_failed">تعذّرت أرشفة المحادثة</string>
+    <string name="notice_duplicate_failed">تعذّر تكرار المحادثة</string>
+    <string name="notice_share_link_failed">تعذّر إنشاء رابط المشاركة</string>
+    <string name="notice_preset_save_failed">تعذّر حفظ الإعداد المسبق</string>
+    <string name="notice_preset_delete_failed">تعذّر حذف الإعداد المسبق</string>
+    <string name="notice_preset_update_failed">تعذّر تحديث الإعداد المسبق</string>
+    <string name="notice_continue_response_failed">تعذّرت المتابعة بالرد المحدد</string>
+    <string name="notice_favorites_limit">يمكنك تثبيت ما يصل إلى %1$d من المفضلة.</string>
+    <string name="notice_favorites_update_failed">تعذّر تحديث المفضلة.</string>
+    <string name="notice_upload_failed">تعذّر رفع %1$s: %2$s</string>
+    <string name="notice_upload_failed_unknown">تعذّر رفع %1$s: خطأ غير معروف</string>
+    <string name="notice_upload_unreadable">تعذّر رفع %1$s: تعذّرت قراءة الملف</string>
+    <string name="notice_upload_too_large">حجم %1$s أكبر من الحد الأقصى للخادم وهو %2$s.</string>
+    <string name="notice_speech_permission_denied">تم رفض إذن التعرّف على الكلام</string>
+    <string name="notice_speech_unavailable">التعرّف على الكلام غير متاح. تحقّق من الإعدادات &gt; الخصوصية &gt; التعرّف على الكلام.</string>
 </resources>

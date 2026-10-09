@@ -13,6 +13,7 @@ import com.garfiec.librechat.feature.chat.util.primaryAgentId
 import com.garfiec.librechat.feature.chat.util.secondaryAgentId
 import com.garfiec.librechat.feature.chat.util.stripAgentIdSuffix
 import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
+import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
 import com.garfiec.librechat.feature.chat.viewmodel.ComparisonHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ComparisonState
@@ -347,7 +348,7 @@ class ComparisonModeDelegate(
             )
             if (result !is Result.Success) {
                 Logger.e((result as? Result.Error)?.exception) { "Failed to branch comparison message" }
-                handle.setError("Failed to continue with selected response")
+                handle.setError(ChatNotice.CONTINUE_RESPONSE_FAILED.marker())
                 return@launch
             }
             handle.update { comparisonState = ComparisonState() }

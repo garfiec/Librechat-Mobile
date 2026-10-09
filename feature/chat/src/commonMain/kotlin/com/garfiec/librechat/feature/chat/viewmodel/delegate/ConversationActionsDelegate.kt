@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
+import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationActionsHandle
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,7 +36,7 @@ class ConversationActionsDelegate(
                     handle.update { conversation = conversation.copy(conversationTitle = newTitle) }
                 }
                 is Result.Error -> {
-                    handle.setError("Failed to rename conversation")
+                    handle.setError(ChatNotice.RENAME_FAILED.marker())
                 }
                 is Result.Loading -> { /* no-op */ }
             }
@@ -60,7 +61,7 @@ class ConversationActionsDelegate(
                     handle.update { conversation = conversation.copy(conversationId = null) }
                 }
                 is Result.Error -> {
-                    handle.setError("Failed to delete conversation")
+                    handle.setError(ChatNotice.DELETE_FAILED.marker())
                 }
                 is Result.Loading -> { /* no-op */ }
             }
@@ -76,7 +77,7 @@ class ConversationActionsDelegate(
                     handle.update { conversation = conversation.copy(conversationId = null) }
                 }
                 is Result.Error -> {
-                    handle.setError("Failed to archive conversation")
+                    handle.setError(ChatNotice.ARCHIVE_FAILED.marker())
                 }
                 is Result.Loading -> { /* no-op */ }
             }
@@ -92,7 +93,7 @@ class ConversationActionsDelegate(
                     handle.update { actions = actions.copy(duplicatedConversationId = result.data.conversationId) }
                 }
                 is Result.Error -> {
-                    handle.setError("Failed to duplicate conversation")
+                    handle.setError(ChatNotice.DUPLICATE_FAILED.marker())
                 }
                 is Result.Loading -> { /* no-op */ }
             }
@@ -113,7 +114,7 @@ class ConversationActionsDelegate(
                     _shareLinkUrl.value = result.data
                 }
                 is Result.Error -> {
-                    handle.setError(result.message ?: "Failed to create share link")
+                    handle.setError(result.message ?: ChatNotice.SHARE_LINK_FAILED.marker())
                 }
                 is Result.Loading -> { /* no-op */ }
             }

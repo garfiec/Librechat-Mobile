@@ -80,4 +80,5 @@
     <string name="skill_import_reason_archive_entry_changed">Alterado enquanto o pacote era lido</string>
     <string name="skill_import_reason_persistence_failed">Não foi possível salvar</string>
     <string name="skill_import_reason_unknown">Não foi possível importar</string>
+    <string name="skill_toggle_source">Ver código-fonte</string>
 </resources>

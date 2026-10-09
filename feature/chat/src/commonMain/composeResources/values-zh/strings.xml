@@ -635,4 +635,22 @@
     <string name="compact_confirm_body">已使用上下文窗口的 %1$d%。压缩会将目前为止的对话总结为模型继续读取的简短笔记，为接下来的内容腾出空间。不会删除任何内容。</string>
     <string name="compact_confirm_not_now">暂不</string>
     <string name="compact_confirm_action">压缩</string>
+    <string name="cd_temporary_chat">临时聊天</string>
+    <string name="notice_rename_failed">无法重命名对话</string>
+    <string name="notice_delete_failed">无法删除对话</string>
+    <string name="notice_archive_failed">无法归档对话</string>
+    <string name="notice_duplicate_failed">无法复制对话</string>
+    <string name="notice_share_link_failed">无法创建分享链接</string>
+    <string name="notice_preset_save_failed">无法保存预设</string>
+    <string name="notice_preset_delete_failed">无法删除预设</string>
+    <string name="notice_preset_update_failed">无法更新预设</string>
+    <string name="notice_continue_response_failed">无法使用所选回复继续</string>
+    <string name="notice_favorites_limit">最多可固定 %1$d 个收藏。</string>
+    <string name="notice_favorites_update_failed">无法更新收藏。</string>
+    <string name="notice_upload_failed">无法上传 %1$s：%2$s</string>
+    <string name="notice_upload_failed_unknown">无法上传 %1$s：未知错误</string>
+    <string name="notice_upload_unreadable">无法上传 %1$s：无法读取文件</string>
+    <string name="notice_upload_too_large">%1$s 超过了服务器的 %2$s 上限。</string>
+    <string name="notice_speech_permission_denied">语音识别权限被拒绝</string>
+    <string name="notice_speech_unavailable">语音识别不可用。请检查“设置”&gt;“隐私”&gt;“语音识别”。</string>
 </resources>

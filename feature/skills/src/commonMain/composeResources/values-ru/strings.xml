@@ -80,4 +80,5 @@
     <string name="skill_import_reason_archive_entry_changed">Изменён во время чтения архива</string>
     <string name="skill_import_reason_persistence_failed">Не удалось сохранить</string>
     <string name="skill_import_reason_unknown">Не удалось импортировать</string>
+    <string name="skill_toggle_source">Показать исходный код</string>
 </resources>

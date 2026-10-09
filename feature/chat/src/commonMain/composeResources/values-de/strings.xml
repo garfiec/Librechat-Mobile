@@ -635,4 +635,22 @@
     <string name="compact_confirm_body">%1$d % des Kontextfensters sind belegt. Beim Komprimieren wird die bisherige Unterhaltung zu einer kürzeren Notiz zusammengefasst, die das Modell weiter liest – so wird Platz für Neues frei. Es wird nichts gelöscht.</string>
     <string name="compact_confirm_not_now">Nicht jetzt</string>
     <string name="compact_confirm_action">Komprimieren</string>
+    <string name="cd_temporary_chat">Temporärer Chat</string>
+    <string name="notice_rename_failed">Unterhaltung konnte nicht umbenannt werden</string>
+    <string name="notice_delete_failed">Unterhaltung konnte nicht gelöscht werden</string>
+    <string name="notice_archive_failed">Unterhaltung konnte nicht archiviert werden</string>
+    <string name="notice_duplicate_failed">Unterhaltung konnte nicht dupliziert werden</string>
+    <string name="notice_share_link_failed">Freigabelink konnte nicht erstellt werden</string>
+    <string name="notice_preset_save_failed">Voreinstellung konnte nicht gespeichert werden</string>
+    <string name="notice_preset_delete_failed">Voreinstellung konnte nicht gelöscht werden</string>
+    <string name="notice_preset_update_failed">Voreinstellung konnte nicht aktualisiert werden</string>
+    <string name="notice_continue_response_failed">Mit der ausgewählten Antwort konnte nicht fortgefahren werden</string>
+    <string name="notice_favorites_limit">Du kannst bis zu %1$d Favoriten anheften.</string>
+    <string name="notice_favorites_update_failed">Favoriten konnten nicht aktualisiert werden.</string>
+    <string name="notice_upload_failed">%1$s konnte nicht hochgeladen werden: %2$s</string>
+    <string name="notice_upload_failed_unknown">%1$s konnte nicht hochgeladen werden: Unbekannter Fehler</string>
+    <string name="notice_upload_unreadable">%1$s konnte nicht hochgeladen werden: Datei konnte nicht gelesen werden</string>
+    <string name="notice_upload_too_large">%1$s ist größer als das Serverlimit von %2$s.</string>
+    <string name="notice_speech_permission_denied">Berechtigung für die Spracherkennung verweigert</string>
+    <string name="notice_speech_unavailable">Spracherkennung nicht verfügbar. Prüfe Einstellungen &gt; Datenschutz &gt; Spracherkennung.</string>
 </resources>

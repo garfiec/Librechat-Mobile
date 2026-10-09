@@ -708,4 +708,10 @@
         <item quantity="one">%1$d servidor</item>
         <item quantity="other">%1$d servidores</item>
     </plurals>
+    <string name="ui_style">Estilo da interface</string>
+    <string name="ui_style_material">Material</string>
+    <string name="ui_style_liquid_glass">Liquid Glass</string>
+    <string name="ui_style_note_simulated">O Liquid Glass é simulado nesta versão do iOS. O iOS 26 ou posterior o exibe nativamente.</string>
+    <string name="ui_style_note_blur_only">Este dispositivo mostra o Liquid Glass como um desfoque, sem refração. O Android 13 ou posterior mostra o efeito completo.</string>
+    <string name="ui_style_note_flat">Este dispositivo mostra o Liquid Glass como uma superfície translúcida plana.</string>
 </resources>

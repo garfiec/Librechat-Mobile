@@ -635,4 +635,22 @@
     <string name="compact_confirm_body">Окно контекста заполнено на %1$d%. Сжатие кратко пересказывает беседу в заметке, которую модель продолжает читать, и освобождает место для продолжения. Ничего не удаляется.</string>
     <string name="compact_confirm_not_now">Не сейчас</string>
     <string name="compact_confirm_action">Сжать</string>
+    <string name="cd_temporary_chat">Временный чат</string>
+    <string name="notice_rename_failed">Не удалось переименовать беседу</string>
+    <string name="notice_delete_failed">Не удалось удалить беседу</string>
+    <string name="notice_archive_failed">Не удалось архивировать беседу</string>
+    <string name="notice_duplicate_failed">Не удалось создать копию беседы</string>
+    <string name="notice_share_link_failed">Не удалось создать ссылку для общего доступа</string>
+    <string name="notice_preset_save_failed">Не удалось сохранить пресет</string>
+    <string name="notice_preset_delete_failed">Не удалось удалить пресет</string>
+    <string name="notice_preset_update_failed">Не удалось обновить пресет</string>
+    <string name="notice_continue_response_failed">Не удалось продолжить с выбранным ответом</string>
+    <string name="notice_favorites_limit">Можно закрепить не более %1$d избранных.</string>
+    <string name="notice_favorites_update_failed">Не удалось обновить избранное.</string>
+    <string name="notice_upload_failed">Не удалось загрузить %1$s: %2$s</string>
+    <string name="notice_upload_failed_unknown">Не удалось загрузить %1$s: неизвестная ошибка</string>
+    <string name="notice_upload_unreadable">Не удалось загрузить %1$s: не удалось прочитать файл</string>
+    <string name="notice_upload_too_large">%1$s превышает ограничение сервера в %2$s.</string>
+    <string name="notice_speech_permission_denied">Нет разрешения на распознавание речи</string>
+    <string name="notice_speech_unavailable">Распознавание речи недоступно. Проверьте «Настройки» &gt; «Конфиденциальность» &gt; «Распознавание речи».</string>
 </resources>

@@ -635,4 +635,22 @@
     <string name="compact_confirm_body">コンテキストウィンドウの%1$d%を使用しています。圧縮すると、これまでの会話がモデルが読み続ける短いメモに要約され、この先のための余裕ができます。何も削除されません。</string>
     <string name="compact_confirm_not_now">後で</string>
     <string name="compact_confirm_action">圧縮</string>
+    <string name="cd_temporary_chat">一時チャット</string>
+    <string name="notice_rename_failed">会話の名前を変更できませんでした</string>
+    <string name="notice_delete_failed">会話を削除できませんでした</string>
+    <string name="notice_archive_failed">会話をアーカイブできませんでした</string>
+    <string name="notice_duplicate_failed">会話を複製できませんでした</string>
+    <string name="notice_share_link_failed">共有リンクを作成できませんでした</string>
+    <string name="notice_preset_save_failed">プリセットを保存できませんでした</string>
+    <string name="notice_preset_delete_failed">プリセットを削除できませんでした</string>
+    <string name="notice_preset_update_failed">プリセットを更新できませんでした</string>
+    <string name="notice_continue_response_failed">選択した応答で続行できませんでした</string>
+    <string name="notice_favorites_limit">お気に入りは最大%1$d件までピン留めできます。</string>
+    <string name="notice_favorites_update_failed">お気に入りを更新できませんでした。</string>
+    <string name="notice_upload_failed">%1$s をアップロードできませんでした: %2$s</string>
+    <string name="notice_upload_failed_unknown">%1$s をアップロードできませんでした: 不明なエラー</string>
+    <string name="notice_upload_unreadable">%1$s をアップロードできませんでした: ファイルを読み取れませんでした</string>
+    <string name="notice_upload_too_large">%1$s はサーバーの上限 %2$s を超えています。</string>
+    <string name="notice_speech_permission_denied">音声認識へのアクセスが許可されていません</string>
+    <string name="notice_speech_unavailable">音声認識を利用できません。設定 &gt; プライバシー &gt; 音声認識 を確認してください。</string>
 </resources>

@@ -17,6 +17,7 @@ import com.garfiec.librechat.feature.chat.util.fixFilenameExtension
 import com.garfiec.librechat.feature.chat.util.guessMimeType
 import com.garfiec.librechat.feature.chat.util.processImageForUpload
 import com.garfiec.librechat.feature.chat.util.resolveFileName
+import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.ErrorOnlyHandle
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -104,7 +105,7 @@ class FileAttachmentDelegate(
                 if (bytes == null) {
                     Logger.e { "uploadFile: could not read bytes from URI: $uri" }
                     markUploadFailed(uri)
-                    handle.setError("Failed to upload $filename: Could not read file")
+                    handle.setError(ChatNotice.UPLOAD_UNREADABLE.marker(filename))
                     return@launch
                 }
 
@@ -169,7 +170,7 @@ class FileAttachmentDelegate(
                     // State only the limit — not the file's own size. The limit is the actionable
                     // number, and rounding both to the same MB precision could otherwise print a
                     // self-contradictory "X MB is larger than the X MB limit".
-                    handle.setError("$filename is larger than the server limit of ${formatByteSize(sizeLimit)}.")
+                    handle.setError(ChatNotice.UPLOAD_TOO_LARGE.marker(filename, formatByteSize(sizeLimit)))
                     return@launch
                 }
 
@@ -284,7 +285,7 @@ class FileAttachmentDelegate(
                                 }
                             }
                         }
-                        handle.setError("Failed to upload $filename: ${result.message ?: "Unknown error"}")
+                        handle.setError(ChatNotice.uploadFailed(filename, result.message))
                     }
                     is Result.Loading -> {
                         Logger.w { "uploadFile: unexpected Result.Loading received for $filename" }
@@ -297,7 +298,7 @@ class FileAttachmentDelegate(
             } catch (e: Exception) {
                 Logger.e(e) { "uploadFile: unexpected exception for $filename" }
                 markUploadFailed(uri)
-                handle.setError("Failed to upload $filename: ${e.message}")
+                handle.setError(ChatNotice.uploadFailed(filename, e.message))
             }
         }
     }

@@ -58,6 +58,10 @@ key	feature/chat/artifact_version
 # '(Gemini API)' — a product name in parentheses; there is no prose to translate.
 key	feature/settings/provider_keys_field_google_gemini_api
 
+# 'Liquid Glass' is Apple's name for the design language the interface style option draws, and
+# Apple keeps it in English in every locale. 'Material' needs no entry: it is a single token.
+key	feature/settings/ui_style_liquid_glass
+
 # 'lowercase-kebab-case' is an input-format spec the user must literally type, not prose.
 key	feature/skills/skill_field_name_hint
 

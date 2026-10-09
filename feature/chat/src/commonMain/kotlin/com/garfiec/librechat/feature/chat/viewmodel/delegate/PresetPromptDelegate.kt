@@ -12,6 +12,7 @@ import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.prompts.PromptInsertion
 import com.garfiec.librechat.feature.chat.prompts.resolvePromptInsertion
 import com.garfiec.librechat.feature.chat.prompts.resolvePromptText
+import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.PendingVariablePrompt
 import com.garfiec.librechat.feature.chat.viewmodel.PresetPromptHandle
 import kotlinx.coroutines.Job
@@ -158,7 +159,7 @@ class PresetPromptDelegate(
                 is Result.Success -> loadPresets()
                 is Result.Error -> {
                     Logger.e(result.exception) { "Could not save preset" }
-                    handle.setError("Could not save preset")
+                    handle.setError(ChatNotice.PRESET_SAVE_FAILED.marker())
                 }
                 is Result.Loading -> { /* no-op */ }
             }
@@ -186,7 +187,7 @@ class PresetPromptDelegate(
             when (presetRepository.delete(presetId)) {
                 is Result.Success -> loadPresets()
                 is Result.Error -> {
-                    handle.setError("Could not delete preset")
+                    handle.setError(ChatNotice.PRESET_DELETE_FAILED.marker())
                 }
                 is Result.Loading -> { /* no-op */ }
             }
@@ -198,7 +199,7 @@ class PresetPromptDelegate(
             when (presetRepository.update(preset)) {
                 is Result.Success -> loadPresets()
                 is Result.Error -> {
-                    handle.setError("Could not update preset")
+                    handle.setError(ChatNotice.PRESET_UPDATE_FAILED.marker())
                 }
                 is Result.Loading -> { /* no-op */ }
             }

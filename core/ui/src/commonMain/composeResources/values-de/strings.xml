@@ -97,4 +97,5 @@
     <string name="date_group_previous_7_days">Letzte 7 Tage</string>
     <string name="date_group_previous_30_days">Letzte 30 Tage</string>
     <string name="date_group_unknown">Unbekannt</string>
+    <string name="snackbar_dismiss">Schließen</string>
 </resources>

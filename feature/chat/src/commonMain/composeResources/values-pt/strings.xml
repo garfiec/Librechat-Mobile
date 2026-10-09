@@ -635,4 +635,22 @@
     <string name="compact_confirm_body">%1$d% da janela de contexto está em uso. Compactar resume a conversa até aqui em uma nota mais curta que o modelo continua lendo, liberando espaço para o que vem a seguir. Nada é excluído.</string>
     <string name="compact_confirm_not_now">Agora não</string>
     <string name="compact_confirm_action">Compactar</string>
+    <string name="cd_temporary_chat">Chat temporário</string>
+    <string name="notice_rename_failed">Não foi possível renomear a conversa</string>
+    <string name="notice_delete_failed">Não foi possível excluir a conversa</string>
+    <string name="notice_archive_failed">Não foi possível arquivar a conversa</string>
+    <string name="notice_duplicate_failed">Não foi possível duplicar a conversa</string>
+    <string name="notice_share_link_failed">Não foi possível criar o link de compartilhamento</string>
+    <string name="notice_preset_save_failed">Não foi possível salvar a predefinição</string>
+    <string name="notice_preset_delete_failed">Não foi possível excluir a predefinição</string>
+    <string name="notice_preset_update_failed">Não foi possível atualizar a predefinição</string>
+    <string name="notice_continue_response_failed">Não foi possível continuar com a resposta selecionada</string>
+    <string name="notice_favorites_limit">Você pode fixar até %1$d favoritos.</string>
+    <string name="notice_favorites_update_failed">Não foi possível atualizar os favoritos.</string>
+    <string name="notice_upload_failed">Não foi possível enviar %1$s: %2$s</string>
+    <string name="notice_upload_failed_unknown">Não foi possível enviar %1$s: erro desconhecido</string>
+    <string name="notice_upload_unreadable">Não foi possível enviar %1$s: não foi possível ler o arquivo</string>
+    <string name="notice_upload_too_large">%1$s é maior que o limite do servidor de %2$s.</string>
+    <string name="notice_speech_permission_denied">Permissão de reconhecimento de fala negada</string>
+    <string name="notice_speech_unavailable">O reconhecimento de fala não está disponível. Verifique Ajustes &gt; Privacidade &gt; Reconhecimento de Fala.</string>
 </resources>

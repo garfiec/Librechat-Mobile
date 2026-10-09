@@ -712,4 +712,10 @@
         <item quantity="many">Серверов: %1$d</item>
         <item quantity="other">Серверов: %1$d</item>
     </plurals>
+    <string name="ui_style">Стиль интерфейса</string>
+    <string name="ui_style_material">Material</string>
+    <string name="ui_style_liquid_glass">Liquid Glass</string>
+    <string name="ui_style_note_simulated">В этой версии iOS эффект Liquid Glass имитируется. В iOS 26 и новее он отображается нативно.</string>
+    <string name="ui_style_note_blur_only">На этом устройстве Liquid Glass отображается как размытие без преломления. В Android 13 и новее отображается полный эффект.</string>
+    <string name="ui_style_note_flat">На этом устройстве Liquid Glass отображается как плоская полупрозрачная поверхность.</string>
 </resources>

@@ -101,4 +101,5 @@
     <string name="date_group_previous_7_days">Últimos 7 dias</string>
     <string name="date_group_previous_30_days">Últimos 30 dias</string>
     <string name="date_group_unknown">Desconhecido</string>
+    <string name="snackbar_dismiss">Fechar</string>
 </resources>

@@ -635,4 +635,22 @@
     <string name="compact_confirm_body">%1$d % de la fenêtre de contexte est utilisé. Compacter résume la conversation en une note plus courte que le modèle continue de lire, ce qui libère de la place pour la suite. Rien n’est supprimé.</string>
     <string name="compact_confirm_not_now">Pas maintenant</string>
     <string name="compact_confirm_action">Compacter</string>
+    <string name="cd_temporary_chat">Discussion temporaire</string>
+    <string name="notice_rename_failed">Impossible de renommer la conversation</string>
+    <string name="notice_delete_failed">Impossible de supprimer la conversation</string>
+    <string name="notice_archive_failed">Impossible d'archiver la conversation</string>
+    <string name="notice_duplicate_failed">Impossible de dupliquer la conversation</string>
+    <string name="notice_share_link_failed">Impossible de créer le lien de partage</string>
+    <string name="notice_preset_save_failed">Impossible d'enregistrer le préréglage</string>
+    <string name="notice_preset_delete_failed">Impossible de supprimer le préréglage</string>
+    <string name="notice_preset_update_failed">Impossible de mettre à jour le préréglage</string>
+    <string name="notice_continue_response_failed">Impossible de continuer avec la réponse sélectionnée</string>
+    <string name="notice_favorites_limit">Vous pouvez épingler jusqu'à %1$d favoris.</string>
+    <string name="notice_favorites_update_failed">Impossible de mettre à jour les favoris.</string>
+    <string name="notice_upload_failed">Impossible d'envoyer %1$s : %2$s</string>
+    <string name="notice_upload_failed_unknown">Impossible d'envoyer %1$s : erreur inconnue</string>
+    <string name="notice_upload_unreadable">Impossible d'envoyer %1$s : impossible de lire le fichier</string>
+    <string name="notice_upload_too_large">%1$s dépasse la limite du serveur de %2$s.</string>
+    <string name="notice_speech_permission_denied">Autorisation de reconnaissance vocale refusée</string>
+    <string name="notice_speech_unavailable">La reconnaissance vocale n'est pas disponible. Vérifiez Réglages &gt; Confidentialité &gt; Reconnaissance vocale.</string>
 </resources>

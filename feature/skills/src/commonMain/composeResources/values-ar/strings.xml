@@ -80,4 +80,5 @@
     <string name="skill_import_reason_archive_entry_changed">تغيّر أثناء قراءة الأرشيف</string>
     <string name="skill_import_reason_persistence_failed">تعذّر الحفظ</string>
     <string name="skill_import_reason_unknown">تعذّر الاستيراد</string>
+    <string name="skill_toggle_source">عرض المصدر</string>
 </resources>
