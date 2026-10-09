@@ -33,7 +33,6 @@ import com.github.panpf.zoomimage.compose.zoom.ZoomableState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlin.math.abs
 import kotlin.math.min
 
 /** One viewer page, as the dismiss transition sees it. */
@@ -53,7 +52,7 @@ internal class MediaPageSource(val url: String, private val zoomable: ZoomableSt
 
 /**
  * Where the viewer's current page is drawn while it is being dismissed, and how much of the screen
- * behind shows through. The swipe-down drag, the back gesture and the close button all feed this one
+ * behind shows through. The dismiss drag, the back gesture and the close button all feed this one
  * holder; the pager only draws what it reports.
  *
  * At rest nothing is moved. While tracking, a drag or a back gesture moves and shrinks the page. A
@@ -124,11 +123,13 @@ internal class MediaDismissTransition(
         if (flight == null) backProgress = progress
     }
 
-    /** The drag ended: dismiss when it went far or fast enough downward, otherwise spring back. */
-    fun release(velocityY: Float) {
+    /**
+     * The drag ended: dismiss when it went far or fast enough, in whichever direction it went,
+     * unless it was flung back toward where it started; otherwise spring back.
+     */
+    fun release(velocity: Offset) {
         val source = active ?: return
-        val dismisses = (dragOffset.y > dismissDistance || velocityY > dismissVelocity) && velocityY > -dismissVelocity
-        if (dismisses) dismiss(source) else settle()
+        if (releaseDismisses(dragOffset, velocity, dismissDistance, dismissVelocity)) dismiss(source) else settle()
     }
 
     /** Springs a tracked page back to rest. */
@@ -194,12 +195,18 @@ internal class MediaDismissTransition(
         onDismissed()
     }
 
-    fun dragHandler(source: MediaPageSource, pagerIdle: () -> Boolean): DismissDragHandler =
+    /** [canPage] says whether the pager has a page toward a sideways drag of `dx`; such a drag pages instead. */
+    fun dragHandler(
+        source: MediaPageSource,
+        pagerIdle: () -> Boolean,
+        canPage: (dx: Float) -> Boolean,
+    ): DismissDragHandler =
         object : DismissDragHandler {
             override fun canStart() = flight == null && pagerIdle() && source.isZoomedOut
+            override fun claimsSideways(dx: Float) = !canPage(dx)
             override fun onStart() = track(source)
             override fun onDrag(delta: Offset) = dragBy(delta)
-            override fun onRelease(velocityY: Float) = release(velocityY)
+            override fun onRelease(velocity: Offset) = release(velocity)
         }
 
     private fun activate(source: MediaPageSource) {
@@ -216,7 +223,7 @@ internal class MediaDismissTransition(
 
     /** How far the drag has gone toward [distance], 0 to 1. */
     private fun dragFraction(distance: Float): Float =
-        if (distance > 0f) (abs(dragOffset.y) / distance).coerceIn(0f, 1f) else 0f
+        if (distance > 0f) (dragOffset.getDistance() / distance).coerceIn(0f, 1f) else 0f
 
     private fun trackingTransform(page: Rect): PageTransform = PageTransform.about(
         pivot = page.center,
@@ -275,7 +282,7 @@ internal fun Modifier.dismissFrame(frame: () -> PageFrame?): Modifier = this
         }
     }
 
-/** A drag this far down (or a flick this fast) dismisses on release. */
+/** A drag this far, in any direction (or a flick this fast), dismisses on release. */
 private val DismissDistance = 96.dp
 private val DismissVelocity = 800.dp
 

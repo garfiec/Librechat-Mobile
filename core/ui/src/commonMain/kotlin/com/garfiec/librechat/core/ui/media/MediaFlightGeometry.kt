@@ -61,3 +61,15 @@ internal data class Flight(
 }
 
 internal fun Rect.scaledAboutCenter(factor: Float): Rect = PageTransform.about(center, factor, Offset.Zero).map(this)
+
+/**
+ * Whether a drag released at [offset] from rest, moving at [velocity], dismisses: it went past
+ * [distance] or was flicked faster than [speed] away from rest, in whichever direction, and wasn't
+ * flung back toward rest faster than [speed].
+ */
+internal fun releaseDismisses(offset: Offset, velocity: Offset, distance: Float, speed: Float): Boolean {
+    val travelled = offset.getDistance()
+    // Speed along the drag's own direction; a drag that hasn't moved yet goes by the fling alone.
+    val outward = if (travelled > 0f) (velocity.x * offset.x + velocity.y * offset.y) / travelled else velocity.getDistance()
+    return (travelled > distance || outward > speed) && outward > -speed
+}

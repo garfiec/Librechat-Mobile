@@ -5,6 +5,7 @@ import androidx.compose.ui.geometry.Rect
 import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -94,5 +95,25 @@ class MediaFlightGeometryTest {
 
     private companion object {
         const val EPSILON = 0.01f
+    }
+
+    @Test
+    fun releaseDismissesPastTheDistanceInAnyDirection() {
+        listOf(Offset(0f, 120f), Offset(0f, -120f), Offset(-120f, 0f), Offset(90f, 90f)).forEach { offset ->
+            assertTrue(releaseDismisses(offset, Offset.Zero, distance = 100f, speed = 800f), "$offset")
+        }
+        assertFalse(releaseDismisses(Offset(60f, -60f), Offset.Zero, distance = 100f, speed = 800f))
+    }
+
+    @Test
+    fun releaseDismissesOnAFlickAwayFromRest() {
+        assertTrue(releaseDismisses(Offset(0f, -20f), Offset(0f, -1000f), distance = 100f, speed = 800f))
+        assertTrue(releaseDismisses(Offset(20f, 0f), Offset(1000f, 0f), distance = 100f, speed = 800f))
+    }
+
+    @Test
+    fun releaseFlungBackTowardRestSpringsBack() {
+        assertFalse(releaseDismisses(Offset(0f, -150f), Offset(0f, 1000f), distance = 100f, speed = 800f))
+        assertFalse(releaseDismisses(Offset(150f, 0f), Offset(-1000f, 0f), distance = 100f, speed = 800f))
     }
 }
