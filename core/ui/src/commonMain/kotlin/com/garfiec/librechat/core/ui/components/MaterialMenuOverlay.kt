@@ -361,7 +361,7 @@ private fun closeFade(formed: Float) = ((formed - CLOSE_FADE_START) / (1f - CLOS
  * Where the panel grows from: [GROW_FROM_SCALE] of its size, in its own corner nearest [anchor]
  * (both in the panel's coordinates) — inside the panel, so never over the anchor.
  */
-private fun growCorner(anchor: Rect, panel: Size): Rect {
+internal fun growCorner(anchor: Rect, panel: Size): Rect {
     val w = panel.width * GROW_FROM_SCALE
     val h = panel.height * GROW_FROM_SCALE
     val left = if (anchor.center.x >= panel.width / 2f) panel.width - w else 0f

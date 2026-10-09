@@ -45,8 +45,11 @@ File: `.github/workflows/ci.yml`
 
 #### `ios` (Build iOS App)
 - Selects Xcode 27.1 (pinned; see Environment)
-- Runs `./gradlew :shared:iosSimulatorArm64Test` (the iOS Koin graph test — the `ubuntu` `test` job
-  cannot run Kotlin/Native tests)
+- Runs `iosSimulatorArm64Test` for `:shared`, `:core:ui`, `:core:common` and `:core:data` — every
+  module with an `iosTest` source set. That task runs the module's `iosTest` and its `commonTest`
+  compiled for iOS. The `ubuntu` `test` job cannot run Kotlin/Native tests, so a module not listed
+  here never has its tests run on iOS in CI — including modules with only a `commonTest`
+  (`:core:model`, `:core:network`, `:core:logging`, `:feature:chat`, `:feature:conversations`).
 - Caches `~/.konan`
 - Runs `xcodebuild` for the iOS simulator (arm64-only, no signing). The Kotlin framework is built by the Xcode "Compile Kotlin Framework" build phase (`./gradlew :shared:embedAndSignAppleFrameworkForXcode`) — no separate link step.
 
@@ -65,6 +68,6 @@ File: `.github/workflows/ci.yml`
 
 - No release signing configured yet
 - Instrumented/UI tests are never *executed* in CI (no emulator) — `:feature:chat`'s suite is only
-  compiled, as a gate. Executed test coverage in CI is unit tests plus the iOS Koin graph test.
+  compiled, as a gate. Executed test coverage in CI is unit tests plus the iOS tests of the four modules above.
 - The debug APK is uploaded as an artifact; the iOS app is built but not uploaded
 - Detekt SARIF is uploaded to GitHub Code Scanning (requires GitHub Advanced Security for private repos)
