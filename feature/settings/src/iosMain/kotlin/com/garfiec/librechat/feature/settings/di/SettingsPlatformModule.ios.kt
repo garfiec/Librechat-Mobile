@@ -1,13 +1,12 @@
 package com.garfiec.librechat.feature.settings.di
 
 import co.touchlab.kermit.Logger
+import com.garfiec.librechat.core.common.toByteArray
 import com.garfiec.librechat.feature.settings.util.ContentReader
 import com.garfiec.librechat.feature.settings.util.PlatformCacheCleaner
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.IosSpeechSettingsDelegate
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.SpeechSettingsFactory
 import kotlinx.cinterop.ExperimentalForeignApi
-import kotlinx.cinterop.addressOf
-import kotlinx.cinterop.usePinned
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.core.module.Module
@@ -22,7 +21,6 @@ import platform.Foundation.NSSearchPathForDirectoriesInDomains
 import platform.Foundation.NSURL
 import platform.Foundation.NSUserDomainMask
 import platform.Foundation.dataWithContentsOfURL
-import platform.posix.memcpy
 
 actual val settingsPlatformModule: Module = module {
     single {
@@ -39,13 +37,7 @@ actual val settingsPlatformModule: Module = module {
                     Logger.w("SettingsContentReader") { "Failed to read data from: $nsUrl" }
                     return null
                 }
-                val size = data.length.toInt()
-                if (size == 0) return ByteArray(0)
-                val result = ByteArray(size)
-                result.usePinned { pinned ->
-                    memcpy(pinned.addressOf(0), data.bytes, data.length)
-                }
-                return result
+                return data.toByteArray()
             }
         }
     } bind ContentReader::class

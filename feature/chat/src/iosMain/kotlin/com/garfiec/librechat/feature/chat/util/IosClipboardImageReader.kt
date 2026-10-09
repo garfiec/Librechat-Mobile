@@ -1,8 +1,7 @@
 package com.garfiec.librechat.feature.chat.util
 
+import com.garfiec.librechat.core.common.toByteArray
 import kotlinx.cinterop.ExperimentalForeignApi
-import kotlinx.cinterop.addressOf
-import kotlinx.cinterop.usePinned
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import platform.CoreGraphics.CGImageGetHeight
@@ -13,7 +12,6 @@ import platform.Foundation.timeIntervalSince1970
 import platform.UIKit.UIImage
 import platform.UIKit.UIImagePNGRepresentation
 import platform.UIKit.UIPasteboard
-import platform.posix.memcpy
 
 /**
  * Checks whether the system clipboard currently contains an image.
@@ -37,7 +35,7 @@ suspend fun readClipboardImage(): IosImageData? {
 
     return withContext(Dispatchers.Default) {
         val pngData: NSData = UIImagePNGRepresentation(image) ?: return@withContext null
-        val bytes = pngData.toByteArray() ?: return@withContext null
+        val bytes = pngData.toByteArray()
         if (bytes.isEmpty()) return@withContext null
 
         val cgImage = image.CGImage
@@ -54,15 +52,4 @@ suspend fun readClipboardImage(): IosImageData? {
             height = height,
         )
     }
-}
-
-@OptIn(ExperimentalForeignApi::class)
-private fun NSData.toByteArray(): ByteArray? {
-    val length = this.length.toInt()
-    if (length == 0) return null
-    val bytes = ByteArray(length)
-    bytes.usePinned { pinned ->
-        memcpy(pinned.addressOf(0), this.bytes, this.length)
-    }
-    return bytes
 }
