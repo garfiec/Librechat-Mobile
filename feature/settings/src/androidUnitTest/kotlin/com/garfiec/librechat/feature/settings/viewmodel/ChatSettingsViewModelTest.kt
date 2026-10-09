@@ -1,6 +1,5 @@
 package com.garfiec.librechat.feature.settings.viewmodel
 
-import com.garfiec.librechat.core.common.ChatLayoutConstants
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
@@ -68,9 +67,6 @@ class ChatSettingsViewModelTest {
         // an unstubbed flow here shows up as an unrelated setting silently keeping its default.
         every { settingsDataStore.siteIconsChoice } returns siteIconsChoiceFlow
         coEvery { settingsDataStore.setShowSiteIcons(any()) } answers { siteIconsChoiceFlow.value = firstArg() }
-        every { settingsDataStore.chatLayoutStyle } returns MutableStateFlow(ChatLayoutConstants.THREAD)
-        every { settingsDataStore.showAvatars } returns MutableStateFlow(true)
-        every { settingsDataStore.showBubbles } returns MutableStateFlow(false)
         every { settingsDataStore.latexRenderer } returns MutableStateFlow(LatexRenderer.KATEX)
         every { settingsDataStore.uploadRoutingMode } returns uploadRoutingModeFlow
         coEvery { settingsDataStore.setUploadRoutingMode(any()) } answers { uploadRoutingModeFlow.value = firstArg() }

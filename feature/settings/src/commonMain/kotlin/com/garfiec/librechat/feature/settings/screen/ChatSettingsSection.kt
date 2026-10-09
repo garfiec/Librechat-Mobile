@@ -44,9 +44,7 @@ internal fun ChatSettingsSection(
     showImageDescriptions: Boolean,
     showSiteIcons: Boolean,
     dismissKeyboardOnSend: Boolean,
-    chatLayoutStyle: String,
-    showAvatars: Boolean,
-    showBubbles: Boolean,
+    chatLayoutSummary: String,
     latexRenderer: LatexRenderer,
     starredModelsDisplay: StarredModelsDisplay,
     chatHeaderContent: ChatHeaderContent,
@@ -56,10 +54,9 @@ internal fun ChatSettingsSection(
     onShowImageDescriptionsChange: (Boolean) -> Unit,
     onShowSiteIconsChange: (Boolean) -> Unit,
     onDismissKeyboardOnSendChange: (Boolean) -> Unit,
-    onShowAvatarsChange: (Boolean) -> Unit,
-    onShowBubblesChange: (Boolean) -> Unit,
     onOpenDialog: (ChatSettingDialog) -> Unit,
     onOpenContextUsage: () -> Unit,
+    onOpenChatLayout: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
@@ -74,22 +71,8 @@ internal fun ChatSettingsSection(
 
                 SelectorRow(
                     title = stringResource(Res.string.chat_layout),
-                    value = chatLayoutLabel(chatLayoutStyle),
-                    onClick = { onOpenDialog(ChatSettingDialog.CHAT_LAYOUT) },
-                )
-
-                ToggleRow(
-                    title = stringResource(Res.string.show_bubbles),
-                    description = stringResource(Res.string.show_bubbles_desc),
-                    checked = showBubbles,
-                    onChange = onShowBubblesChange,
-                )
-
-                ToggleRow(
-                    title = stringResource(Res.string.show_avatars),
-                    description = stringResource(Res.string.show_avatars_desc),
-                    checked = showAvatars,
-                    onChange = onShowAvatarsChange,
+                    value = chatLayoutSummary,
+                    onClick = onOpenChatLayout,
                 )
 
                 SelectorRow(

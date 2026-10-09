@@ -101,18 +101,6 @@ class ChatSettingsViewModel(
         prefsController.setDismissKeyboardOnSend(enabled)
     }
 
-    fun setChatLayoutStyle(style: String) {
-        prefsController.setChatLayoutStyle(style)
-    }
-
-    fun setShowAvatars(show: Boolean) {
-        prefsController.setShowAvatars(show)
-    }
-
-    fun setShowBubbles(show: Boolean) {
-        prefsController.setShowBubbles(show)
-    }
-
     fun setLatexRenderer(renderer: LatexRenderer) {
         prefsController.setLatexRenderer(renderer)
     }

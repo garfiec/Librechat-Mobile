@@ -1,6 +1,5 @@
 package com.garfiec.librechat.feature.settings.viewmodel
 
-import com.garfiec.librechat.core.common.ChatLayoutConstants
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayPrefs
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
@@ -53,9 +52,6 @@ private data class AdditionalPreferences(
     val ttsCaching: Boolean,
     val sttOnDevice: Boolean = true,
     val sttEndOfSpeech: Boolean = false,
-    val chatLayoutStyle: String = ChatLayoutConstants.THREAD,
-    val showAvatars: Boolean = true,
-    val showBubbles: Boolean = false,
     val latexRenderer: LatexRenderer = LatexRenderer.KATEX,
     val inlineArtifactPrefs: InlineArtifactPrefs = InlineArtifactPrefs(),
     val artifactDisplayPrefs: ArtifactDisplayPrefs = ArtifactDisplayPrefs(),
@@ -75,7 +71,7 @@ private data class AdditionalPreferences(
  * the matching write setters. The ViewModel keeps only imperative state and
  * forwards preference reads/writes here.
  */
-@Suppress("TooManyFunctions") // debt: 22 functions
+@Suppress("TooManyFunctions") // debt: 19 functions
 class ChatPreferencesController(
     private val settingsDataStore: SettingsDataStore,
     baseState: StateFlow<ChatSettingsUiState>,
@@ -122,16 +118,6 @@ class ChatPreferencesController(
     private val ttsCachingPreference: StateFlow<Boolean> = settingsDataStore.ttsCaching
         .stateIn(scope, SharingStarted.Eagerly, true)
 
-    /** Chat layout preferences. */
-    private val chatLayoutStylePref: StateFlow<String> = settingsDataStore.chatLayoutStyle
-        .stateIn(scope, SharingStarted.Eagerly, ChatLayoutConstants.THREAD)
-
-    private val showAvatarsPref: StateFlow<Boolean> = settingsDataStore.showAvatars
-        .stateIn(scope, SharingStarted.Eagerly, true)
-
-    private val showBubblesPref: StateFlow<Boolean> = settingsDataStore.showBubbles
-        .stateIn(scope, SharingStarted.Eagerly, false)
-
     private val latexRendererPref: StateFlow<LatexRenderer> = settingsDataStore.latexRenderer
         .stateIn(scope, SharingStarted.Eagerly, LatexRenderer.KATEX)
 
@@ -168,14 +154,10 @@ class ChatPreferencesController(
         AdditionalPreferences(autoSendStt, sttEngine, sttLanguage, ttsCaching)
     }
 
-    private val additionalPreferences: StateFlow<AdditionalPreferences> = combine(
-        baseAdditionalPreferences,
-        chatLayoutStylePref,
-        showAvatarsPref,
-        showBubblesPref,
+    private val additionalPreferences: StateFlow<AdditionalPreferences> = baseAdditionalPreferences.combine(
         latexRendererPref,
-    ) { base, layoutStyle, showAvatars, showBubbles, latexRenderer ->
-        base.copy(chatLayoutStyle = layoutStyle, showAvatars = showAvatars, showBubbles = showBubbles, latexRenderer = latexRenderer)
+    ) { base, latexRenderer ->
+        base.copy(latexRenderer = latexRenderer)
     }.combine(inlineArtifactPrefsFlow) { additional, inlineArtifact ->
         additional.copy(inlineArtifactPrefs = inlineArtifact)
     }.combine(artifactDisplayPrefsFlow) { additional, artifactDisplay ->
@@ -230,9 +212,6 @@ class ChatPreferencesController(
             sttLanguage = additional.sttLanguage,
             sttOnDevice = additional.sttOnDevice,
             sttEndOfSpeech = additional.sttEndOfSpeech,
-            chatLayoutStyle = additional.chatLayoutStyle,
-            showAvatars = additional.showAvatars,
-            showBubbles = additional.showBubbles,
             latexRenderer = additional.latexRenderer,
             inlineArtifactPrefs = additional.inlineArtifactPrefs,
             artifactDisplayPrefs = additional.artifactDisplayPrefs,
@@ -294,18 +273,6 @@ class ChatPreferencesController(
 
     fun setDismissKeyboardOnSend(enabled: Boolean) {
         scope.launch { settingsDataStore.setDismissKeyboardOnSend(enabled) }
-    }
-
-    fun setChatLayoutStyle(style: String) {
-        scope.launch { settingsDataStore.setChatLayoutStyle(style) }
-    }
-
-    fun setShowAvatars(show: Boolean) {
-        scope.launch { settingsDataStore.setShowAvatars(show) }
-    }
-
-    fun setShowBubbles(show: Boolean) {
-        scope.launch { settingsDataStore.setShowBubbles(show) }
     }
 
     fun setLatexRenderer(renderer: LatexRenderer) {

@@ -252,6 +252,8 @@
     <string name="show_bubbles_desc">Adicionar fundos de balão arredondados às mensagens</string>
     <string name="show_avatars">Mostrar avatares</string>
     <string name="show_avatars_desc">Exibir avatares do usuário e do agente ao lado das mensagens</string>
+    <string name="chat_layout_bubbles">Balões</string>
+    <string name="chat_layout_avatars">Avatares</string>
     <string name="starred_models_title">Modelos favoritos</string>
     <string name="starred_models_desc">Mostrar seus modelos e agentes fixados no topo do seletor de modelos</string>
     <string name="starred_models_off">Desativado</string>

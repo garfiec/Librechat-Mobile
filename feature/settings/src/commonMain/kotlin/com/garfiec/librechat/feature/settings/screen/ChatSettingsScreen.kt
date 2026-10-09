@@ -33,7 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.garfiec.librechat.core.common.ChatLayoutConstants
 import com.garfiec.librechat.core.common.speech.sttLanguageOptions
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
@@ -57,6 +56,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
+import com.garfiec.librechat.feature.settings.viewmodel.ChatLayoutSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ChatSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ContextUsageSettingsViewModel
 import org.jetbrains.compose.resources.stringResource
@@ -68,6 +68,7 @@ fun ChatSettingsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToPresets: () -> Unit,
     onNavigateToContextUsage: () -> Unit,
+    onNavigateToChatLayout: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -87,6 +88,7 @@ fun ChatSettingsScreen(
         ChatSettingsContent(
             onNavigateToPresets = onNavigateToPresets,
             onNavigateToContextUsage = onNavigateToContextUsage,
+            onNavigateToChatLayout = onNavigateToChatLayout,
             snackbarHostState = snackbarHostState,
             modifier = Modifier
                 .fillMaxSize()
@@ -103,14 +105,17 @@ fun ChatSettingsScreen(
 fun ChatSettingsContent(
     onNavigateToPresets: () -> Unit,
     onNavigateToContextUsage: () -> Unit,
+    onNavigateToChatLayout: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     viewModel: ChatSettingsViewModel = koinViewModel(),
     contextUsageViewModel: ContextUsageSettingsViewModel = koinViewModel(),
+    chatLayoutViewModel: ChatLayoutSettingsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val contextUsage by contextUsageViewModel.uiState.collectAsStateWithLifecycle()
+    val chatLayout by chatLayoutViewModel.uiState.collectAsStateWithLifecycle()
     var openDialog by remember { mutableStateOf<ChatSettingDialog?>(null) }
     val dismissDialog = { openDialog = null }
     fun <T> saveAndClose(setter: (T) -> Unit): (T) -> Unit = {
@@ -147,9 +152,8 @@ fun ChatSettingsContent(
                         showImageDescriptions = uiState.showImageDescriptions,
                         showSiteIcons = uiState.showSiteIcons,
                         dismissKeyboardOnSend = uiState.dismissKeyboardOnSend,
-                        chatLayoutStyle = uiState.chatLayoutStyle,
-                        showAvatars = uiState.showAvatars,
-                        showBubbles = uiState.showBubbles,
+                        chatLayoutSummary = chatLayoutSummary(chatLayout),
+                        onOpenChatLayout = onNavigateToChatLayout,
                         latexRenderer = uiState.latexRenderer,
                         starredModelsDisplay = uiState.starredModelsDisplay,
                         chatHeaderContent = uiState.chatHeaderContent,
@@ -159,8 +163,6 @@ fun ChatSettingsContent(
                         onShowImageDescriptionsChange = viewModel::setShowImageDescriptions,
                         onShowSiteIconsChange = viewModel::setShowSiteIcons,
                         onDismissKeyboardOnSendChange = viewModel::setDismissKeyboardOnSend,
-                        onShowAvatarsChange = viewModel::setShowAvatars,
-                        onShowBubblesChange = viewModel::setShowBubbles,
                         onOpenDialog = { openDialog = it },
                     )
                 }
@@ -244,24 +246,6 @@ fun ChatSettingsContent(
 
             // Bottom spacing
             item { Spacer(modifier = Modifier.height(32.dp)) }
-        }
-
-        if (openDialog == ChatSettingDialog.CHAT_LAYOUT) {
-            RadioSelectionDialog(
-                title = stringResource(Res.string.chat_layout),
-                options = listOf(ChatLayoutConstants.THREAD, ChatLayoutConstants.TWO_SIDED),
-                selected = uiState.chatLayoutStyle,
-                onSave = saveAndClose(viewModel::setChatLayoutStyle),
-                onDismiss = dismissDialog,
-                optionLabel = { chatLayoutLabel(it) },
-                optionDescription = {
-                    if (it == ChatLayoutConstants.THREAD) {
-                        stringResource(Res.string.chat_layout_thread_desc)
-                    } else {
-                        stringResource(Res.string.chat_layout_two_sided_desc)
-                    }
-                },
-            )
         }
 
         if (openDialog == ChatSettingDialog.FONT_SIZE) {

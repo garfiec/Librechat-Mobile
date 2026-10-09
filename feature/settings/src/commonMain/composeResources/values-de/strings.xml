@@ -252,6 +252,8 @@
     <string name="show_bubbles_desc">Nachrichten mit abgerundeten Sprechblasen-Hintergründen versehen</string>
     <string name="show_avatars">Avatare anzeigen</string>
     <string name="show_avatars_desc">Benutzer- und Agent-Avatare neben Nachrichten anzeigen</string>
+    <string name="chat_layout_bubbles">Sprechblasen</string>
+    <string name="chat_layout_avatars">Avatare</string>
     <string name="starred_models_title">Markierte Modelle</string>
     <string name="starred_models_desc">Deine angehefteten Modelle und Agenten oben in der Modellauswahl anzeigen</string>
     <string name="starred_models_off">Aus</string>

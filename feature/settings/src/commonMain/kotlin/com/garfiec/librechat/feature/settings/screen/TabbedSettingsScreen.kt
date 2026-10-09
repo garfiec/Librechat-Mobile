@@ -54,6 +54,7 @@ fun TabbedSettingsScreen(
     onNavigateToMcpServers: () -> Unit,
     onNavigateToPresets: () -> Unit,
     onNavigateToContextUsage: () -> Unit,
+    onNavigateToChatLayout: () -> Unit,
     onNavigateToApiKeys: () -> Unit,
     onNavigateToFavorites: () -> Unit,
     onNavigateToProviderKeys: () -> Unit,
@@ -135,6 +136,7 @@ fun TabbedSettingsScreen(
                 1 -> ChatSettingsContent(
                     onNavigateToPresets = onNavigateToPresets,
                     onNavigateToContextUsage = onNavigateToContextUsage,
+                    onNavigateToChatLayout = onNavigateToChatLayout,
                     snackbarHostState = snackbarHostState,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = contentPadding,

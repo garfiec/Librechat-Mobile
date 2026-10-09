@@ -252,6 +252,8 @@
     <string name="show_bubbles_desc">メッセージに角丸の吹き出し背景を追加します</string>
     <string name="show_avatars">アバターを表示</string>
     <string name="show_avatars_desc">メッセージの横にユーザーとエージェントのアバターを表示します</string>
+    <string name="chat_layout_bubbles">吹き出し</string>
+    <string name="chat_layout_avatars">アバター</string>
     <string name="starred_models_title">スター付きモデル</string>
     <string name="starred_models_desc">ピン留めしたモデルとエージェントをモデルピッカーの上部に表示します</string>
     <string name="starred_models_off">オフ</string>

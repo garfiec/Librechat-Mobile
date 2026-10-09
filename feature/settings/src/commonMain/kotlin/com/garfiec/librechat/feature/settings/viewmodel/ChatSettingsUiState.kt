@@ -1,7 +1,6 @@
 package com.garfiec.librechat.feature.settings.viewmodel
 
 import androidx.compose.runtime.Immutable
-import com.garfiec.librechat.core.common.ChatLayoutConstants
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayPrefs
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
@@ -63,10 +62,6 @@ data class ChatSettingsUiState(
     // Fork settings
     val forkMode: String = "targetLevel",
     val showForkSettingsDialog: Boolean = false,
-    // Chat layout
-    val chatLayoutStyle: String = ChatLayoutConstants.THREAD,
-    val showAvatars: Boolean = true,
-    val showBubbles: Boolean = false,
     val latexRenderer: LatexRenderer = LatexRenderer.KATEX,
     // Mobile-only: how pinned models/agents surface in the model-selection sheet
     val starredModelsDisplay: StarredModelsDisplay = StarredModelsDisplay.GROUPED,

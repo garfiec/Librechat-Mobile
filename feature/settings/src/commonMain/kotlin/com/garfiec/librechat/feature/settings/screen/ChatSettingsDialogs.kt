@@ -44,7 +44,6 @@ import com.garfiec.librechat.feature.settings.resources.Res
 import org.jetbrains.compose.resources.stringResource
 
 internal enum class ChatSettingDialog {
-    CHAT_LAYOUT,
     FONT_SIZE,
     LATEX_RENDERER,
     DURING_RUN_ACTION,

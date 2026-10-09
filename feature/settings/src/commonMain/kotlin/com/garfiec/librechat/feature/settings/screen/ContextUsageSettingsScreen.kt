@@ -96,11 +96,13 @@ fun ContextUsageSettingsScreen(
                 }
 
                 item(key = "detail_header") { AdaptiveSectionHeader(stringResource(Res.string.context_settings_detail)) }
+                // On the page rather than in a cell: a cell clips to its rounded shape, and the glass
+                // thumb's swell overhangs the control further than a cell's padding.
+                item(key = "preset") { PresetChoice(state = state, onPreset = viewModel::setPreset) }
                 adaptiveSection {
                     row(key = "detail") {
                         DetailControls(
                             state = state,
-                            onPreset = viewModel::setPreset,
                             onAdvancedChange = viewModel::setAdvanced,
                             onSections = viewModel::updateSections,
                         )
@@ -134,15 +136,13 @@ fun ContextUsageSettingsScreen(
 }
 
 @Composable
-private fun DetailControls(
+private fun PresetChoice(
     state: ContextUsageSettingsUiState,
     onPreset: (ContextDetailPreset) -> Unit,
-    onAdvancedChange: (Boolean) -> Unit,
-    onSections: ((ContextDetailSections) -> ContextDetailSections) -> Unit,
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         AdaptivePillChoice(
             options = ContextDetailPreset.entries.map { presetLabel(it) },
@@ -155,8 +155,24 @@ private fun DetailControls(
             text = stringResource(if (state.advanced) Res.string.context_settings_custom_in_use else presetDescription(state.preset)),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 16.dp),
         )
+    }
+}
 
+@Composable
+private fun DetailControls(
+    state: ContextUsageSettingsUiState,
+    onAdvancedChange: (Boolean) -> Unit,
+    onSections: ((ContextDetailSections) -> ContextDetailSections) -> Unit,
+) {
+    // The custom mix can end on the Cost pill, whose glass swell overhangs further than the cell's
+    // usual padding; the cell clips to its shape, so leave the swell room.
+    val bottom = if (state.advanced && state.serverReportsCost) SwellRoom else 16.dp
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = bottom),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
         GroupLabel(stringResource(Res.string.context_settings_preview))
         AdaptiveCard(modifier = Modifier.fillMaxWidth()) {
             ContextBreakdownCard(
@@ -330,5 +346,6 @@ internal fun contextUsageSummary(placement: ContextBarPlacement, preset: Context
     return stringResource(Res.string.context_settings_summary, contextBarPlacementLabel(placement), detail)
 }
 
+private val SwellRoom = 28.dp
 private const val DEFAULT_PREVIEW_THRESHOLD = 70
 private const val PREVIEW_OVERSHOOT = 2
