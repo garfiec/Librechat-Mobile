@@ -1,41 +1,20 @@
 package com.garfiec.librechat.feature.chat.screen
 
-import android.annotation.SuppressLint
-import android.content.ClipboardManager
-import android.content.Context
-import androidx.activity.compose.BackHandler
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.gestures.AnchoredDraggableDefaults
-import androidx.compose.foundation.gestures.AnchoredDraggableState
-import androidx.compose.foundation.gestures.DraggableAnchors
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.anchoredDraggable
-import androidx.compose.foundation.gestures.animateTo
-import androidx.compose.foundation.gestures.animateToWithDecay
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
@@ -43,41 +22,23 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.model.response.pickerMimeTypes
-import com.garfiec.librechat.core.ui.components.AdaptiveSheetSurface
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
-import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.core.ui.components.PdfPasswordDialog
 import com.garfiec.librechat.core.ui.glass.glassBackdropSource
-import com.garfiec.librechat.core.ui.glass.rememberGlassBackdrop
 import com.garfiec.librechat.feature.chat.components.AskUserQuestionPanel
+import com.garfiec.librechat.feature.chat.components.ChatComposer
 import com.garfiec.librechat.feature.chat.components.ChatFloatingTopBar
-import com.garfiec.librechat.feature.chat.components.ChatInput
-import com.garfiec.librechat.feature.chat.components.ChatOptionsPage
 import com.garfiec.librechat.feature.chat.components.ChatRoot
-import com.garfiec.librechat.feature.chat.components.ChatToolsSheetContent
 import com.garfiec.librechat.feature.chat.components.ToolApprovalPanel
 import com.garfiec.librechat.feature.chat.components.UpdateAvailableBanner
 import com.garfiec.librechat.feature.chat.components.UploadRoutingSheet
@@ -92,48 +53,47 @@ import com.garfiec.librechat.feature.chat.viewmodel.isEmptyLanding
 import com.garfiec.librechat.feature.chat.viewmodel.neutralizeStreamingChurn
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
-import kotlin.math.roundToInt
 
-/** Anchor states for the finger-following pull-up tools sheet. */
-private enum class PullUpAnchor { Hidden, Revealed }
-
-/**
- * Per-gesture bookkeeping for the pull-up reveal, held outside the [NestedScrollConnection] so it
- * survives the connection being recreated and can be reset from a pointer-down handler. [listScrolled]
- * is true once the thread list has consumed scroll within the current gesture — while set, the reveal
- * is suppressed so a single drag from the top can't overshoot the bottom into opening the sheet.
- */
-private class PullUpGesture {
-    var listScrolled = false
-}
-
+/** The chat screen, shared by Android and iOS; platform differences sit behind the expects it calls. */
 @OptIn(ExperimentalMaterial3Api::class)
 // The Scaffold's content padding is deliberately unused: the thread draws under both bars (the
 // floating top bar applies its own statusBarsPadding, the composer its own nav-bar padding) and the
 // list reserves its insets from the measured bar heights instead. contentWindowInsets is still set
 // so the snackbar clears the navigation bar.
-@Suppress("LambdaParameterEventTrailing") // actual: the defaults live on the expect, which the rule can't see
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+@Suppress("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-actual fun ChatScreen(
-    modifier: Modifier,
-    conversationId: String?,
-    isTemporaryRoute: Boolean,
-    initialAgentId: String?,
-    initialEndpoint: String?,
-    initialModel: String?,
-    onConversationStart: ((conversationId: String, isTemporary: Boolean) -> Unit)?,
-    onNavigateToConversation: ((String) -> Unit)?,
-    onOpenDrawer: (() -> Unit)?,
-    onNavigateToPromptsLibrary: (() -> Unit)?,
-    onNavigateBack: (() -> Unit)?,
-    onShowAllMedia: (() -> Unit)?,
-    onAttachFromServer: () -> Unit,
-    onOpenWhatsNew: () -> Unit,
+fun ChatScreen(
+    /**
+     * Deep-link CTA from the user-provided-key error snackbar and the
+     * model-selector "Set API Key" CTA on greyed endpoint groups. Tap navigates to
+     * Settings → Provider API Keys. When [endpointName] is non-null, the destination
+     * screen auto-opens the Set Key bottom-sheet for that endpoint.
+     */
     onNavigateToProviderKeys: (endpointName: String?) -> Unit,
+    modifier: Modifier = Modifier,
+    conversationId: String? = null,
+    /** True when this Chat(id) entry was created as (or restored as) a temporary chat. Seeds the
+     *  VM temp-aware so it never persists the server-hidden conversation. See Chat.isTemporary. */
+    isTemporaryRoute: Boolean = false,
+    initialAgentId: String? = null,
+    /** Explicit (endpoint, model) to pre-select on a new chat — set when launched from a
+     *  home-screen model shortcut / quick action. Mutually exclusive with [initialAgentId]. */
+    initialEndpoint: String? = null,
+    initialModel: String? = null,
+    onConversationStart: ((conversationId: String, isTemporary: Boolean) -> Unit)? = null,
+    onNavigateToConversation: ((String) -> Unit)? = null,
+    onOpenDrawer: (() -> Unit)? = null,
+    onNavigateToPromptsLibrary: (() -> Unit)? = null,
+    onNavigateBack: (() -> Unit)? = null,
+    /** Opens the "Show all media" gallery for the current conversation. Null (and the menu item
+     *  hidden) on a brand-new chat that has no conversation id yet. */
+    onShowAllMedia: (() -> Unit)? = null,
+    /** Opens the server-file picker so the user can attach an already-uploaded file by reference. */
+    onAttachFromServer: () -> Unit = {},
+    /** Opens What's new from the update banner shown on an empty chat. */
+    onOpenWhatsNew: () -> Unit = {},
 ) {
     val viewModel: ChatViewModel =
         koinViewModel {
@@ -166,15 +126,13 @@ actual fun ChatScreen(
     }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
-    val context = LocalContext.current
-    val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     var showPresetPicker by remember { mutableStateOf(false) }
     var showSavePresetDialog by remember { mutableStateOf(false) }
     var showSecondaryModelSheet by remember { mutableStateOf(false) }
     var activeComparisonTab by remember { mutableIntStateOf(0) }
 
     // Header/composer model labels (agent name vs model name, with the "never a raw
-    // model string under agents" rule). Shared with iOS via rememberChatModelLabel.
+    // model string under agents" rule).
     val (agentName, displayModel) = rememberChatModelLabel(
         selectedEndpoint = uiState.selectedEndpoint,
         selectedModel = uiState.selectedModel,
@@ -296,196 +254,8 @@ actual fun ChatScreen(
         Box(
             modifier = Modifier.fillMaxSize(),
         ) {
-            // ── Pull-up tools sheet ───────────────────────────────────────────────
-            // An upward pull on the thread surface (once it's scrolled to the bottom) progressively
-            // reveals the same "+" tools/attachment menu, following the finger via an anchored-drag
-            // surface. Material 3's ModalBottomSheet can't be driven by external over-scroll, so this
-            // is a custom surface rather than the ModalBottomSheet the composer's "+" still opens.
-            val pullUpState = remember { AnchoredDraggableState(PullUpAnchor.Hidden) }
-            var pullUpSheetHeightPx by remember { mutableIntStateOf(0) }
-            val pullUpGesture = remember { PullUpGesture() }
-            // ChatToolsSheetContent hoists the MCP sub-list's expansion (the paged options sheet
-            // needs it to survive a page swap), so this surface owns its own copy.
-            var pullUpMcpExpanded by remember { mutableStateOf(false) }
-            // Fling velocity above which a flick (rather than drag position) decides open/closed.
-            val pullUpMinFlingVelocityPx = with(LocalDensity.current) { 125.dp.toPx() }
-            // Cap the sheet's height to the space below the top bar so tall content (e.g. many MCP
-            // servers) can't push the bottom-anchored surface up past the screen top and clip the
-            // attachment cards off-screen. Excess content scrolls inside the sheet instead. No minimum
-            // floor: in a very short window (split-screen/freeform) a floor could itself exceed the
-            // window and reintroduce the top-clip. coerceAtLeast(0) only guards heightIn against a
-            // negative on a pathologically small window.
-            val pullUpMaxSheetHeight =
-                (LocalConfiguration.current.screenHeightDp.dp - topContentPadding - 8.dp)
-                    .coerceAtLeast(0.dp)
-            val pullUpFling = AnchoredDraggableDefaults.flingBehavior(
-                state = pullUpState,
-                positionalThreshold = { distance -> distance * 0.4f },
-                animationSpec = tween(),
-            )
-            // Dismiss the IME the moment the sheet starts to reveal (the Scaffold uses imePadding()).
-            LaunchedEffect(pullUpState, pullUpSheetHeightPx) {
-                snapshotFlow {
-                    val o = pullUpState.offset
-                    !o.isNaN() && pullUpSheetHeightPx > 0 && o < pullUpSheetHeightPx
-                }.distinctUntilChanged().collect { revealing ->
-                    if (revealing) keyboardController?.hide()
-                }
-            }
-            // Velocity-aware settle, only once the sheet is already partly open (so a fling that
-            // merely reaches the list bottom can't fling it open). Velocity wins, else position at
-            // 40%. animateToWithDecay, NOT settle(velocity) — the latter throws for this
-            // threshold-less state. Shared by both bridges; reads height live, remember on state.
-            val settlePullUpSheet: suspend (Float) -> Unit = remember(pullUpState, pullUpMinFlingVelocityPx) {
-                { velocity ->
-                    val height = pullUpSheetHeightPx.toFloat()
-                    val o = pullUpState.offset
-                    if (height > 0f && !o.isNaN() && o < height) {
-                        val target = when {
-                            velocity <= -pullUpMinFlingVelocityPx -> PullUpAnchor.Revealed
-                            velocity >= pullUpMinFlingVelocityPx -> PullUpAnchor.Hidden
-                            o < height * 0.6f -> PullUpAnchor.Revealed
-                            else -> PullUpAnchor.Hidden
-                        }
-                        pullUpState.animateToWithDecay(target, velocity)
-                    }
-                }
-            }
-            // Bridges the message-list over-scroll into the sheet: reveal on leftover upward drag once
-            // the list is at its true bottom (onPostScroll), retract on downward drag while the sheet
-            // is open (onPreScroll). Reads pullUpSheetHeightPx live, so remember only on the state.
-            val pullUpConnection = remember(pullUpState, pullUpMinFlingVelocityPx, settlePullUpSheet) {
-                object : NestedScrollConnection {
-                    override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                        val o = pullUpState.offset
-                        val open = !o.isNaN() && o < pullUpSheetHeightPx
-                        return if (available.y > 0f && open) {
-                            Offset(0f, pullUpState.dispatchRawDelta(available.y))
-                        } else {
-                            Offset.Zero
-                        }
-                    }
-
-                    override fun onPostScroll(
-                        consumed: Offset,
-                        available: Offset,
-                        source: NestedScrollSource,
-                    ): Offset {
-                        if (consumed.y != 0f) {
-                            pullUpGesture.listScrolled = true
-                        }
-                        val o = pullUpState.offset
-                        val open = !o.isNaN() && o < pullUpSheetHeightPx
-                        // Only reveal from a gesture that began at the bottom (list never scrolled),
-                        // or keep responding once the sheet is already opening. The flag is reset on
-                        // each pointer-down (see pullUpListModifier), so a cancelled gesture can't
-                        // leave the reveal permanently suppressed.
-                        val allowReveal = !pullUpGesture.listScrolled || open
-                        return if (available.y < 0f && allowReveal) {
-                            Offset(0f, pullUpState.dispatchRawDelta(available.y))
-                        } else {
-                            Offset.Zero
-                        }
-                    }
-
-                    override suspend fun onPreFling(available: Velocity): Velocity {
-                        val o = pullUpState.offset
-                        val open = !o.isNaN() && o < pullUpSheetHeightPx
-                        return if (available.y > 0f && open) {
-                            settlePullUpSheet(available.y)
-                            available
-                        } else {
-                            Velocity.Zero
-                        }
-                    }
-
-                    override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
-                        settlePullUpSheet(available.y)
-                        return available
-                    }
-                }
-            }
-            // Bridges the sheet's own content scroll into the surface: anchoredDraggable is
-            // pointer-input only and, unlike ModalBottomSheet, has no nested-scroll bridge, so
-            // ChatToolsSheetContent's verticalScroll would otherwise swallow every drag. onPostScroll
-            // for downward (content scrolls first, leftover retracts), onPreScroll for upward.
-            val pullUpSheetConnection = remember(pullUpState, settlePullUpSheet) {
-                object : NestedScrollConnection {
-                    // Upward before the content, so a half-retracted sheet pulls back up mid-drag.
-                    // Unconditional is safe: at Revealed, dispatchRawDelta consumes 0.
-                    override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                        // NaN guard: before onSizeChanged sets anchors, offset is NaN and
-                        // dispatchRawDelta would poison the child scrollable's delta.
-                        val o = pullUpState.offset
-                        return if (available.y < 0f && !o.isNaN()) {
-                            Offset(0f, pullUpState.dispatchRawDelta(available.y))
-                        } else {
-                            Offset.Zero
-                        }
-                    }
-
-                    override fun onPostScroll(
-                        consumed: Offset,
-                        available: Offset,
-                        source: NestedScrollSource,
-                    ): Offset {
-                        val o = pullUpState.offset
-                        val open = !o.isNaN() && o < pullUpSheetHeightPx
-                        return if (available.y > 0f && open) {
-                            Offset(0f, pullUpState.dispatchRawDelta(available.y))
-                        } else {
-                            Offset.Zero
-                        }
-                    }
-
-                    // Mirror of onPreScroll: an upward flick on a half-retracted sheet settles it
-                    // rather than handing velocity to the content.
-                    override suspend fun onPreFling(available: Velocity): Velocity {
-                        val o = pullUpState.offset
-                        val partlyRetracted = !o.isNaN() && o > 0f
-                        return if (available.y < 0f && partlyRetracted) {
-                            settlePullUpSheet(available.y)
-                            available
-                        } else {
-                            Velocity.Zero
-                        }
-                    }
-
-                    override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
-                        settlePullUpSheet(available.y)
-                        return available
-                    }
-                }
-            }
-            // The active list gets the nested-scroll bridge plus a pointer-down reset of the
-            // per-gesture "list scrolled" flag, so every fresh touch re-arms the reveal even if a
-            // prior drag ended without a fling callback.
-            val pullUpListModifier = Modifier
-                .nestedScroll(pullUpConnection)
-                .pointerInput(pullUpGesture) {
-                    awaitEachGesture {
-                        awaitFirstDown(requireUnconsumed = false)
-                        pullUpGesture.listScrolled = false
-                    }
-                }
-            // The landing screen isn't scrollable, so nested-scroll never fires there — drive the same
-            // state with a direct drag modifier instead.
-            val pullUpLandingModifier = Modifier.anchoredDraggable(
-                state = pullUpState,
-                orientation = Orientation.Vertical,
-                flingBehavior = pullUpFling,
-            )
-
-            // The whole screen, recorded for the pull-up sheet only while it shows. The sheet is drawn
-            // beside this, never inside it.
-            val pullUpBackdrop = rememberGlassBackdrop()
-            val pullUpVisible by remember {
-                derivedStateOf {
-                    val o = pullUpState.offset
-                    pullUpSheetHeightPx > 0 && !o.isNaN() && o < pullUpSheetHeightPx
-                }
-            }
-            Box(Modifier.fillMaxSize().glassBackdropSource(pullUpBackdrop.takeIf { pullUpVisible })) {
+            val pullUp = rememberChatPullUpSheetState()
+            Box(Modifier.fillMaxSize().glassBackdropSource(pullUp.backdrop.takeIf { pullUp.visible })) {
                 Column(
                     // "Add to chat" on the selection toolbar (v0.8.7 quotes), contributed from above
                     // every message's SelectionContainer — which is where foundation collects a
@@ -499,10 +269,9 @@ actual fun ChatScreen(
                         ),
                 ) {
                     ChatContent(
-                        listPullUpModifier = pullUpListModifier,
-                        pullUpModifier = pullUpLandingModifier,
+                        listPullUpModifier = pullUp.listModifier,
+                        pullUpModifier = pullUp.landingModifier,
                         viewModel = viewModel,
-                        clipboardManager = clipboardManager,
                         agentName = agentName,
                         displayModel = displayModel,
                         fontSizeMultiplier = fontSizeMultiplier,
@@ -584,7 +353,7 @@ actual fun ChatScreen(
                                     .padding(horizontal = 12.dp, vertical = 8.dp),
                             )
                         } else {
-                            ChatInput(
+                            ChatComposer(
                                 inputText = uiState.inputText,
                                 isStreaming = isAnyStreaming,
                                 onInputChange = viewModel::onInputChanged,
@@ -630,6 +399,8 @@ actual fun ChatScreen(
                                 onSetDuringRunAction = viewModel::setDuringRunAction,
                                 attachedFiles = attachedFiles,
                                 onRemoveFile = viewModel::removeFile,
+                                onPasteFiles = viewModel::onFilesSelected,
+                                pasteScope = coroutineScope,
                                 promptSuggestions = uiState.availablePrompts,
                                 onSlashCommandSelect = viewModel::handleSlashCommand,
                                 isRecording = uiState.isRecording,
@@ -686,138 +457,20 @@ actual fun ChatScreen(
                 )
             }
 
-            // Pull-up sheet overlay (drawn last so scrim + sheet sit above the composer and top bar).
-            // `pullUpVisible` is derived so the scrim/back-handler recompose only on the open<->closed
-            // transition; the scrim's dim level is drawn in the draw phase (drawBehind) and the sheet
-            // offset is read in the layout phase (offset {}), so a drag doesn't recompose the screen.
-            if (pullUpVisible) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        // Drag the dimmed backdrop to push the sheet back down, or tap to dismiss.
-                        .anchoredDraggable(
-                            state = pullUpState,
-                            orientation = Orientation.Vertical,
-                            flingBehavior = pullUpFling,
-                        )
-                        .pointerInput(Unit) {
-                            detectTapGestures {
-                                coroutineScope.launch { pullUpState.animateTo(PullUpAnchor.Hidden) }
-                            }
-                        }
-                        .drawBehind {
-                            val o = pullUpState.offset
-                            val p = if (pullUpSheetHeightPx > 0 && !o.isNaN()) {
-                                (1f - o / pullUpSheetHeightPx).coerceIn(0f, 1f)
-                            } else {
-                                0f
-                            }
-                            drawRect(color = Color.Black, alpha = 0.5f * p)
-                        },
-                )
-            }
-            BackHandler(enabled = pullUpVisible) {
-                coroutineScope.launch { pullUpState.animateTo(PullUpAnchor.Hidden) }
-            }
-            AdaptiveSheetSurface(
-                backdrop = pullUpBackdrop,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    // Match ModalBottomSheet: full-bleed on phones, capped + centered on wide
-                    // (fold/tablet) displays instead of edge-to-edge.
-                    .fillMaxWidth()
-                    .widthIn(max = BottomSheetDefaults.SheetMaxWidth)
-                    .heightIn(max = pullUpMaxSheetHeight)
-                    // Stay invisible until measured: on the very first frame the offset is NaN and the
-                    // measured height is still 0, so without this the sheet would place at offset 0
-                    // (fully revealed) and flash the whole menu open on every chat entry.
-                    .graphicsLayer { alpha = if (pullUpSheetHeightPx > 0) 1f else 0f }
-                    .onSizeChanged { size ->
-                        if (size.height != pullUpSheetHeightPx) {
-                            pullUpSheetHeightPx = size.height
-                            if (size.height > 0) {
-                                // newTarget is load-bearing: the default is the anchor closest to
-                                // the CURRENT offset, which is the old height. A sheet that more
-                                // than doubles while hidden (its content loading after the first
-                                // measure) is then nearer Revealed (0) than the new Hidden, and
-                                // snaps open over the composer on its own. Keep its state.
-                                pullUpState.updateAnchors(
-                                    DraggableAnchors {
-                                        PullUpAnchor.Hidden at size.height.toFloat()
-                                        PullUpAnchor.Revealed at 0f
-                                    },
-                                    newTarget = pullUpState.targetValue,
-                                )
-                            }
-                        }
-                    }
-                    .offset {
-                        val o = pullUpState.offset
-                        IntOffset(0, if (o.isNaN()) pullUpSheetHeightPx else o.roundToInt())
-                    }
-                    .anchoredDraggable(
-                        state = pullUpState,
-                        orientation = Orientation.Vertical,
-                        flingBehavior = pullUpFling,
-                    )
-                    // Lets a drag over the scrolling content move the surface. See pullUpSheetConnection.
-                    .nestedScroll(pullUpSheetConnection),
-            ) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    LowProfileDragHandle()
-                    ChatToolsSheetContent(
-                        enabledTools = uiState.effectiveEnabledTools,
-                        onToggleTool = viewModel::toggleTool,
-                        mcpServers = uiState.mcpServers,
-                        selectedMcpServerNames = uiState.selectedMcpServerNames,
-                        onToggleMcpServer = viewModel::toggleMcpServer,
-                        onAttachFiles = attachmentActions.onAttachFiles,
-                        onTakePhoto = attachmentActions.onTakePhoto,
-                        onPickPhotos = attachmentActions.onPickPhotos,
-                        onAttachFromServer = onAttachFromServer,
-                        // The pull-up hands these two pages off to the options sheet rather than
-                        // swapping its own anchored-drag surface (which the selector's search/IME/list
-                        // would fight), retracting itself here.
-                        onOpenModelParameters = {
-                            optionsController.open(ChatOptionsPage.ModelParameters)
-                            coroutineScope.launch { pullUpState.animateTo(PullUpAnchor.Hidden) }
-                        },
-                        onOpenModelSelector = {
-                            optionsController.open(ChatOptionsPage.ModelSelector)
-                            coroutineScope.launch { pullUpState.animateTo(PullUpAnchor.Hidden) }
-                        },
-                        selectedModelDisplay = effectiveSelectedModelDisplay,
-                        onDismiss = {
-                            coroutineScope.launch { pullUpState.animateTo(PullUpAnchor.Hidden) }
-                        },
-                        isCodeInterpreterAvailable = uiState.isCodeInterpreterAvailable,
-                        webSearchEnabled = uiState.webSearchEnabled,
-                        urlContextEnabled = uiState.urlContextProviderGate,
-                        runCodeEnabled = uiState.runCodeEnabled,
-                        fileSearchEnabled = uiState.fileSearchEnabled,
-                        memoryEnabled = uiState.isMemoryToolAvailable,
-                        mcpServersEnabled = uiState.mcpServersEnabled,
-                        gates = uiState.chatInputGates,
-                        contextGauge = uiState.contextGaugeDetails,
-                        contextUsageEnabled = uiState.contextUsageEnabled,
-                        onCompact = viewModel::compactConversation.takeIf { uiState.canCompactNow },
-                        onSnoozeCompact = viewModel::snoozeCompactNudge,
-                        contextBarPlacement = uiState.contextBarPlacement,
-                        contextGaugeExpanded = uiState.contextGaugeExpanded,
-                        onContextGaugeExpandedChange = viewModel::setContextGaugeExpanded,
-                        mcpExpanded = pullUpMcpExpanded,
-                        onMcpExpandedChange = { pullUpMcpExpanded = it },
-                    )
-                }
-            }
+            ChatPullUpSheetOverlay(
+                state = pullUp,
+                topContentPadding = topContentPadding,
+                uiState = uiState,
+                viewModel = viewModel,
+                optionsController = optionsController,
+                selectedModelDisplay = effectiveSelectedModelDisplay,
+                onAttachFiles = attachmentActions.onAttachFiles,
+                onTakePhoto = attachmentActions.onTakePhoto,
+                onPickPhotos = attachmentActions.onPickPhotos,
+                onAttachFromServer = onAttachFromServer,
+            )
 
-            // Manual attachment routing. The pick can come from the pull-up surface, which stays
-            // revealed and drag-responsive underneath — retract it before the sheet shows, or the
-            // two surfaces fight for the same gestures.
             val pendingRouting = uiState.composer.pendingUploadRouting
-            LaunchedEffect(pendingRouting != null) {
-                if (pendingRouting != null) pullUpState.animateTo(PullUpAnchor.Hidden)
-            }
             if (pendingRouting != null) {
                 UploadRoutingSheet(
                     files = pendingRouting.files,
@@ -881,4 +534,37 @@ actual fun ChatScreen(
         )
     }
     }
+}
+
+/**
+ * [ChatScreen] with no conversation id. When a conversation starts streaming, [onConversationStart]
+ * gets its id so the caller can navigate to the full chat route. [initialAgentId], when non-null,
+ * pre-selects that agent (set when starting from an agent detail/card); [initialEndpoint] and
+ * [initialModel] pre-select a concrete model (home-screen shortcut).
+ */
+@Composable
+fun NewChatScreen(
+    onConversationStart: (conversationId: String, isTemporary: Boolean) -> Unit,
+    onNavigateToProviderKeys: (endpointName: String?) -> Unit,
+    modifier: Modifier = Modifier,
+    initialAgentId: String? = null,
+    initialEndpoint: String? = null,
+    initialModel: String? = null,
+    onOpenDrawer: (() -> Unit)? = null,
+    onNavigateToPromptsLibrary: (() -> Unit)? = null,
+    onAttachFromServer: () -> Unit = {},
+    onOpenWhatsNew: () -> Unit = {},
+) {
+    ChatScreen(
+        modifier = modifier,
+        initialAgentId = initialAgentId,
+        initialEndpoint = initialEndpoint,
+        initialModel = initialModel,
+        onConversationStart = onConversationStart,
+        onOpenDrawer = onOpenDrawer,
+        onNavigateToPromptsLibrary = onNavigateToPromptsLibrary,
+        onNavigateToProviderKeys = onNavigateToProviderKeys,
+        onAttachFromServer = onAttachFromServer,
+        onOpenWhatsNew = onOpenWhatsNew,
+    )
 }

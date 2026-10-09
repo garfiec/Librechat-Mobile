@@ -8,7 +8,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -19,32 +18,15 @@ import androidx.core.content.FileProvider
 import java.io.File
 
 /**
- * The three attachment entry points offered by the chat tools sheet, ready to invoke.
- * Produced by [rememberChatAttachmentActions].
- */
-@Immutable
-class ChatAttachmentActions(
-    val onAttachFiles: () -> Unit,
-    val onTakePhoto: () -> Unit,
-    val onPickPhotos: () -> Unit,
-)
-
-/**
  * Registers the file-picker, photo-picker, camera, and camera-permission activity-result launchers
- * and returns the [ChatAttachmentActions] that drive them. Call this **once** high in the chat
- * screen and share the result: a launcher stays usable from any descendant composition while the
- * one that registered it is alive, so the chat screen registers a single set and passes it down to
- * both the composer's "+" sheet ([ChatInput]) and the pull-up sheet — no need for a second copy.
- *
- * [filePickerMimeTypes] narrows the file picker to the server's `supportedMimeTypes` allowlist for
- * the active endpoint (`FileUploadConfig.pickerMimeTypes`). Empty means "no restriction" — every
- * case the allowlist can't be represented faithfully resolves to that, and the picker shows
- * everything rather than hiding a file the server would have accepted.
+ * and returns the [ChatAttachmentActions] that drive them, handing [Uri]s to [onFilesSelect]. A
+ * launcher stays usable from any descendant composition while the one that registered it is alive,
+ * so one set registered by the chat screen serves both the composer's "+" sheet and the pull-up sheet.
  */
 @Composable
-fun rememberChatAttachmentActions(
-    onFilesSelect: (List<Uri>) -> Unit,
-    filePickerMimeTypes: List<String> = emptyList(),
+actual fun rememberChatAttachmentActions(
+    onFilesSelect: (List<Any>) -> Unit,
+    filePickerMimeTypes: List<String>,
 ): ChatAttachmentActions {
     val context = LocalContext.current
 

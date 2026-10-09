@@ -14,12 +14,9 @@ import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
 
 /**
- * Outcomes every platform's chat screen must act on, in one place.
- *
- * Each `ChatScreen` actual used to consume its own copy, and the iOS one consumed none: the
- * ViewModel never heard a pause or resume, so nothing reconciled on foreground; Share created a
- * public link the user never saw; and Fork and Duplicate did nothing visible. A new outcome belongs
- * here, not in a platform file, so it cannot reach one platform and not the other.
+ * The ViewModel outcomes the chat screen acts on: lifecycle pause/resume, Share, Fork and
+ * Duplicate. Each is easy to drop silently (the ViewModel never hears a resume, a share link is
+ * created the user never sees), which is why they sit together here rather than in the screen.
  */
 @Composable
 internal fun ChatScreenOutcomes(

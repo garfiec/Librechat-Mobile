@@ -46,7 +46,7 @@ object AddToChatMenuKey
  * added.
  */
 @Composable
-internal fun Modifier.addToChatSelectionItem(
+internal actual fun Modifier.addToChatSelectionItem(
     enabled: Boolean,
     onAddToChat: (String) -> Unit,
 ): Modifier {
