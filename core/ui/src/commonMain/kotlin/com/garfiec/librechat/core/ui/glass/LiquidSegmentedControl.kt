@@ -540,7 +540,7 @@ private val MaxShift = 8.dp
 private val MaxGrow = 4.dp
 
 /** Past either end the thumb follows a quarter as far, up to a third of a segment. */
-private fun rubberBand(position: Float, last: Float): Float = when {
+internal fun rubberBand(position: Float, last: Float): Float = when {
     position < 0f -> (position * OVERDRAG).coerceAtLeast(-MAX_OVERDRAG)
     position > last -> last + ((position - last) * OVERDRAG).coerceAtMost(MAX_OVERDRAG)
     else -> position
