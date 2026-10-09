@@ -636,4 +636,21 @@
     <string name="compact_confirm_not_now">나중에</string>
     <string name="compact_confirm_action">압축</string>
     <string name="cd_temporary_chat">임시 채팅</string>
+    <string name="notice_rename_failed">대화 이름을 변경하지 못했습니다</string>
+    <string name="notice_delete_failed">대화를 삭제하지 못했습니다</string>
+    <string name="notice_archive_failed">대화를 보관하지 못했습니다</string>
+    <string name="notice_duplicate_failed">대화를 복제하지 못했습니다</string>
+    <string name="notice_share_link_failed">공유 링크를 만들지 못했습니다</string>
+    <string name="notice_preset_save_failed">프리셋을 저장하지 못했습니다</string>
+    <string name="notice_preset_delete_failed">프리셋을 삭제하지 못했습니다</string>
+    <string name="notice_preset_update_failed">프리셋을 업데이트하지 못했습니다</string>
+    <string name="notice_continue_response_failed">선택한 응답으로 계속하지 못했습니다</string>
+    <string name="notice_favorites_limit">즐겨찾기는 최대 %1$d개까지 고정할 수 있습니다.</string>
+    <string name="notice_favorites_update_failed">즐겨찾기를 업데이트하지 못했습니다.</string>
+    <string name="notice_upload_failed">%1$s을(를) 업로드하지 못했습니다: %2$s</string>
+    <string name="notice_upload_failed_unknown">%1$s을(를) 업로드하지 못했습니다: 알 수 없는 오류</string>
+    <string name="notice_upload_unreadable">%1$s을(를) 업로드하지 못했습니다: 파일을 읽을 수 없습니다</string>
+    <string name="notice_upload_too_large">%1$s이(가) 서버 제한인 %2$s보다 큽니다.</string>
+    <string name="notice_speech_permission_denied">음성 인식 권한이 거부되었습니다</string>
+    <string name="notice_speech_unavailable">음성 인식을 사용할 수 없습니다. 설정 &gt; 개인정보 보호 &gt; 음성 인식을 확인하세요.</string>
 </resources>

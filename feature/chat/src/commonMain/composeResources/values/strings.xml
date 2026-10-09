@@ -661,4 +661,21 @@
     <string name="compact_confirm_body">%1$d% of the context window is used. Compacting summarizes the conversation so far into a shorter note the model keeps reading, freeing room for what comes next. Nothing is deleted.</string>
     <string name="compact_confirm_not_now">Not now</string>
     <string name="compact_confirm_action">Compact</string>
+    <string name="notice_rename_failed">Failed to rename conversation</string>
+    <string name="notice_delete_failed">Failed to delete conversation</string>
+    <string name="notice_archive_failed">Failed to archive conversation</string>
+    <string name="notice_duplicate_failed">Failed to duplicate conversation</string>
+    <string name="notice_share_link_failed">Failed to create share link</string>
+    <string name="notice_preset_save_failed">Could not save preset</string>
+    <string name="notice_preset_delete_failed">Could not delete preset</string>
+    <string name="notice_preset_update_failed">Could not update preset</string>
+    <string name="notice_continue_response_failed">Failed to continue with selected response</string>
+    <string name="notice_favorites_limit">You can pin up to %1$d favorites.</string>
+    <string name="notice_favorites_update_failed">Could not update favorites.</string>
+    <string name="notice_upload_failed">Failed to upload %1$s: %2$s</string>
+    <string name="notice_upload_failed_unknown">Failed to upload %1$s: Unknown error</string>
+    <string name="notice_upload_unreadable">Failed to upload %1$s: Could not read file</string>
+    <string name="notice_upload_too_large">%1$s is larger than the server limit of %2$s.</string>
+    <string name="notice_speech_permission_denied">Speech recognition permission denied</string>
+    <string name="notice_speech_unavailable">Speech recognition not available. Check Settings &gt; Privacy &gt; Speech Recognition.</string>
 </resources>

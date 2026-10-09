@@ -4,6 +4,7 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.PromptRepository
+import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ComparisonHandle
@@ -41,7 +42,7 @@ class RepositoryFailureReportingTest {
 
         delegate.branchFromComparison("agent_secondary____1")
 
-        assertThat(flow.value.error).isEqualTo("Failed to continue with selected response")
+        assertThat(flow.value.error).isEqualTo(ChatNotice.CONTINUE_RESPONSE_FAILED.marker())
         assertThat(flow.value.comparisonState).isEqualTo(comparison)
         assertThat(flow.value.pendingNavigationConversationId).isNull()
         assertThat(reloaded).isFalse()
@@ -60,6 +61,6 @@ class RepositoryFailureReportingTest {
 
         delegate.savePreset("My preset")
 
-        assertThat(flow.value.error).isEqualTo("Could not save preset")
+        assertThat(flow.value.error).isEqualTo(ChatNotice.PRESET_SAVE_FAILED.marker())
     }
 }

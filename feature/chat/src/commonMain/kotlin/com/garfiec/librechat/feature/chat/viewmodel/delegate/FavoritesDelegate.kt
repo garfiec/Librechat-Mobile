@@ -5,6 +5,7 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.FavoritesRepository
 import com.garfiec.librechat.core.model.FavoritesLimits
 import com.garfiec.librechat.core.model.UserFavorite
+import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.FavoritesHandle
 import kotlinx.coroutines.launch
 
@@ -91,7 +92,7 @@ class FavoritesDelegate(
     private fun atLimit(current: List<UserFavorite>): Boolean = current.size >= FavoritesLimits.MAX_FAVORITES
 
     private fun reportLimit() {
-        handle.setError("You can pin up to ${FavoritesLimits.MAX_FAVORITES} favorites.")
+        handle.setError(ChatNotice.FAVORITES_LIMIT.marker(FavoritesLimits.MAX_FAVORITES))
     }
 
     private fun persist(nextList: List<UserFavorite>) {
@@ -100,7 +101,7 @@ class FavoritesDelegate(
                 is Result.Success -> Unit
                 is Result.Error -> {
                     Logger.w(result.exception) { "Failed to save favorites: ${result.message}" }
-                    handle.setError(result.message ?: "Could not update favorites.")
+                    handle.setError(result.message ?: ChatNotice.FAVORITES_UPDATE_FAILED.marker())
                 }
                 is Result.Loading -> Unit
             }

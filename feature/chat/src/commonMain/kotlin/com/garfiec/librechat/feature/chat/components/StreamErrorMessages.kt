@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.error.StreamErrorType
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -26,6 +27,7 @@ import org.jetbrains.compose.resources.stringResource
  */
 @Composable
 internal fun localizedStreamError(raw: String): String {
+    ChatNotice.parse(raw)?.let { return localizedNotice(it) }
     if (!raw.startsWith(StreamErrorType.MARKER_PREFIX)) return raw
     val wire = raw.removePrefix(StreamErrorType.MARKER_PREFIX)
     // Matched on the enum rather than on the marker string so a code removed from the enum stops
@@ -61,6 +63,36 @@ internal fun localizedStreamError(raw: String): String {
         StreamErrorType.MCP_AUTHENTICATION_REJECTED -> stringResource(Res.string.error_mcp_authentication_rejected)
         StreamErrorType.MCP_AUTHENTICATION_REFRESH_FAILED ->
             stringResource(Res.string.error_mcp_authentication_refresh_failed)
+    }
+}
+
+@Composable
+private fun localizedNotice(parsed: ChatNotice.Parsed): String {
+    val res = when (parsed.notice) {
+        ChatNotice.RENAME_FAILED -> Res.string.notice_rename_failed
+        ChatNotice.DELETE_FAILED -> Res.string.notice_delete_failed
+        ChatNotice.ARCHIVE_FAILED -> Res.string.notice_archive_failed
+        ChatNotice.DUPLICATE_FAILED -> Res.string.notice_duplicate_failed
+        ChatNotice.SHARE_LINK_FAILED -> Res.string.notice_share_link_failed
+        ChatNotice.PRESET_SAVE_FAILED -> Res.string.notice_preset_save_failed
+        ChatNotice.PRESET_DELETE_FAILED -> Res.string.notice_preset_delete_failed
+        ChatNotice.PRESET_UPDATE_FAILED -> Res.string.notice_preset_update_failed
+        ChatNotice.CONTINUE_RESPONSE_FAILED -> Res.string.notice_continue_response_failed
+        ChatNotice.FAVORITES_LIMIT -> Res.string.notice_favorites_limit
+        ChatNotice.FAVORITES_UPDATE_FAILED -> Res.string.notice_favorites_update_failed
+        ChatNotice.UPLOAD_FAILED -> Res.string.notice_upload_failed
+        ChatNotice.UPLOAD_FAILED_UNKNOWN -> Res.string.notice_upload_failed_unknown
+        ChatNotice.UPLOAD_UNREADABLE -> Res.string.notice_upload_unreadable
+        ChatNotice.UPLOAD_TOO_LARGE -> Res.string.notice_upload_too_large
+        ChatNotice.SPEECH_PERMISSION_DENIED -> Res.string.notice_speech_permission_denied
+        ChatNotice.SPEECH_UNAVAILABLE -> Res.string.notice_speech_unavailable
+    }
+    val args = parsed.args
+    // A notice with a third argument needs its own branch here; `else` would drop it.
+    return when (args.size) {
+        0 -> stringResource(res)
+        1 -> stringResource(res, args[0])
+        else -> stringResource(res, args[0], args[1])
     }
 }
 

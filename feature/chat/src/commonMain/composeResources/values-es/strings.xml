@@ -636,4 +636,21 @@
     <string name="compact_confirm_not_now">Ahora no</string>
     <string name="compact_confirm_action">Compactar</string>
     <string name="cd_temporary_chat">Chat temporal</string>
+    <string name="notice_rename_failed">No se pudo cambiar el nombre de la conversación</string>
+    <string name="notice_delete_failed">No se pudo eliminar la conversación</string>
+    <string name="notice_archive_failed">No se pudo archivar la conversación</string>
+    <string name="notice_duplicate_failed">No se pudo duplicar la conversación</string>
+    <string name="notice_share_link_failed">No se pudo crear el enlace para compartir</string>
+    <string name="notice_preset_save_failed">No se pudo guardar el preajuste</string>
+    <string name="notice_preset_delete_failed">No se pudo eliminar el preajuste</string>
+    <string name="notice_preset_update_failed">No se pudo actualizar el preajuste</string>
+    <string name="notice_continue_response_failed">No se pudo continuar con la respuesta seleccionada</string>
+    <string name="notice_favorites_limit">Puedes fijar hasta %1$d favoritos.</string>
+    <string name="notice_favorites_update_failed">No se pudieron actualizar los favoritos.</string>
+    <string name="notice_upload_failed">No se pudo subir %1$s: %2$s</string>
+    <string name="notice_upload_failed_unknown">No se pudo subir %1$s: error desconocido</string>
+    <string name="notice_upload_unreadable">No se pudo subir %1$s: no se pudo leer el archivo</string>
+    <string name="notice_upload_too_large">%1$s supera el límite del servidor de %2$s.</string>
+    <string name="notice_speech_permission_denied">Permiso de reconocimiento de voz denegado</string>
+    <string name="notice_speech_unavailable">El reconocimiento de voz no está disponible. Revisa Ajustes &gt; Privacidad &gt; Reconocimiento de voz.</string>
 </resources>

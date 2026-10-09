@@ -7,6 +7,7 @@ import com.garfiec.librechat.feature.chat.audio.DictationBuffer
 import com.garfiec.librechat.feature.chat.audio.MAX_EMPTY_SEGMENTS
 import com.garfiec.librechat.feature.chat.audio.STOP_WATCHDOG_MS
 import com.garfiec.librechat.feature.chat.audio.appendToBase
+import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.VoiceHandle
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.coroutines.Job
@@ -156,7 +157,7 @@ class IosVoiceInput(
                             beginRecording()
                         } else {
                             log.w { "Speech recognition permission denied" }
-                            handle.setError("Speech recognition permission denied")
+                            handle.setError(ChatNotice.SPEECH_PERMISSION_DENIED.marker())
                         }
                     }
                 }
@@ -168,7 +169,7 @@ class IosVoiceInput(
             }
             else -> {
                 log.w { "Speech recognition not available, authStatus=$authStatus" }
-                handle.setError("Speech recognition not available. Check Settings > Privacy > Speech Recognition.")
+                handle.setError(ChatNotice.SPEECH_UNAVAILABLE.marker())
                 return
             }
         }

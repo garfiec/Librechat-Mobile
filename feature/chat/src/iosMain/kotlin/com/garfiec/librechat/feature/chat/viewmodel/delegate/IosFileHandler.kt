@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.model.response.toolResource
 import com.garfiec.librechat.feature.chat.components.AttachedFile
 import com.garfiec.librechat.feature.chat.util.IosFileData
 import com.garfiec.librechat.feature.chat.util.IosImageData
+import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.ErrorOnlyHandle
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -125,7 +126,7 @@ class IosFileHandler(
                                 if (f.uri == uniqueId) f.copy(uploadFailed = true, uploadProgress = null) else f
                             }
                         }
-                        handle.setError("Failed to upload ${imageData.filename}: ${result.message ?: "Unknown error"}")
+                        handle.setError(ChatNotice.uploadFailed(imageData.filename, result.message))
                     }
                     is Result.Loading -> { /* unexpected */ }
                 }
@@ -138,7 +139,7 @@ class IosFileHandler(
                         if (f.uri == uniqueId) f.copy(uploadFailed = true, uploadProgress = null) else f
                     }
                 }
-                handle.setError("Failed to upload ${imageData.filename}: ${e.message}")
+                handle.setError(ChatNotice.uploadFailed(imageData.filename, e.message))
             }
         }
     }
@@ -218,7 +219,7 @@ class IosFileHandler(
                             return@launch
                         }
                         Logger.e(result.exception) { "IosFileHandler: file upload failed -- ${result.message}" }
-                        handle.setError("Failed to upload ${fileData.filename}: ${result.message ?: "Unknown error"}")
+                        handle.setError(ChatNotice.uploadFailed(fileData.filename, result.message))
                     }
                     is Result.Loading -> { /* unexpected */ }
                 }
@@ -231,7 +232,7 @@ class IosFileHandler(
                         if (f.uri == uniqueId) f.copy(uploadFailed = true, uploadProgress = null) else f
                     }
                 }
-                handle.setError("Failed to upload ${fileData.filename}: ${e.message}")
+                handle.setError(ChatNotice.uploadFailed(fileData.filename, e.message))
             }
         }
     }
