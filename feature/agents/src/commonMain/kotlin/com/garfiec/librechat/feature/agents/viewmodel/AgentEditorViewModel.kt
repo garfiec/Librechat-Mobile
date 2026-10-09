@@ -257,8 +257,8 @@ data class AgentEditorUiState(
      *  bool }, … }`). Round-tripped on every save so values set via the web
      *  client (deferred / programmatic flags) survive a mobile edit. The
      *  save path prunes this map to the agent's current tool selection so
-     *  deselecting an MCP tool also drops its options. UI for editing comes
-     *  in the follow-up parity PR. */
+     *  deselecting an MCP tool also drops its options. Mobile has no UI that
+     *  edits it yet. */
     val toolOptions: JsonObject? = null,
     /** Agent runtime `additional_instructions`. See [Agent.additionalInstructions]
      *  for the wire-level caveat: round-trip is a no-op against the current

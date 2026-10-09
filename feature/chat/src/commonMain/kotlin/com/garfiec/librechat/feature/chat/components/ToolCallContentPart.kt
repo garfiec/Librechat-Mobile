@@ -144,8 +144,6 @@ internal fun ToolCallDispatcher(
         return
     }
 
-    // Shipped ahead of upstream's own presentation, which it scopes as a follow-up slice — kept to
-    // swapping the label so reworking it stays a one-line change.
     val intent = remember(toolCall) {
         parseToolIntent(toolCall?.args) ?: parseToolIntent(toolCall?.function?.arguments)
     }
