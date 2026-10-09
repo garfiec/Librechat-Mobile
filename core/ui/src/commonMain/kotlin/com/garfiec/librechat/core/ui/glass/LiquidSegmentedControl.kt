@@ -23,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -58,6 +59,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
+import androidx.compose.ui.zIndex
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberCombinedBackdrop
@@ -130,9 +132,13 @@ internal fun LiquidSegmentedControl(
     }
     val currentSelected by rememberUpdatedState(selectedIndex)
     val currentOnSelect by rememberUpdatedState(onSelect)
+    // The swollen thumb overhangs the control; while it does, draw over later siblings (a grid,
+    // another control) so they don't cover it.
+    val swollen by remember(motion) { derivedStateOf { motion.pressProgress > 0f } }
 
     BoxWithConstraints(
         modifier = modifier
+            .zIndex(if (swollen) 1f else 0f)
             .fillMaxWidth()
             .height(SegmentHeight)
             .alpha(if (enabled) 1f else GlassDefaults.DISABLED_ALPHA),
