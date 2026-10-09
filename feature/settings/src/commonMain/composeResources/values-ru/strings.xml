@@ -252,6 +252,8 @@
     <string name="show_bubbles_desc">Добавлять скруглённый фон-пузырёк к сообщениям</string>
     <string name="show_avatars">Показывать аватары</string>
     <string name="show_avatars_desc">Отображать аватары пользователя и агента рядом с сообщениями</string>
+    <string name="chat_layout_bubbles">Пузырьки</string>
+    <string name="chat_layout_avatars">Аватары</string>
     <string name="starred_models_title">Избранные модели</string>
     <string name="starred_models_desc">Показывать закреплённые модели и агентов в начале списка выбора модели</string>
     <string name="starred_models_off">Выключено</string>

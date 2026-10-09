@@ -252,6 +252,8 @@
     <string name="show_bubbles_desc">Ajouter des arrière-plans en bulles arrondies aux messages</string>
     <string name="show_avatars">Afficher les avatars</string>
     <string name="show_avatars_desc">Afficher les avatars de l'utilisateur et de l'agent à côté des messages</string>
+    <string name="chat_layout_bubbles">Bulles</string>
+    <string name="chat_layout_avatars">Avatars</string>
     <string name="starred_models_title">Modèles favoris</string>
     <string name="starred_models_desc">Afficher vos modèles et agents épinglés en haut du sélecteur de modèle</string>
     <string name="starred_models_off">Désactivé</string>

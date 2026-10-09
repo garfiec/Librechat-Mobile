@@ -252,6 +252,8 @@
     <string name="show_bubbles_desc">为消息添加圆角气泡背景</string>
     <string name="show_avatars">显示头像</string>
     <string name="show_avatars_desc">在消息旁显示用户和智能体头像</string>
+    <string name="chat_layout_bubbles">气泡</string>
+    <string name="chat_layout_avatars">头像</string>
     <string name="starred_models_title">星标模型</string>
     <string name="starred_models_desc">在模型选择器顶部显示已固定的模型和智能体</string>
     <string name="starred_models_off">关闭</string>

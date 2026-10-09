@@ -252,6 +252,8 @@
     <string name="show_bubbles_desc">إضافة خلفيات فقاعية دائرية للرسائل</string>
     <string name="show_avatars">إظهار الصور الرمزية</string>
     <string name="show_avatars_desc">عرض الصور الرمزية للمستخدم والوكيل بجوار الرسائل</string>
+    <string name="chat_layout_bubbles">فقاعات</string>
+    <string name="chat_layout_avatars">صور رمزية</string>
     <string name="starred_models_title">النماذج المميزة بنجمة</string>
     <string name="starred_models_desc">إظهار نماذجك ووكلائك المثبتين في أعلى محدد النموذج</string>
     <string name="starred_models_off">إيقاف</string>

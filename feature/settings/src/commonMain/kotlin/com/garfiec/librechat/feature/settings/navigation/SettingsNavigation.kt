@@ -68,6 +68,7 @@ fun EntryProviderScope<NavKey>.settingsEntries(
             onNavigateToMcpServers = { onNavigate(McpServers) },
             onNavigateToPresets = { onNavigate(PresetManager) },
             onNavigateToContextUsage = { onNavigate(ContextUsageSettings) },
+            onNavigateToChatLayout = { onNavigate(ChatLayoutSettings) },
             onNavigateToApiKeys = { onNavigate(ApiKeys) },
             onNavigateToFavorites = { onNavigate(Favorites) },
             onNavigateToProviderKeys = navigateToProviderKeys,
@@ -89,6 +90,7 @@ fun EntryProviderScope<NavKey>.settingsEntries(
             onNavigateBack = onBack,
             onNavigateToPresets = { onNavigate(PresetManager) },
             onNavigateToContextUsage = { onNavigate(ContextUsageSettings) },
+            onNavigateToChatLayout = { onNavigate(ChatLayoutSettings) },
         )
     }
     entry<SettingsAccount> {
@@ -136,6 +138,7 @@ fun EntryProviderScope<NavKey>.settingsEntries(
     artifactShortcutsEntry(onBack = onBack)
     prefetchEntries(onNavigate = onNavigate, onBack = onBack)
     contextUsageSettingsEntry(onBack = onBack)
+    chatLayoutSettingsEntry(onBack = onBack)
     appearanceSettingsEntry(onBack = onBack)
     whatsNewEntry(onBack = onBack)
     releaseNotesEntry(onBack = onBack)
@@ -160,6 +163,7 @@ val settingsSerializersModule = SerializersModule {
         subclass(PrefetchSettings::class, PrefetchSettings.serializer())
         subclass(PrefetchActivity::class, PrefetchActivity.serializer())
         subclass(ContextUsageSettings::class, ContextUsageSettings.serializer())
+        subclass(ChatLayoutSettings::class, ChatLayoutSettings.serializer())
         subclass(AppearanceSettings::class, AppearanceSettings.serializer())
         subclass(WhatsNew::class, WhatsNew.serializer())
         subclass(ReleaseNotes::class, ReleaseNotes.serializer())

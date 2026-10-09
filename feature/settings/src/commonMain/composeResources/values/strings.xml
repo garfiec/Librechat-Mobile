@@ -258,6 +258,8 @@
     <string name="show_bubbles_desc">Add rounded bubble backgrounds to messages</string>
     <string name="show_avatars">Show avatars</string>
     <string name="show_avatars_desc">Display user and agent avatars next to messages</string>
+    <string name="chat_layout_bubbles">Bubbles</string>
+    <string name="chat_layout_avatars">Avatars</string>
     <string name="starred_models_title">Starred models</string>
     <string name="starred_models_desc">Show your pinned models and agents at the top of the model picker</string>
     <string name="starred_models_off">Off</string>

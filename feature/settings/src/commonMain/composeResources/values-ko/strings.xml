@@ -252,6 +252,8 @@
     <string name="show_bubbles_desc">메시지에 둥근 말풍선 배경 추가</string>
     <string name="show_avatars">아바타 표시</string>
     <string name="show_avatars_desc">메시지 옆에 사용자와 에이전트 아바타 표시</string>
+    <string name="chat_layout_bubbles">말풍선</string>
+    <string name="chat_layout_avatars">아바타</string>
     <string name="starred_models_title">즐겨찾기한 모델</string>
     <string name="starred_models_desc">고정한 모델과 에이전트를 모델 선택기 상단에 표시</string>
     <string name="starred_models_off">끔</string>
