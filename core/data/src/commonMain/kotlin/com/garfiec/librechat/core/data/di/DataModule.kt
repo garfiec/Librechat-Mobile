@@ -14,6 +14,7 @@ import com.garfiec.librechat.core.data.datastore.RoleCacheDataStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.SsoRiskDataStore
+import com.garfiec.librechat.core.data.datastore.TchatSettingsStore
 import com.garfiec.librechat.core.data.datastore.ThemeDataStore
 import com.garfiec.librechat.core.data.datastore.TokenCacheWarmer
 import com.garfiec.librechat.core.data.db.LibreChatDatabase
@@ -95,6 +96,8 @@ import com.garfiec.librechat.core.data.repository.SubagentRepository
 import com.garfiec.librechat.core.data.repository.SubagentRepositoryImpl
 import com.garfiec.librechat.core.data.repository.TagRepository
 import com.garfiec.librechat.core.data.repository.TagRepositoryImpl
+import com.garfiec.librechat.core.data.repository.TchatModelCatalogRepository
+import com.garfiec.librechat.core.data.repository.TchatModelCatalogRepositoryImpl
 import com.garfiec.librechat.core.data.repository.ToolFavoritesRepository
 import com.garfiec.librechat.core.data.repository.ToolFavoritesRepositoryImpl
 import com.garfiec.librechat.core.data.repository.TraceRepository
@@ -464,6 +467,9 @@ val dataModule = module {
     singleOf(::FileRepositoryImpl) bind FileRepository::class
     singleOf(::AgentRepositoryImpl) bind AgentRepository::class
     singleOf(::AgentToolsRepositoryImpl) bind AgentToolsRepository::class
+    // TCHAT: TensorGrid model catalog and Tchat-only preferences for the Tchat model picker.
+    single<TchatModelCatalogRepository> { TchatModelCatalogRepositoryImpl(api = get()) }
+    single { TchatSettingsStore(dataStore = get()) }
     singleOf(::TagRepositoryImpl) bind TagRepository::class
     singleOf(::SearchRepositoryImpl) bind SearchRepository::class
     singleOf(::KeyRepositoryImpl) bind KeyRepository::class

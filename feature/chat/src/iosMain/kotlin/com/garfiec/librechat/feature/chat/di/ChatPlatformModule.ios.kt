@@ -59,6 +59,8 @@ actual val chatPlatformModule: Module = module {
             serverFileSelectionHandoff = get(),
             promptInsertionHandoff = get(),
             siteIconPromptSession = get(),
+            tchatModelCatalogRepository = get(), // TCHAT
+            tchatSettingsStore = get(), // TCHAT
             resumePinStore = get(),
         )
     }

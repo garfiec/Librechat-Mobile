@@ -69,11 +69,11 @@ import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_edit_title
 import com.garfiec.librechat.feature.chat.resources.cd_more_options
 import com.garfiec.librechat.feature.chat.resources.cd_open_drawer
-import com.garfiec.librechat.feature.chat.resources.select_model
 import com.garfiec.librechat.feature.chat.resources.title_edit_discard
 import com.garfiec.librechat.feature.chat.resources.title_edit_discard_prompt
 import com.garfiec.librechat.feature.chat.resources.title_edit_keep_editing
-import com.garfiec.librechat.feature.chat.screen.rememberChatModelLabel
+import com.garfiec.librechat.feature.chat.tchat.TchatModelTriggerContent
+import com.garfiec.librechat.feature.chat.tchat.rememberTriggerLabel
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
 import kotlinx.coroutines.flow.first
@@ -328,17 +328,16 @@ private fun MaterialChatTopBar(
                             )
                         }
 
+                    // TCHAT: the Tchat model trigger (readable name, maker, Image Gen model).
                     ChatHeaderContent.MODEL -> {
-                        val label = rememberChatModelLabel(
-                            selectedEndpoint = uiState.selectedEndpoint,
-                            selectedModel = uiState.selectedModel,
-                            agents = uiState.agents,
-                        )
-                        FloatingBarLabelChip(
-                            text = label.displayModel ?: stringResource(Res.string.select_model),
+                        val bounce = rememberPressBounce()
+                        FloatingBarContentChip(
                             fillWidth = fillWidth,
+                            modifier = Modifier.pressBounce(bounce),
                             onClick = actions.onOpenModelSheet,
-                        )
+                        ) {
+                            TchatModelTriggerContent(label = rememberTriggerLabel(uiState))
+                        }
                     }
 
                     ChatHeaderContent.NONE -> Unit

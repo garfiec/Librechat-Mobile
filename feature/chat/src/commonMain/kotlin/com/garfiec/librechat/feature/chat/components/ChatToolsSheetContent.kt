@@ -56,6 +56,7 @@ import com.garfiec.librechat.core.ui.components.rememberListDragSelection
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.tchat.IMAGE_GEN_TOOL_KEY
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
 import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import org.jetbrains.compose.resources.stringResource
@@ -96,6 +97,8 @@ fun ChatToolsSheetContent(
      * appear for every host that never enabled it.
      */
     memoryEnabled: Boolean = false,
+    /** TCHAT: offer the Image Gen switch; it writes the same selection as the picker's Image Gen group. */
+    imageGenEnabled: Boolean = false,
     mcpServersEnabled: Boolean = true,
     /**
      * Server/endpoint feature gates for the sheet: model-select row, parameters row,
@@ -291,6 +294,7 @@ fun ChatToolsSheetContent(
                 ToolConstants.CODE_INTERPRETER to (isCodeInterpreterAvailable && runCodeEnabled),
                 ToolConstants.FILE_SEARCH to fileSearchEnabled,
                 ToolConstants.MEMORY to memoryEnabled,
+                IMAGE_GEN_TOOL_KEY to imageGenEnabled, // TCHAT
             )
             toolRows.forEach { (toolKey, enabled) ->
                 val meta = ephemeralToolMeta(toolKey)

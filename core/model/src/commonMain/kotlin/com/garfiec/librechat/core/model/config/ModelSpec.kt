@@ -17,4 +17,6 @@ data class ModelSpec(
      * resolvable by name (`spec: "<name>"`) on a conversation.
      */
     val showInMenu: Boolean? = null,
+    // TCHAT: the spec a new chat starts on; the Tchat picker's image-model repair falls back to it.
+    val default: Boolean? = null,
 )

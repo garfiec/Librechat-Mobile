@@ -10,6 +10,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import com.garfiec.librechat.feature.chat.components.localizedStreamError
+import com.garfiec.librechat.feature.chat.tchat.ImageModelRepairSnackbarEffect
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
 
@@ -70,6 +71,7 @@ internal fun ChatScreenEffects(
         viewModel = viewModel,
         snackbarHostState = snackbarHostState,
     )
+    ImageModelRepairSnackbarEffect(viewModel = viewModel, snackbarHostState = snackbarHostState) // TCHAT
 
     // Navigate back after delete/archive (conversationId becomes null)
     var hadConversation by remember { mutableStateOf(uiState.conversationId != null) }

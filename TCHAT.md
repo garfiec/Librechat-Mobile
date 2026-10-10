@@ -78,6 +78,33 @@ so nothing gets hardcoded into a file upstream also edits.
 - **Branding** — app name, splash colour (`#0C0F1A`, TensorGrid's ground colour), accent seed
   (`#4F8CFF`), launcher icons. See `design/README.md` for the icon source and regeneration steps.
 
+## Model picker and Image Gen
+
+Tchat's picker replaces upstream's endpoint-grouped `ModelSelectorSheet` everywhere it opens: the
+top-bar trigger, send-block auto-opens, comparison mode's second model and the options sheet's
+Model page. It ports Tchat web's picker (`Tchat/client/src/components/Chat/Menus/Endpoints/Tchat/`).
+The design is `design/system/Model selection.md`; the requirements and the review decisions are
+in `design/model-selection-requirements.md`.
+
+- **Fork-only code** lives in `feature/chat/.../tchat/`: `ModelOwners.kt` (the owner table, label
+  rules, catalog view and repair matching, all ported from web and kept in step with it),
+  `TchatPickerModel.kt` (grouping, dedupe, pinned, search), `TchatModelDelegate.kt` (loads the
+  catalog, `imageList` and tool availability; owns Image Gen and the image-model repair),
+  `TchatModelPicker.kt` / `TchatModelTrigger.kt` (UI). Strings are in `values/tchat_strings.xml`.
+- **Server inputs**, all Tchat additions that stock LibreChat doesn't serve:
+  `GET /api/tchat/models/catalog` (`TchatCatalogApi`, `TchatModelCatalogRepository`),
+  `modelSpecs.imageList` (`ImageSpec`), and `ephemeralAgent.image_gen` (`EphemeralAgent.imageGen`).
+  Image Gen is offered only when `GET /api/agents/tools` lists `image_gen_oai`, as on web.
+- **Image Gen is app-wide**, persisted in `TchatSettingsStore.imageGenSelection` (fork-only, same DataStore), like mobile's
+  other tool toggles (web keys it per conversation). It's synthesized into `effectiveEnabledTools`
+  as `image_gen`, so the tools sheet's switch and `toggleTool` route to the delegate.
+- **Upstream files touched** carry `// TCHAT:` as usual. `ModelSelectorSheet.kt` and
+  `ModelSelectorButton.kt` are left unchanged (the latter still draws comparison mode's dual-pane
+  labels), so syncs merge them cleanly; the options sheet keeps upstream's selector as a fallback
+  branch that the Tchat host never takes.
+- **The header defaults to the model** (`ChatHeaderContent.DEFAULT`), and composer and pane labels
+  use `formatModelLabel`, so a raw model id shows only in the picker.
+
 ## Upstream bugs fixed here first
 
 - **OAuth was broken** (wrong `/api/oauth` path, and an external browser whose cookie jar the app

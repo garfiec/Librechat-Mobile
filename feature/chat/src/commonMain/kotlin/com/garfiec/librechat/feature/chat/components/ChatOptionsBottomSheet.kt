@@ -49,6 +49,10 @@ import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_back
 import com.garfiec.librechat.feature.chat.resources.tool_model_parameters
+import com.garfiec.librechat.feature.chat.tchat.TchatModelPickerContent
+import com.garfiec.librechat.feature.chat.tchat.TchatPicker
+import com.garfiec.librechat.feature.chat.tchat.TchatPickerActions
+import com.garfiec.librechat.feature.chat.tchat.showsPinned
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
 import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import org.jetbrains.compose.resources.stringResource
@@ -78,6 +82,8 @@ data class ChatToolsPageParams(
     val runCodeEnabled: Boolean = true,
     val fileSearchEnabled: Boolean = true,
     val memoryEnabled: Boolean = false,
+    /** TCHAT: offer the Image Gen switch (`TchatModelState.imageGenAvailable`). */
+    val imageGenEnabled: Boolean = false,
     val mcpServersEnabled: Boolean = true,
     val gates: ChatInputGates = ChatInputGates(),
     val contextGauge: ContextGaugeDetails? = null,
@@ -116,6 +122,9 @@ data class ModelSelectorPageParams(
     val onToggleModelFavorite: ((endpoint: String, model: String) -> Unit)? = null,
     val starredDisplay: StarredModelsDisplay = StarredModelsDisplay.GROUPED,
     val endpointKeyStates: Map<String, KeyState> = emptyMap(),
+    /** TCHAT: when set, the page renders the Tchat picker instead of upstream's selector. */
+    val tchatPicker: TchatPicker? = null,
+    val tchatActions: TchatPickerActions? = null,
 )
 
 /** Everything the ModelParameters page renders. See [ModelParameterContent]. */
@@ -239,6 +248,7 @@ fun ChatOptionsBottomSheet(
                         runCodeEnabled = tools.runCodeEnabled,
                         fileSearchEnabled = tools.fileSearchEnabled,
                         memoryEnabled = tools.memoryEnabled,
+                        imageGenEnabled = tools.imageGenEnabled,
                         mcpServersEnabled = tools.mcpServersEnabled,
                         gates = tools.gates,
                         contextGauge = tools.contextGauge,
@@ -253,29 +263,44 @@ fun ChatOptionsBottomSheet(
                         scrollState = optionsScrollState,
                     )
 
-                    ChatOptionsPage.ModelSelector -> ModelSelectorSheetContent(
-                        endpointConfigs = selector.endpointConfigs,
-                        availableModels = selector.availableModels,
-                        agents = selector.agents,
-                        selectedEndpoint = selector.selectedEndpoint,
-                        selectedModel = selector.selectedModel,
-                        onModelSelect = { endpoint, model ->
-                            selector.onModelSelect(endpoint, model)
-                            goTo(ChatOptionsPage.Options)
-                        },
-                        onSetApiKey = selector.onSetApiKey,
-                        modifier = Modifier.height(subPageHeight),
-                        serverUrl = selector.serverUrl,
-                        errorMessage = selector.errorMessage,
-                        onErrorDismiss = selector.onErrorDismiss,
-                        favoriteAgentIds = selector.favoriteAgentIds,
-                        favoriteModelKeys = selector.favoriteModelKeys,
-                        onToggleAgentFavorite = selector.onToggleAgentFavorite,
-                        onToggleModelFavorite = selector.onToggleModelFavorite,
-                        starredDisplay = selector.starredDisplay,
-                        endpointKeyStates = selector.endpointKeyStates,
-                        header = { SheetPageBackRow(title = null, onBack = back) },
-                    )
+                    // TCHAT: the Tchat picker when the host supplies one; a pick returns to Options.
+                    ChatOptionsPage.ModelSelector -> if (selector.tchatPicker != null && selector.tchatActions != null) {
+                        TchatModelPickerContent(
+                            picker = selector.tchatPicker,
+                            actions = selector.tchatActions,
+                            onPick = { goTo(ChatOptionsPage.Options) },
+                            modifier = Modifier.height(subPageHeight),
+                            showPinned = selector.starredDisplay.showsPinned,
+                            serverUrl = selector.serverUrl,
+                            errorMessage = selector.errorMessage,
+                            onErrorDismiss = selector.onErrorDismiss,
+                            header = { SheetPageBackRow(title = null, onBack = back) },
+                        )
+                    } else {
+                        ModelSelectorSheetContent(
+                            endpointConfigs = selector.endpointConfigs,
+                            availableModels = selector.availableModels,
+                            agents = selector.agents,
+                            selectedEndpoint = selector.selectedEndpoint,
+                            selectedModel = selector.selectedModel,
+                            onModelSelect = { endpoint, model ->
+                                selector.onModelSelect(endpoint, model)
+                                goTo(ChatOptionsPage.Options)
+                            },
+                            onSetApiKey = selector.onSetApiKey,
+                            modifier = Modifier.height(subPageHeight),
+                            serverUrl = selector.serverUrl,
+                            errorMessage = selector.errorMessage,
+                            onErrorDismiss = selector.onErrorDismiss,
+                            favoriteAgentIds = selector.favoriteAgentIds,
+                            favoriteModelKeys = selector.favoriteModelKeys,
+                            onToggleAgentFavorite = selector.onToggleAgentFavorite,
+                            onToggleModelFavorite = selector.onToggleModelFavorite,
+                            starredDisplay = selector.starredDisplay,
+                            endpointKeyStates = selector.endpointKeyStates,
+                            header = { SheetPageBackRow(title = null, onBack = back) },
+                        )
+                    }
 
                     ChatOptionsPage.ModelParameters -> Column {
                         SheetPageBackRow(

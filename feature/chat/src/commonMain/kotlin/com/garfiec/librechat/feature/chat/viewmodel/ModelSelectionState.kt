@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.endpoint.KeyState
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
+import com.garfiec.librechat.feature.chat.tchat.TchatModelState
 
 /**
  * Endpoint/model selection, per-request tool + MCP config, model parameters, and the
@@ -57,4 +58,6 @@ data class ModelSelectionState(
     val extendedEffortSupported: Boolean = false,
     /** Whether thinkingDisplay `updates` may be offered (v0.8.8); see `EndpointParameterRegistry.getDefinitions`. */
     val thinkingDisplayUpdatesSupported: Boolean = false,
+    /** TCHAT: catalog, image entries and Image Gen; owned by `TchatModelDelegate`. */
+    val tchat: TchatModelState = TchatModelState(),
 )

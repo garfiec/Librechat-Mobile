@@ -410,6 +410,7 @@ internal fun BoxScope.ChatPullUpSheetOverlay(
                 runCodeEnabled = uiState.runCodeEnabled,
                 fileSearchEnabled = uiState.fileSearchEnabled,
                 memoryEnabled = uiState.isMemoryToolAvailable,
+                imageGenEnabled = uiState.tchat.imageGenAvailable, // TCHAT
                 mcpServersEnabled = uiState.mcpServersEnabled,
                 gates = uiState.chatInputGates,
                 contextGauge = uiState.contextGaugeDetails,

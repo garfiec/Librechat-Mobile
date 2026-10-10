@@ -34,10 +34,12 @@ Older chats, and chats synced from a client without these rules, can carry an im
 
 ## Data the app needs
 
-| Source | Gives | Status in the app today |
+| Source | Gives | Where the app reads it |
 | --- | --- | --- |
-| `GET /api/endpoints`, `/api/models` | chat models per endpoint | used |
-| `GET /api/tchat/models/catalog` | `{free: [...], categories: {id: "language" \| "image" \| …}}` | **not called yet** |
-| `startupConfig.modelSpecs.imageList` | `[{name, label, description, model, default?, protocol?}]` | **not decoded**: `ModelSpecs` has `list` only |
-| `ephemeralAgent.image_gen` | `true` or an `imageList` name | **not sent**: `EphemeralAgent` has no field for it |
-| favorites API | pinned models and agents | used |
+| `GET /api/endpoints`, `/api/models` | chat models per endpoint | `ConfigRepository` |
+| `GET /api/tchat/models/catalog` | `{free: [...], categories: {id: "language" \| "image" \| …}}` | `TchatModelCatalogRepository` |
+| `startupConfig.modelSpecs.imageList` | `[{name, label, description, model, default?, protocol?}]` | `ModelSpecs.imageList` |
+| `ephemeralAgent.image_gen` | `true` or an `imageList` name | `EphemeralAgent.imageGen` |
+| favorites API | pinned models and agents | `FavoritesDelegate` |
+
+Implementation requirements, and where the app departs from this page, are in `design/model-selection-requirements.md`.

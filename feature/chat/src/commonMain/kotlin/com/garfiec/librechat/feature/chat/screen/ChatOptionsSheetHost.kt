@@ -11,6 +11,8 @@ import com.garfiec.librechat.feature.chat.components.ChatToolsPageParams
 import com.garfiec.librechat.feature.chat.components.ModelParametersPageParams
 import com.garfiec.librechat.feature.chat.components.ModelSelectorPageParams
 import com.garfiec.librechat.feature.chat.components.localizedStreamError
+import com.garfiec.librechat.feature.chat.tchat.rememberTchatPicker
+import com.garfiec.librechat.feature.chat.tchat.tchatPickerActions
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
 
@@ -58,6 +60,16 @@ internal fun ChatOptionsSheetHost(
 
     val error = uiState.error?.let { localizedStreamError(it) }
 
+    // TCHAT: the selector page renders the Tchat picker for the active tab's selection.
+    val tchatSelectedEndpoint = if (isSecondaryTab) uiState.comparisonState.secondaryEndpoint else uiState.selectedEndpoint
+    val tchatSelectedModel = if (isSecondaryTab) uiState.comparisonState.secondaryModel else uiState.selectedModel
+    val tchatPicker = rememberTchatPicker(
+        uiState = uiState,
+        selectedEndpoint = tchatSelectedEndpoint,
+        selectedModel = tchatSelectedModel,
+        showImageGen = !isSecondaryTab,
+    )
+
     ChatOptionsBottomSheet(
         page = page,
         onPageChange = controller::open,
@@ -79,6 +91,7 @@ internal fun ChatOptionsSheetHost(
             runCodeEnabled = uiState.runCodeEnabled,
             fileSearchEnabled = uiState.fileSearchEnabled,
             memoryEnabled = uiState.isMemoryToolAvailable,
+            imageGenEnabled = uiState.tchat.imageGenAvailable, // TCHAT
             mcpServersEnabled = uiState.mcpServersEnabled,
             gates = uiState.chatInputGates,
             contextGauge = uiState.contextGaugeDetails,
@@ -123,6 +136,11 @@ internal fun ChatOptionsSheetHost(
             onToggleModelFavorite = viewModel::toggleModelFavorite,
             starredDisplay = uiState.starredModelsDisplay,
             endpointKeyStates = uiState.endpointKeyStates,
+            tchatPicker = tchatPicker, // TCHAT
+            tchatActions = tchatPickerActions(
+                viewModel,
+                onSelectModel = if (isSecondaryTab) viewModel::setSecondaryModel else viewModel::onModelSelected,
+            ),
         ),
         // Always the primary model, even on the secondary tab: ComparisonState carries no per-pane
         // parameters, so there is nothing else to point this at (pre-existing; porting web's

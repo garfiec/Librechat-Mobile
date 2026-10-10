@@ -36,7 +36,8 @@ import com.garfiec.librechat.feature.chat.resources.prompts_library
 import com.garfiec.librechat.feature.chat.resources.save_as_preset
 import com.garfiec.librechat.feature.chat.resources.select_model
 import com.garfiec.librechat.feature.chat.resources.trace_open
-import com.garfiec.librechat.feature.chat.screen.rememberChatModelLabel
+import com.garfiec.librechat.feature.chat.tchat.rememberTriggerLabel
+import com.garfiec.librechat.feature.chat.tchat.singleLine
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import org.jetbrains.compose.resources.stringResource
 
@@ -84,13 +85,10 @@ internal fun rememberChatTopBarSpec(
             }
 
         ChatHeaderContent.MODEL -> {
-            val label = rememberChatModelLabel(
-                selectedEndpoint = uiState.selectedEndpoint,
-                selectedModel = uiState.selectedModel,
-                agents = uiState.agents,
-            )
+            // TCHAT: Glass bars draw one line, so the trigger's two lines fold into one.
+            val label = rememberTriggerLabel(uiState)
             BarTitle(
-                text = label.displayModel ?: stringResource(Res.string.select_model),
+                text = label?.singleLine() ?: stringResource(Res.string.select_model),
                 style = BarTitleStyle.CHIP,
                 alignment = alignment,
                 onClick = actions.onOpenModelSheet,

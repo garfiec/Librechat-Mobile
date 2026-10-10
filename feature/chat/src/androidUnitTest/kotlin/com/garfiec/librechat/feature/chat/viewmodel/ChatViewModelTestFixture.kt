@@ -14,6 +14,7 @@ import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
+import com.garfiec.librechat.core.data.datastore.TchatSettingsStore
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
@@ -31,6 +32,7 @@ import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
 import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
+import com.garfiec.librechat.core.data.repository.TchatModelCatalogRepository
 import com.garfiec.librechat.core.data.repository.TraceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
@@ -92,6 +94,14 @@ internal class ChatViewModelTestFixture {
 
     val selectionHandoff = NewChatSelectionHandoff()
     val siteIconPromptSession = SiteIconPromptSession()
+
+    // TCHAT: the model catalog never answers in these tests, so nothing is repaired or tagged.
+    val tchatModelCatalogRepository = mockk<TchatModelCatalogRepository>(relaxed = true) {
+        every { catalog } returns MutableStateFlow(null)
+    }
+    val tchatSettingsStore = mockk<TchatSettingsStore>(relaxed = true) {
+        every { imageGenSelection } returns MutableStateFlow(null)
+    }
 
     /** Driven by hand where a test needs a prompt mutation to reach a retained ViewModel. */
     val promptRevision = MutableStateFlow(0L)
@@ -155,6 +165,8 @@ internal class ChatViewModelTestFixture {
         messageRepository = messageRepository,
         fileRepository = fileRepository,
         resumePinStore = ResumePinStore(),
+        tchatModelCatalogRepository = tchatModelCatalogRepository,
+        tchatSettingsStore = tchatSettingsStore,
         configRepository = configRepository,
         conversationRepository = conversationRepository,
         endpointTokenRepository = endpointTokenRepository,
