@@ -49,7 +49,7 @@ media3 = "1.10.1"
 coil3 = "3.6.3"
 
 # Zoomable media viewer (KMP: Android + iOS)
-zoomimage = "1.4.0"
+zoomimage = "1.7.0"
 
 # Color theming (seed -> Material 3 ColorScheme, KMP)
 material-kolor = "4.1.1"
