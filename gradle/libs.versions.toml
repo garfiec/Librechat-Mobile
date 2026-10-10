@@ -61,7 +61,7 @@ qrose = "1.1.2"
 kermit = "2.1.0"
 
 # Hashing / IO
-okio = "3.10.2"
+okio = "3.18.2"
 
 # KMP / iOS
 skie = "0.10.14"
