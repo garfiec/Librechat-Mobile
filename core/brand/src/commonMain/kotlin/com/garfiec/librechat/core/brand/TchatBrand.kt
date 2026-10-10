@@ -34,4 +34,15 @@ object TchatBrand {
      * "Revoke API keys" action.
      */
     const val EXPOSE_PROVIDER_BACKEND_SETTINGS: Boolean = false
+
+    /**
+     * Whether the Android build checks GitHub Releases for a newer version. False for Tchat: the
+     * check reads Switchboard's own releases (`GitHubReleasesApi.REPO_URL`), so it would offer
+     * Switchboard APKs — a different app id that installs alongside Tchat rather than updating
+     * it — and Tchat has no public release channel of its own yet. Passed as
+     * `AppUpdateRepositoryImpl.isSupported` on Android, the same switch iOS already sets false,
+     * which hides Settings' "Check for updates" rows, the daily check and the chat update banner.
+     * The installed version's release notes are a separate surface and stay.
+     */
+    const val APP_UPDATE_CHECK: Boolean = false
 }

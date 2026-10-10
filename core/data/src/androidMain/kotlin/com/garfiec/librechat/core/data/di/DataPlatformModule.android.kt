@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
+import com.garfiec.librechat.core.brand.TchatBrand
 import com.garfiec.librechat.core.common.di.KoinQualifiers
 import com.garfiec.librechat.core.data.datastore.CommonTokenDataStore
 import com.garfiec.librechat.core.data.datastore.TokenDataStore
@@ -47,7 +48,13 @@ actual val dataPlatformModule: Module = module {
     single<PdfNormalizer> { AndroidPdfNormalizer(androidContext()) }
     single<AppInstallSource> { AndroidAppInstallSource(androidContext()) }
     single<AppUpdateRepository> {
-        AppUpdateRepositoryImpl(isSupported = true, api = get(), store = get(), appInfo = get())
+        // TCHAT: was isSupported = true. See TchatBrand.APP_UPDATE_CHECK.
+        AppUpdateRepositoryImpl(
+            isSupported = TchatBrand.APP_UPDATE_CHECK,
+            api = get(),
+            store = get(),
+            appInfo = get(),
+        )
     }
 
     // --- Database ---

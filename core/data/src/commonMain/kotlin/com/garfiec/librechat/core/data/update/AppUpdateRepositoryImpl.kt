@@ -44,7 +44,10 @@ class AppUpdateRepositoryImpl(
         store.availableTag,
         store.notifiedTag,
     ) { enabled, available, notified ->
-        if (!enabled || available == null || available == notified) return@combine null
+        // TCHAT: isSupported added. Upstream never needs it — only check() stores a tag, and it
+        // no-ops when unsupported — but a Tchat install that ran the check before the fork turned
+        // it off can still hold a stored Switchboard tag, which would otherwise keep the banner up.
+        if (!isSupported || !enabled || available == null || available == notified) return@combine null
         val version = AppVersion.parse(available) ?: return@combine null
         if (installed == null || version <= installed) return@combine null
         PendingUpdate(tag = available, version = version.toString())

@@ -147,6 +147,15 @@ class AppUpdateRepositoryImplTest {
         assertThat(h.requests()).isEqualTo(0)
     }
 
+    // TCHAT: a tag stored before the check was turned off must not keep the chat banner up.
+    @Test
+    fun unsupportedPlatformHasNoPendingUpdateEvenWithAStoredTag() = runBlocking {
+        val h = harness(supported = false)
+        h.repo.setAutoCheckEnabled(true)
+        h.store.setAvailableTag("v2026.10.0")
+        assertThat(h.repo.pendingUpdate.first()).isNull()
+    }
+
     @Test
     fun pendingUpdateNeedsAutoCheckOn() = runBlocking {
         val h = harness(body = "[${release("v2026.10.0")}]")

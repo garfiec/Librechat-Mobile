@@ -48,6 +48,13 @@ so nothing gets hardcoded into a file upstream also edits.
   `Tchat/deploy/tchat/README.md`'s "Why users cannot switch providers") — so there is nothing for a
   user to configure, and showing the controls would look like a capability they don't actually
   have.
+- **App update check** — `TchatBrand.APP_UPDATE_CHECK` (`false`) is passed as
+  `AppUpdateRepositoryImpl.isSupported` on Android (iOS already passes `false`). Upstream's check
+  reads Switchboard's GitHub Releases, so it would offer Switchboard APKs, which carry a different
+  app id and install beside Tchat instead of updating it. Off hides Settings' "Check for updates"
+  rows, the daily check and the chat update banner; `pendingUpdate` also checks the flag, so a tag
+  stored by an earlier Tchat build can't keep the banner up. The installed version's release notes
+  row stays (it still reads Switchboard's notes for the same version tag).
 - **Dead `sections/` files** — upstream still ships `screen/sections/{AccountSection,
   ChatPreferencesSection,DataManagementSection,SpeechSection}.kt`, each an `internal` composable
   shadowed by a same-named file-private one in the live screen, so nothing calls them. The fork
