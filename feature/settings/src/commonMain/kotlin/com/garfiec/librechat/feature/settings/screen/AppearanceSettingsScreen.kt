@@ -419,7 +419,7 @@ private fun SampleLines(widths: List<Float>, color: Color) {
 // A brand name: the same in every language.
 private const val APP_NAME = "Switchboard"
 
-private val OptionShape = RoundedCornerShape(16.dp)
+private val OptionShape = RoundedCornerShape(12.dp) // TCHAT: radius-md (was 16)
 private val SampleBubbleShape = RoundedCornerShape(20.dp)
 private const val SAMPLE_BUBBLE_WIDTH = 0.7f
 private const val SAMPLE_LINE_ALPHA = 0.4f

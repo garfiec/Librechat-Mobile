@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 
 object ChatInputDefaults {
-    val shape: Shape = RoundedCornerShape(24.dp)
+    val shape: Shape = RoundedCornerShape(20.dp) // TCHAT: radius-lg, the composer (was 24)
 
     /** Resting fill shared by the composer input box and the floating top-bar chips. */
     val containerColor: Color

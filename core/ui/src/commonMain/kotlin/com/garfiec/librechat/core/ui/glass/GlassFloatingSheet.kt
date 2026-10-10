@@ -182,7 +182,7 @@ internal fun GlassFloatingSheet(
 internal fun Modifier.glassSheetPanel(style: GlassStyle, backdrop: GlassBackdrop?, thickening: Color): Modifier =
     glassSurface(style, SheetShape, backdrop).clip(SheetShape).background(thickening)
 
-private val SheetShape = RoundedCornerShape(32.dp)
+private val SheetShape = RoundedCornerShape(28.dp) // TCHAT: radius-xl, sheets (was 32)
 
 /** How far a floating sheet sits in from the screen's edges (inside the safe area). */
 internal val SheetMargin = 12.dp

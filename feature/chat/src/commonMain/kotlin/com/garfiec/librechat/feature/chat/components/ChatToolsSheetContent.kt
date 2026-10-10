@@ -440,7 +440,7 @@ private fun AttachmentOptionCard(
     Card(
         onClick = onClick,
         modifier = modifier.height(80.dp),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp), // TCHAT: radius-md (was 16)
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         ),

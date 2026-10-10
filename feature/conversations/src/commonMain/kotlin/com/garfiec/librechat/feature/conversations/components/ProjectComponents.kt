@@ -48,7 +48,7 @@ fun ProjectActionsMenu(
     AdaptiveDropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp), // TCHAT: radius-md (was 16)
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = modifier,
     ) {

@@ -208,7 +208,7 @@ private fun MemoryArtifactDetail(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 4.dp)
-                        .clip(RoundedCornerShape(6.dp))
+                        .clip(RoundedCornerShape(8.dp)) // TCHAT: radius-sm (was 6)
                         .background(MaterialTheme.colorScheme.errorContainer)
                         .padding(horizontal = 8.dp, vertical = 8.dp),
                 )

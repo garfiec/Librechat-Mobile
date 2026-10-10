@@ -303,7 +303,7 @@ private fun BarDropdownItem(item: BarMenuItem, onSelect: () -> Unit, checkTint: 
 }
 
 // The chat bar's menu measures, so every bar menu looks the same.
-private val BarMenuShape = RoundedCornerShape(16.dp)
+private val BarMenuShape = RoundedCornerShape(12.dp) // TCHAT: radius-md (was 16)
 private val BarMenuOffset = DpOffset(x = 0.dp, y = 8.dp)
 
 /** The UIKit bar on iOS; never reached on Android, whose actual forwards to the simulated bar. */

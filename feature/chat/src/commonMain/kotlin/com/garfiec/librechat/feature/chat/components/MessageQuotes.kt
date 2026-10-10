@@ -47,7 +47,7 @@ internal fun MessageQuotes(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(IntrinsicSize.Min)
-                    .background(background, RoundedCornerShape(6.dp))
+                    .background(background, RoundedCornerShape(8.dp)) // TCHAT: radius-sm (was 6)
                     .semantics { contentDescription = cd },
             ) {
                 Spacer(

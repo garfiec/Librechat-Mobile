@@ -83,7 +83,7 @@ private fun PendingSteerRow(
 ) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp), // TCHAT: radius-md (was 16)
         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f),
     ) {
         Row(
@@ -114,7 +114,7 @@ private fun PendingSteerRow(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
-                fontSize = 14.sp * fontSizeMultiplier,
+                fontSize = 15.sp * fontSizeMultiplier, // TCHAT: body-md (was 14)
                 modifier = Modifier
                     .weight(1f, fill = false)
                     .padding(vertical = 2.dp),

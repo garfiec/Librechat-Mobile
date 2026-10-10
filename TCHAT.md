@@ -111,7 +111,15 @@ First pass, all in `:core:ui`:
   18dp, bars) were left alone. A later upstream sync may reintroduce off-grid values in files it
   touches; re-run the same rule rather than hand-merging.
 
-Not yet done: `sp` and radius literals in feature code, and the Reduce Transparency glass fallback.
+- **Radius and font-size literals** — every `RoundedCornerShape(N.dp)` is now a token step
+  (4 / 8 / 12 / 20 / 28, plus 0 and 999 pills), chosen by role: `BubbleShape` and the composer 20,
+  menus, cards, banners and inputs 12, dialogs and sheets 28, quote and code backgrounds 8, the
+  drag handle and indicators 4. Every `fontSize = N.sp` is on the type scale (12 / 13 / 14 code /
+  15 / 16 / 24); nothing is below 12sp. Each changed literal carries a `// TCHAT:` note with the
+  old value. The Settings → Chat layout preview mirrors `MessageBubble` (filled, compact user
+  bubble; no assistant bubble two-sided).
+
+Not yet done: the Reduce Transparency glass fallback.
 
 ## Model picker and Image Gen
 

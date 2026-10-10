@@ -175,7 +175,7 @@ private fun QueuedMessageRow(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp), // TCHAT: radius-md (was 16)
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (isDragging) 0.95f else 0.55f),
         tonalElevation = if (isDragging) 6.dp else 0.dp,
     ) {
@@ -215,7 +215,7 @@ private fun QueuedMessageRow(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (isPlaceholder) 0.6f else 0.85f),
-                fontSize = 14.sp * fontSizeMultiplier,
+                fontSize = 15.sp * fontSizeMultiplier, // TCHAT: body-md (was 14)
                 modifier = Modifier
                     .weight(1f)
                     .padding(vertical = 2.dp),

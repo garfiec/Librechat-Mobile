@@ -87,7 +87,7 @@ internal fun SwatchDot(color: Color, hatched: Boolean) {
 private class MeterPiece(val value: Int, val color: Color, val hatched: Boolean)
 
 internal val SWATCH = 8.dp
-internal val SWATCH_SHAPE = RoundedCornerShape(2.dp)
+internal val SWATCH_SHAPE = RoundedCornerShape(4.dp) // TCHAT: radius-xs (was 2)
 private val METER_HEIGHT = 8.dp
 private val METER_SHAPE = RoundedCornerShape(4.dp)
 private val SEGMENT_GAP = 2.dp

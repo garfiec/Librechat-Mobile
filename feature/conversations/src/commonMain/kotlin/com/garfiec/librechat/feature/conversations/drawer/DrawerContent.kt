@@ -161,7 +161,7 @@ private val ItemShape = RoundedCornerShape(8.dp)
 private fun LazyListScope.drawerHeader(glass: Boolean, key: Any, content: @Composable LazyItemScope.() -> Unit) {
     if (glass) item(key = key, content = content) else stickyHeader(key = key) { content() }
 }
-private val ActiveIndicatorShape = RoundedCornerShape(2.dp)
+private val ActiveIndicatorShape = RoundedCornerShape(4.dp) // TCHAT: radius-xs (was 2)
 
 // Pulls a tappable drawer row in from the edges and clips its ripple to [ItemShape], so every row
 // reads as the same inset, rounded button instead of a full-bleed rectangular highlight. Apply
