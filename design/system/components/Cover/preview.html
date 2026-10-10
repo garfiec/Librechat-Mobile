@@ -1,0 +1,55 @@
+<!-- @dsCard height=288 -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tchat</title>
+<style>
+  html, body { margin:0; height:100%; }
+  body { background:var(--bg); color:var(--ink); font-family:var(--font-sans); overflow:hidden; }
+  .cover { position:relative; height:288px; overflow:hidden; }
+  .art { position:absolute; top:0; left:480px; width:480px; height:288px; overflow:hidden; }
+  .art svg { display:block; width:480px; height:288px; }
+  .brand { fill:var(--brand); }
+  .violet { fill:var(--brand-violet); }
+  .tint { fill:var(--accent-container); }
+  .dots { fill:var(--on-accent-container); }
+  .slab { fill:var(--surface-inverse); }
+  .bubble { rx:var(--radius-lg); }
+  .tail { rx:var(--radius-xs); }
+  .slabr { rx:var(--radius-xl); }
+  .words { position:absolute; left:var(--space-6); bottom:var(--space-6); max-width:440px; }
+  .name { margin:0; font-size:120px; line-height:.92; font-weight:700; letter-spacing:-.03em; color:var(--ink); }
+  .tag { margin:var(--space-2) 0 0 6px; font-size:14px; line-height:20px; color:var(--ink-muted); }
+</style>
+</head>
+<body>
+<div class="cover">
+<div class="art" aria-hidden="true">
+<svg viewBox="0 0 480 288" width="480" height="288">
+<!--
+  blocks      brand 232×64 bubble, accent-container 280×64 bubble, brand-violet 176×56 bubble, surface-inverse 140×200 slab bled off the top/right, brand disc r28 (the T's dot)
+  arrangement a transcript: bubbles staggered right / left / right over a slab, like turns in a conversation
+  pattern     literal motif — the message bubble, built from radius-lg with one radius-xs tail corner; three typing dots (space-2 r, space-6 pitch) in the reply
+  scales      gaps space-4 / space-5 (turn rhythm), radii radius-lg, radius-xs, radius-xl, radius-full
+-->
+  <rect class="slab slabr" x="352" y="-28" width="160" height="208"/>
+  <rect class="brand bubble" x="176" y="28" width="232" height="64"/>
+  <rect class="brand tail" x="384" y="68" width="24" height="24"/>
+  <rect class="tint bubble" x="24" y="112" width="280" height="64"/>
+  <rect class="tint tail" x="24" y="152" width="24" height="24"/>
+  <circle class="dots" cx="64" cy="144" r="8"/>
+  <circle class="dots" cx="88" cy="144" r="8"/>
+  <circle class="dots" cx="112" cy="144" r="8"/>
+  <rect class="violet bubble" x="232" y="196" width="176" height="56"/>
+  <rect class="violet tail" x="384" y="228" width="24" height="24"/>
+  <circle class="brand" cx="444" cy="240" r="28"/>
+</svg>
+</div>
+<div class="words">
+  <h1 class="name">Tchat</h1>
+  <p class="tag">Calm, legible chat for Android and iOS.</p>
+</div>
+</div>
+</body>
+</html>

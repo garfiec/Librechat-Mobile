@@ -1,0 +1,14 @@
+<!-- @dsCard group="Feedback" height=330 -->
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Dialog — preview</title></head>
+<body>
+<div id="root" style="height:100%"></div>
+<script>
+var T = window.Tchat, h = React.createElement;
+ReactDOM.createRoot(document.getElementById('root')).render(
+  h(T.Dialog, {inline:true, icon:'delete', tone:'danger', title:'Delete conversation?', confirmLabel:'Delete'}, '\u201cWeekly planning notes\u201d and its files will be removed from every device. This can\u2019t be undone.')
+);
+</script>
+</body>
+</html>

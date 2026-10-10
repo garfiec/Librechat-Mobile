@@ -1,0 +1,17 @@
+<!-- @dsCard group="Identity" height=110 -->
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Avatar — preview</title></head>
+<body>
+<div id="root" class="tc-stage"></div>
+<script>
+var T = window.Tchat, h = React.createElement;
+var names = ['Ada Lovelace','Grace Hopper','Alan Turing','Katherine Johnson','Linus','Margaret Hamilton','Edsger Dijkstra'];
+ReactDOM.createRoot(document.getElementById('root')).render(h(React.Fragment, null,
+  h(T.Avatar, {name:'Research Agent', size:'lg'}),
+  names.map(function(n){ return h(T.Avatar, {key:n, name:n, size:'md'}); }),
+  h(T.Avatar, {name:'Sam Rivera', size:'sm'})
+));
+</script>
+</body>
+</html>
