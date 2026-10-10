@@ -296,7 +296,7 @@ private fun MaterialChatTopBar(
                 .background(brush = chatTopBarScrim())
                 .consumeUnhandledTouches()
                 .statusBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 6.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (onOpenDrawer != null) {

@@ -77,6 +77,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarIcons
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.components.topbar.MaterialBarStyle
+import com.garfiec.librechat.core.ui.theme.UserBubbleLeadingInset
 import com.garfiec.librechat.core.ui.theme.UserBubbleTheme
 import com.garfiec.librechat.core.ui.theme.userBubbleColors
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -417,7 +418,8 @@ private fun TwoSidedBubble(
         when {
             filledUserBubble -> userBubbleColors().container
             isUser -> MaterialTheme.colorScheme.secondaryContainer
-            else -> MaterialTheme.colorScheme.surfaceVariant
+            // TCHAT: assistant replies have no bubble and run the full width (design README).
+            else -> null
         }
     } else {
         null
@@ -443,12 +445,15 @@ private fun TwoSidedBubble(
                 tintIcon = if (message.iconURL == null) tintEndpointIcon else false,
                 size = 28.dp,
             )
-            Spacer(Modifier.width(6.dp))
+            Spacer(Modifier.width(8.dp))
         }
+
+        // TCHAT: the user's bubble hugs its text on the right and never reaches the left edge.
+        if (isUser) Spacer(Modifier.width(UserBubbleLeadingInset))
 
         UserBubbleTheme(active = filledUserBubble) { // TCHAT
             Column(
-                modifier = Modifier.weight(1f).then(
+                modifier = Modifier.weight(1f, fill = !isUser).then(
                     if (effectiveBg != null) {
                         Modifier.background(effectiveBg, BubbleShape).padding(12.dp)
                     } else {
@@ -471,7 +476,7 @@ private fun TwoSidedBubble(
                             MaterialTheme.colorScheme.onSurface
                         },
                     )
-                    message.createdAt?.let { ts -> Spacer(Modifier.width(6.dp)); MessageTimestamp(isoTimestamp = ts) }
+                    message.createdAt?.let { ts -> Spacer(Modifier.width(8.dp)); MessageTimestamp(isoTimestamp = ts) }
                 }
                 Spacer(Modifier.height(4.dp))
 
@@ -514,7 +519,7 @@ private fun TwoSidedBubble(
         }
 
         if (isUser && showAvatars) {
-            Spacer(Modifier.width(6.dp))
+            Spacer(Modifier.width(8.dp))
             AvatarImage(
                 imageUrl = userAvatarUrl,
                 fallbackText = userName ?: stringResource(Res.string.sender_you),

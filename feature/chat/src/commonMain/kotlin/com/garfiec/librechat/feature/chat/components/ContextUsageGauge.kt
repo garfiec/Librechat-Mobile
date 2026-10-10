@@ -251,7 +251,7 @@ private fun ContextGaugePill(
     Row(
         modifier = Modifier
             .then(if (fillWidth) Modifier.fillMaxWidth() else Modifier)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+            .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {

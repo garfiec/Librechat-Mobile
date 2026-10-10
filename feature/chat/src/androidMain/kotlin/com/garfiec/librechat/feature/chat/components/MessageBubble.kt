@@ -34,6 +34,7 @@ import com.garfiec.librechat.core.ui.components.AvatarImage
 import com.garfiec.librechat.core.ui.components.BubbleShape
 import com.garfiec.librechat.core.ui.components.endpointIconPainter
 import com.garfiec.librechat.core.ui.components.isMonochromeEndpointIcon
+import com.garfiec.librechat.core.ui.theme.UserBubbleLeadingInset
 import com.garfiec.librechat.core.ui.theme.UserBubbleTheme
 import com.garfiec.librechat.core.ui.theme.userBubbleColors
 import com.garfiec.librechat.feature.chat.resources.*
@@ -428,7 +429,8 @@ private fun TwoSidedMessageBubble(
         } else if (isUser) {
             MaterialTheme.colorScheme.secondaryContainer
         } else {
-            MaterialTheme.colorScheme.surfaceVariant
+            // TCHAT: assistant replies have no bubble and run the full width (design README).
+            null
         }
     } else {
         null
@@ -448,7 +450,7 @@ private fun TwoSidedMessageBubble(
         } else if (isUser) {
             MaterialTheme.colorScheme.onSecondaryContainer
         } else {
-            MaterialTheme.colorScheme.onSurfaceVariant
+            MaterialTheme.colorScheme.onSurface // TCHAT: no assistant bubble, so page text
         }
     } else {
         MaterialTheme.colorScheme.onSurface
@@ -480,14 +482,17 @@ private fun TwoSidedMessageBubble(
                 tintIcon = if (message.iconURL == null) isMonochromeEndpointIcon(resolvedEndpoint) else false,
                 size = 28.dp,
             )
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(8.dp))
         }
+
+        // TCHAT: the user's bubble hugs its text on the right and never reaches the left edge.
+        if (isUser) Spacer(modifier = Modifier.width(UserBubbleLeadingInset))
 
         // Bubble content
         UserBubbleTheme(active = filledUserBubble) { // TCHAT
             Column(
                 modifier = Modifier
-                    .weight(1f)
+                    .weight(1f, fill = !isUser)
                     .then(
                         if (effectiveBubbleBackground != null) {
                             Modifier
@@ -522,7 +527,7 @@ private fun TwoSidedMessageBubble(
                     )
                     val timestamp = message.createdAt
                     if (timestamp != null) {
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         MessageTimestamp(isoTimestamp = timestamp)
                     }
                 }
@@ -570,7 +575,7 @@ private fun TwoSidedMessageBubble(
 
         // User avatar on right
         if (isUser && showAvatars) {
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(8.dp))
             AvatarImage(
                 imageUrl = userAvatarUrl,
                 fallbackText = userName ?: stringResource(Res.string.sender_you),

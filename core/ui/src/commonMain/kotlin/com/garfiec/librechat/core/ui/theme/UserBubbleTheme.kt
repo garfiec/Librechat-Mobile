@@ -9,11 +9,16 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 
 /*
  * TCHAT: the user's own message bubble, filled per the design tokens `bubble-user` /
  * `on-bubble-user`: the accent in light mode, a deep navy in dark so long messages don't glare.
  */
+
+/** Space kept left of the user's bubble in the two-sided layout, so it never spans the screen. */
+val UserBubbleLeadingInset: Dp = 48.dp
 
 /** The bubble's fill and the colour of everything drawn on it. */
 data class UserBubbleColors(val container: Color, val content: Color)

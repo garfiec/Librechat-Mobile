@@ -160,7 +160,7 @@ fun TchatModelTriggerContent(label: TriggerLabel?, modifier: Modifier = Modifier
     }
     Row(
         modifier = modifier
-            .padding(start = 16.dp, end = 10.dp)
+            .padding(start = 16.dp, end = 12.dp)
             .clearAndSetSemantics { contentDescription = description },
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -175,7 +175,7 @@ fun TchatModelTriggerContent(label: TriggerLabel?, modifier: Modifier = Modifier
                     modifier = Modifier.weight(1f, fill = false),
                 )
                 if (label?.free == true) {
-                    Spacer(Modifier.width(6.dp))
+                    Spacer(Modifier.width(8.dp))
                     FreeTag()
                 }
             }
@@ -188,7 +188,7 @@ fun TchatModelTriggerContent(label: TriggerLabel?, modifier: Modifier = Modifier
                         maxLines = 1,
                     )
                     if (label.imageLabel != null) {
-                        Spacer(Modifier.width(6.dp))
+                        Spacer(Modifier.width(8.dp))
                         Icon(Icons.Default.Image, null, Modifier.size(12.dp), tint = colors.primary)
                         Spacer(Modifier.width(2.dp))
                         Text(
@@ -233,7 +233,7 @@ fun ImageGenComposerChip(
                 modifier = Modifier
                     .clip(CircleShape)
                     .clickable(role = Role.Button, onClickLabel = removeLabel, onClick = onTurnOff)
-                    .padding(3.dp)
+                    .padding(4.dp)
                     .size(18.dp),
             )
         },

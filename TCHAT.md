@@ -101,8 +101,17 @@ First pass, all in `:core:ui`:
   `PlatformChatComponents.ios.kt` bubble columns are wrapped in it. A bubble being edited keeps
   the tonal fill, so the edit field is unchanged.
 
-Not yet done: moving feature-code `dp`/`sp`/radius literals onto the 4px grid and the type scale,
-and the Reduce Transparency glass fallback.
+- **Chat layout** — chats open two-sided with bubbles (`ChatLayoutConstants.DEFAULT` /
+  `DEFAULT_SHOW_BUBBLES`; upstream: thread, bubbles off). In the two-sided layout the user's bubble
+  hugs its text on the right, kept `UserBubbleLeadingInset` (48dp) off the left edge, and
+  assistant replies have no bubble and run the full width. Both remain settings.
+- **Spacing grid** — off-grid spacing literals inside `padding(…)`, `spacedBy(…)`,
+  `PaddingValues(…)` and `Spacer(…)` were moved to the nearest 4px step, ties up
+  (3→4, 6→8, 10→12, 14→16, 22→24, 30→32; 95 literals in 48 files). Component sizes (icons at
+  18dp, bars) were left alone. A later upstream sync may reintroduce off-grid values in files it
+  touches; re-run the same rule rather than hand-merging.
+
+Not yet done: `sp` and radius literals in feature code, and the Reduce Transparency glass fallback.
 
 ## Model picker and Image Gen
 

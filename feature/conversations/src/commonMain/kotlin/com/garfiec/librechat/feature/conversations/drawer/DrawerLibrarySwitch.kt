@@ -223,7 +223,7 @@ internal fun DrawerTabToggle(
                     if (tab != selectedTab) onSelect(tab)
                 },
             )
-            .padding(3.dp)
+            .padding(4.dp)
             .height(DrawerTabCellHeight),
     ) {
         Box(
@@ -281,7 +281,7 @@ private fun DrawerTabToggleCell(
             modifier = Modifier.size(16.dp),
             tint = contentColor,
         )
-        Spacer(modifier = Modifier.width(6.dp))
+        Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = label,
             style = MaterialTheme.typography.labelMedium,

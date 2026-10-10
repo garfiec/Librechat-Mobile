@@ -95,7 +95,7 @@ private fun FormatRow(
         modifier = Modifier
             .fillMaxWidth()
             .dragSelectRow(dragSelection, onClick = onClick)
-            .padding(horizontal = 24.dp, vertical = 14.dp),
+            .padding(horizontal = 24.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(

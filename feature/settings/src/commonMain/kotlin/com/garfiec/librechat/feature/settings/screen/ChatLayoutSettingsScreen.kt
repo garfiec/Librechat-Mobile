@@ -214,7 +214,7 @@ private fun TwoSidedSample(message: SampleMessage, showBubbles: Boolean, showAva
     ) {
         if (!isUser && showAvatars) {
             SampleAvatar(isUser = false)
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(8.dp))
         }
         Column(
             modifier = Modifier
@@ -234,7 +234,7 @@ private fun TwoSidedSample(message: SampleMessage, showBubbles: Boolean, showAva
             SampleLines(message, MaterialTheme.colorScheme.onSurface)
         }
         if (isUser && showAvatars) {
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(8.dp))
             SampleAvatar(isUser = true)
         }
     }
@@ -271,7 +271,7 @@ private fun SampleName(color: Color, height: Dp = 10.dp) {
  */
 @Composable
 private fun SampleLines(message: SampleMessage, color: Color) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         message.lines.forEach { width ->
             Box(
                 modifier = Modifier

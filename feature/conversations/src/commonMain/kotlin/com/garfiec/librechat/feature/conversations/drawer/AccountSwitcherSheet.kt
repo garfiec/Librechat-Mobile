@@ -188,7 +188,7 @@ fun AccountChip(
                 fallbackText = acct.displayLabel,
                 fallbackBackgroundColor = avatarColorForSeed(acct.accountId),
                 contentDescription = acct.displayLabel,
-                modifier = Modifier.padding(6.dp),
+                modifier = Modifier.padding(8.dp),
             )
         }
     }
@@ -259,7 +259,7 @@ fun AccountSwitcherSheet(
                     .fillMaxWidth()
                     .testTag("account_add")
                     .dragSelectRow(dragSelection, onClick = onAddAccount)
-                    .padding(horizontal = 24.dp, vertical = 14.dp),
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(

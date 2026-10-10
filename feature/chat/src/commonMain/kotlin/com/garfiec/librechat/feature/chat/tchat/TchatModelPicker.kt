@@ -312,7 +312,7 @@ private fun CurrentCard(current: PickerCurrent, imageLabel: String?, serverUrl: 
             .padding(horizontal = 16.dp, vertical = 4.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(colors.primaryContainer)
-            .padding(horizontal = 12.dp, vertical = 10.dp)
+            .padding(horizontal = 12.dp, vertical = 12.dp)
             .semantics(mergeDescendants = true) {},
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -334,7 +334,7 @@ private fun CurrentCard(current: PickerCurrent, imageLabel: String?, serverUrl: 
                     modifier = Modifier.weight(1f, fill = false),
                 )
                 if (current.free) {
-                    Spacer(Modifier.width(6.dp))
+                    Spacer(Modifier.width(8.dp))
                     FreeTag()
                 }
             }
@@ -395,7 +395,7 @@ private fun LazyListScope.pickerSection(
             mark()
             Spacer(Modifier.width(8.dp))
             Text(title, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
-            Spacer(Modifier.width(6.dp))
+            Spacer(Modifier.width(8.dp))
             Text(caption, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
@@ -479,11 +479,11 @@ private fun PickerRowItem(
                         modifier = Modifier.weight(1f, fill = false),
                     )
                     if (row.free) {
-                        Spacer(Modifier.width(6.dp))
+                        Spacer(Modifier.width(8.dp))
                         FreeTag()
                     }
                     if (row.pinned == true) {
-                        Spacer(Modifier.width(6.dp))
+                        Spacer(Modifier.width(8.dp))
                         Icon(
                             Icons.Default.PushPin,
                             contentDescription = stringResource(Res.string.tchat_pinned),
@@ -552,7 +552,7 @@ internal fun FreeTag(modifier: Modifier = Modifier) {
         maxLines = 1,
         modifier = modifier
             .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-            .padding(horizontal = 6.dp, vertical = 1.dp),
+            .padding(horizontal = 8.dp, vertical = 1.dp),
     )
 }
 

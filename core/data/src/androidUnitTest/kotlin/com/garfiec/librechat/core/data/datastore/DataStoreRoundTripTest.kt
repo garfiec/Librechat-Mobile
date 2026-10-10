@@ -144,7 +144,7 @@ class DataStoreRoundTripTest {
         assertThat(store.chatFontSize.first()).isEqualTo(ChatFontSize.MEDIUM)
         assertThat(store.latexRenderer.first()).isEqualTo(LatexRenderer.KATEX)
         assertThat(store.showAvatars.first()).isTrue()
-        assertThat(store.showBubbles.first()).isFalse()
+        assertThat(store.showBubbles.first()).isTrue() // TCHAT: bubbles on by default (ChatLayoutConstants)
         assertThat(store.selectedLanguage.first()).isEqualTo("system")
         assertThat(store.sttOnDevice.first()).isTrue()
         assertThat(store.sttEndOfSpeech.first()).isFalse()

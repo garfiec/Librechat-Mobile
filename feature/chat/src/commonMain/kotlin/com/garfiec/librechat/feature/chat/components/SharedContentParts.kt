@@ -111,7 +111,7 @@ internal fun ContentPartDispatcher(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp),
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         stringResource(Res.string.video_not_supported),
                         style = MaterialTheme.typography.bodyMedium,

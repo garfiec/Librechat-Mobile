@@ -218,7 +218,7 @@ private fun WakeupTaskCard(task: WakeupTask, kind: WakeupKind, fontSizeMultiplie
             .fillMaxWidth()
             .padding(top = 8.dp)
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
-            .padding(10.dp),
+            .padding(12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             val title = if (kind == WakeupKind.SUBAGENT) task.subagentType else task.toolName
@@ -230,7 +230,7 @@ private fun WakeupTaskCard(task: WakeupTask, kind: WakeupKind, fontSizeMultiplie
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false),
                 )
-                Spacer(Modifier.width(6.dp))
+                Spacer(Modifier.width(8.dp))
             }
             Text(
                 stringResource(
@@ -260,7 +260,7 @@ private fun WakeupTaskCard(task: WakeupTask, kind: WakeupKind, fontSizeMultiplie
             // thread is that the row opens collapsed.
             // Selectable like a bubble's content, and only the result: the labels above are
             // chrome, and the footer's Copy copies the stored prompt text, not this.
-            SelectionContainer(Modifier.padding(top = 6.dp)) {
+            SelectionContainer(Modifier.padding(top = 8.dp)) {
                 MarkdownContent(text = task.result, fontSizeMultiplier = fontSizeMultiplier, useKatex = useKatex)
             }
         }

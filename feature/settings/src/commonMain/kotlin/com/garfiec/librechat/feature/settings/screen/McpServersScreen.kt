@@ -369,7 +369,7 @@ private fun McpServerListItem(
                     text = error,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(start = 22.dp, top = 4.dp),
+                    modifier = Modifier.padding(start = 24.dp, top = 4.dp),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )

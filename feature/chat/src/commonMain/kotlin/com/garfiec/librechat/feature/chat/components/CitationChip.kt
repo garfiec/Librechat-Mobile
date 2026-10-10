@@ -273,7 +273,7 @@ private fun CitationPopup(
                 )
                 Row(
                     modifier = Modifier
-                        .padding(top = 6.dp)
+                        .padding(top = 8.dp)
                         .clickable {
                             uriHandler.openUri(citationUrl)
                             onDismiss()

@@ -116,7 +116,7 @@ private fun SourceFaviconStack(hosts: List<String>, modifier: Modifier = Modifie
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surfaceContainerHighest)
                     .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
-                    .padding(3.dp),
+                    .padding(4.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Favicon(model = faviconUrl(host), size = 14.dp)
@@ -198,7 +198,7 @@ fun WebSearchSourcesCard(
         ) {
             Column(
                 modifier = Modifier
-                    .padding(top = 6.dp)
+                    .padding(top = 8.dp)
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(8.dp))
                     .border(
@@ -220,7 +220,7 @@ fun WebSearchSourcesCard(
                                     // URL might be malformed
                                 }
                             }
-                            .padding(horizontal = 12.dp, vertical = 10.dp)
+                            .padding(horizontal = 12.dp, vertical = 12.dp)
                             .semantics {
                                 role = Role.Button
                                 contentDescription = rowCd
@@ -228,7 +228,7 @@ fun WebSearchSourcesCard(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Favicon(model = result.favicon ?: faviconUrl(domain), size = 16.dp)
-                        Spacer(modifier = Modifier.width(10.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             text = result.title,
                             style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),

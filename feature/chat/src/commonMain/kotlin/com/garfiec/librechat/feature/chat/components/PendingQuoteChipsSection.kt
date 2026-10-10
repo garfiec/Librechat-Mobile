@@ -65,7 +65,7 @@ fun PendingQuoteChipsSection(
             ) {
                 Spacer(
                     modifier = Modifier
-                        .width(3.dp)
+                        .width(4.dp)
                         .fillMaxHeight()
                         .background(accent),
                 )
@@ -77,7 +77,7 @@ fun PendingQuoteChipsSection(
                     fontSize = 13.sp * fontSizeMultiplier,
                     modifier = Modifier
                         .weight(1f)
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
                 )
                 IconButton(onClick = { onRemove(index) }) {
                     Icon(

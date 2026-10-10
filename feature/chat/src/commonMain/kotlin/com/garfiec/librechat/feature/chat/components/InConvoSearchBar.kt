@@ -67,12 +67,12 @@ fun InConvoSearchBar(
     FloatingBarChip(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+            .padding(horizontal = 12.dp, vertical = 8.dp),
     ) {
         Row(
             modifier = Modifier
                 .heightIn(min = 48.dp)
-                .padding(start = 16.dp, end = 6.dp),
+                .padding(start = 16.dp, end = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(

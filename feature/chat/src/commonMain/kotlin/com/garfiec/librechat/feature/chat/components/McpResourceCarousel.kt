@@ -95,7 +95,7 @@ private fun McpResourceCard(
                     modifier = Modifier.size(16.dp),
                     tint = MaterialTheme.colorScheme.primary,
                 )
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = resource.title,
                     style = MaterialTheme.typography.titleSmall.copy(
@@ -120,7 +120,7 @@ private fun McpResourceCard(
 
             // Optional preview
             if (!resource.preview.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = resource.preview,
                     style = MaterialTheme.typography.bodySmall,

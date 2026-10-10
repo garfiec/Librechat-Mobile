@@ -68,9 +68,9 @@ data class ChatPrefsState(
 data class ChatPreferences(
     val showImageDescriptions: Boolean = false,
     val dismissKeyboardOnSend: Boolean = false,
-    val chatLayoutStyle: String = ChatLayoutConstants.THREAD,
+    val chatLayoutStyle: String = ChatLayoutConstants.DEFAULT, // TCHAT: was THREAD
     val showAvatars: Boolean = true,
-    val showBubbles: Boolean = false,
+    val showBubbles: Boolean = ChatLayoutConstants.DEFAULT_SHOW_BUBBLES, // TCHAT: was false
     val latexRenderer: LatexRenderer = LatexRenderer.KATEX,
     val autoSendAfterStt: Boolean = false,
     val sttEngine: String = "",

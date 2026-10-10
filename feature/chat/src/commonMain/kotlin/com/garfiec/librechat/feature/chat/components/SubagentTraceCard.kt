@@ -162,7 +162,7 @@ internal fun SubagentTraceCard(
             AnimatedVisibility(visible = isExpanded, enter = expandVertically(), exit = shrinkVertically()) {
                 Column(modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) {
                     parts.forEachIndexed { index, part ->
-                        Spacer(modifier = Modifier.padding(top = 6.dp))
+                        Spacer(modifier = Modifier.padding(top = 8.dp))
                         ContentPartDispatcher(
                             part = part,
                             baseUrl = baseUrl,

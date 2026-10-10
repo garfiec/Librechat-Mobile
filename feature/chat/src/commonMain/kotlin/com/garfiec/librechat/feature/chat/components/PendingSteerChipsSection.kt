@@ -61,7 +61,7 @@ fun PendingSteerChipsSection(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.End,
     ) {
         pendingSteers.forEach { chip ->
@@ -89,7 +89,7 @@ private fun PendingSteerRow(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .padding(start = 10.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
+                .padding(start = 12.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
         ) {
             // The POST is still out, so the row shows a spinner instead of the bolt: until the
             // server accepts it there is nothing to cancel server-side and nothing to inject.

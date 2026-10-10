@@ -162,7 +162,7 @@ private fun MemoryArtifactDetail(
 ) {
     Column(
         modifier = Modifier
-            .padding(top = 6.dp)
+            .padding(top = 8.dp)
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
@@ -210,7 +210,7 @@ private fun MemoryArtifactDetail(
                         .padding(top = 4.dp)
                         .clip(RoundedCornerShape(6.dp))
                         .background(MaterialTheme.colorScheme.errorContainer)
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
                 )
             }
         }

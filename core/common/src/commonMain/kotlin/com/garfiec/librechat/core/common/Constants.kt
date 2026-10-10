@@ -59,4 +59,12 @@ object ToolConstants {
 object ChatLayoutConstants {
     const val THREAD = "thread"
     const val TWO_SIDED = "two_sided"
+
+    /**
+     * TCHAT: Tchat opens chats two-sided with bubbles: the user's own messages in a filled bubble
+     * on the right, assistant replies full width (design/system/README.md). Upstream: [THREAD],
+     * bubbles off. Both stay user-changeable in Settings → Chat → Layout.
+     */
+    const val DEFAULT = TWO_SIDED
+    const val DEFAULT_SHOW_BUBBLES = true
 }

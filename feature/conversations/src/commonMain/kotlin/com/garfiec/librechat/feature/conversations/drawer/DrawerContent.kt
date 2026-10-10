@@ -1126,7 +1126,7 @@ private fun ProjectFolderAccordion(
                 .fillMaxWidth()
                 .drawerRowShape()
                 .clickable(onClick = onToggle)
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(horizontal = 12.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
@@ -1239,7 +1239,7 @@ private fun DrawerConversationItem(
                     // menuDragAnchor already fires the hold haptic; on here it buzzes twice.
                     hapticFeedbackEnabled = false,
                 )
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(horizontal = 12.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (data.isActive && !glass) {
@@ -1272,7 +1272,7 @@ private fun DrawerConversationItem(
                 )
             }
 
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -1397,7 +1397,7 @@ private fun SectionHeader(
             modifier = Modifier.size(14.dp),
             tint = MaterialTheme.colorScheme.primary,
         )
-        Spacer(modifier = Modifier.width(6.dp))
+        Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = title,
             style = MaterialTheme.typography.labelSmall,
