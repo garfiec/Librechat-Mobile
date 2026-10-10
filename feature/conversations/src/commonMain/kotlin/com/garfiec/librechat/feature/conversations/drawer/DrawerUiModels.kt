@@ -57,7 +57,7 @@ data class AccountUiModel(
  */
 @Immutable
 data class DrawerUiState(
-    val groupedConversations: List<Pair<String, List<DrawerConversationDisplayData>>> = emptyList(),
+    val groupedConversations: List<Pair<DrawerGroupKey, List<DrawerConversationDisplayData>>> = emptyList(),
     val favoriteConversations: List<DrawerConversationDisplayData> = emptyList(),
     val pinnedConversations: List<DrawerConversationDisplayData> = emptyList(),
     val searchQuery: String = "",
@@ -68,6 +68,9 @@ data class DrawerUiState(
     val agentsEnabled: Boolean = true,
     val bookmarksEnabled: Boolean = true,
     val skillsEnabled: Boolean = true,
+    /** Scheduled chats: the SCHEDULES permission AND the server's `interface.schedules` flag,
+     *  which is absent-means-OFF. Default false — the feature is opt-in. */
+    val schedulesEnabled: Boolean = false,
     // User-defined tags (excluding the favorites tag) for the action menu's tag picker.
     val availableTags: List<ConversationTag> = emptyList(),
     // Config-driven: whether server-side shared links are enabled (gates the menu's Share action).

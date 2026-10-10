@@ -54,7 +54,7 @@ fun DynamicParameterPanel(
                         min = min,
                         max = max,
                         step = step,
-                        description = definition.description,
+                        description = definition.localizedDescription(),
                     )
                 }
 
@@ -64,7 +64,7 @@ fun DynamicParameterPanel(
                         selectedValue = currentValue,
                         options = definition.options ?: emptyList(),
                         onValueChange = { onValueChange(definition.key, it) },
-                        description = definition.description,
+                        description = definition.localizedDescription(),
                     )
                 }
 
@@ -74,7 +74,7 @@ fun DynamicParameterPanel(
                         selectedValue = currentValue,
                         options = definition.options ?: emptyList(),
                         onValueChange = { onValueChange(definition.key, it) },
-                        description = definition.description,
+                        description = definition.localizedDescription(),
                         optionLabels = definition.optionLabels,
                     )
                 }
@@ -85,7 +85,7 @@ fun DynamicParameterPanel(
                         label = definition.label,
                         checked = checked,
                         onCheckedChange = { onValueChange(definition.key, it.toString()) },
-                        description = definition.description,
+                        description = definition.localizedDescription(),
                     )
                 }
 
@@ -95,7 +95,7 @@ fun DynamicParameterPanel(
                         value = currentValue,
                         onValueChange = { onValueChange(definition.key, it) },
                         placeholder = definition.default,
-                        description = definition.description,
+                        description = definition.localizedDescription(),
                     )
                 }
 
@@ -105,7 +105,7 @@ fun DynamicParameterPanel(
                         label = definition.label,
                         checked = checked,
                         onCheckedChange = { onValueChange(definition.key, it.toString()) },
-                        description = definition.description,
+                        description = definition.localizedDescription(),
                     )
                 }
 
@@ -115,7 +115,7 @@ fun DynamicParameterPanel(
                         value = currentValue,
                         onValueChange = { onValueChange(definition.key, it) },
                         placeholder = definition.default,
-                        description = definition.description,
+                        description = definition.localizedDescription(),
                     )
                 }
 
@@ -130,7 +130,7 @@ fun DynamicParameterPanel(
                         onTagsChange = { tags ->
                             onValueChange(definition.key, tags.joinToString("\n"))
                         },
-                        description = definition.description,
+                        description = definition.localizedDescription(),
                         maxTags = definition.max?.toInt() ?: 4,
                     )
                 }

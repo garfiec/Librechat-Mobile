@@ -29,9 +29,7 @@ import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.FindInPage
 import androidx.compose.material.icons.filled.TravelExplore
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -58,6 +56,8 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.model.response.UploadRoute
+import com.garfiec.librechat.core.ui.components.AdaptiveAssistChip
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -210,7 +210,7 @@ private fun FilesChip(
     } else {
         stringResource(Res.string.cd_files_attached, files.size)
     }
-    AssistChip(
+    AdaptiveAssistChip(
         onClick = onClick,
         label = {
             Text(
@@ -247,7 +247,7 @@ private fun ToolIndicatorChip(
     icon: ImageVector,
     semanticDescription: String,
 ) {
-    AssistChip(
+    AdaptiveAssistChip(
         onClick = {},
         label = {
             Text(
@@ -371,7 +371,7 @@ private fun FilePreviewItem(
                 contentAlignment = Alignment.Center,
             ) {
                 if (progress != null) {
-                    CircularProgressIndicator(
+                    AdaptiveCircularProgressIndicator(
                         progress = { progress },
                         modifier = Modifier.size(28.dp),
                         strokeWidth = 3.dp,
@@ -379,7 +379,7 @@ private fun FilePreviewItem(
                         trackColor = Color.White.copy(alpha = 0.3f),
                     )
                 } else {
-                    CircularProgressIndicator(
+                    AdaptiveCircularProgressIndicator(
                         modifier = Modifier.size(28.dp),
                         strokeWidth = 3.dp,
                         color = Color.White,

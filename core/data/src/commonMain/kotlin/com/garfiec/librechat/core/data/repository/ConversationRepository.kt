@@ -67,6 +67,14 @@ interface ConversationRepository {
     suspend fun duplicateConversation(conversationId: String, title: String?): Result<Conversation>
     suspend fun importConversation(jsonContent: String): Result<Conversation>
     suspend fun deleteAll(): Result<Unit>
+
+    /**
+     * Archives every conversation the server can see for this user (v0.8.8-rc2), returning the
+     * count it archived. Fails with a 404 [com.garfiec.librechat.core.common.result.ApiException]
+     * on a server without the route — see VERSION_GATES.md for why the caller gates rather than
+     * this method.
+     */
+    suspend fun archiveAll(): Result<Int>
     suspend fun saveConversation(conversation: Conversation, originAccount: AccountId?)
     suspend fun updateConversationTagsLocal(id: String, tags: List<String>)
     suspend fun syncFavoritesFromServer(): Result<Unit>

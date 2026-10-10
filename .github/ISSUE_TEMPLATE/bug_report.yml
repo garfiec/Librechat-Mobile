@@ -116,7 +116,7 @@ body:
       description: |
         Optional but it speeds up diagnosis a lot.
         - A screenshot or screen recording of the problem.
-        - A diagnostic log: Settings → Data → Diagnostic Logs → "Export diagnostic logs" (auto-redacted), then attach the file here.
+        - A diagnostic log: Settings → Data → Diagnostic Logs → "Export diagnostic logs" (auto-redacted), then attach the file here. Older app versions name it `.jsonl`, which GitHub rejects; rename it to `.log` first.
     validations:
       required: false
 

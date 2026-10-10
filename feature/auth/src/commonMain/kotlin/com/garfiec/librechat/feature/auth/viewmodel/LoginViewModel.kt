@@ -5,25 +5,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
-import com.garfiec.librechat.core.data.datastore.ServerDataStore
+import com.garfiec.librechat.core.common.result.suspendRunCatching
+import com.garfiec.librechat.core.data.datastore.SsoRiskDataStore
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.model.LoginOutcome
-import com.garfiec.librechat.feature.auth.oauth.OAuthLauncher
-import com.garfiec.librechat.feature.auth.oauth.oauthStartUrl
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-
-/**
- * TCHAT: the two things [com.garfiec.librechat.feature.auth.oauth.OAuthWebView] needs, bundled so
- * "showing" and "not showing" is one nullable value rather than two independently-nullable fields
- * that could disagree (e.g. a URL set with no server, or vice versa).
- */
-@Immutable
-data class OAuthWebViewState(val startUrl: String, val serverUrl: String)
 
 @Immutable
 data class LoginUiState(
@@ -41,24 +33,20 @@ data class LoginUiState(
     // config confirms otherwise. Drives hiding the email/password form.
     val emailLoginEnabled: Boolean = true,
     // TCHAT: server-supplied OIDC button label/auto-redirect (StartupConfig.openidLabel /
-    // .openidAutoRedirect) — parsed upstream but never surfaced until now. Null label falls back
-    // to TchatBrand.OIDC_FALLBACK_LABEL in the screen.
+    // .openidAutoRedirect) — parsed upstream but never surfaced. Null label falls back to
+    // TchatBrand.OIDC_FALLBACK_LABEL in the screen.
     val openidLabel: String? = null,
     val openidAutoRedirect: Boolean = false,
-    /**
-     * TCHAT: non-null while the in-app OAuth WebView overlay should be showing. Set by
-     * [launchOAuth], cleared by [onOAuthWebViewComplete] and [dismissOAuthWebView]. Replaces the
-     * old external-browser launch — see [OAuthLauncher]'s kdoc.
-     */
-    val oAuthWebView: OAuthWebViewState? = null,
+    /** Set while the in-app-browser warning is up; carries the provider the user picked. */
+    val pendingSsoProvider: String? = null,
+    val ssoProvider: String? = null,
 )
 
 class LoginViewModel(
     private val authRepository: AuthRepository,
     private val configRepository: ConfigRepository,
-    private val oAuthLauncher: OAuthLauncher,
-    private val serverDataStore: ServerDataStore,
     private val accountSwitcher: AccountSwitcher,
+    private val ssoRiskDataStore: SsoRiskDataStore,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
@@ -86,9 +74,55 @@ class LoginViewModel(
         }
     }
 
-    /** The server this screen is signing into: the pending add target when set, else the live one. */
-    private fun signInServerUrl(): String =
-        accountSwitcher.pendingAdd?.serverUrl ?: serverDataStore.getBaseUrl()
+    /**
+     * Latched synchronously on the tap, because the acknowledgement read that follows suspends.
+     * Two taps would otherwise each resolve and each set `ssoProvider`, and since the screen
+     * consumes that field back to null between them, both would navigate — stacking two SSO
+     * routes, two WebViews and two round-trips over the one cookie jar they share.
+     */
+    private var ssoSelectionInFlight = false
+
+    /**
+     * Social sign-in runs in an in-app browser, which some providers disallow. Warn once, then
+     * remember the acknowledgement — the flag is global because there is no account yet.
+     */
+    fun onSsoProviderSelected(provider: String) {
+        if (ssoSelectionInFlight) return
+        ssoSelectionInFlight = true
+        viewModelScope.launch {
+            // Fail towards warning: an unreadable store must not strand every social button behind
+            // a latch that only the dialog's own dismiss can clear.
+            val acknowledged = suspendRunCatching { ssoRiskDataStore.acknowledged.first() }.getOrDefault(false)
+            if (acknowledged) {
+                _uiState.value = _uiState.value.copy(ssoProvider = provider)
+            } else {
+                _uiState.value = _uiState.value.copy(pendingSsoProvider = provider)
+            }
+        }
+    }
+
+    fun onSsoRiskAccepted() {
+        val provider = _uiState.value.pendingSsoProvider ?: return
+        // Cleared before the suspending persist, so a second tap on the dialog finds nothing
+        // pending and returns instead of queueing a second navigation.
+        _uiState.value = _uiState.value.copy(pendingSsoProvider = null)
+        viewModelScope.launch {
+            // Same reason the read is guarded: a store that cannot be written must cost the user
+            // one extra warning next time, not the latch that `consumeSsoNavigation` alone clears.
+            suspendRunCatching { ssoRiskDataStore.acknowledge() }
+            _uiState.value = _uiState.value.copy(ssoProvider = provider)
+        }
+    }
+
+    fun onSsoRiskDismissed() {
+        ssoSelectionInFlight = false
+        _uiState.value = _uiState.value.copy(pendingSsoProvider = null)
+    }
+
+    fun consumeSsoNavigation() {
+        ssoSelectionInFlight = false
+        _uiState.value = _uiState.value.copy(ssoProvider = null)
+    }
 
     fun onEmailChanged(email: String) {
         _uiState.value = _uiState.value.copy(email = email, error = null)
@@ -131,10 +165,17 @@ class LoginViewModel(
                     // provider instead of retrying credentials that will never be accepted.
                     // checkBan runs BEFORE validateEmailLogin on this route and also answers 403,
                     // so a banned account (or the non-browser-UA soft ban) must keep the server's
-                    // own message and leave the form visible — isBanned is the discriminator.
+                    // own message and leave the form visible — isBanned is that discriminator.
+                    //
+                    // [ApiException.serverAuthored] is a second, independent one, and it is required:
+                    // a bouncer or WAF in front of the deployment answers this route with a 403 HTML
+                    // interstitial too, and asserting "this server has email login disabled" over a
+                    // transient network block would hide the form for a condition the user can simply
+                    // wait out. Only LibreChat's own JSON envelope sets that flag.
                     val apiException = result.exception as? ApiException
-                    val isEmailLoginDisabled =
-                        apiException?.statusCode == 403 && !apiException.isBanned
+                    val isEmailLoginDisabled = apiException?.statusCode == 403 &&
+                        apiException.serverAuthored &&
+                        !apiException.isBanned
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         error = if (isEmailLoginDisabled) {
@@ -152,83 +193,5 @@ class LoginViewModel(
 
     fun consumeTwoFactorNavigation() {
         _uiState.value = _uiState.value.copy(twoFactorTempToken = null)
-    }
-
-    /** Set once this screen launches its own OAuth round-trip; gates add-mode cookie consumption. */
-    private var oAuthLaunched = false
-
-    /**
-     * TCHAT: shows the in-app OAuth WebView overlay (see [OAuthWebView][com.garfiec.librechat.feature.auth.oauth.OAuthWebView])
-     * instead of launching an external browser. The overlay itself only detects completion; the
-     * screen wires that back to [onOAuthWebViewComplete].
-     */
-    fun launchOAuth(provider: String) {
-        oAuthLaunched = true
-        val serverUrl = signInServerUrl()
-        // Drop any stale refreshToken cookie for this host BEFORE launching. In add mode the cookie
-        // jar is process-global and nothing clears it on add-flow entry, so a launch that the user then
-        // cancels would otherwise leave a pre-existing cookie for checkOAuthResult() to consume as the
-        // wrong user (the oAuthLaunched guard only blocks the never-launched case). Clearing here means
-        // only a cookie minted by THIS round-trip can be present on return.
-        oAuthLauncher.clearOAuthCookie(serverUrl)
-        _uiState.value = _uiState.value.copy(
-            oAuthWebView = OAuthWebViewState(startUrl = oauthStartUrl(serverUrl, provider), serverUrl = serverUrl),
-        )
-    }
-
-    /** The WebView overlay detected the flow reached an ordinary page on this server — check now. */
-    fun onOAuthWebViewComplete() {
-        _uiState.value = _uiState.value.copy(oAuthWebView = null)
-        checkOAuthResult()
-    }
-
-    /** The user closed the WebView overlay before the flow completed. Nothing to extract. */
-    fun dismissOAuthWebView() {
-        _uiState.value = _uiState.value.copy(oAuthWebView = null)
-    }
-
-    // TCHAT: called from two places now — onOAuthWebViewComplete() (the WebView overlay's own
-    // completion signal, the primary path) and LoginScreen's LifecycleEventEffect(ON_RESUME) (a
-    // belt-and-braces fallback: the in-app WebView no longer leaves the app the way the old
-    // external-browser design did, so a killed process mid-flow is far less likely — but not
-    // impossible, e.g. under memory pressure while backgrounded). Both call this same function so
-    // there is exactly one extraction path to keep correct.
-    fun checkOAuthResult() {
-        // In add mode, only consume a cookie minted by THIS screen's own launchOAuth round-trip:
-        // the cookie jar is process-global and nothing clears it on add-flow entry, so a stale
-        // refreshToken cookie for this host would otherwise be auto-consumed on first ON_RESUME
-        // and silently complete the add as the wrong user. The normal login screen keeps the
-        // unconditional consume — it must survive process death mid-flow, which an add flow never
-        // does (its pending session is memory-only, so a killed add flow is stripped by the
-        // NavHost, not resumed).
-        if (accountSwitcher.pendingAdd != null && !oAuthLaunched) return
-
-        val serverUrl = signInServerUrl()
-        if (serverUrl.isBlank()) return
-
-        val refreshToken = oAuthLauncher.extractTokenFromCookies(serverUrl) ?: return
-
-        // Clear the cookie immediately to avoid re-reading on next onResume
-        oAuthLauncher.clearOAuthCookie(serverUrl)
-
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-
-            when (val result = authRepository.loginWithOAuthToken(refreshToken)) {
-                is Result.Success -> {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        isLoggedIn = true,
-                    )
-                }
-                is Result.Error -> {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = result.message ?: "OAuth login failed",
-                    )
-                }
-                is Result.Loading -> { /* no-op */ }
-            }
-        }
     }
 }

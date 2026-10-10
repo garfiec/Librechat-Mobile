@@ -2,6 +2,8 @@
 <resources>
     <!-- Accessibility label for the bottom-sheet drag handle -->
     <string name="cd_drag_handle">Маркер перемещения</string>
+    <string name="banner_dismiss">Закрыть баннер</string>
+    <string name="pdf_page_failed">Не удалось отобразить эту страницу</string>
     <!-- Custom per-server request headers (issue #287); shared by the pre-login
          server screen and the post-login Settings editor -->
     <string name="server_headers_title">Пользовательские заголовки запроса</string>
@@ -19,4 +21,89 @@
     <string name="server_headers_error_name">Недопустимое имя заголовка.</string>
     <string name="server_headers_error_value">Значение содержит символы, которые нельзя отправить.</string>
     <string name="server_headers_error_reserved">Этот заголовок задаётся приложением и не может быть изменён.</string>
+    <string name="pdf_password_title">PDF, защищённый паролем</string>
+    <string name="pdf_password_explanation">Для открытия «%1$s» нужен пароль. Чтобы отправить файл модели ИИ, Switchboard расшифровывает его на этом устройстве и загружает расшифрованную копию. Пароль не покидает ваше устройство.</string>
+    <string name="pdf_password_sensitive_warning">Файлы, защищённые паролем, часто содержат конфиденциальные данные. Расшифрованная копия хранится на вашем сервере LibreChat и передаётся поставщику ИИ. Продолжайте, только если готовы поделиться её содержимым.</string>
+    <string name="pdf_password_field">Пароль PDF</string>
+    <string name="pdf_password_incorrect">Неверный пароль. Попробуйте ещё раз.</string>
+    <string name="pdf_password_show">Показать пароль</string>
+    <string name="pdf_password_hide">Скрыть пароль</string>
+    <string name="pdf_password_confirm">Расшифровать и загрузить</string>
+    <string name="pdf_password_cancel">Отмена</string>
+    <string name="param_thinking_between_tools_description">Включает адаптивное мышление, управляемое параметром «Усилие». Эта модель не может полностью отключить мышление: при выключении используется её минимальный уровень, при котором расширенное мышление пропускается и остаются только краткие заметки между вызовами инструментов. В выключенном состоянии усилие ограничено уровнем «Высокое».</string>
+    <string name="discard_changes_title">Сбросить изменения?</string>
+    <string name="discard_changes_message">Несохранённые изменения будут потеряны.</string>
+    <string name="discard_changes_confirm">Сбросить</string>
+    <string name="discard_changes_cancel">Отмена</string>
+    <!-- Context usage breakdown -->
+    <string name="context_compact">Сжать беседу</string>
+    <string name="context_compacting">Сжатие…</string>
+    <string name="context_compact_info">Сводит всё сказанное в короткую заметку, которую модель продолжает читать, освобождая контекст для дальнейшего. Ничего не удаляется.</string>
+    <string name="context_usage_label">Контекст</string>
+    <string name="context_usage_window">Окно контекста</string>
+    <string name="context_usage_estimated">Оценка по истории сообщений</string>
+    <string name="context_usage_messages">Сообщения</string>
+    <string name="context_usage_tools">Схемы инструментов</string>
+    <string name="context_usage_summary">Сводка</string>
+    <string name="context_usage_system">Системный промпт</string>
+    <string name="context_usage_free">Свободно</string>
+    <string name="context_usage_input">Ввод</string>
+    <string name="context_usage_output">Вывод</string>
+    <string name="context_usage_estimated_row">Оценка</string>
+    <string name="context_usage_tool_calls">Вызовы инструментов</string>
+    <string name="context_usage_agent_instructions">Инструкции агента</string>
+    <string name="context_usage_tools_system">Системные инструменты</string>
+    <string name="context_usage_tools_system_deferred">Системные инструменты (отложенные)</string>
+    <string name="context_usage_tools_mcp">Инструменты MCP</string>
+    <string name="context_usage_tools_mcp_deferred">Инструменты MCP (отложенные)</string>
+    <string name="context_usage_skills">Навыки</string>
+    <string name="context_usage_subagents">Субагенты</string>
+    <string name="context_usage_cached">Из кэша</string>
+    <string name="context_usage_cache_write">Запись в кэш</string>
+    <string name="context_usage_by_tool">По инструментам</string>
+    <string name="context_usage_pressure_warn">Окно контекста заполняется</string>
+    <string name="context_usage_pressure_danger">Окно контекста почти заполнено</string>
+    <string name="context_usage_largest_tool">Самый большой инструмент: %1$s (%2$s)</string>
+    <string name="context_usage_reclaim">Сжатие сейчас может освободить ≈%1$s токенов</string>
+    <string name="context_usage_insights">Сведения о контексте</string>
+    <string name="context_usage_totals">Итого</string>
+    <string name="context_usage_cache_read">Чтение из кэша</string>
+    <string name="context_usage_subagents_all">Субагенты (все ветки)</string>
+    <string name="context_usage_cost">Стоимость</string>
+    <string name="context_usage_cost_branch">Стоимость (эта ветка)</string>
+    <string name="context_usage_cost_all">Все ветки</string>
+    <string name="context_usage_tools_all">Инструменты</string>
+    <string name="context_usage_used">Использовано</string>
+    <string name="timestamp_just_now">Только что</string>
+    <plurals name="timestamp_minutes_ago">
+        <item quantity="one">%1$d мин. назад</item>
+        <item quantity="few">%1$d мин. назад</item>
+        <item quantity="many">%1$d мин. назад</item>
+        <item quantity="other">%1$d мин. назад</item>
+    </plurals>
+    <plurals name="timestamp_hours_ago">
+        <item quantity="one">%1$d ч назад</item>
+        <item quantity="few">%1$d ч назад</item>
+        <item quantity="many">%1$d ч назад</item>
+        <item quantity="other">%1$d ч назад</item>
+    </plurals>
+    <plurals name="timestamp_days_ago">
+        <item quantity="one">%1$d день назад</item>
+        <item quantity="few">%1$d дня назад</item>
+        <item quantity="many">%1$d дней назад</item>
+        <item quantity="other">%1$d дня назад</item>
+    </plurals>
+    <plurals name="timestamp_weeks_ago">
+        <item quantity="one">%1$d неделю назад</item>
+        <item quantity="few">%1$d недели назад</item>
+        <item quantity="many">%1$d недель назад</item>
+        <item quantity="other">%1$d недели назад</item>
+    </plurals>
+    <string name="timestamp_yesterday_at">Вчера в %1$s</string>
+    <string name="date_group_today">Сегодня</string>
+    <string name="date_group_yesterday">Вчера</string>
+    <string name="date_group_previous_7_days">Предыдущие 7 дней</string>
+    <string name="date_group_previous_30_days">Предыдущие 30 дней</string>
+    <string name="date_group_unknown">Неизвестно</string>
+    <string name="snackbar_dismiss">Закрыть</string>
 </resources>

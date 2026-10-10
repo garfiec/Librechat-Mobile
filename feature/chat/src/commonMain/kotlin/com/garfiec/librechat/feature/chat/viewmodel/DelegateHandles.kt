@@ -3,7 +3,10 @@ package com.garfiec.librechat.feature.chat.viewmodel
 import com.garfiec.librechat.core.model.PendingAction
 import com.garfiec.librechat.core.model.endpoint.KeyState
 import com.garfiec.librechat.core.model.usage.ContextUsage
+import com.garfiec.librechat.core.model.usage.ContextUsageTotals
+import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
+import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 
@@ -230,13 +233,21 @@ class OfficePreviewHandle(root: ChatStateHandle) : DelegateHandle(root) {
 }
 
 // ── ContextProjectionDelegate ─────────────────────────────────────────────
-// Narrow on purpose: this delegate only seeds/clears the context-usage gauge, so it may write
-// nothing on the content slice but `contextUsage`.
+// Narrow on purpose: this delegate only resolves the context-usage gauge, so it may write
+// nothing on the content slice but the reading, its source and the totals derived from it.
 class ContextProjectionWrites internal constructor(state: ChatUiState) {
     var contextUsage: ContextUsage? = state.content.contextUsage
+    var contextUsageSource: ContextUsageSource? = state.content.contextUsageSource
+    var contextUsageTotals: ContextUsageTotals = state.content.contextUsageTotals
     var error: String? = state.error
-    internal fun applyTo(s: ChatUiState) =
-        s.copy(content = s.content.copy(contextUsage = contextUsage), error = error)
+    internal fun applyTo(s: ChatUiState) = s.copy(
+        content = s.content.copy(
+            contextUsage = contextUsage,
+            contextUsageSource = contextUsageSource,
+            contextUsageTotals = contextUsageTotals,
+        ),
+        error = error,
+    )
 }
 
 class ContextProjectionHandle(root: ChatStateHandle) : DelegateHandle(root) {
@@ -252,13 +263,25 @@ class ContextProjectionHandle(root: ChatStateHandle) : DelegateHandle(root) {
 class PendingActionWrites internal constructor(state: ChatUiState) {
     var pendingAction: PendingAction? = state.content.pendingAction
     var isResolvingPendingAction: Boolean = state.content.isResolvingPendingAction
+    var pendingActionResumeFailed: Boolean = state.content.pendingActionResumeFailed
     var askAnswerDrafts: Map<String, AskAnswerDraft> = state.content.askAnswerDrafts
+    var askActiveQuestionId: String? = state.content.askActiveQuestionId
+    var askPanelCollapsed: Boolean = state.content.askPanelCollapsed
+    var toolDecisionDrafts: Map<String, ToolDecisionDraft> = state.content.toolDecisionDrafts
+    var toolActiveCallId: String? = state.content.toolActiveCallId
+    var toolPanelCollapsed: Boolean = state.content.toolPanelCollapsed
     var error: String? = state.error
     internal fun applyTo(s: ChatUiState) = s.copy(
         content = s.content.copy(
             pendingAction = pendingAction,
             isResolvingPendingAction = isResolvingPendingAction,
+            pendingActionResumeFailed = pendingActionResumeFailed,
             askAnswerDrafts = askAnswerDrafts,
+            askActiveQuestionId = askActiveQuestionId,
+            askPanelCollapsed = askPanelCollapsed,
+            toolDecisionDrafts = toolDecisionDrafts,
+            toolActiveCallId = toolActiveCallId,
+            toolPanelCollapsed = toolPanelCollapsed,
         ),
         error = error,
     )
@@ -282,6 +305,149 @@ class SteeringWrites internal constructor(state: ChatUiState) {
 class SteeringHandle(root: ChatStateHandle) : DelegateHandle(root) {
     fun update(block: SteeringWrites.() -> Unit) =
         root.update { SteeringWrites(this).apply(block).applyTo(this) }
+}
+
+// ── UploadIntakeDelegate ──────────────────────────────────────────────────
+// Narrow on purpose: this delegate owns only the upload-gate / routing-sheet / intake-count
+// fields of the composer, so it may not touch the draft text or the queued-edit session.
+class UploadIntakeWrites internal constructor(state: ChatUiState) {
+    var isAwaitingUploadSend: Boolean = state.composer.isAwaitingUploadSend
+    var pendingUploadRouting: PendingUploadRouting? = state.composer.pendingUploadRouting
+    var resolvingPickCount: Int = state.composer.resolvingPickCount
+    var error: String? = state.error
+    internal fun applyTo(s: ChatUiState) = s.copy(
+        composer = s.composer.copy(
+            isAwaitingUploadSend = isAwaitingUploadSend,
+            pendingUploadRouting = pendingUploadRouting,
+            resolvingPickCount = resolvingPickCount,
+        ),
+        error = error,
+    )
+}
+
+class UploadIntakeHandle(root: ChatStateHandle) : DelegateHandle(root) {
+    fun update(block: UploadIntakeWrites.() -> Unit) =
+        root.update { UploadIntakeWrites(this).apply(block).applyTo(this) }
+}
+
+// ── ChatConfigDelegate ────────────────────────────────────────────────────
+// Narrow on purpose: this delegate owns only the gates, the account slice and the share-link
+// bit, so it may not touch the rest of the conversation slice (identity, title, …) that the
+// streaming, send and conversation-action paths write.
+class ChatConfigWrites internal constructor(state: ChatUiState) {
+    var gates: FeatureGatesState = state.gates
+    var account: AccountConfigState = state.account
+    var sharedLinksEnabled: Boolean = state.conversation.sharedLinksEnabled
+    internal fun applyTo(s: ChatUiState) = s.copy(
+        gates = gates,
+        account = account,
+        conversation = s.conversation.copy(sharedLinksEnabled = sharedLinksEnabled),
+    )
+}
+
+class ChatConfigHandle(root: ChatStateHandle) : DelegateHandle(root) {
+    fun update(block: ChatConfigWrites.() -> Unit) =
+        root.update { ChatConfigWrites(this).apply(block).applyTo(this) }
+}
+
+// ── ConversationLoadDelegate ──────────────────────────────────────────────
+// Owns the message slice wholesale (every Room emission rebuilds messages/displayMessages and
+// the load flags live there too). On the composer it may only put text and quote chips back,
+// and on the conversation slice only the title: identity, temp-chat and navigation stay with
+// the ViewModel's open/reset transactions.
+class ConversationLoadWrites internal constructor(state: ChatUiState) {
+    var content: MessagesState = state.content
+    var inputText: String = state.composer.inputText
+    var pendingQuotes: List<String> = state.composer.pendingQuotes
+    var conversationTitle: String? = state.conversation.conversationTitle
+    var error: String? = state.error
+    internal fun applyTo(s: ChatUiState) = s.copy(
+        content = content,
+        composer = s.composer.copy(inputText = inputText, pendingQuotes = pendingQuotes),
+        conversation = s.conversation.copy(conversationTitle = conversationTitle),
+        error = error,
+    )
+}
+
+class ConversationLoadHandle(root: ChatStateHandle) : DelegateHandle(root) {
+    /** Read-only observation of the full state (the active-branch `combine` input). */
+    val stateFlow: StateFlow<ChatUiState> get() = root.stateFlow
+    fun update(block: ConversationLoadWrites.() -> Unit) =
+        root.update { ConversationLoadWrites(this).apply(block).applyTo(this) }
+}
+
+// ── SendReadinessDelegate ─────────────────────────────────────────────────
+// Reads only: the gate decides whether a send may go and surfaces the selector through the
+// ViewModel, so it has no writer at all.
+class SendReadinessHandle(root: ChatStateHandle) : DelegateHandle(root) {
+    /** Read-only observation of the full state (the readiness await). */
+    val stateFlow: StateFlow<ChatUiState> get() = root.stateFlow
+}
+
+// ── SendDispatchDelegate ──────────────────────────────────────────────────
+// Owns the message slice for the optimistic insert that starts a turn (the same whole-slice
+// write StreamingManagerDelegate makes), and on the composer only what a send consumes: the
+// text, the quote chips and a staged routing batch. The queued-edit session belongs to
+// QueueOrchestrationDelegate; the send-block reason stays with the ViewModel.
+class SendDispatchWrites internal constructor(state: ChatUiState) {
+    var content: MessagesState = state.content
+    var inputText: String = state.composer.inputText
+    var pendingQuotes: List<String> = state.composer.pendingQuotes
+    var pendingUploadRouting: PendingUploadRouting? = state.composer.pendingUploadRouting
+    var error: String? = state.error
+    internal fun applyTo(s: ChatUiState) = s.copy(
+        content = content,
+        composer = s.composer.copy(
+            inputText = inputText,
+            pendingQuotes = pendingQuotes,
+            pendingUploadRouting = pendingUploadRouting,
+        ),
+        error = error,
+    )
+}
+
+class SendDispatchHandle(root: ChatStateHandle) : DelegateHandle(root) {
+    /** Read-only observation of the full state (the reply-settled await before a drain). */
+    val stateFlow: StateFlow<ChatUiState> get() = root.stateFlow
+    fun update(block: SendDispatchWrites.() -> Unit) =
+        root.update { SendDispatchWrites(this).apply(block).applyTo(this) }
+}
+
+// ── QueueOrchestrationDelegate ────────────────────────────────────────────
+// Writes nothing on the queue slice: every row change goes through MessageQueueDelegate and
+// QueuedTurnDelegate. What it owns is the composer swap a queued edit makes — the text, a staged
+// batch, the edit session — and the five selection fields that swap carries, so `applyComposer`
+// stays one emission.
+class QueueOrchestrationWrites internal constructor(state: ChatUiState) {
+    var inputText: String = state.composer.inputText
+    var pendingUploadRouting: PendingUploadRouting? = state.composer.pendingUploadRouting
+    var editingQueuedItem: QueuedEditSession? = state.composer.editingQueuedItem
+    var selectedEndpoint: String = state.selection.selectedEndpoint
+    var selectedModel: String? = state.selection.selectedModel
+    var enabledTools: Set<String> = state.selection.enabledTools
+    var selectedMcpServerNames: Set<String> = state.selection.selectedMcpServerNames
+    var modelParameters: ModelParameters = state.selection.modelParameters
+    var error: String? = state.error
+    internal fun applyTo(s: ChatUiState) = s.copy(
+        composer = s.composer.copy(
+            inputText = inputText,
+            pendingUploadRouting = pendingUploadRouting,
+            editingQueuedItem = editingQueuedItem,
+        ),
+        selection = s.selection.copy(
+            selectedEndpoint = selectedEndpoint,
+            selectedModel = selectedModel,
+            enabledTools = enabledTools,
+            selectedMcpServerNames = selectedMcpServerNames,
+            modelParameters = modelParameters,
+        ),
+        error = error,
+    )
+}
+
+class QueueOrchestrationHandle(root: ChatStateHandle) : DelegateHandle(root) {
+    fun update(block: QueueOrchestrationWrites.() -> Unit) =
+        root.update { QueueOrchestrationWrites(this).apply(block).applyTo(this) }
 }
 
 // ── Platform voice input (VoiceInputDelegate / IosVoiceInput) ─────────────

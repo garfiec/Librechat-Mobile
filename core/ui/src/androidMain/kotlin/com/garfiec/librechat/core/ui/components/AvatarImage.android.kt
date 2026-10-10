@@ -15,10 +15,10 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun AvatarImage(
     imageUrl: String?,
+    @DrawableRes fallbackIconRes: Int?,
     modifier: Modifier = Modifier,
     size: Dp = 32.dp,
     fallbackText: String = "?",
-    @DrawableRes fallbackIconRes: Int?,
     fallbackBackgroundColor: Color? = null,
     showPersonIcon: Boolean = false,
     tintIcon: Boolean = false,

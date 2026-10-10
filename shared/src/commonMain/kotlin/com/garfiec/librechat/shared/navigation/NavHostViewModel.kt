@@ -9,11 +9,13 @@ import com.garfiec.librechat.core.common.identity.AccountTransition
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.accountTransitions
 import com.garfiec.librechat.core.common.network.ConnectivityObserver
+import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.datastore.AccountEntry
 import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.AuthRepository
+import com.garfiec.librechat.core.data.repository.BackgroundTaskRepository
 import com.garfiec.librechat.core.data.repository.BannerRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.EndpointTokenRepository
@@ -22,6 +24,7 @@ import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.data.repository.ToolFavoritesRepository
 import com.garfiec.librechat.core.data.util.SessionTaskRunner
 import com.garfiec.librechat.core.model.Banner
+import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 import com.garfiec.librechat.core.network.client.AccountReadyGate
 import com.garfiec.librechat.core.network.client.ServerUrlProvider
 import com.garfiec.librechat.core.network.client.SessionEndReason
@@ -46,6 +49,7 @@ import kotlinx.coroutines.launch
  * .feature.conversations.drawer.DrawerViewModel] (extracted so `:shared` is nav glue, not a stealth
  * feature module); this VM keeps the account *list* the drawer footer renders, but not the drawer data.
  */
+@Suppress("LongParameterList") // debt: constructor dependencies
 class NavHostViewModel(
     private val authRepository: AuthRepository,
     bannerRepository: BannerRepository,
@@ -59,6 +63,7 @@ class NavHostViewModel(
     private val endpointTokenRepository: EndpointTokenRepository,
     private val toolFavoritesRepository: ToolFavoritesRepository,
     private val fileRepository: FileRepository,
+    private val backgroundTaskRepository: BackgroundTaskRepository,
     private val resumePinStore: ResumePinStore,
     private val activeAccountProvider: ActiveAccountProvider,
     private val accountRoster: AccountRoster,
@@ -121,17 +126,22 @@ class NavHostViewModel(
                         accountId = entry.accountId,
                         displayLabel = entry.displayLabel,
                         serverHost = entry.serverUrl.serverHostLabel(),
-                        avatarUrl = entry.avatarUrl,
+                        // The server hands back a RELATIVE `/images/…` path, which Coil has
+                        // no fetcher for — it fails before issuing a request, and the slot
+                        // draws nothing. Resolved here rather than at seed time so the
+                        // persisted entry keeps what the server actually sent, and a
+                        // re-pointed server URL heals on the next read.
+                        avatarUrl = resolveAvatarUrl(entry.avatarUrl, entry.serverUrl),
                         isActive = entry.accountId == activeId,
                     )
                 }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Seeded `null` (= "not resolved yet") and warmed up by the Eagerly-started collector. The
-    // previous synchronous `firstBlocking` read blocked the Main thread Koin instantiates the VM
-    // on. The nullable seed lets TabletLayout distinguish "unknown" from "closed" so it can snap
-    // to the persisted state on first resolution instead of animating false -> true (a visible
-    // sidebar jump on every tablet cold start).
+    // Seeded `null` (= "not resolved yet") and warmed up by the Eagerly-started collector, never a
+    // synchronous read — Koin instantiates the VM on the Main thread. The nullable seed lets
+    // TabletLayout distinguish "unknown" from "closed" so it can snap to the persisted state on
+    // first resolution instead of animating false -> true (a visible sidebar jump on every tablet
+    // cold start).
     val tabletSidebarOpen: StateFlow<Boolean?> = settingsDataStore.tabletSidebarOpen
         .map<Boolean, Boolean?> { it }
         .stateIn(
@@ -158,6 +168,7 @@ class NavHostViewModel(
     }
 
     init {
+        @Suppress("TooGenericExceptionCaught") // a failed startup check must not crash the root ViewModel
         viewModelScope.launch {
             try {
                 // Wait for the server URL's async warm-up before any startup network work, so a
@@ -188,6 +199,8 @@ class NavHostViewModel(
                     // connectivity returns instead of stranding them until a manual relaunch.
                     if (!accountResolved) retryAccountRestoreOnReconnect()
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Logger.w(e) { "Failed to check auth state on init" }
             }
@@ -226,6 +239,8 @@ class NavHostViewModel(
                 // being left, and carrying its 404 over suppresses the queued-attachment TTL touch
                 // on the incoming one, whose files the reaper then collects out from under a send.
                 fileRepository.clear()
+                // Same again for the background-tasks route: its latched 404 is the old server's.
+                backgroundTaskRepository.clear()
                 // A resume pin names another account's run; keeping it would replay that
                 // account's agent/tool config into a resume on this one.
                 resumePinStore.clear()
@@ -287,11 +302,9 @@ class NavHostViewModel(
      * cheap and safe to call repeatedly.
      */
     private suspend fun tryRestoreAccount(): Boolean =
-        try {
+        suspendRunCatching {
             authRepository.restoreAccountIfNeeded()
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
+        }.getOrElse { e ->
             Logger.w(e) { "Account restore failed on cold start; will retry on reconnect" }
             false
         }

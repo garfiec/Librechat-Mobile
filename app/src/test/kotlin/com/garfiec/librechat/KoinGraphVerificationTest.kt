@@ -13,8 +13,10 @@ import com.garfiec.librechat.core.common.network.RequestActivityTracker
 import com.garfiec.librechat.core.common.power.PowerStateObserver
 import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.datastore.ConfigCacheDataStore
+import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.data.datastore.SsoRiskDataStore
 import com.garfiec.librechat.core.data.datastore.ThemeDataStore
 import com.garfiec.librechat.core.data.prefetch.AttachmentWarmer
 import com.garfiec.librechat.core.data.prefetch.PrefetchController
@@ -24,6 +26,7 @@ import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.AgentToolsRepository
 import com.garfiec.librechat.core.data.repository.ApiKeyRepository
 import com.garfiec.librechat.core.data.repository.AuthRepository
+import com.garfiec.librechat.core.data.repository.BackgroundTaskRepository
 import com.garfiec.librechat.core.data.repository.BalanceRepository
 import com.garfiec.librechat.core.data.repository.BannerRepository
 import com.garfiec.librechat.core.data.repository.ChatRepository
@@ -41,16 +44,22 @@ import com.garfiec.librechat.core.data.repository.PermissionsRepository
 import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.ProjectRepository
 import com.garfiec.librechat.core.data.repository.PromptRepository
+import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
 import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.data.repository.RoleRepository
+import com.garfiec.librechat.core.data.repository.ScheduleRepository
 import com.garfiec.librechat.core.data.repository.SearchRepository
 import com.garfiec.librechat.core.data.repository.ServerRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
 import com.garfiec.librechat.core.data.repository.SkillsRepository
 import com.garfiec.librechat.core.data.repository.SpeechRepository
+import com.garfiec.librechat.core.data.repository.SubagentRepository
 import com.garfiec.librechat.core.data.repository.TagRepository
 import com.garfiec.librechat.core.data.repository.ToolFavoritesRepository
+import com.garfiec.librechat.core.data.repository.TraceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
+import com.garfiec.librechat.core.data.update.AppInstallSource
+import com.garfiec.librechat.core.data.update.AppUpdateRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.data.util.SessionTask
 import com.garfiec.librechat.core.data.util.SessionTaskRunner
@@ -76,18 +85,20 @@ import com.garfiec.librechat.core.network.api.PermissionsApi
 import com.garfiec.librechat.core.network.api.PresetsApi
 import com.garfiec.librechat.core.network.api.ProjectsApi
 import com.garfiec.librechat.core.network.api.PromptsApi
+import com.garfiec.librechat.core.network.api.QueuedTurnsApi
+import com.garfiec.librechat.core.network.api.SchedulesApi
 import com.garfiec.librechat.core.network.api.ShareApi
 import com.garfiec.librechat.core.network.api.SkillsApi
 import com.garfiec.librechat.core.network.api.SpeechApi
+import com.garfiec.librechat.core.network.api.SubagentsApi
 import com.garfiec.librechat.core.network.api.TagsApi
+import com.garfiec.librechat.core.network.api.TracesApi
 import com.garfiec.librechat.core.network.api.UserApi
 import com.garfiec.librechat.core.network.client.AccountReadyGate
-import com.garfiec.librechat.core.network.client.SecureTokenStorage
 import com.garfiec.librechat.core.network.client.ServerUrlProvider
 import com.garfiec.librechat.core.network.client.SwitchGate
 import com.garfiec.librechat.core.network.client.TokenManager
 import com.garfiec.librechat.core.network.sse.SseClient
-import com.garfiec.librechat.feature.auth.oauth.OAuthLauncher
 import com.garfiec.librechat.feature.conversations.export.ConversationExporter
 import com.garfiec.librechat.feature.files.platform.FileReader
 import com.garfiec.librechat.shared.di.sharedKoinModules
@@ -115,6 +126,7 @@ class KoinGraphVerificationTest {
      * binds the Android engine). The iOS actuals and the iOS-only `LibreChatSDK`
      * binding are covered by `IosKoinGraphTest` (`:shared:iosSimulatorArm64Test`).
      */
+    @Suppress("LongMethod") // debt: 122 lines
     @OptIn(KoinExperimentalAPI::class)
     @Test
     fun verifyFullKoinGraph() {
@@ -138,7 +150,6 @@ class KoinGraphVerificationTest {
             DiagnosticLogRepository::class,
             // core:network provides
             TokenManager::class,
-            SecureTokenStorage::class,
             ServerUrlProvider::class,
             AccountReadyGate::class,
             SwitchGate::class,
@@ -164,10 +175,14 @@ class KoinGraphVerificationTest {
             PresetsApi::class,
             ProjectsApi::class,
             PromptsApi::class,
+            QueuedTurnsApi::class,
+            SchedulesApi::class,
             ShareApi::class,
             SkillsApi::class,
             SpeechApi::class,
+            SubagentsApi::class,
             TagsApi::class,
+            TracesApi::class,
             UserApi::class,
             // core:data provides
             ConfigCacheDataStore::class,
@@ -175,7 +190,9 @@ class KoinGraphVerificationTest {
             ServerRepository::class,
             AccountRoster::class,
             AccountSwitcher::class,
+            DateTimePrefsStore::class,
             SettingsDataStore::class,
+            SsoRiskDataStore::class,
             ThemeDataStore::class,
             AgentRepository::class,
             AgentToolsRepository::class,
@@ -183,6 +200,7 @@ class KoinGraphVerificationTest {
             AuthRepository::class,
             BalanceRepository::class,
             BannerRepository::class,
+            BackgroundTaskRepository::class,
             ChatRepository::class,
             ConfigRepository::class,
             ConversationRepository::class,
@@ -199,13 +217,17 @@ class KoinGraphVerificationTest {
             ResumePinStore::class,
             ProjectRepository::class,
             PromptRepository::class,
+            QueuedTurnRepository::class,
             RoleRepository::class,
+            ScheduleRepository::class,
             SearchRepository::class,
             ShareRepository::class,
             SkillsRepository::class,
+            SubagentRepository::class,
             SpeechRepository::class,
             TagRepository::class,
             ToolFavoritesRepository::class,
+            TraceRepository::class,
             UserRepository::class,
             PermissionGate::class,
             SessionTask::class,
@@ -213,8 +235,8 @@ class KoinGraphVerificationTest {
             PrefetchStatusReporter::class,
             PrefetchController::class,
             SessionTaskRunner::class,
-            // feature:auth platform provides
-            OAuthLauncher::class,
+            AppUpdateRepository::class,
+            AppInstallSource::class,
             // feature:files platform provides
             FileReader::class,
             // feature:conversations provides (consumed cross-module by shared NavHostViewModel)

@@ -34,10 +34,6 @@ class VerifyEmailViewModel(
 
     private var cooldownJob: Job? = null
 
-    fun setEmail(email: String) {
-        _uiState.value = _uiState.value.copy(email = email)
-    }
-
     fun verifyEmail(token: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)

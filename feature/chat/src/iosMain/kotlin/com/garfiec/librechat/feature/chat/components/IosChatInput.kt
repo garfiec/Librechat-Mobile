@@ -1,12 +1,17 @@
+@file:Suppress("ForbiddenImport") // the composer styles its own field (ChatInputDefaults) for both interface styles
+
 package com.garfiec.librechat.feature.chat.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -16,7 +21,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -25,14 +29,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
-import com.garfiec.librechat.core.model.usage.ContextUsage
-import com.garfiec.librechat.core.model.usage.TokenUsage
+import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_attach_file
 import com.garfiec.librechat.feature.chat.resources.cd_paste_image
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
+import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import com.garfiec.librechat.feature.chat.viewmodel.DuringRunSendTarget
 import com.garfiec.librechat.feature.chat.viewmodel.PendingSteerChip
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
@@ -42,7 +46,7 @@ import org.jetbrains.compose.resources.stringResource
 fun IosChatInput(
     inputText: String,
     isStreaming: Boolean,
-    onInputChanged: (String) -> Unit,
+    onInputChange: (String) -> Unit,
     onSend: () -> Unit,
     onStop: () -> Unit,
     /**
@@ -56,7 +60,7 @@ fun IosChatInput(
     onDuringRunSend: () -> Unit = {},
     onSteer: () -> Unit = {},
     canSteer: Boolean = false,
-    duringRunAction: DuringRunAction = DuringRunAction.QUEUE,
+    duringRunAction: DuringRunAction = DuringRunAction.STEER,
     duringRunSendTarget: DuringRunSendTarget = DuringRunSendTarget.QUEUE,
     pendingSteers: List<PendingSteerChip> = emptyList(),
     onCancelSteer: (steerId: String) -> Unit = {},
@@ -92,12 +96,16 @@ fun IosChatInput(
     hasClipboardImage: Boolean = false,
     onPasteImage: (() -> Unit)? = null,
     gates: ChatInputGates = ChatInputGates(),
-    contextUsage: ContextUsage? = null,
-    tokenUsage: TokenUsage? = null,
+    contextGauge: ContextGaugeDetails? = null,
     contextUsageEnabled: Boolean = false,
+    onCompact: (() -> Unit)? = null,
+    /** "Not now" on a compact suggestion. */
+    onSnoozeCompact: () -> Unit = {},
+    /** A compact suggestion is due under the options-sheet placement: hint at it on the + button. */
+    compactSuggested: Boolean = false,
     contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
     promptSuggestions: List<PromptMentionDisplayData> = emptyList(),
-    onSlashCommandSelected: (PromptMentionDisplayData) -> Unit = {},
+    onSlashCommandSelect: (PromptMentionDisplayData) -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -123,9 +131,10 @@ fun IosChatInput(
         isEditingQueued = isEditingQueued,
         isAwaitingUploadSend = isAwaitingUploadSend,
         arePicksUnsettled = arePicksUnsettled,
-        contextUsage = contextUsage,
-        tokenUsage = tokenUsage,
+        contextGauge = contextGauge,
         contextUsageEnabled = contextUsageEnabled,
+        onCompact = onCompact,
+        onSnoozeCompact = onSnoozeCompact,
         contextBarPlacement = contextBarPlacement,
         promptSuggestions = promptSuggestions,
     )
@@ -134,7 +143,7 @@ fun IosChatInput(
         state = state,
         onSend = onSend,
         onStop = onStop,
-        onSelectPrompt = onSlashCommandSelected,
+        onSelectPrompt = onSlashCommandSelect,
         onToggleTool = onToggleTool,
         onQueue = onQueue,
         onDuringRunSend = onDuringRunSend,
@@ -156,14 +165,27 @@ fun IosChatInput(
         modifier = modifier,
         leadingButtons = {
             // "+" button to open tools bottom sheet (matches Android behavior)
-            FilledTonalIconButton(
-                onClick = onOpenTools,
-                modifier = Modifier.size(48.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = stringResource(Res.string.cd_attach_file),
-                )
+            Box {
+                FilledTonalIconButton(
+                    onClick = onOpenTools,
+                    colors = ChatInputDefaults.toolsButtonColors(),
+                    modifier = Modifier.size(48.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = stringResource(Res.string.cd_attach_file),
+                    )
+                }
+                // Compact suggestion under the options-sheet placement (same dot as Android).
+                if (compactSuggested) {
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .align(Alignment.BottomEnd)
+                            .offset(x = (-2).dp, y = (-2).dp)
+                            .background(color = MaterialTheme.colorScheme.tertiary, shape = CircleShape),
+                    )
+                }
             }
 
             // Paste image button (shown when clipboard has image content)
@@ -190,9 +212,10 @@ fun IosChatInput(
             Box(
                 modifier = Modifier.weight(1f),
             ) {
+                // The composer draws its own field (ChatInputDefaults), glass included; not the adaptive one.
                 OutlinedTextField(
                     value = inputText,
-                    onValueChange = onInputChanged,
+                    onValueChange = onInputChange,
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 48.dp, max = 160.dp),
@@ -241,11 +264,10 @@ fun IosChatInput(
         },
         bottomContent = {
             // Snackbar for file attachment toast
-            SnackbarHost(
+            AdaptiveSnackbarHost(
                 hostState = snackbarHostState,
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         },
     )
-
 }

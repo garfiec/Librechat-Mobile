@@ -8,19 +8,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import org.jetbrains.compose.resources.stringResource
 
 /**
  * Composable that parses `{{variable_name}}` patterns from [promptText],
- * renders an [OutlinedTextField] per variable, and shows a preview of the
+ * renders an [AdaptiveOutlinedTextField] per variable, and shows a preview of the
  * prompt with variables substituted.
  */
 @Composable
@@ -42,7 +42,7 @@ fun PromptVariablesSection(
         Spacer(modifier = Modifier.height(8.dp))
 
         variables.forEach { varName ->
-            OutlinedTextField(
+            AdaptiveOutlinedTextField(
                 value = variableValues[varName] ?: "",
                 onValueChange = { onVariableChange(varName, it) },
                 label = { Text(varName) },

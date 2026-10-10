@@ -46,9 +46,11 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.network.ConnectivityObserver
+import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.ThemeDataStore
 import com.garfiec.librechat.core.data.datastore.ThemeMode
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
 import com.garfiec.librechat.feature.chat.ShareIntentConsumer
 import com.garfiec.librechat.feature.chat.SharedContent
@@ -68,9 +70,11 @@ class MainActivity : ComponentActivity() {
     private val connectivityObserver: ConnectivityObserver by inject()
     private val themeDataStore: ThemeDataStore by inject()
     private val settingsDataStore: SettingsDataStore by inject()
+    private val dateTimePrefsStore: DateTimePrefsStore by inject()
 
     private var deepLinkUri by mutableStateOf<Uri?>(null)
 
+    @Suppress("LongMethod") // debt: 101 lines
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class, ExperimentalComposeUiApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -116,12 +120,17 @@ class MainActivity : ComponentActivity() {
             val useDynamicColor by themeDataStore.useDynamicColor.collectAsStateWithLifecycle(
                 initialValue = themeDataStore.initialUseDynamicColor,
             )
+            val storedUiStyle by themeDataStore.uiStyle.collectAsStateWithLifecycle(
+                initialValue = themeDataStore.initialUiStyle,
+            )
             // Gate on the language warm-up too so a persisted non-system language is applied
             // before the first frame (no flash of the system locale before switching).
             val localeReady by settingsDataStore.isReady.collectAsStateWithLifecycle()
             val selectedLanguage by settingsDataStore.selectedLanguage.collectAsStateWithLifecycle(
                 initialValue = settingsDataStore.initialSelectedLanguage,
             )
+            // And on the date/time warm-up, so a non-default format is in place for the first timestamp.
+            val dateTimeReady by dateTimePrefsStore.isReady.collectAsStateWithLifecycle()
             // The DEFAULT_LANGUAGE sentinel ("system") maps to no override → keep the device locale.
             val appLocale = selectedLanguage.takeIf { it != SettingsDataStore.DEFAULT_LANGUAGE }
             val darkTheme = when (themeMode) {
@@ -140,15 +149,17 @@ class MainActivity : ComponentActivity() {
                 insetsController.isAppearanceLightNavigationBars = !darkTheme
             }
 
-            if (themeReady && localeReady) {
+            if (themeReady && localeReady && dateTimeReady) {
                 LibreChatTheme(
                     darkTheme = darkTheme,
                     accentColor = Color(accentColorArgb),
                     useDynamicColor = useDynamicColor,
+                    uiStyle = storedUiStyle,
                 ) {
                     Surface(
                         modifier = Modifier
                             .fillMaxSize()
+                            .clearFocusOnTap()
                             .semantics { testTagsAsResourceId = true },
                     ) {
                         Column(modifier = Modifier.fillMaxSize()) {

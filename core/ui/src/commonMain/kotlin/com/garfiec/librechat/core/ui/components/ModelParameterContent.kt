@@ -7,9 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -50,6 +48,7 @@ data class ModelParameters(
      * Reads a parameter value by its registry key, bridging between the typed fields
      * in ModelParameters and the dynamic string-based system.
      */
+    @Suppress("CyclomaticComplexMethod") // debt: complexity 26
     fun getValueForKey(key: String): String = when (key) {
         "chatGptLabel", "modelLabel" -> customName
         "promptPrefix", "system" -> customInstructions
@@ -77,6 +76,7 @@ data class ModelParameters(
      * Returns a copy of ModelParameters with the given key updated to the new value.
      * Maps dynamic registry keys back to the typed fields.
      */
+    @Suppress("CyclomaticComplexMethod") // debt: complexity 27
     fun withUpdatedKey(key: String, value: String): ModelParameters = when (key) {
         "chatGptLabel", "modelLabel" -> copy(customName = value)
         "promptPrefix", "system" -> copy(customInstructions = value)
@@ -144,8 +144,13 @@ fun ModelParameterContent(
     selectedEndpoint: String = "",
     dynamicParameterDefinitions: List<ParameterDefinition>? = null,
     extendedEffortSupported: Boolean = false,
+    /** See [EndpointParameterRegistry.getDefinitions]; offers thinkingDisplay `updates` (v0.8.8+). */
+    thinkingDisplayUpdatesSupported: Boolean = false,
     selectedProvider: String? = null,
     selectedModel: String? = null,
+    /** Resolved `/api/config.endpointsDropParamsMap` entry: controls for parameters this server
+     *  strips are not rendered, so the user cannot set something that is discarded in silence. */
+    dropParams: List<String> = emptyList(),
     onSaveAsPreset: () -> Unit = {},
     showHeader: Boolean = true,
     showSaveAsPreset: Boolean = true,
@@ -159,8 +164,10 @@ fun ModelParameterContent(
         selectedEndpoint,
         dynamicParameterDefinitions,
         extendedEffortSupported,
+        thinkingDisplayUpdatesSupported,
         selectedProvider,
         selectedModel,
+        dropParams,
     ) {
         if (!dynamicParameterDefinitions.isNullOrEmpty()) {
             dynamicParameterDefinitions
@@ -170,6 +177,29 @@ fun ModelParameterContent(
                 extendedEffortSupported = extendedEffortSupported,
                 provider = selectedProvider,
                 model = selectedModel,
+                dropParams = dropParams,
+                thinkingDisplayUpdatesSupported = thinkingDisplayUpdatesSupported,
+            )
+        }
+    }
+
+    // Which out-of-list values are not sent, so the slider can say "Unset" for those alone. Unknown
+    // for caller-supplied definitions, which then name every out-of-list value as itself.
+    val modelRemoved = remember(
+        selectedEndpoint,
+        dynamicParameterDefinitions,
+        selectedProvider,
+        selectedModel,
+        dropParams,
+    ) {
+        if (!dynamicParameterDefinitions.isNullOrEmpty()) {
+            emptyMap()
+        } else {
+            EndpointParameterRegistry.modelRemovedOptions(
+                endpoint = selectedEndpoint,
+                provider = selectedProvider,
+                model = selectedModel,
+                dropParams = dropParams,
             )
         }
     }
@@ -213,7 +243,7 @@ fun ModelParameterContent(
                         placeholder = definition.placeholder
                             ?: definition.default?.ifEmpty { "Default" }
                             ?: "Default",
-                        description = definition.description,
+                        description = definition.localizedDescription(),
                     )
                 }
 
@@ -226,7 +256,7 @@ fun ModelParameterContent(
                         },
                         placeholder = definition.placeholder
                             ?: definition.default?.ifEmpty { null },
-                        description = definition.description,
+                        description = definition.localizedDescription(),
                     )
                 }
 
@@ -245,7 +275,7 @@ fun ModelParameterContent(
                         min = min,
                         max = max,
                         step = step,
-                        description = definition.description,
+                        description = definition.localizedDescription(),
                     )
                 }
 
@@ -259,7 +289,7 @@ fun ModelParameterContent(
                         onCheckedChange = { newChecked ->
                             onParametersChange(parameters.withUpdatedKey(definition.key, newChecked.toString()))
                         },
-                        description = definition.description,
+                        description = definition.localizedDescription(),
                     )
                 }
 
@@ -277,7 +307,7 @@ fun ModelParameterContent(
                         onValueChange = { newValue ->
                             onParametersChange(parameters.withUpdatedKey(definition.key, newValue))
                         },
-                        description = definition.description,
+                        description = definition.localizedDescription(),
                         optionLabels = definition.optionLabels,
                     )
                 }
@@ -296,8 +326,9 @@ fun ModelParameterContent(
                         onValueChange = { newValue ->
                             onParametersChange(parameters.withUpdatedKey(definition.key, newValue))
                         },
-                        description = definition.description,
+                        description = definition.localizedDescription(),
                         optionLabels = definition.optionLabels,
+                        removedValues = modelRemoved[definition.key].orEmpty(),
                     )
                 }
 
@@ -316,7 +347,7 @@ fun ModelParameterContent(
                                 parameters.withUpdatedKey(definition.key, newTags.joinToString("\n")),
                             )
                         },
-                        description = definition.description,
+                        description = definition.localizedDescription(),
                         maxTags = definition.max?.toInt() ?: 4,
                     )
                 }
@@ -338,7 +369,7 @@ fun ModelParameterContent(
         // Reset visible definitions to their defaults; dynamicValues for keys
         // not in the current schema are preserved (other endpoints' state stays
         // intact when the user is just resetting the active endpoint's view).
-        OutlinedButton(
+        AdaptiveOutlinedButton(
             onClick = {
                 val reset = definitions.fold(parameters) { acc, def -> acc.resetKeyToDefault(def) }
                 onParametersChange(reset)
@@ -350,7 +381,7 @@ fun ModelParameterContent(
 
         // Save As Preset
         if (showSaveAsPreset) {
-            FilledTonalButton(
+            AdaptiveFilledTonalButton(
                 onClick = onSaveAsPreset,
                 modifier = Modifier.fillMaxWidth(),
             ) {

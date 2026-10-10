@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.network.di
 
+import com.garfiec.librechat.core.common.AppInfo
 import com.garfiec.librechat.core.common.di.KoinQualifiers
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.network.api.AgentToolsApi
@@ -15,6 +16,7 @@ import com.garfiec.librechat.core.network.api.EndpointTokenApi
 import com.garfiec.librechat.core.network.api.FavoritesApi
 import com.garfiec.librechat.core.network.api.FilesApi
 import com.garfiec.librechat.core.network.api.FilesExtApi
+import com.garfiec.librechat.core.network.api.GitHubReleasesApi
 import com.garfiec.librechat.core.network.api.KeysApi
 import com.garfiec.librechat.core.network.api.McpApi
 import com.garfiec.librechat.core.network.api.MemoriesApi
@@ -23,14 +25,19 @@ import com.garfiec.librechat.core.network.api.PermissionsApi
 import com.garfiec.librechat.core.network.api.PresetsApi
 import com.garfiec.librechat.core.network.api.ProjectsApi
 import com.garfiec.librechat.core.network.api.PromptsApi
+import com.garfiec.librechat.core.network.api.QueuedTurnsApi
 import com.garfiec.librechat.core.network.api.RolesApi
+import com.garfiec.librechat.core.network.api.SchedulesApi
 import com.garfiec.librechat.core.network.api.ShareApi
 import com.garfiec.librechat.core.network.api.SkillsApi
 import com.garfiec.librechat.core.network.api.SpeechApi
+import com.garfiec.librechat.core.network.api.SubagentsApi
 import com.garfiec.librechat.core.network.api.TagsApi
+import com.garfiec.librechat.core.network.api.TracesApi
 import com.garfiec.librechat.core.network.api.UserApi
 import com.garfiec.librechat.core.network.client.AuthInterceptorPlugin
 import com.garfiec.librechat.core.network.client.GatewayDetectionPlugin
+import com.garfiec.librechat.core.network.client.ImageCookieCredentials
 import com.garfiec.librechat.core.network.client.LibreChatHttpClient
 import com.garfiec.librechat.core.network.client.ServerHeadersPlugin
 import com.garfiec.librechat.core.network.client.ServerHeadersProvider
@@ -47,6 +54,7 @@ import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import io.ktor.http.takeFrom
 import io.ktor.serialization.kotlinx.json.json
@@ -93,6 +101,7 @@ val networkModule = module {
             tokenManager = get(),
             serverUrlProvider = get(),
             redactor = get(),
+            imageCookieCredentials = get<ImageCookieCredentials>(),
             accountReadyGate = getOrNull(),
             switchGate = get(),
             serverHeadersProvider = get(),
@@ -172,6 +181,23 @@ val networkModule = module {
         }
     }
 
+    // Third-party hosts only (the GitHub update check). Deliberately carries none of the LibreChat
+    // plugins: the server's tokens, gateway headers and browser UA must never leave its own host.
+    single(KoinQualifiers.External) {
+        val appInfo = get<AppInfo>()
+        HttpClient(get<HttpClientEngineFactory<*>>()) {
+            expectSuccess = true
+            install(ContentNegotiation) { json(get<Json>()) }
+            install(HttpTimeout) {
+                requestTimeoutMillis = 15_000
+                connectTimeoutMillis = 10_000
+            }
+            defaultRequest {
+                headers.append(HttpHeaders.UserAgent, "Switchboard/${appInfo.versionName}")
+            }
+        }
+    }
+
     // SSE — SseHttpTransport is provided by networkPlatformModule because its
     // constructor signature differs between Android (takes the Ktor streaming
     // HttpClient) and iOS (takes NWConnection dependencies in Phase 2).
@@ -198,6 +224,7 @@ val networkModule = module {
     singleOf(::FavoritesApi)
     singleOf(::FilesApi)
     singleOf(::FilesExtApi)
+    single { GitHubReleasesApi(get(KoinQualifiers.External)) }
     singleOf(::KeysApi)
     singleOf(::McpApi)
     singleOf(::MemoriesApi)
@@ -206,10 +233,14 @@ val networkModule = module {
     singleOf(::PresetsApi)
     singleOf(::ProjectsApi)
     singleOf(::PromptsApi)
+    singleOf(::QueuedTurnsApi)
     singleOf(::RolesApi)
+    singleOf(::SchedulesApi)
     singleOf(::ShareApi)
     singleOf(::SkillsApi)
     singleOf(::SpeechApi)
+    singleOf(::SubagentsApi)
     singleOf(::TagsApi)
+    singleOf(::TracesApi)
     singleOf(::UserApi)
 }

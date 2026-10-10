@@ -12,10 +12,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -25,11 +23,12 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
 import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
-import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -39,14 +38,13 @@ internal fun ChatSettingsSection(
     fontSize: ChatFontSize,
     autoScrollEnabled: Boolean,
     showThinkingBlocks: Boolean,
-    contextBarPlacement: ContextBarPlacement,
+    contextUsageSummary: String,
     duringRunAction: DuringRunAction,
     uploadRoutingMode: UploadRoutingMode,
     showImageDescriptions: Boolean,
+    showSiteIcons: Boolean,
     dismissKeyboardOnSend: Boolean,
-    chatLayoutStyle: String,
-    showAvatars: Boolean,
-    showBubbles: Boolean,
+    chatLayoutSummary: String,
     latexRenderer: LatexRenderer,
     starredModelsDisplay: StarredModelsDisplay,
     chatHeaderContent: ChatHeaderContent,
@@ -54,10 +52,11 @@ internal fun ChatSettingsSection(
     onAutoScrollChange: (Boolean) -> Unit,
     onShowThinkingChange: (Boolean) -> Unit,
     onShowImageDescriptionsChange: (Boolean) -> Unit,
+    onShowSiteIconsChange: (Boolean) -> Unit,
     onDismissKeyboardOnSendChange: (Boolean) -> Unit,
-    onShowAvatarsChange: (Boolean) -> Unit,
-    onShowBubblesChange: (Boolean) -> Unit,
     onOpenDialog: (ChatSettingDialog) -> Unit,
+    onOpenContextUsage: () -> Unit,
+    onOpenChatLayout: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
@@ -72,22 +71,8 @@ internal fun ChatSettingsSection(
 
                 SelectorRow(
                     title = stringResource(Res.string.chat_layout),
-                    value = chatLayoutLabel(chatLayoutStyle),
-                    onClick = { onOpenDialog(ChatSettingDialog.CHAT_LAYOUT) },
-                )
-
-                ToggleRow(
-                    title = stringResource(Res.string.show_bubbles),
-                    description = stringResource(Res.string.show_bubbles_desc),
-                    checked = showBubbles,
-                    onChange = onShowBubblesChange,
-                )
-
-                ToggleRow(
-                    title = stringResource(Res.string.show_avatars),
-                    description = stringResource(Res.string.show_avatars_desc),
-                    checked = showAvatars,
-                    onChange = onShowAvatarsChange,
+                    value = chatLayoutSummary,
+                    onClick = onOpenChatLayout,
                 )
 
                 SelectorRow(
@@ -128,6 +113,13 @@ internal fun ChatSettingsSection(
                 )
 
                 ToggleRow(
+                    title = stringResource(Res.string.show_site_icons),
+                    description = stringResource(Res.string.show_site_icons_desc),
+                    checked = showSiteIcons,
+                    onChange = onShowSiteIconsChange,
+                )
+
+                ToggleRow(
                     title = stringResource(Res.string.dismiss_keyboard_on_send),
                     description = stringResource(Res.string.dismiss_keyboard_on_send_desc),
                     checked = dismissKeyboardOnSend,
@@ -150,8 +142,8 @@ internal fun ChatSettingsSection(
 
                 SelectorRow(
                     title = stringResource(Res.string.context_bar_title),
-                    value = contextBarPlacementLabel(contextBarPlacement),
-                    onClick = { onOpenDialog(ChatSettingDialog.CONTEXT_BAR) },
+                    value = contextUsageSummary,
+                    onClick = onOpenContextUsage,
                 )
 
                 SelectorRow(
@@ -173,7 +165,7 @@ internal fun ChatSettingsSection(
                 )
             }
         }
-        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+        AdaptiveDivider(modifier = Modifier.padding(top = 8.dp))
     }
 }
 
@@ -257,7 +249,7 @@ internal fun ToggleRow(
             )
         }
         Spacer(modifier = Modifier.width(16.dp))
-        Switch(
+        AdaptiveSwitch(
             checked = checked,
             onCheckedChange = onChange,
             enabled = enabled,

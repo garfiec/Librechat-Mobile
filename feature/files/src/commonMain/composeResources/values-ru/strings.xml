@@ -22,6 +22,9 @@
     <string name="cd_delete_file">Удалить %1$s</string>
     <string name="cd_thumbnail">Миниатюра %1$s</string>
     <string name="cd_close_preview">Закрыть предпросмотр</string>
+    <string name="cd_image">Изображение</string>
+    <string name="cd_save_image">Сохранить на устройство</string>
+    <string name="cd_share_image">Поделиться изображением</string>
     <string name="cd_cancel_upload">Отменить загрузку</string>
     <string name="cd_ascending">По возрастанию</string>
     <string name="cd_descending">По убыванию</string>
@@ -29,6 +32,8 @@
     <!-- Selection mode -->
     <string name="select_files">Выбрать файлы</string>
     <string name="selected_count">Выбрано: %1$d</string>
+    <string name="attach_count">Прикрепить (%1$d)</string>
+    <string name="cd_close_picker">Закрыть выбор</string>
 
     <!-- Empty states -->
     <string name="no_files">Нет файлов</string>

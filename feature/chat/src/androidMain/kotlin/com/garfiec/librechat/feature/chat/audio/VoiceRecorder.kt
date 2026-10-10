@@ -37,6 +37,7 @@ class VoiceRecorder(
             "audio/3gpp"
         }
 
+    @Suppress("TooGenericExceptionCaught") // MediaRecorder throws undocumented exceptions across OEMs
     suspend fun start() {
         if (isCurrentlyRecording) return
 
@@ -83,6 +84,7 @@ class VoiceRecorder(
         }
     }
 
+    @Suppress("TooGenericExceptionCaught") // MediaRecorder throws undocumented exceptions across OEMs
     suspend fun stop(): ByteArray? {
         if (!isCurrentlyRecording) return null
 

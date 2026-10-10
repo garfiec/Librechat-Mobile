@@ -1,3 +1,5 @@
+@file:Suppress("ForbiddenImport") // the composer styles its own field (ChatInputDefaults) for both interface styles
+
 package com.garfiec.librechat.feature.chat.components
 
 import android.net.Uri
@@ -38,23 +40,25 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
-import com.garfiec.librechat.core.model.usage.ContextUsage
-import com.garfiec.librechat.core.model.usage.TokenUsage
+import com.garfiec.librechat.core.ui.components.pressBounce
+import com.garfiec.librechat.core.ui.components.rememberPressBounce
+import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
+import com.garfiec.librechat.feature.chat.resources.*
+import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
+import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import com.garfiec.librechat.feature.chat.viewmodel.DuringRunSendTarget
 import com.garfiec.librechat.feature.chat.viewmodel.PendingSteerChip
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
-import com.garfiec.librechat.feature.chat.resources.*
-import com.garfiec.librechat.feature.chat.resources.Res
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ChatInput(
     inputText: String,
     isStreaming: Boolean,
-    onInputChanged: (String) -> Unit,
+    onInputChange: (String) -> Unit,
     onSend: () -> Unit,
     onStop: () -> Unit,
     /**
@@ -91,12 +95,12 @@ fun ChatInput(
     attachedFiles: List<AttachedFile> = emptyList(),
     onRemoveFile: (AttachedFile) -> Unit = {},
     promptSuggestions: List<PromptMentionDisplayData> = emptyList(),
-    onSlashCommandSelected: (PromptMentionDisplayData) -> Unit = {},
+    onSlashCommandSelect: (PromptMentionDisplayData) -> Unit = {},
     isRecording: Boolean = false,
     isTranscribing: Boolean = false,
     onStartRecording: () -> Unit = {},
     onStopRecording: () -> Unit = {},
-    onImagePasted: ((Uri) -> Unit)? = null,
+    onImagePaste: ((Uri) -> Unit)? = null,
     enabledTools: Set<String> = emptySet(),
     onToggleTool: (String) -> Unit = {},
     pinnedToolKeys: List<String> = emptyList(),
@@ -105,9 +109,13 @@ fun ChatInput(
     selectedModelDisplay: String? = null,
     isCodeInterpreterAvailable: Boolean = true,
     gates: ChatInputGates = ChatInputGates(),
-    contextUsage: ContextUsage? = null,
-    tokenUsage: TokenUsage? = null,
+    contextGauge: ContextGaugeDetails? = null,
     contextUsageEnabled: Boolean = false,
+    onCompact: (() -> Unit)? = null,
+    /** "Not now" on a compact suggestion. */
+    onSnoozeCompact: () -> Unit = {},
+    /** A compact suggestion is due under the options-sheet placement: hint at it on the + button. */
+    compactSuggested: Boolean = false,
     contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
 ) {
     val cdOpenToolsMenu = stringResource(Res.string.cd_open_tools_menu)
@@ -157,9 +165,10 @@ fun ChatInput(
         isEditingQueued = isEditingQueued,
         isAwaitingUploadSend = isAwaitingUploadSend,
         arePicksUnsettled = arePicksUnsettled,
-        contextUsage = contextUsage,
-        tokenUsage = tokenUsage,
+        contextGauge = contextGauge,
         contextUsageEnabled = contextUsageEnabled,
+        onCompact = onCompact,
+        onSnoozeCompact = onSnoozeCompact,
         contextBarPlacement = contextBarPlacement,
         promptSuggestions = promptSuggestions,
     )
@@ -168,7 +177,7 @@ fun ChatInput(
         state = state,
         onSend = onSend,
         onStop = onStop,
-        onSelectPrompt = onSlashCommandSelected,
+        onSelectPrompt = onSlashCommandSelect,
         onToggleTool = onToggleTool,
         onQueue = onQueue,
         onDuringRunSend = onDuringRunSend,
@@ -190,9 +199,11 @@ fun ChatInput(
         modifier = modifier,
         leadingButtons = {
             // "+" button to open tools bottom sheet
-            Box {
+            val toolsBounce = rememberPressBounce()
+            Box(modifier = Modifier.pressBounce(toolsBounce, enabled = !isLiquidGlass)) {
                 FilledTonalIconButton(
                     onClick = onOpenTools,
+                    colors = ChatInputDefaults.toolsButtonColors(),
                     modifier = Modifier
                         .size(48.dp)
                         .semantics {
@@ -203,6 +214,17 @@ fun ChatInput(
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = null,
+                    )
+                }
+                // Compact suggestion (options-sheet placement): the gauge lives in the sheet, so hint
+                // at it here. Bottom corner and the tertiary colour, apart from the tools badge.
+                if (compactSuggested) {
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .align(Alignment.BottomEnd)
+                            .offset(x = (-2).dp, y = (-2).dp)
+                            .background(color = MaterialTheme.colorScheme.tertiary, shape = CircleShape),
                     )
                 }
                 // Active tools badge
@@ -221,14 +243,16 @@ fun ChatInput(
             }
 
             // Paste image button (shown only when clipboard has image content)
-            if (onImagePasted != null) {
+            if (onImagePaste != null) {
+                val pasteBounce = rememberPressBounce()
                 IconButton(
                     onClick = {
                         // Clipboard image pasting is handled by the screen
-                        onImagePasted(Uri.EMPTY)
+                        onImagePaste(Uri.EMPTY)
                     },
                     modifier = Modifier
                         .size(48.dp)
+                        .pressBounce(pasteBounce, enabled = !isLiquidGlass)
                         .semantics {
                             contentDescription = cdPasteImage
                             role = Role.Button
@@ -246,11 +270,12 @@ fun ChatInput(
         },
         textFieldContent = {
             Box(modifier = Modifier.weight(1f)) {
+                // The composer draws its own field (ChatInputDefaults), glass included; not the adaptive one.
                 OutlinedTextField(
                     value = textFieldValue,
                     onValueChange = { newValue ->
                         textFieldValue = newValue
-                        onInputChanged(newValue.text)
+                        onInputChange(newValue.text)
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -272,6 +297,7 @@ fun ChatInput(
                     keyboardActions = KeyboardActions.Default,
                     maxLines = 6,
                     trailingIcon = {
+                        val micBounce = rememberPressBounce()
                         IconButton(
                             onClick = {
                                 if (isRecording) {
@@ -282,6 +308,7 @@ fun ChatInput(
                             },
                             modifier = Modifier
                                 .size(40.dp)
+                                .pressBounce(micBounce, enabled = !isLiquidGlass && !isTranscribing)
                                 .semantics {
                                     contentDescription = if (isRecording) {
                                         cdStopVoiceRec
@@ -299,7 +326,6 @@ fun ChatInput(
                         }
                     },
                 )
-
             }
         },
         trailingSpacer = {

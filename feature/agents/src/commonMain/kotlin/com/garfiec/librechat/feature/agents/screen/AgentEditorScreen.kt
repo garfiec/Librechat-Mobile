@@ -3,17 +3,20 @@ package com.garfiec.librechat.feature.agents.screen
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
+import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
+import com.garfiec.librechat.core.ui.components.PdfPasswordDialog
+import com.garfiec.librechat.core.ui.components.PlatformBackHandler
 import com.garfiec.librechat.feature.agents.components.rememberAgentFilePicker
 import com.garfiec.librechat.feature.agents.resources.*
 import com.garfiec.librechat.feature.agents.resources.Res
@@ -40,6 +43,8 @@ fun AgentEditorScreen(
     viewModel: AgentEditorViewModel = koinViewModel { parametersOf(agentId) },
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val hasUnsavedChanges by viewModel.hasUnsavedChanges.collectAsStateWithLifecycle()
+    val currentOnBack by rememberUpdatedState(onBack)
     val currentOnSaved by rememberUpdatedState(onSave)
     val currentOnDuplicated by rememberUpdatedState(onDuplicate)
     val currentOnDeleted by rememberUpdatedState(onDelete)
@@ -65,6 +70,18 @@ fun AgentEditorScreen(
     // we replace at LaunchedEffect time. `%1$d` -> "%d" makes the substitution trivial.
     val tooLargeTemplate = stringResource(Res.string.agent_file_too_large, 0)
         .replaceFirst("0", "%d")
+    uiState.pdfPasswordPrompt?.let { prompt ->
+        // Keyed so a re-prompt after a wrong password starts from an empty field.
+        key(prompt) {
+            PdfPasswordDialog(
+                filename = prompt.filename,
+                incorrectPassword = prompt.incorrectPassword,
+                onSubmit = viewModel::submitPdfPassword,
+                onDismiss = viewModel::dismissPdfPassword,
+            )
+        }
+    }
+
     LaunchedEffect(uiState.error) {
         val err = uiState.error ?: return@LaunchedEffect
         val localized = when {
@@ -90,9 +107,16 @@ fun AgentEditorScreen(
                 is AgentEditorEvent.SaveSuccess -> currentOnSaved(event.agentId)
                 is AgentEditorEvent.DuplicateSuccess -> currentOnDuplicated(event.agentId)
                 is AgentEditorEvent.DeleteSuccess -> currentOnDeleted()
+                is AgentEditorEvent.Exit -> currentOnBack()
             }
         }
     }
+
+    // Only while dirty or committing, so a clean form keeps the system's predictive-back preview.
+    PlatformBackHandler(
+        enabled = hasUnsavedChanges || uiState.isCommitting,
+        onBack = viewModel::onBackRequested,
+    )
 
     AgentEditorDialogs(
         uiState = uiState,
@@ -101,13 +125,13 @@ fun AgentEditorScreen(
         onDismissToolDialog = viewModel::closeToolsMarketplace,
     )
 
-    Scaffold(
+    AdaptiveScaffold(
         modifier = modifier,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
         topBar = {
             AgentEditorTopBar(
                 isEditMode = uiState.isEditMode,
-                onBack = onBack,
+                onBack = viewModel::onBackRequested,
                 onDuplicate = viewModel::showDuplicateConfirmation,
                 onVersionHistory = viewModel::showVersionHistory,
                 onDelete = viewModel::showDeleteConfirmation,

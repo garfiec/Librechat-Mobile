@@ -34,7 +34,7 @@ const IS_AUDIT = A.mode === 'audit'
 // were also called Switchboard — the old product name happened to carry the backend's identity for
 // free, and the rename took that away. State the relationship once, explicitly, per prompt.
 const CONTEXT = `CONTEXT: Switchboard is a third-party native mobile client for LibreChat.
-"Upstream" always means the official LibreChat server repo (danny-avila/LibreChat), vendored
+"Upstream" always means the official LibreChat server repo (LibreChat-AI/LibreChat), vendored
 read-only at ./upstream. Switchboard is the client, never the upstream.`
 
 // The lens flips the whole run — the same range, read with opposite intent.
@@ -104,8 +104,8 @@ other angles cover routes/types/config/ui/security/narrative separately. Do not 
 
 Method:
 - Diff the range with: cd upstream && git diff ${RANGE} -- <your paths>   (use --stat first, then per-file).
-- For the release-narrative angle, use: gh api repos/danny-avila/LibreChat/releases/tags/{tag} --jq .body
-  for any tag in range, gh pr list --repo danny-avila/LibreChat --state merged --base dev --limit 200
+- For the release-narrative angle, use: gh api repos/LibreChat-AI/LibreChat/releases/tags/{tag} --jq .body
+  for any tag in range, gh pr list --repo LibreChat-AI/LibreChat --state merged --base dev --limit 200
   --json number,title,mergedAt,url, and cd upstream && git log --oneline ${RANGE}.
 - For each real change, capture the introducing commit's 12-char SHA when identifiable
   (git log ${RANGE} -- <path> for the relevant file).

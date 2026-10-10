@@ -13,8 +13,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -34,6 +32,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -56,7 +56,7 @@ internal actual fun AvatarUploadDialog(
         }
     }
 
-    AlertDialog(
+    AdaptiveAlertDialog(
         onDismissRequest = onDismiss,
         modifier = modifier,
         title = { Text(stringResource(Res.string.dialog_title_update_avatar)) },
@@ -120,7 +120,7 @@ internal actual fun AvatarUploadDialog(
 
                 if (isUploading) {
                     Spacer(modifier = Modifier.height(4.dp))
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    AdaptiveCircularProgressIndicator(modifier = Modifier.size(24.dp))
                 }
             }
         },

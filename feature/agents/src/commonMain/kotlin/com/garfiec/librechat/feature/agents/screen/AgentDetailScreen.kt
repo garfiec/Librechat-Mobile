@@ -13,33 +13,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -50,10 +33,24 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.model.EModelEndpoint
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveAssistChip
+import com.garfiec.librechat.core.ui.components.AdaptiveButton
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AvatarImage
 import com.garfiec.librechat.core.ui.components.ErrorBanner
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
 import com.garfiec.librechat.core.ui.components.endpointIconPainter
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
+import com.garfiec.librechat.core.ui.components.topbar.BarAction
+import com.garfiec.librechat.core.ui.components.topbar.BarIcons
+import com.garfiec.librechat.core.ui.components.topbar.BarMenuItem
+import com.garfiec.librechat.core.ui.components.topbar.BarMenuSection
+import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
+import com.garfiec.librechat.core.ui.components.topbar.BarTitle
+import com.garfiec.librechat.core.ui.components.topbar.MaterialBarStyle
 import com.garfiec.librechat.feature.agents.resources.*
 import com.garfiec.librechat.feature.agents.resources.Res
 import com.garfiec.librechat.feature.agents.resources.agent_contact_title
@@ -89,7 +86,7 @@ fun AgentDetailScreen(
 
     // Delete confirmation dialog
     if (uiState.showDeleteDialog) {
-        AlertDialog(
+        AdaptiveAlertDialog(
             onDismissRequest = { viewModel.dismissDeleteConfirmation() },
             title = { Text(stringResource(Res.string.delete_agent)) },
             text = {
@@ -113,89 +110,63 @@ fun AgentDetailScreen(
         )
     }
 
-    Scaffold(
+    AdaptiveScaffold(
         modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = { Text(uiState.agent?.name ?: stringResource(Res.string.agent_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(Res.string.cd_back),
+            AdaptiveTopBar(
+                spec = AdaptiveTopBarSpec(
+                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.cd_back), onBack),
+                    title = BarTitle(uiState.agent?.name ?: stringResource(Res.string.agent_title)),
+                    actions = if (uiState.agent != null) {
+                        listOf(
+                            BarAction.Menu(
+                                id = "more",
+                                icon = BarIcons.More,
+                                label = stringResource(Res.string.cd_more_actions),
+                                sections = listOf(
+                                    BarMenuSection(
+                                        buildList {
+                                            if (uiState.canEdit) {
+                                                add(
+                                                    BarMenuItem(
+                                                        id = "edit",
+                                                        label = stringResource(Res.string.edit),
+                                                        icon = BarIcons.EditFilled,
+                                                        onClick = { uiState.agent?.let { onEdit(it.id) } },
+                                                    ),
+                                                )
+                                            }
+                                            add(
+                                                BarMenuItem(
+                                                    id = "duplicate",
+                                                    label = stringResource(Res.string.duplicate),
+                                                    icon = BarIcons.DuplicateFilled,
+                                                    enabled = !uiState.isDuplicating,
+                                                    onClick = { viewModel.duplicateAgent() },
+                                                ),
+                                            )
+                                            if (uiState.canEdit) {
+                                                add(
+                                                    BarMenuItem(
+                                                        id = "delete",
+                                                        label = stringResource(Res.string.delete),
+                                                        icon = BarIcons.DeleteFilled,
+                                                        destructive = true,
+                                                        enabled = !uiState.isDeleting,
+                                                        onClick = { viewModel.showDeleteConfirmation() },
+                                                    ),
+                                                )
+                                            }
+                                        },
+                                    ),
+                                ),
+                            ),
                         )
-                    }
-                },
-                actions = {
-                    if (uiState.agent != null) {
-                        var menuExpanded by remember { mutableStateOf(false) }
-                        IconButton(onClick = { menuExpanded = true }) {
-                            Icon(
-                                imageVector = Icons.Default.MoreVert,
-                                contentDescription = stringResource(Res.string.cd_more_actions),
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = menuExpanded,
-                            onDismissRequest = { menuExpanded = false },
-                        ) {
-                            if (uiState.canEdit) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(Res.string.edit)) },
-                                    onClick = {
-                                        menuExpanded = false
-                                        uiState.agent?.let { onEdit(it.id) }
-                                    },
-                                    leadingIcon = {
-                                        Icon(
-                                            imageVector = Icons.Default.Edit,
-                                            contentDescription = null,
-                                        )
-                                    },
-                                )
-                            }
-                            DropdownMenuItem(
-                                text = { Text(stringResource(Res.string.duplicate)) },
-                                onClick = {
-                                    menuExpanded = false
-                                    viewModel.duplicateAgent()
-                                },
-                                enabled = !uiState.isDuplicating,
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Default.ContentCopy,
-                                        contentDescription = null,
-                                    )
-                                },
-                            )
-                            if (uiState.canEdit) {
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            stringResource(Res.string.delete),
-                                            color = MaterialTheme.colorScheme.error,
-                                        )
-                                    },
-                                    onClick = {
-                                        menuExpanded = false
-                                        viewModel.showDeleteConfirmation()
-                                    },
-                                    enabled = !uiState.isDeleting,
-                                    leadingIcon = {
-                                        Icon(
-                                            imageVector = Icons.Default.Delete,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.error,
-                                        )
-                                    },
-                                )
-                            }
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    } else {
+                        emptyList()
+                    },
                 ),
+                materialStyle = MaterialBarStyle(containerColor = MaterialTheme.colorScheme.surface),
             )
         },
     ) { innerPadding ->
@@ -277,7 +248,7 @@ fun AgentDetailScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    Button(
+                    AdaptiveButton(
                         onClick = { onStartChat(agent.id) },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
@@ -291,7 +262,7 @@ fun AgentDetailScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    HorizontalDivider()
+                    AdaptiveDivider()
 
                     // Description section
                     AgentDetailSection(
@@ -300,7 +271,7 @@ fun AgentDetailScreen(
                             ?: stringResource(Res.string.no_description),
                         dimContent = agent.description.isNullOrBlank(),
                     )
-                    HorizontalDivider()
+                    AdaptiveDivider()
 
                     // Category section
                     val category = agent.category
@@ -309,7 +280,7 @@ fun AgentDetailScreen(
                             label = stringResource(Res.string.label_category),
                             content = category.replaceFirstChar { it.uppercase() },
                         )
-                        HorizontalDivider()
+                        AdaptiveDivider()
                     }
 
                     // Model section
@@ -317,7 +288,7 @@ fun AgentDetailScreen(
                         label = stringResource(Res.string.label_model),
                         content = agent.model ?: stringResource(Res.string.default_value),
                     )
-                    HorizontalDivider()
+                    AdaptiveDivider()
 
                     // Tools section
                     val tools = agent.tools
@@ -336,14 +307,14 @@ fun AgentDetailScreen(
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             tools.forEach { tool ->
-                                AssistChip(
+                                AdaptiveAssistChip(
                                     onClick = {},
                                     label = { Text(tool) },
                                 )
                             }
                         }
                         Spacer(modifier = Modifier.height(8.dp))
-                        HorizontalDivider()
+                        AdaptiveDivider()
                     }
 
                     // Conversation Starters section

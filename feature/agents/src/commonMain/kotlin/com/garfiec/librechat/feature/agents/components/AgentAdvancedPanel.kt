@@ -21,11 +21,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.garfiec.librechat.core.ui.components.EndpointParameterRegistry
+import com.garfiec.librechat.core.model.config.EndpointDropParams
 import com.garfiec.librechat.core.ui.components.ModelParameterContent
 import com.garfiec.librechat.feature.agents.components.model.AgentAdvancedSettings
 import com.garfiec.librechat.feature.agents.resources.*
 import com.garfiec.librechat.feature.agents.resources.Res
+import kotlinx.serialization.json.JsonElement
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -48,7 +49,12 @@ fun AgentAdvancedPanel(
     model: String,
     extendedEffortSupported: Boolean,
     modifier: Modifier = Modifier,
+    dropParamsMap: Map<String, JsonElement>? = null,
+    thinkingDisplayUpdatesSupported: Boolean = false,
 ) {
+    val dropParams = remember(dropParamsMap, provider, model) {
+        EndpointDropParams.resolve(dropParamsMap, endpoint = "agents", provider = provider, model = model)
+    }
     var expanded by remember { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxWidth()) {
@@ -76,24 +82,36 @@ fun AgentAdvancedPanel(
 
         AnimatedVisibility(visible = expanded) {
             val parameters = remember(settings) { settings.toModelParameters() }
-            val definitions = remember(provider, model, extendedEffortSupported) {
-                EndpointParameterRegistry.getDefinitions(
-                    endpoint = "agents",
-                    extendedEffortSupported = extendedEffortSupported,
-                    provider = provider.takeIf { it.isNotBlank() },
-                    model = model.takeIf { it.isNotBlank() },
+            val definitions = remember(
+                provider,
+                model,
+                extendedEffortSupported,
+                thinkingDisplayUpdatesSupported,
+                dropParamsMap,
+            ) {
+                agentParameterDefinitions(
+                    provider,
+                    model,
+                    extendedEffortSupported,
+                    dropParamsMap,
+                    thinkingDisplayUpdatesSupported,
                 )
+            }
+            val modelRemoved = remember(provider, model, dropParamsMap) {
+                agentModelRemovedOptions(provider, model, dropParamsMap)
             }
 
             ModelParameterContent(
                 parameters = parameters,
                 onParametersChange = { updated ->
-                    onSettingsChange(updated.toAgentAdvancedSettings(settings, definitions))
+                    onSettingsChange(updated.toAgentAdvancedSettings(settings, definitions, modelRemoved))
                 },
                 selectedEndpoint = "agents",
                 selectedProvider = provider.takeIf { it.isNotBlank() },
                 selectedModel = model.takeIf { it.isNotBlank() },
+                dropParams = dropParams,
                 extendedEffortSupported = extendedEffortSupported,
+                thinkingDisplayUpdatesSupported = thinkingDisplayUpdatesSupported,
                 showHeader = false,
                 showSaveAsPreset = false,
                 applyVerticalScroll = false,

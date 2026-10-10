@@ -14,7 +14,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Card
@@ -37,6 +39,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.model.Attachment
+import com.garfiec.librechat.core.model.RunStepStatus
+import com.garfiec.librechat.core.model.background.BackgroundTaskOutput
+import com.garfiec.librechat.core.model.background.CHECK_BACKGROUND_TASK_TOOL
 import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -88,6 +93,7 @@ internal fun ToolCallDispatcher(
                 baseUrl = baseUrl,
                 attachments = attachments,
                 showImageDescriptions = showImageDescriptions,
+                parentToolCallId = toolCallId,
                 stateKey = cardKey,
             )
             if (!hideAttachments) {
@@ -138,8 +144,6 @@ internal fun ToolCallDispatcher(
         return
     }
 
-    // Shipped ahead of upstream's own presentation, which it scopes as a follow-up slice — kept to
-    // swapping the label so reworking it stays a one-line change.
     val intent = remember(toolCall) {
         parseToolIntent(toolCall?.args) ?: parseToolIntent(toolCall?.function?.arguments)
     }
@@ -174,7 +178,7 @@ internal fun ToolCallDispatcher(
                 if (results.isNotEmpty()) {
                     WebSearchSourcesCard(results = results, modifier = cardModifier)
                 } else {
-                    GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey)
+                    GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.effectiveRunStepStatus)
                 }
             }
             isFileSearchToolCall(toolNameLower) -> {
@@ -190,7 +194,7 @@ internal fun ToolCallDispatcher(
                         stateKey = cardKey,
                     )
                 } else {
-                    GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey)
+                    GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.effectiveRunStepStatus)
                 }
             }
             isCodeExecutionToolCall(toolNameLower) -> {
@@ -202,7 +206,7 @@ internal fun ToolCallDispatcher(
                 if (result != null) {
                     CodeExecutionCard(result = result, modifier = cardModifier)
                 } else {
-                    GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey)
+                    GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.effectiveRunStepStatus)
                 }
             }
             toolNameLower.contains(ToolConstants.MEMORY) -> {
@@ -218,7 +222,7 @@ internal fun ToolCallDispatcher(
                         MemoryArtifactCard(artifact = artifact, modifier = cardModifier)
                     }
                 } else {
-                    GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey)
+                    GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.effectiveRunStepStatus)
                 }
             }
             toolNameLower.contains("mcp") -> {
@@ -226,7 +230,7 @@ internal fun ToolCallDispatcher(
                 if (resources.isNotEmpty()) {
                     McpResourceCarousel(resources = resources, modifier = cardModifier)
                 } else {
-                    GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey)
+                    GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.effectiveRunStepStatus)
                 }
             }
             isImageGen -> {
@@ -240,12 +244,27 @@ internal fun ToolCallDispatcher(
                     modifier = cardModifier,
                 )
             }
+            toolNameLower == CHECK_BACKGROUND_TASK_TOOL -> {
+                val display = remember(output) { BackgroundTaskOutput.parse(output) }
+                if (display != null) {
+                    BackgroundTaskCallCard(
+                        display = display,
+                        output = output.orEmpty(),
+                        intent = intent,
+                        closedStatus = toolCall?.effectiveRunStepStatus,
+                        modifier = cardModifier,
+                        stateKey = cardKey,
+                    )
+                } else {
+                    GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.effectiveRunStepStatus)
+                }
+            }
             toolNameLower.contains("log") -> {
                 val logContent = remember(toolCall) { parseLogContent(toolCall) }
                 LogContentCard(log = logContent, modifier = cardModifier)
             }
             else -> {
-                GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey)
+                GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.effectiveRunStepStatus)
             }
         }
 
@@ -269,6 +288,12 @@ internal fun GenericToolCallCard(
     output: String?,
     modifier: Modifier = Modifier,
     stateKey: String = "",
+    /**
+     * The run's own terminal verdict, stamped onto the persisted part by `on_run_step_closed`
+     * (v0.8.8-rc2). Only the two failure states are drawn: a reloaded tool call has never carried
+     * a success badge, and inventing one here would relabel every call in every old conversation.
+     */
+    closedStatus: RunStepStatus? = null,
 ) {
     // Saveable: this card is inside a LazyColumn item, so plain `remember` state is disposed when
     // the message scrolls out of the viewport and an expanded call silently re-collapses.
@@ -306,6 +331,24 @@ internal fun GenericToolCallCard(
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                 )
+                when (toolCallVerdict(closedStatus, isComplete = true)) {
+                    ToolCallVerdict.CANCELLED -> Icon(
+                        Icons.Default.Block,
+                        stringResource(Res.string.cd_tool_cancelled),
+                        Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+
+                    ToolCallVerdict.FAILED -> Icon(
+                        Icons.Default.ErrorOutline,
+                        stringResource(Res.string.cd_tool_failed),
+                        Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+
+                    ToolCallVerdict.COMPLETED, ToolCallVerdict.RUNNING -> Unit
+                }
+                Spacer(modifier = Modifier.width(8.dp))
                 Icon(
                     if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     stringResource(if (isExpanded) Res.string.cd_collapse else Res.string.cd_expand),

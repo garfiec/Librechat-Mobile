@@ -16,6 +16,12 @@ data class SkillFileListResponse(
  */
 @Serializable
 data class SkillFileContentResponse(
+    /**
+     * Opaque storage revision (v0.8.8). Sent back as `expectedFileId` to replace the file only if
+     * nobody else has since; absent on older servers, which have no conditional edit route, so
+     * the in-place editor is offered only when this is present.
+     */
+    val fileId: String? = null,
     val content: String? = null,
     val mimeType: String? = null,
     val isBinary: Boolean = false,

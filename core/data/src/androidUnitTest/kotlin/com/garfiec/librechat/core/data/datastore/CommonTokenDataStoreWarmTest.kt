@@ -2,7 +2,6 @@ package com.garfiec.librechat.core.data.datastore
 
 import com.garfiec.librechat.core.network.client.SessionEndReason
 import com.google.common.truth.Truth.assertThat
-import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

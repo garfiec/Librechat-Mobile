@@ -7,7 +7,6 @@ import com.garfiec.librechat.core.model.PromptGroup
 import com.garfiec.librechat.core.model.request.AddPromptToGroupRequest
 import com.garfiec.librechat.core.model.request.CreatePromptRequest
 import com.garfiec.librechat.core.model.request.UpdatePromptGroupRequest
-import com.garfiec.librechat.core.model.response.PromptGroupListResponse
 import com.garfiec.librechat.core.network.api.PromptsApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,19 +24,13 @@ class PromptRepositoryImpl(
         _revision.value += 1
     }
 
-    override suspend fun getGroups(pageSize: Int, cursor: String?): Result<PromptGroupListResponse> {
-        return safeApiCall {
-            promptsApi.getPromptGroups(pageSize = pageSize, cursor = cursor)
-        }
-    }
-
     override suspend fun getAllGroups(): Result<List<PromptGroup>> {
         return safeApiCall {
             promptsApi.getAllPromptGroups()
         }
     }
 
-    override suspend fun getGroup(groupId: String): Result<PromptGroup> {
+    override suspend fun getGroup(groupId: String): Result<PromptGroup?> {
         return safeApiCall {
             promptsApi.getPromptGroup(groupId)
         }

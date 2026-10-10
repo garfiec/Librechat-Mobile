@@ -22,6 +22,9 @@
     <string name="cd_delete_file">删除 %1$s</string>
     <string name="cd_thumbnail">%1$s 的缩略图</string>
     <string name="cd_close_preview">关闭预览</string>
+    <string name="cd_image">图片</string>
+    <string name="cd_save_image">保存到设备</string>
+    <string name="cd_share_image">分享图片</string>
     <string name="cd_cancel_upload">取消上传</string>
     <string name="cd_ascending">升序</string>
     <string name="cd_descending">降序</string>
@@ -29,6 +32,8 @@
     <!-- Selection mode -->
     <string name="select_files">选择文件</string>
     <string name="selected_count">已选 %1$d 项</string>
+    <string name="attach_count">附加 (%1$d)</string>
+    <string name="cd_close_picker">关闭选择器</string>
 
     <!-- Empty states -->
     <string name="no_files">没有文件</string>

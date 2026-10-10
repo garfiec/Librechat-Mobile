@@ -1,6 +1,9 @@
 package com.garfiec.librechat.core.network.api
 
 import com.garfiec.librechat.core.model.Conversation
+import com.garfiec.librechat.core.model.background.BackgroundTaskCancelRequest
+import com.garfiec.librechat.core.model.background.BackgroundTaskCancelResponse
+import com.garfiec.librechat.core.model.background.BackgroundTaskIndex
 import com.garfiec.librechat.core.model.request.ArchiveConversationArg
 import com.garfiec.librechat.core.model.request.ArchiveConversationRequest
 import com.garfiec.librechat.core.model.request.ConvoDeleteArg
@@ -11,6 +14,7 @@ import com.garfiec.librechat.core.model.request.ConvoUpdateArg
 import com.garfiec.librechat.core.model.request.ConvoUpdateBody
 import com.garfiec.librechat.core.model.request.DuplicateConversationRequest
 import com.garfiec.librechat.core.model.request.ForkConversationRequest
+import com.garfiec.librechat.core.model.response.ArchiveAllConversationsResponse
 import com.garfiec.librechat.core.model.response.ConversationListResponse
 import com.garfiec.librechat.core.model.response.ForkConversationResponse
 import com.garfiec.librechat.core.model.response.GenerateTitleResponse
@@ -25,6 +29,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
+import io.ktor.http.encodeURLPathPart
 import io.ktor.http.path
 
 class ConversationsApi constructor(
@@ -84,6 +89,15 @@ class ConversationsApi constructor(
                     ),
                 ),
             )
+        }.body()
+
+    /**
+     * `POST /api/convos/archive/all` (v0.8.8-rc2) — archives every conversation the caller can
+     * currently see. Takes no body: unlike the other convo mutations it reads nothing off `arg`.
+     */
+    suspend fun archiveAll(): ArchiveAllConversationsResponse =
+        client.post {
+            url { path("api/convos/archive/all") }
         }.body()
 
     suspend fun pin(conversationId: String, pinned: Boolean): Conversation =
@@ -149,5 +163,22 @@ class ConversationsApi constructor(
         client.post {
             url { path("api/convos/duplicate") }
             setBody(DuplicateConversationRequest(conversationId = conversationId, title = title))
+        }.body()
+
+    /** GET /api/convos/:conversationId/background-tasks (v0.8.8). */
+    suspend fun getBackgroundTasks(conversationId: String): BackgroundTaskIndex =
+        client.get {
+            url { path("api/convos/${conversationId.encodeURLPathPart()}/background-tasks") }
+        }.body()
+
+    /**
+     * POST /api/convos/:conversationId/background-tasks/cancel (v0.8.8). A bare body, not
+     * `arg`-wrapped. Null [taskIds] stops every running task. 403 unless the deployment enables
+     * ordinary-tool cancellation.
+     */
+    suspend fun cancelBackgroundTasks(conversationId: String, taskIds: List<String>?): BackgroundTaskCancelResponse =
+        client.post {
+            url { path("api/convos/${conversationId.encodeURLPathPart()}/background-tasks/cancel") }
+            setBody(BackgroundTaskCancelRequest(taskIds = taskIds))
         }.body()
 }

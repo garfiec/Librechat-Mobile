@@ -140,12 +140,12 @@ class AgentLoaderDelegate(
         stateHandle.update { copy(availableModels = modelOptions) }
     }
 
-    private fun loadMcpTools() = launchBestEffort(mcpRepository::getTools) { tools ->
+    private fun loadMcpTools() = launchBestEffort(mcpRepository::getTools) { catalog ->
         // Merged in the same update as the list itself: remergeMcpServerNames resolves against
         // `mcpTools`, so a state that has not yet taken them would resolve nothing. If the agent
         // has not loaded yet, `loadedAgentTools` is null and this is a no-op — applyAgentData
         // will then see a populated list and resolve on its own.
-        stateHandle.update { copy(mcpTools = tools).remergeMcpServerNames(loadedAgentTools) }
+        stateHandle.update { copy(mcpTools = catalog.tools).remergeMcpServerNames(loadedAgentTools) }
     }
 
     private fun loadAllAgents() = launchBestEffort(agentRepository::getAgents) { agents ->

@@ -4,6 +4,8 @@
     <string name="cd_drag_handle">Drag handle</string>
     <!-- Accessibility label for the close button on a server banner -->
     <string name="banner_dismiss">Dismiss banner</string>
+    <!-- Accessibility label for the close button on a toast message (Liquid Glass snackbar) -->
+    <string name="snackbar_dismiss">Dismiss</string>
     <!-- Inline indicator for a PDF page that failed to render -->
     <string name="pdf_page_failed">Couldn't render this page</string>
     <!-- Custom per-server request headers (issue #287); shared by the pre-login
@@ -13,14 +15,96 @@
     <string name="server_headers_name">Header name</string>
     <string name="server_headers_value">Value</string>
     <string name="server_headers_add">Add header</string>
-    <string name="server_headers_load_error">Couldn\'t read your saved headers. Editing now may overwrite them.</string>
-    <string name="server_headers_save_error">Couldn\'t save — storage is unavailable.</string>
+    <string name="server_headers_load_error">Couldn't read your saved headers. Editing now may overwrite them.</string>
+    <string name="server_headers_save_error">Couldn't save — storage is unavailable.</string>
     <string name="server_headers_no_server">Couldn't save — no server is configured yet.</string>
-    <string name="server_headers_unverified_delete">Couldn\'t clear — your saved headers couldn\'t be read.</string>
+    <string name="server_headers_unverified_delete">Couldn't clear — your saved headers couldn't be read.</string>
     <string name="server_headers_remove">Remove header</string>
     <string name="server_headers_show_value">Show value</string>
     <string name="server_headers_hide_value">Hide value</string>
     <string name="server_headers_error_name">Not a valid header name.</string>
     <string name="server_headers_error_value">This value contains characters that can't be sent.</string>
     <string name="server_headers_error_reserved">This header is set by the app and can't be overridden.</string>
+    <!-- Password prompt for a PDF that needs one before upload (decrypted on-device) -->
+    <string name="pdf_password_title">Password-protected PDF</string>
+    <string name="pdf_password_explanation">“%1$s” needs a password to open. To send it to the AI model, Switchboard decrypts it on this device and uploads the decrypted copy. The password never leaves your device.</string>
+    <string name="pdf_password_sensitive_warning">Password-protected files often contain sensitive information. The decrypted copy is stored on your LibreChat server and shared with the AI provider. Only continue if you're comfortable sharing its contents.</string>
+    <string name="pdf_password_field">PDF password</string>
+    <string name="pdf_password_incorrect">Incorrect password. Try again.</string>
+    <string name="pdf_password_show">Show password</string>
+    <string name="pdf_password_hide">Hide password</string>
+    <string name="pdf_password_confirm">Decrypt and upload</string>
+    <string name="pdf_password_cancel">Cancel</string>
+    <!-- Description under the thinking toggle for Claude models whose thinking cannot be fully disabled (Sonnet 5.5+) -->
+    <string name="param_thinking_between_tools_description">Enables adaptive thinking controlled by the Effort parameter. This model cannot turn thinking off entirely: switching this off uses its lowest setting, which skips extended thinking and keeps only brief notes between tool calls. Effort is capped at High while off.</string>
+    <!-- Asked when leaving an editor that has unsaved edits -->
+    <string name="discard_changes_title">Discard changes?</string>
+    <string name="discard_changes_message">Your unsaved changes will be lost.</string>
+    <string name="discard_changes_confirm">Discard</string>
+    <string name="discard_changes_cancel">Cancel</string>
+    <!-- Context usage breakdown -->
+    <string name="context_compact">Compact conversation</string>
+    <string name="context_compacting">Compacting…</string>
+    <string name="context_compact_info">Summarizes everything so far into a shorter note the model keeps reading, freeing context for what comes next. Nothing is deleted.</string>
+    <string name="context_usage_label">Context</string>
+    <string name="context_usage_window">Context window</string>
+    <string name="context_usage_estimated">Estimated from message history</string>
+    <string name="context_usage_messages">Messages</string>
+    <string name="context_usage_tools">Tool schemas</string>
+    <string name="context_usage_summary">Summary</string>
+    <string name="context_usage_system">System prompt</string>
+    <string name="context_usage_free">Free space</string>
+    <string name="context_usage_input">Input</string>
+    <string name="context_usage_output">Output</string>
+    <string name="context_usage_estimated_row">Estimated</string>
+    <string name="context_usage_tool_calls">Tool calls</string>
+    <string name="context_usage_agent_instructions">Agent instructions</string>
+    <string name="context_usage_tools_system">System tools</string>
+    <string name="context_usage_tools_system_deferred">System tools (deferred)</string>
+    <string name="context_usage_tools_mcp">MCP tools</string>
+    <string name="context_usage_tools_mcp_deferred">MCP tools (deferred)</string>
+    <string name="context_usage_skills">Skills</string>
+    <string name="context_usage_subagents">Subagents</string>
+    <string name="context_usage_cached">Cached</string>
+    <string name="context_usage_cache_write">Cache write</string>
+    <string name="context_usage_by_tool">By tool</string>
+    <string name="context_usage_pressure_warn">Context window is filling up</string>
+    <string name="context_usage_pressure_danger">Context window is almost full</string>
+    <string name="context_usage_largest_tool">Largest tool: %1$s (%2$s)</string>
+    <string name="context_usage_reclaim">Summarizing now could reclaim ≈%1$s tokens</string>
+    <string name="context_usage_insights">Context insights</string>
+    <string name="context_usage_totals">Totals</string>
+    <string name="context_usage_cache_read">Cache read</string>
+    <string name="context_usage_subagents_all">Subagents (all branches)</string>
+    <string name="context_usage_cost">Cost</string>
+    <string name="context_usage_cost_branch">Cost (this branch)</string>
+    <string name="context_usage_cost_all">All branches</string>
+    <string name="context_usage_tools_all">Tools</string>
+    <string name="context_usage_used">Used</string>
+    <!-- Message and conversation timestamps (#445). Compact on purpose: they sit under a bubble or in a row subtitle -->
+    <string name="timestamp_just_now">Just now</string>
+    <plurals name="timestamp_minutes_ago">
+        <item quantity="one">%1$dm ago</item>
+        <item quantity="other">%1$dm ago</item>
+    </plurals>
+    <plurals name="timestamp_hours_ago">
+        <item quantity="one">%1$dh ago</item>
+        <item quantity="other">%1$dh ago</item>
+    </plurals>
+    <plurals name="timestamp_days_ago">
+        <item quantity="one">%1$dd ago</item>
+        <item quantity="other">%1$dd ago</item>
+    </plurals>
+    <plurals name="timestamp_weeks_ago">
+        <item quantity="one">%1$dw ago</item>
+        <item quantity="other">%1$dw ago</item>
+    </plurals>
+    <!-- %1$s is a clock time, already formatted, e.g. "20:58" -->
+    <string name="timestamp_yesterday_at">Yesterday %1$s</string>
+    <!-- Conversation list section headers -->
+    <string name="date_group_today">Today</string>
+    <string name="date_group_yesterday">Yesterday</string>
+    <string name="date_group_previous_7_days">Previous 7 Days</string>
+    <string name="date_group_previous_30_days">Previous 30 Days</string>
+    <string name="date_group_unknown">Unknown</string>
 </resources>

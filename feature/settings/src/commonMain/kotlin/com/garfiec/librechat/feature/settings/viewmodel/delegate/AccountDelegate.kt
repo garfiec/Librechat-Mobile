@@ -2,13 +2,14 @@ package com.garfiec.librechat.feature.settings.viewmodel.delegate
 
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.repository.BalanceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.feature.settings.util.ContentReader
+import com.garfiec.librechat.feature.settings.viewmodel.AccountSettingsUiState
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
 import com.garfiec.librechat.feature.settings.viewmodel.isHttpStatus
 import com.garfiec.librechat.feature.settings.viewmodel.toDisplayData
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -20,7 +21,7 @@ import kotlinx.coroutines.withContext
  * job so a retry cancels a hung request before starting a fresh one.
  */
 class AccountDelegate(
-    private val stateHandle: SettingsStateHandle,
+    private val stateHandle: SettingsStateHandle<AccountSettingsUiState>,
     private val userRepository: UserRepository,
     private val balanceRepository: BalanceRepository,
     private val contentReader: ContentReader,
@@ -97,12 +98,9 @@ class AccountDelegate(
             // Reading bytes off the URI is blocking I/O — keep it off the Main
             // dispatcher (viewModelScope = Main.immediate) to avoid an ANR on
             // large images. Mirrors the FileAttachmentDelegate fix.
-            val bytes = try {
+            val bytes = suspendRunCatching {
                 withContext(ioDispatcher) { contentReader.readBytes(uri) }
-            } catch (e: CancellationException) {
-                // Cooperative cancellation must propagate (SKIE/iOS requirement).
-                throw e
-            } catch (e: Exception) {
+            }.getOrElse { e ->
                 stateHandle.update {
                     copy(isAvatarUploading = false, error = "Could not read selected image: ${e.message}")
                 }

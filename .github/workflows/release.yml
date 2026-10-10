@@ -2,9 +2,10 @@ name: Release
 
 # Manual, one-button release. Versions are calver (YYYY.MM.PATCH); year/month come
 # from the current UTC date automatically, so the only choice is stable vs candidate.
-# The job bumps version.properties, builds a signed universal APK, and ONLY THEN
-# commits + tags it and publishes a draft GitHub Release with auto-generated notes —
-# so a failed build never leaves an orphaned tag or a burned version on the branch.
+# The job bumps version.properties, commits + tags LOCALLY, builds a signed universal
+# APK from that tagged commit, and ONLY THEN pushes and publishes a draft GitHub Release
+# with auto-generated notes — so a failed build never leaves an orphaned tag or a burned
+# version on the branch, while the APK still carries its own tag's commit SHA.
 # Review the draft, then publish it; Obtainium/IzzyOnDroid pick up published releases.
 on:
   workflow_dispatch:
@@ -64,7 +65,7 @@ jobs:
         # Pinned to a commit SHA (not a moving tag) so a compromise of the action's
         # repo can't inject code into this secret-bearing job. Dependabot keeps it
         # current — see .github/dependabot.yml.
-        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
 
       # Fail in seconds if the signing secrets are missing/blank, before doing any
       # work — rather than deep inside the Gradle signing task after a full build.
@@ -91,6 +92,32 @@ jobs:
       - name: Bump version
         id: bump
         run: ./scripts/bump-version.sh "${{ inputs.bump }}"
+
+      # F-Droid reads "What's New" from `changelogs/<versionCode>.txt` **in the tagged commit**,
+      # so it is written here, after the bump makes the code known (UTC date at dispatch), and
+      # staged into the release commit below. It is always regenerated: an -rcN and its final
+      # share one code, and each run lists everything since the last stable tag.
+      # Full rationale: docs/RELEASING.md § Cutting a release.
+      - name: Generate the changelog
+        env:
+          VERSION_CODE: ${{ steps.bump.outputs.version_code }}
+        run: |
+          set -euo pipefail
+          # An empty VERSION_CODE would write "changelogs/.txt", a dotfile F-Droid never reads.
+          if [[ ! "$VERSION_CODE" =~ ^[0-9]+$ ]]; then
+            echo "::error title=No versionCode::bump-version.sh did not emit a numeric version_code (got '$VERSION_CODE')."
+            exit 1
+          fi
+          coded="fastlane/metadata/android/en-US/changelogs/$VERSION_CODE.txt"
+          scripts/generate-changelog.sh --out "$coded"
+          echo "--- changelog for $VERSION_CODE ---"
+          cat "$coded"
+
+      # Enforces every limit fdroidserver applies, including on the changelog just written.
+      - name: Verify F-Droid store listing
+        env:
+          VERSION_CODE: ${{ steps.bump.outputs.version_code }}
+        run: scripts/check-fdroid-metadata.py --release --version-code "$VERSION_CODE"
 
       # Same source of truth the app reads (core/common codegen) — surfaced in the
       # release notes so users know which LibreChat backend this build targets.
@@ -128,12 +155,58 @@ jobs:
             exit 1
           fi
 
+      # Must run BEFORE the build: the APK bakes `git rev-parse HEAD` into
+      # BuildConfig.GIT_SHA (core/common/build.gradle.kts), so building first ships a binary
+      # carrying its tag's *parent* SHA, which can never be reproduced from the tag. Nothing
+      # is published until "Push the release commit & tag" below; until then the commit and
+      # tag are local to the runner and die with it.
+      - name: Commit & tag locally
+        env:
+          TAG: ${{ steps.bump.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # The changelog dir must be staged too: the generated file is worthless unless it
+          # lands in the tagged commit, which is the only place F-Droid looks for it.
+          git add version.properties fastlane/metadata/android/en-US/changelogs/
+          git commit -m "chore(release): $TAG"
+          git tag -a "$TAG" -m "Release $TAG"
+
       - name: Build signed release APK
         env:
           SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
         run: ./gradlew :app:assembleRelease --no-daemon
+
+      # Android refuses an in-place update across a key change, so an APK signed with
+      # anything but the one permanent release key strands every existing install — and
+      # nothing downstream catches it: the checksum, the attestation and the draft release
+      # all happily describe a wrongly-signed binary. Assert the fingerprint before they run.
+      - name: Verify the APK carries the published release certificate
+        env:
+          # README's "Verifying the signing key" section — the value users check against.
+          EXPECTED_CERT_SHA256: "66:8A:71:96:6A:07:06:14:D1:44:95:5D:83:E7:23:6A:3C:ED:77:F8:64:08:57:C3:FA:84:B0:3C:CD:E4:0E:59"
+        run: |
+          set -euo pipefail
+          # build-tools is not on PATH on GitHub runners, and which versions ship changes
+          # with the image, so take the newest installed.
+          apksigner="$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)"
+          apk="app/build/outputs/apk/release/app-release.apk"
+          # apksigner prints lowercase hex with no separators; the README publishes it
+          # colon-separated and uppercase. Normalise both sides rather than either one.
+          norm() { tr -d ':' | tr '[:lower:]' '[:upper:]'; }
+          # `|| true`: apksigner exits non-zero on an unsigned APK, which under
+          # `set -e -o pipefail` would abort here instead of letting the empty `got` fail
+          # the comparison as <unsigned> through the annotation below.
+          got="$("$apksigner" verify --print-certs "$apk" \
+            | awk '/SHA-256 digest/ { print $NF; exit }' | norm || true)"
+          want="$(printf '%s' "$EXPECTED_CERT_SHA256" | norm)"
+          if [ "$got" != "$want" ]; then
+            echo "::error title=Wrong signing certificate::expected $want, got ${got:-<unsigned>}"
+            exit 1
+          fi
+          echo "Release certificate matches the published fingerprint."
 
       - name: Prepare artifacts
         id: artifacts
@@ -145,6 +218,35 @@ jobs:
           cp "$src" "$out"
           sha256sum "$out" > "${out}.sha256"
           echo "apk=$out" >> "$GITHUB_OUTPUT"
+
+      # Nothing else builds this path, so it would rot unnoticed — and the rot would be
+      # quiet rather than loud: a reproducible-build verifier strips and ignores a signature
+      # on the rebuilt APK, so a packager that silently got a debug-signed build back would
+      # still verify and publish. What is lost is the margin, not the release: the comparison
+      # exercises signature-stripping instead of its designed signed-vs-unsigned case, in a
+      # step that has no fallback when it fails. Must run *after* the artifact is copied
+      # out — building unsigned replaces app-release.apk with app-release-unsigned.apk —
+      # and before the tag is pushed, so a failure here publishes nothing.
+      - name: Verify the unsigned release path still works
+        run: |
+          set -euo pipefail
+          ./gradlew :app:assembleRelease -PunsignedRelease --no-daemon
+          dir="app/build/outputs/apk/release"
+          # AGP appends `-unsigned` only when the variant resolved no signing config at all.
+          # Asserting the signed name is *gone* is the other half: it rules out an unsigned
+          # APK produced alongside a signed one.
+          test -f "$dir/app-release-unsigned.apk"
+          test ! -f "$dir/app-release.apk"
+          apksigner="$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)"
+          # Not `unzip | grep META-INF/*.RSA`: v1 signing is off at minSdk >= 24, so an APK
+          # that fell through to the debug key has no META-INF signature entry either, and
+          # that check would pass on exactly the artifact this guards against. The v2/v3
+          # signature lives in the APK Signing Block, which only apksigner reads.
+          if "$apksigner" verify "$dir/app-release-unsigned.apk"; then
+            echo "::error title=Unsigned release is signed::-PunsignedRelease produced a SIGNED APK."
+            exit 1
+          fi
+          echo "Unsigned release path verified."
 
       # Sign a SLSA provenance attestation for the published APK (keyless, via Sigstore +
       # Rekor). This is the only check that resists a tampered upload — unlike the .sha256,
@@ -158,18 +260,15 @@ jobs:
         with:
           subject-path: ${{ steps.artifacts.outputs.apk }}
 
-      # Commit + tag the bump ONLY after a signed APK exists, so a failed build never
-      # leaves an orphaned tag or a burned version on the branch. --atomic makes the
-      # branch push and the tag push all-or-nothing.
-      - name: Commit, tag & push
+      # Deliberately last: everything that can fail has already run, so a failed build leaves
+      # no orphaned tag and burns no version on the branch. The provenance attestation above
+      # is already in Sigstore's public log by this point, but it is keyed to the APK's digest
+      # rather than to the tag, so a run that dies here still publishes no release. --atomic
+      # makes the branch push and the tag push all-or-nothing.
+      - name: Push the release commit & tag
         env:
           TAG: ${{ steps.bump.outputs.tag }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add version.properties
-          git commit -m "chore(release): $TAG"
-          git tag -a "$TAG" -m "Release $TAG"
           git push --atomic origin "HEAD:${{ github.ref_name }}" "refs/tags/$TAG"
 
       # Assemble the full release body ourselves so we can put shields.io badges at the
@@ -216,7 +315,7 @@ jobs:
         # Pinned to a commit SHA (not a moving tag): this step runs with a
         # contents:write token, so a hijacked tag could push tags/releases on our
         # behalf. Dependabot bumps the pin — see .github/dependabot.yml.
-        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: ${{ steps.bump.outputs.tag }}
           name: ${{ steps.bump.outputs.tag }}
@@ -247,7 +346,7 @@ jobs:
   ios:
     name: Build & attach unsigned IPA
     needs: release
-    runs-on: macos-latest
+    runs-on: xcode-27
     # No `environment: release` — this job uses no signing secrets. It inherits the
     # workflow-level permissions (contents: write to upload the asset; id-token/attestations
     # for provenance parity with the APK).
@@ -257,10 +356,13 @@ jobs:
         with:
           ref: ${{ needs.release.outputs.tag }}   # the bump commit the release job just pushed
 
+      # Xcode 27.1: Apple's iPhone Duo guidance is that only an iOS 27.1 SDK build fills the
+      # inner display (older SDKs get a phone-sized compatibility window). Pinned rather than
+      # latest-stable, which follows whatever non-beta Xcode the image adds next.
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: latest-stable
+          xcode-version: '27.1'
 
       - name: Set up JDK 21
         uses: actions/setup-java@v6
@@ -270,7 +372,7 @@ jobs:
 
       - name: Setup Gradle
         # SHA-pinned to match the release job's supply-chain policy (Dependabot bumps it).
-        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
 
       - name: Cache Kotlin/Native toolchain
         uses: actions/cache@v6

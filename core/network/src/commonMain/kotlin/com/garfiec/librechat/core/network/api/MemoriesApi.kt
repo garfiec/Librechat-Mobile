@@ -60,6 +60,31 @@ class MemoriesApi constructor(
         }.body<MemoryMutationResponse>().memory
             ?: error("Memory updated but not returned by the server")
 
+    /**
+     * `PATCH /api/memories/id/:id` (v0.8.8-rc2) — addresses the row by its stable `_id` instead of
+     * by key.
+     *
+     * The key-addressed route cannot reach a row whose key the content filter blanked, and it is
+     * ambiguous by construction (keys are unique only *within* a partition). 409 when the new key
+     * collides inside the partition, 404 when the id does not resolve. The returned memory is run
+     * through the same content-filter projection as the list, so it can come back redacted.
+     */
+    suspend fun updateMemoryById(id: String, request: UpdateMemoryRequest, agentId: String? = null): Memory =
+        client.patch {
+            url { path("api/memories/id/${id.encodeURLPathPart()}") }
+            if (agentId != null) parameter("agentId", agentId)
+            setBody(request)
+        }.body<MemoryMutationResponse>().memory
+            ?: error("Memory updated but not returned by the server")
+
+    /** `DELETE /api/memories/id/:id` (v0.8.8-rc2). See [updateMemoryById]; answers `{deleted:true}`. */
+    suspend fun deleteMemoryById(id: String, agentId: String? = null) {
+        client.delete {
+            url { path("api/memories/id/${id.encodeURLPathPart()}") }
+            if (agentId != null) parameter("agentId", agentId)
+        }
+    }
+
     /** See [updateMemory] for how [agentId] selects the partition. */
     suspend fun deleteMemory(key: String, agentId: String? = null) {
         // Answers `{ deleted: true }`; the status carries the same verdict, so the body is dropped

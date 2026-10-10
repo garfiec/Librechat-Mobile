@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.settings.di
 import android.app.Application
 import android.content.Context
 import com.garfiec.librechat.core.common.AppInfo
+import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.ThemeDataStore
@@ -24,6 +25,8 @@ import com.garfiec.librechat.core.data.repository.ServerRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
 import com.garfiec.librechat.core.data.repository.SpeechRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
+import com.garfiec.librechat.core.data.update.AppInstallSource
+import com.garfiec.librechat.core.data.update.AppUpdateRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.logging.DiagnosticLogRepository
 import com.garfiec.librechat.feature.settings.util.ContentReader
@@ -59,6 +62,7 @@ class SettingsModuleVerificationTest {
                 ThemeDataStore::class,
                 ServerDataStore::class,
                 ServerRepository::class,
+                DateTimePrefsStore::class,
                 SettingsDataStore::class,
                 ContentReader::class,
                 AttachmentWarmer::class,
@@ -67,6 +71,8 @@ class SettingsModuleVerificationTest {
                 PlatformCacheCleaner::class,
                 SpeechSettingsFactory::class,
                 DiagnosticLogRepository::class,
+                AppUpdateRepository::class,
+                AppInstallSource::class,
                 // Provided by core:common CommonModule via KoinQualifiers.IO.
                 CoroutineDispatcher::class,
             ),

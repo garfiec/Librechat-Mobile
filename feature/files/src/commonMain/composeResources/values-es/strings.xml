@@ -22,6 +22,9 @@
     <string name="cd_delete_file">Eliminar %1$s</string>
     <string name="cd_thumbnail">Miniatura de %1$s</string>
     <string name="cd_close_preview">Cerrar vista previa</string>
+    <string name="cd_image">Imagen</string>
+    <string name="cd_save_image">Guardar en el dispositivo</string>
+    <string name="cd_share_image">Compartir imagen</string>
     <string name="cd_cancel_upload">Cancelar subida</string>
     <string name="cd_ascending">Ascendente</string>
     <string name="cd_descending">Descendente</string>
@@ -29,6 +32,8 @@
     <!-- Selection mode -->
     <string name="select_files">Seleccionar archivos</string>
     <string name="selected_count">%1$d seleccionados</string>
+    <string name="attach_count">Adjuntar (%1$d)</string>
+    <string name="cd_close_picker">Cerrar selector</string>
 
     <!-- Empty states -->
     <string name="no_files">No hay archivos</string>

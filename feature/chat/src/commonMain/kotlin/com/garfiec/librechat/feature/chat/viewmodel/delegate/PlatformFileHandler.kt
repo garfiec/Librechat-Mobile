@@ -62,6 +62,18 @@ interface PlatformFileHandler {
      * unlike [restoreAttachedFiles] it preserves any files the user already attached this compose.
      */
     fun addPreUploadedFiles(files: List<AttachedFile>)
+
+    /** PDFs whose upload is waiting for the user to type the password; the UI prompts for the head. */
+    val pdfPasswordPrompts: StateFlow<List<PdfPasswordPrompt>>
+
+    /**
+     * Retries [prompt]'s upload, decrypting the PDF on-device with [password]. A no-op when the
+     * prompt is no longer pending (dismissed, its chip removed, or already answered).
+     */
+    fun submitPdfPassword(prompt: PdfPasswordPrompt, password: String)
+
+    /** Gives up on the head prompt's PDF and removes its chip. */
+    fun dismissPdfPassword()
 }
 
 /**

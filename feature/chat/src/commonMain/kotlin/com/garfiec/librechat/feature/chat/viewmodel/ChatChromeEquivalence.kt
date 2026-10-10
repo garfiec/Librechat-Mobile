@@ -8,6 +8,7 @@ package com.garfiec.librechat.feature.chat.viewmodel
 internal fun ChatUiState.neutralizeStreamingChurn(): ChatUiState = copy(
     content = content.copy(
         streamingContent = "",
+        streamingThinking = "",
         activeToolCalls = emptyList(),
         streamingAttachments = emptyList(),
     ),

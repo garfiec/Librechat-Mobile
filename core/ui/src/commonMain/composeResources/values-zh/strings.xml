@@ -2,6 +2,8 @@
 <resources>
     <!-- Accessibility label for the bottom-sheet drag handle -->
     <string name="cd_drag_handle">拖动手柄</string>
+    <string name="banner_dismiss">关闭横幅</string>
+    <string name="pdf_page_failed">无法渲染此页</string>
     <!-- Custom per-server request headers (issue #287); shared by the pre-login
          server screen and the post-login Settings editor -->
     <string name="server_headers_title">自定义请求头</string>
@@ -19,4 +21,77 @@
     <string name="server_headers_error_name">请求头名称无效。</string>
     <string name="server_headers_error_value">此值包含无法发送的字符。</string>
     <string name="server_headers_error_reserved">此请求头由应用设置，无法覆盖。</string>
+    <string name="pdf_password_title">受密码保护的 PDF</string>
+    <string name="pdf_password_explanation">“%1$s”需要密码才能打开。为了发送给 AI 模型，Switchboard 会在此设备上解密该文件并上传解密后的副本。密码不会离开你的设备。</string>
+    <string name="pdf_password_sensitive_warning">受密码保护的文件通常包含敏感信息。解密后的副本会存储在你的 LibreChat 服务器上，并与 AI 提供商共享。仅在你愿意共享其内容时继续。</string>
+    <string name="pdf_password_field">PDF 密码</string>
+    <string name="pdf_password_incorrect">密码错误，请重试。</string>
+    <string name="pdf_password_show">显示密码</string>
+    <string name="pdf_password_hide">隐藏密码</string>
+    <string name="pdf_password_confirm">解密并上传</string>
+    <string name="pdf_password_cancel">取消</string>
+    <string name="param_thinking_between_tools_description">启用由“努力程度”参数控制的自适应思考。此模型无法完全关闭思考：关闭此项会使用其最低设置，跳过扩展思考，仅在工具调用之间保留简短笔记。关闭时，努力程度上限为“高”。</string>
+    <string name="discard_changes_title">放弃更改？</string>
+    <string name="discard_changes_message">未保存的更改将会丢失。</string>
+    <string name="discard_changes_confirm">放弃</string>
+    <string name="discard_changes_cancel">取消</string>
+    <!-- Context usage breakdown -->
+    <string name="context_compact">压缩对话</string>
+    <string name="context_compacting">正在压缩…</string>
+    <string name="context_compact_info">将目前为止的全部内容总结为一段较短的摘要供模型继续读取，为后续内容腾出上下文空间。不会删除任何内容。</string>
+    <string name="context_usage_label">上下文</string>
+    <string name="context_usage_window">上下文窗口</string>
+    <string name="context_usage_estimated">根据消息历史估算</string>
+    <string name="context_usage_messages">消息</string>
+    <string name="context_usage_tools">工具定义</string>
+    <string name="context_usage_summary">摘要</string>
+    <string name="context_usage_system">系统提示词</string>
+    <string name="context_usage_free">剩余空间</string>
+    <string name="context_usage_input">输入</string>
+    <string name="context_usage_output">输出</string>
+    <string name="context_usage_estimated_row">估算</string>
+    <string name="context_usage_tool_calls">工具调用</string>
+    <string name="context_usage_agent_instructions">智能体指令</string>
+    <string name="context_usage_tools_system">系统工具</string>
+    <string name="context_usage_tools_system_deferred">系统工具（延迟加载）</string>
+    <string name="context_usage_tools_mcp">MCP 工具</string>
+    <string name="context_usage_tools_mcp_deferred">MCP 工具（延迟加载）</string>
+    <string name="context_usage_skills">技能</string>
+    <string name="context_usage_subagents">子智能体</string>
+    <string name="context_usage_cached">已缓存</string>
+    <string name="context_usage_cache_write">缓存写入</string>
+    <string name="context_usage_by_tool">按工具</string>
+    <string name="context_usage_pressure_warn">上下文窗口即将填满</string>
+    <string name="context_usage_pressure_danger">上下文窗口几乎已满</string>
+    <string name="context_usage_largest_tool">最大的工具：%1$s（%2$s）</string>
+    <string name="context_usage_reclaim">现在总结可释放约 %1$s 个令牌</string>
+    <string name="context_usage_insights">上下文洞察</string>
+    <string name="context_usage_totals">合计</string>
+    <string name="context_usage_cache_read">缓存读取</string>
+    <string name="context_usage_subagents_all">子智能体（所有分支）</string>
+    <string name="context_usage_cost">费用</string>
+    <string name="context_usage_cost_branch">费用（此分支）</string>
+    <string name="context_usage_cost_all">所有分支</string>
+    <string name="context_usage_tools_all">工具</string>
+    <string name="context_usage_used">已使用</string>
+    <string name="timestamp_just_now">刚刚</string>
+    <plurals name="timestamp_minutes_ago">
+        <item quantity="other">%1$d分钟前</item>
+    </plurals>
+    <plurals name="timestamp_hours_ago">
+        <item quantity="other">%1$d小时前</item>
+    </plurals>
+    <plurals name="timestamp_days_ago">
+        <item quantity="other">%1$d天前</item>
+    </plurals>
+    <plurals name="timestamp_weeks_ago">
+        <item quantity="other">%1$d周前</item>
+    </plurals>
+    <string name="timestamp_yesterday_at">昨天 %1$s</string>
+    <string name="date_group_today">今天</string>
+    <string name="date_group_yesterday">昨天</string>
+    <string name="date_group_previous_7_days">过去 7 天</string>
+    <string name="date_group_previous_30_days">过去 30 天</string>
+    <string name="date_group_unknown">未知</string>
+    <string name="snackbar_dismiss">关闭</string>
 </resources>

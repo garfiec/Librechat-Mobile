@@ -4,28 +4,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -43,16 +31,17 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.brand.TchatBrand
-import com.garfiec.librechat.core.ui.components.PlatformBackHandler
-import com.garfiec.librechat.feature.auth.oauth.OAuthWebView
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveButton
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.feature.auth.resources.*
 import com.garfiec.librechat.feature.auth.resources.Res
 import com.garfiec.librechat.feature.auth.viewmodel.LoginViewModel
-import com.garfiec.librechat.feature.auth.viewmodel.OAuthWebViewState
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -63,6 +52,7 @@ fun LoginScreen(
     modifier: Modifier = Modifier,
     onNavigateToForgotPassword: () -> Unit = {},
     onNavigateToTwoFactor: (String) -> Unit = {},
+    onNavigateToSso: (String) -> Unit = {},
     onBack: (() -> Unit)? = null,
     viewModel: LoginViewModel = koinViewModel(),
 ) {
@@ -70,10 +60,12 @@ fun LoginScreen(
     val currentOnLoginSuccess by rememberUpdatedState(onLoginSuccess)
     val currentOnNavigateToTwoFactor by rememberUpdatedState(onNavigateToTwoFactor)
 
-    // Belt-and-braces fallback — see the comment on LoginViewModel.checkOAuthResult(). The primary
-    // path is the OAuth WebView overlay's own onComplete below.
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        viewModel.checkOAuthResult()
+    val currentOnNavigateToSso by rememberUpdatedState(onNavigateToSso)
+    LaunchedEffect(uiState.ssoProvider) {
+        uiState.ssoProvider?.let { provider ->
+            viewModel.consumeSsoNavigation()
+            currentOnNavigateToSso(provider)
+        }
     }
 
     LaunchedEffect(uiState.isLoggedIn) {
@@ -94,10 +86,9 @@ fun LoginScreen(
 
     // TCHAT: honour the server's OPENID_AUTO_REDIRECT — fires once per screen instance (the
     // rememberSaveable latch, not just a LaunchedEffect key, because config fields don't change
-    // mid-visit but the user backing out of the browser must land on a *usable* screen rather than
-    // being thrown straight back into it). Only when there is genuinely nothing else to do: email
-    // login is off, OIDC is on, and no error is already showing (an error means the last attempt —
-    // possibly this very auto-redirect — didn't work, and relaunching over it would loop).
+    // mid-visit but the user backing out of the SSO screen must land on a *usable* screen rather
+    // than being thrown straight back into it). Only when there is genuinely nothing else to do:
+    // email login is off, OIDC is on, and no error is already showing.
     var autoRedirectFired by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(uiState.openidAutoRedirect, uiState.emailLoginEnabled, uiState.socialLogins, uiState.error) {
         if (!autoRedirectFired &&
@@ -107,23 +98,8 @@ fun LoginScreen(
             uiState.error == null
         ) {
             autoRedirectFired = true
-            viewModel.launchOAuth(TchatBrand.OIDC_PROVIDER)
+            viewModel.onSsoProviderSelected(TchatBrand.OIDC_PROVIDER)
         }
-    }
-
-    // TCHAT: the in-app OAuth WebView, full-screen over everything else on this screen while a
-    // flow is in progress. Rendered as an early return (not a sibling overlay) so the login form
-    // underneath is never composed on top of / interactable behind it — same shape as
-    // ServerUrlScreen's autoConnecting branch.
-    val oAuthWebView = uiState.oAuthWebView
-    if (oAuthWebView != null) {
-        OAuthWebViewOverlay(
-            state = oAuthWebView,
-            onComplete = viewModel::onOAuthWebViewComplete,
-            onDismiss = viewModel::dismissOAuthWebView,
-            modifier = modifier,
-        )
-        return
     }
 
     Box(
@@ -153,7 +129,7 @@ fun LoginScreen(
             // (ALLOW_EMAIL_LOGIN=false, #14180) — it 403s the login POST, so offer only the
             // social providers below. Fail-open: the flag defaults true until config resolves.
             if (uiState.emailLoginEnabled) {
-                OutlinedTextField(
+                AdaptiveOutlinedTextField(
                     value = uiState.email,
                     onValueChange = viewModel::onEmailChanged,
                     label = { Text(stringResource(Res.string.email_label)) },
@@ -168,7 +144,7 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                OutlinedTextField(
+                AdaptiveOutlinedTextField(
                     value = uiState.password,
                     onValueChange = viewModel::onPasswordChanged,
                     label = { Text(stringResource(Res.string.password_label)) },
@@ -196,13 +172,13 @@ fun LoginScreen(
             if (uiState.emailLoginEnabled) {
                 Spacer(modifier = Modifier.height(24.dp))
 
-                Button(
+                AdaptiveButton(
                     onClick = viewModel::login,
                     modifier = Modifier.fillMaxWidth().testTag("login_submit"),
                     enabled = !uiState.isLoading,
                 ) {
                     if (uiState.isLoading) {
-                        CircularProgressIndicator(
+                        AdaptiveCircularProgressIndicator(
                             modifier = Modifier.height(20.dp),
                             color = MaterialTheme.colorScheme.onPrimary,
                             strokeWidth = 2.dp,
@@ -231,7 +207,7 @@ fun LoginScreen(
             if (uiState.socialLoginEnabled && socialLogins.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(16.dp))
 
-                HorizontalDivider(modifier = Modifier.fillMaxWidth())
+                AdaptiveDivider(modifier = Modifier.fillMaxWidth())
 
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -246,8 +222,8 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 socialLogins.forEach { provider ->
-                    OutlinedButton(
-                        onClick = { viewModel.launchOAuth(provider) },
+                    AdaptiveOutlinedButton(
+                        onClick = { viewModel.onSsoProviderSelected(provider) },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !uiState.isLoading,
                     ) {
@@ -258,46 +234,25 @@ fun LoginScreen(
             }
         }
 
-        BackAffordanceOverlay(onBack)
-    }
-}
-
-/**
- * TCHAT: full-screen host for the in-app OAuth WebView. A slim top bar carries just a close
- * button — system back dismisses on Android via [PlatformBackHandler]; the explicit close covers
- * iOS (which has no system back). Mirrors feature/chat's `PdfPreviewOverlay` shape.
- */
-@Composable
-private fun OAuthWebViewOverlay(
-    state: OAuthWebViewState,
-    onComplete: () -> Unit,
-    onDismiss: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    PlatformBackHandler(enabled = true, onBack = onDismiss)
-
-    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
-        Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = onDismiss) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = stringResource(Res.string.oauth_webview_close),
-                        tint = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-            }
-
-            OAuthWebView(
-                startUrl = state.startUrl,
-                serverUrl = state.serverUrl,
-                onComplete = onComplete,
-                modifier = Modifier.fillMaxSize(),
+        uiState.pendingSsoProvider?.let {
+            AdaptiveAlertDialog(
+                onDismissRequest = viewModel::onSsoRiskDismissed,
+                title = { Text(stringResource(Res.string.sso_risk_title)) },
+                text = { Text(stringResource(Res.string.sso_risk_body)) },
+                confirmButton = {
+                    TextButton(onClick = viewModel::onSsoRiskAccepted) {
+                        Text(stringResource(Res.string.continue_button))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = viewModel::onSsoRiskDismissed) {
+                        Text(stringResource(Res.string.cancel))
+                    }
+                },
             )
         }
+
+        BackAffordanceOverlay(onBack)
     }
 }
 

@@ -204,7 +204,9 @@ internal fun processImageForUpload(
                 encodeToPngUnderLimit(bytes, mimeType, srcWidth, srcHeight, initialSampleSize, maxEncodedBytes)
             }
         }
-    } catch (e: Exception) {
+    } catch (e: IllegalArgumentException) {
+        // BitmapFactory and Bitmap.compress reject what they can't handle with this; bytes that
+        // simply aren't an image come back as a null bitmap instead, handled above.
         Logger.w(e) { "processImageForUpload: failed to process $mimeType, using original bytes" }
         null
     }

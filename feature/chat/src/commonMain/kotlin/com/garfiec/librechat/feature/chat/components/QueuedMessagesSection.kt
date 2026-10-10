@@ -43,7 +43,9 @@ import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_cancel_queued_message
 import com.garfiec.librechat.feature.chat.resources.cd_reorder_queued_message
 import com.garfiec.librechat.feature.chat.resources.queued_attachment_only
+import com.garfiec.librechat.feature.chat.resources.queued_turn_needs_attention
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
+import com.garfiec.librechat.feature.chat.viewmodel.QueuedTurnServerState
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -91,7 +93,12 @@ fun QueuedMessagesSection(
             .pointerInput(Unit) {
                 detectDragGesturesAfterLongPress(
                     onDragStart = { offset ->
+                        // The gesture lives on the container, so hiding a server-owned row's
+                        // handle does not make it ungrabbable — the same check the reorder is
+                        // refused by has to be made here, or the row is picked up and then lurches
+                        // (see onDrag) against a reorder that silently never happens.
                         draggingId = currentQueue.firstOrNull { item ->
+                            if (item.server != null) return@firstOrNull false
                             val top = rowTops[item.localId] ?: return@firstOrNull false
                             val height = rowHeights[item.localId] ?: 0f
                             offset.y >= top && offset.y < top + height
@@ -114,13 +121,17 @@ fun QueuedMessagesSection(
                         if (from < 0) return@detectDragGesturesAfterLongPress
                         dragOffsetY += dragAmount.y
                         // Swap with a neighbour once the finger crosses that neighbour's midpoint.
-                        if (dragAmount.y > 0 && from < list.lastIndex) {
+                        // A server-owned neighbour is not swappable either — the reorder is
+                        // refused for BOTH endpoints — and settling the offset against a swap that
+                        // did not happen is what makes the row jump a full row height back under a
+                        // stationary finger.
+                        if (dragAmount.y > 0 && from < list.lastIndex && list[from + 1].server == null) {
                             val nextHeight = rowHeights[list[from + 1].localId] ?: 0f
                             if (dragOffsetY > nextHeight / 2f) {
                                 onReorder(from, from + 1)
                                 dragOffsetY -= nextHeight
                             }
-                        } else if (dragAmount.y < 0 && from > 0) {
+                        } else if (dragAmount.y < 0 && from > 0 && list[from - 1].server == null) {
                             val prevHeight = rowHeights[list[from - 1].localId] ?: 0f
                             if (dragOffsetY < -prevHeight / 2f) {
                                 onReorder(from, from - 1)
@@ -175,13 +186,17 @@ private fun QueuedMessageRow(
                 .clickable(onClick = onTap)
                 .padding(start = 8.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
         ) {
-            Icon(
-                imageVector = Icons.Default.DragHandle,
-                contentDescription = stringResource(Res.string.cd_reorder_queued_message),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                modifier = Modifier.size(20.dp),
-            )
-            Spacer(Modifier.width(8.dp))
+            // No handle on a server-owned row: the backend runs those in its own sequence, so
+            // offering a drag would show an order it will not honour.
+            if (item.server == null) {
+                Icon(
+                    imageVector = Icons.Default.DragHandle,
+                    contentDescription = stringResource(Res.string.cd_reorder_queued_message),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+            }
 
             if (item.attachments.isNotEmpty()) {
                 Icon(
@@ -206,6 +221,19 @@ private fun QueuedMessageRow(
                     .padding(vertical = 2.dp),
             )
 
+            // A row the server refused, or one whose outcome was never revealed, blocks the whole
+            // queue by design — it is held for the user rather than resent. Without a cue the
+            // follow-up queue simply stops draining with nothing on screen to explain why.
+            if (item.needsAttention) {
+                Text(
+                    text = stringResource(Res.string.queued_turn_needs_attention),
+                    maxLines = 1,
+                    color = MaterialTheme.colorScheme.error,
+                    fontSize = 12.sp * fontSizeMultiplier,
+                    modifier = Modifier.padding(horizontal = 6.dp),
+                )
+            }
+
             IconButton(
                 onClick = onCancel,
                 modifier = Modifier.alpha(0.8f),
@@ -220,3 +248,19 @@ private fun QueuedMessageRow(
         }
     }
 }
+
+/**
+ * Whether this row is waiting on the user rather than on the server.
+ *
+ * `Rejected` is a refusal the server proved never committed; `Indeterminate` and an expired
+ * `Uncertain` are outcomes it cannot resolve. All three stop the queue draining, so all three have
+ * to say something.
+ */
+private val QueuedMessage.needsAttention: Boolean
+    get() = when (server?.status) {
+        QueuedTurnServerState.Status.Rejected,
+        QueuedTurnServerState.Status.Indeterminate,
+        -> true
+        QueuedTurnServerState.Status.Uncertain -> server.reconciliationExpired
+        else -> false
+    }

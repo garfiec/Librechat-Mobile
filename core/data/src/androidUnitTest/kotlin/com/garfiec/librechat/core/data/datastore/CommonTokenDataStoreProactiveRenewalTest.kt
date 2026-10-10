@@ -193,6 +193,30 @@ class CommonTokenDataStoreProactiveRenewalTest {
         }
 
     /**
+     * `""` reaches the wire as "unpinned", not as a relative path or an empty server id.
+     *
+     * It is a DEFENCE, not a repair: Ktor resolves `/api/auth/refresh` against the same live base
+     * an unpinned POST uses, and `ServerHeadersPlugin.resolveBaseUrl` drops an empty pin before it
+     * looks a server up, so the two spellings are indistinguishable from outside today. This pins
+     * that they stay that way if either downstream normalization is ever removed.
+     */
+    @Test
+    fun `an empty snapshot base URL leaves the refresh unpinned`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val urls = mutableListOf<String>()
+            val engine = unconfinedMockEngine { request ->
+                urls += request.url.toString()
+                respond(refreshResponseBody(jwt(900)), HttpStatusCode.OK, jsonResponseHeaders)
+            }
+            val live = "https://live-elsewhere.example.com"
+            val store = seeded(refreshClientOf(engine, baseUrl = live), jwt(-60))
+
+            store.refreshAccessTokenFor(ACCOUNT, "")
+
+            assertThat(urls).containsExactly("$live/api/auth/refresh")
+        }
+
+    /**
      * **A proactive renewal must never log anyone out.** The backend answers `401` identically for a
      * dead session and a transiently-missed one, which is why the reactive path retries before
      * settling. A single best-effort attempt cannot tell them apart, so it must not settle the

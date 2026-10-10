@@ -9,7 +9,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,13 +24,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -51,9 +47,18 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
 import com.garfiec.librechat.core.ui.components.AvatarImage
+import com.garfiec.librechat.core.ui.components.ListDragSelection
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.core.ui.components.avatarColorForSeed
+import com.garfiec.librechat.core.ui.components.dragSelectExclude
+import com.garfiec.librechat.core.ui.components.dragSelectRow
+import com.garfiec.librechat.core.ui.components.dragSelectRowIcon
+import com.garfiec.librechat.core.ui.components.listDragSelection
+import com.garfiec.librechat.core.ui.components.rememberListDragSelection
 import com.garfiec.librechat.core.ui.components.testTagsAsResourceIdSubtree
 import com.garfiec.librechat.feature.conversations.resources.Res
 import com.garfiec.librechat.feature.conversations.resources.accounts
@@ -220,12 +225,18 @@ fun AccountSwitcherSheet(
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(
+    AdaptiveModalBottomSheet(
         onDismissRequest = onDismiss,
         dragHandle = { LowProfileDragHandle() },
         sheetState = sheetState,
     ) {
-        Column(modifier = Modifier.testTagsAsResourceIdSubtree().navigationBarsPadding()) {
+        val dragSelection = rememberListDragSelection()
+        Column(
+            modifier = Modifier
+                .testTagsAsResourceIdSubtree()
+                .listDragSelection(dragSelection, holdOnly = true)
+                .navigationBarsPadding(),
+        ) {
             Text(
                 text = stringResource(Res.string.accounts),
                 style = MaterialTheme.typography.titleMedium,
@@ -236,9 +247,10 @@ fun AccountSwitcherSheet(
                     account = account,
                     onClick = { if (!account.isActive) onSwitchAccount(account.accountId) },
                     onRemoveRequest = { onRemoveAccountRequest(account) },
+                    dragSelection = dragSelection,
                 )
             }
-            HorizontalDivider(
+            AdaptiveDivider(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                 color = MaterialTheme.colorScheme.outlineVariant,
             )
@@ -246,14 +258,14 @@ fun AccountSwitcherSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("account_add")
-                    .clickable(onClick = onAddAccount)
+                    .dragSelectRow(dragSelection, onClick = onAddAccount)
                     .padding(horizontal = 24.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = null,
-                    modifier = Modifier.size(24.dp),
+                    modifier = Modifier.size(24.dp).dragSelectRowIcon(),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(modifier = Modifier.width(16.dp))
@@ -272,11 +284,12 @@ private fun AccountRow(
     account: AccountUiModel,
     onClick: () -> Unit,
     onRemoveRequest: () -> Unit,
+    dragSelection: ListDragSelection,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .dragSelectRow(dragSelection, onClick = onClick)
             .padding(start = 24.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -286,6 +299,7 @@ private fun AccountRow(
             fallbackText = account.displayLabel,
             fallbackBackgroundColor = avatarColorForSeed(account.accountId),
             contentDescription = null,
+            modifier = Modifier.dragSelectRowIcon(),
         )
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
@@ -312,7 +326,7 @@ private fun AccountRow(
             )
             Spacer(modifier = Modifier.width(12.dp))
         }
-        IconButton(onClick = onRemoveRequest) {
+        IconButton(onClick = onRemoveRequest, modifier = Modifier.dragSelectExclude(dragSelection)) {
             Icon(
                 imageVector = Icons.Outlined.Delete,
                 contentDescription = stringResource(Res.string.remove_account),
@@ -330,7 +344,7 @@ fun RemoveAccountDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
+    AdaptiveAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.remove_account_title)) },
         text = { Text(stringResource(Res.string.remove_account_message, account.displayLabel)) },

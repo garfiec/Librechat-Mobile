@@ -15,12 +15,9 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -35,12 +32,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveFilledTonalButton
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.OTP_LENGTH
 import com.garfiec.librechat.core.ui.components.OtpCodeInput
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
+import com.garfiec.librechat.core.ui.components.sanitizeOtpInput
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
-import com.garfiec.librechat.feature.settings.util.copyToClipboard
-import com.garfiec.librechat.feature.settings.util.openUri
+import com.garfiec.librechat.feature.settings.util.rememberClipboardWriter
+import com.garfiec.librechat.feature.settings.util.rememberUriOpener
 import io.github.alexzhirkevich.qrose.rememberQrCodePainter
 import org.jetbrains.compose.resources.stringResource
 
@@ -58,6 +60,8 @@ internal fun TwoFactorSetupDialog(
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val clipboard = rememberClipboardWriter()
+    val uriOpener = rememberUriOpener()
     var code by remember { mutableStateOf("") }
     var submitted by remember { mutableStateOf(false) }
     var noAuthenticator by remember { mutableStateOf(false) }
@@ -68,7 +72,8 @@ internal fun TwoFactorSetupDialog(
     // A rejected code leaves six digits in the boxes; re-arm so editing (or Verify) can submit again.
     LaunchedEffect(isLoading) { if (!isLoading) submitted = false }
 
-    AlertDialog(
+    AdaptiveAlertDialog(
+        modifier = Modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.dialog_title_enable_2fa)) },
         text = {
@@ -86,8 +91,8 @@ internal fun TwoFactorSetupDialog(
                     // The phone IS the second device, so it cannot scan its own screen -- handing
                     // the otpauth:// URI to the authenticator is the enrollment path that works
                     // here. QR and the setup key are the fallbacks, not the default.
-                    FilledTonalButton(
-                        onClick = { noAuthenticator = !openUri(otpauthUrl) },
+                    AdaptiveFilledTonalButton(
+                        onClick = { noAuthenticator = !uriOpener.open(otpauthUrl) },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text(stringResource(Res.string.action_open_authenticator))
@@ -103,7 +108,7 @@ internal fun TwoFactorSetupDialog(
                         SetupKeyRow(
                             secret = secret,
                             onCopy = {
-                                copyToClipboard(secret, "2FA setup key")
+                                clipboard.copy(secret, "2FA setup key")
                                 copied = true
                             },
                         )
@@ -221,7 +226,8 @@ internal fun TwoFactorCodeDialog(
 ) {
     var code by remember { mutableStateOf("") }
 
-    AlertDialog(
+    AdaptiveAlertDialog(
+        modifier = Modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
@@ -232,9 +238,9 @@ internal fun TwoFactorCodeDialog(
                     text = description,
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                OutlinedTextField(
+                AdaptiveOutlinedTextField(
                     value = code,
-                    onValueChange = { code = it.filter { ch -> ch.isDigit() }.take(6) },
+                    onValueChange = { new -> sanitizeOtpInput(old = code, new = new)?.let { code = it } },
                     label = { Text(stringResource(Res.string.hint_verification_code)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -262,12 +268,13 @@ internal fun BackupCodesDialog(
     backupCodes: List<String>,
     onDismiss: () -> Unit,
 ) {
+    val clipboard = rememberClipboardWriter()
     // These are single-use recovery codes shown exactly once. Without a copy action the only way
     // to keep them is a screenshot or transcribing ten hex strings by hand, so offer the same
     // copy-then-confirm affordance ApiKeyCreateDialog uses for its equally one-shot secret.
     var copied by remember { mutableStateOf(false) }
 
-    AlertDialog(
+    AdaptiveAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.dialog_title_backup_codes)) },
         text = {
@@ -316,7 +323,7 @@ internal fun BackupCodesDialog(
         dismissButton = {
             TextButton(
                 onClick = {
-                    copyToClipboard(backupCodes.joinToString("\n"), "Backup Codes")
+                    clipboard.copy(backupCodes.joinToString("\n"), "Backup Codes")
                     copied = true
                 },
             ) {

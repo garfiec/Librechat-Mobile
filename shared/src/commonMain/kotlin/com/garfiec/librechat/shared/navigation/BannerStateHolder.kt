@@ -3,6 +3,7 @@ package com.garfiec.librechat.shared.navigation
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.identity.deriveServerId
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.repository.BannerRepository
 import com.garfiec.librechat.core.model.Banner
 import com.garfiec.librechat.core.network.client.ServerUrlProvider
@@ -46,7 +47,7 @@ class BannerStateHolder(
             // awaitBaseUrl, not getBaseUrl: the init fetch runs inside the ViewModel constructor on
             // Main.immediate, before the persisted URL has resolved off "", and deriveServerId("")
             // throws — which would stamp a null id and silently disable the carry-over guard below.
-            val serverId = runCatching { deriveServerId(serverUrlProvider.awaitBaseUrl()).value }
+            val serverId = suspendRunCatching { deriveServerId(serverUrlProvider.awaitBaseUrl()).value }
                 .getOrNull()
             when (val result = bannerRepository.getBanner()) {
                 is Result.Success -> {

@@ -1,0 +1,9 @@
+- Chat layout page with a live preview
+- Default to a starred group and steering while generating
+- Let a tapped glass segment thumb linger, then pop flat
+- Drag the viewer away in any direction to dismiss
+- Grouped settings sections in Material too
+- Memories and MCP servers open their own pages from the Data tab
+- Background prefetch on its own page
+- Appearance page with interface style and theme previews
+- And 11 more; see the release notes on GitHub.

@@ -7,13 +7,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -23,6 +18,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.response.UploadRoute
+import com.garfiec.librechat.core.ui.components.AdaptiveButton
+import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
+import com.garfiec.librechat.core.ui.components.AdaptiveSegmentedChoice
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.viewmodel.PendingUploadFile
@@ -50,7 +48,7 @@ fun UploadRoutingSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    ModalBottomSheet(
+    AdaptiveModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         modifier = modifier,
@@ -107,7 +105,7 @@ fun UploadRoutingSheet(
                 TextButton(onClick = onDismiss) {
                     Text(stringResource(Res.string.cancel))
                 }
-                Button(onClick = onConfirm) {
+                AdaptiveButton(onClick = onConfirm) {
                     Text(stringResource(Res.string.upload_routing_attach))
                 }
             }
@@ -128,24 +126,18 @@ private fun UploadRoutingRow(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            val options = UploadRoute.entries
-            options.forEachIndexed { index, route ->
-                SegmentedButton(
-                    selected = staged.route == route,
-                    onClick = { onRouteChange(route) },
-                    enabled = staged.choosable,
-                    shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
-                ) {
-                    Text(
-                        text = when (route) {
-                            UploadRoute.PROVIDER -> stringResource(Res.string.upload_routing_option_provider)
-                            UploadRoute.TEXT -> stringResource(Res.string.upload_routing_option_text)
-                        },
-                    )
+        AdaptiveSegmentedChoice(
+            options = UploadRoute.entries.map { route ->
+                when (route) {
+                    UploadRoute.PROVIDER -> stringResource(Res.string.upload_routing_option_provider)
+                    UploadRoute.TEXT -> stringResource(Res.string.upload_routing_option_text)
                 }
-            }
-        }
+            },
+            selectedIndex = staged.route.ordinal,
+            onSelect = { onRouteChange(UploadRoute.entries[it]) },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = staged.choosable,
+        )
         Text(
             text = routeExplanation(staged),
             style = MaterialTheme.typography.bodySmall,

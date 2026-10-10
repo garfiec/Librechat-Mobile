@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.data.repository
 
+import androidx.sqlite.SQLiteException
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.identity.deriveServerId
 import com.garfiec.librechat.core.common.identity.normalizeServerUrl
@@ -98,6 +99,7 @@ class ServerRepositoryImpl(
      * the flags describe the map and a reader that saw one without the other would act on a stale
      * pairing.
      */
+    @Suppress("TooGenericExceptionCaught") // fails open and records why (see readFailed)
     private suspend fun seedLocked() {
         try {
             val decoded = serverDao.getAll().decode()
@@ -188,9 +190,7 @@ class ServerRepositoryImpl(
                     unreadable = unreadable - serverId
                     writtenHere = writtenHere + serverId
                     HeaderWriteResult.Saved
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
+                } catch (e: SQLiteException) {
                     // Reported, not thrown: the editors turn a refusal into "couldn't save", which is
                     // the one outcome the user can act on.
                     Logger.w(e) { "Failed to persist custom server headers" }

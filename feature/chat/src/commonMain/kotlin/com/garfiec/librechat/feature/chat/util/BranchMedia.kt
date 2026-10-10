@@ -63,6 +63,7 @@ internal fun extractBranchMedia(
  * (`com.garfiec.librechat.feature.chat.util.extractConversationMedia`) so both resolve the exact
  * same URLs as the message renderers. Not deduped — callers dedupe across messages.
  */
+@Suppress("NestedBlockDepth") // debt: deeply nested
 internal fun collectMessageMedia(message: Message, baseUrl: String): List<MediaItem> {
     val items = mutableListOf<MediaItem>()
 

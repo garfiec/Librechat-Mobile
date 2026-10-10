@@ -28,39 +28,35 @@ class RoleCacheDataStore(
             Logger.w { "No active account; skipping role cache write" }
             return
         }
-        try {
+        bestEffortCache({ Logger.w(it) { "Failed to cache user role permissions" } }) {
             val serialized = json.encodeToString(UserRolePermissions.serializer(), role)
             dataStore.edit { prefs ->
                 prefs[key(accountId)] = serialized
                 prefs.remove(stringPreferencesKey(ROLE_BASE)) // drop the pre-keying bare entry once
             }
-        } catch (e: Exception) {
-            Logger.w(e) { "Failed to cache user role permissions" }
         }
     }
 
     suspend fun load(): UserRolePermissions? {
         val accountId = activeAccountProvider.currentAccountId()?.value ?: return null
-        return try {
-            val serialized = dataStore.data.first()[key(accountId)] ?: return null
-            json.decodeFromString(UserRolePermissions.serializer(), serialized)
-        } catch (e: Exception) {
-            Logger.w(e) { "Failed to load cached user role permissions" }
+        return bestEffortCache({
+            Logger.w(it) { "Failed to load cached user role permissions" }
             null
+        }) {
+            dataStore.data.first()[key(accountId)]
+                ?.let { json.decodeFromString(UserRolePermissions.serializer(), it) }
         }
     }
 
     suspend fun clear() {
-        try {
-            // Scope to the resolved account only: other roster accounts' cached roles are retained
-            // multi-account state, not session garbage — a blanket wipe here would strip a retained
-            // account's permissions on someone else's logout. On the logout/remove paths the active
-            // account is already flipped to null when this runs; there its on-disk entry is reaped
-            // by AccountScopedPrefsPurger instead, so an unresolved clear has nothing left to do.
-            val accountId = activeAccountProvider.currentAccountId()?.value ?: return
+        // Scope to the resolved account only: other roster accounts' cached roles are retained
+        // multi-account state, not session garbage — a blanket wipe here would strip a retained
+        // account's permissions on someone else's logout. On the logout/remove paths the active
+        // account is already flipped to null when this runs; there its on-disk entry is reaped
+        // by AccountScopedPrefsPurger instead, so an unresolved clear has nothing left to do.
+        val accountId = activeAccountProvider.currentAccountId()?.value ?: return
+        bestEffortCache({ Logger.w(it) { "Failed to clear cached user role permissions" } }) {
             dataStore.edit { prefs -> prefs.remove(key(accountId)) }
-        } catch (e: Exception) {
-            Logger.w(e) { "Failed to clear cached user role permissions" }
         }
     }
 

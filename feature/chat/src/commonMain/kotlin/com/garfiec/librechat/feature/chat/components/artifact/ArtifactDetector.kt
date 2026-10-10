@@ -280,6 +280,7 @@ private fun indentWidth(line: String, index: Int): Int {
  * Attribute parser mirroring `micromark-extension-directive`'s `factory-attributes.js`. Returns null
  * when the attribute block is invalid upstream, in which case the whole directive does not parse.
  */
+@Suppress("CyclomaticComplexMethod") // debt: complexity 31
 private fun parseAttributes(attrString: String): Map<String, String>? {
     val attrs = mutableMapOf<String, String>()
     var i = 0

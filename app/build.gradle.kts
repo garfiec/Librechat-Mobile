@@ -35,6 +35,29 @@ android {
     buildFeatures {
         buildConfig = true
     }
+
+    packaging {
+        jniLibs {
+            // Do not strip: stripping needs an NDK and AGP silently skips it when none is
+            // installed, so CI (has one) and F-Droid's buildserver image (has none) would
+            // package different .so bytes for the same tag and fail reproducible-build
+            // verification. We compile no native code; every .so comes prebuilt from Maven.
+            // Costs ~577 KB — do not reclaim it by pinning an NDK instead: two pins that
+            // must never drift, and strip output can itself vary by NDK version.
+            keepDebugSymbols += setOf("**/*.so")
+        }
+    }
+
+    // AGP stores a Play-encrypted list of our dependencies in the APK signing block
+    // (id 0x504B4453). fdroidserver's scanner rejects it outright -- it is in
+    // APK_SIGNING_BLOCK_IDS alongside Frosting and Meituan -- and a signing block cannot be
+    // whitelisted from the recipe the way a source path can with scanignore. F-Droid's own
+    // rebuild is unsigned so it never has the block; only the developer-signed APK we publish
+    // as the reproducible-build reference does, which is what gets scanned.
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
 }
 
 dependencies {
@@ -51,6 +74,7 @@ dependencies {
     implementation(project(":feature:settings"))
     implementation(project(":feature:agents"))
     implementation(project(":feature:files"))
+    implementation(project(":feature:schedules"))
     implementation(project(":feature:skills"))
 
     implementation(libs.activity.compose)
@@ -69,5 +93,16 @@ dependencies {
     debugImplementation(libs.leakcanary)
 
     androidTestImplementation(libs.compose.ui.test)
+    // Pin espresso ≥3.7.0: the 3.5.x pulled in transitively by ui-test-junit4 injects
+    // input via InputManager.getInstance, which no longer exists on API 36+.
+    androidTestImplementation(libs.espresso.core)
     debugImplementation(libs.compose.ui.test.manifest)
+
+    constraints {
+        // espresso 3.7.0 needs concurrent-futures 1.2.0, but under compose 1.12 the app's runtime
+        // resolves 1.1.0, and AGP holds the test APK to the app's versions: the two are a hard
+        // conflict that fails :app:lint. Raising the app's copy lets both agree.
+        implementation(libs.androidx.concurrent.futures)
+        implementation(libs.androidx.concurrent.futures.ktx)
+    }
 }

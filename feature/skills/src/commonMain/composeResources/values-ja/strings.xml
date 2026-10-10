@@ -7,12 +7,20 @@
     <string name="skills_import">スキルをインポート</string>
     <string name="skills_search_hint">スキルを検索…</string>
     <string name="skills_empty">スキルはまだありません。</string>
+    <string name="skills_empty_hint">+ をタップして作成するか、スキルファイルをインポートします。</string>
+    <string name="skills_no_matches">検索に一致するスキルはありません。</string>
+    <string name="skills_retry">再試行</string>
 
     <!-- Files -->
     <string name="skill_files_title">ファイル</string>
     <string name="skill_files_empty">添付されたファイルはありません。</string>
     <string name="skill_files_add">ファイルを追加</string>
     <string name="skill_files_remove">%1$s を削除</string>
+    <string name="skill_file_save">保存</string>
+    <string name="skill_file_close">閉じる</string>
+    <string name="skill_file_reload">再読み込み</string>
+    <string name="skill_file_conflict">このファイルは別の場所で変更されました。最新版を表示するには再読み込みしてください。ここでの編集内容は破棄されます。</string>
+    <string name="skill_file_binary">このファイルはテキストとして表示できません。</string>
 
     <!-- Detail -->
     <string name="skill_edit">編集</string>
@@ -59,4 +67,18 @@
     <string name="skill_acl_collapse">折りたたむ</string>
     <string name="skill_acl_expand">展開</string>
     <string name="skill_acl_close">閉じる</string>
+    <string name="skill_import_failed_title">インポートに失敗しました</string>
+    <string name="skill_import_incomplete">インポートを中止しました: アーカイブ内の %1$d 個のファイルをインポートできませんでした。アーカイブを修正して、もう一度アップロードしてください。</string>
+    <string name="skill_import_rollback_failed">%1$d 個のファイルのインポートに失敗し、不完全なスキルを自動で削除できませんでした。もう一度試す前に削除してください。</string>
+    <string name="skill_import_cleanup_incomplete">%1$d 個のファイルのインポートに失敗しました。不完全なスキルは削除されましたが、自動クリーンアップは完了しませんでした。</string>
+    <string name="skill_import_failed_files">次のファイルをインポートできませんでした:</string>
+    <string name="skill_import_rollback_failed_files">次のファイルのインポートに失敗し、不完全なスキルが残っています:</string>
+    <string name="skill_import_cleanup_incomplete_files">次のファイルのインポートに失敗し、自動クリーンアップは完了しませんでした:</string>
+    <string name="skill_import_reason_invalid_path">サポートされていないファイルパスです</string>
+    <string name="skill_import_reason_file_too_large">ファイルサイズの上限 %1$s MB を超えています</string>
+    <string name="skill_import_reason_archive_too_large">インポートされませんでした: アーカイブが合計サイズの上限 %1$s MB を超えています</string>
+    <string name="skill_import_reason_archive_entry_changed">アーカイブの読み込み中に変更されました</string>
+    <string name="skill_import_reason_persistence_failed">保存できませんでした</string>
+    <string name="skill_import_reason_unknown">インポートできませんでした</string>
+    <string name="skill_toggle_source">ソースを表示</string>
 </resources>

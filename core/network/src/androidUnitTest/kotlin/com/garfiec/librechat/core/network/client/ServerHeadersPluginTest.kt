@@ -1,6 +1,5 @@
 package com.garfiec.librechat.core.network.client
 
-import com.garfiec.librechat.core.network.client.SessionEndReason
 import com.google.common.truth.Truth.assertThat
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine

@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.conversations.drawer
 
 import co.touchlab.kermit.Logger
+import com.garfiec.librechat.core.common.datetime.DateGroup
 import com.garfiec.librechat.core.common.extensions.RelativeTimeReference
 import com.garfiec.librechat.core.common.extensions.dayBoundaryReferences
 import com.garfiec.librechat.core.common.result.Result
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.filter
@@ -35,8 +37,8 @@ class ConversationListStateHolder(
     private val _recentConversations = MutableStateFlow<List<Conversation>>(emptyList())
     val recentConversations: StateFlow<List<Conversation>> = _recentConversations.asStateFlow()
 
-    private val _groupedConversations = MutableStateFlow<List<Pair<String, List<Conversation>>>>(emptyList())
-    val groupedConversations: StateFlow<List<Pair<String, List<Conversation>>>> = _groupedConversations.asStateFlow()
+    private val _groupedConversations = MutableStateFlow<List<Pair<DateGroup, List<Conversation>>>>(emptyList())
+    val groupedConversations: StateFlow<List<Pair<DateGroup, List<Conversation>>>> = _groupedConversations.asStateFlow()
 
     private val _activeConversationId = MutableStateFlow<String?>(null)
     val activeConversationId: StateFlow<String?> = _activeConversationId.asStateFlow()
@@ -66,8 +68,9 @@ class ConversationListStateHolder(
 
     private fun observeConversations() {
         scope.launch {
-            try {
-                conversationRepository.observeConversations().collect { result ->
+            conversationRepository.observeConversations()
+                .catch { e -> Logger.w(e) { "Failed to observe conversations" } }
+                .collect { result ->
                     if (result is Result.Success) {
                         _recentConversations.value = result.data
                         // Regroup on every Room emission — including during an active search. Search
@@ -77,9 +80,6 @@ class ConversationListStateHolder(
                         regroup()
                     }
                 }
-            } catch (e: Exception) {
-                Logger.w(e) { "Failed to observe conversations" }
-            }
         }
     }
 
@@ -113,18 +113,13 @@ class ConversationListStateHolder(
     }
 
     private suspend fun loadPage(cursor: String?): Boolean {
-        return try {
-            val result = conversationRepository.loadNextPage(cursor = cursor)
-            if (result is Result.Success) {
-                nextCursor = result.data
-                _hasMore.value = result.data != null
-                true
-            } else {
-                Logger.w { "Failed to load conversations page" }
-                false
-            }
-        } catch (e: Exception) {
-            Logger.w(e) { "Failed to load conversations page" }
+        val result = conversationRepository.loadNextPage(cursor = cursor)
+        return if (result is Result.Success) {
+            nextCursor = result.data
+            _hasMore.value = result.data != null
+            true
+        } else {
+            Logger.w((result as? Result.Error)?.exception) { "Failed to load conversations page" }
             false
         }
     }

@@ -7,16 +7,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -29,6 +25,10 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.speech.TtsVoice
+import com.garfiec.librechat.core.ui.components.AdaptiveButton
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -71,7 +71,7 @@ internal fun SpeechSettingsSection(
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 val toggleAutoSendCd = stringResource(Res.string.cd_toggle_auto_send_stt)
-                Switch(
+                AdaptiveSwitch(
                     checked = autoSendAfterSttEnabled,
                     onCheckedChange = onAutoSendAfterSttChange,
                     modifier = Modifier.semantics {
@@ -100,7 +100,7 @@ internal fun SpeechSettingsSection(
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 val toggleAutoReadCd = stringResource(Res.string.cd_toggle_auto_read)
-                Switch(
+                AdaptiveSwitch(
                     checked = autoReadEnabled,
                     onCheckedChange = onAutoReadChange,
                     modifier = Modifier.semantics {
@@ -128,7 +128,7 @@ internal fun SpeechSettingsSection(
                     ) {
                         val voiceName = selectedVoice?.name ?: stringResource(Res.string.stt_default)
                         val voiceCd = stringResource(Res.string.cd_tts_voice_selector, voiceName)
-                        OutlinedTextField(
+                        AdaptiveOutlinedTextField(
                             value = voiceName,
                             onValueChange = {},
                             readOnly = true,
@@ -174,7 +174,7 @@ internal fun SpeechSettingsSection(
 
                     // Test voice button
                     val testVoiceCd = stringResource(Res.string.cd_test_tts_voice)
-                    Button(
+                    AdaptiveButton(
                         onClick = onTestVoice,
                         modifier = Modifier.semantics {
                             contentDescription = testVoiceCd
@@ -197,6 +197,6 @@ internal fun SpeechSettingsSection(
                 )
             }
         }
-        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+        AdaptiveDivider(modifier = Modifier.padding(top = 8.dp))
     }
 }

@@ -1,15 +1,26 @@
 package com.garfiec.librechat.feature.settings.di
 
 import com.garfiec.librechat.core.common.di.KoinQualifiers
+import com.garfiec.librechat.feature.settings.viewmodel.AccountSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ApiKeysViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.AppearanceSettingsViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.ChatLayoutSettingsViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.ChatSettingsViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.ContextUsageSettingsViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.DataSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.FavoritesViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.GeneralSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.McpViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.MemoriesViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.PrefetchActivityViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.PrefetchSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.PresetManagerViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.ReleaseNotesViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.RoleSkillsAdminViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ServerHeadersViewModel
-import com.garfiec.librechat.feature.settings.viewmodel.SettingsViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.SharedLinksViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.UpdateCheckViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.WhatsNewViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.providerkeys.ProviderKeysViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.providerkeys.SetProviderKeyViewModel
 import org.koin.core.module.Module
@@ -25,36 +36,45 @@ val settingsModule = module {
     // Explicit block (not viewModelOf) so the IO dispatcher can be resolved by
     // qualifier — constructor-DSL resolves CoroutineDispatcher by type only.
     viewModel {
-        SettingsViewModel(
-            contentReader = get(),
-            cacheCleaner = get(),
+        AccountSettingsViewModel(
             userRepository = get(),
             authRepository = get(),
-            conversationRepository = get(),
-            themeDataStore = get(),
-            serverDataStore = get(),
-            settingsDataStore = get(),
-            mcpRepository = get(),
-            memoryRepository = get(),
-            speechSettingsFactory = get(),
             balanceRepository = get(),
-            shareRepository = get(),
-            keyRepository = get(),
-            roleRepository = get(),
-            permissionGate = get(),
+            contentReader = get(),
             configRepository = get(),
-            diagnosticLogRepository = get(),
-            appInfo = get(),
-            attachmentWarmer = get(),
             ioDispatcher = get(KoinQualifiers.IO),
         )
     }
+    viewModel {
+        DataSettingsViewModel(
+            cacheCleaner = get(),
+            conversationRepository = get(),
+            keyRepository = get(),
+            diagnosticLogRepository = get(),
+            mcpRepository = get(),
+            memoryRepository = get(),
+            userRepository = get(),
+            roleRepository = get(),
+            permissionGate = get(),
+            configRepository = get(),
+        )
+    }
+    viewModel {
+        ChatSettingsViewModel(
+            settingsDataStore = get(),
+            speechSettingsFactory = get(),
+        )
+    }
     viewModelOf(::ApiKeysViewModel)
+    viewModelOf(::AppearanceSettingsViewModel)
+    viewModelOf(::ChatLayoutSettingsViewModel)
+    viewModelOf(::ContextUsageSettingsViewModel)
     viewModelOf(::FavoritesViewModel)
+    viewModelOf(::GeneralSettingsViewModel)
     viewModelOf(::MemoriesViewModel)
     viewModelOf(::McpViewModel)
     viewModelOf(::PresetManagerViewModel)
-    // Explicit block for the same reason as SettingsViewModel: the IO dispatcher is resolved by
+    // Explicit block for the same reason as AccountSettingsViewModel: the IO dispatcher is resolved by
     // qualifier, which the constructor DSL cannot express.
     viewModel {
         PrefetchActivityViewModel(
@@ -64,13 +84,17 @@ val settingsModule = module {
             ioDispatcher = get(KoinQualifiers.IO),
         )
     }
+    viewModelOf(::PrefetchSettingsViewModel)
     viewModelOf(::ProviderKeysViewModel)
     viewModelOf(::RoleSkillsAdminViewModel)
     viewModelOf(::ServerHeadersViewModel)
+    viewModelOf(::SharedLinksViewModel)
+    viewModelOf(::UpdateCheckViewModel)
+    viewModelOf(::WhatsNewViewModel)
+    viewModelOf(::ReleaseNotesViewModel)
 
     // viewModelOf has no overload that accepts ParametersHolder, so the runtime
-    // endpointName parameter forces the lambda DSL despite the deprecation hint.
-    @Suppress("DeprecatedKoinApi")
+    // endpointName parameter forces the lambda DSL.
     viewModel { params ->
         SetProviderKeyViewModel(
             endpointName = params.get(),

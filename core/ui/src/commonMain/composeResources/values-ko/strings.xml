@@ -2,6 +2,8 @@
 <resources>
     <!-- Accessibility label for the bottom-sheet drag handle -->
     <string name="cd_drag_handle">드래그 핸들</string>
+    <string name="banner_dismiss">배너 닫기</string>
+    <string name="pdf_page_failed">이 페이지를 렌더링할 수 없습니다</string>
     <!-- Custom per-server request headers (issue #287); shared by the pre-login
          server screen and the post-login Settings editor -->
     <string name="server_headers_title">사용자 지정 요청 헤더</string>
@@ -19,4 +21,77 @@
     <string name="server_headers_error_name">올바른 헤더 이름이 아닙니다.</string>
     <string name="server_headers_error_value">이 값에는 보낼 수 없는 문자가 있습니다.</string>
     <string name="server_headers_error_reserved">이 헤더는 앱이 설정하므로 덮어쓸 수 없습니다.</string>
+    <string name="pdf_password_title">암호로 보호된 PDF</string>
+    <string name="pdf_password_explanation">‘%1$s’ 파일을 열려면 암호가 필요합니다. AI 모델에 보내기 위해 Switchboard가 이 기기에서 파일을 복호화한 뒤 복호화된 사본을 업로드합니다. 암호는 기기 밖으로 전송되지 않습니다.</string>
+    <string name="pdf_password_sensitive_warning">암호로 보호된 파일에는 민감한 정보가 담긴 경우가 많습니다. 복호화된 사본은 LibreChat 서버에 저장되고 AI 제공업체와 공유됩니다. 내용을 공유해도 괜찮은 경우에만 계속하세요.</string>
+    <string name="pdf_password_field">PDF 암호</string>
+    <string name="pdf_password_incorrect">암호가 올바르지 않습니다. 다시 시도하세요.</string>
+    <string name="pdf_password_show">암호 표시</string>
+    <string name="pdf_password_hide">암호 숨기기</string>
+    <string name="pdf_password_confirm">복호화 후 업로드</string>
+    <string name="pdf_password_cancel">취소</string>
+    <string name="param_thinking_between_tools_description">Effort 매개변수로 제어되는 적응형 사고를 활성화합니다. 이 모델은 사고를 완전히 끌 수 없습니다. 끄면 가장 낮은 설정이 사용되어 확장 사고를 건너뛰고 도구 호출 사이의 짧은 메모만 남깁니다. 꺼져 있는 동안 Effort는 High로 제한됩니다.</string>
+    <string name="discard_changes_title">변경 사항을 버릴까요?</string>
+    <string name="discard_changes_message">저장하지 않은 변경 사항이 사라집니다.</string>
+    <string name="discard_changes_confirm">버리기</string>
+    <string name="discard_changes_cancel">취소</string>
+    <!-- Context usage breakdown -->
+    <string name="context_compact">대화 압축</string>
+    <string name="context_compacting">압축 중…</string>
+    <string name="context_compact_info">지금까지의 내용을 모델이 계속 참고하는 짧은 메모로 요약하여 이후 내용을 위한 컨텍스트 공간을 확보합니다. 삭제되는 내용은 없습니다.</string>
+    <string name="context_usage_label">컨텍스트</string>
+    <string name="context_usage_window">컨텍스트 창</string>
+    <string name="context_usage_estimated">메시지 기록을 기반으로 한 추정치</string>
+    <string name="context_usage_messages">메시지</string>
+    <string name="context_usage_tools">도구 스키마</string>
+    <string name="context_usage_summary">요약</string>
+    <string name="context_usage_system">시스템 프롬프트</string>
+    <string name="context_usage_free">여유 공간</string>
+    <string name="context_usage_input">입력</string>
+    <string name="context_usage_output">출력</string>
+    <string name="context_usage_estimated_row">추정</string>
+    <string name="context_usage_tool_calls">도구 호출</string>
+    <string name="context_usage_agent_instructions">에이전트 지침</string>
+    <string name="context_usage_tools_system">시스템 도구</string>
+    <string name="context_usage_tools_system_deferred">시스템 도구(지연)</string>
+    <string name="context_usage_tools_mcp">MCP 도구</string>
+    <string name="context_usage_tools_mcp_deferred">MCP 도구(지연)</string>
+    <string name="context_usage_skills">스킬</string>
+    <string name="context_usage_subagents">하위 에이전트</string>
+    <string name="context_usage_cached">캐시됨</string>
+    <string name="context_usage_cache_write">캐시 쓰기</string>
+    <string name="context_usage_by_tool">도구별</string>
+    <string name="context_usage_pressure_warn">컨텍스트 창이 차고 있습니다</string>
+    <string name="context_usage_pressure_danger">컨텍스트 창이 거의 가득 찼습니다</string>
+    <string name="context_usage_largest_tool">가장 큰 도구: %1$s (%2$s)</string>
+    <string name="context_usage_reclaim">지금 요약하면 약 %1$s 토큰을 확보할 수 있습니다</string>
+    <string name="context_usage_insights">컨텍스트 정보</string>
+    <string name="context_usage_totals">합계</string>
+    <string name="context_usage_cache_read">캐시 읽기</string>
+    <string name="context_usage_subagents_all">하위 에이전트(모든 분기)</string>
+    <string name="context_usage_cost">비용</string>
+    <string name="context_usage_cost_branch">비용(이 분기)</string>
+    <string name="context_usage_cost_all">모든 분기</string>
+    <string name="context_usage_tools_all">도구</string>
+    <string name="context_usage_used">사용됨</string>
+    <string name="timestamp_just_now">방금</string>
+    <plurals name="timestamp_minutes_ago">
+        <item quantity="other">%1$d분 전</item>
+    </plurals>
+    <plurals name="timestamp_hours_ago">
+        <item quantity="other">%1$d시간 전</item>
+    </plurals>
+    <plurals name="timestamp_days_ago">
+        <item quantity="other">%1$d일 전</item>
+    </plurals>
+    <plurals name="timestamp_weeks_ago">
+        <item quantity="other">%1$d주 전</item>
+    </plurals>
+    <string name="timestamp_yesterday_at">어제 %1$s</string>
+    <string name="date_group_today">오늘</string>
+    <string name="date_group_yesterday">어제</string>
+    <string name="date_group_previous_7_days">지난 7일</string>
+    <string name="date_group_previous_30_days">지난 30일</string>
+    <string name="date_group_unknown">알 수 없음</string>
+    <string name="snackbar_dismiss">닫기</string>
 </resources>

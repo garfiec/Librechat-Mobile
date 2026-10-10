@@ -27,7 +27,7 @@ export const meta = {
 //   repoRoot:         absolute path to the checkout (worktree-safe)
 //   skillDir:         absolute path to .claude/skills/audit-i18n
 //   artifactsDir:     absolute path for the raw JSON + intermediate artifacts
-//   reportPath:       absolute path the final report is written to
+//   reportPath:       absolute path the LEAD writes the returned report to (agents never write it)
 //   reportDate:       YYYY-MM-DD, computed by the skill (no clock in here)
 //   scope:            'full' | 'exact-only'   (exact-only skips heuristic triage)
 //   attributeStale:   boolean, archaeology on stale keys too (default true)
@@ -50,7 +50,12 @@ const REPORT_DATE = A.reportDate
 // shell and a clock; this script has neither). Two audits on the same UTC day would
 // otherwise resolve to one filename and the second would destroy the first — and since
 // the report is uncommitted at that moment and artifacts/ is gitignored, there is no copy
-// to recover. The synthesize agent refuses to overwrite as a second line of defence.
+// to recover.
+//
+// No agent writes the report. The harness refuses report-file writes from subagents
+// ("return findings as text"), so the report travels as markdown: synthesize returns it,
+// the reconcile lenses receive it inline, correct-report returns the fixed copy, and the
+// workflow hands `reportMarkdown` back for the lead to write to REPORT_PATH.
 const REPORT_PATH = A.reportPath || `${SKILL_DIR}/REPORT-${REPORT_DATE}.md`
 // Keyed to the report it belongs to, so the raw JSON behind an earlier report is not
 // clobbered either — diffing two reports is useless if both point at one JSON.
@@ -513,17 +518,20 @@ log(`Attributed ${attrOk.reduce((n, a) => n + (a.clusters || []).length, 0)} fea
 
 phase('Synthesize')
 
+const REPORT_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['markdown', 'summary'],
+  properties: {
+    markdown: { type: 'string', description: 'The complete report, ready to save verbatim' },
+    summary: { type: 'string' },
+  },
+}
+
 const report = await agent(`${GROUND_RULES}
 
-PHASE: synthesize. Write the audit report to ${REPORT_PATH} (date ${REPORT_DATE}).
-
-BEFORE YOU WRITE ANYTHING: check whether ${REPORT_PATH} already exists
-(\`test -e ${REPORT_PATH} && echo EXISTS\`). If it does, STOP — do not write, do not
-overwrite, do not append. Return an explanation that the path collided. Dated reports are
-the durable artifact this whole tool exists to diff across time; silently replacing one
-destroys the baseline a reader was about to compare against, and it is not in git yet.
-The caller is expected to hand in a fresh path, so a collision means something is wrong
-upstream and is worth surfacing rather than papering over.
+PHASE: synthesize. Compose the audit report (date ${REPORT_DATE}) and RETURN it as the
+\`markdown\` field. Do not write it to any file — the lead writes it to ${REPORT_PATH}.
 
 ${ADVISORIES.length ? `ADVISORIES from the checker — these are FINDINGS, not failures. Give them their own
 section in the report, verbatim, and say what each one means for the numbers:
@@ -575,10 +583,23 @@ Rules for the writing:
 - Keep the reproduction line at the top: the exact command that regenerates the JSON, so the next
   run diffs cleanly against this one.
 
-Return the absolute path you wrote plus a 3-sentence summary of what it says.`, {
+Return the complete report as \`markdown\` and a 3-sentence \`summary\` of what it says.`, {
   label: 'synthesize',
   phase: 'Synthesize',
+  schema: REPORT_SCHEMA,
 })
+
+if (!report || !report.markdown) {
+  return { error: 'Synthesize returned no report markdown. Nothing to reconcile.', reportPath: REPORT_PATH, jsonPath: JSON_PATH }
+}
+
+// Inline copy for agents that did not write it. A lens needing to compute over it can
+// heredoc it into its own scratch file; it is never read from REPORT_PATH, which does not
+// exist until the lead writes it.
+const reportBlock = (md) => `REPORT UNDER REVIEW (verbatim markdown between the markers):
+<<<REPORT
+${md}
+REPORT>>>`
 
 // ---------------------------------------------------------------------------
 // Phase 5 — Reconcile.  The guard that makes the fan-out safe: a workflow that
@@ -618,7 +639,9 @@ const checks = (await parallel([
 
 PHASE: reconcile — LENS: numeric fidelity. You did not write the report; do not defend it.
 
-Compare ${REPORT_PATH} against ${JSON_PATH} mechanically. Prefer computing over reading: use
+${reportBlock(report.markdown)}
+
+Compare the report above against ${JSON_PATH} mechanically. Prefer computing over reading: use
 python3/jq to pull the JSON's numbers, then check each against the report's tables.
 
 1. Every per-module missing/stale figure in the report matches parity.per_module.
@@ -639,6 +662,8 @@ Report only discrepancies you actually reproduced, with the command you ran.`, {
   () => agent(`${GROUND_RULES}
 
 PHASE: reconcile — LENS: honesty and usability. You did not write the report; be skeptical.
+
+${reportBlock(report.markdown)}
 
 1. EXACT vs HEURISTIC separation: can a reader skimming the report mistake a heuristic candidate
    for a proven gap? Check headings, the summary, and any combined totals. Any place the
@@ -681,12 +706,16 @@ if (failedLenses.length) {
   log(`RECONCILE FAILED on lens(es): ${failedLenses.join(', ')} — the report is NOT clean.`)
 }
 
+let finalMarkdown = report.markdown
 if (confirmedDiscrepancies.length) {
   log(`Reconcile found ${confirmedDiscrepancies.length} confirmed discrepancy(ies) — correcting the report`)
-  await agent(`${GROUND_RULES}
+  const corrected = await agent(`${GROUND_RULES}
 
-The report at ${REPORT_PATH} was checked against the raw JSON by two independent agents. Fix every
-confirmed discrepancy below, editing the report in place.
+${reportBlock(report.markdown)}
+
+The report above was checked against the raw JSON by two independent agents. Fix every
+confirmed discrepancy below and return the COMPLETE corrected report as \`markdown\`. Do not
+write it to any file.
 
 ${confirmedDiscrepancies.map((d, i) => `${i + 1}. [${d.severity}] (${d.lens}) ${d.location || ''}
    report claims: ${d.claim_in_report}
@@ -694,7 +723,12 @@ ${confirmedDiscrepancies.map((d, i) => `${i + 1}. [${d.severity}] (${d.lens}) ${
 
 The JSON is authoritative for every number. Where a discrepancy is a missing caveat rather than a
 wrong figure, add the caveat rather than deleting the content. Do not introduce new findings while
-fixing. When done, state what you changed, line by line.`, { label: 'correct-report', phase: 'Reconcile' })
+fixing. Put what you changed, line by line, in \`summary\`.`, { label: 'correct-report', phase: 'Reconcile', schema: REPORT_SCHEMA })
+  if (corrected && corrected.markdown) {
+    finalMarkdown = corrected.markdown
+  } else {
+    log('correct-report returned nothing — handing back the UNCORRECTED report; the confirmed discrepancies still stand.')
+  }
 }
 
 return {
@@ -733,5 +767,8 @@ return {
     unconfirmedDiscrepancies.length === 0 &&
     attributionDropped.length === 0 &&
     unreconciled.length === 0,
-  summary: report,
+  // The lead writes this verbatim to reportPath. It is the post-correction copy, which no
+  // lens has re-checked — the lead's Phase 2 is that check.
+  reportMarkdown: finalMarkdown,
+  summary: report.summary,
 }

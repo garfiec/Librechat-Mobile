@@ -23,15 +23,10 @@ import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.VideoFile
 import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -45,9 +40,19 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import co.touchlab.kermit.Logger
+import com.garfiec.librechat.core.common.result.suspendRunCatching
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
+import com.garfiec.librechat.core.ui.components.topbar.BarIcons
+import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
+import com.garfiec.librechat.core.ui.components.topbar.BarTitle
+import com.garfiec.librechat.core.ui.datetime.rememberAbsoluteTimestamp
 import com.garfiec.librechat.feature.files.FilePreviewDisplayData
 import com.garfiec.librechat.feature.files.platform.PdfPreview
 import com.garfiec.librechat.feature.files.resources.*
@@ -62,29 +67,23 @@ fun FilePreviewDialog(
     modifier: Modifier = Modifier,
     onDownloadFile: (suspend (fileId: String, userId: String?) -> ByteArray?)? = null,
 ) {
-    Dialog(
+    AdaptiveDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        Scaffold(
+        AdaptiveScaffold(
             modifier = modifier.fillMaxSize(),
             topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = file.filename,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onDismiss) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = stringResource(Res.string.cd_close_preview),
-                            )
-                        }
-                    },
+                AdaptiveTopBar(
+                    spec = AdaptiveTopBarSpec(
+                        navigation = BarNavigation(
+                            BarIcons.Close,
+                            stringResource(Res.string.cd_close_preview),
+                            onDismiss,
+                        ),
+                        title = BarTitle(file.filename),
+                        actions = emptyList(),
+                    ),
                 )
             },
         ) { padding ->
@@ -139,7 +138,7 @@ private fun TextContentPreview(
 
     LaunchedEffect(file.fileId) {
         loadState = TextLoadState.Loading
-        try {
+        suspendRunCatching {
             val bytes = onDownloadFile?.invoke(file.fileId, file.userId)
             if (bytes == null) {
                 loadState = TextLoadState.Error("Failed to download file")
@@ -152,7 +151,7 @@ private fun TextContentPreview(
                 content
             }
             loadState = TextLoadState.Success(truncated)
-        } catch (e: Exception) {
+        }.onFailure { e ->
             Logger.e(e) { "TextContentPreview: failed to load text content" }
             loadState = TextLoadState.Error(
                 e.message ?: "Failed to load file content",
@@ -170,7 +169,7 @@ private fun TextContentPreview(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    CircularProgressIndicator()
+                    AdaptiveCircularProgressIndicator()
                     Text(
                         text = stringResource(Res.string.loading_file_content),
                         style = MaterialTheme.typography.bodyMedium,
@@ -205,7 +204,7 @@ private fun TextContentPreview(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(modifier = Modifier.height(12.dp))
-                HorizontalDivider()
+                AdaptiveDivider()
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Box(
@@ -278,7 +277,7 @@ private fun TextErrorFallback(
                 ) {
                     InfoRow(stringResource(Res.string.info_type), file.type)
                     InfoRow(stringResource(Res.string.info_size), file.formattedSize)
-                    file.createdAt?.let { InfoRow(stringResource(Res.string.info_created), it) }
+                    file.createdAt?.let { InfoRow(stringResource(Res.string.info_created), rememberAbsoluteTimestamp(it)) }
                     file.source?.let { InfoRow(stringResource(Res.string.info_source), it) }
                 }
             }
@@ -326,7 +325,7 @@ private fun FileInfoCard(
                 ) {
                     InfoRow(stringResource(Res.string.info_type), file.type)
                     InfoRow(stringResource(Res.string.info_size), file.formattedSize)
-                    file.createdAt?.let { InfoRow(stringResource(Res.string.info_created), it) }
+                    file.createdAt?.let { InfoRow(stringResource(Res.string.info_created), rememberAbsoluteTimestamp(it)) }
                     file.source?.let { InfoRow(stringResource(Res.string.info_source), it) }
                 }
             }

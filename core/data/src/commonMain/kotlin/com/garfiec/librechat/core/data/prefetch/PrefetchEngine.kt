@@ -55,6 +55,7 @@ import kotlin.time.TimeSource
  * 3. **Warm ancillary reference data** — endpoints, models, agents — once per account per process.
  * 4. **Prune** message rows for conversations that have aged out of the warm set.
  */
+@Suppress("LongParameterList") // debt: constructor dependencies
 class PrefetchEngine(
     private val conversationDao: ConversationDao,
     private val messageDao: MessageDao,

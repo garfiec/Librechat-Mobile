@@ -5,13 +5,13 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.AdaptiveFilterChip
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -35,7 +35,7 @@ internal fun PinnedToolsRow(
     ) {
         pinnedToolKeys.forEach { key ->
             val meta = ephemeralToolMeta(key) ?: return@forEach
-            FilterChip(
+            AdaptiveFilterChip(
                 selected = key in enabledTools,
                 onClick = { onToggleTool(key) },
                 label = { Text(stringResource(meta.titleRes)) },

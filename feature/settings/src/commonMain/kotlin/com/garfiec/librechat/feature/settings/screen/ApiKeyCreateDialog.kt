@@ -7,11 +7,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -26,9 +24,12 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.ApiKey
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
-import com.garfiec.librechat.feature.settings.util.copyToClipboard
+import com.garfiec.librechat.feature.settings.util.rememberClipboardWriter
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -67,7 +68,8 @@ private fun CreateKeyFormDialog(
 ) {
     var name by remember { mutableStateOf("") }
 
-    AlertDialog(
+    AdaptiveAlertDialog(
+        modifier = Modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.dialog_title_create_api_key)) },
         text = {
@@ -78,7 +80,7 @@ private fun CreateKeyFormDialog(
                     text = stringResource(Res.string.api_key_name_hint),
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                OutlinedTextField(
+                AdaptiveOutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text(stringResource(Res.string.hint_key_name)) },
@@ -109,9 +111,10 @@ private fun CreatedKeyDialog(
     apiKey: ApiKey,
     onDismiss: () -> Unit,
 ) {
+    val clipboard = rememberClipboardWriter()
     var copied by remember { mutableStateOf(false) }
 
-    AlertDialog(
+    AdaptiveAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.dialog_title_api_key_created)) },
         text = {
@@ -149,7 +152,7 @@ private fun CreatedKeyDialog(
                         )
                         IconButton(
                             onClick = {
-                                copyToClipboard(apiKey.keyValue ?: "", "API Key")
+                                clipboard.copy(apiKey.keyValue ?: "", "API Key")
                                 copied = true
                             },
                         ) {

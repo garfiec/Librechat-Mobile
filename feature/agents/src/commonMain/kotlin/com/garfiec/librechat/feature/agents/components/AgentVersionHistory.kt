@@ -20,12 +20,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -39,7 +36,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.AdaptiveButton
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
+import com.garfiec.librechat.core.ui.datetime.rememberAbsoluteTimestamp
 import com.garfiec.librechat.feature.agents.components.model.AgentVersion
 import com.garfiec.librechat.feature.agents.resources.Res
 import com.garfiec.librechat.feature.agents.resources.no_version_history
@@ -68,7 +69,7 @@ fun AgentVersionHistory(
     isLoading: Boolean = false,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
 ) {
-    ModalBottomSheet(
+    AdaptiveModalBottomSheet(
         onDismissRequest = onDismiss,
         dragHandle = { LowProfileDragHandle() },
         sheetState = sheetState,
@@ -90,7 +91,7 @@ fun AgentVersionHistory(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    CircularProgressIndicator()
+                    AdaptiveCircularProgressIndicator()
                 }
             } else if (versions.isEmpty()) {
                 Text(
@@ -153,7 +154,8 @@ private fun VersionCard(
                         }
                     }
                     Text(
-                        text = version.updatedAt ?: stringResource(Res.string.version_no_date),
+                        text = version.updatedAt?.let { rememberAbsoluteTimestamp(it) }
+                            ?: stringResource(Res.string.version_no_date),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -194,7 +196,7 @@ private fun VersionCard(
                     )
                     if (!version.isActive) {
                         Spacer(Modifier.height(12.dp))
-                        Button(onClick = onRevert) {
+                        AdaptiveButton(onClick = onRevert) {
                             Text(stringResource(Res.string.revert))
                         }
                     }

@@ -5,6 +5,7 @@ import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
 import com.garfiec.librechat.core.common.network.ConnectivityObserver
+import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
 import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
@@ -26,12 +27,18 @@ import com.garfiec.librechat.core.data.repository.McpRepository
 import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.PromptRepository
+import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
 import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
+import com.garfiec.librechat.core.data.repository.TraceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
+import com.garfiec.librechat.core.model.queuedturn.QueuedTurnOutcome
+import com.garfiec.librechat.core.model.usage.ContextDetailPreset
+import com.garfiec.librechat.core.model.usage.DEFAULT_COMPACT_NUDGE_THRESHOLD
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformDelegateFactory
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CoroutineDispatcher
@@ -70,7 +77,9 @@ internal class ChatViewModelTestFixture {
     val keyRepository = mockk<KeyRepository>(relaxed = true)
     val presetRepository = mockk<PresetRepository>(relaxed = true)
     val promptRepository = mockk<PromptRepository>(relaxed = true)
+    val queuedTurnRepository = mockk<QueuedTurnRepository>(relaxed = true)
     val shareRepository = mockk<ShareRepository>(relaxed = true)
+    val traceRepository = mockk<TraceRepository>(relaxed = true)
     val mcpRepository = mockk<McpRepository>(relaxed = true)
     val userRepository = mockk<UserRepository>(relaxed = true)
     val roleRepository = mockk<RoleRepository>(relaxed = true)
@@ -82,6 +91,7 @@ internal class ChatViewModelTestFixture {
     val serverFileSelectionHandoff = mockk<ServerFileSelectionHandoff>(relaxed = true)
 
     val selectionHandoff = NewChatSelectionHandoff()
+    val siteIconPromptSession = SiteIconPromptSession()
 
     /** Driven by hand where a test needs a prompt mutation to reach a retained ViewModel. */
     val promptRevision = MutableStateFlow(0L)
@@ -98,6 +108,16 @@ internal class ChatViewModelTestFixture {
         every { agentRepository.revision } returns MutableStateFlow(0L)
         every { promptRepository.revision } returns promptRevision
         every { messageRepository.observeMessages(any()) } returns emptyFlow()
+        // A v0.8.8+ server: no projection, and no token-config unless a test supplies one.
+        coEvery { endpointTokenRepository.getContextProjection(any()) } returns Result.Success(null)
+        coEvery { endpointTokenRepository.getTokenConfig() } returns Result.Success(emptyMap())
+        // A server WITHOUT queued turns by default, so the reconcile poll exits on its first tick
+        // and no test that is not about the feature pays for it. A relaxed mock would instead hand
+        // back an erased QueuedTurnOutcome whose payload fails the List cast inside applyReceipts.
+        coEvery { queuedTurnRepository.isUnsupported() } returns true
+        coEvery { queuedTurnRepository.list(any(), any()) } returns QueuedTurnOutcome.Unsupported
+        coEvery { queuedTurnRepository.enqueue(any()) } returns QueuedTurnOutcome.Unsupported
+        coEvery { queuedTurnRepository.cancel(any()) } returns QueuedTurnOutcome.Unsupported
         every { serverFileSelectionHandoff.selectionsFor(any()) } returns emptyFlow()
         every { platformDelegateFactory.createShareConsumer().sharesFor(any()) } returns emptyFlow()
 
@@ -110,6 +130,12 @@ internal class ChatViewModelTestFixture {
         every { settingsDataStore.chatHeaderAlignment } returns MutableStateFlow(ChatHeaderAlignment.CENTER)
         every { settingsDataStore.contextBarPlacement } returns MutableStateFlow(ContextBarPlacement.HIDDEN)
         every { settingsDataStore.contextGaugeExpanded } returns MutableStateFlow(false)
+        // The context prefs pre-fold reads these; an unstubbed relaxed Flow never emits and would
+        // stall the whole uiState combine.
+        every { settingsDataStore.effectiveContextSections } returns MutableStateFlow(ContextDetailPreset.STANDARD.sections)
+        every { settingsDataStore.compactNudgeThreshold } returns MutableStateFlow(DEFAULT_COMPACT_NUDGE_THRESHOLD)
+        every { settingsDataStore.compactNudgeSnoozes } returns MutableStateFlow(emptyMap())
+        every { settingsDataStore.siteIconsChoice } returns MutableStateFlow(null)
         every { settingsDataStore.duringRunAction } returns MutableStateFlow(DuringRunAction.QUEUE)
     }
 
@@ -137,7 +163,9 @@ internal class ChatViewModelTestFixture {
         keyRepository = keyRepository,
         presetRepository = presetRepository,
         promptRepository = promptRepository,
+        queuedTurnRepository = queuedTurnRepository,
         shareRepository = shareRepository,
+        traceRepository = traceRepository,
         mcpRepository = mcpRepository,
         userRepository = userRepository,
         roleRepository = roleRepository,
@@ -151,6 +179,7 @@ internal class ChatViewModelTestFixture {
         selectionHandoff = selectionHandoff,
         serverFileSelectionHandoff = serverFileSelectionHandoff,
         promptInsertionHandoff = PromptInsertionHandoff(),
+        siteIconPromptSession = siteIconPromptSession,
         activeAccountProvider = activeAccountProvider,
     )
 }

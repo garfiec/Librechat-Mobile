@@ -10,11 +10,11 @@ import platform.Foundation.preferredLanguages
 actual object LocalAppLocale {
     private const val LANG_KEY = "AppleLanguages"
     private val default: String = NSLocale.preferredLanguages.firstOrNull() as? String ?: "en"
-    private val LocalAppLocale = staticCompositionLocalOf { default }
+    private val LocalIosAppLocale = staticCompositionLocalOf { default }
 
     actual val current: String
         @Composable
-        get() = LocalAppLocale.current
+        get() = LocalIosAppLocale.current
 
     @Composable
     actual infix fun provides(value: String?): ProvidedValue<*> {
@@ -24,6 +24,6 @@ actual object LocalAppLocale {
         } else {
             NSUserDefaults.standardUserDefaults.setObject(listOf(new), LANG_KEY)
         }
-        return LocalAppLocale provides new
+        return LocalIosAppLocale provides new
     }
 }

@@ -7,12 +7,20 @@
     <string name="skills_import">استيراد مهارة</string>
     <string name="skills_search_hint">البحث في المهارات…</string>
     <string name="skills_empty">لا توجد مهارات بعد.</string>
+    <string name="skills_empty_hint">اضغط + لإنشاء مهارة، أو استورد ملف مهارة.</string>
+    <string name="skills_no_matches">لا توجد مهارات تطابق بحثك.</string>
+    <string name="skills_retry">إعادة المحاولة</string>
 
     <!-- Files -->
     <string name="skill_files_title">الملفات</string>
     <string name="skill_files_empty">لا توجد ملفات مرفقة.</string>
     <string name="skill_files_add">إضافة ملف</string>
     <string name="skill_files_remove">إزالة %1$s</string>
+    <string name="skill_file_save">حفظ</string>
+    <string name="skill_file_close">إغلاق</string>
+    <string name="skill_file_reload">إعادة التحميل</string>
+    <string name="skill_file_conflict">تم تغيير هذا الملف في مكان آخر. أعد التحميل لرؤية أحدث إصدار؛ سيتم تجاهل تعديلاتك هنا.</string>
+    <string name="skill_file_binary">لا يمكن عرض هذا الملف كنص.</string>
 
     <!-- Detail -->
     <string name="skill_edit">تعديل</string>
@@ -59,4 +67,18 @@
     <string name="skill_acl_collapse">طي</string>
     <string name="skill_acl_expand">توسيع</string>
     <string name="skill_acl_close">إغلاق</string>
+    <string name="skill_import_failed_title">فشل الاستيراد</string>
+    <string name="skill_import_incomplete">أُلغي الاستيراد: تعذّر استيراد %1$d ملف في الأرشيف. أصلح الأرشيف وارفعه مجددًا.</string>
+    <string name="skill_import_rollback_failed">فشل استيراد %1$d ملف، وتعذّرت إزالة المهارة غير المكتملة تلقائيًا. احذفها قبل المحاولة مجددًا.</string>
+    <string name="skill_import_cleanup_incomplete">فشل استيراد %1$d ملف. أُزيلت المهارة غير المكتملة، لكن التنظيف التلقائي لم يكتمل.</string>
+    <string name="skill_import_failed_files">تعذّر استيراد هذه الملفات:</string>
+    <string name="skill_import_rollback_failed_files">فشل استيراد هذه الملفات، وبقيت المهارة غير المكتملة:</string>
+    <string name="skill_import_cleanup_incomplete_files">فشل استيراد هذه الملفات؛ لم يكتمل التنظيف التلقائي:</string>
+    <string name="skill_import_reason_invalid_path">مسار ملف غير مدعوم</string>
+    <string name="skill_import_reason_file_too_large">يتجاوز حد حجم الملف البالغ %1$s ميغابايت</string>
+    <string name="skill_import_reason_archive_too_large">لم يُستورد: يتجاوز الأرشيف حد الحجم الإجمالي البالغ %1$s ميغابايت</string>
+    <string name="skill_import_reason_archive_entry_changed">تغيّر أثناء قراءة الأرشيف</string>
+    <string name="skill_import_reason_persistence_failed">تعذّر الحفظ</string>
+    <string name="skill_import_reason_unknown">تعذّر الاستيراد</string>
+    <string name="skill_toggle_source">عرض المصدر</string>
 </resources>

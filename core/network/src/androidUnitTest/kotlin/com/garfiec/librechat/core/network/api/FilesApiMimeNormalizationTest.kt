@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.network.api
 
+import com.garfiec.librechat.core.network.di.librechatJson
 import com.google.common.truth.Truth.assertThat
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
@@ -53,7 +54,7 @@ class FilesApiMimeNormalizationTest {
                 headers = headersOf(HttpHeaders.ContentType, "application/json"),
             )
         }
-        FilesApi(client(engine)).uploadFile(
+        FilesApi(client(engine), librechatJson).uploadFile(
             bytes = "#!/bin/sh\n".encodeToByteArray(),
             filename = "deploy.sh",
             type = type,

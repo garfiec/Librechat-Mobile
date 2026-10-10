@@ -22,7 +22,15 @@ import kotlinx.serialization.json.contentOrNull
  * [parseUserKeyError] to a snackbar with a Settings action, and duplicating them would surface the
  * same failure twice.
  */
-enum class StreamErrorType(val wire: String) {
+enum class StreamErrorType(
+    val wire: String,
+    /**
+     * False for a code that is only ever classified at one known site, never by [parse]. [parse]
+     * reads `code` as well as `type`, so listing such a code there would also swallow the
+     * server's own wording wherever the same code rides inside a run's error text.
+     */
+    private val classifiesPayload: Boolean = true,
+) {
     /**
      * Required CodeAPI files could not be restored before the model ran.
      *
@@ -35,11 +43,22 @@ enum class StreamErrorType(val wire: String) {
     MISSING_MODEL("missing_model"),
 
     /**
-     * The provider rejected the model as unknown. Not one of upstream's `ErrorTypes` — it arrives
-     * as a LangChain documentation URL embedded in provider prose, which upstream matches with a
-     * regex and replaces wholesale. See [Companion.MODEL_NOT_FOUND_PATTERN].
+     * The provider rejected the model as unknown.
+     *
+     * A typed `ErrorTypes` member from v0.8.8-rc2 onward. Servers at or below rc1 have no code for
+     * it and instead embed a LangChain documentation URL in provider prose, which
+     * [Companion.MODEL_NOT_FOUND_PATTERN] still matches.
      */
     MODEL_NOT_FOUND("model_not_found"),
+
+    /** The provider throttled the request for exceeding a rate or spend allowance. */
+    MODEL_RATE_LIMIT("model_rate_limit"),
+
+    /** The provider accepted the request, then closed the connection before the response finished. */
+    MODEL_STREAM_CLOSED("model_stream_closed"),
+
+    /** The provider accepted the request, then sent nothing for longer than the response timeout. */
+    MODEL_STREAM_STALLED("model_stream_stalled"),
 
     /** The models configuration has not loaded, so no model can be resolved yet. */
     MODELS_NOT_LOADED("models_not_loaded"),
@@ -56,25 +75,115 @@ enum class StreamErrorType(val wire: String) {
     /** The prompt is longer than the model accepts. */
     INPUT_LENGTH("INPUT_LENGTH"),
 
+    /**
+     * The formatted provider payload still exceeded the context budget after pruning. Distinct
+     * from [INPUT_LENGTH], which is the request the user can shorten: this one means the
+     * conversation itself no longer fits.
+     */
+    FINAL_CONTEXT_OVERFLOW("final_context_overflow"),
+
+    /** A manual compaction the graph declined to attempt; the history is untouched. */
+    COMPACTION_SKIPPED("compaction_skipped"),
+
+    /** A manual compaction whose summarizer produced nothing; the history is untouched. */
+    COMPACTION_FAILED("compaction_failed"),
+
     /** The request tripped the deployment's moderation. */
     MODERATION("moderation"),
+
+    /** Sign-in was refused by a rate limiter rather than by bad credentials. */
+    AUTH_RATE_LIMITED("auth_rate_limited"),
+
+    /** Sign-in was refused because the account or the IP is banned. */
+    AUTH_BANNED("auth_banned"),
+
+    /**
+     * The server's `requireSameOrigin` guard rejected an auth request as cross-site.
+     *
+     * The client's own diagnostic for breaking the header invariant recorded in `DISCOVERY.md`:
+     * it is produced by sending `Origin` or `Sec-Fetch-Site`, which this app must never do.
+     */
+    AUTH_CROSS_ORIGIN("auth_cross_origin"),
+
+    /**
+     * Shared-link retrieval was rate-limited. Upstream's `ViolationTypes.SHARE_LIMIT`, which its
+     * error registry keys off the same `type` field as the entries above.
+     */
+    SHARE_LIMIT("share_limit"),
 
     /**
      * The SSE job 404'd — it completed, expired, or was deleted before this client subscribed.
      * Reconnecting or reopening the conversation is the resolution, not retrying the send.
      */
     STREAM_EXPIRED("stream_expired"),
+
+    /**
+     * The model provider itself failed the request — a 5xx, a timeout, a refusal to answer.
+     *
+     * Ordinary, not exotic: rc2's terminal-run handler raises it for every unattributed provider
+     * failure, and composes its message as prose FOLLOWED by the JSON payload — which is why
+     * [Companion.parse] extracts the JSON rather than requiring the whole string to be one.
+     */
+    UPSTREAM_MODEL_ERROR("upstream_model_error"),
+
+    /**
+     * Context pruning removed every message, so there was nothing left to send.
+     *
+     * Reached by an ordinary long conversation on a small window, not by a malformed request.
+     */
+    EMPTY_MESSAGES("empty_messages"),
+
+    /** The code-interpreter workspace the turn selected could not be reached. */
+    CODE_WORKSPACE_UNAVAILABLE("code_workspace_unavailable"),
+
+    /** A stateful code environment was asked for on a deployment that does not permit one. */
+    STATEFUL_CODE_ENVIRONMENT_NOT_ALLOWED("stateful_code_environment_not_allowed"),
+
+    /**
+     * The chat start POST was refused 403 because an MCP server's credential for this user was
+     * rejected (v0.8.8, `getAgentErrorMetadata`). The user has to reconnect; never retried.
+     * Classified only from the start POST's body — see [startFailureMarker].
+     */
+    MCP_AUTHENTICATION_REJECTED(ServerErrorCode.MCP_AUTHENTICATION_REJECTED, classifiesPayload = false),
+
+    /** The start POST's 503 counterpart: the MCP credential could not be refreshed. Retryable. */
+    MCP_AUTHENTICATION_REFRESH_FAILED(ServerErrorCode.MCP_AUTHENTICATION_REFRESH_FAILED, classifiesPayload = false),
     ;
 
     companion object {
-        private val byWire = entries.associateBy { it.wire }
+        private val byWire = entries.filter { it.classifiesPayload }.associateBy { it.wire }
+
+        /**
+         * The marker for a chat start POST that failed up front with an MCP authentication code,
+         * or null for any other start failure. [body] is the raw error-response body; the code is
+         * read with [ServerErrorCode.generationCodeOf], since that route's `error` key is prose.
+         */
+        fun startFailureMarker(body: String?): String? =
+            when (ServerErrorCode.generationCodeOf(body)) {
+                ServerErrorCode.MCP_AUTHENTICATION_REJECTED -> MCP_AUTHENTICATION_REJECTED.marker
+                ServerErrorCode.MCP_AUTHENTICATION_REFRESH_FAILED -> MCP_AUTHENTICATION_REFRESH_FAILED.marker
+                else -> null
+            }
 
         /**
          * The typed error in a raw stream-error message, or null.
          *
-         * Null covers every degrade-to-generic case: the message is not JSON, is not an object,
-         * carries no `type`, or carries one this client does not recognize. A newer server's code
-         * must never crash a client or reach the user as a bare identifier.
+         * Null covers every degrade-to-generic case: the message carries no JSON payload at all,
+         * or names a code this client does not recognize. A newer server's code must never crash
+         * a client or reach the user as a bare identifier.
+         *
+         * **The payload is EMBEDDED, not the whole string.** rc2's terminal-run handler composes
+         * `"<prose>\n<json>"` — `packages/api/src/agents/failures/terminal.ts` literally returns
+         * `` `${UPSTREAM_MODEL_ERROR_FALLBACK}\n${JSON.stringify({ type, status })}` `` — so
+         * requiring the message to parse whole is not a malformed-input guard, it rejects a shape
+         * the server actively produces. Upstream's client runs `extractJson` (a brace-balanced
+         * substring, `client/src/utils/json.ts`) first for the same reason.
+         *
+         * **The identifier can arrive under `code` or `type`, at the top level or inside an
+         * `error` envelope.** `CodeWorkspaceSelectionError` carries `code`, never `type`, and an
+         * OpenAI-compatible provider body is shaped `{"error":{"type":…}}`. Upstream reads
+         * `readString(json,'code') ?? readString(json,'type')` and unwraps `error` only when the
+         * top level names neither — see [identifier], which mirrors that gate.
          *
          * Checked BEFORE the JSON parse, because [MODEL_NOT_FOUND] arrives as provider prose
          * rather than as a typed payload and would otherwise fall straight through to generic.
@@ -82,12 +191,123 @@ enum class StreamErrorType(val wire: String) {
         fun parse(rawMessage: String): StreamErrorType? {
             if (rawMessage.isBlank()) return null
             if (MODEL_NOT_FOUND_PATTERN.containsMatchIn(rawMessage)) return MODEL_NOT_FOUND
-            val element = runCatching { parser.parseToJsonElement(rawMessage) }.getOrNull() ?: return null
-            val obj = element as? JsonObject ?: return null
+            return identifiedPayload(rawMessage)?.let { (_, identifier) -> byWire[identifier] }
+        }
+
+        /**
+         * The provider's own account of an [UPSTREAM_MODEL_ERROR], or null for any other message.
+         *
+         * From v0.8.8-rc4 the payload can carry the provider's `message` next to its `status`,
+         * because a gateway or proxy rejection explains itself there and nothing generic can.
+         * Upstream withholds it while a content policy is active, and older servers never send
+         * it, so both fields are optional and a detail with neither is still returned: the
+         * `status` alone is worth a headline.
+         */
+        fun upstreamModelErrorDetail(rawMessage: String): UpstreamModelErrorDetail? {
+            // Only when [parse] agrees: a provider message quoting LangChain's MODEL_NOT_FOUND URL
+            // is classified as that, and a detail here would put the wrong headline over it.
+            if (parse(rawMessage) != UPSTREAM_MODEL_ERROR) return null
+            val (payload, _) = identifiedPayload(rawMessage) ?: return null
+            return UpstreamModelErrorDetail(
+                // A finite whole number only, as upstream's `readNumber` insists on a finite one:
+                // Double.toInt() would headline NaN as "status 0" and Infinity as Int.MAX_VALUE.
+                status = (payload["status"] as? JsonPrimitive)?.contentOrNull?.toDoubleOrNull()
+                    ?.takeIf { it.isFinite() && it == it.toInt().toDouble() }
+                    ?.toInt(),
+                message = (payload["message"] as? JsonPrimitive)
+                    ?.takeIf { it.isString }
+                    ?.content
+                    ?.takeIf { it.isNotBlank() },
+            )
+        }
+
+        /**
+         * The first payload in [rawMessage] that names an identifier, with that identifier. See
+         * [parse] for why the walk stops at the first identifying payload, mapped or not.
+         *
+         * The object returned is the one that NAMED the identifier: the `error` envelope when the
+         * top level named none, as upstream hands its renderer the envelope in that case
+         * (`payload = nestedKey != null ? envelope : json`), so its fields are read from there.
+         */
+        private fun identifiedPayload(rawMessage: String): Pair<JsonObject, String>? {
+            var from = rawMessage.indexOf('{')
+            while (from >= 0) {
+                val span = balancedObjectAt(rawMessage, from)
+                val payload = span
+                    ?.let { runCatching { parser.parseToJsonElement(it) }.getOrNull() }
+                    as? JsonObject
+                // The FIRST payload that names an identifier settles it, mapped or not. Resolving
+                // `byWire` first and searching on for a hit is the difference between this and
+                // upstream, and it is the difference between "generic" and "wrong": for
+                // `{"type":"invalid_request_error","error":{"type":"moderation"}}` upstream reads
+                // the present top-level key, finds no renderer, and shows the provider's own
+                // sentence, while a hit-seeking walk descends into the envelope and tells the user
+                // their message was blocked by a content filter.
+                payload?.identified()?.let { return it }
+                // Past a span that PARSED, into one that did not. Re-entering a parsed object
+                // re-offers its own children as payloads; skipping a run that is not JSON at all
+                // would drop a real payload nested inside prose braces (`Run {id: 1, e:
+                // {"type":…}}`), which is the widening this walk exists for.
+                from = rawMessage.indexOf('{', from + if (payload != null) span!!.length else 1)
+            }
+            return null
+        }
+
+        /**
+         * The identifier this payload names, with the object that named it, or null — `code` then
+         * `type` at the top level, and the `error` envelope only when the top level names neither,
+         * exactly as upstream's `readString(json,'code') ?? readString(json,'type')` and its
+         * `topLevelKey == null` gate.
+         *
+         * Returns the raw string rather than a [StreamErrorType]: presence and recognition are
+         * different questions, and collapsing them is what lets an unrecognized identifier fall
+         * through to a nested one.
+         */
+        private fun JsonObject.identified(): Pair<JsonObject, String>? {
+            ownIdentifier()?.let { return this to it }
+            val envelope = this["error"] as? JsonObject ?: return null
+            return envelope.ownIdentifier()?.let { envelope to it }
+        }
+
+        private fun JsonObject.ownIdentifier(): String? {
             // Safe-cast, not `.jsonPrimitive`: that extension throws on an object or array value,
             // and this runs inside the SSE mapping coroutine.
-            val type = (obj["type"] as? JsonPrimitive)?.contentOrNull ?: return null
-            return byWire[type]
+            val code = (this["code"] as? JsonPrimitive)?.contentOrNull
+            return code ?: (this["type"] as? JsonPrimitive)?.contentOrNull
+        }
+
+        /**
+         * The brace-balanced `{…}` run starting at [start], or null if it never closes.
+         *
+         * Quoted braces are skipped, so a `{` inside a string value cannot end the run early —
+         * the same string/escape awareness upstream's `extractJson` (`client/src/utils/json.ts`)
+         * gained in v0.8.8-rc4, once provider prose started riding in the payload's `message`.
+         *
+         * **One deliberate divergence remains**, widening and unable to classify anything
+         * `byWire` does not already name: upstream returns only the FIRST balanced run and gives
+         * up; [parse] walks every `{` until one identifies, because prose around the payload can
+         * carry braces of its own (`Template {placeholder} failed. {"type":…}`) and upstream would
+         * stop at the first.
+         */
+        private fun balancedObjectAt(raw: String, start: Int): String? {
+            var depth = 0
+            var inString = false
+            var escaped = false
+            for (i in start until raw.length) {
+                val c = raw[i]
+                when {
+                    escaped -> escaped = false
+                    c == '\\' && inString -> escaped = true
+                    c == '"' -> inString = !inString
+                    inString -> Unit
+                    c == '{' -> depth++
+                    c == '}' -> {
+                        depth--
+                        if (depth == 0) return raw.substring(start, i + 1)
+                    }
+                }
+            }
+            return null
         }
 
         /**
@@ -108,12 +328,13 @@ enum class StreamErrorType(val wire: String) {
         fun markerOrText(rawMessage: String): String = parse(rawMessage)?.marker ?: rawMessage
 
         /**
-         * MIRRORED from upstream `client/src/components/Messages/Content/Error.tsx`:
-         * `/langchain\.com\/.*\/MODEL_NOT_FOUND(?:\/|\b)/i`. Registered in `scripts/mirrors.json`
-         * as `model-not-found-url-pattern`.
+         * LEGACY fallback for servers at or below v0.8.8-rc1, which have no typed code for
+         * [MODEL_NOT_FOUND] and instead surface a LangChain documentation URL embedded in provider
+         * prose. rc2 deleted upstream's own copy of this regex (`langChainModelNotFoundUrl`) when
+         * `model_not_found` became a typed `ErrorTypes` member, so there is no longer an upstream
+         * symbol to mirror and the `scripts/mirrors.json` entry that watched one was retired.
          *
-         * A provider embeds this documentation link in an otherwise unhelpful sentence, so it is
-         * matched anywhere in the text rather than parsed. `\b` is spelled out as a lookahead on a
+         * Matched anywhere in the text rather than parsed. `\b` is spelled out as a lookahead on a
          * non-word character or end-of-input, because Kotlin's `Regex` on Android is ICU and its
          * `\b` handling around a URL is not worth relying on.
          *
@@ -140,3 +361,13 @@ enum class StreamErrorType(val wire: String) {
     /** The marker form of this error, for the shared string-typed error channel. */
     val marker: String get() = "$MARKER_PREFIX$wire"
 }
+
+/**
+ * What an [StreamErrorType.UPSTREAM_MODEL_ERROR] payload says beyond its type: the provider's HTTP
+ * [status] and, from v0.8.8-rc4 and only when the deployment lets provider text through, the
+ * provider's own [message]. Either may be absent.
+ */
+data class UpstreamModelErrorDetail(
+    val status: Int?,
+    val message: String?,
+)

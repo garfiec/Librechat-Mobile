@@ -5,10 +5,15 @@ import com.garfiec.librechat.feature.chat.components.artifact.ArtifactViewerHand
 import com.garfiec.librechat.feature.chat.navigation.ModelShortcutBus
 import com.garfiec.librechat.feature.chat.prompts.PromptEditorViewModel
 import com.garfiec.librechat.feature.chat.prompts.PromptsViewModel
+import com.garfiec.librechat.feature.chat.viewmodel.BackgroundTasksViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationMediaViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.NewChatSelectionHandoff
 import com.garfiec.librechat.feature.chat.viewmodel.PromptInsertionHandoff
 import com.garfiec.librechat.feature.chat.viewmodel.ServerFileSelectionHandoff
+import com.garfiec.librechat.feature.chat.viewmodel.SiteIconPromptSession
+import com.garfiec.librechat.feature.chat.viewmodel.SubagentThreadsViewModel
+import com.garfiec.librechat.feature.chat.viewmodel.TraceViewerViewModel
+import com.garfiec.librechat.feature.chat.viewmodel.UpdateBannerViewModel
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
@@ -21,13 +26,16 @@ val chatModule = module {
     single { ServerFileSelectionHandoff() }
     single { ArtifactViewerHandoff() }
     single { ModelShortcutBus() }
+    single { SiteIconPromptSession() }
     viewModelOf(::PromptsViewModel)
+    viewModelOf(::SubagentThreadsViewModel)
+    viewModelOf(::TraceViewerViewModel)
+    viewModelOf(::BackgroundTasksViewModel)
+    viewModelOf(::UpdateBannerViewModel)
     // Koin's constructor-DSL (`viewModelOf`) wires every argument via `get()` and cannot read
     // values passed through `parametersOf`. This VM receives its `initialGroupId` from the
     // navigation layer via `parametersOf`, so the lambda-form `viewModel { params -> ... }` is
-    // the only DSL that works here. Detekt's `DeprecatedKoinApi` is a blanket stylistic rule,
-    // not a real `@Deprecated` API, so we suppress it in the narrow place it applies.
-    @Suppress("DeprecatedKoinApi")
+    // the only DSL that works here.
     viewModel { params ->
         PromptEditorViewModel(
             promptRepository = get(),
@@ -35,7 +43,6 @@ val chatModule = module {
         )
     }
     // conversationId arrives from the navigation layer via parametersOf — same reason as above.
-    @Suppress("DeprecatedKoinApi")
     viewModel { params ->
         ConversationMediaViewModel(
             conversationId = params.get(),

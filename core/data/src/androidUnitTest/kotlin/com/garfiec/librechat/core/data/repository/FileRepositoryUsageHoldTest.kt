@@ -31,7 +31,7 @@ class FileRepositoryUsageHoldTest {
 
     private fun repository(detected: DetectedBackend?): FileRepository {
         every { configRepository.detectedBackend } returns MutableStateFlow(detected)
-        return FileRepositoryImpl(filesApi, filesExtApi, configRepository)
+        return FileRepositoryImpl(filesApi, filesExtApi, configRepository, mockk())
     }
 
     @Test

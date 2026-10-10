@@ -2,6 +2,8 @@
 <resources>
     <!-- Accessibility label for the bottom-sheet drag handle -->
     <string name="cd_drag_handle">Controlador para arrastrar</string>
+    <string name="banner_dismiss">Descartar banner</string>
+    <string name="pdf_page_failed">No se pudo renderizar esta página</string>
     <!-- Custom per-server request headers (issue #287); shared by the pre-login
          server screen and the post-login Settings editor -->
     <string name="server_headers_title">Encabezados de solicitud personalizados</string>
@@ -19,4 +21,85 @@
     <string name="server_headers_error_name">No es un nombre de encabezado válido.</string>
     <string name="server_headers_error_value">Este valor contiene caracteres que no se pueden enviar.</string>
     <string name="server_headers_error_reserved">Este encabezado lo establece la aplicación y no se puede sobrescribir.</string>
+    <string name="pdf_password_title">PDF protegido con contraseña</string>
+    <string name="pdf_password_explanation">«%1$s» necesita una contraseña para abrirse. Para enviarlo al modelo de IA, Switchboard lo descifra en este dispositivo y sube la copia descifrada. La contraseña nunca sale de tu dispositivo.</string>
+    <string name="pdf_password_sensitive_warning">Los archivos protegidos con contraseña suelen contener información confidencial. La copia descifrada se guarda en tu servidor de LibreChat y se comparte con el proveedor de IA. Continúa solo si te parece bien compartir su contenido.</string>
+    <string name="pdf_password_field">Contraseña del PDF</string>
+    <string name="pdf_password_incorrect">Contraseña incorrecta. Inténtalo de nuevo.</string>
+    <string name="pdf_password_show">Mostrar contraseña</string>
+    <string name="pdf_password_hide">Ocultar contraseña</string>
+    <string name="pdf_password_confirm">Descifrar y subir</string>
+    <string name="pdf_password_cancel">Cancelar</string>
+    <string name="param_thinking_between_tools_description">Activa el razonamiento adaptativo controlado por el parámetro Esfuerzo. Este modelo no puede desactivar el razonamiento por completo: al desactivarlo se usa su nivel más bajo, que omite el razonamiento extendido y conserva solo breves notas entre llamadas a herramientas. Con esta opción desactivada, el esfuerzo se limita a Alto.</string>
+    <string name="discard_changes_title">¿Descartar los cambios?</string>
+    <string name="discard_changes_message">Se perderán los cambios sin guardar.</string>
+    <string name="discard_changes_confirm">Descartar</string>
+    <string name="discard_changes_cancel">Cancelar</string>
+    <!-- Context usage breakdown -->
+    <string name="context_compact">Compactar conversación</string>
+    <string name="context_compacting">Compactando…</string>
+    <string name="context_compact_info">Resume todo lo anterior en una nota más corta que el modelo sigue leyendo, liberando contexto para lo que viene. No se elimina nada.</string>
+    <string name="context_usage_label">Contexto</string>
+    <string name="context_usage_window">Ventana de contexto</string>
+    <string name="context_usage_estimated">Estimado a partir del historial de mensajes</string>
+    <string name="context_usage_messages">Mensajes</string>
+    <string name="context_usage_tools">Esquemas de herramientas</string>
+    <string name="context_usage_summary">Resumen</string>
+    <string name="context_usage_system">Prompt del sistema</string>
+    <string name="context_usage_free">Espacio libre</string>
+    <string name="context_usage_input">Entrada</string>
+    <string name="context_usage_output">Salida</string>
+    <string name="context_usage_estimated_row">Estimado</string>
+    <string name="context_usage_tool_calls">Llamadas a herramientas</string>
+    <string name="context_usage_agent_instructions">Instrucciones del agente</string>
+    <string name="context_usage_tools_system">Herramientas del sistema</string>
+    <string name="context_usage_tools_system_deferred">Herramientas del sistema (diferidas)</string>
+    <string name="context_usage_tools_mcp">Herramientas MCP</string>
+    <string name="context_usage_tools_mcp_deferred">Herramientas MCP (diferidas)</string>
+    <string name="context_usage_skills">Habilidades</string>
+    <string name="context_usage_subagents">Subagentes</string>
+    <string name="context_usage_cached">En caché</string>
+    <string name="context_usage_cache_write">Escritura en caché</string>
+    <string name="context_usage_by_tool">Por herramienta</string>
+    <string name="context_usage_pressure_warn">La ventana de contexto se está llenando</string>
+    <string name="context_usage_pressure_danger">La ventana de contexto está casi llena</string>
+    <string name="context_usage_largest_tool">Herramienta más grande: %1$s (%2$s)</string>
+    <string name="context_usage_reclaim">Resumir ahora podría liberar ≈%1$s tokens</string>
+    <string name="context_usage_insights">Detalles del contexto</string>
+    <string name="context_usage_totals">Totales</string>
+    <string name="context_usage_cache_read">Lectura de caché</string>
+    <string name="context_usage_subagents_all">Subagentes (todas las ramas)</string>
+    <string name="context_usage_cost">Coste</string>
+    <string name="context_usage_cost_branch">Coste (esta rama)</string>
+    <string name="context_usage_cost_all">Todas las ramas</string>
+    <string name="context_usage_tools_all">Herramientas</string>
+    <string name="context_usage_used">Usado</string>
+    <string name="timestamp_just_now">Ahora mismo</string>
+    <plurals name="timestamp_minutes_ago">
+        <item quantity="one">hace %1$d min</item>
+        <item quantity="many">hace %1$d min</item>
+        <item quantity="other">hace %1$d min</item>
+    </plurals>
+    <plurals name="timestamp_hours_ago">
+        <item quantity="one">hace %1$d h</item>
+        <item quantity="many">hace %1$d h</item>
+        <item quantity="other">hace %1$d h</item>
+    </plurals>
+    <plurals name="timestamp_days_ago">
+        <item quantity="one">hace %1$d día</item>
+        <item quantity="many">hace %1$d días</item>
+        <item quantity="other">hace %1$d días</item>
+    </plurals>
+    <plurals name="timestamp_weeks_ago">
+        <item quantity="one">hace %1$d semana</item>
+        <item quantity="many">hace %1$d semanas</item>
+        <item quantity="other">hace %1$d semanas</item>
+    </plurals>
+    <string name="timestamp_yesterday_at">Ayer, %1$s</string>
+    <string name="date_group_today">Hoy</string>
+    <string name="date_group_yesterday">Ayer</string>
+    <string name="date_group_previous_7_days">Últimos 7 días</string>
+    <string name="date_group_previous_30_days">Últimos 30 días</string>
+    <string name="date_group_unknown">Desconocido</string>
+    <string name="snackbar_dismiss">Cerrar</string>
 </resources>

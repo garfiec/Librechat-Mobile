@@ -5,8 +5,8 @@ import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
-import com.garfiec.librechat.feature.chat.viewmodel.MessageTreeHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
+import com.garfiec.librechat.feature.chat.viewmodel.MessageTreeHandle
 import com.garfiec.librechat.feature.chat.viewmodel.MessagesState
 import com.garfiec.librechat.feature.chat.viewmodel.RetryInfo
 import com.google.common.truth.Truth.assertThat

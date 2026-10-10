@@ -47,22 +47,28 @@ fun <T> Result<T>.getOrThrow(): T = when (this) {
  * or DataStore gets those reads and writes on the IO dispatcher too, which is where they belong.
  */
 suspend fun <T> safeApiCall(block: suspend () -> T): Result<T> =
-    try {
-        Result.Success(withContext(ioDispatcher) { block() })
-    } catch (e: CancellationException) {
-        // Cooperative cancellation must propagate — callers rely on cancel()ed jobs
-        // not writing stale errors back to state (e.g. SettingsViewModel.loadUserJob).
-        throw e
-    } catch (e: Exception) {
-        e.toSafeError()
-    }
+    apiCallCatching({ Result.Success(block()) }) { it.toSafeError() }
 
 /**
- * [safeApiCall]'s dispatcher hop without its error mapping, for the few API calls that classify
- * their own failures. Prefer [safeApiCall] unless you are one of those: it logs at error level, so
- * routing an expected failure through it puts a `Logger.e` on a path that fails by design.
+ * [safeApiCall]'s dispatcher hop and catch, with the failure handed to [onFailure] instead of
+ * mapped and logged. For the few API calls that classify their own failures: [safeApiCall] logs at
+ * error level, so routing an expected failure (an old server's 404, a validation 400) through it
+ * puts a `Logger.e` on a path that fails by design. [onFailure] runs in the caller's context.
  */
-suspend fun <T> onApiDispatcher(block: suspend () -> T): T = withContext(ioDispatcher) { block() }
+@Suppress("TooGenericExceptionCaught") // the app-wide failure-mapping boundary
+suspend fun <T> apiCallCatching(
+    block: suspend () -> T,
+    onFailure: suspend (Exception) -> T,
+): T =
+    try {
+        withContext(ioDispatcher) { block() }
+    } catch (e: CancellationException) {
+        // Cooperative cancellation must propagate — callers rely on cancel()ed jobs
+        // not writing stale errors back to state (e.g. AccountDelegate.loadUserJob).
+        throw e
+    } catch (e: Exception) {
+        onFailure(e)
+    }
 
 /**
  * Turns a caught failure into a [Result.Error] whose message is fit to display, and sends the full

@@ -259,6 +259,9 @@
     <string name="agent_file_upload_failed">ファイルのアップロードに失敗しました</string>
     <string name="agent_file_remove_failed">ファイルの削除に失敗しました</string>
     <string name="cd_remove_file">%1$s を削除</string>
+    <string name="agent_file_remove_confirm_title">%1$sを削除しますか？</string>
+    <string name="agent_file_remove_confirm_title_generic">このファイルを削除しますか？</string>
+    <string name="agent_file_remove_confirm_message">このファイルを使用している他のエージェントがない場合、完全に削除されます。</string>
 
     <!-- Skills selector (v0.8.6) -->
     <string name="label_skills">スキル</string>
@@ -278,4 +281,30 @@
     <string name="subagents_allow_self">自分自身の生成を許可</string>
     <string name="add_subagent">サブエージェントを追加</string>
     <string name="subagents_full">サブエージェントの最大数に達しました。</string>
+    <string name="tools_marketplace_title">ツール</string>
+    <string name="tools_marketplace_description">このエージェントができることを選択</string>
+    <string name="tools_marketplace_search_hint">ツール、サーバー、スキルを検索…</string>
+    <string name="tools_marketplace_no_matches">「%1$s」に一致するものはありません</string>
+    <string name="tools_marketplace_no_favorites">ツールにスターを付けるとここにピン留めされます</string>
+    <string name="tools_marketplace_empty">利用できるものはまだありません</string>
+    <string name="tools_filter_all">すべて</string>
+    <string name="tools_filter_favorites">お気に入り</string>
+    <string name="tools_filter_builtin">組み込み</string>
+    <string name="tools_filter_tools">ツール</string>
+    <string name="tools_filter_mcp">MCP</string>
+    <string name="tools_filter_skills">スキル</string>
+    <string name="tools_browse">ツールを探す</string>
+    <string name="cd_pin_tool">ピン留め</string>
+    <string name="cd_unpin_tool">ピン留めを解除</string>
+    <string name="builtin_code_interpreter">コードインタープリター</string>
+    <string name="builtin_code_interpreter_desc">サンドボックスでコードを実行し、その出力とファイルを返します。</string>
+    <string name="builtin_file_search">ファイル検索</string>
+    <string name="builtin_file_search_desc">このエージェントに添付されたファイルから該当箇所を取得します。</string>
+    <string name="builtin_web_search">ウェブ検索</string>
+    <string name="builtin_web_search_desc">ウェブを検索し、使用した情報の出典を示します。</string>
+    <string name="builtin_file_context">ファイルコンテキスト</string>
+    <string name="builtin_file_context_desc">添付ファイル全体をエージェントのコンテキストに含めます。</string>
+    <string name="builtin_ask_user">ユーザーに質問</string>
+    <string name="builtin_ask_user_desc">実行を一時停止して、確認のための質問をします。</string>
+    <string name="agent_contact_title">連絡先</string>
 </resources>

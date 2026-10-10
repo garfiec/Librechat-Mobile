@@ -12,6 +12,7 @@ package com.garfiec.librechat.feature.chat.components.artifact
  */
 object MermaidWebContent {
 
+    @Suppress("LongMethod") // debt: 151 lines
     fun buildHtml(
         mermaidCode: String,
         isDarkTheme: Boolean,

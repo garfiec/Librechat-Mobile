@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.EndpointConstants
+import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.StreamEvent
@@ -12,6 +13,7 @@ import com.garfiec.librechat.feature.chat.util.primaryAgentId
 import com.garfiec.librechat.feature.chat.util.secondaryAgentId
 import com.garfiec.librechat.feature.chat.util.stripAgentIdSuffix
 import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
+import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
 import com.garfiec.librechat.feature.chat.viewmodel.ComparisonHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ComparisonState
@@ -192,10 +194,32 @@ class ComparisonModeDelegate(
         }
     }
 
+    private fun routeToolCallClosed(event: StreamEvent.ToolCallClosed) {
+        if (isSecondaryEvent(event.agentId)) {
+            handle.update {
+                val updated = comparisonState.secondaryActiveToolCalls.map { tc ->
+                    if (tc.id == event.toolCallId) tc.copy(isComplete = true, closedStatus = event.status) else tc
+                }
+                comparisonState = comparisonState.copy(secondaryActiveToolCalls = updated)
+            }
+        } else {
+            handle.update {
+                val updated = comparisonState.primaryActiveToolCalls.map { tc ->
+                    if (tc.id == event.toolCallId) tc.copy(isComplete = true, closedStatus = event.status) else tc
+                }
+                comparisonState = comparisonState.copy(primaryActiveToolCalls = updated)
+            }
+        }
+    }
+
     /**
      * Routes a streaming event into the comparison panes. Returns `true` if the event
      * was consumed for comparison mode (so the caller skips its normal handling), `false`
      * otherwise — including when comparison is disabled, leaving the standard path intact.
+     *
+     * A tool-call event with no branch here falls through to the standard path, which writes the
+     * non-comparison `activeToolCalls` the panes never read. That is why the closure needs one:
+     * without it an aborted comparison run leaves both panes' cards spinning.
      */
     fun routeEvent(event: StreamEvent): Boolean {
         if (!handle.state.comparisonState.isEnabled) return false
@@ -205,6 +229,7 @@ class ComparisonModeDelegate(
             is StreamEvent.ThinkingDelta -> { routeTextDelta(event.agentId, event.chunk); true }
             is StreamEvent.ToolCallStart -> { routeToolCallStart(event); true }
             is StreamEvent.ToolCallComplete -> { routeToolCallComplete(event); true }
+            is StreamEvent.ToolCallClosed -> { routeToolCallClosed(event); true }
             else -> false
         }
     }
@@ -316,22 +341,22 @@ class ComparisonModeDelegate(
         val messageId = handle.state.comparisonState.parallelMessageId ?: return
         val conversationId = handle.state.conversationId ?: return
         handle.scope.launch {
-            try {
-                messageRepository.branchMessage(
-                    conversationId = conversationId,
-                    messageId = messageId,
-                    agentId = agentId,
-                )
-                handle.update { comparisonState = ComparisonState() }
-                val cid = handle.state.conversationId
-                if (cid != null && handle.state.pendingNavigationConversationId == null) {
-                    handle.update { conversation = conversation.copy(pendingNavigationConversationId = cid) }
-                }
-                reloadConversation(conversationId)
-            } catch (e: Exception) {
-                Logger.e(e) { "Failed to branch comparison message" }
-                handle.setError("Failed to continue with selected response")
+            val result = messageRepository.branchMessage(
+                conversationId = conversationId,
+                messageId = messageId,
+                agentId = agentId,
+            )
+            if (result !is Result.Success) {
+                Logger.e((result as? Result.Error)?.exception) { "Failed to branch comparison message" }
+                handle.setError(ChatNotice.CONTINUE_RESPONSE_FAILED.marker())
+                return@launch
             }
+            handle.update { comparisonState = ComparisonState() }
+            val cid = handle.state.conversationId
+            if (cid != null && handle.state.pendingNavigationConversationId == null) {
+                handle.update { conversation = conversation.copy(pendingNavigationConversationId = cid) }
+            }
+            reloadConversation(conversationId)
         }
     }
 

@@ -2,8 +2,9 @@ package com.garfiec.librechat.core.data.repository
 
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
-import com.garfiec.librechat.core.common.result.onApiDispatcher
+import com.garfiec.librechat.core.common.result.apiCallCatching
 import com.garfiec.librechat.core.common.result.safeApiCall
+import com.garfiec.librechat.core.common.result.toSafeError
 import com.garfiec.librechat.core.model.Skill
 import com.garfiec.librechat.core.model.SkillFile
 import com.garfiec.librechat.core.model.request.CreateSkillRequest
@@ -11,17 +12,17 @@ import com.garfiec.librechat.core.model.request.UpdateSkillRequest
 import com.garfiec.librechat.core.model.response.DeleteSkillFileResponse
 import com.garfiec.librechat.core.model.response.DeleteSkillResponse
 import com.garfiec.librechat.core.model.response.SkillConflictResponse
+import com.garfiec.librechat.core.model.response.SkillFileContentResponse
 import com.garfiec.librechat.core.model.response.SkillListResponse
 import com.garfiec.librechat.core.model.response.SkillValidationErrorResponse
 import com.garfiec.librechat.core.network.api.SkillsApi
-import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
 
 /**
- * Create, update, upload and import map their own failures — the server's `issues` array carries
- * validation detail (reserved name prefix, path traversal, a name conflict) that a generic message
- * would throw away — so they hand-roll the try/catch instead of using `safeApiCall`, and take its
- * dispatcher hop explicitly via `onApiDispatcher` (#326). The rest of the class uses `safeApiCall`.
+ * Create, update, upload, edit and import map their own failures — the server's `issues` array
+ * carries validation detail (reserved name prefix, path traversal, a name conflict) that a generic
+ * message would throw away — so they use `apiCallCatching` rather than `safeApiCall`. Anything that
+ * isn't a validation or conflict answer still goes through `toSafeError`.
  */
 class SkillsRepositoryImpl(
     private val skillsApi: SkillsApi,
@@ -39,34 +40,17 @@ class SkillsRepositoryImpl(
     override suspend fun getSkill(id: String): Result<Skill> =
         safeApiCall { skillsApi.getSkill(id) }
 
-    override suspend fun createSkill(request: CreateSkillRequest): Result<Skill> {
-        return try {
-            Result.Success(onApiDispatcher { skillsApi.createSkill(request) })
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: ApiException) {
-            // Surface server-side validation `issues` (e.g. reserved name prefix/
-            // word) that the client's kebab/length checks don't catch.
-            Result.Error(e, validationMessage(e) ?: e.message)
-        } catch (e: Exception) {
-            Result.Error(e, e.message ?: "Failed to create skill.")
-        }
-    }
+    override suspend fun createSkill(request: CreateSkillRequest): Result<Skill> =
+        apiCallCatching({ Result.Success(skillsApi.createSkill(request)) }, ::toValidationError)
 
-    override suspend fun updateSkill(id: String, request: UpdateSkillRequest): SkillUpdateResult {
-        return try {
-            SkillUpdateResult.Success(onApiDispatcher { skillsApi.updateSkill(id, request) })
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: ApiException) {
-            when {
-                e.statusCode == HTTP_CONFLICT -> parseConflict(e)
-                else -> SkillUpdateResult.Error(validationMessage(e) ?: e.message)
+    override suspend fun updateSkill(id: String, request: UpdateSkillRequest): SkillUpdateResult =
+        apiCallCatching({ SkillUpdateResult.Success(skillsApi.updateSkill(id, request)) }) { e ->
+            if (e is ApiException && e.statusCode == HTTP_CONFLICT) {
+                parseConflict(e)
+            } else {
+                SkillUpdateResult.Error(displayMessage(e))
             }
-        } catch (e: Exception) {
-            SkillUpdateResult.Error(e.message ?: "Failed to update skill.")
         }
-    }
 
     override suspend fun deleteSkill(id: String): Result<DeleteSkillResponse> =
         safeApiCall { skillsApi.deleteSkill(id) }
@@ -86,36 +70,46 @@ class SkillsRepositoryImpl(
         bytes: ByteArray,
         filename: String,
         mimeType: String,
-    ): Result<SkillFile> {
-        return try {
-            Result.Success(
-                onApiDispatcher { skillsApi.uploadSkillFile(skillId, relativePath, bytes, filename, mimeType) },
-            )
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: ApiException) {
-            // Surface the server's path/validation messages (reserved name,
-            // traversal, etc.) instead of a generic failure.
-            Result.Error(e, validationMessage(e) ?: e.message)
-        } catch (e: Exception) {
-            Result.Error(e, e.message ?: "Failed to upload file.")
-        }
-    }
+    ): Result<SkillFile> = apiCallCatching(
+        { Result.Success(skillsApi.uploadSkillFile(skillId, relativePath, bytes, filename, mimeType)) },
+        ::toValidationError,
+    )
 
     override suspend fun deleteSkillFile(skillId: String, relativePath: String): Result<DeleteSkillFileResponse> =
         safeApiCall { skillsApi.deleteSkillFile(skillId, relativePath) }
 
-    override suspend fun importSkill(bytes: ByteArray, filename: String, mimeType: String): Result<Skill> {
-        return try {
-            Result.Success(onApiDispatcher { skillsApi.importSkill(bytes, filename, mimeType) })
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: ApiException) {
-            Result.Error(e, validationMessage(e) ?: e.message)
-        } catch (e: Exception) {
-            Result.Error(e, e.message ?: "Failed to import skill.")
+    override suspend fun getSkillFileContent(
+        skillId: String,
+        relativePath: String,
+    ): Result<SkillFileContentResponse> = safeApiCall { skillsApi.getSkillFileContent(skillId, relativePath) }
+
+    override suspend fun editSkillFile(
+        skillId: String,
+        relativePath: String,
+        expectedFileId: String,
+        content: String,
+        filename: String,
+        mimeType: String,
+    ): SkillFileEditResult = apiCallCatching({
+        SkillFileEditResult.Saved(
+            skillsApi.editSkillFile(skillId, relativePath, expectedFileId, content.encodeToByteArray(), filename, mimeType),
+        )
+    }) { e ->
+        if (e is ApiException && e.statusCode == HTTP_CONFLICT) {
+            SkillFileEditResult.Conflict
+        } else {
+            SkillFileEditResult.Failed(displayMessage(e))
         }
     }
+
+    override suspend fun importSkill(bytes: ByteArray, filename: String, mimeType: String): Result<Skill> =
+        apiCallCatching({ Result.Success(skillsApi.importSkill(bytes, filename, mimeType)) }, ::toValidationError)
+
+    private fun toValidationError(e: Exception): Result.Error =
+        (e as? ApiException)?.let(::validationMessage)?.let { Result.Error(e, it) } ?: e.toSafeError()
+
+    private fun displayMessage(e: Exception): String =
+        (e as? ApiException)?.let(::validationMessage) ?: e.toSafeError().message.orEmpty()
 
     /**
      * Decodes the authoritative [Skill] from the 409 `skill_version_conflict`

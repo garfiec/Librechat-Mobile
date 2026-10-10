@@ -11,4 +11,7 @@
     <string name="version_mismatch_message">此应用是为 LibreChat v%1$s 构建的，但你的服务器运行的是 v%2$s。某些功能可能无法正常使用。</string>
     <string name="dismiss">关闭</string>
     <string name="dont_warn_again">不再提醒</string>
+    <string name="session_expired_title">已退出登录</string>
+    <string name="session_expired_message">你的会话已过期。请重新登录以继续。</string>
+    <string name="session_expired_message_named">你在 %1$s 的会话已过期。请重新登录以继续。</string>
 </resources>

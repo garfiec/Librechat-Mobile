@@ -53,9 +53,7 @@ class StreamingManagerStopTest {
     private val comparisonDelegate = mockk<ComparisonModeDelegate>(relaxed = true)
     private val completionDelegate = mockk<SendCompletionDelegate>(relaxed = true)
     private val queueDelegate = mockk<MessageQueueDelegate>(relaxed = true)
-    private val reloadConversation = mockk<(String) -> Unit>(relaxed = true)
-    private val treeDelegate = mockk<MessageTreeDelegate>(relaxed = true)
-    private val restoreUnsentInput = mockk<(String, List<String>) -> Unit>(relaxed = true)
+    private val host = mockk<StreamingHost>(relaxed = true)
 
     private fun message(id: String, parentId: String? = null, isUser: Boolean = false) = Message(
         messageId = id,
@@ -84,18 +82,12 @@ class StreamingManagerStopTest {
             activeAccountProvider = mockk<ActiveAccountProvider>(relaxed = true),
             connectivityObserver = connectivity,
             comparisonDelegate = comparisonDelegate,
-            subagentTraceDelegate = mockk(relaxed = true),
-            officePreviewDelegate = mockk(relaxed = true),
+            liveReply = LiveReplyDelegate(StreamingHandle(root), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true)),
             completionDelegate = completionDelegate,
             queueDelegate = queueDelegate,
-            treeDelegate = treeDelegate,
             pendingActionDelegate = mockk(relaxed = true),
             steeringDelegate = mockk(relaxed = true),
-            emitUserKeyError = {},
-            reloadConversation = reloadConversation,
-            restoreUnsentInput = restoreUnsentInput,
-            isNewConversation = { false },
-            isHandedOffNewChat = { false },
+            host = host,
         )
         return delegate to flow
     }
@@ -150,10 +142,10 @@ class StreamingManagerStopTest {
             }
             assertThat(text.captured).isEqualTo("partial answer")
             // A stopped turn holds the queue rather than firing the next item.
-            verify(exactly = 0) { queueDelegate.drainNext(any()) }
+            verify(exactly = 0) { queueDelegate.drainNext(any(), any()) }
             verify(atLeast = 1) { queueDelegate.pause() }
             // No refetch — the frame is authoritative, so nothing races the server's persistence.
-            verify(exactly = 0) { reloadConversation(any()) }
+            verify(exactly = 0) { host.reloadConversation(any()) }
             events.close()
             advanceUntilIdle()
         }
@@ -181,7 +173,7 @@ class StreamingManagerStopTest {
                 aborted = false,
             )
         }
-        verify(exactly = 1) { queueDelegate.drainNext(any()) }
+        verify(exactly = 1) { queueDelegate.drainNext(any(), any()) }
         events.close()
         advanceUntilIdle()
     }
@@ -203,7 +195,7 @@ class StreamingManagerStopTest {
         verify {
             completionDelegate.onFinal(any(), any(), any(), false, any(), any(), any(), any(), true)
         }
-        verify(exactly = 0) { queueDelegate.drainNext(any()) }
+        verify(exactly = 0) { queueDelegate.drainNext(any(), any()) }
         events.close()
         advanceUntilIdle()
     }
@@ -244,7 +236,7 @@ class StreamingManagerStopTest {
 
         assertThat(flow.value.isStreaming).isFalse()
         assertThat(flow.value.streamingContent).isEqualTo("half an answer")
-        verify(exactly = 0) { reloadConversation(any()) }
+        verify(exactly = 0) { host.reloadConversation(any()) }
         // The partial panes survive too — same intent as preserving streamingContent.
         verify { comparisonDelegate.endStreaming(clearContent = false) }
         // The hold is re-asserted so a follow-up queued mid-round-trip keeps its affordance.
@@ -301,10 +293,11 @@ class StreamingManagerStopTest {
      * Early abort: the Stop landed before the server's `created` milestone, so NOTHING was
      * persisted — not even the user message. The turn is un-sent (optimistic bubble removed,
      * text handed back to the composer) instead of finalized; the next sync would have silently
-     * dropped any bubble kept here.
+     * dropped any bubble kept here. The restore itself is the ViewModel's
+     * (ChatViewModelFailedTurnRestoreTest); this pins the decision.
      */
     @Test
-    fun `an early abort un-sends the optimistic turn and restores the draft`() =
+    fun `an early abort has the host un-send the optimistic turn`() =
         runTest(StandardTestDispatcher()) {
             coEvery { chatRepository.abortChat("conv-1", any(), any()) } returns Result.Success(ChatAbortResponse())
             val events = Channel<StreamEvent>(Channel.UNLIMITED)
@@ -317,9 +310,7 @@ class StreamingManagerStopTest {
             events.send(AbortFrameFixtures.earlyAbortFrame())
             runCurrent()
 
-            verify(exactly = 1) { treeDelegate.unsendOptimisticTurn("u1") }
-            // The optimistic message's own text (from state), not the frame's.
-            verify(exactly = 1) { restoreUnsentInput("text-u1", any()) }
+            verify(exactly = 1) { host.unsendTurn("u1") }
             // Nothing was saved server-side: no completion work at all — no conversation save,
             // no cacheTurn, no title refresh, no TTS.
             verify(exactly = 0) {
@@ -344,8 +335,7 @@ class StreamingManagerStopTest {
         events.send(AbortFrameFixtures.earlyAbortFrame())
         runCurrent()
 
-        verify(exactly = 1) { treeDelegate.unsendOptimisticTurn(null) }
-        verify(exactly = 0) { restoreUnsentInput(any(), any()) }
+        verify(exactly = 1) { host.unsendTurn(null) }
         events.close()
         advanceUntilIdle()
     }
@@ -362,6 +352,6 @@ class StreamingManagerStopTest {
         advanceUntilIdle()
 
         coVerify(exactly = 0) { chatRepository.abortChat(any(), any(), any()) }
-        verify(exactly = 0) { reloadConversation(any()) }
+        verify(exactly = 0) { host.reloadConversation(any()) }
     }
 }

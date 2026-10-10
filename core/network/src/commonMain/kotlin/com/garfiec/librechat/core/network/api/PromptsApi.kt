@@ -7,7 +7,6 @@ import com.garfiec.librechat.core.model.request.CreatePromptRequest
 import com.garfiec.librechat.core.model.request.UpdatePromptGroupRequest
 import com.garfiec.librechat.core.model.response.AddPromptToGroupResponse
 import com.garfiec.librechat.core.model.response.CreatePromptResponse
-import com.garfiec.librechat.core.model.response.PromptGroupListResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
@@ -16,8 +15,10 @@ import io.ktor.client.request.parameter
 import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.path
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 
 /**
  * Response payload for `POST /api/prompts/groups/:id/use`.
@@ -30,37 +31,34 @@ data class PromptUseResponse(
 
 class PromptsApi constructor(
     private val client: HttpClient,
+    private val json: Json,
 ) {
-    suspend fun getPromptGroups(
-        pageSize: Int = 10,
-        cursor: String? = null,
-        name: String? = null,
-        category: String? = null,
-    ): PromptGroupListResponse =
-        client.get {
-            url { path("api/prompts/groups") }
-            parameter("pageSize", pageSize)
-            cursor?.let { parameter("cursor", it) }
-            name?.let { parameter("name", it) }
-            category?.let { parameter("category", it) }
-        }.body()
-
     /**
-     * Every prompt group the user can see, unpaginated — what the composer's `/` picker needs so a
-     * large library isn't silently truncated to one page.
+     * Every prompt group the user can see, unpaginated, so neither the composer's `/` picker nor the
+     * library is silently truncated to one page.
      *
-     * Returns a raw JSON array, not the [PromptGroupListResponse] envelope `groups` uses. Both routes
-     * share the same ACL-aware projection, so `command` is absent here too; match on name/oneliner.
+     * A bare JSON array, with each group's production body attached as `productionPrompt`. The
+     * server's projection omits `command`, so match on name/oneliner.
      */
     suspend fun getAllPromptGroups(): List<PromptGroup> =
         client.get {
             url { path("api/prompts/all") }
         }.body()
 
-    suspend fun getPromptGroup(groupId: String): PromptGroup =
-        client.get {
+    /**
+     * Null when the group exists but the content filter withheld it: the route projects through
+     * `projectStoredPromptGroup`, which returns null for a group whose stored content is blocked,
+     * and `res.send(null)` is an empty body with no Content-Type — so ContentNegotiation never
+     * engages and a typed decode throws instead of reporting absence. Reachable on a traversal
+     * error with no PII finding, where the 400 guard and the projector disagree.
+     */
+    suspend fun getPromptGroup(groupId: String): PromptGroup? {
+        val text = client.get {
             url { path("api/prompts/groups/$groupId") }
-        }.body()
+        }.bodyAsText().trim()
+        if (text.isEmpty() || text == "null") return null
+        return json.decodeFromString<PromptGroup>(text)
+    }
 
     /** Creates a prompt and its group. This route alone answers with `{ prompt, group }` — see [CreatePromptResponse]. */
     suspend fun createPrompt(prompt: CreatePromptRequest): PromptGroup =

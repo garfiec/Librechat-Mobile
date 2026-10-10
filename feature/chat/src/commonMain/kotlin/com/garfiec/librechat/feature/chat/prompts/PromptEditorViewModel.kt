@@ -1,5 +1,7 @@
 package com.garfiec.librechat.feature.chat.prompts
 
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -21,7 +23,6 @@ data class PromptEditorUiState(
     val groupId: String? = null,
     val name: String = "",
     val oneliner: String = "",
-    val command: String = "",
     val promptText: String = "",
     val variableValues: Map<String, String> = emptyMap(),
     val prompts: List<Prompt> = emptyList(),
@@ -31,9 +32,30 @@ data class PromptEditorUiState(
     val error: String? = null,
     val saved: Boolean = false,
     val showVersionsSheet: Boolean = false,
+    /** The saved fields as the group was loaded (blank for create). */
+    val loadedFields: PromptFields = PromptFields(),
+    val showDiscardConfirm: Boolean = false,
+    val exitRequested: Boolean = false,
 ) {
     val isNewPrompt: Boolean get() = groupId == null
+
+    /**
+     * Whether Save has anything to write. [command] is passed in because it lives in a
+     * `TextFieldState` rather than in this state; the variable values only fill the preview and are
+     * never saved, so they are left out.
+     */
+    fun hasUnsavedChanges(command: String): Boolean =
+        !isLoading && PromptFields(name, oneliner, promptText, command) != loadedFields
 }
+
+/** The fields a save writes. */
+@Immutable
+data class PromptFields(
+    val name: String = "",
+    val oneliner: String = "",
+    val promptText: String = "",
+    val command: String = "",
+)
 
 class PromptEditorViewModel(
     private val promptRepository: PromptRepository,
@@ -42,6 +64,15 @@ class PromptEditorViewModel(
 
     private val _uiState = MutableStateFlow(PromptEditorUiState())
     val uiState: StateFlow<PromptEditorUiState> = _uiState.asStateFlow()
+
+    /**
+     * The `/` command, held as field state rather than a `String` in [uiState]: the field edits it
+     * through [CommandInputTransformation], which keeps the caret where it belongs when a
+     * character is normalized away. A `String` round-trip loses that.
+     */
+    val commandState = TextFieldState()
+
+    private val command: String get() = commandState.text.toString()
 
     init {
         val groupId = initialGroupId
@@ -59,18 +90,32 @@ class PromptEditorViewModel(
             when (groupResult) {
                 is Result.Success -> {
                     val group = groupResult.data
+                    if (group == null) {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            error = "This prompt is not available.",
+                        )
+                        return@launch
+                    }
                     val prompts = (promptsResult as? Result.Success)?.data ?: emptyList()
                     val mergedGroup = group.copy(prompts = prompts)
                     val productionPrompt = mergedGroup.prompts.find { it.id == mergedGroup.productionId }
-                    _uiState.value = _uiState.value.copy(
-                        groupId = mergedGroup.id,
+                    val loaded = PromptFields(
                         name = mergedGroup.name,
                         oneliner = mergedGroup.oneliner ?: "",
-                        command = mergedGroup.command ?: "",
                         promptText = productionPrompt?.prompt ?: mergedGroup.prompts.firstOrNull()?.prompt ?: "",
+                        command = mergedGroup.command ?: "",
+                    )
+                    commandState.setTextAndPlaceCursorAtEnd(loaded.command)
+                    _uiState.value = _uiState.value.copy(
+                        groupId = mergedGroup.id,
+                        name = loaded.name,
+                        oneliner = loaded.oneliner,
+                        promptText = loaded.promptText,
                         prompts = mergedGroup.prompts,
                         productionId = mergedGroup.productionId,
                         isLoading = false,
+                        loadedFields = loaded,
                     )
                 }
                 is Result.Error -> {
@@ -90,10 +135,6 @@ class PromptEditorViewModel(
 
     fun updateOneliner(oneliner: String) {
         _uiState.value = _uiState.value.copy(oneliner = oneliner)
-    }
-
-    fun updateCommand(command: String) {
-        _uiState.value = _uiState.value.copy(command = command.removePrefix("/"))
     }
 
     fun updatePromptText(text: String) {
@@ -171,11 +212,11 @@ class PromptEditorViewModel(
                 // command the user typed is not findable by the command they will type. `groupId`
                 // is adopted either way, so a retry updates the group just created rather than
                 // minting a duplicate.
-                val metadataSaved = if (state.oneliner.isNotBlank() || state.command.isNotBlank()) {
+                val metadataSaved = if (state.oneliner.isNotBlank() || command.isNotBlank()) {
                     val updateRequest = UpdatePromptGroupRequest(
                         name = state.name,
                         oneliner = state.oneliner.ifBlank { null },
-                        command = state.command.ifBlank { null },
+                        command = command.ifBlank { null },
                     )
                     val groupId = createdGroup.id
                     groupId != null && promptRepository.update(groupId, updateRequest) is Result.Success
@@ -206,7 +247,7 @@ class PromptEditorViewModel(
         val updateRequest = UpdatePromptGroupRequest(
             name = state.name,
             oneliner = state.oneliner.ifBlank { null },
-            command = state.command.ifBlank { null },
+            command = command.ifBlank { null },
         )
         when (val result = promptRepository.update(groupId, updateRequest)) {
             is Result.Success -> {
@@ -253,6 +294,26 @@ class PromptEditorViewModel(
         // — report the save as incomplete rather than popping the editor over an unread edit.
         val newPromptId = (added as? Result.Success)?.data?.id ?: return false
         return promptRepository.updatePromptProductionTag(newPromptId) is Result.Success
+    }
+
+    fun hasUnsavedChanges(): Boolean = _uiState.value.hasUnsavedChanges(command)
+
+    fun onBackRequested() {
+        // A save navigates when it lands; leaving first would let it pop the screen behind this one.
+        if (_uiState.value.isSaving) return
+        _uiState.value = if (hasUnsavedChanges()) {
+            _uiState.value.copy(showDiscardConfirm = true)
+        } else {
+            _uiState.value.copy(exitRequested = true)
+        }
+    }
+
+    fun discardChanges() {
+        _uiState.value = _uiState.value.copy(showDiscardConfirm = false, exitRequested = true)
+    }
+
+    fun dismissDiscardConfirmation() {
+        _uiState.value = _uiState.value.copy(showDiscardConfirm = false)
     }
 
     fun consumeSaved() {

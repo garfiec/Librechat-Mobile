@@ -155,6 +155,37 @@ class SkillsApi(
             url { skillFilePath(skillId, relativePath) }
         }.body()
 
+    /**
+     * `POST /api/skills/:id/files/:relativePath` (v0.8.8) — replace one file's bytes only if its
+     * revision is still [expectedFileId]. Multipart `file` + form `relativePath` (must equal the
+     * path param) + `expectedFileId`. 409 `SKILL_FILE_CONFLICT` means another edit landed first;
+     * 403 means the skill is externally managed. A dedicated route on purpose: an older server
+     * rejects it instead of ignoring `expectedFileId` and replacing unconditionally.
+     */
+    suspend fun editSkillFile(
+        skillId: String,
+        relativePath: String,
+        expectedFileId: String,
+        bytes: ByteArray,
+        filename: String,
+        mimeType: String,
+    ): SkillFile =
+        client.post {
+            url { skillFilePath(skillId, relativePath) }
+            setBody(
+                MultiPartFormDataContent(
+                    formData {
+                        append("relativePath", relativePath)
+                        append("expectedFileId", expectedFileId)
+                        append("file", bytes, Headers.build {
+                            append(HttpHeaders.ContentDisposition, "filename=\"${filename.replace("\"", "\\\"")}\"")
+                            append(HttpHeaders.ContentType, mimeType)
+                        })
+                    },
+                ),
+            )
+        }.body()
+
     /** `DELETE /api/skills/:id/files/:relativePath`. ACL EDIT. */
     suspend fun deleteSkillFile(skillId: String, relativePath: String): DeleteSkillFileResponse =
         client.delete {

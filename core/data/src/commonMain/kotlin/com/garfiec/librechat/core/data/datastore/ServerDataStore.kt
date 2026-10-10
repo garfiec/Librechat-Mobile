@@ -27,7 +27,6 @@ import kotlin.concurrent.Volatile
 interface ServerUrlKeychainFallback {
     fun readServerUrl(): String?
     fun writeServerUrl(url: String)
-    fun removeServerUrl()
 }
 
 class ServerDataStore(
@@ -42,10 +41,10 @@ class ServerDataStore(
     private val _currentUrl = MutableStateFlow("")
     val currentUrlFlow: Flow<String> = _currentUrl
 
-    // Set once an explicit setServerUrl/clearServerUrl has run, so the async warm-up below
-    // never clobbers a caller's value with the stale persisted read if they raced. Guarded
-    // together with [_currentUrl] by [urlMutex] so the warm-up's check-then-set is atomic
-    // against a concurrent set/clear (a plain @Volatile only guarantees visibility).
+    // Set once an explicit setServerUrl has run, so the async warm-up below never clobbers a
+    // caller's value with the stale persisted read if they raced. Guarded together with
+    // [_currentUrl] by [urlMutex] so the warm-up's check-then-set is atomic against a concurrent
+    // set (a plain @Volatile only guarantees visibility).
     @Volatile
     private var urlExplicitlySet = false
     private val urlMutex = Mutex()
@@ -91,9 +90,9 @@ class ServerDataStore(
                         persist = true
                     }
                 }
-                // Don't overwrite (or re-persist) a URL a caller set/cleared while the warm-up
-                // was in flight. The keychain re-persist must also sit under the lock + flag,
-                // otherwise a clearServerUrl() that raced the read could be resurrected on disk.
+                // Don't overwrite (or re-persist) a URL a caller set while the warm-up was in
+                // flight. The keychain re-persist must also sit under the lock + flag, otherwise a
+                // setServerUrl("") that raced the read could be resurrected on disk.
                 urlMutex.withLock {
                     if (!urlExplicitlySet) {
                         _currentUrl.value = url
@@ -137,28 +136,6 @@ class ServerDataStore(
         }
         // Mirror to Keychain so the URL survives app reinstall on iOS
         keychainFallback?.writeServerUrl(trimmed)
-    }
-
-    /**
-     * Clear the server URL from both DataStore and Keychain fallback.
-     *
-     * TCHAT: when the server is force-pinned (a non-blank [ServerPinning.url] with
-     * `allowOverride == false`), "cleared" means "back to the pin", not blank — there is no
-     * onboarding screen left to prompt for a new one in that build.
-     */
-    suspend fun clearServerUrl() {
-        val resetTo = if (pinning.url.isNotBlank() && !pinning.allowOverride) pinning.url else ""
-        urlMutex.withLock {
-            urlExplicitlySet = true
-            _currentUrl.value = resetTo
-        }
-        if (resetTo.isEmpty()) {
-            dataStore.edit { prefs -> prefs.remove(KEY_SERVER_URL) }
-            keychainFallback?.removeServerUrl()
-        } else {
-            dataStore.edit { prefs -> prefs[KEY_SERVER_URL] = resetTo }
-            keychainFallback?.writeServerUrl(resetTo)
-        }
     }
 
     companion object {

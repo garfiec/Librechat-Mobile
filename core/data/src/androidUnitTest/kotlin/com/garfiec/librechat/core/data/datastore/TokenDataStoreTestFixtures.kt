@@ -45,6 +45,11 @@ internal class FakeTokenStore(
     var readCount = 0
         private set
 
+    /** Added to the wall clock every cooldown deadline is judged against, so a test can lapse one. */
+    var clockOffsetMillis = 0L
+
+    override fun nowEpochMillis(): Long = super.nowEpochMillis() + clockOffsetMillis
+
     init {
         if (warmEagerly) runBlocking { warmTokenCache() }
     }

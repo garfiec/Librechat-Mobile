@@ -9,22 +9,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Forum
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -37,17 +26,28 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.SAVED_TAG
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
+import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.EmptyState
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
+import com.garfiec.librechat.core.ui.components.topbar.BarAction
+import com.garfiec.librechat.core.ui.components.topbar.BarIcons
+import com.garfiec.librechat.core.ui.components.topbar.BarMenuItem
+import com.garfiec.librechat.core.ui.components.topbar.BarMenuSection
+import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
+import com.garfiec.librechat.core.ui.components.topbar.BarTitle
+import com.garfiec.librechat.core.ui.datetime.resolve
 import com.garfiec.librechat.feature.conversations.components.ConversationActions
 import com.garfiec.librechat.feature.conversations.components.ConversationItem
 import com.garfiec.librechat.feature.conversations.components.DateGroupHeader
-import com.garfiec.librechat.feature.conversations.components.ProvideRelativeTimeReference
 import com.garfiec.librechat.feature.conversations.components.TagPicker
 import com.garfiec.librechat.feature.conversations.export.ExportFormat
 import com.garfiec.librechat.feature.conversations.export.ExportFormatPicker
@@ -90,7 +90,6 @@ fun ProjectChatsScreen(
     var tagPickerConversation by remember { mutableStateOf<Conversation?>(null) }
     var showExportFormatPicker by remember { mutableStateOf(false) }
     var exportConversation by remember { mutableStateOf<Conversation?>(null) }
-    var sortMenuOpen by remember { mutableStateOf(false) }
 
     var pendingExportFileName by remember { mutableStateOf<String?>(null) }
     var pendingExportContent by remember { mutableStateOf<String?>(null) }
@@ -151,34 +150,40 @@ fun ProjectChatsScreen(
         snapshotFlow { shouldLoadMore }.collect { if (it) viewModel.loadMore() }
     }
 
-    Scaffold(
+    AdaptiveScaffold(
         modifier = modifier,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(projectName, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back))
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { sortMenuOpen = true }) {
-                        Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = stringResource(Res.string.project_sort_label))
-                    }
-                    DropdownMenu(expanded = sortMenuOpen, onDismissRequest = { sortMenuOpen = false }) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(Res.string.project_sort_updated)) },
-                            onClick = { viewModel.setSort(ProjectChatsSort.UPDATED); sortMenuOpen = false },
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(Res.string.project_sort_created)) },
-                            onClick = { viewModel.setSort(ProjectChatsSort.CREATED); sortMenuOpen = false },
-                        )
-                    }
-                },
+            AdaptiveTopBar(
+                spec = AdaptiveTopBarSpec(
+                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.back), onNavigateBack),
+                    title = BarTitle(projectName),
+                    actions = listOf(
+                        BarAction.Menu(
+                            id = "sort",
+                            icon = BarIcons.Sort,
+                            label = stringResource(Res.string.project_sort_label),
+                            sections = listOf(
+                                BarMenuSection(
+                                    listOf(
+                                        BarMenuItem(
+                                            id = "updated",
+                                            label = stringResource(Res.string.project_sort_updated),
+                                            icon = null,
+                                            onClick = { viewModel.setSort(ProjectChatsSort.UPDATED) },
+                                        ),
+                                        BarMenuItem(
+                                            id = "created",
+                                            label = stringResource(Res.string.project_sort_created),
+                                            icon = null,
+                                            onClick = { viewModel.setSort(ProjectChatsSort.CREATED) },
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
             )
         },
     ) { innerPadding ->
@@ -194,38 +199,35 @@ fun ProjectChatsScreen(
                     icon = Icons.Default.Forum,
                 )
                 else -> {
-                    // One ticker for the whole list, so relative-time labels advance while it is open.
-                    ProvideRelativeTimeReference {
-                        LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
-                            uiState.groupedConversations.forEach { (dateGroup, displayItems) ->
-                                stickyHeader(key = "header_$dateGroup") { DateGroupHeader(label = dateGroup) }
-                                items(
-                                    items = displayItems,
-                                    key = { it.conversationId },
-                                    contentType = { "conversation" },
-                                ) { displayData ->
-                                    ConversationItem(
-                                        data = displayData,
-                                        onClick = { onConversationClick(displayData.conversationId) },
-                                        onActionsClick = {
-                                            selectedConversation = viewModel.getConversation(displayData.conversationId)
-                                        },
-                                        bookmarksEnabled = uiState.bookmarksEnabled,
-                                    )
-                                    HorizontalDivider(
-                                        modifier = Modifier.padding(start = 52.dp),
-                                        color = MaterialTheme.colorScheme.outlineVariant,
-                                    )
-                                }
+                    LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+                        uiState.groupedConversations.forEach { (dateGroup, displayItems) ->
+                            stickyHeader(key = "header_${dateGroup.key}") { DateGroupHeader(label = dateGroup.resolve()) }
+                            items(
+                                items = displayItems,
+                                key = { it.conversationId },
+                                contentType = { "conversation" },
+                            ) { displayData ->
+                                ConversationItem(
+                                    data = displayData,
+                                    onClick = { onConversationClick(displayData.conversationId) },
+                                    onActionsClick = {
+                                        selectedConversation = viewModel.getConversation(displayData.conversationId)
+                                    },
+                                    bookmarksEnabled = uiState.bookmarksEnabled,
+                                )
+                                AdaptiveDivider(
+                                    modifier = Modifier.padding(start = 52.dp),
+                                    color = MaterialTheme.colorScheme.outlineVariant,
+                                )
                             }
-                            if (uiState.isLoading && uiState.conversationCount > 0) {
-                                item(key = "loading_more") {
-                                    Box(
-                                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                                    }
+                        }
+                        if (uiState.isLoading && uiState.conversationCount > 0) {
+                            item(key = "loading_more") {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    AdaptiveCircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                                 }
                             }
                         }

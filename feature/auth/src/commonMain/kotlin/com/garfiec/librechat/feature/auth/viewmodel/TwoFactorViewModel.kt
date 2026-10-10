@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.model.VerifyTwoFactorOutcome
+import com.garfiec.librechat.core.ui.components.OTP_LENGTH
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,14 +13,14 @@ import kotlinx.coroutines.launch
 
 @Immutable
 data class TwoFactorUiState(
-    val digits: List<String> = List(6) { "" },
+    val code: String = "",
     val isBackupMode: Boolean = false,
     val backupCode: String = "",
     val isLoading: Boolean = false,
     val error: String? = null,
     val isVerified: Boolean = false,
     // Bumped whenever the entered code is cleared as spent (evaluated-and-rejected, or accepted
-    // with an unusable session); the digit row keys its focus-reset effect on this.
+    // with an unusable session); the code input keys its focus-reset effect on this.
     val codeAttempt: Int = 0,
 )
 
@@ -40,16 +41,13 @@ class TwoFactorViewModel(
     // suppressing it would strand an authenticated user on this screen.
     private var submitGeneration = 0
 
-    fun onDigitChanged(index: Int, value: String) {
-        if (value.length > 1) return
-        val newDigits = _uiState.value.digits.toMutableList()
-        newDigits[index] = value
-        _uiState.value = _uiState.value.copy(digits = newDigits, error = null)
+    fun onCodeChanged(code: String) {
+        val previous = _uiState.value.code
+        _uiState.value = _uiState.value.copy(code = code, error = null)
 
-        // Auto-submit when all 6 digits are entered
-        if (newDigits.all { it.isNotEmpty() }) {
-            submit()
-        }
+        // Auto-submit on each new full code — completing one, or pasting a fresh one over a kept
+        // entry — but not on a re-delivery of the same value, which the input can send twice.
+        if (code.length == OTP_LENGTH && code != previous) submit()
     }
 
     fun onBackupCodeChanged(code: String) {
@@ -66,7 +64,7 @@ class TwoFactorViewModel(
             isLoading = false,
             isBackupMode = !_uiState.value.isBackupMode,
             error = null,
-            digits = List(6) { "" },
+            code = "",
             backupCode = "",
         )
     }
@@ -76,15 +74,15 @@ class TwoFactorViewModel(
         val code = if (state.isBackupMode) {
             state.backupCode.trim()
         } else {
-            state.digits.joinToString("")
+            state.code
         }
 
-        if (code.isBlank()) return
+        if (code.isBlank() || state.isLoading) return
 
         val generation = submitGeneration
+        // Set before launching so a second submit in the same frame sees it and bails.
+        _uiState.value = state.copy(isLoading = true, error = null)
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-
             when (val outcome = authRepository.verifyTwoFactor(tempToken, code, isBackupCode = state.isBackupMode)) {
                 // Always honored, even when superseded by a mode toggle: the session is already
                 // committed in the token store, so anything but completing sign-in would strand
@@ -125,7 +123,7 @@ class TwoFactorViewModel(
         _uiState.value = state.copy(
             isLoading = false,
             error = message,
-            digits = if (clearEntry) List(6) { "" } else state.digits,
+            code = if (clearEntry) "" else state.code,
             backupCode = if (clearEntry) "" else state.backupCode,
             codeAttempt = if (clearEntry) state.codeAttempt + 1 else state.codeAttempt,
         )

@@ -29,7 +29,6 @@ class CommonTokenDataStoreAccountKeyingTest {
 
     private val noRefresh: Lazy<HttpClient> = lazy { error("refresh client not expected in this test") }
 
-
     @Test
     fun `init seeds cached bearer from the mirror's keyed slot`() = runTest {
         val store = FakeTokenStore(

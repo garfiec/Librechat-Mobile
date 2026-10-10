@@ -233,4 +233,14 @@ data class PendingSteer(
     val steerId: String? = null,
     val text: String? = null,
     val createdAt: Long? = null,
+    /**
+     * The excerpts the steer was sent with (v0.8.8-rc2).
+     *
+     * Claim-on-read like the rest of the report: the server hands these over as it drops its own
+     * copy, so a client that re-homes the text without them loses the user's selections for good.
+     */
+    val quotes: List<String> = emptyList(),
+    /** This client's own id for the steer, when the server learned it. Correlates a report with
+     *  the optimistic chip whose 202 has not landed yet. */
+    val clientSteerId: String? = null,
 )

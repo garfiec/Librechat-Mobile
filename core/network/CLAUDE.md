@@ -57,6 +57,18 @@ Legacy single-phase path (OpenAI Assistants): POST body is the SSE stream itself
 
 `SseConnectionManager` handles lifecycle: start, reconnect with exponential backoff (1s/2s/4s/8s, max 5 retries), abort via `POST /api/agents/chat/abort`, exposes `StateFlow<StreamingState>`. On reconnection, append `?resume=true` to get a `sync` event with `runSteps[]` + `aggregatedContent[]`.
 
+**A body that ends without a final frame is a drop, not the run's end.** Upstream sends no
+heartbeat, so an idle timeout (proxy, CDN) closes a live stream cleanly — during a human-review pause
+nothing is sent at all — and the server's own `res.destroy()` on a publication failure asks for a
+reconnect. `SseClient` resumes it on the same retry ladder as any other drop; the resume answers with
+a sync frame (live), a final frame, or a 404 (gone). Only a 404, an in-band error or a Final ends the
+loop, so a flow that completes with no event means "the job is gone" (or the account switched), never
+"the socket closed". Progress — what resets the attempt counter — is a **parsed event**, never a
+byte, so a 200 carrying no events (a captive portal) climbs the ladder instead of reconnecting forever.
+At the ceiling it emits `Error(code = RETRY_EXHAUSTED)` rather than a plain network error: running out
+of retries says nothing about the run (a live one behind an idle-timing proxy does it while online),
+so the consumer checks `/chat/status` instead of blaming the network.
+
 ### Don't use Ktor's SSE plugin
 
 The Ktor SSE plugin uses the same `NSURLSessionDataTask` code path as the regular Darwin engine, so it would have the same Layer 2 bug on iOS. The custom transport is mandatory.
@@ -121,6 +133,20 @@ is long-lived and never rotates, so an `http://` downgrade or an unknown base UR
   `ClosedByteChannelException` — which form arrives depends on whether the parse side or the pump job
   loses the race to fail the scope. A type-exact `catch` therefore works most of the time, which is
   the worst failure rate to debug: use `accessGatewayCause()`.
+  The same holds for an HTTP status on the stream GET (`httpStatusCause()`): a type-exact
+  `catch (e: SseHttpStatusException)` missed the wrapped 404 of a resume whose run had already
+  finished, retried it on the backoff ladder as a network drop, and a new chat's fast reply never
+  appeared until the conversation was reopened. `SseStreamException` is read the same way
+  (`sseStreamCause()`): wrapped, it ended without `isNetworkError`, so the stream never resumed when
+  the network returned.
+- **Nor is a 403 you cannot attribute to LibreChat** (issue #376) — the same principle, one layer out.
+  The validator's ban check requires LibreChat's own `banResponse` shape (`403` + JSON whose `message`
+  carries the ban wording, registered as `ban-response-message` in `scripts/mirrors.json`). It used to
+  be `bodyText.contains("ban")` against the raw body, which is true of any 403 block page containing
+  those three letters, so a CrowdSec or WAF interstitial emitted `SessionEndReason.BANNED` and tore
+  down a live session — leaving the user logged out *and* unable to sign back in until the network
+  block lifted. An unrecognised 403 now fails the request without ending the session. The refresh
+  client's half of this rule lives in `core/data/CLAUDE.md`.
 - **A gateway block is not an expired session.** The refresh path maps it to
   `RefreshAttempt.GatewayBlocked` → `Transient`, and deliberately not through `settle()`: the request
   never reached LibreChat, so it is no evidence the session is dead, and logging out over it costs the
@@ -149,6 +175,44 @@ field gets under half the width, which rendered both `CF-Access-Client-Id` and
 `CF-Access-Client-Secret` as `CF-Access-C…`: two different headers looking identical, next to a
 masked value.
 
+## The image cookie (`/images/*`, upstream 0.8.8-rc2+)
+
+The server's local image mount is credentialed by default since rc2 and authenticates on a **cookie
+only** — no `Authorization` branch, no query token, no signed URL. `ImageCookiePlugin` attaches the
+account's refresh token to exactly that mount; `isSecuredImagePath` is the shared predicate that
+decides what "that mount" means. See `DISCOVERY.md` for the server side, including the iOS cookie-jar
+guardrail.
+
+Four rules that are load-bearing and easy to undo by accident:
+
+- **`/images/` must NOT go in `AUTH_SKIP_PATHS`.** That set means "takes no bearer *and* its 401 is
+  the endpoint's own verdict"; it also suppresses `SwitchBarrierPlugin`'s proactive renewal, and its
+  matcher is a whole-path-suffix match for `auth/login`-shaped strings, not a prefix. The image mount
+  needs only the *second* half of that meaning, so it is a separate check in the 401 leg and the
+  bearer stays attached at the `State` phase — harmless, and correct the day upstream grows a bearer
+  path.
+- **Install position: between `AuthInterceptorPlugin` and `ServerHeadersPlugin`, main client only.**
+  Same-phase `State` interceptors run in install order, so the app's `Cookie: refreshToken=` is on
+  the request before `applyCustomHeaders` merges the user's gateway cookie into the same line — which
+  is what keeps it to one `Cookie` header and lets the app's segment win a name collision against a
+  stale one pasted out of devtools. Coil resolves the main client; the streaming and refresh clients
+  must not carry this.
+- **The cross-authority strip stays in the `HttpSend` interceptor**, for the same reason the gateway
+  headers' does: `HttpRedirect` copies every header to the redirect target and strips only
+  `Authorization`, and `stripCustomHeaders` deliberately unpicks only the *user's* cookie segments.
+  A `/images/` 302 off-domain would otherwise hand the refresh token to a foreign host.
+- **Never cache the token.** From rc2 the middleware matches it against `session.refreshTokenHash`, which
+  every refresh overwrites, so a value snapshotted before a rotation is already rejected — with a
+  **403**, not a 401. Read it at attach time, keyed to the snapshot's `accountId`, and let the
+  one-shot 403 retry (re-read, resend only if it *changed*) absorb the race. It is deliberately not
+  on `RequestIdentity` and not on `TokenManager`: `ImageCookieCredentials` is a one-method seam bound
+  to the token store, so the six `TokenManager` fakes never gain a second credential.
+
+Gating is `isSameServerAuthority` (scheme + host + port, fail-closed) plus a **base-path-aware** path
+match — upstream computes `imagesPath = ${basePath}/images`, so a bare `/images/` prefix test misses
+`https://host/librechat/images/…` and, worse, *matches* a host-root path that is not that
+deployment's mount at all. A null or pending account attaches nothing.
+
 ## Key Configuration
 
 - `Json { ignoreUnknownKeys = true; isLenient = true; encodeDefaults = false; explicitNulls = false; coerceInputValues = true }`
@@ -166,4 +230,4 @@ masked value.
 - Dependencies: `:core:model`, `:core:common`, Ktor bundles, kotlinx-serialization, Timber, Koin.
 - Convention plugins: `librechat.mobile.library` + `librechat.mobile.koin` + `librechat.kotlin.serialization`.
 - API services must not contain business logic -- they are thin HTTP wrappers.
-- All `arg`-wrapped endpoints must match the backend pattern: `setBody(mapOf("arg" to mapOf(...)))`.
+- All `arg`-wrapped endpoints must match the backend pattern `{ "arg": { ... } }`. Build it as a `@Serializable` wrapper class (see `ConvoUpdateBody`) or with `buildJsonObject`, **never as a `Map<String, Any>`**. Ktor picks a map's serializer from its values, so a map that nests an object beside a string throws "Serializing collections of different element types" before the request is sent, and `safeApiCall` turns that into a generic error rather than a crash. A map is safe only when every value has one type (e.g. `mapOf("refreshToken" to token)`).

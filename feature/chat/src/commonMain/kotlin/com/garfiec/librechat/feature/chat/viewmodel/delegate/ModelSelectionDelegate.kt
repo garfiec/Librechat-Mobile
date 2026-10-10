@@ -540,6 +540,9 @@ class ModelSelectionDelegate(
         return false
     }
 
+    // debt — CyclomaticComplexMethod: complexity 34
+    // debt — ReturnCount: 12 returns
+    @Suppress("CyclomaticComplexMethod", "ReturnCount")
     private fun applySeed(input: SeedInputs) {
         val filtered = filterModelsByEndpoint(input.rawModels, input.endpointConfigs)
         val state = handle.state

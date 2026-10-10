@@ -8,8 +8,8 @@ import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.PendingSteer
 import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.response.ChatAbortResponse
-import com.garfiec.librechat.feature.chat.util.AbortFrameFixtures
 import com.garfiec.librechat.core.model.response.ChatStatusResponse
+import com.garfiec.librechat.feature.chat.util.AbortFrameFixtures
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationMetaState
@@ -26,7 +26,6 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -49,9 +48,7 @@ class StreamingManagerLifecycleTest {
     private val comparisonDelegate = mockk<ComparisonModeDelegate>(relaxed = true)
     private val completionDelegate = mockk<SendCompletionDelegate>(relaxed = true)
     private val queueDelegate = mockk<MessageQueueDelegate>(relaxed = true)
-    private val reloadConversation = mockk<(String) -> Unit>(relaxed = true)
-    private val treeDelegate = mockk<MessageTreeDelegate>(relaxed = true)
-    private val restoreUnsentInput = mockk<(String, List<String>) -> Unit>(relaxed = true)
+    private val host = mockk<StreamingHost>(relaxed = true)
     private val steeringDelegate = mockk<SteeringDelegate>(relaxed = true)
 
     /**
@@ -79,6 +76,14 @@ class StreamingManagerLifecycleTest {
         content = MessagesState(messages = listOf(message("u1", isUser = true)), isStreaming = true),
     )
 
+    /** What `attachToServerStartedRun` exists for: a conversation open, with nothing streaming. */
+    private fun idleState() = ChatUiState(
+        conversation = ConversationMetaState(conversationId = "conv-1"),
+    )
+
+    /** A generation epoch strictly after any admission the tests below set up. */
+    private val successorEpoch = 1_758_000_100_000L
+
     private fun delegateWith(
         scope: TestScope,
         state: ChatUiState = streamingState(),
@@ -93,18 +98,12 @@ class StreamingManagerLifecycleTest {
             activeAccountProvider = mockk<ActiveAccountProvider>(relaxed = true),
             connectivityObserver = connectivity,
             comparisonDelegate = comparisonDelegate,
-            subagentTraceDelegate = mockk(relaxed = true),
-            officePreviewDelegate = mockk(relaxed = true),
+            liveReply = LiveReplyDelegate(StreamingHandle(root), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true)),
             completionDelegate = completionDelegate,
             queueDelegate = queueDelegate,
-            treeDelegate = treeDelegate,
             pendingActionDelegate = mockk(relaxed = true),
             steeringDelegate = steeringDelegate,
-            emitUserKeyError = {},
-            reloadConversation = reloadConversation,
-            restoreUnsentInput = restoreUnsentInput,
-            isNewConversation = { false },
-            isHandedOffNewChat = { false },
+            host = host,
         )
         return delegate to flow
     }
@@ -146,7 +145,7 @@ class StreamingManagerLifecycleTest {
             delegate.onResume()
             advanceUntilIdle()
             coVerify(exactly = 0) { chatRepository.checkStreamStatus(any(), any()) }
-            verify(exactly = 0) { reloadConversation(any()) }
+            verify(exactly = 0) { host.reloadConversation(any()) }
             events.close()
             advanceUntilIdle()
         }
@@ -219,7 +218,7 @@ class StreamingManagerLifecycleTest {
 
         assertThat(flow.value.isStreaming).isFalse()
         assertThat(flow.value.streamingContent).isEmpty()
-        verify(exactly = 1) { reloadConversation("conv-1") }
+        verify(exactly = 1) { host.reloadConversation("conv-1") }
         verify(atLeast = 1) { queueDelegate.pause() }
         events.close()
         advanceUntilIdle()
@@ -257,7 +256,7 @@ class StreamingManagerLifecycleTest {
             runCurrent()
 
             // The wipe/reload must NOT have happened; the pending abort owns teardown.
-            verify(exactly = 0) { reloadConversation(any()) }
+            verify(exactly = 0) { host.reloadConversation(any()) }
 
             // The abort's watchdog fires and finalizes locally with the partial intact.
             advanceUntilIdle()
@@ -299,7 +298,7 @@ class StreamingManagerLifecycleTest {
         runCurrent()
 
         assertThat(flow.value.isStreaming).isTrue()
-        verify(exactly = 0) { reloadConversation(any()) }
+        verify(exactly = 0) { host.reloadConversation(any()) }
         events.close()
         events2.close()
         delegate.reset()
@@ -361,12 +360,114 @@ class StreamingManagerLifecycleTest {
             events.send(AbortFrameFixtures.earlyAbortFrame().copy(pendingSteers = parked))
             runCurrent()
 
-            // The frame's own list, not a parked one: claimed via reclaim, which auto-drains
-            // normally. Only /chat/status hands over steers the server parked for a dead run.
-            verify { steeringDelegate.reclaim(parked) }
+            // Claimed as a stopped run's report: held as local rows, since the server dead-claims
+            // any turn queued behind an aborted run.
+            verify { steeringDelegate.reclaimAborted(parked) }
             events.close()
             advanceUntilIdle()
         }
+
+    /**
+     * Attaching to a run the server started is the only proof this client gets that the boundaries
+     * behind it are done, when the predecessor ended without a `Final`. Without this the queued-turn
+     * evidence is never retired and the drain refuses silently forever.
+     */
+    @Test
+    fun `attaching to a server-started run retires the admissions it overtook`() =
+        runTest(StandardTestDispatcher()) {
+            coEvery { chatRepository.checkStreamStatus("conv-1", any()) } coAnswers {
+                claimingStatusAnswer(ChatStatusResponse(active = true, createdAt = successorEpoch))
+            }
+            val (delegate, _) = delegateWith(this, state = idleState())
+
+            delegate.attachToServerStartedRun()
+            advanceUntilIdle()
+
+            verify { queueDelegate.retireAdmissionsBefore(successorEpoch) }
+            delegate.reset()
+            advanceUntilIdle()
+        }
+
+    /**
+     * The admitted turn finished inside one poll interval: no run is left to attach to, and the
+     * announcement is spent, so this is the only chance to show it and its reply.
+     */
+    @Test
+    fun `attaching after the server-started run already finished loads it`() =
+        runTest(StandardTestDispatcher()) {
+            coEvery { chatRepository.checkStreamStatus("conv-1", any()) } coAnswers {
+                claimingStatusAnswer(ChatStatusResponse(active = false))
+            }
+            val (delegate, _) = delegateWith(this, state = idleState())
+
+            delegate.attachToServerStartedRun()
+            advanceUntilIdle()
+
+            verify(exactly = 1) { host.reloadConversation("conv-1") }
+        }
+
+    /** The attach is announced once, so a failed status check is retried rather than dropped. */
+    @Test
+    fun `a failed status check on attach is retried`() = runTest(StandardTestDispatcher()) {
+        var calls = 0
+        coEvery { chatRepository.checkStreamStatus("conv-1", any()) } coAnswers {
+            if (++calls == 1) throw IllegalStateException("timeout")
+            claimingStatusAnswer(ChatStatusResponse(active = true, createdAt = successorEpoch))
+        }
+        val (delegate, _) = delegateWith(this, state = idleState())
+
+        delegate.attachToServerStartedRun()
+        advanceUntilIdle()
+
+        verify { queueDelegate.retireAdmissionsBefore(successorEpoch) }
+        delegate.reset()
+        advanceUntilIdle()
+    }
+
+    /** With every check failing, the turn is loaded as if it had already finished. */
+    @Test
+    fun `an attach whose status never answers falls back to a reload`() =
+        runTest(StandardTestDispatcher()) {
+            coEvery { chatRepository.checkStreamStatus("conv-1", any()) } throws
+                IllegalStateException("timeout")
+            val (delegate, _) = delegateWith(this, state = idleState())
+
+            delegate.attachToServerStartedRun()
+            advanceUntilIdle()
+
+            coVerify(exactly = 3) { chatRepository.checkStreamStatus("conv-1", any()) }
+            verify(exactly = 1) { host.reloadConversation("conv-1") }
+        }
+
+    /** Every conversation open runs this check; an idle conversation must not fetch twice. */
+    @Test
+    fun `an open that finds no run does not reload`() = runTest(StandardTestDispatcher()) {
+        coEvery { chatRepository.checkStreamStatus("conv-1", any()) } coAnswers {
+            claimingStatusAnswer(ChatStatusResponse(active = false))
+        }
+        val (delegate, _) = delegateWith(this, state = idleState())
+
+        delegate.resumeActiveStreamIfNeeded("conv-1")
+        advanceUntilIdle()
+
+        verify(exactly = 0) { host.reloadConversation(any()) }
+    }
+
+    /** Nothing to retire against: a status with no epoch leaves the evidence exactly as it was. */
+    @Test
+    fun `an epochless status retires nothing`() = runTest(StandardTestDispatcher()) {
+        coEvery { chatRepository.checkStreamStatus("conv-1", any()) } coAnswers {
+            claimingStatusAnswer(ChatStatusResponse(active = true, createdAt = null))
+        }
+        val (delegate, _) = delegateWith(this, state = idleState())
+
+        delegate.attachToServerStartedRun()
+        advanceUntilIdle()
+
+        verify(exactly = 0) { queueDelegate.retireAdmissionsBefore(any()) }
+        delegate.reset()
+        advanceUntilIdle()
+    }
 
     /** Same claim-before-guard rule on the conversation-open sibling. */
     @Test
@@ -463,7 +564,7 @@ class StreamingManagerLifecycleTest {
 
             assertThat(flow.value.isStreaming).isFalse()
             assertThat(flow.value.streamingContent).isEqualTo("half a reply")
-            verify(exactly = 0) { reloadConversation(any()) }
+            verify(exactly = 0) { host.reloadConversation(any()) }
             events.close()
             advanceUntilIdle()
         }

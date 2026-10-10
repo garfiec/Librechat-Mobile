@@ -45,7 +45,9 @@ class CommonSessionCacheCleaner(
             for (subdir in CACHE_SUBDIRECTORIES) {
                 deleteDirectoryRecursively("$root/$subdir")
             }
-        } catch (e: Exception) {
+        } catch (e: IllegalStateException) {
+            // cacheRoot() throws via error() when the platform can't resolve it; both deletes report
+            // failure by return value.
             Logger.w(e) { "Failed to clear session caches on logout" }
         }
     }

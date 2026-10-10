@@ -19,8 +19,6 @@
     <string name="forgot_password">Forgot password?</string>
     <string name="no_account_sign_up">Don't have an account? Sign up</string>
     <string name="or_continue_with">Or continue with</string>
-    <!-- Content description for the close button on the in-app OAuth sign-in WebView. -->
-    <string name="oauth_webview_close">Close</string>
 
     <!-- Register -->
     <string name="register_title">Create account</string>
@@ -78,4 +76,8 @@
 
     <!-- Custom server headers (issue #287) -->
     <string name="server_headers_advanced">Advanced</string>
+    <!-- SSO (in-app WebView) -->
+    <string name="sso_risk_title">Sign in with an in-app browser?</string>
+    <string name="sso_risk_body">Some providers, including Google, do not officially support this and may block it at any time. Use at your own risk.</string>
+    <string name="sso_sign_in_failed">Sign-in failed. Please try again.</string>
 </resources>

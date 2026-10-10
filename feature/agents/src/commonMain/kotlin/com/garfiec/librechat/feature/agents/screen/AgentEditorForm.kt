@@ -16,14 +16,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -36,6 +31,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveButton
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveInputChip
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.ErrorBanner
 import com.garfiec.librechat.feature.agents.components.AgentAclSharingSection
 import com.garfiec.librechat.feature.agents.components.AgentActionsPanel
@@ -81,6 +82,28 @@ internal fun AgentEditorForm(
     onShowToolDialog: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    uiState.pendingFileRemoval?.let { pending ->
+        AdaptiveAlertDialog(
+            onDismissRequest = viewModel::dismissAgentFileRemoval,
+            title = {
+                Text(
+                    pending.filename?.takeIf { it.isNotBlank() }
+                        ?.let { stringResource(Res.string.agent_file_remove_confirm_title, it) }
+                        ?: stringResource(Res.string.agent_file_remove_confirm_title_generic),
+                )
+            },
+            text = { Text(stringResource(Res.string.agent_file_remove_confirm_message)) },
+            confirmButton = {
+                TextButton(onClick = viewModel::confirmAgentFileRemoval) {
+                    Text(stringResource(Res.string.remove))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissAgentFileRemoval) { Text(stringResource(Res.string.cancel)) }
+            },
+        )
+    }
+
     Column(
         modifier = modifier
             .imePadding()
@@ -121,7 +144,7 @@ internal fun AgentEditorForm(
         Spacer(modifier = Modifier.height(16.dp))
 
         // 2. Name field (required)
-        OutlinedTextField(
+        AdaptiveOutlinedTextField(
             value = uiState.name,
             onValueChange = viewModel::onNameChanged,
             label = {
@@ -139,7 +162,7 @@ internal fun AgentEditorForm(
         Spacer(modifier = Modifier.height(12.dp))
 
         // 3. Description field
-        OutlinedTextField(
+        AdaptiveOutlinedTextField(
             value = uiState.description,
             onValueChange = viewModel::onDescriptionChanged,
             label = { Text(stringResource(Res.string.agent_description_label)) },
@@ -361,7 +384,7 @@ internal fun AgentEditorForm(
 
         // Opens the unified picker (capabilities + tools + MCP + skills), not just the plugin
         // tool list — so it is offered even when that list happens to be empty.
-        OutlinedButton(
+        AdaptiveOutlinedButton(
             onClick = onShowToolDialog,
             modifier = Modifier.fillMaxWidth(),
         ) {
@@ -403,7 +426,7 @@ internal fun AgentEditorForm(
         Spacer(modifier = Modifier.height(8.dp))
 
         uiState.conversationStarters.forEachIndexed { index, starter ->
-            InputChip(
+            AdaptiveInputChip(
                 selected = false,
                 onClick = {},
                 label = { Text(starter) },
@@ -424,7 +447,7 @@ internal fun AgentEditorForm(
         Row(
             modifier = Modifier.fillMaxWidth(),
         ) {
-            OutlinedTextField(
+            AdaptiveOutlinedTextField(
                 value = newStarter,
                 onValueChange = { newStarter = it },
                 placeholder = { Text(stringResource(Res.string.add_starter_hint)) },
@@ -516,18 +539,20 @@ internal fun AgentEditorForm(
             provider = uiState.provider,
             model = uiState.model,
             extendedEffortSupported = uiState.isHandoffsAvailable,
+            thinkingDisplayUpdatesSupported = uiState.isThinkingDisplayUpdatesAvailable,
+            dropParamsMap = uiState.dropParamsMap,
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
         // Save button
-        Button(
+        AdaptiveButton(
             onClick = { viewModel.save() },
             enabled = !uiState.isSaving,
             modifier = Modifier.fillMaxWidth(),
         ) {
             if (uiState.isSaving) {
-                CircularProgressIndicator(
+                AdaptiveCircularProgressIndicator(
                     modifier = Modifier
                         .height(20.dp)
                         .width(20.dp),

@@ -11,7 +11,8 @@ import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 /**
  * Endpoint/model selection, per-request tool + MCP config, model parameters, and the
  * model-selector sheet's open state. Written by [ChatViewModel], ModelSelectionDelegate,
- * PresetPromptDelegate and EndpointKeyStatusDelegate.
+ * PresetPromptDelegate, EndpointKeyStatusDelegate and QueueOrchestrationDelegate (the composer
+ * swap around a queued edit).
  */
 @Immutable
 data class ModelSelectionState(
@@ -54,4 +55,6 @@ data class ModelSelectionState(
      * older or unknown servers (per VERSION_GATES.md guideline #2).
      */
     val extendedEffortSupported: Boolean = false,
+    /** Whether thinkingDisplay `updates` may be offered (v0.8.8); see `EndpointParameterRegistry.getDefinitions`. */
+    val thinkingDisplayUpdatesSupported: Boolean = false,
 )

@@ -59,8 +59,8 @@ import org.jetbrains.kotlin.psi.psiUtil.containingClassOrObject
  * (no constant SQL to read the table name from) can't be inferred and must be added to [TENANT_DAOS]
  * explicitly; until then its opaque statements are not flagged.
  *
- * The rule runs without a binding context, so it works on the `detektMetadataCommonMain` source set
- * (where commonMain DAOs live).
+ * The rule runs without a binding context, so it works under the plain (non-type-resolved) `detekt`
+ * gate, which is where commonMain DAOs are analysed.
  */
 class AccountScopedDaoRule(config: Config) : Rule(config) {
 

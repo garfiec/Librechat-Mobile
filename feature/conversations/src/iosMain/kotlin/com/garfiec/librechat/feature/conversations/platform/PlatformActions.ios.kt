@@ -2,6 +2,8 @@ package com.garfiec.librechat.feature.conversations.platform
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.ui.platform.currentTopmostViewController
 import com.garfiec.librechat.core.ui.platform.presentSheet
@@ -63,6 +65,8 @@ actual fun FileSaver(
     onComplete: (success: Boolean, message: String?) -> Unit,
     onReset: () -> Unit,
 ) {
+    val currentOnComplete by rememberUpdatedState(onComplete)
+    val currentOnReset by rememberUpdatedState(onReset)
     LaunchedEffect(triggerFileName) {
         val fileName = triggerFileName
         val text = content
@@ -70,8 +74,8 @@ actual fun FileSaver(
 
         val rootVc = currentTopmostViewController()
         if (rootVc == null) {
-            onComplete(false, "Could not present share sheet")
-            onReset()
+            currentOnComplete(false, "Could not present share sheet")
+            currentOnReset()
             return@LaunchedEffect
         }
 
@@ -79,8 +83,8 @@ actual fun FileSaver(
         val data = text.toNSData()
         val wrote = data.writeToFile(tempPath, atomically = true)
         if (!wrote) {
-            onComplete(false, "Could not write export file")
-            onReset()
+            currentOnComplete(false, "Could not write export file")
+            currentOnReset()
             return@LaunchedEffect
         }
 
@@ -95,8 +99,8 @@ actual fun FileSaver(
         // without claiming success — matching the Android SAF actual.
         activityVc.completionWithItemsHandler = { _, completed, _, _ ->
             runCatching { NSFileManager.defaultManager.removeItemAtPath(tempPath, null) }
-            onComplete(completed, null)
-            onReset()
+            currentOnComplete(completed, null)
+            currentOnReset()
         }
 
         presentSheet(activityVc, from = rootVc)

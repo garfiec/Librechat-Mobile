@@ -16,24 +16,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -46,16 +40,53 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
+import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.EmptyState
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
+import com.garfiec.librechat.core.ui.components.topbar.BarIcons
+import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
+import com.garfiec.librechat.core.ui.components.topbar.BarTitle
+import com.garfiec.librechat.core.ui.datetime.rememberAbsoluteTimestamp
 import com.garfiec.librechat.feature.settings.model.SharedLinkDisplayData
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
-import com.garfiec.librechat.feature.settings.util.copyToClipboard
+import com.garfiec.librechat.feature.settings.util.rememberClipboardWriter
+import com.garfiec.librechat.feature.settings.viewmodel.SharedLinksViewModel
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.viewmodel.koinViewModel
+
+@Composable
+fun SharedLinksScreen(
+    onNavigateBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: SharedLinksViewModel = koinViewModel(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    SharedLinksContent(
+        links = state.links,
+        isLoading = state.isLoading,
+        hasNextPage = state.hasNextPage,
+        serverUrl = state.serverUrl,
+        onLoadMore = viewModel::loadMore,
+        canUpdate = state.updateEnabled,
+        updateKeepsUrl = state.updateKeepsUrl,
+        onUpdateLink = viewModel::update,
+        onDelete = viewModel::delete,
+        error = state.error,
+        onDismissError = viewModel::dismissError,
+        onNavigateBack = onNavigateBack,
+        modifier = modifier,
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SharedLinksScreen(
+private fun SharedLinksContent(
     links: List<SharedLinkDisplayData>,
     isLoading: Boolean,
     hasNextPage: Boolean,
@@ -67,10 +98,20 @@ fun SharedLinksScreen(
     updateKeepsUrl: Boolean,
     onUpdateLink: (String) -> Unit,
     onDelete: (String) -> Unit,
+    error: String?,
+    onDismissError: () -> Unit,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val clipboard = rememberClipboardWriter()
     val snackbarHostState = remember { SnackbarHostState() }
+    val currentOnDismissError by rememberUpdatedState(onDismissError)
+
+    LaunchedEffect(error) {
+        val message = error ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(message = message)
+        currentOnDismissError()
+    }
     val listState = rememberLazyListState()
     var deleteTarget by remember { mutableStateOf<SharedLinkDisplayData?>(null) }
     var updateTarget by remember { mutableStateOf<SharedLinkDisplayData?>(null) }
@@ -90,20 +131,16 @@ fun SharedLinksScreen(
         }
     }
 
-    Scaffold(
+    AdaptiveScaffold(
         modifier = modifier,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(Res.string.title_shared_links)) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(Res.string.cd_back),
-                        )
-                    }
-                },
+            AdaptiveTopBar(
+                spec = AdaptiveTopBarSpec(
+                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.cd_back), onNavigateBack),
+                    title = BarTitle(stringResource(Res.string.title_shared_links)),
+                    actions = emptyList(),
+                ),
             )
         },
     ) { padding ->
@@ -115,7 +152,7 @@ fun SharedLinksScreen(
                         .padding(padding),
                     contentAlignment = Alignment.Center,
                 ) {
-                    CircularProgressIndicator()
+                    AdaptiveCircularProgressIndicator()
                 }
             }
             links.isEmpty() -> {
@@ -149,7 +186,7 @@ fun SharedLinksScreen(
                             link = link,
                             serverUrl = serverUrl,
                             onCopy = { url ->
-                                copyToClipboard(url, "Share Link")
+                                clipboard.copy(url, "Share Link")
                             },
                             canUpdate = canUpdate,
                             onUpdateLink = { updateTarget = link },
@@ -164,7 +201,7 @@ fun SharedLinksScreen(
                                     .padding(16.dp),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                                AdaptiveCircularProgressIndicator(modifier = Modifier.size(24.dp))
                             }
                         }
                     }
@@ -178,7 +215,7 @@ fun SharedLinksScreen(
     // keeps working either way — so nothing about the outcome is visible enough to undo.
     val linkToUpdate = updateTarget
     if (linkToUpdate != null) {
-        AlertDialog(
+        AdaptiveAlertDialog(
             onDismissRequest = { updateTarget = null },
             title = { Text(stringResource(Res.string.dialog_title_update_shared_link)) },
             text = {
@@ -212,7 +249,7 @@ fun SharedLinksScreen(
     // Delete confirmation
     val linkToDelete = deleteTarget
     if (linkToDelete != null) {
-        AlertDialog(
+        AdaptiveAlertDialog(
             onDismissRequest = { deleteTarget = null },
             title = { Text(stringResource(Res.string.dialog_title_delete_shared_link)) },
             text = {
@@ -280,7 +317,7 @@ private fun SharedLinkItem(
             )
             link.createdAt?.let { created ->
                 Text(
-                    text = stringResource(Res.string.created_prefix, created),
+                    text = stringResource(Res.string.created_prefix, rememberAbsoluteTimestamp(created)),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

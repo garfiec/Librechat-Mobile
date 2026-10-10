@@ -33,7 +33,6 @@ class CommonTokenDataStoreGatewayTest {
         const val ACCESS_LOGIN = "https://team.cloudflareaccess.com/cdn-cgi/access/login/chat.example.com"
     }
 
-
     private fun seededStore(refreshClient: Lazy<HttpClient>) = FakeTokenStore(
         refreshClient,
         seed = mapOf(

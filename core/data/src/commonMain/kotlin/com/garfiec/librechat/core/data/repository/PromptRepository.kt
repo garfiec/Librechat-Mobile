@@ -6,7 +6,6 @@ import com.garfiec.librechat.core.model.PromptGroup
 import com.garfiec.librechat.core.model.request.AddPromptToGroupRequest
 import com.garfiec.librechat.core.model.request.CreatePromptRequest
 import com.garfiec.librechat.core.model.request.UpdatePromptGroupRequest
-import com.garfiec.librechat.core.model.response.PromptGroupListResponse
 import kotlinx.coroutines.flow.StateFlow
 
 interface PromptRepository {
@@ -23,11 +22,14 @@ interface PromptRepository {
      */
     val revision: StateFlow<Long>
 
-    suspend fun getGroups(pageSize: Int = 10, cursor: String? = null): Result<PromptGroupListResponse>
-
-    /** Every visible prompt group in one call, for surfaces that must not truncate (the `/` picker). */
+    /** Every visible prompt group in one call, for surfaces that must not truncate. */
     suspend fun getAllGroups(): Result<List<PromptGroup>>
-    suspend fun getGroup(groupId: String): Result<PromptGroup>
+
+    /**
+     * Success with a null group means the server withheld it behind a content filter — a state,
+     * not a failure, so callers must render it as unavailable rather than as an error.
+     */
+    suspend fun getGroup(groupId: String): Result<PromptGroup?>
     suspend fun create(request: CreatePromptRequest): Result<PromptGroup>
     suspend fun update(groupId: String, request: UpdatePromptGroupRequest): Result<PromptGroup>
     suspend fun delete(groupId: String): Result<Unit>

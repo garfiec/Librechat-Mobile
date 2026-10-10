@@ -28,6 +28,26 @@ sealed interface StreamEvent {
         val groupId: Int? = null,
     ) : StreamEvent
 
+    /**
+     * A run step reached a terminal state (`on_run_step_closed`, v0.8.8-rc2).
+     *
+     * **Not a replacement for [ToolCallComplete]** — upstream keeps its own progress heuristic for
+     * parts saved before the event existed and for endpoints that never emit it. What it adds is
+     * the only signal that separates a STOPPED step from one still in flight: steps swept at
+     * end-of-run because the caller aborted close with `cancelled`, and without that an aborted
+     * run leaves its tool cards spinning forever.
+     *
+     * [durationMs] is present only when the event carried both timestamps and they agree in order,
+     * so its absence means "not derivable", never "instant".
+     */
+    data class ToolCallClosed(
+        val toolCallId: String,
+        val status: RunStepStatus,
+        val durationMs: Long? = null,
+        val agentId: String? = null,
+        val groupId: Int? = null,
+    ) : StreamEvent
+
     data class ThinkingDelta(
         val chunk: String,
         val agentId: String? = null,
@@ -125,6 +145,16 @@ sealed interface StreamEvent {
         val index: Int? = null,
         /** The steer's text as injected, for a client that never saw its own 202. */
         val text: String? = null,
+        /** This client's own id, when the server echoed it back. */
+        val clientSteerId: String? = null,
+        /**
+         * Quotes carried by the INJECTED part (v0.8.8-rc2).
+         *
+         * Empty is load-bearing: it proves a pre-quotes server injected the words bare, leaving
+         * the local record as the only copy of the user's excerpts. That is the moment they are
+         * actually lost, and the moment they are re-staged.
+         */
+        val quotes: List<String> = emptyList(),
         val responseMessageId: String? = null,
         val conversationId: String? = null,
     ) : StreamEvent
@@ -199,6 +229,15 @@ sealed interface StreamEvent {
     ) : StreamEvent
 
     /**
+     * The run's usage so far, carried on a resume `sync` frame (`resumeState.collectedUsage`): a
+     * client attaching mid-run missed the live `on_token_usage` events these stand for. Folded
+     * like them, deduplicated by run and sequence, so an event seen live is not counted twice.
+     */
+    data class UsageBackfill(
+        val usages: List<TokenUsage>,
+    ) : StreamEvent
+
+    /**
      * Emitted when the server compacts earlier turns of a long agent chat into
      * a summary. The final summarized text is carried here; the chat UI surfaces
      * it as a "Summarized earlier messages" affordance rather than a normal
@@ -259,4 +298,22 @@ object StreamErrorCodes {
      * the message text is the only signal available to a protocol-v1 client.
      */
     const val GENERATION_RECONCILE = "generation_reconcile"
+
+    /**
+     * Client-side, never on the wire: `SseClient` ran out of retries on connections that kept
+     * dropping (I/O errors, or bodies that closed without the run's end). That says nothing about
+     * the run itself — with no heartbeat upstream, a live run behind an idle-timing proxy looks
+     * exactly like this while the device is online — so the consumer asks `/chat/status` rather
+     * than reporting a network failure: resume if active, refetch if not. Mirrors upstream's
+     * retry-ceiling adjudication (`useResumableSSE.ts`, "Max reconnect attempts reached").
+     */
+    const val RETRY_EXHAUSTED = "retry_exhausted"
+
+    /**
+     * Client-side, like [RETRY_EXHAUSTED]: the retries ran out on an HTTP status the loop has no
+     * special meaning for (a proxy's 502 on every resume). Adjudicated the same way — the run may
+     * well be live behind a flapping proxy — except that when the status read fails too, what the
+     * user is shown is this status error, not a network one: something did answer.
+     */
+    const val STATUS_RETRY_EXHAUSTED = "status_retry_exhausted"
 }

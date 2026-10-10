@@ -12,8 +12,9 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DrawerDefaults
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
@@ -24,7 +25,10 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.movableContentOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -32,6 +36,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -47,8 +57,16 @@ import com.garfiec.librechat.core.common.conversation.OpenConversationRegistry
 import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.lifecycle.DeferredWorkWindow
 import com.garfiec.librechat.core.common.lifecycle.ForegroundSignal
+import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.logging.Diag
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.BannerDisplay
+import com.garfiec.librechat.core.ui.components.topbar.CoversNativeBars
+import com.garfiec.librechat.core.ui.datetime.ProvideDateTimeFormat
+import com.garfiec.librechat.core.ui.glass.GlassSheetHost
+import com.garfiec.librechat.core.ui.glass.glassBackdropSource
+import com.garfiec.librechat.core.ui.glass.rememberGlassBackdrop
+import com.garfiec.librechat.core.ui.glass.rememberGlassStyle
 import com.garfiec.librechat.core.ui.theme.AppLocale
 import com.garfiec.librechat.feature.agents.navigation.AgentMarketplace
 import com.garfiec.librechat.feature.agents.navigation.agentsEntries
@@ -70,7 +88,10 @@ import com.garfiec.librechat.feature.files.navigation.Files
 import com.garfiec.librechat.feature.files.navigation.FilesPicker
 import com.garfiec.librechat.feature.files.navigation.filePickerEntries
 import com.garfiec.librechat.feature.files.navigation.filesEntries
+import com.garfiec.librechat.feature.schedules.navigation.SchedulesList
+import com.garfiec.librechat.feature.schedules.navigation.schedulesEntries
 import com.garfiec.librechat.feature.settings.navigation.SettingsTabbed
+import com.garfiec.librechat.feature.settings.navigation.WhatsNew
 import com.garfiec.librechat.feature.settings.navigation.mcpServersEntry
 import com.garfiec.librechat.feature.settings.navigation.memoriesEntry
 import com.garfiec.librechat.feature.settings.navigation.settingsEntries
@@ -97,12 +118,16 @@ import org.koin.compose.viewmodel.koinViewModel
 private const val HYGIENE_UNRECORDED = "__unrecorded__"
 
 /**
+ * Width at which the sidebar stops overlaying the content and pushes it aside instead. Must match the
+ * `WindowWidthSizeClass.Medium` branch in the app module's LibreChatNavHost, or the platforms diverge.
+ */
+private val TabletMinWidth = 600.dp
+
+/**
  * Shared root composable for LibreChat navigation.
- * Uses ModalNavigationDrawer (phone layout) for the sidebar-first pattern.
  *
- * Platform-specific features (deep links, tablet layout with BackHandler + swipe)
- * are handled by the Android app module. This shared version provides the core
- * phone layout that works on both Android and iOS.
+ * With no [content], picks [TabletLayout] or [PhoneLayout] from the available width (iOS). Android
+ * passes [content] to add deep links and share intents, and branches on its own WindowSizeClass.
  */
 @Composable
 fun LibreChatNavHost(
@@ -253,7 +278,9 @@ fun LibreChatNavHost(
             // Reset the stack only on an account-to-account flip; on account-to-logged-out the
             // initiating flow (or the session-expired signal) owns navigation.
             if (previous != null && current != null) {
-                navigator.navigateToChat()
+                // Scoped to the incoming account, or the landing's ViewModel would survive the
+                // flip — see Navigator.navigateToChat.
+                navigator.navigateToChat(accountScope = current)
             }
         }
         hygieneAccountId = current
@@ -263,13 +290,34 @@ fun LibreChatNavHost(
     // UI so every stringResource re-resolves, while the back stack created above survives the swap
     // and the user stays on their current screen.
     AppLocale(tag = appLocaleTag) {
-        if (content != null) {
-            content(navigator, navHostViewModel, modifier)
-        } else {
-            PhoneLayout(
-                navigator = navigator,
-                modifier = modifier,
-            )
+        // Date/time format + the app-wide relative-time ticker. Inside AppLocale, which is where
+        // the language override reaches the configuration the format resolves its locale from.
+        val dateTimePrefsStore = koinInject<DateTimePrefsStore>()
+        val dateTimePrefs by dateTimePrefsStore.prefs.collectAsStateWithLifecycle(
+            initialValue = dateTimePrefsStore.initial,
+        )
+        // Liquid Glass sheets are drawn over the whole app from here (see GlassSheetHost) — around
+        // both the shared layouts and a platform's own [content] (Android's), or sheets there fall
+        // back to the opaque M3 sheet.
+        ProvideDateTimeFormat(dateTimePrefs) {
+            GlassSheetHost {
+                if (content != null) {
+                    content(navigator, navHostViewModel, modifier)
+                } else {
+                    // Read from the window rather than a size class so iPad Split View / Slide Over, which
+                    // resize the window without a rotation, flip the layout too. iOS resizes in place, so
+                    // both layouts share one movable NavDisplay; see rememberMovableNavDisplay.
+                    val navDisplay = rememberMovableNavDisplay(navigator)
+                    val windowWidth = with(LocalDensity.current) {
+                        LocalWindowInfo.current.containerSize.width.toDp()
+                    }
+                    if (windowWidth >= TabletMinWidth) {
+                        TabletLayout(navigator = navigator, modifier = modifier, navDisplay = navDisplay)
+                    } else {
+                        PhoneLayout(navigator = navigator, modifier = modifier, navDisplay = navDisplay)
+                    }
+                }
+            }
         }
 
         // Version mismatch warning dialog
@@ -298,7 +346,7 @@ fun LibreChatNavHost(
 /** Reports an unannounced sign-out. [accountLabel] is blank when the account can't be named. */
 @Composable
 private fun SessionExpiredDialog(accountLabel: String, onDismiss: () -> Unit) {
-    AlertDialog(
+    AdaptiveAlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
@@ -331,7 +379,7 @@ private fun VersionMismatchDialog(
     onDismiss: () -> Unit,
     onDismissPermanently: () -> Unit,
 ) {
-    AlertDialog(
+    AdaptiveAlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
@@ -358,17 +406,30 @@ private fun VersionMismatchDialog(
     )
 }
 
-/** Default phone layout with modal drawer sidebar. Used by iOS directly and by Android as the non-tablet path. */
+/** Phone layout with a modal drawer sidebar: the below-600dp path on both platforms. */
 @Composable
 fun PhoneLayout(
     navigator: Navigator,
     modifier: Modifier = Modifier,
+    navDisplay: NavDisplaySlot = rememberMovableNavDisplay(navigator),
     navHostViewModel: NavHostViewModel = koinViewModel(),
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val isLoggedIn by navHostViewModel.isLoggedIn.collectAsStateWithLifecycle()
     val banner by navHostViewModel.banner.collectAsStateWithLifecycle()
+
+    val glass = rememberGlassStyle()
+    val drawerBackdrop = rememberGlassBackdrop()
+    // Any part of the sheet on screen, including mid-drag, where currentValue and targetValue can
+    // both still read Closed. The offset runs from minus the sheet's width (closed) to 0 (open).
+    var drawerWidthPx by remember { mutableIntStateOf(0) }
+    val drawerShowing by remember {
+        derivedStateOf {
+            val offset = drawerState.currentOffset
+            !offset.isNaN() && drawerWidthPx > 0 && offset > -drawerWidthPx + 1f
+        }
+    }
 
     // Reset sidebar mode to Conversations when the drawer closes
     LaunchedEffect(drawerState.isClosed) {
@@ -384,9 +445,14 @@ fun PhoneLayout(
         // auth base) leaves a non-auth route on top, and without this its edge-swipe would open the
         // drawer over a session-less state.
         gesturesEnabled = isLoggedIn && !navigator.isInAuthFlow,
+        // Liquid Glass shows the screen through the panel, so it dims it only lightly.
+        scrimColor = if (glass != null) GlassDrawerScrim else DrawerDefaults.scrimColor,
         drawerContent = {
-            ModalDrawerSheet(drawerState = drawerState) {
+            val sidebar: @Composable () -> Unit = {
+                // targetValue, not isOpen: start polling as the drawer begins to open, not after it settles.
+                val drawerOpen by remember { derivedStateOf { drawerState.targetValue == DrawerValue.Open } }
                 SidebarScaffold(
+                    isOpen = drawerOpen,
                     onNewChat = {
                         scope.launch { drawerState.close() }
                         if (navigator.currentRoute !is NewChat) {
@@ -421,6 +487,10 @@ fun PhoneLayout(
                         scope.launch { drawerState.close() }
                         navigator.navigate(SkillsList)
                     },
+                    onSchedulesClick = {
+                        scope.launch { drawerState.close() }
+                        navigator.navigate(SchedulesList)
+                    },
                     onOpenProjectsIndex = {
                         scope.launch { drawerState.close() }
                         navigator.navigate(Projects)
@@ -434,25 +504,68 @@ fun PhoneLayout(
                     },
                 )
             }
+            if (glass == null) {
+                ModalDrawerSheet(drawerState = drawerState) { sidebar() }
+            } else {
+                // A transparent sheet keeps M3's drawer gestures and predictive back; the panel inside
+                // it is the visible sidebar.
+                ModalDrawerSheet(
+                    drawerState = drawerState,
+                    modifier = Modifier.onSizeChanged { drawerWidthPx = it.width },
+                    drawerShape = RectangleShape,
+                    drawerContainerColor = Color.Transparent,
+                    drawerTonalElevation = 0.dp,
+                    windowInsets = WindowInsets(0),
+                ) {
+                    GlassSidebarPanel(style = glass, backdrop = drawerBackdrop) { sidebar() }
+                }
+            }
         },
     ) {
-        Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                // Recorded only while the drawer is opening or open: recording redraws the screen
+                // every frame, and nothing samples it while the drawer is shut.
+                .glassBackdropSource(drawerBackdrop?.takeIf { drawerShowing }),
+        ) {
             if (!navigator.isInAuthFlow) {
                 BannerDisplay(
                     banner = banner,
                     onDismiss = navHostViewModel::dismissBanner,
                 )
             }
-            MainNavDisplay(
-                navigator = navigator,
-                onMenuClick = { scope.launch { drawerState.open() } },
-                modifier = Modifier.fillMaxSize(),
-            )
+            navDisplay({ scope.launch { drawerState.open() } }, Modifier.fillMaxSize())
         }
+    }
+    // The drawer is drawn in the Compose canvas, under any native glass bar; hide those bars from
+    // the moment it starts opening until it has fully closed. drawerShowing covers a short edge-swipe,
+    // where both values still read Closed while the panel is on screen.
+    CoversNativeBars(
+        active = drawerShowing ||
+            drawerState.currentValue == DrawerValue.Open ||
+            drawerState.targetValue == DrawerValue.Open,
+    )
+}
+
+/** [MainNavDisplay] taking `(onMenuClick, modifier)`, as produced by [rememberMovableNavDisplay]. */
+typealias NavDisplaySlot = @Composable (onMenuClick: () -> Unit, modifier: Modifier) -> Unit
+
+/**
+ * [MainNavDisplay] as movable content. Hand the same instance to both layouts: a layout switch then
+ * moves the display instead of disposing it, and disposing it clears every back-stack entry's
+ * ViewModels (cancelling an in-flight stream). Pick the layout in the caller's own composition, not
+ * in a subcomposition such as BoxWithConstraints; only the single-composition move is tested.
+ */
+@Composable
+fun rememberMovableNavDisplay(navigator: Navigator): NavDisplaySlot = remember(navigator) {
+    movableContentOf { onMenuClick: () -> Unit, modifier: Modifier ->
+        MainNavDisplay(navigator = navigator, onMenuClick = onMenuClick, modifier = modifier)
     }
 }
 
-/** Core NavDisplay with entry providers for all feature modules. Used by both PhoneLayout and Android's TabletLayout. */
+/** Core NavDisplay with entry providers for all feature modules. Used by both PhoneLayout and TabletLayout. */
 @Composable
 fun MainNavDisplay(
     navigator: Navigator,
@@ -507,7 +620,11 @@ fun MainNavDisplay(
                     // version — rides onAuthComplete above). Conversations-only: the login session
                     // tasks already refreshed tags, so this must not re-fetch them (double-fetch).
                     drawerViewModel.refreshConversationsAfterLogin()
-                    navigator.navigateToChat()
+                    // An add-account completion lands here over a stack whose landing belongs to the
+                    // previous account; scoping it to the now-active one discards that ViewModel.
+                    navigator.navigateToChat(
+                        accountScope = (navHostViewModel.accountState.value as? AccountState.Resolved)?.id?.value,
+                    )
                 },
             )
             chatEntries(
@@ -526,6 +643,7 @@ fun MainNavDisplay(
                     val launchingId = (navigator.currentRoute as? Chat)?.conversationId
                     navigator.navigate(FilesPicker(targetConversationId = launchingId))
                 },
+                onOpenWhatsNew = { navigator.navigate(WhatsNew) },
             )
             conversationsEntries(
                 onConversationClick = { navigator.navigateToChat(it) },
@@ -538,6 +656,8 @@ fun MainNavDisplay(
             agentsEntries(
                 onNavigate = { navigator.navigate(it) },
                 onBack = { navigator.goBack() },
+                onReplace = { navigator.replaceTop(it) },
+                onPopWhile = { navigator.popWhile(it) },
                 onStartChat = { agentId ->
                     // Carry the agent id into the new chat so it opens on that agent
                     // (Tier-0 override in ModelSelectionDelegate) rather than falling
@@ -548,6 +668,11 @@ fun MainNavDisplay(
             skillsEntries(
                 onNavigate = { navigator.navigate(it) },
                 onBack = { navigator.goBack() },
+            )
+            schedulesEntries(
+                onNavigate = { navigator.navigate(it) },
+                onBack = { navigator.goBack() },
+                onOpenConversation = { navigator.navigateToChat(it) },
             )
             filesEntries(
                 onBack = { navigator.goBack() },
@@ -578,3 +703,5 @@ fun MainNavDisplay(
         },
     )
 }
+
+private val GlassDrawerScrim = Color.Black.copy(alpha = 0.12f)

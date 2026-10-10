@@ -4,6 +4,8 @@ import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.feature.chat.viewmodel.QueueHandle
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
+import com.garfiec.librechat.feature.chat.viewmodel.QueuedTurnServerState
+import com.garfiec.librechat.feature.chat.viewmodel.SettledQueuedTurn
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -204,10 +206,41 @@ class MessageQueueDelegate(
         handle.update { queue = queue.copy(isQueuePaused = true) }
     }
 
-    /** User tapped "Send queued": lift the pause and start draining. The reply already settled
-     *  while paused, so no settle-wait is needed. */
+    /**
+     * User tapped "Send queued": lift the pause and start draining. The reply already settled
+     * while paused, so no settle-wait is needed.
+     *
+     * A row the server refused is released to the local drain first. The server will never run
+     * it — a stopped run dead-claims every turn queued behind it, asking the user to review it —
+     * and this tap is that review; left server-owned it would block the drain for good. Only a row
+     * with no id: one the server still lists must be withdrawn there first, which the caller does.
+     *
+     * A row the server still holds keeps the queue paused rather than dropping the control: the
+     * drain refuses to send around it, and once the pause is lifted nothing else offers the user a
+     * way to send what is behind it.
+     */
     fun resume() {
-        handle.update { queue = queue.copy(isQueuePaused = false) }
+        handle.update {
+            val released = queue.messageQueue.map { item ->
+                if (item.server?.status != QueuedTurnServerState.Status.Rejected || item.server.id != null) {
+                    item
+                } else {
+                    item.copy(
+                        server = null,
+                        clientRequestId = null,
+                        parentMessageId = null,
+                        expectedPredecessorCreatedAt = null,
+                    )
+                }
+            }
+            queue = queue.copy(
+                messageQueue = released,
+                isQueuePaused = released.any { it.server != null },
+            )
+        }
+        // Said rather than swallowed: the control is still there, and a tap that visibly does
+        // nothing reads as a broken button.
+        if (handle.state.isQueuePaused) handle.setError(SERVER_HOLDS_QUEUED_MESSAGE)
         drainNext(awaitSettle = false)
     }
 
@@ -217,7 +250,7 @@ class MessageQueueDelegate(
      * the load-bearing "no Room write while streaming" invariant). [awaitSettle] defers the send
      * until the just-finished reply has landed in the tree (see [sendWithSpec]).
      */
-    fun drainNext(awaitSettle: Boolean = true) {
+    fun drainNext(awaitSettle: Boolean = true, endedGenerationCreatedAt: Long? = null) {
         // Freeze the queue while a queued item is being edited: draining now would fire an item
         // out from under the user and shift the slots the edit session's originalIndex points at.
         // The edit's commit/cancel re-kicks draining once it completes.
@@ -244,12 +277,121 @@ class MessageQueueDelegate(
                 onQueuedDropped(foreign)
             }
         }
+        // An admission that consumed THIS run's boundary already owns the successor, even though
+        // its row has left the queue — the reconcile poll drops an admitted row as soon as it
+        // sees one, and the run's own Final arrives moments later. Without this, that Final finds
+        // no server-owned row, drains the legacy follow-up behind it, and the conversation gets
+        // two turns. The evidence is consumed here so one admission fences one boundary, not
+        // every later run end as well.
+        if (consumeAdmittedBoundary(endedGenerationCreatedAt)) return
+        // "Send queued" and the idle re-drain arrive with no boundary epoch, so the match above is
+        // a no-op for them and the evidence — whose row has already left the queue, which is why
+        // the server-owned check below cannot stand in for it — would never be consulted at all.
+        // With nothing to match against, any admission still owed a successor has to block.
+        //
+        // Blocked WITHOUT consuming: only the epoch-matched consume retires an admission, and
+        // burning it here would leave the run end it was actually holding unfenced. An admission
+        // anchored to a DIFFERENT boundary is deliberately still blocking on this path — the
+        // caller cannot say which run just ended, so it cannot say the two are unrelated either.
+        if (endedGenerationCreatedAt == null &&
+            handle.state.settledQueuedTurns.any { it.ownsUnstartedSuccessor }
+        ) {
+            return
+        }
+        if (handle.state.messageQueue.any { it.server != null }) return
+        // A server-owned row means the BACKEND owns the next fresh-turn admission, and there is no
+        // server-side guard against this client also sending it — the admission check is gated on
+        // a flag an ordinary send never sets. This refusal is the only thing standing between an
+        // enqueued turn and the same words being submitted twice.
+        //
+        // Any row, not just the head: the server admits behind the boundary this run just closed,
+        // so anything local firing now races it regardless of where it sits in the list. That
+        // includes a `Rejected` row, which is never auto-recovered — it is held for the user.
         val head = handle.state.messageQueue.firstOrNull() ?: return
         handle.update { queue = queue.copy(messageQueue = queue.messageQueue.drop(1)) }
         sendWithSpec(head, awaitSettle)
     }
 
+    /**
+     * Retires every admission whose successor the run at [runCreatedAt] has already overtaken.
+     *
+     * The ordinary way an admission is spent is the epoch match below, on its predecessor run's
+     * `Final`. A run that ends client-side WITHOUT one — a stream error nobody resumed — leaves
+     * the evidence armed for the ViewModel's life, and the paths with no epoch to match then
+     * refuse forever: "Send queued" becomes a dead button with nothing on screen to say why.
+     *
+     * Attaching to a server-started run is proof those boundaries are behind us, because the
+     * server only starts one when the previous turn has finished. Strictly `<`: an admission
+     * anchored to the run now streaming is owed a successor AFTER it, and retiring that one would
+     * unfence the very boundary it exists for.
+     *
+     * **Known gap — this does not cover a successor that finished while the client was away.**
+     * Every caller sits inside `if (status.active)`, so a run that ended before the app came back
+     * reports `active = false`, takes the `ResumeExpired` / reload arm, and retires nothing; the
+     * matching-epoch path cannot fire either, because the `Final` that carried the epoch never
+     * reached this client. The evidence then survives every `applyReceipts` (its retention filter
+     * keeps exactly `Admitted && effectivePredecessorCreatedAt != null && !boundaryConsumed`) and
+     * the fence stays armed for the ViewModel's life: "Send queued" clears `isQueuePaused`,
+     * destroying its own affordance, and returns at the blanket refusal in [drainNext].
+     *
+     * Retiring on an INACTIVE status is not the fix as it stands — the server can hold an admitted
+     * turn it has not started yet, and retiring then is how the same words get sent twice. The fix
+     * is to bound the evidence the way [QueuedTurnDelegate.expireStaleUncertainty] already bounds
+     * its sibling `Uncertain` state, or to retire against the reloaded tree (a message descending
+     * from the boundary is the same proof `status.active` stands in for, and the reload always
+     * lands).
+     */
+    fun retireAdmissionsBefore(runCreatedAt: Long) {
+        fun SettledQueuedTurn.isOvertaken(): Boolean =
+            ownsUnstartedSuccessor &&
+                (effectivePredecessorCreatedAt ?: Long.MAX_VALUE) < runCreatedAt
+        if (handle.state.settledQueuedTurns.none { it.isOvertaken() }) return
+        handle.update {
+            queue = queue.copy(
+                settledQueuedTurns = queue.settledQueuedTurns.map {
+                    if (it.isOvertaken()) it.copy(boundaryConsumed = true) else it
+                },
+            )
+        }
+    }
+
+    /**
+     * Marks the admission that consumed [endedGenerationCreatedAt] and reports whether one did.
+     *
+     * Matched on the boundary rather than on "is there any admitted turn": a queue can hold
+     * several, and each admission fences exactly the one run end whose epoch it consumed. A root
+     * admission consumed no boundary at all, so it can never match.
+     */
+    private fun consumeAdmittedBoundary(endedGenerationCreatedAt: Long?): Boolean {
+        if (endedGenerationCreatedAt == null) return false
+        fun SettledQueuedTurn.consumesBoundary(): Boolean =
+            ownsUnstartedSuccessor && effectivePredecessorCreatedAt == endedGenerationCreatedAt
+        // The verdict is read here, on the Main-confined state this delegate shares with the
+        // reconcile poll; the WRITE below re-derives from the block's own copy rather than
+        // writing back a list captured out here. `handle.update` is a compare-and-set retry, so a
+        // captured copy would overwrite whatever the poll recorded between this read and the
+        // commit — and would do it again on every retry pass.
+        if (handle.state.settledQueuedTurns.none { it.consumesBoundary() }) return false
+        handle.update {
+            // Re-matched per invocation: a retry restarts from the newer list, where a different
+            // row may now be the first match — or none may match at all, which writes nothing.
+            val index = queue.settledQueuedTurns.indexOfFirst { it.consumesBoundary() }
+            if (index >= 0) {
+                queue = queue.copy(
+                    settledQueuedTurns = queue.settledQueuedTurns.mapIndexed { i, turn ->
+                        // Exactly one admission fences one run end.
+                        if (i == index) turn.copy(boundaryConsumed = true) else turn
+                    },
+                )
+            }
+        }
+        return true
+    }
+
     private companion object {
+        const val SERVER_HOLDS_QUEUED_MESSAGE =
+            "The server still holds a queued message. Try again in a moment."
+
         /** Matches upstream's `useQueueDrain` heartbeat. Anything under ~12 h clears the
          *  server's unconditional 24 h hold floor; 30 min leaves headroom if a deployment ever
          *  shortens it, and at one tick per 30 min the 15-minute rate window sees at most one
@@ -264,3 +406,13 @@ class MessageQueueDelegate(
         val MIN_TICK = 1.minutes
     }
 }
+
+/**
+ * An admission whose successor this client has not yet let run. Both the boundary-matched fence
+ * and the blanket refusal read it, so neither can drift onto its own idea of live evidence.
+ *
+ * A root admission never reaches here: it consumed no boundary, so [QueuedTurnDelegate] does not
+ * retain it in the first place.
+ */
+private val SettledQueuedTurn.ownsUnstartedSuccessor: Boolean
+    get() = evidence == SettledQueuedTurn.Evidence.Admitted && !boundaryConsumed

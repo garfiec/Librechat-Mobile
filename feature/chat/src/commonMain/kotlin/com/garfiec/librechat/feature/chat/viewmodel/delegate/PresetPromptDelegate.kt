@@ -12,6 +12,7 @@ import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.prompts.PromptInsertion
 import com.garfiec.librechat.feature.chat.prompts.resolvePromptInsertion
 import com.garfiec.librechat.feature.chat.prompts.resolvePromptText
+import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.PendingVariablePrompt
 import com.garfiec.librechat.feature.chat.viewmodel.PresetPromptHandle
 import kotlinx.coroutines.Job
@@ -154,12 +155,13 @@ class PresetPromptDelegate(
             resendFiles = params.resendFiles,
         )
         handle.scope.launch {
-            try {
-                presetRepository.create(preset)
-                loadPresets()
-            } catch (e: Exception) {
-                Logger.e(e) { "Could not save preset" }
-                handle.setError("Could not save preset")
+            when (val result = presetRepository.create(preset)) {
+                is Result.Success -> loadPresets()
+                is Result.Error -> {
+                    Logger.e(result.exception) { "Could not save preset" }
+                    handle.setError(ChatNotice.PRESET_SAVE_FAILED.marker())
+                }
+                is Result.Loading -> { /* no-op */ }
             }
         }
     }
@@ -185,7 +187,7 @@ class PresetPromptDelegate(
             when (presetRepository.delete(presetId)) {
                 is Result.Success -> loadPresets()
                 is Result.Error -> {
-                    handle.setError("Could not delete preset")
+                    handle.setError(ChatNotice.PRESET_DELETE_FAILED.marker())
                 }
                 is Result.Loading -> { /* no-op */ }
             }
@@ -197,7 +199,7 @@ class PresetPromptDelegate(
             when (presetRepository.update(preset)) {
                 is Result.Success -> loadPresets()
                 is Result.Error -> {
-                    handle.setError("Could not update preset")
+                    handle.setError(ChatNotice.PRESET_UPDATE_FAILED.marker())
                 }
                 is Result.Loading -> { /* no-op */ }
             }
@@ -276,6 +278,7 @@ class PresetPromptDelegate(
  * properties on [ModelParameters]; everything else lands in [ModelParameters.dynamicValues]
  * so dropdown / switch / text controls round-trip without losing data.
  */
+@Suppress("CyclomaticComplexMethod") // debt: complexity 33
 internal fun ModelParameters.mergedFromPreset(preset: Preset): ModelParameters {
     // Start from an empty map: a preset's dynamicValues fully describe the
     // dynamic-keyed parameters it was saved with. Carrying current entries

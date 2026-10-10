@@ -239,8 +239,41 @@ def _function_body_start(masked: str, after_name: int) -> int | None:
     if i >= n:
         return None
 
-    brace = masked.find("{", i)
-    return brace if brace != -1 else None
+    return _body_brace_after_annotation(masked, i + 1)
+
+
+def _body_brace_after_annotation(masked: str, after_params: int) -> int | None:
+    """Index of the body `{` after a parameter list, skipping a return-type annotation's braces.
+
+    `function f(m: string): { major: number } | null {` has an object type between the `)` and
+    the body, and taking its `{` for the body collapses the block to the signature -- the same
+    inert-watch trap as everywhere else in this module (`parseOpusVersion` in bedrock.ts). A `{`
+    that follows a type position (`:`, `|`, `&`, `,`, `(`, `<`, `=>`) opens an object type and is
+    skipped whole; the first `{` after anything else -- `)`, a type name, `]`, a closing `>` or
+    `}` -- is the body. Braces inside a generic (`Promise<{ a: 1 }>`) are never the body.
+    """
+    angle, i, n = 0, after_params, len(masked)
+    while i < n:
+        c = masked[i]
+        if c == "<":
+            angle += 1
+        elif c == ">" and not masked.startswith("=>", i - 1):
+            angle = max(0, angle - 1)
+        elif c == "{" and angle == 0:
+            before = masked[after_params:i].rstrip()
+            if not before or not (before[-1] in ":|&,(<" or before.endswith("=>")):
+                return i
+            depth = 0
+            while i < n:                      # skip the object type whole
+                if masked[i] == "{":
+                    depth += 1
+                elif masked[i] == "}":
+                    depth -= 1
+                    if depth == 0:
+                        break
+                i += 1
+        i += 1
+    return None
 
 
 def _callable_body_start(masked: str, init: int) -> int | None:
@@ -253,6 +286,14 @@ def _callable_body_start(masked: str, init: int) -> int | None:
     `(…) => {…}` and `arg => {…}`, each optionally `async` -- and returns the index at which
     the caller should start counting. A concise arrow body (`(a) => a.map(…)`) has no brace, so
     counting starts just past the `=>`, which is still the value rather than the signature.
+
+    A **return-type annotation** sits between the parameter list and the arrow
+    (`(p?: string | null): boolean => {`), so the arrow is not adjacent to the closing `)`.
+    It is found by scanning for the first `=>` at bracket depth zero rather than by matching
+    it straight after the parens: a function-typed annotation
+    (`(): ((x: string) => void) => {`) carries its own `=>` inside parentheses, and stopping
+    at that one would start counting inside the signature -- the same inert-watch outcome by
+    a different route.
     """
     i = re.compile(r"\s*(?:async\s+)?").match(masked, init).end()
 
@@ -279,21 +320,60 @@ def _callable_body_start(masked: str, init: int) -> int | None:
     if i >= n:
         return None
 
-    arrow = re.compile(r"\s*=>\s*").match(masked, i + 1)
-    return arrow.end() if arrow else None
+    return _arrow_body_start(masked, i + 1)
+
+
+def _arrow_body_start(masked: str, after_params: int) -> int | None:
+    """Index just past the `=>` that follows a parameter list, or None if there is none.
+
+    Skips a return-type annotation by scanning at depth zero, so nothing nested in one can be
+    mistaken for the arrow. Stops at a `;` or a `=` at depth zero: neither can appear between a
+    parameter list and its arrow, so reaching one means this initializer is not a function after
+    all and the caller must not treat the text as a signature.
+
+    **Angle brackets are counted too, and separately.** `_OPEN`/`_CLOSE` are round, square and
+    curly, so a `=>` inside a GENERIC argument sits at depth zero and is taken for the body arrow
+    — `(): Record<string, () => { id: number }> => {` then starts counting inside the annotation
+    and yields the signature alone. It only shows up when the generic contains a brace, which is
+    why an unparameterised `() => void` inside one appears to work: the wrong arrow is matched,
+    but counting still begins before the real body. Between a parameter list's `)` and its arrow
+    the only `<`/`>` are type brackets, so a plain counter is safe here and nowhere else.
+    """
+    depth, angle, i, n = 0, 0, after_params, len(masked)
+    while i < n:
+        c = masked[i]
+        if c in _OPEN:
+            depth += 1
+        elif c in _CLOSE:
+            depth -= 1
+            if depth < 0:
+                return None
+        elif c == "<":
+            angle += 1
+        elif c == ">":
+            # Not a closing bracket: the `>` of a `=>` we are standing next to. Leave it.
+            if angle > 0 and not masked.startswith("=>", i - 1):
+                angle -= 1
+        elif depth == 0 and angle == 0:
+            if masked.startswith("=>", i):
+                return re.compile(r"=>\s*").match(masked, i).end()
+            if c in ";=":
+                return None
+        i += 1
+    return None
 
 
 def extract_block(text: str, symbol: str) -> str | None:
     """The full declaration of `symbol`, from its keyword to its closing delimiter.
 
     Handles `export const X = [...]`, `= new Set([...])`, `= {...}`, `export enum X {}`,
-    `export function X(...) {}` and a function assigned to a binding
+    `export function X(...) {}` (optionally `async`) and a function assigned to a binding
     (`const X = (a) => {...}`, `const X = function (a) {...}`).
     Returns None when the symbol is not declared here -- upstream renamed or moved it,
     which the caller reports as MISSING rather than passing over.
     """
     anchor = re.compile(
-        rf"^[ \t]*(?:export\s+)?(?P<kw>const|let|var|enum|type|interface|function)"
+        rf"^[ \t]*(?:export\s+)?(?:async\s+)?(?P<kw>const|let|var|enum|type|interface|function)"
         rf"\s+{re.escape(symbol)}\b",
         re.MULTILINE,
     )
@@ -408,6 +488,49 @@ const handler = async ({ req, res }) => {
   await run(req);
 };
 """, 3),
+    # The annotation sits between the parameter list and the arrow, so an arrow matched
+    # straight after the closing paren is not found at all and the block collapses to the
+    # signature. Two registered entries extracted a signature-only block before this case
+    # existed: `document-supported-provider-predicate` (1 line) and
+    # `google-thinking-budget-bounds` (3). `isValidMemoryKey` was never affected -- a
+    # `function` declaration has no arrow to miss.
+    ("arrow with a return-type annotation", """
+export const isDocumentSupportedProvider = (provider?: string | null): boolean => {
+  const normalized = provider?.toLowerCase() ?? '';
+  return documentSupportedProviders.has(normalized);
+};
+""", 4),
+    ("arrow with a multi-line parameter list and a return-type annotation", """
+export const getGoogleThinkingBudgetBounds = (
+  model: string,
+): GoogleThinkingBudgetBounds | undefined => {
+  return BOUNDS[model];
+};
+""", 5),
+    # A function-typed annotation carries its own `=>` inside parentheses; stopping at that
+    # one starts the count inside the signature, which is the same inert watch by another
+    # route.
+    ("arrow returning a function type", """
+const makeGuard = (name: string): ((x: string) => boolean) => {
+  return (x) => x === name;
+};
+""", 3),
+    # The same trap one bracket further out, and the one the parenthesised case above does NOT
+    # cover: `_OPEN`/`_CLOSE` are round, square and curly, so an arrow inside a GENERIC argument
+    # is at depth zero. It only bites when the generic also contains a brace — with
+    # `Map<string, () => void>` the wrong arrow is matched and counting still starts before the
+    # real body, so the block comes out right by accident.
+    ("arrow returning a generic containing a function type", """
+export const build = (): Record<string, () => { id: number }> => {
+  const out = {};
+  return out;
+};
+""", 4),
+    ("arrow returning a generic with a braced type argument", """
+export const index = (): Map<string, { id: number }> => {
+  return new Map();
+};
+""", 3),
     ("single bare parameter, no parentheses", """
 const onError = error => {
   logger.error(error);
@@ -421,6 +544,27 @@ const onAbort = function (signal = { force: true }) {
     ("function declaration", """
 export function normalizeServerName(serverName) {
   return serverName.replace(/[^a-zA-Z0-9_.-]/g, '_');
+}
+""", 3),
+    # Without `async` in the anchor this form is simply not found, so the entry reports `??`
+    # every sync and reads as a tooling hiccup rather than an unwatched mirror.
+    ("async function declaration with a return type", """
+export async function handleAgentQueuedTurnCancel(req: Request, res: Response): Promise<void> {
+  const outcome = await cancel(req);
+  res.json(outcome);
+}
+""", 4),
+    # The first `{` after the parameter list is the return type's, not the body's; counted from
+    # there the block is the signature line alone (packages/data-provider/src/bedrock.ts).
+    ("function declaration with an object return type", """
+function parseOpusVersion(model: string): { major: number; minor: number } | null {
+  const nameFirst = model.match(/claude-opus[-.]?(\\d+)/);
+  return nameFirst ? { major: 1, minor: 0 } : null;
+}
+""", 4),
+    ("function declaration returning a generic of an object type", """
+export function load(id: string): Promise<{ id: string }> {
+  return fetchIt(id);
 }
 """, 3),
     ("annotated array literal", """

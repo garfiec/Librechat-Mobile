@@ -2,6 +2,8 @@
 <resources>
     <!-- Accessibility label for the bottom-sheet drag handle -->
     <string name="cd_drag_handle">ドラッグ ハンドル</string>
+    <string name="banner_dismiss">バナーを閉じる</string>
+    <string name="pdf_page_failed">このページを表示できませんでした</string>
     <!-- Custom per-server request headers (issue #287); shared by the pre-login
          server screen and the post-login Settings editor -->
     <string name="server_headers_title">カスタムリクエストヘッダー</string>
@@ -19,4 +21,77 @@
     <string name="server_headers_error_name">ヘッダー名が正しくありません。</string>
     <string name="server_headers_error_value">この値には送信できない文字が含まれています。</string>
     <string name="server_headers_error_reserved">このヘッダーはアプリが設定するため、上書きできません。</string>
+    <string name="pdf_password_title">パスワード保護されたPDF</string>
+    <string name="pdf_password_explanation">「%1$s」を開くにはパスワードが必要です。AIモデルに送信するため、Switchboardはこのデバイス上で復号し、復号したコピーをアップロードします。パスワードがデバイスの外に送られることはありません。</string>
+    <string name="pdf_password_sensitive_warning">パスワード保護されたファイルには機密情報が含まれていることがよくあります。復号したコピーはLibreChatサーバーに保存され、AIプロバイダーと共有されます。内容を共有してもよい場合にのみ続行してください。</string>
+    <string name="pdf_password_field">PDFのパスワード</string>
+    <string name="pdf_password_incorrect">パスワードが正しくありません。もう一度お試しください。</string>
+    <string name="pdf_password_show">パスワードを表示</string>
+    <string name="pdf_password_hide">パスワードを非表示</string>
+    <string name="pdf_password_confirm">復号してアップロード</string>
+    <string name="pdf_password_cancel">キャンセル</string>
+    <string name="param_thinking_between_tools_description">Effort パラメーターで制御される適応型思考を有効にします。このモデルは思考を完全にはオフにできません。オフにすると最も低い設定が使われ、拡張思考は行わず、ツール呼び出しの間の短いメモだけが残ります。オフの間、Effort は High が上限になります。</string>
+    <string name="discard_changes_title">変更を破棄しますか？</string>
+    <string name="discard_changes_message">保存していない変更は失われます。</string>
+    <string name="discard_changes_confirm">破棄</string>
+    <string name="discard_changes_cancel">キャンセル</string>
+    <!-- Context usage breakdown -->
+    <string name="context_compact">会話を圧縮</string>
+    <string name="context_compacting">圧縮中…</string>
+    <string name="context_compact_info">これまでの内容を、モデルが引き続き参照する短い要約にまとめ、今後のためにコンテキストを空けます。何も削除されません。</string>
+    <string name="context_usage_label">コンテキスト</string>
+    <string name="context_usage_window">コンテキストウィンドウ</string>
+    <string name="context_usage_estimated">メッセージ履歴からの推定値</string>
+    <string name="context_usage_messages">メッセージ</string>
+    <string name="context_usage_tools">ツールスキーマ</string>
+    <string name="context_usage_summary">要約</string>
+    <string name="context_usage_system">システムプロンプト</string>
+    <string name="context_usage_free">空き容量</string>
+    <string name="context_usage_input">入力</string>
+    <string name="context_usage_output">出力</string>
+    <string name="context_usage_estimated_row">推定</string>
+    <string name="context_usage_tool_calls">ツール呼び出し</string>
+    <string name="context_usage_agent_instructions">エージェントの指示</string>
+    <string name="context_usage_tools_system">システムツール</string>
+    <string name="context_usage_tools_system_deferred">システムツール（遅延）</string>
+    <string name="context_usage_tools_mcp">MCPツール</string>
+    <string name="context_usage_tools_mcp_deferred">MCPツール（遅延）</string>
+    <string name="context_usage_skills">スキル</string>
+    <string name="context_usage_subagents">サブエージェント</string>
+    <string name="context_usage_cached">キャッシュ済み</string>
+    <string name="context_usage_cache_write">キャッシュ書き込み</string>
+    <string name="context_usage_by_tool">ツール別</string>
+    <string name="context_usage_pressure_warn">コンテキストウィンドウが埋まりつつあります</string>
+    <string name="context_usage_pressure_danger">コンテキストウィンドウがほぼいっぱいです</string>
+    <string name="context_usage_largest_tool">最大のツール: %1$s (%2$s)</string>
+    <string name="context_usage_reclaim">今要約すると約%1$sトークンを解放できます</string>
+    <string name="context_usage_insights">コンテキストの詳細</string>
+    <string name="context_usage_totals">合計</string>
+    <string name="context_usage_cache_read">キャッシュ読み取り</string>
+    <string name="context_usage_subagents_all">サブエージェント（全ブランチ）</string>
+    <string name="context_usage_cost">コスト</string>
+    <string name="context_usage_cost_branch">コスト（このブランチ）</string>
+    <string name="context_usage_cost_all">全ブランチ</string>
+    <string name="context_usage_tools_all">ツール</string>
+    <string name="context_usage_used">使用済み</string>
+    <string name="timestamp_just_now">たった今</string>
+    <plurals name="timestamp_minutes_ago">
+        <item quantity="other">%1$d分前</item>
+    </plurals>
+    <plurals name="timestamp_hours_ago">
+        <item quantity="other">%1$d時間前</item>
+    </plurals>
+    <plurals name="timestamp_days_ago">
+        <item quantity="other">%1$d日前</item>
+    </plurals>
+    <plurals name="timestamp_weeks_ago">
+        <item quantity="other">%1$d週間前</item>
+    </plurals>
+    <string name="timestamp_yesterday_at">昨日 %1$s</string>
+    <string name="date_group_today">今日</string>
+    <string name="date_group_yesterday">昨日</string>
+    <string name="date_group_previous_7_days">過去7日間</string>
+    <string name="date_group_previous_30_days">過去30日間</string>
+    <string name="date_group_unknown">不明</string>
+    <string name="snackbar_dismiss">閉じる</string>
 </resources>

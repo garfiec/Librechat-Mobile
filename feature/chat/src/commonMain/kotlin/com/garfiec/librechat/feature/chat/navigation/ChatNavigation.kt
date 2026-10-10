@@ -43,6 +43,15 @@ import org.koin.compose.koinInject
     val agentId: String? = null,
     val endpoint: String? = null,
     val model: String? = null,
+    /**
+     * The account this landing belongs to — set when an account flip resets the back stack, and
+     * otherwise unread. Load-bearing for identity alone: Nav3 keeps an entry's ViewModelStore until
+     * that entry's key leaves the back stack, and the flip's `clear()` + `add(NewChat())` put the
+     * SAME key straight back, so the outgoing account's landing ChatViewModel would survive with its
+     * model selection and agent list (another server's agents in the selector, until a cold start).
+     * A different value here is a different entry, and its store is discarded.
+     */
+    val accountScope: String? = null,
 ) : ChatRoute
 
 /**
@@ -87,6 +96,8 @@ fun EntryProviderScope<NavKey>.chatEntries(
     onNavigateToProviderKeys: (endpointName: String?) -> Unit,
     /** Navigates to the server-file picker; wired by the host to `navigator.navigate(FilesPicker)`. */
     onAttachFromServer: () -> Unit,
+    /** Opens What's new (owned by settings) from the update banner on an empty chat. */
+    onOpenWhatsNew: () -> Unit = {},
 ) {
     entry<NewChat> { key ->
         NewChatScreen(
@@ -100,6 +111,7 @@ fun EntryProviderScope<NavKey>.chatEntries(
             onNavigateToPromptsLibrary = { onNavigate(PromptsLibrary) },
             onNavigateToProviderKeys = onNavigateToProviderKeys,
             onAttachFromServer = onAttachFromServer,
+            onOpenWhatsNew = onOpenWhatsNew,
         )
     }
     entry<Chat> { key ->
@@ -118,6 +130,7 @@ fun EntryProviderScope<NavKey>.chatEntries(
                 onShowAllMedia = key.conversationId?.let { id -> { onNavigate(ConversationMedia(id)) } },
                 onNavigateToProviderKeys = onNavigateToProviderKeys,
                 onAttachFromServer = onAttachFromServer,
+                onOpenWhatsNew = onOpenWhatsNew,
             )
         }
     }

@@ -20,6 +20,7 @@ import com.garfiec.librechat.core.model.HandoffEdge
 import com.garfiec.librechat.core.model.SkillSummary
 import com.garfiec.librechat.core.model.mcp.McpTool
 import com.garfiec.librechat.core.model.request.FunctionTool
+import com.garfiec.librechat.core.ui.components.PdfPasswordPromptUi
 import com.garfiec.librechat.feature.agents.AgentActionDisplayData
 import com.garfiec.librechat.feature.agents.AgentHandoffDisplayData
 import com.garfiec.librechat.feature.agents.AgentToolDisplayData
@@ -44,9 +45,15 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 
@@ -60,6 +67,14 @@ enum class AgentFileSlot(val wire: String) {
     KNOWLEDGE("file_search"),
     CONTEXT("context"),
 }
+
+/** A file removal the user has been asked to confirm. [filename] is for the prompt only. */
+@Immutable
+data class PendingAgentFileRemoval(
+    val fileId: String,
+    val slot: AgentFileSlot,
+    val filename: String?,
+)
 
 @Immutable
 data class AgentEditorUiState(
@@ -97,8 +112,14 @@ data class AgentEditorUiState(
     val versionBasis: AgentVersionBasis = AgentVersionBasis(),
     /** True while the lazy `/versions` fetch is in flight (v0.8.8 servers only). */
     val isLoadingVersions: Boolean = false,
+    /**
+     * The agent the form was last filled from — on load and on revert — and so what Save is
+     * measured against for unsaved changes. Null when creating.
+     */
+    val loadedAgent: Agent? = null,
     val showDeleteConfirm: Boolean = false,
     val showDuplicateConfirm: Boolean = false,
+    val showDiscardConfirm: Boolean = false,
     val showVersionHistory: Boolean = false,
     // Unified tools marketplace (v0.8.8) — the one picker over capabilities, tools, MCP, skills.
     val showToolsMarketplace: Boolean = false,
@@ -142,6 +163,27 @@ data class AgentEditorUiState(
     val isHandoffsAvailable: Boolean = false,
     /** Whether the granular ACL sharing API is supported (v0.8.5+). */
     val isAclAvailable: Boolean = false,
+    /**
+     * Whether `DELETE /api/files` unlinks an agent's file before it deletes anything (v0.8.8-rc1+).
+     * Below that the route deletes an owned file outright, so removing a chip would destroy the
+     * user's file everywhere. False until the version is known, so an unplaced server refuses.
+     */
+    val isAgentFileUnlinkAvailable: Boolean = false,
+    /**
+     * Whether removing a file from this agent can destroy it (v0.8.8-rc4, landed 2026-09-17).
+     * From rc4 the route runs the full delete — bytes and embeddings — for a file the caller owns
+     * that no other agent references, and the client cannot tell ahead of time which files those
+     * are, so a removal is confirmed first. Earlier rc servers only unlink. False unless the
+     * server is known to carry the change, so older servers keep the one-tap removal.
+     */
+    val agentFileRemovalDeletes: Boolean = false,
+    /** Whether thinkingDisplay `updates` may be offered (v0.8.8+); see AgentCapabilitiesDelegate. */
+    val isThinkingDisplayUpdatesAvailable: Boolean = false,
+    /** A removal waiting on the user's confirmation; see [agentFileRemovalDeletes]. */
+    val pendingFileRemoval: PendingAgentFileRemoval? = null,
+    /** `/api/config.endpointsDropParamsMap` (v0.8.8-rc3), unresolved; hides advanced-parameter
+     *  controls this server strips before calling the provider. */
+    val dropParamsMap: Map<String, JsonElement>? = null,
     // Skills (v0.8.6) — agent-editor skills selector.
     /** Whether the agent `skills_enabled` master toggle is on. */
     val skillsEnabled: Boolean = false,
@@ -173,6 +215,13 @@ data class AgentEditorUiState(
     val subagentAllowSelf: Boolean = true,
     /** `subagents.agent_ids` — other agents that may be spawned (cap 10, self excluded). */
     val selectedSubagentIds: List<String> = emptyList(),
+    /**
+     * `subagents.shareFiles` and `subagents.graphs`, carried from the loaded agent untouched. No
+     * control edits them, but the server `$set`s `subagents` whole, so a save that omitted them
+     * would erase file sharing and any team configured on the web.
+     */
+    val subagentShareFiles: Boolean? = null,
+    val subagentGraphs: JsonElement? = null,
     // Sharing
     val sharingState: AgentSharingState = AgentSharingState(),
     /**
@@ -202,12 +251,14 @@ data class AgentEditorUiState(
     val contextFiles: List<AgentFile> = emptyList(),
     /** File-id set currently uploading, keyed for spinner state in chips. */
     val uploadingSlots: Set<AgentFileSlot> = emptySet(),
+    /** A picked PDF needs its password before it can be uploaded; the screen asks for it. */
+    val pdfPasswordPrompt: PdfPasswordPromptUi? = null,
     /** Per-tool MCP options (`{ tool_name: { defer_loading: bool, programmatic:
      *  bool }, … }`). Round-tripped on every save so values set via the web
      *  client (deferred / programmatic flags) survive a mobile edit. The
      *  save path prunes this map to the agent's current tool selection so
-     *  deselecting an MCP tool also drops its options. UI for editing comes
-     *  in the follow-up parity PR. */
+     *  deselecting an MCP tool also drops its options. Mobile has no UI that
+     *  edits it yet. */
     val toolOptions: JsonObject? = null,
     /** Agent runtime `additional_instructions`. See [Agent.additionalInstructions]
      *  for the wire-level caveat: round-trip is a no-op against the current
@@ -216,7 +267,13 @@ data class AgentEditorUiState(
     /** Agent runtime `tool_kwargs`. See [Agent.toolKwargs] for shape + the
      *  wire-level caveat that the field is stripped server-side today. */
     val toolKwargs: JsonElement? = null,
-)
+) {
+    /**
+     * A save, duplicate or delete is in flight. Each navigates when it lands, so back is held until
+     * then: leaving first would let the late result pop or replace the screen the user went back to.
+     */
+    val isCommitting: Boolean get() = isSaving || isDuplicating || isDeleting
+}
 
 /**
  * Per-tool authentication state derived from `GET /agents/tools/:id/auth`.
@@ -240,8 +297,10 @@ sealed interface AgentEditorEvent {
     data class SaveSuccess(val agentId: String) : AgentEditorEvent
     data class DuplicateSuccess(val agentId: String) : AgentEditorEvent
     data object DeleteSuccess : AgentEditorEvent
+    data object Exit : AgentEditorEvent
 }
 
+@Suppress("TooManyFunctions") // debt: 63 functions
 class AgentEditorViewModel(
     private val agentRepository: AgentRepository,
     private val configRepository: ConfigRepository,
@@ -265,6 +324,16 @@ class AgentEditorViewModel(
         ),
     )
     val uiState: StateFlow<AgentEditorUiState> = _uiState.asStateFlow()
+
+    /**
+     * Drives the system-back interception, so a clean form keeps the predictive-back preview.
+     * Off the main thread because it re-maps the loaded agent on every keystroke.
+     */
+    val hasUnsavedChanges: StateFlow<Boolean> = _uiState
+        .map { it.hasUnsavedChanges() }
+        .flowOn(ioDispatcher)
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     private val _events = MutableSharedFlow<AgentEditorEvent>()
     val events: SharedFlow<AgentEditorEvent> = _events.asSharedFlow()
@@ -357,10 +426,6 @@ class AgentEditorViewModel(
         stateHandle.update { copy(instructions = instructions) }
     }
 
-    fun onModelChanged(model: String) {
-        stateHandle.update { copy(model = model) }
-    }
-
     fun onModelSelected(modelId: String, provider: String) {
         stateHandle.update { copy(model = modelId, provider = provider) }
     }
@@ -372,12 +437,6 @@ class AgentEditorViewModel(
     fun onToolToggled(toolId: String) {
         stateHandle.update {
             copy(selectedTools = if (toolId in selectedTools) selectedTools - toolId else selectedTools + toolId)
-        }
-    }
-
-    fun onToolAdded(toolId: String) {
-        stateHandle.update {
-            if (toolId in selectedTools) this else copy(selectedTools = selectedTools + toolId)
         }
     }
 
@@ -442,8 +501,6 @@ class AgentEditorViewModel(
 
     fun onCodeInterpreterToggled(enabled: Boolean) = codeAuthDelegate.onCodeInterpreterToggled(enabled)
 
-    fun showCodeToolAuthDialog() = codeAuthDelegate.showCodeToolAuthDialog()
-
     fun dismissCodeToolAuthDialog() = codeAuthDelegate.dismissCodeToolAuthDialog()
 
     fun submitCodeToolApiKey(apiKey: String) = codeAuthDelegate.submitCodeToolApiKey(apiKey)
@@ -465,8 +522,14 @@ class AgentEditorViewModel(
     // --- Per-capability file attachments ---
 
     fun uploadAgentFile(fileRef: Any, slot: AgentFileSlot) = filesDelegate.uploadAgentFile(fileRef, slot)
+    fun submitPdfPassword(password: String) = filesDelegate.submitPdfPassword(password)
+    fun dismissPdfPassword() = filesDelegate.dismissPdfPassword()
 
     fun removeAgentFile(fileId: String, slot: AgentFileSlot) = filesDelegate.removeAgentFile(fileId, slot)
+
+    fun confirmAgentFileRemoval() = filesDelegate.confirmAgentFileRemoval()
+
+    fun dismissAgentFileRemoval() = filesDelegate.dismissAgentFileRemoval()
 
     // --- Sharing ---
 
@@ -526,6 +589,24 @@ class AgentEditorViewModel(
 
     fun dismissDuplicateConfirmation() {
         stateHandle.update { copy(showDuplicateConfirm = false) }
+    }
+
+    fun onBackRequested() {
+        if (stateHandle.state.isCommitting) return
+        if (stateHandle.state.hasUnsavedChanges()) {
+            stateHandle.update { copy(showDiscardConfirm = true) }
+        } else {
+            viewModelScope.launch { _events.emit(AgentEditorEvent.Exit) }
+        }
+    }
+
+    fun discardChanges() {
+        stateHandle.update { copy(showDiscardConfirm = false) }
+        viewModelScope.launch { _events.emit(AgentEditorEvent.Exit) }
+    }
+
+    fun dismissDiscardConfirmation() {
+        stateHandle.update { copy(showDiscardConfirm = false) }
     }
 
     // --- Unified tools marketplace ---

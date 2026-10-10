@@ -23,8 +23,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.garfiec.librechat.feature.chat.components.web.rememberWebAssetBaseUrl
 import co.touchlab.kermit.Logger
+import com.garfiec.librechat.feature.chat.components.web.rememberWebAssetBaseUrl
 
 /**
  * Escapes a LaTeX string for safe embedding inside a JavaScript string literal.
@@ -118,7 +118,7 @@ new MutationObserver(reportHeight).observe(document.body, { childList: true, sub
 @Composable
 private fun NativeLatexBlock(
     latex: String,
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
 ) {
     Text(
         text = latex,
@@ -142,7 +142,7 @@ private fun NativeLatexBlock(
 @Composable
 private fun NativeLatexInline(
     latex: String,
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
 ) {
     Text(
         text = latex,
@@ -165,7 +165,7 @@ private fun NativeLatexInline(
 @Composable
 private fun KatexLatexBlock(
     latex: String,
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
 ) {
     val textColorArgb = MaterialTheme.colorScheme.onSurface.toArgb()
     val textColorCss = remember(textColorArgb) { argbToCss(textColorArgb) }
@@ -241,7 +241,7 @@ private fun KatexLatexBlock(
 @Composable
 private fun KatexLatexInline(
     latex: String,
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
 ) {
     val textColorArgb = MaterialTheme.colorScheme.onSurface.toArgb()
     val textColorCss = remember(textColorArgb) { argbToCss(textColorArgb) }

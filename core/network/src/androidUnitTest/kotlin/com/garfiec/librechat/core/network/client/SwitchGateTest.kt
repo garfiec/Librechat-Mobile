@@ -3,7 +3,6 @@ package com.garfiec.librechat.core.network.client
 import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.AccountState.Resolved
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
-import com.garfiec.librechat.core.network.client.SessionEndReason
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi

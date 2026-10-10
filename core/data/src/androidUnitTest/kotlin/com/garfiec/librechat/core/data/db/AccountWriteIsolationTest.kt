@@ -33,7 +33,7 @@ class AccountWriteIsolationTest : AccountIsolationTestBase() {
         // Account A tries to mutate B's row by id. Every by-PK write is scoped `AND accountId = A`,
         // so each must match zero rows and leave B's row untouched.
         dao.updateTitle("convB", "hacked", updatedAt = 1L, accountId = accountA)
-        dao.updateArchived("convB", isArchived = true, updatedAt = 1L, accountId = accountA)
+        dao.updateArchived("convB", isArchived = true, accountId = accountA)
         dao.updateTags("convB", tagsJson = "[\"hacked\"]", updatedAt = 1L, accountId = accountA)
         dao.deleteById("convB", accountId = accountA)
 
