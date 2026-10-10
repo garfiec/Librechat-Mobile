@@ -1,0 +1,15 @@
+<!-- @dsCard group="Model selection" height=150 -->
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>ModelTrigger — preview</title></head>
+<body>
+<div id="root" class="tc-stack"></div>
+<script>
+var T = window.Tchat, h = React.createElement;
+ReactDOM.createRoot(document.getElementById('root')).render(h(React.Fragment, null,
+  h(T.ModelTrigger, {label:'GPT-6 Luna', owner:'OpenAI', mark:'O', imageModel:'GPT Image'}),
+  h(T.ModelTrigger, {label:'Qwen3.8 27B', owner:'Qwen', mark:'Q', free:true})
+));
+</script>
+</body>
+</html>

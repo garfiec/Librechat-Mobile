@@ -51,7 +51,7 @@ export interface TextFieldProps {
   disabled?: boolean;
 }
 
-export interface ChipProps {
+export interface ChipProps extends ChipRemoveProps {
   /** "filter" toggles (default); "assist" runs an action. */
   kind?: "filter" | "assist";
   selected?: boolean;
@@ -127,7 +127,7 @@ export interface MessageProps {
   children: ReactNode;
 }
 
-export interface ComposerProps {
+export interface ComposerProps extends ComposerAboveProps {
   placeholder?: string;
   defaultValue?: string;
   /** A reply is streaming: the action becomes Stop. */
@@ -186,3 +186,73 @@ export declare function EmptyState(props: EmptyStateProps): JSX.Element;
 export declare function Icon(props: IconProps): JSX.Element;
 /** 1-based avatar slot for a seed — the same hash as `avatarColorForSeed` in :core:ui. */
 export declare function avatarSlot(seed: string): number;
+
+export interface ChipRemoveProps {
+  /** Adds a trailing remove button (an input chip), e.g. the composer's Image Gen chip. */
+  onRemove?: () => void;
+  /** Accessibility name of the remove button. Default "Remove". */
+  removeLabel?: string;
+  /** Overrides toggling: the chip runs this action instead (e.g. open the picker on Image Gen). */
+  onClick?: () => void;
+}
+
+export interface ComposerAboveProps {
+  /** Chips stacked above the field: attachments, tool toggles, the Image Gen chip. */
+  above?: ReactNode;
+}
+
+export interface ModelTriggerProps {
+  /** Readable model name ("GPT-6 Luna"), never the raw id. */
+  label: string;
+  /** The maker ("OpenAI"), or "Agent". */
+  owner: string;
+  /** The maker's art; previews use a 1–2 letter monogram. */
+  mark?: string;
+  free?: boolean;
+  /** Label of the Image Gen model when Image Gen is on. */
+  imageModel?: string;
+  onClick?: () => void;
+}
+
+export interface ModelPickerRow {
+  /** Chat: the model id. Image: the imageList entry name. Agent: the agent id. */
+  id: string;
+  label: string;
+  /** Image rows: the model id shown under the label. */
+  model?: string;
+  /** Agent rows: one line of description. */
+  detail?: string;
+  /** From /api/tchat/models/catalog. */
+  free?: boolean;
+  pinned?: boolean;
+}
+
+export interface ModelPickerGroup {
+  id: string;
+  label: string;
+  /** Model family where it differs from the maker ("Claude"). */
+  caption?: string;
+  mark?: string;
+  kind?: "image" | "agent";
+  /** Image group: the one-line explanation of how Image Gen works. */
+  intro?: string;
+  rows: ModelPickerRow[];
+}
+
+export interface ModelPickerProps {
+  /** Makers in display order, then Image Gen, then Agents. */
+  groups: ModelPickerGroup[];
+  /** Current chat model id. */
+  selected?: string;
+  /** Active Image Gen entry, or null when Image Gen is off. */
+  image?: string | null;
+  /** Initial maker filter ("all" by default). */
+  filter?: string;
+  search?: string;
+  onSelect?: (modelId: string) => void;
+  /** null turns Image Gen off. */
+  onImage?: (imageSpec: string | null) => void;
+}
+
+export declare function ModelTrigger(props: ModelTriggerProps): JSX.Element;
+export declare function ModelPicker(props: ModelPickerProps): JSX.Element;

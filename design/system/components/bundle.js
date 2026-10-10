@@ -1,4 +1,4 @@
-/* @ds-bundle: {"format":4,"namespace":"Tchat","components":[{"name":"Button"},{"name":"TextField"},{"name":"Chip"},{"name":"Switch"},{"name":"SegmentedControl"},{"name":"ListGroup"},{"name":"Avatar"},{"name":"Message"},{"name":"Composer"},{"name":"Banner"},{"name":"Dialog"},{"name":"EmptyState"}]} */
+/* @ds-bundle: {"format":4,"namespace":"Tchat","components":[{"name":"Button"},{"name":"TextField"},{"name":"Chip"},{"name":"Switch"},{"name":"SegmentedControl"},{"name":"ListGroup"},{"name":"Avatar"},{"name":"Message"},{"name":"Composer"},{"name":"ModelTrigger"},{"name":"ModelPicker"},{"name":"Banner"},{"name":"Dialog"},{"name":"EmptyState"}]} */
 (function () {
   "use strict";
   var React = window.React;
@@ -31,6 +31,10 @@
     person: "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z",
     bell: "M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z",
     copy: "M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z",
+    image: "M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z",
+    expand: "M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z",
+    pin: "M16 9V4h1c.55 0 1-.45 1-1s-.45-1-1-1H7c-.55 0-1 .45-1 1s.45 1 1 1h1v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3z",
+    agent: "M20 9V7c0-1.1-.9-2-2-2h-3c0-1.66-1.34-3-3-3S9 3.34 9 5H6c-1.1 0-2 .9-2 2v2c-1.66 0-3 1.34-3 3s1.34 3 3 3v4c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-4c1.66 0 3-1.34 3-3s-1.34-3-3-3zM7.5 11.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5S9.83 13 9 13s-1.5-.67-1.5-1.5zM16 17H8v-2h8v2zm-1-4c-.83 0-1.5-.67-1.5-1.5S14.17 10 15 10s1.5.67 1.5 1.5S15.83 13 15 13z",
     contrast: "M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm1-17.93c3.94.49 7 3.85 7 7.93s-3.05 7.44-7 7.93V4.07z"
   };
 
@@ -93,16 +97,19 @@
     var st = useState(!!props.defaultSelected);
     var selected = props.selected !== undefined ? props.selected : st[0];
     var isFilter = props.kind !== "assist";
-    return h("button", {
+    var chip = h("button", {
       type: "button",
-      className: cx("tc-chip", "label-md", selected && "is-selected"),
+      className: cx("tc-chip", "label-md", selected && "is-selected", props.onRemove && "has-remove"),
       "aria-pressed": isFilter ? String(selected) : undefined,
       disabled: props.disabled,
-      onClick: function () { st[1](!selected); if (props.onChange) props.onChange(!selected); }
+      onClick: function () { if (props.onClick) { props.onClick(); return; } st[1](!selected); if (props.onChange) props.onChange(!selected); }
     },
-      (isFilter && selected) ? h(Icon, { name: "check", size: 16 }) : (props.icon ? h(Icon, { name: props.icon, size: 16 }) : null),
+      (isFilter && selected && !props.icon) ? h(Icon, { name: "check", size: 16 }) : (props.icon ? h(Icon, { name: props.icon, size: 16 }) : null),
       h("span", null, props.children)
     );
+    if (!props.onRemove) return chip;
+    return h("span", { className: cx("tc-chip-group", selected && "is-selected") }, chip,
+      h("button", { type: "button", className: "tc-chip-remove", "aria-label": props.removeLabel || "Remove", onClick: props.onRemove }, h(Icon, { name: "close", size: 16 })));
   }
 
   // ---------------------------------------------------------------- Switch
@@ -199,7 +206,7 @@
     var text = st[0];
     var streaming = !!props.streaming;
     var canSend = text.trim().length > 0;
-    return h("form", { className: "tc-composer", onSubmit: function (e) { e.preventDefault(); if (canSend && props.onSend) props.onSend(text); st[1](""); } },
+    var form = h("form", { className: "tc-composer", onSubmit: function (e) { e.preventDefault(); if (canSend && props.onSend) props.onSend(text); st[1](""); } },
       h(Button, { variant: "text", icon: "add", label: "Open tools menu", size: "md" }),
       h("textarea", {
         className: "tc-composer-input body-lg", rows: 1, value: text,
@@ -211,6 +218,133 @@
         : (canSend
           ? h("button", { type: "submit", className: "tc-send", "aria-label": "Send message" }, h(Icon, { name: "send", size: 20 }))
           : h("button", { type: "button", className: "tc-send is-quiet", "aria-label": "Start voice recording" }, h(Icon, { name: "mic", size: 20 })))
+    );
+    if (!props.above) return form;
+    return h("div", { className: "tc-composer-wrap" }, h("div", { className: "tc-composer-above" }, props.above), form);
+  }
+
+
+  // ---------------------------------------------------------------- OwnerMark (internal)
+  // Stand-in tile: the app draws the maker's own art from EndpointIcons / ModelIcon here.
+  function OwnerMark(props) {
+    var size = props.size || 28;
+    if (props.kind === "image") return h("span", { className: "tc-owner is-icon", style: { width: size, height: size }, "aria-hidden": "true" }, h(Icon, { name: "image", size: size >= 28 ? 20 : 16 }));
+    if (props.kind === "agent") return h("span", { className: "tc-owner is-icon", style: { width: size, height: size }, "aria-hidden": "true" }, h(Icon, { name: "agent", size: size >= 28 ? 20 : 16 }));
+    return h("span", { className: "tc-owner", style: { width: size, height: size, fontSize: size >= 28 ? 12 : 10 }, "aria-hidden": "true" }, props.mark || "?");
+  }
+  function FreeTag() { return h("span", { className: "tc-free label-sm" }, "Free"); }
+
+  // ---------------------------------------------------------------- ModelTrigger
+  function ModelTrigger(props) {
+    var sub = [props.owner];
+    return h("button", {
+      type: "button", className: "tc-trigger",
+      "aria-label": "Choose model. Current: " + props.label + (props.imageModel ? ". Image Gen: " + props.imageModel : ""),
+      onClick: props.onClick
+    },
+      h(OwnerMark, { mark: props.mark, size: 28 }),
+      h("span", { className: "tc-trigger-text" },
+        h("span", { className: "tc-trigger-line" },
+          h("span", { className: "title-sm tc-trigger-label" }, props.label),
+          props.free ? h(FreeTag) : null,
+          h(Icon, { name: "expand", size: 20, className: "tc-trigger-chev" })),
+        h("span", { className: "tc-trigger-sub body-sm" },
+          h("span", null, props.owner),
+          props.imageModel ? h("span", { className: "tc-trigger-img" }, h(Icon, { name: "image", size: 16 }), props.imageModel) : null))
+    );
+  }
+
+  // ---------------------------------------------------------------- ModelPicker
+  function rowMatches(row, group, term) {
+    if (!term) return true;
+    return [row.label, row.id, group.label, group.caption || "", row.free ? "free" : ""].join(" ").toLowerCase().indexOf(term) >= 0;
+  }
+  function ModelPicker(props) {
+    var groups = props.groups || [];
+    var selSt = useState(props.selected), imgSt = useState(props.image || null);
+    var filterSt = useState(props.filter || "all"), searchSt = useState(props.search || "");
+    var sel = selSt[0], img = imgSt[0], filter = filterSt[0], term = searchSt[0].trim().toLowerCase();
+    var railRef = React.useRef(null);
+    // Keep the selected maker pill in view, e.g. when the composer chip opens the picker on Image Gen.
+    React.useEffect(function () {
+      var rail = railRef.current, chip = rail && rail.querySelector(".is-selected");
+      if (chip) rail.scrollLeft = Math.max(0, chip.offsetLeft - rail.offsetLeft - (rail.clientWidth - chip.offsetWidth) / 2);
+    }, [filter]);
+    var all = [];
+    groups.forEach(function (g) { g.rows.forEach(function (r) { all.push({ g: g, r: r }); }); });
+    var cur = null;
+    all.forEach(function (x) { if (x.g.kind !== "image" && x.r.id === sel) cur = x; });
+    var curImg = null;
+    all.forEach(function (x) { if (x.g.kind === "image" && x.r.id === img) curImg = x; });
+    var pinned = all.filter(function (x) { return x.r.pinned; });
+    var total = all.filter(function (x) { return x.g.kind !== "image"; }).length;
+
+    function pick(x) {
+      if (x.g.kind === "image") { imgSt[1](x.r.id === img ? null : x.r.id); if (props.onImage) props.onImage(x.r.id === img ? null : x.r.id); }
+      else { selSt[1](x.r.id); if (props.onSelect) props.onSelect(x.r.id); }
+    }
+    function Row(x, keyPrefix) {
+      var isImage = x.g.kind === "image";
+      var on = isImage ? x.r.id === img : x.r.id === sel;
+      return h("li", { key: keyPrefix + x.r.id },
+        h("button", { type: "button", className: cx("tc-mrow", on && "is-selected"), "aria-pressed": isImage ? String(on) : undefined, "aria-current": !isImage && on ? "true" : undefined, onClick: function () { pick(x); } },
+          (keyPrefix === "pin-" || isImage || x.g.kind === "agent") ? h(OwnerMark, { mark: x.g.mark, kind: isImage ? "image" : x.g.kind, size: 28 }) : null,
+          h("span", { className: "tc-mrow-text" },
+            h("span", { className: "tc-mrow-line" },
+              h("span", { className: "body-md tc-mrow-label" }, x.r.label),
+              x.r.free ? h(FreeTag) : null,
+              isImage && on ? h("span", { className: "tc-on label-sm" }, "On") : null),
+            x.r.id && x.g.kind !== "agent" ? h("span", { className: "tc-mrow-id" }, x.r.model || x.r.id) : (x.r.detail ? h("span", { className: "body-sm tc-muted" }, x.r.detail) : null)),
+          x.r.pinned && keyPrefix !== "pin-" ? h(Icon, { name: "pin", size: 16, className: "tc-mrow-pin" }) : null,
+          on ? h(Icon, { name: "check", size: 20, className: "tc-mrow-check" }) : null));
+    }
+
+    var showCurrent = cur && !term && filter === "all";
+    var sections = [];
+    if (!term && filter === "all" && pinned.length) {
+      sections.push(h("section", { key: "pinned", className: "tc-mgroup" },
+        h("h3", { className: "tc-mgroup-head" }, h(Icon, { name: "pin", size: 16 }), h("span", { className: "label-md" }, "Pinned")),
+        h("ul", null, pinned.map(function (x) { return Row(x, "pin-"); }))));
+    }
+    groups.forEach(function (g) {
+      if (filter !== "all" && filter !== g.id) return;
+      var rows = g.rows.filter(function (r) { return rowMatches(r, g, term); });
+      if (!rows.length) return;
+      sections.push(h("section", { key: g.id, className: "tc-mgroup" },
+        h("h3", { className: "tc-mgroup-head" },
+          h(OwnerMark, { mark: g.mark, kind: g.kind, size: 20 }),
+          h("span", { className: "label-md" }, g.label),
+          h("span", { className: "body-sm tc-muted" }, [g.caption, rows.length].filter(function (v) { return v !== undefined && v !== ""; }).join(" · "))),
+        g.kind === "image" && g.intro ? h("p", { className: "tc-mgroup-intro body-sm" }, g.intro) : null,
+        h("ul", null, rows.map(function (r) { return Row({ g: g, r: r }, ""); }))));
+    });
+
+    return h("div", { className: "tc-picker", role: "dialog", "aria-label": "Choose a model" },
+      h("div", { className: "tc-picker-handle", "aria-hidden": "true" }),
+      h("div", { className: "tc-picker-top" },
+        h("h2", { className: "title-lg" }, "Choose a model"),
+        h("div", { className: "tc-picker-search" }, h(Icon, { name: "search", size: 20 }),
+          h("input", { className: "body-lg", placeholder: "Search models", "aria-label": "Search models", value: searchSt[0], onChange: function (e) { searchSt[1](e.target.value); } }),
+          searchSt[0] ? h("button", { type: "button", className: "tc-picker-clear", "aria-label": "Clear search", onClick: function () { searchSt[1](""); } }, h(Icon, { name: "close", size: 20 })) : null),
+        h("div", { className: "tc-rail", ref: railRef, role: "group", "aria-label": "Filter by maker" },
+          [{ id: "all", label: "All", count: total }].concat(groups.map(function (g) { return { id: g.id, label: g.label, count: g.rows.length, kind: g.kind, cur: (cur && cur.g.id === g.id) || (g.kind === "image" && curImg) }; })).map(function (c) {
+            return h("button", { key: c.id, type: "button", className: cx("tc-rail-chip label-md", filter === c.id && "is-selected"), "aria-pressed": String(filter === c.id), onClick: function () { filterSt[1](c.id); } },
+              c.kind === "image" ? h(Icon, { name: "image", size: 16 }) : null,
+              h("span", null, c.label),
+              c.cur ? h("span", { className: "tc-rail-dot", "aria-label": "contains current" }) : null,
+              h("span", { className: "tc-rail-count" }, c.count));
+          }))),
+      h("div", { className: "tc-picker-list" },
+        showCurrent ? h("div", { className: "tc-current" },
+          h(OwnerMark, { mark: cur.g.mark, size: 36 }),
+          h("span", { className: "tc-mrow-text" },
+            h("span", { className: "tc-mrow-line" }, h("span", { className: "title-sm" }, cur.r.label), cur.r.free ? h(FreeTag) : null),
+            h("span", { className: "body-sm tc-muted" }, cur.g.label + " · " + cur.r.id),
+            curImg ? h("span", { className: "body-sm tc-current-img" }, h(Icon, { name: "image", size: 16 }), "Image Gen: " + curImg.r.label) : null),
+          h("span", { className: "tc-current-tag label-sm" }, h(Icon, { name: "check", size: 16 }), "Current")) : null,
+        sections.length ? sections : h("div", { className: "tc-picker-empty" },
+          h("p", { className: "body-md" }, "No models match “" + searchSt[0] + "”."),
+          filter !== "all" ? h(Button, { variant: "tonal", size: "sm", onClick: function () { filterSt[1]("all"); } }, "Search all makers") : null))
     );
   }
 
@@ -255,7 +389,7 @@
 
   window.Tchat = {
     Button: Button, TextField: TextField, Chip: Chip, Switch: Switch, SegmentedControl: SegmentedControl,
-    ListGroup: ListGroup, ListRow: ListRow, Avatar: Avatar, Message: Message, Composer: Composer,
+    ListGroup: ListGroup, ListRow: ListRow, Avatar: Avatar, Message: Message, Composer: Composer, ModelTrigger: ModelTrigger, ModelPicker: ModelPicker,
     Banner: Banner, Dialog: Dialog, EmptyState: EmptyState, Icon: Icon, avatarSlot: avatarSlot
   };
 })();
