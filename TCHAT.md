@@ -95,9 +95,14 @@ First pass, all in `:core:ui`:
 - **Corners** (`theme/Shape.kt`) — the six radius steps.
 - **Avatars** (`components/AvatarColors.kt`) — five colours darkened so white initials pass 4.5:1.
 
-Not yet done: user bubbles in filled `accent` (they use the tonal `secondaryContainer`), moving
-feature-code `dp`/`sp`/radius literals onto the 4px grid and the type scale, and the Reduce
-Transparency glass fallback.
+- **User bubbles** (`theme/UserBubbleTheme.kt`) — filled `bubble-user` (the accent in light, deep
+  navy in dark). The bubble's contents are drawn under a recoloured scheme so text, links, code
+  wells, timestamps and actions read on the fill; the `MessageBubble` (Android) and
+  `PlatformChatComponents.ios.kt` bubble columns are wrapped in it. A bubble being edited keeps
+  the tonal fill, so the edit field is unchanged.
+
+Not yet done: moving feature-code `dp`/`sp`/radius literals onto the 4px grid and the type scale,
+and the Reduce Transparency glass fallback.
 
 ## Model picker and Image Gen
 
