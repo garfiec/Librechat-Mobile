@@ -6,6 +6,7 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import com.garfiec.librechat.core.ui.theme.LocalDarkTheme
+import com.garfiec.librechat.core.ui.theme.LocalFixedPalette
 
 /**
  * Liquid Glass control colours, mapped onto the M3 scheme so the accent and dark mode carry over.
@@ -15,7 +16,10 @@ import com.garfiec.librechat.core.ui.theme.LocalDarkTheme
 object GlassControlColors {
     val groupedBackground: Color
         @Composable @ReadOnlyComposable
-        get() = if (LocalDarkTheme.current) {
+        get() = if (LocalFixedPalette.current) {
+            // TCHAT: the fixed palette's page is `bg` in both themes (design tokens).
+            MaterialTheme.colorScheme.background
+        } else if (LocalDarkTheme.current) {
             MaterialTheme.colorScheme.surfaceContainerLowest
         } else {
             MaterialTheme.colorScheme.surfaceContainer
@@ -24,7 +28,10 @@ object GlassControlColors {
     /** Rows inside a cell paint `adaptiveRowColor` (transparent) so this shows through. */
     val cell: Color
         @Composable @ReadOnlyComposable
-        get() = if (LocalDarkTheme.current) {
+        get() = if (LocalFixedPalette.current) {
+            // TCHAT: cells are `surface`, one step lighter than the page in dark, white in light.
+            MaterialTheme.colorScheme.surfaceContainerLow
+        } else if (LocalDarkTheme.current) {
             MaterialTheme.colorScheme.surfaceContainerHigh
         } else {
             MaterialTheme.colorScheme.surfaceContainerLowest
@@ -36,9 +43,11 @@ object GlassControlColors {
      */
     val tint: Color
         @Composable @ReadOnlyComposable
-        get() = if (LocalDarkTheme.current) {
+        get() = if (LocalDarkTheme.current && !LocalFixedPalette.current) {
             MaterialTheme.colorScheme.inversePrimary
         } else {
+            // TCHAT: the fixed palette's dark accent is already saturated, so glass uses the one
+            // accent in both themes (design/system/Audit.md: no third accent value).
             MaterialTheme.colorScheme.primary
         }
 

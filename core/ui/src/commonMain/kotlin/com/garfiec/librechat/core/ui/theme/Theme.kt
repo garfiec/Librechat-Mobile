@@ -39,13 +39,10 @@ expect fun glassCapability(): GlassCapability
  *
  * Color resolution precedence:
  * 1. [useDynamicColor] on **and** the platform supports it -> wallpaper-based scheme.
- * 2. Otherwise the full scheme is generated from [accentColor] via MaterialKolor
- *    ([rememberDynamicColorScheme], remembered/keyed on its inputs).
- *
- * [PaletteStyle.TonalSpot] keeps only the seed's hue — every role is re-derived at a fixed
- * chroma and a fixed per-role tone, so no role in the generated scheme resolves to the seed hex.
- * The hue feeds the neutral palette as well as the accent one, which is why it tints surfaces
- * app-wide.
+ * 2. TCHAT: otherwise the fixed Tchat palette ([tchatColorScheme], design/system/tokens.json).
+ *    The brand seed gets the token values; another [accentColor] changes only the accent roles,
+ *    taken from MaterialKolor's [PaletteStyle.TonalSpot] scheme for that seed, so neutrals stay
+ *    neutral. Upstream generated the whole scheme from the seed, which tinted every surface.
  *
  * [uiStyle] is the user's stored choice; null (nothing stored) means [platformDefaultUiStyle].
  */
@@ -62,6 +59,7 @@ fun LibreChatTheme(
     CompositionLocalProvider(
         LocalGlassLevel provides capability.takeIf { (uiStyle ?: platformDefaultUiStyle()) == UiStyle.LIQUID_GLASS },
         LocalDarkTheme provides darkTheme,
+        LocalFixedPalette provides usesFixedPalette(useDynamicColor), // TCHAT
         // One gate for the whole app: covering surfaces and native bars must see the same instance.
         LocalNativeOverlayGate provides remember { NativeOverlayGate() },
     ) {
@@ -86,7 +84,10 @@ fun ThemePreview(
     useDynamicColor: Boolean,
     content: @Composable () -> Unit,
 ) {
-    CompositionLocalProvider(LocalDarkTheme provides darkTheme) {
+    CompositionLocalProvider(
+        LocalDarkTheme provides darkTheme,
+        LocalFixedPalette provides usesFixedPalette(useDynamicColor), // TCHAT
+    ) {
         MaterialTheme(
             colorScheme = rememberLibreChatColorScheme(darkTheme, accentColor, useDynamicColor),
             typography = libreChatTypography,
@@ -100,9 +101,16 @@ fun ThemePreview(
 @Composable
 private fun rememberLibreChatColorScheme(darkTheme: Boolean, accentColor: Color, useDynamicColor: Boolean): ColorScheme {
     val seedScheme = rememberDynamicColorScheme(accentColor, darkTheme, style = PaletteStyle.TonalSpot)
-    return if (useDynamicColor && supportsDynamicColor()) {
-        platformColorScheme(darkTheme, dynamicColor = true) ?: seedScheme
+    // TCHAT: the fixed palette replaces the seed-generated scheme (upstream returned seedScheme).
+    val fixedScheme = remember(darkTheme, accentColor, seedScheme) {
+        tchatColorScheme(darkTheme, isBrandSeed = accentColor == DefaultAccentSeed, seedScheme = seedScheme)
+    }
+    return if (!usesFixedPalette(useDynamicColor)) {
+        platformColorScheme(darkTheme, dynamicColor = true) ?: fixedScheme
     } else {
-        seedScheme
+        fixedScheme
     }
 }
+
+/** TCHAT: whether [rememberLibreChatColorScheme] draws the fixed palette rather than wallpaper colors. */
+private fun usesFixedPalette(useDynamicColor: Boolean): Boolean = !(useDynamicColor && supportsDynamicColor())

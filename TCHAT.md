@@ -78,6 +78,27 @@ so nothing gets hardcoded into a file upstream also edits.
 - **Branding** — app name, splash colour (`#0C0F1A`, TensorGrid's ground colour), accent seed
   (`#4F8CFF`), launcher icons. See `design/README.md` for the icon source and regeneration steps.
 
+## Theme (design system)
+
+The look follows `design/system/` (tokens in `tokens.json`; what changed and why in `Audit.md`).
+First pass, all in `:core:ui`:
+
+- **Fixed palette** — `theme/TchatPalette.kt` maps the design tokens onto M3 roles (the mapping is
+  in its header comment). `LibreChatTheme` uses it instead of upstream's MaterialKolor scheme, which
+  derived every role, neutrals included, from the accent seed. The brand seed gets the token values
+  exactly; another accent from the picker changes only the accent roles; wallpaper dynamic color
+  still wins when the user turns it on. `LocalFixedPalette` tells the two apart, so
+  `GlassControlColors` can use the one accent in dark mode and paint grouped pages `bg` / cells
+  `surface`.
+- **Type scale** (`theme/Type.kt`) — all twelve token styles mapped to M3, so nothing is under 12sp
+  and `titleSmall` out-ranks body text.
+- **Corners** (`theme/Shape.kt`) — the six radius steps.
+- **Avatars** (`components/AvatarColors.kt`) — five colours darkened so white initials pass 4.5:1.
+
+Not yet done: user bubbles in filled `accent` (they use the tonal `secondaryContainer`), moving
+feature-code `dp`/`sp`/radius literals onto the 4px grid and the type scale, and the Reduce
+Transparency glass fallback.
+
 ## Model picker and Image Gen
 
 Tchat's picker replaces upstream's endpoint-grouped `ModelSelectorSheet` everywhere it opens: the
