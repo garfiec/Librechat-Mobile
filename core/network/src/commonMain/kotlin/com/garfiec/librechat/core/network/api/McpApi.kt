@@ -5,11 +5,14 @@ import com.garfiec.librechat.core.model.mcp.McpApiKeySource
 import com.garfiec.librechat.core.model.mcp.McpAuthorizationType
 import com.garfiec.librechat.core.model.mcp.McpConnectionStatusResponse
 import com.garfiec.librechat.core.model.mcp.McpOAuthConfig
+import com.garfiec.librechat.core.model.mcp.McpOboConfig
 import com.garfiec.librechat.core.model.mcp.McpReinitializeResponse
 import com.garfiec.librechat.core.model.mcp.McpServer
+import com.garfiec.librechat.core.model.mcp.McpServerDiscovery
 import com.garfiec.librechat.core.model.mcp.McpServerStatus
 import com.garfiec.librechat.core.model.mcp.McpServerType
 import com.garfiec.librechat.core.model.mcp.McpTool
+import com.garfiec.librechat.core.model.mcp.McpToolCatalog
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
@@ -21,10 +24,15 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.path
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonObject
 
 class McpApi constructor(
     private val client: HttpClient,
@@ -33,17 +41,29 @@ class McpApi constructor(
 
     /**
      * GET /api/mcp/tools returns { servers: Record<string, MCPServer> }
-     * where each MCPServer has: name, icon, authenticated, authConfig, tools[]
-     * tools[] items have: name, pluginKey, description
+     * where each MCPServer has: name, icon, authenticated, authorizationState?,
+     * authorizationGeneration?, authConfig, tools[]
+     * tools[] items have: name, pluginKey, description, serverToolName?
+     *
+     * The per-server fields are kept rather than flattened away: passive discovery reports a
+     * lapsed OAuth authorization HERE, before the connection-status route notices — see
+     * [applyDiscoveryAuthorizationState]. A server with no tools still contributes its verdict,
+     * so the loop cannot `continue` past one for want of a tools array.
      */
-    suspend fun getTools(): List<McpTool> {
+    suspend fun getTools(): McpToolCatalog {
         val response: JsonObject = client.get {
             url { path("api/mcp/tools") }
         }.body()
-        val servers = response["servers"]?.jsonObject ?: return emptyList()
+        val servers = response["servers"]?.jsonObject ?: return McpToolCatalog()
         val tools = mutableListOf<McpTool>()
+        val discovery = mutableMapOf<String, McpServerDiscovery>()
         for ((serverName, serverJson) in servers) {
             val serverObj = serverJson.jsonObject
+            discovery[serverName] = McpServerDiscovery(
+                authenticated = serverObj["authenticated"]?.jsonPrimitive?.booleanOrNull ?: true,
+                authorizationState = serverObj["authorizationState"]?.jsonPrimitive?.contentOrNull,
+                authorizationGeneration = serverObj["authorizationGeneration"]?.jsonPrimitive?.contentOrNull,
+            )
             val serverTools = serverObj["tools"]?.jsonArray ?: continue
             for (toolJson in serverTools) {
                 val toolObj = toolJson.jsonObject
@@ -52,11 +72,12 @@ class McpApi constructor(
                         name = toolObj["name"]?.jsonPrimitive?.contentOrNull ?: continue,
                         description = toolObj["description"]?.jsonPrimitive?.contentOrNull,
                         serverName = serverName,
+                        serverToolName = toolObj["serverToolName"]?.jsonPrimitive?.contentOrNull,
                     ),
                 )
             }
         }
-        return tools
+        return McpToolCatalog(tools = tools, servers = discovery)
     }
 
     suspend fun reinitialize(serverName: String): McpReinitializeResponse {
@@ -96,6 +117,10 @@ class McpApi constructor(
                 description = config["description"]?.jsonPrimitive?.contentOrNull,
                 apiKey = config["apiKey"]?.jsonObject?.let { parseApiKeyConfig(it) },
                 oauth = config["oauth"]?.jsonObject?.let { parseOAuthConfig(it) },
+                iconPath = (config["iconPath"] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() },
+                obo = ((config["obo"] as? JsonObject)?.get("scopes") as? JsonPrimitive)?.contentOrNull
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let(::McpOboConfig),
             )
         }
     }
@@ -107,10 +132,12 @@ class McpApi constructor(
         type: McpServerType,
         apiKey: McpApiKeyConfig? = null,
         oauth: McpOAuthConfig? = null,
+        iconPath: String? = null,
+        obo: McpOboConfig? = null,
     ): McpServer {
         val response: JsonObject = client.post {
             url { path("api/mcp/servers") }
-            setBody(mapOf("config" to serverConfigBody(name, description, url, type, apiKey, oauth)))
+            setBody(serverWriteBody(name, description, url, type, apiKey, oauth, iconPath, obo))
         }.body()
         // The create route generates the identifier and answers with it; the caller's `name` is
         // only the title it asked for.
@@ -123,6 +150,8 @@ class McpApi constructor(
             description = description,
             apiKey = apiKey,
             oauth = oauth,
+            iconPath = iconPath,
+            obo = obo,
         )
     }
 
@@ -146,10 +175,12 @@ class McpApi constructor(
         type: McpServerType,
         apiKey: McpApiKeyConfig? = null,
         oauth: McpOAuthConfig? = null,
+        iconPath: String? = null,
+        obo: McpOboConfig? = null,
     ): McpServer {
         val response: JsonObject = client.patch {
             url { path("api/mcp/servers/$serverName") }
-            setBody(mapOf("config" to serverConfigBody(name, description, url, type, apiKey, oauth)))
+            setBody(serverWriteBody(name, description, url, type, apiKey, oauth, iconPath, obo))
         }.body()
         // The update route answers with the parsed config alone — the name is the one in the path.
         return McpServer(
@@ -160,38 +191,57 @@ class McpApi constructor(
             description = description,
             apiKey = apiKey,
             oauth = oauth,
+            iconPath = iconPath,
+            obo = obo,
         )
     }
 
-    /** The `config` object both write routes validate against the same schema. */
-    private fun serverConfigBody(
+    /**
+     * `{ config: {...} }`, the body both write routes validate against the same schema.
+     *
+     * Built as a [JsonObject], never a `Map<String, Any>`: Ktor picks a serializer for a map from
+     * its values, and one that nests the `apiKey` or `oauth` object beside strings mixes element
+     * types, so serialization throws before a request is sent.
+     */
+    @Suppress("LongParameterList") // debt: wide parameter list
+    private fun serverWriteBody(
         name: String,
         description: String?,
         url: String,
         type: McpServerType,
         apiKey: McpApiKeyConfig?,
         oauth: McpOAuthConfig?,
-    ): Map<String, Any> = buildMap {
-        put("url", url)
-        put("type", type.serialName)
-        put("title", name)
-        if (!description.isNullOrBlank()) put("description", description)
-        if (apiKey != null) {
-            put("apiKey", buildMap {
-                put("source", apiKey.source.serialName)
-                put("authorization_type", apiKey.authorizationType.serialName)
-                if (!apiKey.key.isNullOrBlank()) put("key", apiKey.key)
-                if (!apiKey.customHeader.isNullOrBlank()) put("custom_header", apiKey.customHeader)
-            })
-        }
-        if (oauth != null) {
-            put("oauth", buildMap {
-                if (!oauth.authorizationUrl.isNullOrBlank()) put("authorization_url", oauth.authorizationUrl)
-                if (!oauth.tokenUrl.isNullOrBlank()) put("token_url", oauth.tokenUrl)
-                if (!oauth.clientId.isNullOrBlank()) put("client_id", oauth.clientId)
-                if (!oauth.clientSecret.isNullOrBlank()) put("client_secret", oauth.clientSecret)
-                if (!oauth.scope.isNullOrBlank()) put("scope", oauth.scope)
-            })
+        iconPath: String?,
+        obo: McpOboConfig?,
+    ): JsonObject = buildJsonObject {
+        putJsonObject("config") {
+            put("url", url)
+            put("type", type.serialName)
+            put("title", name)
+            if (!description.isNullOrBlank()) put("description", description)
+            // Both are resent as stored, never edited here — the route replaces the config, and
+            // on an OBO server a caller without CONFIGURE_OBO is refused with 403 for any change
+            // to obo. Same shape upstream's form sends.
+            if (!iconPath.isNullOrBlank()) put("iconPath", iconPath)
+            if (obo != null) putJsonObject("obo") { put("scopes", obo.scopes) }
+            if (apiKey != null) {
+                putJsonObject("apiKey") {
+                    put("source", apiKey.source.serialName)
+                    put("authorization_type", apiKey.authorizationType.serialName)
+                    if (!apiKey.key.isNullOrBlank()) put("key", apiKey.key)
+                    if (!apiKey.customHeader.isNullOrBlank()) put("custom_header", apiKey.customHeader)
+                }
+            }
+            if (oauth != null) {
+                putJsonObject("oauth") {
+                    if (!oauth.authorizationUrl.isNullOrBlank()) put("authorization_url", oauth.authorizationUrl)
+                    if (!oauth.tokenUrl.isNullOrBlank()) put("token_url", oauth.tokenUrl)
+                    if (!oauth.clientId.isNullOrBlank()) put("client_id", oauth.clientId)
+                    if (!oauth.clientSecret.isNullOrBlank()) put("client_secret", oauth.clientSecret)
+                    if (!oauth.scope.isNullOrBlank()) put("scope", oauth.scope)
+                    if (!oauth.tokenExchangeMethod.isNullOrBlank()) put("token_exchange_method", oauth.tokenExchangeMethod)
+                }
+            }
         }
     }
 
@@ -210,9 +260,11 @@ class McpApi constructor(
     }
 
     private fun parseApiKeyConfig(obj: JsonObject): McpApiKeyConfig = McpApiKeyConfig(
+        // Upstream's form reads `source || 'admin'`, so only an explicit "user" is per-user. The
+        // edit dialog resends this value, and resending the wrong one rewrites the server.
         source = when (obj["source"]?.jsonPrimitive?.contentOrNull) {
-            "admin" -> McpApiKeySource.ADMIN
-            else -> McpApiKeySource.USER
+            "user" -> McpApiKeySource.USER
+            else -> McpApiKeySource.ADMIN
         },
         authorizationType = when (obj["authorization_type"]?.jsonPrimitive?.contentOrNull) {
             "basic" -> McpAuthorizationType.BASIC
@@ -229,6 +281,7 @@ class McpApi constructor(
         clientId = obj["client_id"]?.jsonPrimitive?.contentOrNull,
         clientSecret = obj["client_secret"]?.jsonPrimitive?.contentOrNull,
         scope = obj["scope"]?.jsonPrimitive?.contentOrNull,
+        tokenExchangeMethod = obj["token_exchange_method"]?.jsonPrimitive?.contentOrNull,
     )
 }
 

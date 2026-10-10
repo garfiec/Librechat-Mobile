@@ -5,10 +5,9 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import co.touchlab.kermit.Logger
+import com.garfiec.librechat.core.common.toByteArray
 import com.garfiec.librechat.core.ui.platform.currentTopmostViewController
 import kotlinx.cinterop.ExperimentalForeignApi
-import kotlinx.cinterop.addressOf
-import kotlinx.cinterop.usePinned
 import platform.Foundation.NSData
 import platform.Foundation.NSURL
 import platform.Foundation.dataWithContentsOfURL
@@ -19,7 +18,6 @@ import platform.UniformTypeIdentifiers.UTTypeContent
 import platform.darwin.NSObject
 import platform.darwin.dispatch_async
 import platform.darwin.dispatch_get_main_queue
-import platform.posix.memcpy
 
 /**
  * Strong references to currently-presented document picker delegates.
@@ -94,7 +92,7 @@ private class Delegate(
             val accessing = url.startAccessingSecurityScopedResource()
             try {
                 val data = NSData.dataWithContentsOfURL(url) ?: return
-                val bytes = data.toByteArrayOrNull() ?: return
+                val bytes = data.toByteArray()
                 val filename = url.lastPathComponent ?: "file"
                 val ext = filename.substringAfterLast('.', "").lowercase()
                 val mime = mimeTypeFromExtension(ext) ?: "application/octet-stream"
@@ -122,17 +120,6 @@ data class PreloadedFileRef(
     val filename: String,
     val mimeType: String,
 )
-
-@OptIn(ExperimentalForeignApi::class)
-private fun NSData.toByteArrayOrNull(): ByteArray? {
-    val size = length.toInt()
-    if (size == 0) return ByteArray(0)
-    val result = ByteArray(size)
-    result.usePinned { pinned ->
-        memcpy(pinned.addressOf(0), bytes, length)
-    }
-    return result
-}
 
 private fun mimeTypeFromExtension(ext: String): String? = when (ext) {
     "json" -> "application/json"

@@ -47,20 +47,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.viewinterop.UIKitView
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.viewinterop.UIKitView
 import androidx.compose.ui.window.DialogProperties
 import co.touchlab.kermit.Logger
+import com.garfiec.librechat.core.ui.components.AdaptiveDialog
 import com.garfiec.librechat.core.ui.platform.currentTopmostViewController
+import com.garfiec.librechat.feature.chat.components.web.loadVendoredHtml
+import com.garfiec.librechat.feature.chat.components.web.rememberWebAssetBaseUrl
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
-import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.cValue
-import kotlinx.cinterop.usePinned
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -69,22 +69,13 @@ import platform.AVFAudio.AVAudioPlayer
 import platform.AVFoundation.AVLayerVideoGravityResizeAspect
 import platform.AVFoundation.AVPlayer
 import platform.AVFoundation.AVPlayerLayer
-import platform.AVFoundation.AVPlayerTimeControlStatusPlaying
-import platform.AVFoundation.currentItem
 import platform.AVFoundation.currentTime
 import platform.AVFoundation.duration
 import platform.AVFoundation.pause
 import platform.AVFoundation.play
-import platform.AVFoundation.timeControlStatus
-import platform.CoreMedia.CMTimeGetSeconds
 import platform.Foundation.NSData
-import platform.Foundation.NSFileManager
-import platform.Foundation.NSTemporaryDirectory
-import com.garfiec.librechat.feature.chat.components.web.loadVendoredHtml
-import com.garfiec.librechat.feature.chat.components.web.rememberWebAssetBaseUrl
 import platform.Foundation.NSURL
 import platform.Foundation.create
-import platform.Foundation.writeToFile
 import platform.UIKit.UIActivityViewController
 import platform.UIKit.UIColor
 import platform.UIKit.UIView
@@ -94,6 +85,9 @@ import platform.WebKit.WKWebView
 import platform.WebKit.WKWebViewConfiguration
 import platform.darwin.NSObject
 
+// MultipleEmitters: early returns, so exactly one branch emits
+// TooGenericExceptionCaught: a player that fails to initialise degrades to no playback
+@Suppress("MultipleEmitters", "TooGenericExceptionCaught")
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 @Composable
 actual fun AudioContent(
@@ -226,130 +220,6 @@ actual fun AudioContent(
 
 @OptIn(ExperimentalForeignApi::class)
 @Composable
-actual fun AudioContentPlayer(
-    audioUrl: String,
-    modifier: Modifier,
-) {
-    val player = remember(audioUrl) {
-        val url = NSURL.URLWithString(audioUrl) ?: return@remember null
-        try {
-            AVPlayer(uRL = url)
-        } catch (e: Exception) {
-            Logger.e(e) { "Failed to create AVPlayer for audio" }
-            null
-        }
-    }
-
-    var isPlaying by remember { mutableStateOf(false) }
-    var progress by remember { mutableFloatStateOf(0f) }
-
-    DisposableEffect(player) {
-        onDispose {
-            player?.pause()
-        }
-    }
-
-    LaunchedEffect(isPlaying) {
-        while (isPlaying && player != null) {
-            val duration = player.currentItem?.duration?.let { CMTimeGetSeconds(it) } ?: 0.0
-            val current = CMTimeGetSeconds(player.currentTime())
-            if (duration > 0.0) {
-                progress = (current / duration).toFloat()
-            }
-            delay(250L)
-            if (player.timeControlStatus != AVPlayerTimeControlStatusPlaying) {
-                isPlaying = false
-            }
-        }
-    }
-
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        ),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = Icons.Default.MusicNote,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-                tint = MaterialTheme.colorScheme.primary,
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            IconButton(
-                onClick = {
-                    if (player == null) return@IconButton
-                    if (isPlaying) {
-                        player.pause()
-                        isPlaying = false
-                    } else {
-                        player.play()
-                        isPlaying = true
-                    }
-                },
-                modifier = Modifier.size(40.dp),
-            ) {
-                Icon(
-                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = stringResource(if (isPlaying) Res.string.cd_pause else Res.string.cd_play),
-                    modifier = Modifier.size(24.dp),
-                )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                LinearProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
-@Composable
-actual fun AudioContentPlayerFromBytes(
-    audioBytes: ByteArray,
-    modifier: Modifier,
-) {
-    // Write bytes to a temp file off the composition thread, then play via AudioContentPlayer.
-    val tempPath by produceState<String?>(initialValue = null, audioBytes) {
-        value = withContext(Dispatchers.Default) {
-            val path = NSTemporaryDirectory() + "audio_${audioBytes.hashCode()}.mp3"
-            val nsData = audioBytes.usePinned { pinned ->
-                NSData.create(
-                    bytes = pinned.addressOf(0),
-                    length = audioBytes.size.toULong(),
-                )
-            }
-            nsData.writeToFile(path, atomically = true)
-            path
-        }
-    }
-
-    val path = tempPath ?: return
-
-    DisposableEffect(path) {
-        onDispose {
-            NSFileManager.defaultManager.removeItemAtPath(path, null)
-        }
-    }
-
-    AudioContentPlayer(
-        audioUrl = path,
-        modifier = modifier,
-    )
-}
-
-@OptIn(ExperimentalForeignApi::class)
-@Composable
 actual fun VideoContent(
     url: String,
     modifier: Modifier,
@@ -411,14 +281,6 @@ actual fun VideoContent(
 }
 
 @Composable
-actual fun VideoContentPlayer(
-    videoUrl: String,
-    modifier: Modifier,
-) {
-    VideoContent(url = videoUrl, modifier = modifier)
-}
-
-@Composable
 actual fun LatexBlock(
     latex: String,
     modifier: Modifier,
@@ -451,8 +313,8 @@ actual fun LatexInline(
 private fun KatexWebView(
     latex: String,
     displayMode: Boolean,
-    modifier: Modifier,
     initialHeight: Dp,
+    modifier: Modifier = Modifier,
 ) {
     val bgComposeColor = MaterialTheme.colorScheme.background
     val isDarkTheme = (bgComposeColor.red * 0.299 + bgComposeColor.green * 0.587 + bgComposeColor.blue * 0.114) < 0.5
@@ -648,7 +510,7 @@ actual fun MermaidDiagram(
     }
 
     if (showFullscreen) {
-        Dialog(
+        AdaptiveDialog(
             onDismissRequest = { showFullscreen = false },
             properties = DialogProperties(usePlatformDefaultWidth = false),
         ) {
@@ -682,7 +544,7 @@ actual fun MermaidDiagram(
 private fun MermaidWKWebView(
     code: String,
     isDarkTheme: Boolean,
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
 ) {
     val escapedCode = remember(code) {
         code.replace("\\", "\\\\")
@@ -757,7 +619,7 @@ private fun buildMermaidHtml(escapedCode: String, theme: String): String {
     """.trimIndent()
 }
 
-actual fun shareArtifact(title: String, content: String, language: String) {
+internal fun shareArtifact(content: String) {
     val viewController = currentTopmostViewController() ?: return
     val activityVC = UIActivityViewController(
         activityItems = listOf(content),

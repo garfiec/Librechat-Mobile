@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.logging.io
 
+import com.garfiec.librechat.core.common.toByteArray
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
@@ -16,7 +17,6 @@ import platform.Foundation.dataWithContentsOfFile
 import platform.Foundation.fileHandleForWritingAtPath
 import platform.Foundation.timeIntervalSince1970
 import platform.Foundation.writeToFile
-import platform.posix.memcpy
 
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 internal class IosLogFile(private val path: String) : LogFileHandle {
@@ -54,11 +54,7 @@ internal class IosLogFile(private val path: String) : LogFileHandle {
         // NSString.stringWithContentsOfFile, which returns nil for the WHOLE file on a single bad
         // byte — a partial/interleaved write at the tail would otherwise drop the entire segment.
         val data = NSData.dataWithContentsOfFile(path) ?: return ""
-        val length = data.length.toInt()
-        if (length == 0) return ""
-        val bytes = ByteArray(length)
-        bytes.usePinned { pinned -> memcpy(pinned.addressOf(0), data.bytes, data.length) }
-        return bytes.decodeToString()
+        return data.toByteArray().decodeToString()
     }
 
     override fun delete() {

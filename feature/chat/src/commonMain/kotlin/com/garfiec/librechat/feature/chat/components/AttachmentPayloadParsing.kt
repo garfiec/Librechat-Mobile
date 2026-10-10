@@ -103,6 +103,7 @@ internal fun memoryArtifactFrom(data: MemoryArtifactData): MemoryArtifact {
     )
 }
 
+@Suppress("TooGenericExceptionCaught") // untrusted attachment payload; a malformed shape is skipped
 private fun parseMemoryError(value: String?): MemoryErrorInfo? {
     if (value.isNullOrBlank()) return null
     return try {

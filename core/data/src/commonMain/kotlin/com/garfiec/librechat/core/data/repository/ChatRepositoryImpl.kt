@@ -53,6 +53,7 @@ class ChatRepositoryImpl(
         responseMessageId: String?,
         isEdited: Boolean,
         isRegenerate: Boolean,
+        compact: Boolean?,
         isContinued: Boolean,
         webSearch: Boolean,
         files: List<FileReference>?,
@@ -78,6 +79,7 @@ class ChatRepositoryImpl(
             responseMessageId = responseMessageId,
             isEdited = isEdited,
             isRegenerate = isRegenerate,
+            compact = compact,
             isContinued = isContinued,
             webSearch = webSearch,
             files = files,
@@ -183,6 +185,10 @@ class ChatRepositoryImpl(
         // the claim. The server already deleted its copy answering this request.
         claimSteers(status.unrecoveredSteers)
         return status.copy(unrecoveredSteers = emptyList())
+    }
+
+    override suspend fun getActiveJobIds(): Result<Set<String>> = safeApiCall {
+        chatApi.getActiveJobs().activeJobIds.toSet()
     }
 
     override fun resumeStream(conversationId: String): Flow<StreamEvent> = flow {

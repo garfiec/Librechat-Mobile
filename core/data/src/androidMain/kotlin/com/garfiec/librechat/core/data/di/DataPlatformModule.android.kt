@@ -5,12 +5,15 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
+import com.garfiec.librechat.core.brand.TchatBrand
 import com.garfiec.librechat.core.common.di.KoinQualifiers
 import com.garfiec.librechat.core.data.datastore.CommonTokenDataStore
 import com.garfiec.librechat.core.data.datastore.TokenDataStore
 import com.garfiec.librechat.core.data.db.LibreChatDatabase
 import com.garfiec.librechat.core.data.db.migration.MIGRATION_3_4
 import com.garfiec.librechat.core.data.db.migration.MIGRATION_4_5
+import com.garfiec.librechat.core.data.pdf.AndroidPdfNormalizer
+import com.garfiec.librechat.core.data.pdf.PdfNormalizer
 import com.garfiec.librechat.core.data.prefetch.AttachmentWarmer
 import com.garfiec.librechat.core.data.prefetch.CoilAttachmentWarmer
 import com.garfiec.librechat.core.data.prefetch.PrefetchScheduler
@@ -19,7 +22,11 @@ import com.garfiec.librechat.core.data.repository.AndroidSwitchCacheCleaner
 import com.garfiec.librechat.core.data.repository.CommonSessionCacheCleaner
 import com.garfiec.librechat.core.data.repository.SessionCacheCleaner
 import com.garfiec.librechat.core.data.repository.SwitchCacheCleaner
-import com.garfiec.librechat.core.network.client.SecureTokenStorage
+import com.garfiec.librechat.core.data.update.AndroidAppInstallSource
+import com.garfiec.librechat.core.data.update.AppInstallSource
+import com.garfiec.librechat.core.data.update.AppUpdateRepository
+import com.garfiec.librechat.core.data.update.AppUpdateRepositoryImpl
+import com.garfiec.librechat.core.network.client.ImageCookieCredentials
 import com.garfiec.librechat.core.network.client.TokenManager
 import io.ktor.client.HttpClient
 import org.koin.android.ext.koin.androidContext
@@ -38,6 +45,17 @@ actual val dataPlatformModule: Module = module {
     // so a common default plus a platform override would throw at launch.
     single<AttachmentWarmer> { CoilAttachmentWarmer(androidContext()) }
     single<PrefetchScheduler> { WorkManagerPrefetchScheduler(androidContext()) }
+    single<PdfNormalizer> { AndroidPdfNormalizer(androidContext()) }
+    single<AppInstallSource> { AndroidAppInstallSource(androidContext()) }
+    single<AppUpdateRepository> {
+        // TCHAT: was isSupported = true. See TchatBrand.APP_UPDATE_CHECK.
+        AppUpdateRepositoryImpl(
+            isSupported = TchatBrand.APP_UPDATE_CHECK,
+            api = get(),
+            store = get(),
+            appInfo = get(),
+        )
+    }
 
     // --- Database ---
     single {
@@ -58,7 +76,13 @@ actual val dataPlatformModule: Module = module {
         )
         // Bound as CommonTokenDataStore too: TokenCacheWarmer needs warmTokenCache(), which is
         // deliberately not part of the TokenManager contract.
-    } binds arrayOf(TokenManager::class, SecureTokenStorage::class, CommonTokenDataStore::class)
+    } binds arrayOf(
+        TokenManager::class,
+        // The image-cookie seam (see ImageCookiePlugin): per-account refresh-token reads, kept off
+        // TokenManager so the six fakes that implement it don't gain a second credential.
+        ImageCookieCredentials::class,
+        CommonTokenDataStore::class,
+    )
 
     // --- Session Cache Cleaner ---
     single<SessionCacheCleaner> {

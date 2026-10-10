@@ -11,4 +11,7 @@
     <string name="version_mismatch_message">Это приложение собрано для LibreChat v%1$s, но ваш сервер работает на v%2$s. Некоторые функции могут работать некорректно.</string>
     <string name="dismiss">Закрыть</string>
     <string name="dont_warn_again">Больше не предупреждать</string>
+    <string name="session_expired_title">Выполнен выход</string>
+    <string name="session_expired_message">Ваш сеанс истёк. Войдите снова, чтобы продолжить.</string>
+    <string name="session_expired_message_named">Ваш сеанс для %1$s истёк. Войдите снова, чтобы продолжить.</string>
 </resources>

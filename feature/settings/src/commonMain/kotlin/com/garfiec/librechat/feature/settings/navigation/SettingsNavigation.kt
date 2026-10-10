@@ -1,7 +1,5 @@
 package com.garfiec.librechat.feature.settings.navigation
 
-import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import com.garfiec.librechat.feature.settings.screen.AccountSettingsScreen
@@ -13,12 +11,10 @@ import com.garfiec.librechat.feature.settings.screen.PresetManagerScreen
 import com.garfiec.librechat.feature.settings.screen.SharedLinksScreen
 import com.garfiec.librechat.feature.settings.screen.TabbedSettingsScreen
 import com.garfiec.librechat.feature.settings.screen.providerkeys.ProviderKeysScreen
-import com.garfiec.librechat.feature.settings.viewmodel.SettingsViewModel
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.subclass
-import org.koin.compose.viewmodel.koinViewModel
 
 @Serializable sealed interface SettingsRoute : NavKey
 
@@ -63,26 +59,38 @@ fun EntryProviderScope<NavKey>.settingsEntries(
         TabbedSettingsScreen(
             onNavigateBack = onBack,
             onLogout = onLogout,
+            onNavigateToAppearance = { onNavigate(AppearanceSettings) },
             onNavigateToArchive = onNavigateToArchive,
             onNavigateToSharedLinks = { onNavigate(SharedLinks) },
             onNavigateToArtifactShortcuts = { onNavigate(ArtifactShortcuts) },
-            onNavigateToPrefetchActivity = { onNavigate(PrefetchActivity) },
+            onNavigateToPrefetchSettings = { onNavigate(PrefetchSettings) },
+            onNavigateToMemories = { onNavigate(Memories) },
+            onNavigateToMcpServers = { onNavigate(McpServers) },
             onNavigateToPresets = { onNavigate(PresetManager) },
+            onNavigateToContextUsage = { onNavigate(ContextUsageSettings) },
+            onNavigateToChatLayout = { onNavigate(ChatLayoutSettings) },
             onNavigateToApiKeys = { onNavigate(ApiKeys) },
             onNavigateToFavorites = { onNavigate(Favorites) },
             onNavigateToProviderKeys = navigateToProviderKeys,
             onNavigateToRoleSkillsAdmin = { onNavigate(RoleSkillsAdmin) },
+            onNavigateToWhatsNew = { onNavigate(WhatsNew) },
+            onNavigateToReleaseNotes = { onNavigate(ReleaseNotes) },
         )
     }
     entry<SettingsGeneral> {
         GeneralSettingsScreen(
             onNavigateBack = onBack,
+            onNavigateToAppearance = { onNavigate(AppearanceSettings) },
+            onNavigateToWhatsNew = { onNavigate(WhatsNew) },
+            onNavigateToReleaseNotes = { onNavigate(ReleaseNotes) },
         )
     }
     entry<SettingsChat> {
         ChatSettingsScreen(
             onNavigateBack = onBack,
             onNavigateToPresets = { onNavigate(PresetManager) },
+            onNavigateToContextUsage = { onNavigate(ContextUsageSettings) },
+            onNavigateToChatLayout = { onNavigate(ChatLayoutSettings) },
         )
     }
     entry<SettingsAccount> {
@@ -101,29 +109,13 @@ fun EntryProviderScope<NavKey>.settingsEntries(
             onNavigateToArchive = onNavigateToArchive,
             onNavigateToSharedLinks = { onNavigate(SharedLinks) },
             onNavigateToArtifactShortcuts = { onNavigate(ArtifactShortcuts) },
-            onNavigateToPrefetchActivity = { onNavigate(PrefetchActivity) },
+            onNavigateToPrefetchSettings = { onNavigate(PrefetchSettings) },
+            onNavigateToMemories = { onNavigate(Memories) },
+            onNavigateToMcpServers = { onNavigate(McpServers) },
         )
     }
     entry<SharedLinks> {
-        val viewModel: SettingsViewModel = koinViewModel()
-        val uiState = viewModel.uiState.collectAsStateWithLifecycle()
-
-        LaunchedEffect(Unit) {
-            viewModel.loadSharedLinks()
-        }
-
-        SharedLinksScreen(
-            links = uiState.value.sharedLinks,
-            isLoading = uiState.value.isSharedLinksLoading,
-            hasNextPage = uiState.value.sharedLinksHasNextPage,
-            serverUrl = uiState.value.serverUrl,
-            onLoadMore = viewModel::loadMoreSharedLinks,
-            canUpdate = uiState.value.sharedLinksUpdateEnabled,
-            updateKeepsUrl = uiState.value.sharedLinkUpdateKeepsUrl,
-            onUpdateLink = viewModel::updateSharedLink,
-            onDelete = viewModel::deleteSharedLink,
-            onNavigateBack = onBack,
-        )
+        SharedLinksScreen(onNavigateBack = onBack)
     }
     entry<PresetManager> {
         PresetManagerScreen(
@@ -144,7 +136,12 @@ fun EntryProviderScope<NavKey>.settingsEntries(
     favoritesEntry(onBack = onBack)
     roleSkillsAdminEntry(onBack = onBack)
     artifactShortcutsEntry(onBack = onBack)
-    prefetchActivityEntry(onBack = onBack)
+    prefetchEntries(onNavigate = onNavigate, onBack = onBack)
+    contextUsageSettingsEntry(onBack = onBack)
+    chatLayoutSettingsEntry(onBack = onBack)
+    appearanceSettingsEntry(onBack = onBack)
+    whatsNewEntry(onBack = onBack)
+    releaseNotesEntry(onBack = onBack)
 }
 
 val settingsSerializersModule = SerializersModule {
@@ -163,6 +160,12 @@ val settingsSerializersModule = SerializersModule {
         subclass(Favorites::class, Favorites.serializer())
         subclass(RoleSkillsAdmin::class, RoleSkillsAdmin.serializer())
         subclass(ArtifactShortcuts::class, ArtifactShortcuts.serializer())
+        subclass(PrefetchSettings::class, PrefetchSettings.serializer())
         subclass(PrefetchActivity::class, PrefetchActivity.serializer())
+        subclass(ContextUsageSettings::class, ContextUsageSettings.serializer())
+        subclass(ChatLayoutSettings::class, ChatLayoutSettings.serializer())
+        subclass(AppearanceSettings::class, AppearanceSettings.serializer())
+        subclass(WhatsNew::class, WhatsNew.serializer())
+        subclass(ReleaseNotes::class, ReleaseNotes.serializer())
     }
 }

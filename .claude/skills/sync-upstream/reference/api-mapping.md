@@ -9,7 +9,9 @@ Maps official LibreChat API route files to their mobile `*Api.kt` counterparts.
 | `routes/auth.js` | `AuthApi.kt` | Login, register, refresh, logout, 2FA |
 | `routes/oauth.js` | `AuthApi.kt` | OAuth flows (shared file) |
 | `routes/config.js` | `ConfigApi.kt` | Startup config, version check |
-| `routes/convos.js` | `ConversationsApi.kt` | CRUD, archive, share, fork, duplicate |
+| `routes/convos.js` | `ConversationsApi.kt` | CRUD, archive, share, fork, duplicate; v0.8.8 per-conversation background tasks (list + cancel) |
+| `routes/convos.js` (`/:parentConversationId/subagents*`) | `SubagentsApi.kt` | v0.8.8-rc2 read-only child-thread views: index (`GET /:parentConversationId/subagents`) and thread (`GET …/subagents/:threadId`, `?taskId=` or `?cursor=`). `POST …/:threadId/control` and the per-task activity SSE (`…/tasks/:taskId/activity`) are deliberately not adopted |
+| `routes/agents/index.js` (`/chat/queued-turns*`) | `QueuedTurnsApi.kt` | v0.8.8-rc2 server-side queued turns, v1 only: `POST /chat/queued-turns`, `GET /chat/queued-turns` (reconcile poll), `DELETE /chat/queued-turns/:queuedTurnId`. `POST /chat/queued-turns/v2` is not adopted |
 | `routes/messages.js` | `MessagesApi.kt` | Get messages by conversation |
 | `routes/search.js` | `SearchApi.kt` | Conversation search |
 | `routes/tags.js` | `TagsApi.kt` | Conversation tags/bookmarks |
@@ -24,6 +26,7 @@ Maps official LibreChat API route files to their mobile `*Api.kt` counterparts.
 | `routes/keys.js` | `KeysApi.kt` | User API keys |
 | `routes/mcp.js` | `McpApi.kt` | MCP server management |
 | `routes/memories.js` | `MemoriesApi.kt` | Memory/context management |
+| `routes/skills.js` | `SkillsApi.kt` | Skills CRUD, import, flat file list/upload/delete; v0.8.8 conditional per-file edit (`POST /:id/files/*relativePath` + `expectedFileId`), inline-only file writes |
 | N/A | `ChatApi.kt` | SSE streaming (POST + GET, not a standard route) |
 | N/A | `SpeechApi.kt` | Text-to-speech |
 | N/A | `ApiKeysApi.kt` | API key management |

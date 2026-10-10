@@ -15,6 +15,7 @@ import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.PendingAction
+import com.garfiec.librechat.core.model.content.Compaction
 import com.garfiec.librechat.core.model.endpoint.KeyState
 import com.garfiec.librechat.core.model.response.FileUploadConfig
 import com.garfiec.librechat.core.model.response.UploadRoute
@@ -23,14 +24,19 @@ import com.garfiec.librechat.core.model.response.isProviderUnknown
 import com.garfiec.librechat.core.model.response.isTextExtractable
 import com.garfiec.librechat.core.model.response.resolveUploadRoute
 import com.garfiec.librechat.core.model.usage.ContextUsage
-import com.garfiec.librechat.core.model.usage.TokenUsage
+import com.garfiec.librechat.core.model.usage.ContextUsageTotals
+import com.garfiec.librechat.core.model.usage.compactNudgeBand
+import com.garfiec.librechat.core.model.usage.percentOf
 import com.garfiec.librechat.core.ui.components.ModelParameters
+import com.garfiec.librechat.core.ui.contextusage.ContextBreakdownModel
 import com.garfiec.librechat.core.ui.media.MediaPreviewState
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.model.PresetDisplayData
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
 import com.garfiec.librechat.feature.chat.util.MessageNode
+import com.garfiec.librechat.feature.chat.util.PendingUsage
+import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 
 /**
  * The agents endpoint capability that enables server-side text extraction (`tool_resource=context`).
@@ -72,6 +78,8 @@ data class ChatUiState(
     //    Each delegates to its owning slice; writes go through the slice, not these. ──
     val messageQueue: List<QueuedMessage> get() = queue.messageQueue
     val isQueuePaused: Boolean get() = queue.isQueuePaused
+    val settledQueuedTurns: List<SettledQueuedTurn> get() = queue.settledQueuedTurns
+    val pendingQueuedTurnEnqueueIds: List<String> get() = queue.pendingQueuedTurnEnqueueIds
     val pendingSteers: List<PendingSteerChip> get() = steer.pendingSteers
     val isSearchOpen: Boolean get() = search.isSearchOpen
     val searchQuery: String get() = search.searchQuery
@@ -102,6 +110,7 @@ data class ChatUiState(
     val mcpServers: List<McpServerDisplayData> get() = selection.mcpServers
     val selectedMcpServerNames: Set<String> get() = selection.selectedMcpServerNames
     val extendedEffortSupported: Boolean get() = selection.extendedEffortSupported
+    val thinkingDisplayUpdatesSupported: Boolean get() = selection.thinkingDisplayUpdatesSupported
     val inputText: String get() = composer.inputText
     val sendBlockReason: SendBlockReason? get() = composer.sendBlockReason
     val editingQueuedItem: QueuedEditSession? get() = composer.editingQueuedItem
@@ -123,6 +132,33 @@ data class ChatUiState(
     /** Web's `quotesSupported`: everything except the assistants endpoints. */
     val quotesSupportedOnEndpoint: Boolean
         get() = quotesSupportedOn(selectedEndpoint)
+
+    /**
+     * Whether manual compaction can run right now (v0.8.8-rc3). Mirrors upstream's `canCompact`
+     * ANDed with its `compactionAvailable`.
+     *
+     * The `isCompactedLeaf` term is the one that is not obvious: compacting a leaf that is already
+     * a finished compaction summarizes a summary, so the action is withheld there. An interrupted
+     * one — still streaming, or failed — is not finished, and stays retryable.
+     */
+    val canCompactNow: Boolean
+        get() = gates.compactionEnabled &&
+            Compaction.supportsCompaction(selectedEndpoint) &&
+            !conversationId.isNullOrBlank() &&
+            !isStreaming &&
+            compactionLeaf != null
+
+    /**
+     * The branch leaf a compaction would hang off: both the summary's parent and the server-side
+     * anchor it compacts up to. Null when the tail is unusable as one — no messages, a root with
+     * no parent, or a leaf that is already a finished compaction.
+     */
+    val compactionLeaf: Message?
+        get() {
+            val leaf = displayMessages.lastOrNull()?.message ?: return null
+            if (leaf.parentMessageId.isNullOrBlank()) return null
+            return leaf.takeIf { !Compaction.isCompactedLeaf(it) }
+        }
 
     /**
      * True while picked files exist but are not yet in the attachment tray — mid-intake, or staged
@@ -175,19 +211,90 @@ data class ChatUiState(
     val activeBranches: Map<String, Int> get() = content.activeBranches
     val justSettledMessageId: String? get() = content.justSettledMessageId
     val isStreaming: Boolean get() = content.isStreaming
+    val isCompacting: Boolean get() = content.isCompacting
     val streamingContent: String get() = content.streamingContent
+    val streamingThinking: String get() = content.streamingThinking
     val activeToolCalls: List<ActiveToolCall> get() = content.activeToolCalls
     val streamingAttachments: List<Attachment> get() = content.streamingAttachments
     val retryInfo: RetryInfo? get() = content.retryInfo
     val isRefreshingMessages: Boolean get() = content.isRefreshingMessages
     val messagesLoadFailed: Boolean get() = content.messagesLoadFailed
     val contextUsage: ContextUsage? get() = content.contextUsage
-    val tokenUsage: TokenUsage? get() = content.tokenUsage
+    val contextUsageSource: ContextUsageSource? get() = content.contextUsageSource
+    val contextUsageIsEstimate: Boolean get() = content.contextUsageSource == ContextUsageSource.ESTIMATE
+    val pendingUsage: PendingUsage get() = content.pendingUsage
+    val contextUsageTotals: ContextUsageTotals get() = content.contextUsageTotals
+
+    /** Everything a gauge surface renders, or null when there is no reading. */
+    val contextGaugeDetails: ContextGaugeDetails?
+        get() = content.contextUsage?.let { usage ->
+            ContextGaugeDetails(
+                model = ContextBreakdownModel(
+                    usage = usage,
+                    isEstimate = contextUsageIsEstimate,
+                    totals = content.contextUsageTotals,
+                    costEnabled = gates.costEnabled,
+                    currency = gates.currency,
+                    isCompacting = content.isCompacting,
+                    compactionAvailable = canCompactNow,
+                ),
+                sections = prefs.contextSections,
+                nudge = compactNudge,
+            )
+        }
+
+    /**
+     * The suggestion to compact, or null. Shown from the user's threshold in the active
+     * placement, re-armed band by band after a "Not now", and driven only by a real server
+     * reading: a device-side estimate is too rough to prompt an action on.
+     */
+    val compactNudge: CompactNudge?
+        get() {
+            if (!compactNudgeEligible) return null
+            val usage = content.contextUsage ?: return null
+            val percent = percentOf(usage.usedTokens, usage.windowTokens)
+            val band = compactNudgeBand(percent, prefs.compactNudgeThreshold) ?: return null
+            val snoozed = conversationId?.let { prefs.compactNudgeSnoozes[it] }
+            return CompactNudge(band, percent).takeIf { snoozed == null || band > snoozed }
+        }
+
+    /**
+     * The options-sheet placement keeps the gauge inside the + sheet, out of sight, so a due
+     * suggestion also marks the + button.
+     */
+    val compactNudgeOnToolsButton: Boolean
+        get() = prefs.contextBarPlacement == ContextBarPlacement.OPTIONS_SHEET && compactNudge != null
+
+    /** Compacting is possible right now and the user can see a gauge to suggest it from. */
+    private val compactNudgeEligible: Boolean
+        get() {
+            val realReading = content.contextUsage != null && content.contextUsageSource != ContextUsageSource.ESTIMATE
+            val visible = gates.contextUsageEnabled && prefs.contextBarPlacement != ContextBarPlacement.HIDDEN
+            return canCompactNow && !content.isCompacting && realReading && visible
+        }
+
+    /** A real reading sits below the compact threshold (or the suggestion is off). */
+    internal val isBelowCompactThreshold: Boolean
+        get() {
+            val usage = content.contextUsage ?: return false
+            if (content.contextUsageSource == ContextUsageSource.ESTIMATE) return false
+            return compactNudgeBand(percentOf(usage.usedTokens, usage.windowTokens), prefs.compactNudgeThreshold) == null
+        }
     val pendingAction: PendingAction? get() = content.pendingAction
     val isResolvingPendingAction: Boolean get() = content.isResolvingPendingAction
+    val pendingActionResumeFailed: Boolean get() = content.pendingActionResumeFailed
     val askAnswerDrafts: Map<String, AskAnswerDraft> get() = content.askAnswerDrafts
+    val askActiveQuestionId: String? get() = content.askActiveQuestionId
+    val askPanelCollapsed: Boolean get() = content.askPanelCollapsed
+    val toolDecisionDrafts: Map<String, ToolDecisionDraft> get() = content.toolDecisionDrafts
+    val toolActiveCallId: String? get() = content.toolActiveCallId
+    val toolPanelCollapsed: Boolean get() = content.toolPanelCollapsed
     val memoryEnabled: Boolean get() = gates.memoryEnabled
     val conversationId: String? get() = conversation.conversationId
+
+    /** Whether the trace entry point should render — see [FeatureGatesState.traceViewerConversationId]. */
+    val traceViewerAvailable: Boolean
+        get() = conversationId != null && gates.traceViewerConversationId == conversationId
     val conversationTitle: String? get() = conversation.conversationTitle
     val isTemporaryChat: Boolean get() = conversation.isTemporaryChat
     val sharedLinksEnabled: Boolean get() = conversation.sharedLinksEnabled
@@ -317,20 +424,20 @@ data class ChatUiState(
      * What the composer's send control does while a reply is generating.
      *
      * [DuringRunSendTarget.ANSWER_PAUSE] takes precedence over the user's steer/queue preference:
-     * a run parked on `ask_user_question` is waiting for exactly this text, and the composer is
-     * the input the user can actually see — the pause card carries its own field but sits at the
-     * tail of the thread. Treating that send as an ordinary queued follow-up left the pause
+     * a run parked on `ask_user_question` is waiting for exactly this text. The screens hide the
+     * composer while the question panel is up, so this is the fallback for a send that reaches the
+     * ViewModel anyway. Treating that send as an ordinary queued follow-up left the pause
      * unresolved and delivered the answer as a non-sequitur after the run expired.
      *
      * Tool-approval pauses are excluded: they take decisions, not prose, so free text there is a
      * genuine follow-up.
      *
      * A multi-question batch ([PendingAction.isComposerAnswerableAsk]) is included: the send fills
-     * the first question the card still has no answer for, into the same [askAnswerDrafts] the
-     * card's own editors write, and the batch goes up whole once the last one is in. The resume
-     * route wants one answer per id and 400s a body missing any of them, so there is no
-     * per-question submit to route to — but there is progress to make, and steer/queue would
-     * leave the run paused while the send appeared to work.
+     * the panel's active tab (else the first question still unanswered), into the same
+     * [askAnswerDrafts] the panel's own editors write, and the batch goes up whole once the last
+     * one is in. The resume route wants one answer per id and 400s a body missing any of them, so
+     * there is no per-question submit to route to — but there is progress to make, and steer/queue
+     * would leave the run paused while the send appeared to work.
      */
     val duringRunSendTarget: DuringRunSendTarget
         get() {

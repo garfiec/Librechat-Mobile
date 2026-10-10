@@ -1,7 +1,7 @@
 ---
 name: audit-i18n
 description: >
-  Audit localization / i18n coverage across the compose-resources surface (9 modules
+  Audit localization / i18n coverage across the compose-resources surface (10 modules
   x 9 locales). Finds strings that exist in English but not in some or all languages,
   keys left as untranslated English stubs inside a translated file, stale keys the base
   dropped, and English literals that never reached a strings.xml at all. Use when
@@ -74,7 +74,7 @@ Confirm three things before trusting anything downstream:
 1. The header line reads `allowlist: config/l10n/i18n-allowlist.txt`. If it reads
    `allowlist: (none)` you are running unsuppressed — see the blind spot below, this failure is
    silent.
-2. The module table lists **9 modules** and `loc` is **9** on every row. Fewer means discovery
+2. The module table lists **10 modules** and `loc` is **9** on every row. Fewer means discovery
    broke or a locale was dropped wholesale.
 3. The exit code is **below 16**. `16` and above is a hard failure — the script could not find or
    parse the surface. It shares no bits with the finding mask (`1|2|4|8`) so that "the check
@@ -140,7 +140,12 @@ agents that did not write it. Typically 10–13 agents.
 It returns `{ reportPath, jsonPath, totals, featureClusters, modulesAttributed,
 modulesNotAttributed, unreconciledModules, stubVerdictCounts, heuristicSampled, advisories,
 reconcileVerdicts, confirmedDiscrepanciesFixed, reconcileFailedLenses,
-unconfirmedDiscrepancies, clean, summary }`.
+unconfirmedDiscrepancies, clean, reportMarkdown, summary }`.
+
+**No agent writes the report file** — the harness refuses report-file writes from subagents. The
+workflow returns the reconciled report as `reportMarkdown`; **you write it verbatim to
+`reportPath`** (re-check the path is still free first) before starting Phase 2. If `reportMarkdown`
+is missing, the synthesize phase returned nothing: say so and do not hand-write a substitute.
 
 **If it returns `{ halted: true }`, stop.** That means the checker hard-failed (exit ≥ 16) — it
 did not run at all. Report the reason to the user and fix the tool before auditing anything. A
@@ -298,16 +303,20 @@ A key that *is* present in a non-Latin-script locale but whose value is byte-ide
 English base and pure ASCII was never actually translated. The file passes parity and still ships
 English.
 
-Two classes are exempted mechanically, with no allowlist entry needed: **shared literals** (no
-locale anywhere translated them — `Bearer`, `OAuth`, `JSON`, `MCP`, `SSE`, `Markdown`,
-`LibreChat`, `mermaid`, `shadcn/ui`) and **letterless values** (arrows, em dashes, pure format
+Two classes are exempted mechanically, with no allowlist entry needed: **shared literals** (a
+single token no locale anywhere translated — `Bearer`, `OAuth`, `JSON`, `MCP`, `SSE`, `Markdown`,
+`mermaid`, `shadcn/ui`) and **letterless values** (arrows, em dashes, pure format
 strings).
 
 What survives is tiered by cross-locale corroboration:
 
 - **ERROR** — at least 4 other locales translated this key. The holdout is a genuine miss.
-- **REVIEW** — only 1–3 others did, so English may be the local convention. Report these
-  separately and say so.
+- **REVIEW** — only 0–3 others did, so English may be the local convention. Report these
+  separately and say so. **0** means multi-word English that no locale translated: usually a
+  section every translator skipped, occasionally an example value that belongs in the allowlist.
+  A single untranslated WORD that no locale translated (`Off`, `Never`) is still exempted as a
+  shared literal — indistinguishable from `OAuth` mechanically — so only the contiguous-run
+  corroborator can surface it.
 - **INFO** (`--include-latin`, `--near-identical`) — off by default and near-100% /
   1-in-3 precision respectively. Only surface these if the user asks for exhaustive output, and
   label them INFO.
@@ -379,9 +388,9 @@ it is a separate authorized change.
 
 ## Report artifact
 
-**The workflow writes this, not you** — its synthesize phase produces
-`.claude/skills/audit-i18n/REPORT-<YYYY-MM-DD>.md` and its reconcile phase checks it against the
-raw JSON. This section documents the contract that report must satisfy, so you can tell whether
+**The workflow composes this, not you** — its synthesize phase returns the markdown, its
+reconcile phase checks it against the raw JSON, and you save the returned `reportMarkdown` to
+`.claude/skills/audit-i18n/REPORT-<YYYY-MM-DD>.md`. This section documents the contract that report must satisfy, so you can tell whether
 what came back is right; the shell snippets below are what the workflow's attribution agents run.
 
 Never overwrite a prior dated report — the whole point of determinism is that two dated reports

@@ -1,6 +1,6 @@
 # Tchat: Native Mobile Client
 
-[![LibreChat](https://img.shields.io/badge/LibreChat-v0.8.4_–_v0.8.8--rc1-blue)](https://github.com/danny-avila/LibreChat/releases/tag/v0.8.8-rc1)
+[![LibreChat](https://img.shields.io/badge/LibreChat-v0.8.4_–_v0.8.8-blue)](https://github.com/LibreChat-AI/LibreChat/releases/tag/v0.8.8)
 
 The native Android/iOS client for **Tchat**, TensorGrid's self-hosted deployment of
 [LibreChat](https://www.librechat.ai/) at `chat.tensorgrid.space`. There is no server field to
@@ -10,8 +10,7 @@ This is a rebrand of [Switchboard](https://github.com/garfiec/Librechat-Mobile),
 native LibreChat client, kept as a fork so it can keep pulling in Switchboard's fixes and
 features. See [TCHAT.md](TCHAT.md) for exactly what this fork changes and why.
 
-> **Backend compatibility:** Tested against LibreChat **v0.8.4 – v0.8.8-rc1** — Tchat itself
-> currently runs v0.8.8-rc1.
+> **Backend compatibility:** Tested against LibreChat **v0.8.4 – v0.8.8**.
 
 ## Why use this instead of the web app?
 
@@ -44,18 +43,19 @@ features. See [TCHAT.md](TCHAT.md) for exactly what this fork changes and why.
 
 | Feature | Phone | Tablet / Foldable |
 |---|---|---|
-| **Home Screen** — Clean welcome screen with voice input and quick access | <img src="docs/screenshots/home-phone.png" width="280"> | <img src="docs/screenshots/home-tablet.png" width="380"> |
+| **Home Screen** — Clean welcome screen with voice input and quick access | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/01-home.png" width="280"> | <img src="fastlane/metadata/android/en-US/images/tenInchScreenshots/01-home.png" width="380"> |
 | **Conversations Sidebar** — Swipe to open your chat history with search, tags, and date grouping | <img src="docs/screenshots/sidebar-phone.gif" width="280"> | <img src="docs/screenshots/sidebar-tablet.gif" width="380"> |
 | **Predictive Back** — Native Android back gesture with peek animation | <img src="docs/screenshots/predictive-back-phone.gif" width="280"> | <img src="docs/screenshots/predictive-back-tablet.gif" width="380"> |
-| **Mermaid Diagrams** — Interactive flowcharts and diagrams rendered in-chat | <img src="docs/screenshots/mermaid-phone.png" width="280"> | <img src="docs/screenshots/mermaid-tablet.png" width="380"> |
-| **LaTeX Math** — Beautifully typeset equations and formulas | <img src="docs/screenshots/latex-phone.png" width="280"> | <img src="docs/screenshots/latex-tablet.png" width="380"> |
-| **Code Blocks** — Syntax-highlighted code with language badge and copy button | <img src="docs/screenshots/code-phone.png" width="280"> | <img src="docs/screenshots/code-tablet.png" width="380"> |
+| **Mermaid Diagrams** — Interactive flowcharts and diagrams rendered in-chat | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/04-mermaid.png" width="280"> | <img src="fastlane/metadata/android/en-US/images/tenInchScreenshots/04-mermaid.png" width="380"> |
+| **LaTeX Math** — Beautifully typeset equations and formulas | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/05-latex.png" width="280"> | <img src="fastlane/metadata/android/en-US/images/tenInchScreenshots/05-latex.png" width="380"> |
+| **Code Blocks** — Syntax-highlighted code with language badge and copy button | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/03-code.png" width="280"> | <img src="fastlane/metadata/android/en-US/images/tenInchScreenshots/03-code.png" width="380"> |
 | **Tables** — Clean, scrollable data tables | <img src="docs/screenshots/table-phone.png" width="280"> | <img src="docs/screenshots/table-tablet.png" width="380"> |
-| **Extended Thinking** — See the model's reasoning process | <img src="docs/screenshots/thinking-phone.png" width="280"> | <img src="docs/screenshots/thinking-tablet.png" width="380"> |
-| **Chat Media** — Browse all media shared in the current chat in one place | <img src="docs/screenshots/chat-media-phone.png" width="280"> | <img src="docs/screenshots/chat-media-tablet.png" width="380"> |
+| **Extended Thinking** — See the model's reasoning process | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/06-thinking.png" width="280"> | <img src="docs/screenshots/thinking-tablet.png" width="380"> |
+| **Clarifying Questions** — When an agent pauses to ask, answer one question at a time in a panel that replaces the composer | <img src="docs/screenshots/ask-user-question-phone.png" width="280"> | <img src="docs/screenshots/ask-user-question-tablet.png" width="380"> |
+| **Chat Media** — Browse all media shared in the current chat in one place | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/07-chat-media.png" width="280"> | <img src="fastlane/metadata/android/en-US/images/tenInchScreenshots/06-chat-media.png" width="380"> |
 | **Chat Options** — Attach files, switch models, toggle tools, and tune parameters | <img src="docs/screenshots/chat-options-phone.png" width="280"> | <img src="docs/screenshots/chat-options-tablet.png" width="380"> |
-| **Model Selection** — Searchable bottom sheet with models grouped by provider | <img src="docs/screenshots/model-selection-phone.png" width="280"> | <img src="docs/screenshots/model-selection-tablet.png" width="380"> |
-| **Settings** — Theme, language, layout, and personalization options | <img src="docs/screenshots/settings-phone.png" width="280"> | <img src="docs/screenshots/settings-tablet.png" width="380"> |
+| **Model Selection** — Searchable bottom sheet with models grouped by provider | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/02-model-selection.png" width="280"> | <img src="fastlane/metadata/android/en-US/images/tenInchScreenshots/02-model-selection.png" width="380"> |
+| **Settings** — Theme, language, layout, and personalization options | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/08-settings.png" width="280"> | <img src="fastlane/metadata/android/en-US/images/tenInchScreenshots/07-settings.png" width="380"> |
 
 ## Install
 
@@ -122,7 +122,7 @@ See [iosApp/README.md](iosApp/README.md) for full build and launch instructions.
 - Ktor Client (OkHttp on Android, Darwin on iOS)
 - Kotlinx Serialization
 - Room (cache), DataStore (preferences), EncryptedSharedPreferences / Keychain (tokens)
-- Kotlin 2.4.10, compileSdk 36, minSdk 26
+- Kotlin 2.4.10, compileSdk 37, minSdk 26
 
 ## Contributing
 

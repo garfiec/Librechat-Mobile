@@ -10,6 +10,9 @@ object KoinQualifiers {
     val Streaming = named("streaming")
     val Refresh = named("refresh")
 
+    // HttpClient for third-party hosts: no LibreChat auth, gateway headers or browser UA.
+    val External = named("external")
+
     // Single-thread dispatcher dedicated to the persistent diagnostic log sink, so all
     // file appends/rotation happen on one thread (no locks, no rotation races).
     val LogWriter = named("logWriter")

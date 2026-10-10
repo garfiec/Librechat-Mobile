@@ -16,12 +16,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,6 +35,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.brand.TchatBrand
 import com.garfiec.librechat.core.data.repository.HeaderWriteFailure
 import com.garfiec.librechat.core.network.client.HeaderRejection
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveButton
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.CustomHeaderRow
 import com.garfiec.librechat.core.ui.components.CustomHeaderRowError
 import com.garfiec.librechat.core.ui.components.CustomHeadersEditor
@@ -126,7 +126,7 @@ fun ServerUrlScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            OutlinedTextField(
+            AdaptiveOutlinedTextField(
                 value = uiState.url,
                 onValueChange = viewModel::onUrlChanged,
                 label = { Text(stringResource(Res.string.server_url_label)) },
@@ -180,13 +180,13 @@ fun ServerUrlScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Button(
+            AdaptiveButton(
                 onClick = viewModel::validateAndConnect,
                 modifier = Modifier.fillMaxWidth().testTag("server_url_connect"),
                 enabled = !uiState.isLoading && uiState.url.isNotBlank(),
             ) {
                 if (uiState.isLoading) {
-                    CircularProgressIndicator(
+                    AdaptiveCircularProgressIndicator(
                         modifier = Modifier.height(20.dp),
                         color = MaterialTheme.colorScheme.onPrimary,
                         strokeWidth = 2.dp,
@@ -227,7 +227,7 @@ private fun AutoConnectingContent(
         Spacer(modifier = Modifier.height(24.dp))
 
         if (error == null) {
-            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+            AdaptiveCircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
         } else {
             Text(
                 text = error,
@@ -236,7 +236,7 @@ private fun AutoConnectingContent(
                 textAlign = TextAlign.Center,
             )
             Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = onRetry) {
+            AdaptiveButton(onClick = onRetry) {
                 Text(stringResource(Res.string.retry))
             }
         }
@@ -319,7 +319,7 @@ private fun HttpWarningDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
+    AdaptiveAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.insecure_connection_title)) },
         text = {

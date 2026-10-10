@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.garfiec.librechat.core.model.DEFAULT_ACCENT_SEED_ARGB
+import com.garfiec.librechat.core.model.ui.UiStyle
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -48,6 +49,11 @@ class ThemeDataStore(
     var initialUseDynamicColor: Boolean = false
         private set
 
+    /** Initial stored UI style for the first compose frame; null means the platform default. */
+    @Volatile
+    var initialUiStyle: UiStyle? = null
+        private set
+
     private val _isReady = MutableStateFlow(false)
 
     /**
@@ -64,6 +70,7 @@ class ThemeDataStore(
                 initialThemeMode = prefs[KEY_THEME].toThemeMode()
                 initialAccentColor = prefs[KEY_ACCENT_COLOR] ?: DEFAULT_ACCENT_COLOR
                 initialUseDynamicColor = prefs[KEY_USE_DYNAMIC_COLOR] ?: false
+                initialUiStyle = prefs[KEY_UI_STYLE].toUiStyleOrNull()
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
@@ -88,6 +95,14 @@ class ThemeDataStore(
         prefs[KEY_USE_DYNAMIC_COLOR] ?: false
     }
 
+    /**
+     * The user's explicit UI style, or null when they never chose one. Null is resolved against the
+     * platform default at the app root, never here, so the default keeps following the OS.
+     */
+    val uiStyle: Flow<UiStyle?> = dataStore.data.map { prefs ->
+        prefs[KEY_UI_STYLE].toUiStyleOrNull()
+    }
+
     suspend fun setThemeMode(mode: ThemeMode) {
         dataStore.edit { prefs ->
             prefs[KEY_THEME] = when (mode) {
@@ -106,6 +121,20 @@ class ThemeDataStore(
         dataStore.edit { prefs -> prefs[KEY_USE_DYNAMIC_COLOR] = enabled }
     }
 
+    /** Null removes the stored choice, returning the user to the platform default. */
+    suspend fun setUiStyle(style: UiStyle?) {
+        dataStore.edit { prefs ->
+            if (style == null) {
+                prefs.remove(KEY_UI_STYLE)
+            } else {
+                prefs[KEY_UI_STYLE] = when (style) {
+                    UiStyle.MATERIAL -> "material"
+                    UiStyle.LIQUID_GLASS -> "liquid_glass"
+                }
+            }
+        }
+    }
+
     companion object {
         /**
          * Accent seed (ARGB) used when no accent has been chosen. Derived from the canonical
@@ -118,6 +147,14 @@ class ThemeDataStore(
         private val KEY_THEME = stringPreferencesKey("theme_mode")
         private val KEY_ACCENT_COLOR = intPreferencesKey("accent_color")
         private val KEY_USE_DYNAMIC_COLOR = booleanPreferencesKey("use_dynamic_color")
+        private val KEY_UI_STYLE = stringPreferencesKey("ui_style")
+
+        // An unrecognized value (written by a newer build) degrades to the platform default.
+        private fun String?.toUiStyleOrNull(): UiStyle? = when (this) {
+            "material" -> UiStyle.MATERIAL
+            "liquid_glass" -> UiStyle.LIQUID_GLASS
+            else -> null
+        }
 
         private fun String?.toThemeMode(): ThemeMode = when (this) {
             "light" -> ThemeMode.LIGHT

@@ -25,12 +25,6 @@ import androidx.compose.material.icons.outlined.PermMedia
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PrimaryTabRow
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -40,7 +34,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextOverflow
@@ -48,12 +41,15 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.garfiec.librechat.core.common.extensions.formatByteSize
+import com.garfiec.librechat.core.ui.components.AdaptivePillChoice
+import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.EmptyState
 import com.garfiec.librechat.core.ui.components.LibreChatTopBar
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
 import com.garfiec.librechat.core.ui.media.MediaActionBar
 import com.garfiec.librechat.core.ui.media.MediaItem
-import com.garfiec.librechat.core.ui.media.ZoomableMediaPager
+import com.garfiec.librechat.core.ui.media.MediaViewerHost
+import com.garfiec.librechat.core.ui.media.mediaThumbnail
 import com.garfiec.librechat.core.ui.media.rememberSaveImageToGallery
 import com.garfiec.librechat.core.ui.media.rememberShareFile
 import com.garfiec.librechat.core.ui.media.rememberShareImage
@@ -100,110 +96,87 @@ fun ConversationMediaScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedTab by rememberSaveable { mutableIntStateOf(MediaTab.MEDIA.ordinal) }
 
-    Scaffold(
-        modifier = modifier,
-        topBar = {
-            LibreChatTopBar(
-                title = stringResource(Res.string.media_gallery_title),
-                onNavigateBack = onNavigateBack,
+    val saveImage = rememberSaveImageToGallery()
+    val shareImage = rememberShareImage()
+    val saveDescription = stringResource(Res.string.cd_save_to_device)
+    val shareDescription = stringResource(Res.string.cd_share_image)
+    MediaViewerHost(
+        preview = uiState.mediaPreview,
+        onDismiss = viewModel::closeMedia,
+        closeContentDescription = stringResource(Res.string.cd_close),
+        defaultContentDescription = stringResource(Res.string.cd_image),
+        actions = { item ->
+            MediaActionBar(
+                item = item,
+                onSave = saveImage,
+                onShare = shareImage,
+                saveContentDescription = saveDescription,
+                shareContentDescription = shareDescription,
             )
         },
-    ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            PrimaryTabRow(selectedTabIndex = selectedTab) {
-                Tab(
-                    selected = selectedTab == MediaTab.MEDIA.ordinal,
-                    onClick = { selectedTab = MediaTab.MEDIA.ordinal },
-                    text = { Text(stringResource(Res.string.media_tab_media)) },
+    ) {
+        AdaptiveScaffold(
+            modifier = modifier,
+            topBar = {
+                LibreChatTopBar(
+                    title = stringResource(Res.string.media_gallery_title),
+                    onNavigateBack = onNavigateBack,
                 )
-                Tab(
-                    selected = selectedTab == MediaTab.FILES.ordinal,
-                    onClick = { selectedTab = MediaTab.FILES.ordinal },
-                    text = { Text(stringResource(Res.string.media_tab_files)) },
+            },
+        ) { padding ->
+            Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+                AdaptivePillChoice(
+                    options = listOf(
+                        stringResource(Res.string.media_tab_media),
+                        stringResource(Res.string.media_tab_files),
+                        stringResource(Res.string.media_tab_links),
+                        stringResource(Res.string.media_tab_artifacts),
+                    ),
+                    selectedIndex = selectedTab,
+                    onSelect = { selectedTab = it },
+                    modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp),
                 )
-                Tab(
-                    selected = selectedTab == MediaTab.LINKS.ordinal,
-                    onClick = { selectedTab = MediaTab.LINKS.ordinal },
-                    text = { Text(stringResource(Res.string.media_tab_links)) },
-                )
-                Tab(
-                    selected = selectedTab == MediaTab.ARTIFACTS.ordinal,
-                    onClick = { selectedTab = MediaTab.ARTIFACTS.ordinal },
-                    text = { Text(stringResource(Res.string.media_tab_artifacts)) },
-                )
-            }
 
-            ScopeToggle(
-                scope = uiState.scope,
-                onScopeChange = viewModel::setScope,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-            )
+                ScopeToggle(
+                    scope = uiState.scope,
+                    onScopeChange = viewModel::setScope,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                )
 
-            Box(modifier = Modifier.fillMaxSize()) {
-                when {
-                    uiState.isLoading -> LoadingIndicator(modifier = Modifier.fillMaxSize())
-                    selectedTab == MediaTab.MEDIA.ordinal ->
-                        MediaGrid(uiState.media, onOpen = viewModel::openMedia)
-                    selectedTab == MediaTab.FILES.ordinal ->
-                        FilesList(uiState.files, downloadBytes = viewModel::downloadFileBytes)
-                    selectedTab == MediaTab.LINKS.ordinal -> LinksList(uiState.links)
-                    else -> ArtifactsList(uiState.artifacts)
+                Box(modifier = Modifier.fillMaxSize()) {
+                    when {
+                        uiState.isLoading -> LoadingIndicator(modifier = Modifier.fillMaxSize())
+                        selectedTab == MediaTab.MEDIA.ordinal ->
+                            MediaGrid(uiState.media, onOpen = viewModel::openMedia)
+                        selectedTab == MediaTab.FILES.ordinal ->
+                            FilesList(uiState.files, downloadBytes = viewModel::downloadFileBytes)
+                        selectedTab == MediaTab.LINKS.ordinal -> LinksList(uiState.links)
+                        else -> ArtifactsList(uiState.artifacts)
+                    }
                 }
             }
         }
     }
-
-    val mediaPreview = uiState.mediaPreview
-    if (mediaPreview != null) {
-        val saveImage = rememberSaveImageToGallery()
-        val shareImage = rememberShareImage()
-        val saveDescription = stringResource(Res.string.cd_save_to_device)
-        val shareDescription = stringResource(Res.string.cd_share_image)
-        val imageDescription = stringResource(Res.string.cd_image)
-        ZoomableMediaPager(
-            items = mediaPreview.items,
-            initialIndex = mediaPreview.initialIndex,
-            onDismiss = viewModel::closeMedia,
-            closeContentDescription = stringResource(Res.string.cd_close),
-            defaultContentDescription = imageDescription,
-            actions = { item ->
-                MediaActionBar(
-                    item = item,
-                    onSave = saveImage,
-                    onShare = shareImage,
-                    saveContentDescription = saveDescription,
-                    shareContentDescription = shareDescription,
-                )
-            },
-        )
-    }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ScopeToggle(
     scope: MediaScope,
     onScopeChange: (MediaScope) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    SingleChoiceSegmentedButtonRow(modifier = modifier) {
-        SegmentedButton(
-            selected = scope == MediaScope.ACTIVE_BRANCH,
-            onClick = { onScopeChange(MediaScope.ACTIVE_BRANCH) },
-            shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-        ) {
-            Text(stringResource(Res.string.media_scope_this_branch))
-        }
-        SegmentedButton(
-            selected = scope == MediaScope.ENTIRE,
-            onClick = { onScopeChange(MediaScope.ENTIRE) },
-            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-        ) {
-            Text(stringResource(Res.string.media_scope_whole_chat))
-        }
-    }
+    val scopes = listOf(MediaScope.ACTIVE_BRANCH, MediaScope.ENTIRE)
+    AdaptivePillChoice(
+        options = listOf(
+            stringResource(Res.string.media_scope_this_branch),
+            stringResource(Res.string.media_scope_whole_chat),
+        ),
+        selectedIndex = scopes.indexOf(scope),
+        onSelect = { onScopeChange(scopes[it]) },
+        modifier = modifier,
+    )
 }
 
 @Composable
@@ -231,7 +204,7 @@ private fun MediaGrid(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .aspectRatio(1f)
-                    .clip(MediaThumbShape)
+                    .mediaThumbnail(item.url, MediaThumbShape)
                     .clickable { onOpen(item.url) },
             )
         }

@@ -15,15 +15,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Forum
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -41,14 +36,19 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.SAVED_TAG
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveFloatingActionButton
+import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
+import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.EmptyState
 import com.garfiec.librechat.core.ui.components.ErrorBanner
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
+import com.garfiec.librechat.core.ui.datetime.resolve
 import com.garfiec.librechat.feature.conversations.components.ConversationActions
 import com.garfiec.librechat.feature.conversations.components.ConversationItem
 import com.garfiec.librechat.feature.conversations.components.ConversationSearchBar
 import com.garfiec.librechat.feature.conversations.components.DateGroupHeader
-import com.garfiec.librechat.feature.conversations.components.ProvideRelativeTimeReference
 import com.garfiec.librechat.feature.conversations.components.TagFilterBar
 import com.garfiec.librechat.feature.conversations.components.TagPicker
 import com.garfiec.librechat.feature.conversations.export.ExportFormat
@@ -167,11 +167,11 @@ fun ConversationListScreen(
 
     val groupedConversations = uiState.groupedConversations
 
-    Scaffold(
+    AdaptiveScaffold(
         modifier = modifier,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            FloatingActionButton(
+            AdaptiveFloatingActionButton(
                 onClick = onNewChatClick,
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -259,69 +259,66 @@ fun ConversationListScreen(
 
                     // Content state
                     else -> {
-                        // One ticker for the whole list, so relative-time labels advance while it is open.
-                        ProvideRelativeTimeReference {
-                            LazyColumn(
-                                state = listState,
-                                modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(bottom = 80.dp),
-                            ) {
-                                // Error banner at top if present
-                                if (uiState.error != null) {
-                                    item(key = "error") {
-                                        ErrorBanner(
-                                            message = uiState.error ?: stringResource(Res.string.unknown_error),
-                                            onRetry = {
-                                                viewModel.dismissError()
-                                                viewModel.loadConversations()
-                                            },
-                                        )
-                                    }
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(bottom = 80.dp),
+                        ) {
+                            // Error banner at top if present
+                            if (uiState.error != null) {
+                                item(key = "error") {
+                                    ErrorBanner(
+                                        message = uiState.error ?: stringResource(Res.string.unknown_error),
+                                        onRetry = {
+                                            viewModel.dismissError()
+                                            viewModel.loadConversations()
+                                        },
+                                    )
+                                }
+                            }
+
+                            groupedConversations.forEach { (dateGroup, displayItems) ->
+                                stickyHeader(key = "header_${dateGroup.key}") {
+                                    DateGroupHeader(label = dateGroup.resolve())
                                 }
 
-                                groupedConversations.forEach { (dateGroup, displayItems) ->
-                                    stickyHeader(key = "header_$dateGroup") {
-                                        DateGroupHeader(label = dateGroup)
-                                    }
-
-                                    // Conversation items in this group
-                                    items(
-                                        items = displayItems,
-                                        key = { it.conversationId },
-                                        contentType = { "conversation" },
-                                    ) { displayData ->
-                                        ConversationItem(
-                                            data = displayData,
-                                            onClick = {
-                                                onConversationClick(displayData.conversationId)
-                                            },
-                                            onActionsClick = {
-                                                selectedConversation = viewModel.getConversation(
-                                                    displayData.conversationId,
-                                                )
-                                            },
-                                            bookmarksEnabled = uiState.bookmarksEnabled,
-                                        )
-                                        HorizontalDivider(
-                                            modifier = Modifier.padding(start = 52.dp),
-                                            color = MaterialTheme.colorScheme.outlineVariant,
-                                        )
-                                    }
-                                }
-
-                                // Loading indicator at bottom when loading more
-                                if (uiState.isLoading && uiState.conversationCount > 0) {
-                                    item(key = "loading_more") {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(16.dp),
-                                            contentAlignment = Alignment.Center,
-                                        ) {
-                                            CircularProgressIndicator(
-                                                color = MaterialTheme.colorScheme.primary,
+                                // Conversation items in this group
+                                items(
+                                    items = displayItems,
+                                    key = { it.conversationId },
+                                    contentType = { "conversation" },
+                                ) { displayData ->
+                                    ConversationItem(
+                                        data = displayData,
+                                        onClick = {
+                                            onConversationClick(displayData.conversationId)
+                                        },
+                                        onActionsClick = {
+                                            selectedConversation = viewModel.getConversation(
+                                                displayData.conversationId,
                                             )
-                                        }
+                                        },
+                                        bookmarksEnabled = uiState.bookmarksEnabled,
+                                    )
+                                    AdaptiveDivider(
+                                        modifier = Modifier.padding(start = 52.dp),
+                                        color = MaterialTheme.colorScheme.outlineVariant,
+                                    )
+                                }
+                            }
+
+                            // Loading indicator at bottom when loading more
+                            if (uiState.isLoading && uiState.conversationCount > 0) {
+                                item(key = "loading_more") {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        AdaptiveCircularProgressIndicator(
+                                            color = MaterialTheme.colorScheme.primary,
+                                        )
                                     }
                                 }
                             }

@@ -104,9 +104,9 @@ class MatchSorterTest {
     fun resultsAreOrderedByTier() {
         val items = listOf(
             Group("Quick Summary"), // word-starts-with
-            Group("Presummed"),     // contains
-            Group("Summ"),          // equal
-            Group("Summarize"),     // starts-with
+            Group("Presummed"), // contains
+            Group("Summ"), // equal
+            Group("Summarize"), // starts-with
         )
         assertEquals(
             listOf("Summ", "Summarize", "Quick Summary", "Presummed"),

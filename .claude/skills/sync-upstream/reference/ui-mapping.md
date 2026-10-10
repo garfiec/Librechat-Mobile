@@ -33,7 +33,7 @@ Maps web client component directories to mobile Compose feature modules.
 | `components/Audio/` | Voice input/output, TTS | Medium | SpeechApi exists, no UI |
 | `components/Plugins/` | Legacy plugin system | N/A | Superseded by agents |
 | `components/Tools/` | Tool configuration and management | Low | Part of agent setup |
-| `components/OAuth/` | OAuth provider buttons | Low | Mobile uses Chrome Custom Tabs |
+| `components/OAuth/` | OAuth provider buttons | Low | Mobile runs the round-trip in an in-app WebView |
 | `components/Web/` | Web search integration | Low | Agent tool feature |
 | `components/System/` | System-level UI (error boundaries, etc.) | Low | Mobile has own error handling |
 

@@ -3,6 +3,10 @@ package com.garfiec.librechat.core.ui.media
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import coil3.PlatformContext
+import coil3.SingletonImageLoader
+import coil3.request.ImageRequest
+import coil3.toBitmap
 import com.garfiec.librechat.core.ui.platform.currentTopmostViewController
 import com.garfiec.librechat.core.ui.platform.presentSheet
 import kotlinx.cinterop.BetaInteropApi
@@ -12,6 +16,8 @@ import kotlinx.cinterop.usePinned
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.jetbrains.skia.EncodedImageFormat
+import org.jetbrains.skia.Image
 import platform.Foundation.NSData
 import platform.Foundation.NSTemporaryDirectory
 import platform.Foundation.NSURL
@@ -26,7 +32,36 @@ import platform.UIKit.UIActivityViewController
 actual fun rememberSaveImageToGallery(): ((url: String) -> Unit)? = null
 
 @Composable
-actual fun rememberShareImage(): (url: String) -> Unit = { url -> shareUrl(url) }
+actual fun rememberShareImage(): (url: String) -> Unit {
+    val scope = rememberCoroutineScope()
+    return remember(scope) { { url -> scope.launch { shareImage(url) } } }
+}
+
+/**
+ * Shares the image itself, not its URL. From v0.8.8-rc2 the server's `/images/` mount answers only
+ * a request carrying the owner's session cookie, so a shared link opens to a 401 for anyone else —
+ * the user's own Safari included. The image loader carries that cookie, so the bytes come back
+ * through it. iOS configures no Coil disk cache, so unlike Android there are no original bytes to
+ * read and the decoded image is re-encoded as PNG. The URL is shared only when nothing loads.
+ */
+private suspend fun shareImage(url: String) {
+    val png = loadAsPng(url)
+    if (png == null) {
+        shareUrl(url)
+        return
+    }
+    shareFile(png, filename = "image", mime = "image/png")
+}
+
+private suspend fun loadAsPng(url: String): ByteArray? {
+    val context = PlatformContext.INSTANCE
+    val bitmap = SingletonImageLoader.get(context)
+        .execute(ImageRequest.Builder(context).data(url).build())
+        .image?.toBitmap() ?: return null
+    return withContext(Dispatchers.Default) {
+        Image.makeFromBitmap(bitmap).encodeToData(EncodedImageFormat.PNG)?.bytes
+    }
+}
 
 @Composable
 actual fun rememberShareFile(): (bytes: ByteArray, filename: String, mime: String?) -> Unit {

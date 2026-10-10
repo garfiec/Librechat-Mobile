@@ -20,6 +20,7 @@ import co.touchlab.kermit.Logger
  * Extracted as a free function so the recovery logic is unit-testable with plain fakes — Robolectric
  * can't run a real `EncryptedSharedPreferences`.
  */
+@Suppress("TooGenericExceptionCaught") // OEM keystores throw undocumented exceptions; recovery must not crash
 internal fun <T : Any> createWithRecovery(create: () -> T, wipe: () -> Unit): T? =
     try {
         create()

@@ -24,14 +24,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -43,9 +40,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.AnnotatedString
@@ -61,7 +58,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.garfiec.librechat.core.common.ChatLayoutConstants
 import com.garfiec.librechat.core.model.Attachment
@@ -69,9 +65,18 @@ import com.garfiec.librechat.core.model.FeedbackRating
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.MinimalFeedback
 import com.garfiec.librechat.core.model.content.MessageContentPart
+import com.garfiec.librechat.core.ui.components.AdaptiveDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AvatarImage
+import com.garfiec.librechat.core.ui.components.BubbleShape
 import com.garfiec.librechat.core.ui.components.endpointIconPainter
 import com.garfiec.librechat.core.ui.components.isMonochromeEndpointIcon
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
+import com.garfiec.librechat.core.ui.components.topbar.BarIcons
+import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
+import com.garfiec.librechat.core.ui.components.topbar.BarTitle
+import com.garfiec.librechat.core.ui.components.topbar.MaterialBarStyle
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_close
 import com.garfiec.librechat.feature.chat.resources.cd_expand_table
@@ -213,17 +218,42 @@ actual fun MessageBubble(
 @Suppress("LongParameterList")
 @Composable
 private fun ThreadBubble(
-    message: Message, modifier: Modifier, siblingIndex: Int, siblingCount: Int,
-    onSiblingNavigation: ((Int) -> Unit)?, onEdit: (() -> Unit)?, onRegenerate: (() -> Unit)?,
-    onCopy: (() -> Unit)?, onFeedback: ((MinimalFeedback?) -> Unit)?, onContinue: (() -> Unit)?,
-    onReadAloud: (() -> Unit)?, onFork: (() -> Unit)?, baseUrl: String, fontSizeMultiplier: Float,
-    useKatex: Boolean, isReading: Boolean, currentFeedback: FeedbackRating?, isEditing: Boolean, editText: String,
-    onEditTextChange: ((String) -> Unit)?, onEditSaveAndSubmit: (() -> Unit)?, onEditSaveOnly: (() -> Unit)?,
-    onEditCancel: (() -> Unit)?, userAvatarUrl: String?, userName: String?,
-    resolvedEndpoint: String?, tintEndpointIcon: Boolean,
-    showImageDescriptions: Boolean, showActionsInitially: Boolean, searchQuery: String?,
-    isSearchMatch: Boolean, isCurrentSearchMatch: Boolean, searchFocusedOccurrence: Int,
-    onFocusedOccurrencePosition: ((LayoutCoordinates, Rect) -> Unit)?, showAvatars: Boolean, showBubbles: Boolean,
+    message: Message,
+    siblingIndex: Int,
+    siblingCount: Int,
+    onSiblingNavigation: ((Int) -> Unit)?,
+    onEdit: (() -> Unit)?,
+    onRegenerate: (() -> Unit)?,
+    onCopy: (() -> Unit)?,
+    onFeedback: ((MinimalFeedback?) -> Unit)?,
+    onContinue: (() -> Unit)?,
+    onReadAloud: (() -> Unit)?,
+    onFork: (() -> Unit)?,
+    baseUrl: String,
+    fontSizeMultiplier: Float,
+    useKatex: Boolean,
+    isReading: Boolean,
+    currentFeedback: FeedbackRating?,
+    isEditing: Boolean,
+    editText: String,
+    onEditTextChange: ((String) -> Unit)?,
+    onEditSaveAndSubmit: (() -> Unit)?,
+    onEditSaveOnly: (() -> Unit)?,
+    onEditCancel: (() -> Unit)?,
+    userAvatarUrl: String?,
+    userName: String?,
+    resolvedEndpoint: String?,
+    tintEndpointIcon: Boolean,
+    showImageDescriptions: Boolean,
+    showActionsInitially: Boolean,
+    searchQuery: String?,
+    isSearchMatch: Boolean,
+    isCurrentSearchMatch: Boolean,
+    searchFocusedOccurrence: Int,
+    onFocusedOccurrencePosition: ((LayoutCoordinates, Rect) -> Unit)?,
+    showAvatars: Boolean,
+    showBubbles: Boolean,
+    modifier: Modifier = Modifier,
 ) {
     val isUser = message.isCreatedByUser
     var showActions by remember(message.messageId) { mutableStateOf(showActionsInitially) }
@@ -316,6 +346,7 @@ private fun ThreadBubble(
                 currentFeedback = currentFeedback,
                 userName = userName,
                 userAvatarUrl = userAvatarUrl,
+                alignImagesEnd = false,
             )
         }
     }
@@ -324,17 +355,42 @@ private fun ThreadBubble(
 @Suppress("LongParameterList")
 @Composable
 private fun TwoSidedBubble(
-    message: Message, modifier: Modifier, siblingIndex: Int, siblingCount: Int,
-    onSiblingNavigation: ((Int) -> Unit)?, onEdit: (() -> Unit)?, onRegenerate: (() -> Unit)?,
-    onCopy: (() -> Unit)?, onFeedback: ((MinimalFeedback?) -> Unit)?, onContinue: (() -> Unit)?,
-    onReadAloud: (() -> Unit)?, onFork: (() -> Unit)?, baseUrl: String, fontSizeMultiplier: Float,
-    useKatex: Boolean, isReading: Boolean, currentFeedback: FeedbackRating?, isEditing: Boolean, editText: String,
-    onEditTextChange: ((String) -> Unit)?, onEditSaveAndSubmit: (() -> Unit)?, onEditSaveOnly: (() -> Unit)?,
-    onEditCancel: (() -> Unit)?, userAvatarUrl: String?, userName: String?,
-    resolvedEndpoint: String?, tintEndpointIcon: Boolean,
-    showImageDescriptions: Boolean, showActionsInitially: Boolean, searchQuery: String?,
-    isSearchMatch: Boolean, isCurrentSearchMatch: Boolean, searchFocusedOccurrence: Int,
-    onFocusedOccurrencePosition: ((LayoutCoordinates, Rect) -> Unit)?, showAvatars: Boolean, showBubbles: Boolean,
+    message: Message,
+    siblingIndex: Int,
+    siblingCount: Int,
+    onSiblingNavigation: ((Int) -> Unit)?,
+    onEdit: (() -> Unit)?,
+    onRegenerate: (() -> Unit)?,
+    onCopy: (() -> Unit)?,
+    onFeedback: ((MinimalFeedback?) -> Unit)?,
+    onContinue: (() -> Unit)?,
+    onReadAloud: (() -> Unit)?,
+    onFork: (() -> Unit)?,
+    baseUrl: String,
+    fontSizeMultiplier: Float,
+    useKatex: Boolean,
+    isReading: Boolean,
+    currentFeedback: FeedbackRating?,
+    isEditing: Boolean,
+    editText: String,
+    onEditTextChange: ((String) -> Unit)?,
+    onEditSaveAndSubmit: (() -> Unit)?,
+    onEditSaveOnly: (() -> Unit)?,
+    onEditCancel: (() -> Unit)?,
+    userAvatarUrl: String?,
+    userName: String?,
+    resolvedEndpoint: String?,
+    tintEndpointIcon: Boolean,
+    showImageDescriptions: Boolean,
+    showActionsInitially: Boolean,
+    searchQuery: String?,
+    isSearchMatch: Boolean,
+    isCurrentSearchMatch: Boolean,
+    searchFocusedOccurrence: Int,
+    onFocusedOccurrencePosition: ((LayoutCoordinates, Rect) -> Unit)?,
+    showAvatars: Boolean,
+    showBubbles: Boolean,
+    modifier: Modifier = Modifier,
 ) {
     val isUser = message.isCreatedByUser
     var showActions by remember(message.messageId) { mutableStateOf(showActionsInitially) }
@@ -435,6 +491,7 @@ private fun TwoSidedBubble(
                 currentFeedback = currentFeedback,
                 userName = userName,
                 userAvatarUrl = userAvatarUrl,
+                alignImagesEnd = isUser,
             )
         }
 
@@ -723,7 +780,7 @@ private fun IosFullscreenTableDialog(
     fontSizeMultiplier: Float,
     onDismiss: () -> Unit,
 ) {
-    Dialog(
+    AdaptiveDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
@@ -732,19 +789,13 @@ private fun IosFullscreenTableDialog(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.surface),
         ) {
-            TopAppBar(
-                title = { Text(stringResource(Res.string.dialog_table)) },
-                navigationIcon = {
-                    IconButton(onClick = onDismiss) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = stringResource(Res.string.cd_close),
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+            AdaptiveTopBar(
+                spec = AdaptiveTopBarSpec(
+                    navigation = BarNavigation(BarIcons.Close, stringResource(Res.string.cd_close), onDismiss),
+                    title = BarTitle(stringResource(Res.string.dialog_table)),
+                    actions = emptyList(),
                 ),
+                materialStyle = MaterialBarStyle(containerColor = MaterialTheme.colorScheme.surface),
             )
 
             Box(
@@ -840,7 +891,7 @@ private fun IosMarkdownTable(
                     )
                 }
             }
-            HorizontalDivider(color = dividerColor, thickness = 1.dp)
+            AdaptiveDivider(color = dividerColor, thickness = 1.dp)
             rows.forEachIndexed { rowIndex, row ->
                 Row(modifier = Modifier.height(IntrinsicSize.Min)) {
                     row.forEachIndexed { colIndex, cell ->
@@ -854,7 +905,7 @@ private fun IosMarkdownTable(
                         )
                     }
                 }
-                if (rowIndex < rows.lastIndex) HorizontalDivider(color = dividerColor, thickness = Dp.Hairline)
+                if (rowIndex < rows.lastIndex) AdaptiveDivider(color = dividerColor, thickness = Dp.Hairline)
             }
         }
     }

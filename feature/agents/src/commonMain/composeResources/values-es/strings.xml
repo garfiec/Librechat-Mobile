@@ -259,6 +259,9 @@
     <string name="agent_file_upload_failed">Error al subir el archivo</string>
     <string name="agent_file_remove_failed">Error al quitar el archivo</string>
     <string name="cd_remove_file">Quitar %1$s</string>
+    <string name="agent_file_remove_confirm_title">¿Quitar %1$s?</string>
+    <string name="agent_file_remove_confirm_title_generic">¿Quitar este archivo?</string>
+    <string name="agent_file_remove_confirm_message">Si ningún otro agente usa este archivo, se eliminará de forma permanente.</string>
 
     <!-- Skills selector (v0.8.6) -->
     <string name="label_skills">Habilidades</string>
@@ -278,4 +281,30 @@
     <string name="subagents_allow_self">Permitir que se genere a sí mismo</string>
     <string name="add_subagent">Añadir subagente</string>
     <string name="subagents_full">Se alcanzó el número máximo de subagentes.</string>
+    <string name="tools_marketplace_title">Herramientas</string>
+    <string name="tools_marketplace_description">Elige qué puede hacer este agente</string>
+    <string name="tools_marketplace_search_hint">Buscar herramientas, servidores y habilidades…</string>
+    <string name="tools_marketplace_no_matches">No hay resultados para "%1$s"</string>
+    <string name="tools_marketplace_no_favorites">Marca una herramienta con una estrella para fijarla aquí</string>
+    <string name="tools_marketplace_empty">Aún no hay nada disponible</string>
+    <string name="tools_filter_all">Todo</string>
+    <string name="tools_filter_favorites">Favoritos</string>
+    <string name="tools_filter_builtin">Integradas</string>
+    <string name="tools_filter_tools">Herramientas</string>
+    <string name="tools_filter_mcp">MCP</string>
+    <string name="tools_filter_skills">Habilidades</string>
+    <string name="tools_browse">Explorar herramientas</string>
+    <string name="cd_pin_tool">Fijar</string>
+    <string name="cd_unpin_tool">Dejar de fijar</string>
+    <string name="builtin_code_interpreter">Intérprete de código</string>
+    <string name="builtin_code_interpreter_desc">Ejecuta código en un entorno aislado y devuelve su salida y archivos.</string>
+    <string name="builtin_file_search">Búsqueda en archivos</string>
+    <string name="builtin_file_search_desc">Recupera fragmentos de los archivos adjuntos a este agente.</string>
+    <string name="builtin_web_search">Búsqueda web</string>
+    <string name="builtin_web_search_desc">Busca en la web y cita lo que ha usado.</string>
+    <string name="builtin_file_context">Contexto de archivos</string>
+    <string name="builtin_file_context_desc">Incluye los archivos adjuntos completos en el contexto del agente.</string>
+    <string name="builtin_ask_user">Preguntar al usuario</string>
+    <string name="builtin_ask_user_desc">Pausa la ejecución para hacerte una pregunta aclaratoria.</string>
+    <string name="agent_contact_title">Contacto</string>
 </resources>

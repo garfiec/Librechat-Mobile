@@ -12,8 +12,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -23,6 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -83,7 +83,7 @@ internal fun BalanceSection(
                         }
                     }
                     if (isLoading) {
-                        CircularProgressIndicator(
+                        AdaptiveCircularProgressIndicator(
                             modifier = Modifier.size(20.dp),
                             strokeWidth = 2.dp,
                         )
@@ -97,7 +97,7 @@ internal fun BalanceSection(
                 }
             }
         }
-        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+        AdaptiveDivider(modifier = Modifier.padding(top = 8.dp))
     }
 }
 

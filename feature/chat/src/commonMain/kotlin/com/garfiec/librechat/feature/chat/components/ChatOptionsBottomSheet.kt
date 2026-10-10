@@ -22,7 +22,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -40,17 +39,18 @@ import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.endpoint.KeyState
-import com.garfiec.librechat.core.model.usage.ContextUsage
-import com.garfiec.librechat.core.model.usage.TokenUsage
+import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.core.ui.components.ModelParameterContent
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.core.ui.components.PlatformBackHandler
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_back
 import com.garfiec.librechat.feature.chat.resources.tool_model_parameters
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
+import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import org.jetbrains.compose.resources.stringResource
 
 /** Duration of the page slide + resize. */
@@ -80,9 +80,12 @@ data class ChatToolsPageParams(
     val memoryEnabled: Boolean = false,
     val mcpServersEnabled: Boolean = true,
     val gates: ChatInputGates = ChatInputGates(),
-    val contextUsage: ContextUsage? = null,
-    val tokenUsage: TokenUsage? = null,
+    val contextGauge: ContextGaugeDetails? = null,
     val contextUsageEnabled: Boolean = false,
+    /** Null when compaction is unavailable — see [ChatUiState.canCompactNow]. */
+    val onCompact: (() -> Unit)? = null,
+    /** "Not now" on a compact suggestion. */
+    val onSnoozeCompact: () -> Unit = {},
     val contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
     val contextGaugeExpanded: Boolean = false,
     val onContextGaugeExpandedChange: (Boolean) -> Unit = {},
@@ -111,7 +114,7 @@ data class ModelSelectorPageParams(
     val favoriteModelKeys: Set<String> = emptySet(),
     val onToggleAgentFavorite: ((agentId: String) -> Unit)? = null,
     val onToggleModelFavorite: ((endpoint: String, model: String) -> Unit)? = null,
-    val starredDisplay: StarredModelsDisplay = StarredModelsDisplay.OFF,
+    val starredDisplay: StarredModelsDisplay = StarredModelsDisplay.GROUPED,
     val endpointKeyStates: Map<String, KeyState> = emptyMap(),
 )
 
@@ -122,14 +125,17 @@ data class ModelParametersPageParams(
     val onParametersChange: (ModelParameters) -> Unit,
     val selectedEndpoint: String = "",
     val extendedEffortSupported: Boolean = false,
+    val thinkingDisplayUpdatesSupported: Boolean = false,
     /** Underlying provider when the endpoint is "agents"; routes to that provider's param set. */
     val selectedProvider: String? = null,
     val selectedModel: String? = null,
+    /** Resolved `/api/config.endpointsDropParamsMap` entry; see [ModelParameterContent]. */
+    val dropParams: List<String> = emptyList(),
     val onSaveAsPreset: () -> Unit = {},
 )
 
 /**
- * The chat options sheet: one [ModalBottomSheet] that swaps between the tools menu and the model
+ * The chat options sheet: one [AdaptiveModalBottomSheet] that swaps between the tools menu and the model
  * selector / parameters, so choosing a model returns to the Options page rather than the chat. The
  * standalone selector (top-bar chip, send-block, dual-pane) lives in `ChatModelSheets.kt`. Opened
  * via [ChatOptionsSheetController].
@@ -180,9 +186,9 @@ fun ChatOptionsBottomSheet(
         if (page == ChatOptionsPage.Options) dismiss() else goTo(ChatOptionsPage.Options)
     }
 
-    ModalBottomSheet(
+    AdaptiveModalBottomSheet(
         onDismissRequest = dismiss,
-        modifier = modifier,
+        modifier = modifier.clearFocusOnTap(),
         sheetState = sheetState,
         dragHandle = { LowProfileDragHandle() },
     ) {
@@ -235,9 +241,10 @@ fun ChatOptionsBottomSheet(
                         memoryEnabled = tools.memoryEnabled,
                         mcpServersEnabled = tools.mcpServersEnabled,
                         gates = tools.gates,
-                        contextUsage = tools.contextUsage,
-                        tokenUsage = tools.tokenUsage,
+                        contextGauge = tools.contextGauge,
                         contextUsageEnabled = tools.contextUsageEnabled,
+                        onCompact = tools.onCompact,
+                        onSnoozeCompact = tools.onSnoozeCompact,
                         contextBarPlacement = tools.contextBarPlacement,
                         contextGaugeExpanded = tools.contextGaugeExpanded,
                         onContextGaugeExpandedChange = tools.onContextGaugeExpandedChange,
@@ -280,8 +287,10 @@ fun ChatOptionsBottomSheet(
                             onParametersChange = parameters.onParametersChange,
                             selectedEndpoint = parameters.selectedEndpoint,
                             extendedEffortSupported = parameters.extendedEffortSupported,
+                            thinkingDisplayUpdatesSupported = parameters.thinkingDisplayUpdatesSupported,
                             selectedProvider = parameters.selectedProvider,
                             selectedModel = parameters.selectedModel,
+                            dropParams = parameters.dropParams,
                             onSaveAsPreset = parameters.onSaveAsPreset,
                             // The back row above replaces the content's own title.
                             showHeader = false,

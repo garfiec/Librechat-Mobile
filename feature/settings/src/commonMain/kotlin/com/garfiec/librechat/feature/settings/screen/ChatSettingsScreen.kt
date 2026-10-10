@@ -1,8 +1,8 @@
 package com.garfiec.librechat.feature.settings.screen
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,21 +13,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,23 +31,34 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.garfiec.librechat.core.common.ChatLayoutConstants
 import com.garfiec.librechat.core.common.speech.sttLanguageOptions
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
-import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.InlineArtifactPrefs
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
+import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
+import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
+import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
+import com.garfiec.librechat.core.ui.components.adaptiveRowColor
+import com.garfiec.librechat.core.ui.components.adaptiveSection
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
+import com.garfiec.librechat.core.ui.components.topbar.BarIcons
+import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
+import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
-import com.garfiec.librechat.feature.settings.viewmodel.SettingsViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.ChatLayoutSettingsViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.ChatSettingsViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.ContextUsageSettingsViewModel
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -60,26 +67,29 @@ import org.koin.compose.viewmodel.koinViewModel
 fun ChatSettingsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToPresets: () -> Unit,
+    onNavigateToContextUsage: () -> Unit,
+    onNavigateToChatLayout: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Scaffold(
+    val snackbarHostState = remember { SnackbarHostState() }
+    AdaptiveScaffold(
         modifier = modifier,
+        snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(Res.string.title_chat)) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(Res.string.cd_back),
-                        )
-                    }
-                },
+            AdaptiveTopBar(
+                spec = AdaptiveTopBarSpec(
+                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.cd_back), onNavigateBack),
+                    title = BarTitle(stringResource(Res.string.title_chat)),
+                    actions = emptyList(),
+                ),
             )
         },
     ) { innerPadding ->
         ChatSettingsContent(
             onNavigateToPresets = onNavigateToPresets,
+            onNavigateToContextUsage = onNavigateToContextUsage,
+            onNavigateToChatLayout = onNavigateToChatLayout,
+            snackbarHostState = snackbarHostState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
@@ -94,10 +104,18 @@ fun ChatSettingsScreen(
 @Composable
 fun ChatSettingsContent(
     onNavigateToPresets: () -> Unit,
+    onNavigateToContextUsage: () -> Unit,
+    onNavigateToChatLayout: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: SettingsViewModel = koinViewModel(),
+    contentPadding: PaddingValues = PaddingValues(),
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    viewModel: ChatSettingsViewModel = koinViewModel(),
+    contextUsageViewModel: ContextUsageSettingsViewModel = koinViewModel(),
+    chatLayoutViewModel: ChatLayoutSettingsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val contextUsage by contextUsageViewModel.uiState.collectAsStateWithLifecycle()
+    val chatLayout by chatLayoutViewModel.uiState.collectAsStateWithLifecycle()
     var openDialog by remember { mutableStateOf<ChatSettingDialog?>(null) }
     val dismissDialog = { openDialog = null }
     fun <T> saveAndClose(setter: (T) -> Unit): (T) -> Unit = {
@@ -105,129 +123,129 @@ fun ChatSettingsContent(
         openDialog = null
     }
 
-    Box(modifier = modifier) {
+    // Voice test, preview and playback failures land here.
+    LaunchedEffect(uiState.error) {
+        val error = uiState.error ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(message = error)
+        viewModel.dismissError()
+    }
+
+    AdaptiveGroupedPage(modifier = modifier) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
+            contentPadding = contentPadding,
         ) {
             // Chat Preferences section
             item(key = "chat_header") {
-                SectionHeader(stringResource(Res.string.section_chat_preferences))
+                AdaptiveSectionHeader(stringResource(Res.string.section_chat_preferences))
             }
-            item(key = "chat_settings") {
-                ChatSettingsSection(
-                    fontSize = uiState.chatFontSize,
-                    autoScrollEnabled = uiState.autoScrollEnabled,
-                    showThinkingBlocks = uiState.showThinkingBlocks,
-                    contextBarPlacement = uiState.contextBarPlacement,
-                    duringRunAction = uiState.duringRunAction,
-                    uploadRoutingMode = uiState.uploadRoutingMode,
-                    showImageDescriptions = uiState.showImageDescriptions,
-                    dismissKeyboardOnSend = uiState.dismissKeyboardOnSend,
-                    chatLayoutStyle = uiState.chatLayoutStyle,
-                    showAvatars = uiState.showAvatars,
-                    showBubbles = uiState.showBubbles,
-                    latexRenderer = uiState.latexRenderer,
-                    starredModelsDisplay = uiState.starredModelsDisplay,
-                    chatHeaderContent = uiState.chatHeaderContent,
-                    chatHeaderAlignment = uiState.chatHeaderAlignment,
-                    onAutoScrollChange = viewModel::setAutoScrollEnabled,
-                    onShowThinkingChange = viewModel::setShowThinkingBlocks,
-                    onShowImageDescriptionsChange = viewModel::setShowImageDescriptions,
-                    onDismissKeyboardOnSendChange = viewModel::setDismissKeyboardOnSend,
-                    onShowAvatarsChange = viewModel::setShowAvatars,
-                    onShowBubblesChange = viewModel::setShowBubbles,
-                    onOpenDialog = { openDialog = it },
-                )
+            adaptiveSection {
+                row(key = "chat_settings") {
+                    ChatSettingsSection(
+                        fontSize = uiState.chatFontSize,
+                        autoScrollEnabled = uiState.autoScrollEnabled,
+                        showThinkingBlocks = uiState.showThinkingBlocks,
+                        contextUsageSummary = contextUsageSummary(contextUsage.placement, contextUsage.preset, contextUsage.advanced),
+                        onOpenContextUsage = onNavigateToContextUsage,
+                        duringRunAction = uiState.duringRunAction,
+                        uploadRoutingMode = uiState.uploadRoutingMode,
+                        showImageDescriptions = uiState.showImageDescriptions,
+                        showSiteIcons = uiState.showSiteIcons,
+                        dismissKeyboardOnSend = uiState.dismissKeyboardOnSend,
+                        chatLayoutSummary = chatLayoutSummary(chatLayout),
+                        onOpenChatLayout = onNavigateToChatLayout,
+                        latexRenderer = uiState.latexRenderer,
+                        starredModelsDisplay = uiState.starredModelsDisplay,
+                        chatHeaderContent = uiState.chatHeaderContent,
+                        chatHeaderAlignment = uiState.chatHeaderAlignment,
+                        onAutoScrollChange = viewModel::setAutoScrollEnabled,
+                        onShowThinkingChange = viewModel::setShowThinkingBlocks,
+                        onShowImageDescriptionsChange = viewModel::setShowImageDescriptions,
+                        onShowSiteIconsChange = viewModel::setShowSiteIcons,
+                        onDismissKeyboardOnSendChange = viewModel::setDismissKeyboardOnSend,
+                        onOpenDialog = { openDialog = it },
+                    )
+                }
             }
 
             // Artifacts section
             item(key = "artifacts_header") {
-                SectionHeader(stringResource(Res.string.section_artifacts))
+                AdaptiveSectionHeader(stringResource(Res.string.section_artifacts))
             }
-            item(key = "artifacts_settings") {
-                val prefs = uiState.inlineArtifactPrefs
-                ArtifactSettingsSection(
-                    displayPrefs = uiState.artifactDisplayPrefs,
-                    inlineArtifactSummary = stringResource(
-                        Res.string.artifact_inline_enabled_count,
-                        prefs.enabledCount,
-                        InlineArtifactPrefs.FIELD_COUNT,
-                    ),
-                    onOpenArtifactViewerDialog = { openDialog = ChatSettingDialog.ARTIFACT_VIEWER },
-                    onOpenRenderInlineDialog = { openDialog = ChatSettingDialog.RENDER_INLINE },
-                )
+            adaptiveSection {
+                row(key = "artifacts_settings") {
+                    val prefs = uiState.inlineArtifactPrefs
+                    ArtifactSettingsSection(
+                        displayPrefs = uiState.artifactDisplayPrefs,
+                        inlineArtifactSummary = stringResource(
+                            Res.string.artifact_inline_enabled_count,
+                            prefs.enabledCount,
+                            InlineArtifactPrefs.FIELD_COUNT,
+                        ),
+                        onOpenArtifactViewerDialog = { openDialog = ChatSettingDialog.ARTIFACT_VIEWER },
+                        onOpenRenderInlineDialog = { openDialog = ChatSettingDialog.RENDER_INLINE },
+                    )
+                }
             }
 
             // Presets section
             item(key = "presets_header") {
-                SectionHeader(stringResource(Res.string.section_presets))
+                AdaptiveSectionHeader(stringResource(Res.string.section_presets))
             }
-            item(key = "presets_row") {
-                ChatSettingsRow(
-                    icon = Icons.Default.Brush,
-                    title = stringResource(Res.string.presets),
-                    subtitle = stringResource(Res.string.presets_subtitle),
-                    onClick = onNavigateToPresets,
-                )
+            adaptiveSection {
+                row(key = "presets_row") {
+                    ChatSettingsRow(
+                        icon = Icons.Default.Brush,
+                        title = stringResource(Res.string.presets),
+                        subtitle = stringResource(Res.string.presets_subtitle),
+                        onClick = onNavigateToPresets,
+                    )
+                }
             }
 
             // Advanced section
             item(key = "advanced_header") {
-                SectionHeader(stringResource(Res.string.section_advanced))
+                AdaptiveSectionHeader(stringResource(Res.string.section_advanced))
             }
-            item(key = "fork_settings_row") {
-                ChatSettingsRow(
-                    icon = Icons.AutoMirrored.Filled.Chat,
-                    title = stringResource(Res.string.fork_behavior),
-                    subtitle = forkModeLabel(ForkMode.fromApiValue(uiState.forkMode)),
-                    onClick = viewModel::showForkSettingsDialog,
-                )
+            adaptiveSection {
+                row(key = "fork_settings_row") {
+                    ChatSettingsRow(
+                        icon = Icons.AutoMirrored.Filled.Chat,
+                        title = stringResource(Res.string.fork_behavior),
+                        subtitle = forkModeLabel(ForkMode.fromApiValue(uiState.forkMode)),
+                        onClick = viewModel::showForkSettingsDialog,
+                    )
+                }
             }
 
             // Speech section
             item(key = "speech_header") {
-                SectionHeader(stringResource(Res.string.section_speech))
+                AdaptiveSectionHeader(stringResource(Res.string.section_speech))
             }
-            item(key = "speech_settings") {
-                SpeechSettingsSection(
-                    autoSendAfterSttEnabled = uiState.sttAutoSend,
-                    autoReadEnabled = uiState.autoReadEnabled,
-                    selectedVoice = uiState.selectedVoice,
-                    availableVoices = uiState.availableVoices,
-                    ttsSource = uiState.ttsSource,
-                    onAutoSendAfterSttChange = viewModel::setAutoSendAfterStt,
-                    onAutoReadChange = viewModel::setAutoReadEnabled,
-                    onVoiceSelect = viewModel::selectVoice,
-                    onTestVoice = viewModel::testVoice,
-                )
-            }
-            item(key = "speech_detail_buttons") {
-                SpeechDetailButtons(
-                    onSttDetailClick = viewModel::showSttDetailDialog,
-                    onTtsDetailClick = viewModel::showTtsDetailDialog,
-                )
+            adaptiveSection {
+                row(key = "speech_settings") {
+                    SpeechSettingsSection(
+                        autoSendAfterSttEnabled = uiState.sttAutoSend,
+                        autoReadEnabled = uiState.autoReadEnabled,
+                        selectedVoice = uiState.selectedVoice,
+                        availableVoices = uiState.availableVoices,
+                        ttsSource = uiState.ttsSource,
+                        onAutoSendAfterSttChange = viewModel::setAutoSendAfterStt,
+                        onAutoReadChange = viewModel::setAutoReadEnabled,
+                        onVoiceSelect = viewModel::selectVoice,
+                        onTestVoice = viewModel::testVoice,
+                    )
+                }
+                row(key = "speech_detail_buttons") {
+                    SpeechDetailButtons(
+                        onSttDetailClick = viewModel::showSttDetailDialog,
+                        onTtsDetailClick = viewModel::showTtsDetailDialog,
+                    )
+                }
             }
 
             // Bottom spacing
             item { Spacer(modifier = Modifier.height(32.dp)) }
-        }
-
-        if (openDialog == ChatSettingDialog.CHAT_LAYOUT) {
-            RadioSelectionDialog(
-                title = stringResource(Res.string.chat_layout),
-                options = listOf(ChatLayoutConstants.THREAD, ChatLayoutConstants.TWO_SIDED),
-                selected = uiState.chatLayoutStyle,
-                onSave = saveAndClose(viewModel::setChatLayoutStyle),
-                onDismiss = dismissDialog,
-                optionLabel = { chatLayoutLabel(it) },
-                optionDescription = {
-                    if (it == ChatLayoutConstants.THREAD) {
-                        stringResource(Res.string.chat_layout_thread_desc)
-                    } else {
-                        stringResource(Res.string.chat_layout_two_sided_desc)
-                    }
-                },
-            )
         }
 
         if (openDialog == ChatSettingDialog.FONT_SIZE) {
@@ -255,18 +273,6 @@ fun ChatSettingsContent(
                         LatexRenderer.NATIVE -> stringResource(Res.string.latex_native_desc)
                     }
                 },
-            )
-        }
-
-        if (openDialog == ChatSettingDialog.CONTEXT_BAR) {
-            RadioSelectionDialog(
-                title = stringResource(Res.string.context_bar_title),
-                description = stringResource(Res.string.context_bar_desc),
-                options = ContextBarPlacement.entries,
-                selected = uiState.contextBarPlacement,
-                onSave = saveAndClose(viewModel::setContextBarPlacement),
-                onDismiss = dismissDialog,
-                optionLabel = { contextBarPlacementLabel(it) },
             )
         }
 
@@ -409,19 +415,7 @@ fun ChatSettingsContent(
                 onDismiss = viewModel::dismissTtsDetailDialog,
             )
         }
-    } // Box
-}
-
-@Composable
-private fun SectionHeader(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-            .semantics { heading() },
-    )
+    }
 }
 
 @Composable
@@ -436,7 +430,7 @@ private fun SpeechDetailButtons(
                 .padding(horizontal = 16.dp, vertical = 4.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            OutlinedButton(
+            AdaptiveOutlinedButton(
                 onClick = onSttDetailClick,
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -453,7 +447,7 @@ private fun SpeechDetailButtons(
                     )
                 }
             }
-            OutlinedButton(
+            AdaptiveOutlinedButton(
                 onClick = onTtsDetailClick,
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -471,7 +465,7 @@ private fun SpeechDetailButtons(
                 }
             }
         }
-        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+        AdaptiveDivider(modifier = Modifier.padding(top = 8.dp))
     }
 }
 
@@ -487,6 +481,7 @@ private fun ChatSettingsRow(
         Surface(
             modifier = Modifier.fillMaxWidth(),
             onClick = onClick,
+            color = adaptiveRowColor,
         ) {
             Row(
                 modifier = Modifier
@@ -520,6 +515,6 @@ private fun ChatSettingsRow(
                 )
             }
         }
-        HorizontalDivider()
+        AdaptiveDivider()
     }
 }

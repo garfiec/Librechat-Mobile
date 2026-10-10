@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.model.request.CreateSkillRequest
 import com.garfiec.librechat.core.model.request.UpdateSkillRequest
 import com.garfiec.librechat.core.model.response.DeleteSkillFileResponse
 import com.garfiec.librechat.core.model.response.DeleteSkillResponse
+import com.garfiec.librechat.core.model.response.SkillFileContentResponse
 import com.garfiec.librechat.core.model.response.SkillListResponse
 
 /** CRUD access to the Skills catalog. */
@@ -51,6 +52,19 @@ interface SkillsRepository {
     ): Result<SkillFile>
 
     suspend fun deleteSkillFile(skillId: String, relativePath: String): Result<DeleteSkillFileResponse>
+
+    /** One file's content and (v0.8.8) its revision `fileId`. */
+    suspend fun getSkillFileContent(skillId: String, relativePath: String): Result<SkillFileContentResponse>
+
+    /** Conditional in-place replace (v0.8.8). See [SkillFileEditResult]. */
+    suspend fun editSkillFile(
+        skillId: String,
+        relativePath: String,
+        expectedFileId: String,
+        content: String,
+        filename: String,
+        mimeType: String,
+    ): SkillFileEditResult
 
     /** Imports a skill from a .md/.zip/.skill upload. Surfaces server `issues`
      *  validation messages in [Result.Error.message] like [createSkill]. */

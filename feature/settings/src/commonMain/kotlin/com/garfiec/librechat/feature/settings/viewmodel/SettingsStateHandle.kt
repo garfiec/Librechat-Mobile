@@ -5,20 +5,20 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 
 /**
- * Shared state accessor passed to all SettingsViewModel delegates.
- * Provides atomic read/write access to the UI state and a coroutine scope.
+ * State accessor a settings ViewModel passes to its delegates.
+ * Provides atomic read/write access to the UI state [S] and a coroutine scope.
  */
-class SettingsStateHandle(
-    val stateFlow: MutableStateFlow<SettingsUiState>,
+class SettingsStateHandle<S>(
+    val stateFlow: MutableStateFlow<S>,
     val scope: CoroutineScope,
 ) {
-    val state: SettingsUiState get() = stateFlow.value
+    val state: S get() = stateFlow.value
 
     /**
      * Atomic CAS-based state update. Uses [MutableStateFlow.update] under the hood
      * to avoid lost updates when multiple coroutines write concurrently.
      */
-    fun update(transform: SettingsUiState.() -> SettingsUiState) {
+    fun update(transform: S.() -> S) {
         stateFlow.update { it.transform() }
     }
 }

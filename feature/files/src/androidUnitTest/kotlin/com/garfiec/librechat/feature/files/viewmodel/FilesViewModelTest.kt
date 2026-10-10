@@ -3,10 +3,13 @@ package com.garfiec.librechat.feature.files.viewmodel
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.data.pdf.PdfPasswordProtectedException
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.model.FileObject
+import com.garfiec.librechat.core.model.response.DeleteFilesResponse
 import com.garfiec.librechat.core.model.response.FileUploadConfig
+import com.garfiec.librechat.core.ui.components.PdfPasswordPromptUi
 import com.garfiec.librechat.feature.files.platform.FileReader
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -190,7 +193,7 @@ class FilesViewModelTest {
 
     @Test
     fun `deleteFile removes file from list on success`() = runTest {
-        coEvery { fileRepository.deleteFiles(any()) } returns Result.Success(Unit)
+        coEvery { fileRepository.deleteFiles(any()) } returns Result.Success(DeleteFilesResponse())
 
         viewModel = createViewModel()
         advanceUntilIdle()
@@ -308,7 +311,7 @@ class FilesViewModelTest {
 
     @Test
     fun `deleteSelected removes selected files on success`() = runTest {
-        coEvery { fileRepository.deleteFiles(any()) } returns Result.Success(Unit)
+        coEvery { fileRepository.deleteFiles(any()) } returns Result.Success(DeleteFilesResponse())
 
         viewModel = createViewModel()
         advanceUntilIdle()
@@ -325,6 +328,55 @@ class FilesViewModelTest {
         assertThat(state.displayFiles).hasSize(1)
         assertThat(state.displayFiles[0].fileId).isEqualTo("file-3")
         assertThat(state.isSelectionMode).isFalse()
+    }
+
+    @Test
+    fun `deleteSelected keeps the files the server reported as failed`() = runTest {
+        // v0.8.8-rc2: a PARTIAL delete answers 200 with the failures in the body. Treating that
+        // as "all gone" drops rows for files that are still on the server, and the list only
+        // disagrees with reality until the next refresh — no error, nothing to see.
+        coEvery { fileRepository.deleteFiles(any()) } returns Result.Success(
+            DeleteFilesResponse(
+                message = "Some files could not be deleted",
+                deletedFileIds = listOf("file-1"),
+                failedFileIds = listOf("file-2"),
+            ),
+        )
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.enterSelectionMode("file-1")
+        advanceUntilIdle()
+        viewModel.toggleFileSelection("file-2")
+        advanceUntilIdle()
+
+        viewModel.deleteSelected()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.displayFiles.map { it.fileId }).containsExactly("file-2", "file-3")
+        // The failed one stays selected so the user can retry it without re-picking.
+        assertThat(state.isSelectionMode).isTrue()
+        assertThat(state.selectedFileIds).containsExactly("file-2")
+        assertThat(state.error).isEqualTo("Some files could not be deleted")
+    }
+
+    @Test
+    fun `deleteFile keeps the row when the server reports it failed`() = runTest {
+        coEvery { fileRepository.deleteFiles(any()) } returns Result.Success(
+            DeleteFilesResponse(message = "Some files could not be deleted", failedFileIds = listOf("file-1")),
+        )
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.deleteFile("file-1")
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.displayFiles.any { it.fileId == "file-1" }).isTrue()
+        assertThat(state.error).isEqualTo("Some files could not be deleted")
     }
 
     @Test
@@ -570,5 +622,81 @@ class FilesViewModelTest {
             "application/pdf",
             "application/vnd.openxmlformats-officedocument.presentationml.template",
         )
+    }
+
+    private fun pickPdf() {
+        every { fileReader.getFileName("picked") } returns "grades.pdf"
+        every { fileReader.getMimeType("picked") } returns "application/pdf"
+        every { fileReader.readBytes("picked") } returns ByteArray(10)
+    }
+
+    private fun uploadAnswers(password: String?, result: Result<FileObject>) = coEvery {
+        fileRepository.uploadFile(
+            bytes = any(), filename = any(), type = any(), fileId = any(), endpoint = any(),
+            model = any(), agentId = any(), toolResource = any(), messageFile = any(),
+            width = any(), height = any(), onProgress = any(), pdfPassword = password,
+        )
+    } returns result
+
+    @Test
+    fun `a password-protected PDF prompts instead of showing an error`() = runTest {
+        pickPdf()
+        uploadAnswers(null, Result.Error(exception = PdfPasswordProtectedException(incorrectPassword = false), message = "x"))
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.uploadFile("picked")
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.pdfPasswordPrompt).isEqualTo(PdfPasswordPromptUi("grades.pdf", incorrectPassword = false))
+        assertThat(state.error).isNull()
+        assertThat(state.isUploading).isFalse()
+    }
+
+    @Test
+    fun `the typed password re-uploads the same file`() = runTest {
+        pickPdf()
+        uploadAnswers(null, Result.Error(exception = PdfPasswordProtectedException(incorrectPassword = false)))
+        uploadAnswers("hunter2", Result.Success(testFiles.first().copy(fileId = "new")))
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.uploadFile("picked")
+        advanceUntilIdle()
+        viewModel.submitPdfPassword("hunter2")
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.pdfPasswordPrompt).isNull()
+        assertThat(state.displayFiles.map { it.fileId }).contains("new")
+    }
+
+    @Test
+    fun `a wrong password prompts again and dismissing drops it`() = runTest {
+        pickPdf()
+        uploadAnswers(null, Result.Error(exception = PdfPasswordProtectedException(incorrectPassword = false)))
+        uploadAnswers("nope", Result.Error(exception = PdfPasswordProtectedException(incorrectPassword = true)))
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.uploadFile("picked")
+        advanceUntilIdle()
+        viewModel.submitPdfPassword("nope")
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.pdfPasswordPrompt?.incorrectPassword).isTrue()
+
+        viewModel.dismissPdfPassword()
+        advanceUntilIdle()
+        viewModel.submitPdfPassword("late")
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.pdfPasswordPrompt).isNull()
+        coVerify(exactly = 0) {
+            fileRepository.uploadFile(
+                bytes = any(), filename = any(), type = any(), fileId = any(), endpoint = any(),
+                model = any(), agentId = any(), toolResource = any(), messageFile = any(),
+                width = any(), height = any(), onProgress = any(), pdfPassword = "late",
+            )
+        }
     }
 }

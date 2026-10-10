@@ -14,6 +14,14 @@ data class AgentFile(
     val filename: String? = null,
     val bytes: Long? = null,
     val type: String? = null,
+    /**
+     * Storage path, from the upload response or the `GET /api/files/agent/:id` enrichment.
+     *
+     * `DELETE /api/files` filters out every entry with a falsy filepath before it even looks at
+     * `agent_id`, so an unlink without one is not sent — it is dropped, answered 204, and reads as
+     * a success. The agent payload carries only file_ids, which is why this has to be merged in.
+     */
+    val filepath: String? = null,
     /** Exact tool_resources sub-key this file was loaded from
      *  (`execute_code`, `file_search`, `context`, `ocr`). Required so that
      *  removeAgentFile can issue DELETE with the correct `tool_resource`

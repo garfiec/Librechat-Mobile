@@ -259,6 +259,9 @@
     <string name="agent_file_upload_failed">Falha ao enviar o arquivo</string>
     <string name="agent_file_remove_failed">Falha ao remover o arquivo</string>
     <string name="cd_remove_file">Remover %1$s</string>
+    <string name="agent_file_remove_confirm_title">Remover %1$s?</string>
+    <string name="agent_file_remove_confirm_title_generic">Remover este arquivo?</string>
+    <string name="agent_file_remove_confirm_message">Se nenhum outro agente usar este arquivo, ele será excluído permanentemente.</string>
 
     <!-- Skills selector (v0.8.6) -->
     <string name="label_skills">Habilidades</string>
@@ -278,4 +281,30 @@
     <string name="subagents_allow_self">Permitir gerar a si mesmo</string>
     <string name="add_subagent">Adicionar subagente</string>
     <string name="subagents_full">Número máximo de subagentes atingido.</string>
+    <string name="tools_marketplace_title">Ferramentas</string>
+    <string name="tools_marketplace_description">Escolha o que este agente pode fazer</string>
+    <string name="tools_marketplace_search_hint">Buscar ferramentas, servidores e habilidades…</string>
+    <string name="tools_marketplace_no_matches">Nenhum resultado para "%1$s"</string>
+    <string name="tools_marketplace_no_favorites">Marque uma ferramenta com estrela para fixá-la aqui</string>
+    <string name="tools_marketplace_empty">Nada disponível ainda</string>
+    <string name="tools_filter_all">Todas</string>
+    <string name="tools_filter_favorites">Favoritas</string>
+    <string name="tools_filter_builtin">Integradas</string>
+    <string name="tools_filter_tools">Ferramentas</string>
+    <string name="tools_filter_mcp">MCP</string>
+    <string name="tools_filter_skills">Habilidades</string>
+    <string name="tools_browse">Explorar ferramentas</string>
+    <string name="cd_pin_tool">Fixar</string>
+    <string name="cd_unpin_tool">Desafixar</string>
+    <string name="builtin_code_interpreter">Interpretador de código</string>
+    <string name="builtin_code_interpreter_desc">Executa código em um ambiente isolado e retorna a saída e os arquivos.</string>
+    <string name="builtin_file_search">Busca em arquivos</string>
+    <string name="builtin_file_search_desc">Recupera trechos dos arquivos anexados a este agente.</string>
+    <string name="builtin_web_search">Busca na web</string>
+    <string name="builtin_web_search_desc">Pesquisa na web e cita as fontes usadas.</string>
+    <string name="builtin_file_context">Contexto de arquivo</string>
+    <string name="builtin_file_context_desc">Coloca os arquivos anexados inteiros no contexto do agente.</string>
+    <string name="builtin_ask_user">Perguntar ao usuário</string>
+    <string name="builtin_ask_user_desc">Pausa a execução para fazer uma pergunta de esclarecimento.</string>
+    <string name="agent_contact_title">Contato</string>
 </resources>

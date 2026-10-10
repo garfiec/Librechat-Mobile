@@ -4,6 +4,7 @@ import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.getOrNull
+import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.DraftRepository
 import com.garfiec.librechat.core.data.repository.MessageRepository
@@ -111,6 +112,7 @@ class SendCompletionDelegate(
      *   so the conversation save is skipped and the title is re-read from the server rather than
      *   generated — see the call sites below.
      */
+    @Suppress("LongParameterList") // debt: wide parameter list
     fun onFinal(
         event: StreamEvent.Final,
         conversationId: String?,
@@ -228,7 +230,7 @@ class SendCompletionDelegate(
     private fun cacheTurn(turn: List<Message>, originAccount: AccountId?) {
         if (turn.isEmpty()) return
         handle.scope.launch {
-            runCatching { messageRepository.cacheMessages(turn, originAccount) }
+            suspendRunCatching { messageRepository.cacheMessages(turn, originAccount) }
                 .onFailure { Logger.e(it) { "Failed to cache final messages for the completed turn" } }
         }
     }

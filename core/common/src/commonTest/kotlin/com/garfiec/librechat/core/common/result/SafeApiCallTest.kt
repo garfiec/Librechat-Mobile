@@ -63,15 +63,23 @@ class SafeApiCallTest {
     }
 
     @Test
-    fun onApiDispatcherRunsItsBlockOnTheIoDispatcher() = runTest {
-        val inside = onApiDispatcher { currentCoroutineContext()[ContinuationInterceptor] }
+    fun apiCallCatchingRunsItsBlockOnTheIoDispatcher() = runTest {
+        val inside = apiCallCatching({ currentCoroutineContext()[ContinuationInterceptor] }) { null }
         assertSame(ioDispatcher, inside)
     }
 
     @Test
-    fun onApiDispatcherLetsFailuresEscape() = runTest {
-        assertFailsWith<IllegalStateException> {
-            onApiDispatcher { throw IllegalStateException("boom") }
+    fun apiCallCatchingHandsTheFailureToOnFailureUnmapped() = runTest {
+        // Not assertSame: coroutines' stack-trace recovery may hand back a copy across withContext.
+        val caught = apiCallCatching<Throwable?>({ throw IllegalStateException("boom") }) { it }
+        assertIs<IllegalStateException>(caught)
+        assertEquals("boom", caught.message)
+    }
+
+    @Test
+    fun apiCallCatchingPropagatesCancellation() = runTest {
+        assertFailsWith<CancellationException> {
+            apiCallCatching<String>({ throw CancellationException("cancelled") }) { fail("cancellation was caught") }
         }
     }
 

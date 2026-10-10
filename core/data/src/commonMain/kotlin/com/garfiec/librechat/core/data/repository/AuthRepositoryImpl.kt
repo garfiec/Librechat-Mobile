@@ -180,6 +180,7 @@ class AuthRepositoryImpl(
         }.fireSessionTasksIfLoggedIn(previousAccountId)
     }
 
+    @Suppress("TooGenericExceptionCaught") // any commit failure must roll back the staged session
     override suspend fun verifyTwoFactor(tempToken: String, code: String, isBackupCode: Boolean): VerifyTwoFactorOutcome {
         val pending = accountSwitcher.pendingAdd
         val previousAccountId = activeAccountProvider.currentAccountId()

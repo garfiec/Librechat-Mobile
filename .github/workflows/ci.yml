@@ -30,19 +30,24 @@ jobs:
           java-version: 21
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6.3.0
+        uses: gradle/actions/setup-gradle@v6.4.0
 
       # The WebView renderers execute these files. Nothing else notices if one is
       # hand-edited, replaced, or left behind by a repin -- the app just runs it.
       - name: Verify vendored web assets
         run: scripts/vendor-web-assets.py --check
 
+      # Must run per-PR, not only at release: the listing freezes at the tag and fdroidserver
+      # truncates over-limit text silently. See fastlane/README.md.
+      - name: Verify F-Droid store listing
+        run: scripts/check-fdroid-metadata.py
+
       - name: Run lint
-        run: ./gradlew detekt detektMetadataCommonMain :app:lint --continue
+        run: ./gradlew detekt :app:lint --continue
 
       - name: Upload detekt SARIF
         if: always() && hashFiles('build/reports/detekt/merged.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4.37.9
+        uses: github/codeql-action/upload-sarif@v4.38.2
         with:
           sarif_file: build/reports/detekt/merged.sarif
           category: detekt
@@ -70,7 +75,7 @@ jobs:
           java-version: 21
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6.3.0
+        uses: gradle/actions/setup-gradle@v6.4.0
 
       - name: Run tests
         run: ./gradlew test
@@ -102,7 +107,7 @@ jobs:
           java-version: 21
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6.3.0
+        uses: gradle/actions/setup-gradle@v6.4.0
 
       - name: Build debug APK
         run: ./gradlew :app:assembleDebug
@@ -158,16 +163,19 @@ jobs:
 
   ios:
     name: Build iOS App
-    runs-on: macos-latest
+    runs-on: xcode-27
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
 
+      # Xcode 27.1: Apple's iPhone Duo guidance is that only an iOS 27.1 SDK build fills the
+      # inner display (older SDKs get a phone-sized compatibility window). Pinned rather than
+      # latest-stable, which follows whatever non-beta Xcode the image adds next.
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: latest-stable
+          xcode-version: '27.1'
 
       - name: Set up JDK 21
         uses: actions/setup-java@v6
@@ -176,7 +184,7 @@ jobs:
           java-version: 21
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6.3.0
+        uses: gradle/actions/setup-gradle@v6.4.0
 
       - name: Cache Kotlin/Native toolchain
         uses: actions/cache@v6
@@ -185,10 +193,17 @@ jobs:
           key: ${{ runner.os }}-konan-${{ hashFiles('gradle/libs.versions.toml') }}
           restore-keys: ${{ runner.os }}-konan-
 
-      # Exercises the real iOS Koin graph (iOS actuals) on the simulator arch — the
-      # first automated check of iOS DI. The ubuntu `test` job can't run K/N tests.
-      - name: iOS Koin graph test
-        run: ./gradlew :shared:iosSimulatorArm64Test
+      # Kotlin/Native tests on the simulator arch, which the ubuntu `test` job can't run.
+      # Every module with an iosTest source set belongs here; one left off never runs on iOS in CI.
+      # :shared exercises the real iOS Koin graph (iOS actuals); :core:ui runs the iOS
+      # gesture and layout tests.
+      - name: iOS tests
+        run: >-
+          ./gradlew
+          :shared:iosSimulatorArm64Test
+          :core:ui:iosSimulatorArm64Test
+          :core:common:iosSimulatorArm64Test
+          :core:data:iosSimulatorArm64Test
 
       # The Kotlin framework is built by the Xcode "Compile Kotlin Framework" build
       # phase (./gradlew :shared:embedAndSignAppleFrameworkForXcode) — no separate
@@ -207,16 +222,19 @@ jobs:
 
   ios-release-link:
     name: iOS Release Link (OOM canary)
-    runs-on: macos-latest
+    runs-on: xcode-27
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
 
+      # Xcode 27.1: Apple's iPhone Duo guidance is that only an iOS 27.1 SDK build fills the
+      # inner display (older SDKs get a phone-sized compatibility window). Pinned rather than
+      # latest-stable, which follows whatever non-beta Xcode the image adds next.
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: latest-stable
+          xcode-version: '27.1'
 
       - name: Set up JDK 21
         uses: actions/setup-java@v6
@@ -225,7 +243,7 @@ jobs:
           java-version: 21
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6.3.0
+        uses: gradle/actions/setup-gradle@v6.4.0
 
       - name: Cache Kotlin/Native toolchain
         uses: actions/cache@v6
@@ -234,12 +252,12 @@ jobs:
           key: ${{ runner.os }}-konan-${{ hashFiles('gradle/libs.versions.toml') }}
           restore-keys: ${{ runner.os }}-konan-
 
-      # The Release device link runs Kotlin/Native's whole-program optimization pass
-      # (DevirtualizationAnalysis), whose memory use grows with total code size and
-      # OOM'd the 7 GB runner on every release from Jul 2 to Jul 25, 2026 (KT-80367;
-      # the #200 ktor pin was a stopgap that code growth overtook). The Debug/simulator
-      # builds above skip that pass entirely, so without this job the first signal that
-      # the IPA / App Store archive can't link is a failed release. Same task, same
-      # heap cap (gradle.properties -Xmx6g) as release.yml and appstore.yml.
+      # The Release device link runs Kotlin/Native's whole-program optimization passes,
+      # whose memory use grows with total code size and can OOM the 7 GB runner (one is
+      # currently disabled as a stopgap in shared/build.gradle.kts). The Debug/simulator
+      # builds above skip these passes, so without this job the first signal that the
+      # IPA / App Store archive can't link is a failed release. Watch its duration too:
+      # a heap near the cap shows up as a link that takes hours before it OOMs. Same
+      # task, same heap cap (gradle.properties -Xmx6g) as release.yml and appstore.yml.
       - name: Link Release framework (device)
         run: ./gradlew :shared:linkReleaseFrameworkIosArm64

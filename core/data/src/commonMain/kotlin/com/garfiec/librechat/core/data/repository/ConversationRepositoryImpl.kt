@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.common.identity.flatMapAccountOrEmpty
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.safeApiCall
+import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.db.dao.ConversationDao
 import com.garfiec.librechat.core.data.db.dao.MessageDao
@@ -178,7 +179,7 @@ class ConversationRepositoryImpl(
             val accountId = activeAccountProvider.currentAccountId()?.value
             val updated = conversationsApi.archive(id, isArchived)
             if (accountId != null) {
-                conversationDao.updateArchived(id, isArchived, Clock.System.now().toEpochMilliseconds(), accountId)
+                conversationDao.updateArchived(id, isArchived, accountId)
             }
             updated
         }
@@ -213,7 +214,7 @@ class ConversationRepositoryImpl(
                 // failure here must NOT flip delete() to Result.Error (that would suppress the drawer's
                 // navigate-off and surface a spurious "failed to delete"). A lingering message cache is
                 // harmless — the pane navigates away, and it's cleared on the next sync/account wipe.
-                runCatching { messageDao.deleteAllForConversation(id, accountId) }
+                suspendRunCatching { messageDao.deleteAllForConversation(id, accountId) }
                     .onFailure { Logger.w(it) { "Deleted $id but failed to purge its cached messages" } }
             } else {
                 Logger.w { "Server-deleted $id but kept local row: no resolved account to scope the delete" }
@@ -278,6 +279,19 @@ class ConversationRepositoryImpl(
         return safeApiCall {
             conversationsApi.deleteAllConversations()
             if (accountId != null) conversationDao.deleteAllForAccount(accountId)
+        }
+    }
+
+    override suspend fun archiveAll(): Result<Int> {
+        // Scoped like deleteAll: an unscoped local update would also archive a coexisting
+        // account's cached rows, which the server call never touched.
+        val accountId = activeAccountProvider.currentAccountId()?.value
+        return safeApiCall {
+            val response = conversationsApi.archiveAll()
+            if (accountId != null) {
+                conversationDao.archiveAllForAccount(accountId)
+            }
+            response.archivedCount
         }
     }
 

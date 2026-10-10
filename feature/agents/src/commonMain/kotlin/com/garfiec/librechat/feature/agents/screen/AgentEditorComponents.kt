@@ -11,12 +11,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -26,6 +24,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.feature.agents.resources.*
 import com.garfiec.librechat.feature.agents.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -83,7 +83,7 @@ internal fun InstructionsField(
                         contentDescription = stringResource(Res.string.cd_insert_variable),
                     )
                 }
-                DropdownMenu(
+                AdaptiveDropdownMenu(
                     expanded = menuExpanded,
                     onDismissRequest = { menuExpanded = false },
                 ) {
@@ -110,7 +110,7 @@ internal fun InstructionsField(
             }
         }
         Spacer(modifier = Modifier.height(4.dp))
-        OutlinedTextField(
+        AdaptiveOutlinedTextField(
             value = fieldValue,
             onValueChange = {
                 fieldValue = it

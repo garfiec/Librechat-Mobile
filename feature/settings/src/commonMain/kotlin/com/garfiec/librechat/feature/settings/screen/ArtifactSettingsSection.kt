@@ -4,11 +4,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayPrefs
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -40,6 +40,6 @@ internal fun ArtifactSettingsSection(
                 onClick = onOpenRenderInlineDialog,
             )
         }
-        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+        AdaptiveDivider(modifier = Modifier.padding(top = 8.dp))
     }
 }

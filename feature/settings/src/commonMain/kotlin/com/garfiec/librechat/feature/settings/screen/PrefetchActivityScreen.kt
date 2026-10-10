@@ -11,19 +11,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PushPin
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -34,8 +28,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.garfiec.librechat.core.common.extensions.RelativeTimeReference
 import com.garfiec.librechat.core.data.prefetch.PrefetchConversationStatus
+import com.garfiec.librechat.core.ui.components.AdaptiveButton
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
+import com.garfiec.librechat.core.ui.components.topbar.BarIcons
+import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
+import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.resources.prefetch_activity_title
 import com.garfiec.librechat.feature.settings.resources.prefetch_cache_header
@@ -63,8 +64,8 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
- * The detail behind the prefetch summary in Data settings: why prefetching is or is not running,
- * what it has cached, and what it still intends to fetch.
+ * The detail behind the prefetch summary on the Background prefetch page: why prefetching is or is
+ * not running, what it has cached, and what it still intends to fetch.
  *
  * Every figure but one is derived live from the watermark table and the gate, so it cannot report a
  * pass that did not happen, and equally cannot show any history beyond what the watermarks still
@@ -76,22 +77,21 @@ import org.koin.compose.viewmodel.koinViewModel
 fun PrefetchActivityScreen(onNavigateBack: () -> Unit, modifier: Modifier = Modifier) {
     val viewModel: PrefetchActivityViewModel = koinViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val timeReference = rememberTickingTimeReference()
 
-    // Read here rather than on construction: Data settings resolves this ViewModel for the status
-    // summary alone, and these two reads are a recursive directory walk and a full table scan.
+    // Read here rather than on construction: the Data tab and the Background prefetch page resolve this
+    // ViewModel for the status summary alone, and these two reads are a recursive directory walk and a
+    // full table scan.
     LaunchedEffect(Unit) { viewModel.loadCacheFigures() }
 
-    Scaffold(
+    AdaptiveScaffold(
         modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(Res.string.prefetch_activity_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                    }
-                },
+            AdaptiveTopBar(
+                spec = AdaptiveTopBarSpec(
+                    navigation = BarNavigation(BarIcons.Back, null, onNavigateBack),
+                    title = BarTitle(stringResource(Res.string.prefetch_activity_title)),
+                    actions = emptyList(),
+                ),
             )
         },
     ) { padding ->
@@ -107,7 +107,7 @@ fun PrefetchActivityScreen(onNavigateBack: () -> Unit, modifier: Modifier = Modi
                     DetailRow(stringResource(Res.string.prefetch_summary_status), uiState.status.label())
                     DetailRow(
                         stringResource(Res.string.prefetch_summary_last_run),
-                        uiState.lastWarmedAt?.relativeLabel(timeReference)
+                        uiState.lastWarmedAt?.relativeLabel()
                             ?: stringResource(Res.string.prefetch_summary_last_run_never),
                     )
                     DetailRow(
@@ -121,7 +121,7 @@ fun PrefetchActivityScreen(onNavigateBack: () -> Unit, modifier: Modifier = Modi
                     // Absent, not "Never", where the platform schedules nothing — the row would
                     // otherwise read as a broken feature rather than an unbuilt one.
                     if (uiState.scheduledRunsSupported) {
-                        val ranAt = uiState.lastScheduledRunAt?.relativeLabel(timeReference)
+                        val ranAt = uiState.lastScheduledRunAt?.relativeLabel()
                         val outcome = uiState.lastScheduledRunOutcome?.label()
                         DetailRow(
                             stringResource(Res.string.prefetch_summary_scheduled_run),
@@ -140,7 +140,7 @@ fun PrefetchActivityScreen(onNavigateBack: () -> Unit, modifier: Modifier = Modi
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Button(
+                    AdaptiveButton(
                         onClick = viewModel::warmNow,
                         enabled = uiState.canWarmNow,
                         modifier = Modifier.fillMaxWidth(),
@@ -171,7 +171,7 @@ fun PrefetchActivityScreen(onNavigateBack: () -> Unit, modifier: Modifier = Modi
                 }
             }
             items(uiState.warmed, key = { "warmed_${it.conversationId}" }) { row ->
-                ConversationRow(row, timeReference)
+                ConversationRow(row)
             }
 
             item(key = "pending_header") {
@@ -183,7 +183,7 @@ fun PrefetchActivityScreen(onNavigateBack: () -> Unit, modifier: Modifier = Modi
                 }
             }
             items(uiState.pending, key = { "pending_${it.conversationId}" }) { row ->
-                ConversationRow(row, timeReference)
+                ConversationRow(row)
             }
 
             item(key = "cache_header") {
@@ -218,7 +218,7 @@ fun PrefetchActivityScreen(onNavigateBack: () -> Unit, modifier: Modifier = Modi
 @Composable
 private fun PrefetchSectionHeader(text: String) {
     Column {
-        HorizontalDivider()
+        AdaptiveDivider()
         Text(
             text = text,
             style = MaterialTheme.typography.labelLarge,
@@ -275,7 +275,7 @@ private fun ConditionRow(row: PrefetchConditionRow) {
 }
 
 @Composable
-private fun ConversationRow(row: PrefetchConversationStatus, reference: RelativeTimeReference) {
+private fun ConversationRow(row: PrefetchConversationStatus) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -297,7 +297,7 @@ private fun ConversationRow(row: PrefetchConversationStatus, reference: Relative
             modifier = Modifier.weight(1f),
         )
         Text(
-            text = row.warmedAt?.relativeLabel(reference)
+            text = row.warmedAt?.relativeLabel()
                 ?: stringResource(Res.string.prefetch_row_never_warmed),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,

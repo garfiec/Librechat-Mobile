@@ -2,6 +2,8 @@
 <resources>
     <!-- Accessibility label for the bottom-sheet drag handle -->
     <string name="cd_drag_handle">مقبض السحب</string>
+    <string name="banner_dismiss">تجاهل الشريط</string>
+    <string name="pdf_page_failed">تعذّر عرض هذه الصفحة</string>
     <!-- Custom per-server request headers (issue #287); shared by the pre-login
          server screen and the post-login Settings editor -->
     <string name="server_headers_title">ترويسات طلب مخصّصة</string>
@@ -19,4 +21,97 @@
     <string name="server_headers_error_name">اسم الترويسة غير صالح.</string>
     <string name="server_headers_error_value">تحتوي هذه القيمة على أحرف لا يمكن إرسالها.</string>
     <string name="server_headers_error_reserved">يضبط التطبيق هذه الترويسة ولا يمكن تجاوزها.</string>
+    <string name="pdf_password_title">ملف PDF محمي بكلمة مرور</string>
+    <string name="pdf_password_explanation">يحتاج “%1$s” إلى كلمة مرور لفتحه. لإرساله إلى نموذج الذكاء الاصطناعي، يفك Switchboard تشفيره على هذا الجهاز ويرفع النسخة غير المشفرة. لا تغادر كلمة المرور جهازك أبدًا.</string>
+    <string name="pdf_password_sensitive_warning">غالبًا ما تحتوي الملفات المحمية بكلمة مرور على معلومات حساسة. تُخزَّن النسخة غير المشفرة على خادم LibreChat الخاص بك وتُشارَك مع مزوّد الذكاء الاصطناعي. لا تتابع إلا إذا كنت مرتاحًا لمشاركة محتواها.</string>
+    <string name="pdf_password_field">كلمة مرور PDF</string>
+    <string name="pdf_password_incorrect">كلمة المرور غير صحيحة. حاول مرة أخرى.</string>
+    <string name="pdf_password_show">إظهار كلمة المرور</string>
+    <string name="pdf_password_hide">إخفاء كلمة المرور</string>
+    <string name="pdf_password_confirm">فك التشفير والرفع</string>
+    <string name="pdf_password_cancel">إلغاء</string>
+    <string name="param_thinking_between_tools_description">يُفعّل التفكير التكيّفي الذي يتحكم فيه معامل الجهد. لا يمكن لهذا النموذج إيقاف التفكير كليًا: إيقاف هذا الخيار يستخدم أدنى إعداد له، فيتخطى التفكير الموسّع ويُبقي فقط على ملاحظات موجزة بين استدعاءات الأدوات. يقتصر الجهد على «مرتفع» عند الإيقاف.</string>
+    <string name="discard_changes_title">تجاهل التغييرات؟</string>
+    <string name="discard_changes_message">ستفقد تغييراتك غير المحفوظة.</string>
+    <string name="discard_changes_confirm">تجاهل</string>
+    <string name="discard_changes_cancel">إلغاء</string>
+    <!-- Context usage breakdown -->
+    <string name="context_compact">ضغط المحادثة</string>
+    <string name="context_compacting">جارٍ الضغط…</string>
+    <string name="context_compact_info">يلخّص كل ما سبق في ملاحظة أقصر يواصل النموذج قراءتها، مما يحرر السياق لما يأتي لاحقًا. لا يُحذف أي شيء.</string>
+    <string name="context_usage_label">السياق</string>
+    <string name="context_usage_window">نافذة السياق</string>
+    <string name="context_usage_estimated">تقدير بناءً على سجل الرسائل</string>
+    <string name="context_usage_messages">الرسائل</string>
+    <string name="context_usage_tools">مخططات الأدوات</string>
+    <string name="context_usage_summary">الملخص</string>
+    <string name="context_usage_system">موجّه النظام</string>
+    <string name="context_usage_free">مساحة متاحة</string>
+    <string name="context_usage_input">المدخلات</string>
+    <string name="context_usage_output">المخرجات</string>
+    <string name="context_usage_estimated_row">تقديري</string>
+    <string name="context_usage_tool_calls">استدعاءات الأدوات</string>
+    <string name="context_usage_agent_instructions">تعليمات الوكيل</string>
+    <string name="context_usage_tools_system">أدوات النظام</string>
+    <string name="context_usage_tools_system_deferred">أدوات النظام (مؤجلة)</string>
+    <string name="context_usage_tools_mcp">أدوات MCP</string>
+    <string name="context_usage_tools_mcp_deferred">أدوات MCP (مؤجلة)</string>
+    <string name="context_usage_skills">المهارات</string>
+    <string name="context_usage_subagents">الوكلاء الفرعيون</string>
+    <string name="context_usage_cached">مخزّن مؤقتًا</string>
+    <string name="context_usage_cache_write">كتابة في الذاكرة المؤقتة</string>
+    <string name="context_usage_by_tool">حسب الأداة</string>
+    <string name="context_usage_pressure_warn">نافذة السياق تمتلئ</string>
+    <string name="context_usage_pressure_danger">نافذة السياق ممتلئة تقريبًا</string>
+    <string name="context_usage_largest_tool">أكبر أداة: %1$s (%2$s)</string>
+    <string name="context_usage_reclaim">التلخيص الآن قد يوفّر ≈%1$s رمزًا</string>
+    <string name="context_usage_insights">تفاصيل السياق</string>
+    <string name="context_usage_totals">الإجماليات</string>
+    <string name="context_usage_cache_read">قراءة من الذاكرة المؤقتة</string>
+    <string name="context_usage_subagents_all">الوكلاء الفرعيون (كل الفروع)</string>
+    <string name="context_usage_cost">التكلفة</string>
+    <string name="context_usage_cost_branch">التكلفة (هذا الفرع)</string>
+    <string name="context_usage_cost_all">كل الفروع</string>
+    <string name="context_usage_tools_all">الأدوات</string>
+    <string name="context_usage_used">المستخدم</string>
+    <string name="timestamp_just_now">الآن</string>
+    <plurals name="timestamp_minutes_ago">
+        <item quantity="zero">منذ %1$d دقيقة</item>
+        <item quantity="one">منذ دقيقة</item>
+        <item quantity="two">منذ دقيقتين</item>
+        <item quantity="few">منذ %1$d دقائق</item>
+        <item quantity="many">منذ %1$d دقيقة</item>
+        <item quantity="other">منذ %1$d دقيقة</item>
+    </plurals>
+    <plurals name="timestamp_hours_ago">
+        <item quantity="zero">منذ %1$d ساعة</item>
+        <item quantity="one">منذ ساعة</item>
+        <item quantity="two">منذ ساعتين</item>
+        <item quantity="few">منذ %1$d ساعات</item>
+        <item quantity="many">منذ %1$d ساعة</item>
+        <item quantity="other">منذ %1$d ساعة</item>
+    </plurals>
+    <plurals name="timestamp_days_ago">
+        <item quantity="zero">منذ %1$d يوم</item>
+        <item quantity="one">منذ يوم</item>
+        <item quantity="two">منذ يومين</item>
+        <item quantity="few">منذ %1$d أيام</item>
+        <item quantity="many">منذ %1$d يومًا</item>
+        <item quantity="other">منذ %1$d يوم</item>
+    </plurals>
+    <plurals name="timestamp_weeks_ago">
+        <item quantity="zero">منذ %1$d أسبوع</item>
+        <item quantity="one">منذ أسبوع</item>
+        <item quantity="two">منذ أسبوعين</item>
+        <item quantity="few">منذ %1$d أسابيع</item>
+        <item quantity="many">منذ %1$d أسبوعًا</item>
+        <item quantity="other">منذ %1$d أسبوع</item>
+    </plurals>
+    <string name="timestamp_yesterday_at">أمس %1$s</string>
+    <string name="date_group_today">اليوم</string>
+    <string name="date_group_yesterday">أمس</string>
+    <string name="date_group_previous_7_days">آخر 7 أيام</string>
+    <string name="date_group_previous_30_days">آخر 30 يومًا</string>
+    <string name="date_group_unknown">غير معروف</string>
+    <string name="snackbar_dismiss">إغلاق</string>
 </resources>

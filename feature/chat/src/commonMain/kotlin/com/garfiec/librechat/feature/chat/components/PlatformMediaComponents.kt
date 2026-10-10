@@ -11,31 +11,10 @@ expect fun AudioContent(
     modifier: Modifier = Modifier,
 )
 
-/** Platform-specific audio player with seekbar and controls. */
-@Composable
-expect fun AudioContentPlayer(
-    audioUrl: String,
-    modifier: Modifier = Modifier,
-)
-
-/** Platform-specific audio player from raw bytes. */
-@Composable
-expect fun AudioContentPlayerFromBytes(
-    audioBytes: ByteArray,
-    modifier: Modifier = Modifier,
-)
-
 /** Platform-specific video player from URL. */
 @Composable
 expect fun VideoContent(
     url: String,
-    modifier: Modifier = Modifier,
-)
-
-/** Platform-specific video player with loading indicator. */
-@Composable
-expect fun VideoContentPlayer(
-    videoUrl: String,
     modifier: Modifier = Modifier,
 )
 
@@ -61,6 +40,3 @@ expect fun MermaidDiagram(
     code: String,
     modifier: Modifier = Modifier,
 )
-
-/** Platform-specific artifact download/share helper. */
-expect fun shareArtifact(title: String, content: String, language: String)

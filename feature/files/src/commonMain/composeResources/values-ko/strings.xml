@@ -22,6 +22,9 @@
     <string name="cd_delete_file">%1$s 삭제</string>
     <string name="cd_thumbnail">%1$s 썸네일</string>
     <string name="cd_close_preview">미리보기 닫기</string>
+    <string name="cd_image">이미지</string>
+    <string name="cd_save_image">기기에 저장</string>
+    <string name="cd_share_image">이미지 공유</string>
     <string name="cd_cancel_upload">업로드 취소</string>
     <string name="cd_ascending">오름차순</string>
     <string name="cd_descending">내림차순</string>
@@ -29,6 +32,8 @@
     <!-- Selection mode -->
     <string name="select_files">파일 선택</string>
     <string name="selected_count">%1$d개 선택됨</string>
+    <string name="attach_count">첨부 (%1$d)</string>
+    <string name="cd_close_picker">선택기 닫기</string>
 
     <!-- Empty states -->
     <string name="no_files">파일 없음</string>

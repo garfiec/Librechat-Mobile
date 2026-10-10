@@ -8,7 +8,9 @@ import com.garfiec.librechat.core.model.ParameterType
  * parameterSettings.ts. Each endpoint maps to an ordered list of ParameterDefinition that
  * drives the dynamic ModelParameterContent rendering.
  */
-@Suppress("TooManyFunctions") // Registry of per-endpoint/provider/variant param builders mirroring upstream parameterSettings.ts.
+// TooManyFunctions: registry of per-endpoint/provider/variant param builders mirroring upstream parameterSettings.ts.
+// debt — LargeClass: 1186-line file
+@Suppress("TooManyFunctions", "LargeClass")
 object EndpointParameterRegistry {
 
     /**
@@ -17,6 +19,10 @@ object EndpointParameterRegistry {
      *   upstream v0.8.5; on older servers they are rejected at request time. Per
      *   `VERSION_GATES.md`, default to the older-server behavior when the server version
      *   is unknown.
+     * @param thinkingDisplayUpdatesSupported when false, the `updates` value is filtered out of
+     *   the `thinkingDisplay` dropdown. Upstream added it to the `ThinkingDisplay` enum in v0.8.8;
+     *   an older server's `anthropicSchema` rejects it, and its `.catch(() => ({}))` then discards
+     *   every endpoint param on the conversation, not just this one.
      * @param provider required for the `agents` endpoint to route to the underlying
      *   provider's parameter set. Ignored for other endpoints.
      * @param model required for the `bedrock` endpoint to dispatch on the model-prefix
@@ -30,6 +36,74 @@ object EndpointParameterRegistry {
         extendedEffortSupported: Boolean = false,
         provider: String? = null,
         model: String? = null,
+        dropParams: List<String> = emptyList(),
+        thinkingDisplayUpdatesSupported: Boolean = false,
+    ): List<ParameterDefinition> {
+        val settingsKey = settingsKeyFor(endpoint, provider)
+        val filtered = baseDefinitions(endpoint, extendedEffortSupported, provider, model, dropParams)
+        val modelAware = applyModelAwareDefaults(filtered, settingsKey, model)
+        if (extendedEffortSupported && thinkingDisplayUpdatesSupported) return modelAware
+        return modelAware.map { def ->
+            val gated = when {
+                !extendedEffortSupported && def.key in EFFORT_KEYS -> EXTENDED_EFFORT_VALUES
+                !thinkingDisplayUpdatesSupported && def.key == THINKING_DISPLAY_KEY -> THINKING_DISPLAY_GATED_VALUES
+                else -> emptySet()
+            }
+            val options = def.options
+            if (options != null && options.any { it in gated }) {
+                def.copy(options = options.filterNot { it in gated })
+            } else {
+                def
+            }
+        }
+    }
+
+    /**
+     * The option values a per-model rule takes away from [model], by parameter key: what the
+     * provider's list offers minus what [getDefinitions] offers for this model — effort `minimal`
+     * on gpt-6-sol/luna, `none`/`minimal` on Grok 4.7.
+     *
+     * This, not "absent from the current options", is what a stored value may be dropped for. The
+     * current options also lack values for reasons that say nothing about the model: `xhigh`/`max`
+     * and thinkingDisplay `updates` are filtered while the server version is undetected (and
+     * forever on a server whose version never is), and a value a newer backend added is in no list
+     * this app knows. Dropping on
+     * absence would delete those from the server on an agent save, and omit them from a chat send.
+     * Computed with the version-gated values present on both sides, so a gate never shows up here.
+     * Keys a rule removes entirely (Opus 5.5's sampling controls) are not option-level and are
+     * not listed.
+     */
+    fun modelRemovedOptions(
+        endpoint: String,
+        provider: String? = null,
+        model: String? = null,
+        dropParams: List<String> = emptyList(),
+    ): Map<String, Set<String>> {
+        val base = baseDefinitions(endpoint, extendedEffortSupported = true, provider, model, dropParams)
+        val offered = applyModelAwareDefaults(base, settingsKeyFor(endpoint, provider), model)
+            .associateBy { it.key }
+        return base.mapNotNull { def ->
+            val before = def.options ?: return@mapNotNull null
+            val after = offered[def.key]?.options ?: return@mapNotNull null
+            (before.toSet() - after.toSet()).takeIf { it.isNotEmpty() }?.let { def.key to it }
+        }.toMap()
+    }
+
+    // Upstream resolves the settings key from `endpointType ?? provider`, which for the agents
+    // endpoint is the agent's own provider — so an Anthropic agent is subject to the same
+    // per-model rules as the Anthropic endpoint.
+    private fun settingsKeyFor(endpoint: String, provider: String?): String {
+        val key = endpoint.lowercase()
+        return if (key == "agents") provider?.lowercase() ?: key else key
+    }
+
+    /** The provider's parameter list for [endpoint], after `dropParams`, before any per-model rule. */
+    private fun baseDefinitions(
+        endpoint: String,
+        extendedEffortSupported: Boolean,
+        provider: String?,
+        model: String?,
+        dropParams: List<String>,
     ): List<ParameterDefinition> {
         val key = endpoint.lowercase()
         val base = when (key) {
@@ -37,16 +111,195 @@ object EndpointParameterRegistry {
             "agents" -> agentsParamsForProvider(provider, model, extendedEffortSupported)
             else -> ENDPOINT_PARAMS[key] ?: ENDPOINT_PARAMS["default"]!!
         }
-        if (extendedEffortSupported) return base
-        return base.map { def ->
-            val options = def.options
-            if (def.key in EFFORT_KEYS && options != null && options.any { it in EXTENDED_EFFORT_VALUES }) {
-                def.copy(options = options.filterNot { it in EXTENDED_EFFORT_VALUES })
-            } else {
-                def
+        val dropped = resolveDropParamsUIKeys(dropParams, settingsKeyFor(endpoint, provider))
+        return if (dropped.isEmpty()) base else base.filterNot { it.key in dropped }
+    }
+
+    /**
+     * Narrows a definition list to what the selected model actually accepts. Mirrors upstream
+     * `applyModelAwareDefaults`, which runs after the `dropParams` filter and before rendering.
+     *
+     * [settingsKey] is the resolved parameter-set key (the agent's provider for agents), not the
+     * raw endpoint name.
+     */
+    private fun applyModelAwareDefaults(
+        definitions: List<ParameterDefinition>,
+        settingsKey: String,
+        model: String?,
+    ): List<ParameterDefinition> {
+        if (model.isNullOrBlank()) return definitions
+        // The three per-model rules below return early, as upstream's do: each replaces the whole
+        // model-aware pass for its model rather than composing with the provider rules after it.
+        if (GROK_4_7.containsMatchIn(model.substringAfterLast('/'))) {
+            return definitions.map { def ->
+                if (def.key == "reasoning_effort") def.copy(options = GROK_4_7_EFFORT) else def
             }
         }
+        if (GPT_6_SOL_LUNA.containsMatchIn(model)) {
+            // Upstream also renders a server-routed `useResponsesApi` default for these models from
+            // `/api/endpoints` `responsesApiRouting`; that display-only half is not mirrored.
+            return definitions.map { def ->
+                if (def.key == "reasoning_effort") {
+                    def.copy(options = def.options?.filterNot { it == "minimal" })
+                } else {
+                    def
+                }
+            }
+        }
+        // Opus 5.5+ and the Mythos class run thinking always on with no sampling controls; the
+        // server drops these values, so offering the controls lets the user set values that do nothing.
+        if (hasAlwaysOnThinking(model)) return definitions.filterNot { it.key in ALWAYS_ON_THINKING_HIDDEN_KEYS }
+        // Sonnet 5.5+ keeps the toggle: "off" maps to its `between_tools` floor.
+        if (hasBetweenToolsThinkingFloor(model)) {
+            return definitions
+                .filterNot { it.key in BETWEEN_TOOLS_HIDDEN_KEYS }
+                .map { def ->
+                    if (def.key == "thinking") def.copy(description = BETWEEN_TOOLS_THINKING_DESCRIPTION) else def
+                }
+        }
+        val adjusted = if (settingsKey == "google") {
+            val bounds = googleThinkingBudgetBounds(model)
+            if (bounds == null) {
+                definitions
+            } else {
+                definitions.map { def ->
+                    if (def.key == "thinkingBudget") def.withGoogleThinkingBudget(bounds) else def
+                }
+            }
+        } else {
+            definitions
+        }
+        if (settingsKey != "anthropic" || supportsPromptCache(model)) return adjusted
+        return adjusted.filterNot { it.key in PROMPT_CACHE_KEYS }
     }
+
+    private val PROMPT_CACHE_KEYS = setOf("promptCache", "promptCacheTtl")
+
+    // MIRRORED from upstream `applyModelAwareDefaults` (`packages/data-provider/src/parameterSettings.ts`).
+    // Grok is matched on the last `/` segment so a gateway-prefixed id (`xai/grok-4.7`) still hits.
+    private val GROK_4_7 = Regex("""^grok-4[.-]7(?:$|[-:])""")
+    private val GROK_4_7_EFFORT = listOf("", "low", "medium", "high", "xhigh")
+
+    // MIRRORED from upstream `GPT6_TIER` (`packages/data-provider/src/families.ts`): a point release
+    // (`gpt-6.1-sol`) resolves to its family's tier.
+    private val GPT_6_SOL_LUNA = Regex("""^gpt-6(?:\.\d+)?-(?:sol|luna)(?=-|$)""", RegexOption.IGNORE_CASE)
+    private val ALWAYS_ON_THINKING_HIDDEN_KEYS = setOf("thinking", "thinkingBudget", "temperature", "topP", "topK")
+    private val BETWEEN_TOOLS_HIDDEN_KEYS = setOf("thinkingBudget", "temperature", "topP", "topK")
+
+    /** English source of `param_thinking_between_tools_description`; see [localizedDescription]. */
+    internal const val BETWEEN_TOOLS_THINKING_DESCRIPTION =
+        "Enables adaptive thinking controlled by the Effort parameter. This model cannot turn thinking off " +
+            "entirely: switching this off uses its lowest setting, which skips extended thinking and keeps only " +
+            "brief notes between tool calls. Effort is capped at High while off."
+
+    /**
+     * MIRRORED from upstream `hasAlwaysOnThinking` (`packages/data-provider/src/bedrock.ts`): Opus 5.5
+     * and later, and the Mythos class, reject both `disabled` and `between_tools`.
+     */
+    private fun hasAlwaysOnThinking(model: String): Boolean =
+        isAtLeast(claudeVersion(model, OPUS_NAME_FIRST, OPUS_NUMBER_FIRST), 5, 5) ||
+            MYTHOS_CLASS.containsMatchIn(model)
+
+    /** MIRRORED from upstream `hasBetweenToolsThinkingFloor`: Sonnet 5.5 and later. */
+    private fun hasBetweenToolsThinkingFloor(model: String): Boolean =
+        isAtLeast(claudeVersion(model, SONNET_NAME_FIRST, SONNET_NUMBER_FIRST), 5, 5)
+
+    /**
+     * MIRRORED from upstream `parseOpusVersion` / `parseSonnetVersion`. Both spellings: name-first
+     * (`claude-opus-5-5`, `claude-opus-5.5`) and number-first (`claude-5-5-opus`). A missing minor
+     * reads as 0, and the lookahead keeps a date suffix (`claude-opus-5-20260101`) from being read
+     * as a minor.
+     */
+    private fun claudeVersion(model: String, nameFirst: Regex, numberFirst: Regex): Pair<Int, Int>? {
+        val match = nameFirst.find(model) ?: numberFirst.find(model) ?: return null
+        val major = match.groupValues[1].toIntOrNull() ?: return null
+        val minor = match.groupValues[2].ifEmpty { "0" }.toIntOrNull() ?: return null
+        return major to minor
+    }
+
+    private fun isAtLeast(version: Pair<Int, Int>?, major: Int, minor: Int): Boolean =
+        version != null && (version.first > major || (version.first == major && version.second >= minor))
+
+    private val OPUS_NAME_FIRST = Regex("""claude-opus[-.]?(\d+)(?:[-.](\d{1,2})(?!\d))?""")
+    private val OPUS_NUMBER_FIRST = Regex("""claude-(\d+)(?:[-.](\d{1,2})(?!\d))?-opus""")
+    private val SONNET_NAME_FIRST = Regex("""claude-sonnet[-.]?(\d+)(?:[-.](\d{1,2})(?!\d))?""")
+    private val SONNET_NUMBER_FIRST = Regex("""claude-(\d+)(?:[-.](\d{1,2})(?!\d))?-sonnet""")
+
+    // MYTHOS_CLASS_FAMILIES — new top-level Claude classes, peers of opus/sonnet/haiku.
+    private val MYTHOS_CLASS = Regex("""claude-(?:fable|mythos)[-.]?\d""")
+
+    private fun ParameterDefinition.withGoogleThinkingBudget(bounds: ThinkingBudgetBounds) = copy(
+        max = bounds.max.toDouble(),
+        // `min` stays -1: that is the "decide automatically" sentinel, and it is not subject to the
+        // positive floor. The floor only applies once a real budget is typed, so it lives in the
+        // description, which is the only part of a TEXT definition this app renders.
+        description = "Max tokens for thinking (-1 = dynamic, or ${bounds.min}-${bounds.max}).",
+    )
+
+    private data class ThinkingBudgetBounds(val min: Int, val max: Int)
+
+    /**
+     * MIRRORED from upstream `getGoogleThinkingBudgetBounds` (`packages/data-provider/src/schemas.ts`).
+     * The shared 32,000 bound under-limits Pro and accepts Flash values the provider rejects.
+     */
+    private fun googleThinkingBudgetBounds(model: String): ThinkingBudgetBounds? = when {
+        !GEMINI_25.containsMatchIn(model) -> null
+        GEMINI_FLASH_LITE.containsMatchIn(model) -> ThinkingBudgetBounds(min = 512, max = 24576)
+        GEMINI_FLASH.containsMatchIn(model) -> ThinkingBudgetBounds(min = 0, max = 24576)
+        GEMINI_PRO.containsMatchIn(model) -> ThinkingBudgetBounds(min = 128, max = 32768)
+        else -> null
+    }
+
+    /**
+     * MIRRORED from upstream `supportsPromptCache` (`packages/data-provider/src/bedrock.ts`).
+     * Matched against the configured model id, not a token-map resolution: collapsing a new Claude
+     * model to the generic `claude-` fallback would wrongly hide the cache controls.
+     */
+    private fun supportsPromptCache(model: String): Boolean {
+        if (model.contains("claude-3-5-sonnet-latest") || model.contains("claude-3.5-sonnet-latest")) {
+            return false
+        }
+        return PROMPT_CACHE_PATTERNS.any { it.containsMatchIn(model) }
+    }
+
+    // No `\b` anywhere: Android's Regex is ICU, and a pattern that compiles on the JVM can still
+    // behave differently there.
+    private val GEMINI_25 = Regex("""gemini-2\.5""", RegexOption.IGNORE_CASE)
+    private val GEMINI_FLASH_LITE = Regex("""flash[-_.]?lite""", RegexOption.IGNORE_CASE)
+    private val GEMINI_FLASH = Regex("flash", RegexOption.IGNORE_CASE)
+    private val GEMINI_PRO = Regex("pro", RegexOption.IGNORE_CASE)
+
+    private val PROMPT_CACHE_PATTERNS = listOf(
+        Regex("""claude-3[-.]7"""),
+        Regex("""claude-3[-.]5-(?:sonnet|haiku)"""),
+        Regex("""claude-3-(?:sonnet|haiku|opus)?"""),
+        Regex("""claude-(?:sonnet|opus|haiku)[-.]?(?:[4-9]|\d{2,})"""),
+        Regex("""claude-(?:[4-9]|\d{2,})(?:[-.](?:sonnet|opus|haiku))?"""),
+        MYTHOS_CLASS,
+    )
+
+    /**
+     * MIRRORED from upstream `resolveDropParamsUIKeys` (`packages/data-provider/src/parameterSettings.ts`).
+     *
+     * An admin's `dropParams` names the backend field (`maxTokens`), which is also the UI key for
+     * the native providers but not for the OpenAI-compatible sets, where the control is
+     * `max_tokens`. Aliasing unconditionally would hide `top_p` on Anthropic, which spells its
+     * own control `topP` and drops nothing.
+     */
+    private fun resolveDropParamsUIKeys(dropParams: List<String>, settingsKey: String): Set<String> {
+        if (dropParams.isEmpty()) return emptySet()
+        if (settingsKey !in OPENAI_LIKE_PARAM_KEYS) return dropParams.toSet()
+        return dropParams.mapTo(mutableSetOf()) { DROP_PARAM_UI_KEYS[it] ?: it }
+    }
+
+    private val DROP_PARAM_UI_KEYS = mapOf(
+        "maxTokens" to "max_tokens",
+        "topP" to "top_p",
+        "frequencyPenalty" to "frequency_penalty",
+        "presencePenalty" to "presence_penalty",
+    )
+
+    private val OPENAI_LIKE_PARAM_KEYS = setOf("openai", "azureopenai", "custom", "openrouter")
 
     /**
      * Agents endpoint dispatch — mirrors upstream `agentParamSettings`
@@ -88,6 +341,8 @@ object EndpointParameterRegistry {
 
     private val EFFORT_KEYS = setOf("reasoning_effort", "effort")
     private val EXTENDED_EFFORT_VALUES = setOf("xhigh", "max")
+    private const val THINKING_DISPLAY_KEY = "thinkingDisplay"
+    private val THINKING_DISPLAY_GATED_VALUES = setOf("updates")
 
     // Defaults mirrored from upstream `parameterSettings.ts` / `schemas.ts`. Centralized
     // here so the registry doesn't sprinkle magic numbers across each provider's params.
@@ -336,7 +591,7 @@ object EndpointParameterRegistry {
             key = "thinkingDisplay",
             label = "Reasoning Visibility",
             type = ParameterType.ENUM_SLIDER,
-            options = listOf("auto", "summarized", "omitted"),
+            options = listOf("auto", "summarized", "omitted", "updates"),
             default = "auto",
             description = "Controls whether reasoning tokens are streamed to the client (Claude Opus 4.7+).",
         ),
@@ -440,6 +695,7 @@ object EndpointParameterRegistry {
         tagsDefinition(),
     )
 
+    @Suppress("LongMethod") // debt: 150 lines
     private fun openAiParams() = listOf(
         ParameterDefinition(
             key = "chatGptLabel",
@@ -593,6 +849,7 @@ object EndpointParameterRegistry {
         tagsDefinition(),
     )
 
+    @Suppress("LongMethod") // debt: 133 lines
     private fun anthropicParams() = listOf(
         ParameterDefinition(
             key = "modelLabel",
@@ -706,7 +963,7 @@ object EndpointParameterRegistry {
             key = "thinkingDisplay",
             label = "Reasoning Visibility",
             type = ParameterType.ENUM_SLIDER,
-            options = listOf("auto", "summarized", "omitted"),
+            options = listOf("auto", "summarized", "omitted", "updates"),
             default = "auto",
             description = "Controls whether reasoning tokens are streamed to the client (Claude Opus 4.7+).",
         ),
@@ -727,6 +984,7 @@ object EndpointParameterRegistry {
         tagsDefinition(),
     )
 
+    @Suppress("LongMethod") // debt: 120 lines
     private fun googleParams() = listOf(
         ParameterDefinition(
             key = "modelLabel",
@@ -746,8 +1004,13 @@ object EndpointParameterRegistry {
         ),
         ParameterDefinition(
             key = "maxContextTokens",
+            // Upstream scopes this definition to the Google endpoint (googleSettings.maxContextTokens)
+            // rather than sharing the unbounded one, whose other endpoints have smaller windows.
             label = "Max Context Tokens",
             type = ParameterType.TEXT,
+            min = 10.0,
+            max = 2000000.0,
+            step = 1000.0,
             default = "",
             description = "Max context tokens for this conversation.",
         ),

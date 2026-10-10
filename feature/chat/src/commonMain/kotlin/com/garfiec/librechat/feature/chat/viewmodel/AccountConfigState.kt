@@ -5,7 +5,9 @@ import com.garfiec.librechat.core.model.response.FileUploadConfig
 
 /**
  * Per-account server-derived config: the signed-in user's display fields (for message avatars)
- * and the server upload config. Written only by [ChatViewModel] on config/user load.
+ * and the server upload config. Written by `ChatConfigDelegate` on config/user load;
+ * [ChatViewModel] only rebuilds it on the new-chat reset and resolves the avatar URL in the
+ * exposed `uiState` combine.
  */
 @Immutable
 data class AccountConfigState(

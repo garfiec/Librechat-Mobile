@@ -161,6 +161,7 @@ internal fun AgentEditorUiState.applyAgentData(agent: Agent): AgentEditorUiState
     )
 
     return copy(
+        loadedAgent = agent,
         name = agent.name ?: "",
         description = agent.description ?: "",
         instructions = agent.instructions ?: "",
@@ -205,6 +206,8 @@ internal fun AgentEditorUiState.applyAgentData(agent: Agent): AgentEditorUiState
         selectedSubagentIds = agent.subagents?.agentIds
             ?.filter { it != agent.id }
             ?: emptyList(),
+        subagentShareFiles = agent.subagents?.shareFiles,
+        subagentGraphs = agent.subagents?.graphs,
         handoffEdges = parsedEdges.typed,
         unparsedHandoffEdges = parsedEdges.unparsed,
         toolOptions = agent.toolOptions,

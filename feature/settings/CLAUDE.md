@@ -5,7 +5,7 @@
 
 ## Sections
 - **Account**: displays user profile from `UserApi.getUser()`
-- **Appearance**: theme toggle (System / Light / Dark) via `ThemeDataStore`
+- **Appearance**: its own page (General → Appearance): theme (System / Light / Dark), interface style, accent colour, wallpaper colours, via `ThemeDataStore`
 - **Server**: shows current server URL from `ServerDataStore`
 - **About**: app version info
 - **Danger Zone**: delete account with confirmation dialog
@@ -17,11 +17,11 @@
 - Applied via Compose `MaterialTheme` with `isSystemInDarkTheme()` for SYSTEM mode
 
 ## Logout
-- `SettingsViewModel.logout()` calls `AuthRepository.logout()` which clears tokens from `EncryptedSharedPreferences`
+- `AccountSettingsViewModel.logout()` calls `AuthRepository.logout()` which clears tokens from `EncryptedSharedPreferences`
 - Sets `isLoggedOut = true` in UI state; screen calls `onLogout` callback to navigate to auth graph
 
 ## Delete Account
-- `SettingsViewModel.deleteAccount()` calls `UserApi.deleteUser()` then `AuthRepository.logout()`
+- `AccountSettingsViewModel.deleteAccount()` calls `UserApi.deleteUser()` then `AuthRepository.logout()`
 - Sets `isAccountDeleted = true` in UI state; triggers navigation to auth graph
 
 ## ViewModel Dependencies
@@ -38,14 +38,23 @@
 - 2FA setup/disable in Account section
 
 ### New Settings Sections
-- `SettingsScreen` now organized into: Account, Appearance, General (Language, Personalization), Chat (Presets), Advanced (Fork Behavior, Commands), Server, About, Danger Zone
+- `SettingsScreen` now organized into: Account, Appearance, General (Language & region: Language, Date & time), Chat (Presets), Advanced (Fork Behavior, Commands), Server, About, Danger Zone
 - Each new setting opens a dialog or navigates to a dedicated screen
 
 ### Settings Sub-screens (via SettingsNavigation)
-- `MemoriesScreen` — full memory CRUD, enable/disable toggle, own ViewModel (`MemoriesViewModel`)
-- `McpServersScreen` — server list with status badges, CRUD, reinitialize, tools sheet (`McpViewModel`)
+- `MemoriesScreen` — full memory CRUD, enable/disable toggle, own ViewModel (`MemoriesViewModel`); opened from the Data tab's Memories row (route `Memories`)
+- `McpServersScreen` — server list with status badges, CRUD, reinitialize, tools sheet (`McpViewModel`); opened from the Data tab's MCP servers row (route `McpServers`). Add is hidden without MCP_SERVERS CREATE (`McpUiState.canCreateServer`)
 - `PresetManagerScreen` — list/delete presets (`PresetManagerViewModel`)
 - `CommandsConfigScreen` — enable/disable slash commands
+- `AppearanceSettingsScreen` — theme, interface style, accent colour, wallpaper colours; reached from one summary row on the General tab (route `AppearanceSettings`, `AppearanceNavigation.kt`). Own ViewModel (`AppearanceSettingsViewModel`, ThemeDataStore only); the General tab's summary row reads it too
+- `PrefetchSettingsScreen` — background prefetch switches, depth and status summary; reached from one row in the Data tab (route `PrefetchSettings`, `PrefetchNavigation.kt`, which also holds `PrefetchActivity`). Own ViewModel (`PrefetchSettingsViewModel`, SettingsDataStore only) plus `PrefetchActivityViewModel` for status
+- `ChatLayoutSettingsScreen` — thread or two-sided, bubbles, avatars, under a live preview of a short conversation; reached from the Chat tab's Chat layout summary row (route `ChatLayoutSettings`, `ChatLayoutNavigation.kt`). Own ViewModel (`ChatLayoutSettingsViewModel`, SettingsDataStore only); the Chat tab's summary row reads it too. `:feature:chat` is out of reach, so the preview redraws the message layout at `MessageBubble`'s measures (sharing `BubbleShape` from `:core:ui`) — change one, change the other
+- `ChatSettingsScreen` (Chat tab) — display, behaviour, artifacts, speech, fork mode. Own ViewModel (`ChatSettingsViewModel`, hosting the platform speech delegate); `ChatPreferencesController` merges its ~30 DataStore prefs into `ChatSettingsUiState` because `combine` tops out at five flows. Errors (e.g. a failed voice test) show in the tab's own snackbar
+- `GeneralSettingsScreen` (General tab) — language, date & time, tablet gesture, About. Own ViewModel (`GeneralSettingsViewModel`): DataStore + `/api/config` only, no network loads; the language and date & time dialog flags live there too
+- `AccountSettingsScreen` (Account tab) — profile, avatar, balance, 2FA, sign out, delete account. Own ViewModel (`AccountSettingsViewModel`, hosting `AccountDelegate` + `TwoFactorSecurityDelegate`): loads the profile and balance only. The Data tab's Memories row reads the opt-out from the profile separately (`DataSettingsViewModel.refreshSummaries`)
+- `DataSettingsScreen` (Data tab) — clear/archive/export, cache, keys, diagnostic logs, and one summary row each for Memories and MCP servers (count, or "Off" for the memories opt-out), which open `MemoriesScreen` / `McpServersScreen`. Own ViewModel (`DataSettingsViewModel`, hosting `DataManagementDelegate`); the summaries reload on every resume (`refreshSummaries`) so they catch up after editing on either page. A row is hidden when the role lacks that feature's USE permission. Role gates and the archive-all version gate are derived in its `uiState` combine; the internal `archiveAllSupported` means "the server has not 404'd it" and is ANDed with the version gate there
+- `SharedLinksScreen` — list, re-publish and delete shared links (route `SharedLinks`, from the Data tab). Own ViewModel (`SharedLinksViewModel`): loads the links on creation and nothing else; errors show in the page's own snackbar
+- Delegates take a `SettingsStateHandle<S>` typed to their host ViewModel's state, so a delegate moves with the page that uses it
 - Routes: `Memories`, `McpServers`, `PresetManager` (all `@Serializable` data objects extending `SettingsRoute`)
 - **Gotcha**: Memories and MCP navigation routes defined in their own files (`MemoriesNavigation.kt`, `McpNavigation.kt`) but wired through `SettingsNavigation.kt`
 - **Gotcha**: `McpServerDialog` uses `McpServerType` enum (SSE, STREAMABLE_HTTP) — must match backend expectations
@@ -101,8 +110,8 @@
 
 ### Dialogs
 - `LanguageSelectorDialog` — 37+ locales with search, single-select radio
+- `DateTimeSettingsDialog` (#445) — timestamp style, clock and date format in one dialog with a live preview of the pending choices; Save writes all three in one DataStore edit. The General-tab row shows only a summary (a live sample + style name) — keep new date options in the dialog, not on the tab
 - `ForkSettingsDialog` — 3 fork modes (`DIRECT_PATH`, `INCLUDE_BRANCHES`, `TARGET_LEVEL`); labels/descriptions come from `fork_mode_*` string resources via `forkModeLabel()` / `forkModeDescription()`, not from the enum
-- `PersonalizationDialog` — "About you" + "Response style" text areas with enable toggle
 
 ### MCP OAuth consent (v0.8.8)
 - `reinitialize` can answer `oauthRequired` + `oauthUrl`, meaning the server is waiting on the user

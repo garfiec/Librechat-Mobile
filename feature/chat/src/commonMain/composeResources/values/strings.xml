@@ -49,12 +49,17 @@
     <string name="cd_reorder_queued_message">Drag to reorder queued message</string>
     <string name="send_queued_messages">Send queued (%1$d)</string>
     <string name="queued_attachment_only">Attachment</string>
+    <string name="queued_turn_needs_attention">Needs attention</string>
     <string name="editing_queued_message">Editing queued message</string>
     <string name="cd_cancel_edit">Cancel edit</string>
     <string name="cd_update_queued_message">Update queued message</string>
     <string name="cd_open_drawer">Open navigation drawer</string>
     <string name="cd_edit_title">Edit title</string>
+    <string name="title_edit_discard_prompt">Discard title change?</string>
+    <string name="title_edit_discard">Discard</string>
+    <string name="title_edit_keep_editing">Keep editing</string>
     <string name="cd_more_options">More options</string>
+    <string name="cd_temporary_chat">Temporary chat</string>
     <string name="cd_scroll_to_bottom">Scroll to bottom</string>
     <string name="cd_select_model">Select model</string>
     <string name="cd_librechat">Switchboard</string>
@@ -120,8 +125,61 @@
 
     <!-- Content descriptions - Subagent trace (subagents, v0.8.6+) -->
     <string name="label_subagent">Subagent</string>
+    <string name="subagent_threads_title">Subagent thread</string>
+    <string name="subagent_threads_open">View thread</string>
+    <string name="subagent_threads_back">Back to threads</string>
+    <string name="subagent_threads_empty">This conversation has no subagent threads.</string>
+    <string name="subagent_threads_unavailable">No subagent threads are available here.</string>
+    <string name="subagent_threads_event_origin">Started by an event</string>
+    <string name="subagent_threads_truncated">Some of this was too long to show in full.</string>
+    <string name="subagent_threads_load_older">Load older</string>
+    <string name="subagent_threads_older_unavailable">Older history is no longer available.</string>
     <string name="cd_collapse_subagent">Collapse subagent %1$s</string>
     <string name="cd_expand_subagent">Expand subagent %1$s</string>
+
+    <!-- Conversation trace viewer (v0.8.8-rc3) -->
+    <string name="trace_title">Conversation trace</string>
+    <string name="trace_open">View trace</string>
+    <string name="trace_refresh">Refresh</string>
+    <string name="trace_back">Back to records</string>
+    <string name="trace_load_older">Load older</string>
+    <string name="trace_retry">Retry</string>
+    <string name="trace_empty">No trace records for this conversation yet.</string>
+    <string name="trace_stat_turns">Turns</string>
+    <string name="trace_stat_generations">Generations</string>
+    <string name="trace_stat_tools">Tools</string>
+    <string name="trace_stat_labels">Labels</string>
+    <string name="trace_stat_errors">Errors</string>
+    <string name="trace_stat_tokens">Tokens</string>
+    <string name="trace_stat_cost">Cost</string>
+    <string name="trace_kind_agent">Agent</string>
+    <string name="trace_kind_generation">Generation</string>
+    <string name="trace_kind_tool">Tool</string>
+    <string name="trace_kind_span">Span</string>
+    <string name="trace_kind_event">Event</string>
+    <string name="trace_kind_other">Record</string>
+    <string name="trace_status_ok">OK</string>
+    <string name="trace_status_warning">Warning</string>
+    <string name="trace_status_error">Error</string>
+    <string name="trace_running">Running</string>
+    <string name="trace_view_steps">Steps</string>
+    <string name="trace_view_all">All records</string>
+    <string name="trace_step">Step %1$d</string>
+    <string name="trace_step_title">Title</string>
+    <string name="trace_partial">Showing %1$d records. Older turns have not been loaded.</string>
+    <string name="trace_input">Input</string>
+    <string name="trace_output">Output</string>
+    <string name="trace_metadata">Metadata</string>
+    <string name="trace_truncated">Truncated by the server.</string>
+    <string name="trace_content_unavailable">This server does not return record input and output.</string>
+    <string name="trace_tokens_detail">In %1$d · Out %2$d · Total %3$d</string>
+    <string name="trace_error_generic">The trace could not be read.</string>
+    <string name="trace_error_not_found">This trace is no longer available.</string>
+    <string name="trace_error_changed">The trace changed while it was being read. Refresh to start again.</string>
+    <string name="trace_error_rate_limited">Too many trace requests. Try again shortly.</string>
+    <string name="trace_error_timeout">The tracing service did not respond in time.</string>
+    <string name="trace_error_unauthorized">The tracing service rejected this server's credentials.</string>
+    <string name="trace_error_unsupported">This server's tracing service cannot return traces.</string>
 
     <!-- Office-doc preview attachments (deferred preview, v0.8.6+) -->
     <string name="office_preview_preparing">Preparing preview of %1$s…</string>
@@ -133,6 +191,8 @@
     <string name="cd_collapse_tool_call">Collapse tool call %1$s</string>
     <string name="cd_expand_tool_call">Expand tool call %1$s</string>
     <string name="cd_tool_complete">Complete</string>
+    <string name="cd_tool_cancelled">Stopped</string>
+    <string name="cd_tool_failed">Failed</string>
     <string name="video_not_supported">Video content not supported</string>
 
     <!-- Tools bottom sheet -->
@@ -174,7 +234,7 @@
     <string name="upload_routing_why_provider">The model reads the file itself.</string>
     <string name="upload_routing_why_text">The server reads the file and sends its text.</string>
     <string name="upload_routing_why_provider_only">This model can only take this file directly.</string>
-    <string name="upload_routing_why_text_only">This model can\'t read this file, so its text is sent instead.</string>
+    <string name="upload_routing_why_text_only">This model can't read this file, so its text is sent instead.</string>
     <string name="upload_routing_apply_all">Use for all</string>
     <string name="upload_routing_attach">Attach</string>
     <string name="cd_upload_route_text">Sent as extracted text</string>
@@ -297,7 +357,7 @@
     <string name="feedback_question">What was the issue with this response?</string>
     <string name="feedback_question_positive">What was good about this response?</string>
     <string name="hint_optional_comment">Optional comment\u2026</string>
-    <string name="feedback_tag_not_matched">Didn\'t match my request</string>
+    <string name="feedback_tag_not_matched">Didn't match my request</string>
     <string name="feedback_tag_inaccurate">Inaccurate or incorrect answer</string>
     <string name="feedback_tag_bad_style">Poor style or tone</string>
     <string name="feedback_tag_missing_image">Expected an image</string>
@@ -330,6 +390,8 @@
     <!-- Delete dialog -->
     <string name="dialog_title_delete_conversation">Delete conversation</string>
     <string name="dialog_delete_conversation_message">This will permanently delete this conversation. This cannot be undone.</string>
+    <string name="dialog_title_delete_prompt">Delete prompt?</string>
+    <string name="dialog_delete_prompt_message">“%1$s” and all of its versions will be permanently deleted. This cannot be undone.</string>
 
     <!-- Artifacts -->
     <string name="cd_open_artifact">Open artifact</string>
@@ -434,18 +496,9 @@
 
     <!-- Context usage gauge (v0.8.7) -->
     <string name="context_usage_label">Context</string>
-    <string name="context_usage_window">Context window</string>
-    <string name="context_usage_messages">Messages</string>
-    <string name="context_usage_tools">Tool schemas</string>
-    <string name="context_usage_summary">Summary</string>
-    <string name="context_usage_system">System</string>
-    <string name="context_usage_free">Free space</string>
-    <string name="context_usage_input">Input</string>
-    <string name="context_usage_output">Output</string>
 
     <!-- Human-in-the-loop pauses (v0.8.8): tool approval + ask_user_question -->
     <string name="tool_approval_title">Approval needed</string>
-    <string name="tool_approval_subtitle">Review before this runs.</string>
     <string name="tool_approval_arguments">Arguments</string>
     <string name="tool_approval_approve">Approve</string>
     <string name="tool_approval_reject">Reject</string>
@@ -457,25 +510,62 @@
     <string name="tool_approval_edited_arguments">Edited arguments (JSON)</string>
     <string name="tool_approval_response_text">Reply to send instead of running the tool</string>
     <string name="tool_approval_invalid_json">Enter valid JSON</string>
-    <string name="ask_user_question_title">The assistant needs your input</string>
     <string name="ask_user_question_answer_hint">Type your answer</string>
     <string name="ask_user_question_other_hint">Something else</string>
     <string name="ask_user_question_send">Send</string>
     <string name="ask_user_question_skip">Skip</string>
     <string name="ask_user_question_multi_select_hint">Pick as many as apply</string>
-    <string name="ask_user_question_batch_subtitle">Answer all %1$d questions to continue</string>
+    <string name="ask_user_question_page_of">%1$d of %2$d</string>
+    <string name="ask_user_question_skipped">Skipped</string>
+    <string name="cd_previous_ask_user_question">Previous question</string>
+    <string name="cd_next_ask_user_question">Next question</string>
+    <string name="ask_user_question_send_progress">Send (%1$d/%2$d)</string>
+    <string name="ask_user_question_next">Next</string>
+    <string name="ask_user_question_back">Back</string>
+    <string name="ask_user_question_skip_all">Skip all</string>
+    <string name="ask_user_question_tab_fallback">Question %1$d</string>
+    <string name="ask_user_question_waiting_marker">Waiting for your answer below</string>
+    <string name="cd_ask_user_question_answered">Answered</string>
+    <string name="cd_minimize_ask_user_question">Minimize questions</string>
+    <string name="cd_restore_ask_user_question">Show questions</string>
+    <string name="tool_approval_waiting_marker">Waiting for your approval below</string>
+    <string name="tool_approval_submit_progress">Continue (%1$d/%2$d)</string>
+    <string name="tool_approval_tab_fallback">Tool %1$d</string>
+    <string name="cd_previous_tool_call">Previous tool call</string>
+    <string name="cd_next_tool_call">Next tool call</string>
+    <string name="cd_tool_call_decided">Decided</string>
+    <string name="cd_minimize_tool_approval">Minimize approvals</string>
+    <string name="cd_restore_tool_approval">Show approvals</string>
     <!-- Typed stream errors. An unrecognized code keeps the server's own text, so these cover
          only the codes with something actionable to say. -->
-    <string name="error_resource_recovery_required">The files attached to this conversation could not be restored, so the assistant couldn\'t use them. Attach them again and retry.</string>
+    <string name="error_resource_recovery_required">The files attached to this conversation could not be restored, so the assistant couldn't use them. Attach them again and retry.</string>
     <string name="error_model_not_found">The selected model is unavailable from this provider. Pick a different model, or ask an administrator to check the provider configuration.</string>
     <string name="error_missing_model">No model is selected. Choose a model and try again.</string>
-    <string name="error_models_not_loaded">The model list couldn\'t be loaded. Pull to refresh and try again.</string>
-    <string name="error_endpoint_models_not_loaded">This endpoint\'s models couldn\'t be loaded. Pull to refresh and try again.</string>
-    <string name="error_invalid_agent_provider">This agent\'s provider isn\'t allowed on this server. Ask an administrator to enable it.</string>
+    <string name="error_models_not_loaded">The model list couldn't be loaded. Pull to refresh and try again.</string>
+    <string name="error_endpoint_models_not_loaded">This endpoint's models couldn't be loaded. Pull to refresh and try again.</string>
+    <string name="error_invalid_agent_provider">This agent's provider isn't allowed on this server. Ask an administrator to enable it.</string>
     <string name="error_refusal">The model declined to answer this. Rephrasing the request may help.</string>
     <string name="error_input_length">This message is longer than the model accepts. Shorten it and try again.</string>
-    <string name="error_moderation">This message was flagged by the server\'s moderation. Edit it, or start a new conversation.</string>
+    <string name="error_moderation">This message was flagged by the server's moderation. Edit it, or start a new conversation.</string>
     <string name="error_stream_expired">This reply finished or expired before it could be shown. Reopen the conversation to load it.</string>
+    <string name="error_model_rate_limit">The provider is rate-limiting this model. Wait a moment and try again, or pick a different model.</string>
+    <string name="error_model_stream_closed">The model provider closed the connection before the response finished. Anything already received was kept. Try again; long reasoning runs are the most likely to be cut off.</string>
+    <string name="error_model_stream_stalled">The model provider stopped sending the response, and the request timed out waiting for it. Anything already received was kept. Try again, or ask an administrator to check the provider.</string>
+    <string name="error_mcp_authentication_rejected">A connected MCP server rejected your sign-in, so the message was not sent. Reconnect the server (or sign in again), then send it again.</string>
+    <string name="error_mcp_authentication_refresh_failed">Sign-in for a connected MCP server could not be refreshed, so the message was not sent. Try again in a moment.</string>
+    <string name="error_final_context_overflow">This conversation no longer fits the model's context window. Start a new conversation, or switch to a model with a larger window.</string>
+    <string name="error_compaction_skipped">There was nothing to compact yet. Keep chatting and try again later.</string>
+    <string name="error_compaction_failed">The summary couldn't be generated, so the conversation is unchanged. Try again.</string>
+    <string name="error_upstream_model_error">The model provider couldn't complete this request. Try again, or pick a different model.</string>
+    <string name="error_upstream_model_error_status">The model provider couldn't complete this request (status %1$d). Try again, or pick a different model.</string>
+    <string name="error_details_provider">Provider response</string>
+    <string name="error_empty_messages">There was nothing left to send after this conversation was trimmed to fit the model's context. Start a new conversation, or switch to a model with a larger window.</string>
+    <string name="error_code_workspace_unavailable">The code workspace for this conversation isn't available. Try again, or pick a different workspace.</string>
+    <string name="error_stateful_code_environment_not_allowed">This server doesn't allow a persistent code environment. Turn it off in the code interpreter options and try again.</string>
+    <string name="error_auth_rate_limited">Too many sign-in attempts. Wait a moment and try again.</string>
+    <string name="error_auth_banned">This account or network is blocked from signing in. Contact an administrator.</string>
+    <string name="error_auth_cross_origin">The server rejected the sign-in as coming from another site. Report this — it is an app bug, not a password problem.</string>
+    <string name="error_share_limit">Too many shared link requests. Wait a moment and try again.</string>
     <!-- Durable record of a resolved ask_user_question, shown in place of its tool card -->
     <string name="ask_user_question_record_asked">Asked</string>
     <string name="ask_user_question_record_asking">Asking</string>
@@ -484,8 +574,8 @@
     <string name="ask_user_question_record_skipped">You skipped this question</string>
     <string name="ask_user_question_record_options">Options offered</string>
     <string name="ask_user_question_record_options_multi">Options offered (pick as many as apply)</string>
-    <string name="ask_user_question_record_failed">Question wasn\'t shown</string>
-    <string name="ask_user_question_record_failed_description">The assistant couldn\'t show this question and may retry automatically.</string>
+    <string name="ask_user_question_record_failed">Question wasn't shown</string>
+    <string name="ask_user_question_record_failed_description">The assistant couldn't show this question and may retry automatically.</string>
     <string name="cd_expand_ask_user_question">Expand question details</string>
     <string name="cd_collapse_ask_user_question">Collapse question details</string>
     <string name="tool_memory">Memory</string>
@@ -499,4 +589,93 @@
     <string name="during_run_queue">Add to queue</string>
     <string name="during_run_always_steer">Always steer while generating</string>
     <string name="during_run_always_queue">Always queue while generating</string>
+    <!-- System events: wake-up turns (v0.8.8-rc4 styling) -->
+    <string name="system_event_label">System</string>
+    <string name="wakeup_explainer">This durable result woke the agent to continue the conversation.</string>
+    <string name="wakeup_subagent_completed">Subagent task completed</string>
+    <string name="wakeup_subagent_failed">Subagent task failed</string>
+    <string name="wakeup_subagent_cancelled">Subagent task cancelled</string>
+    <string name="wakeup_task_finished">Background task finished</string>
+    <string name="wakeup_task_failed">Background task failed</string>
+    <string name="wakeup_tasks_finished">%1$d background tasks finished</string>
+    <string name="wakeup_status_completed">Completed</string>
+    <string name="wakeup_status_failed">Failed</string>
+    <string name="wakeup_status_cancelled">Cancelled</string>
+    <string name="wakeup_subagent_thread">Thread %1$s</string>
+    <string name="background_tasks_title">Background tasks</string>
+    <string name="background_tasks_cd_chip">Background tasks, %1$d running</string>
+    <string name="background_task_status_running">Running</string>
+    <string name="background_task_status_stopping">Stopping…</string>
+    <string name="background_task_status_dispatched">Dispatched</string>
+    <string name="background_task_status_accepted">Control queued</string>
+    <string name="background_task_status_claimed">Result claimed</string>
+    <string name="background_task_status_not_running">No longer running</string>
+    <string name="background_task_status_control_not_found">Control not found</string>
+    <string name="background_task_status_interrupted">Interrupted</string>
+    <string name="background_task_result_pending">Result pending</string>
+    <string name="background_task_result_undelivered">Result not delivered</string>
+    <string name="background_tasks_stop">Stop task</string>
+    <string name="background_tasks_stop_all">Stop all running tasks</string>
+    <string name="background_tasks_stop_failed">Could not stop some tasks. Try again.</string>
+    <string name="background_tasks_incomplete">Some background results may not be shown. Check again later.</string>
+    <string name="background_tasks_empty">No background tasks yet</string>
+    <string name="background_tasks_checked">Checked background tasks</string>
+    <string name="background_tasks_subagent">Subagent</string>
+    <string name="background_tasks_raw_details">Raw task details</string>
+    <string name="background_tasks_result_available">Result available on request</string>
+    <string name="background_tasks_more_in_raw_details">More information in raw task details.</string>
+    <string name="background_tasks_notice_invalid">Invalid background-task request. Check the task ID or control arguments.</string>
+    <string name="background_tasks_notice_rejected">The request was rejected. Check raw details before trying again.</string>
+    <string name="background_tasks_notice_unavailable">Task or control temporarily unavailable. Check again; do not assume the task stopped or its result will not arrive.</string>
+    <string name="background_tasks_notice_not_found">No background task with that ID was found in this conversation.</string>
+    <string name="background_tasks_notice_outcome_unknown">The task's outcome is unknown. Inspect the target system before repeating an action.</string>
+    <string name="background_tasks_notice_result_unavailable">The result is temporarily unavailable. Check again later; do not automatically repeat a mutating action.</string>
+    <string name="background_tasks_notice_result_persisting">The result is being saved or recovered. Check again shortly; do not rerun the task.</string>
+    <string name="background_tasks_notice_delivery_scheduled">Result assigned to another poll or automatic delivery. It may still arrive as a new turn.</string>
+    <string name="background_tasks_result_discarded">Finished result discarded. It will not arrive as a new turn.</string>
+    <string name="background_tasks_notice_error">The background-task check failed. See raw task details.</string>
+    <string name="background_tasks_cancel_disabled">Stopping background tools is not enabled on this server</string>
+    <string name="background_tasks_notice_subagent_only">This control action is available only for subagent tasks.</string>
+    <string name="background_tasks_notice_discard_unavailable">Could not discard the pending result. It may still arrive as a new turn; try again shortly.</string>
+    <string name="background_tasks_files_attached">Generated files are attached to the original tool call.</string>
+    <string name="background_tasks_files_attaching">Output and generated files are being attached to the original tool call.</string>
+    <string name="background_tasks_artifact_not_inline">This task produced an artifact that is not shown here.</string>
+    <string name="background_tasks_running_elsewhere">Still running outside this turn. Its result may arrive as a new turn.</string>
+    <string name="background_tasks_pending_delivery_note">Result pending delivery. It may still arrive as a new turn; poll to collect it sooner.</string>
+    <string name="background_tasks_failed_delivery_note">Automatic delivery failed. Poll this task to collect its result; it will not arrive as a new turn.</string>
+    <string name="background_tasks_cancellation_requested">Cancellation requested. The task may still be running; check again for its final status.</string>
+
+    <!-- App update banner -->
+    <string name="update_banner_title">Switchboard %1$s is available</string>
+    <string name="update_banner_action">See what's new</string>
+    <string name="cd_dismiss_update">Dismiss update notice</string>
+    <string name="site_icons_prompt_title">Show website icons?</string>
+    <string name="site_icons_prompt_body">Web search results can show each website's icon. Loading them sends the sites' addresses to external servers such as Google.</string>
+    <string name="site_icons_prompt_settings_hint">You can change this anytime in Settings → Chat → Show website icons.</string>
+    <string name="site_icons_prompt_allow">Show icons</string>
+    <string name="site_icons_prompt_deny">Don't show</string>
+    <string name="compact_nudge_short">Compact…</string>
+    <string name="compact_nudge_action">Suggest compacting</string>
+    <string name="compact_nudge_menu">Compact conversation…</string>
+    <string name="compact_confirm_title">Compact this conversation?</string>
+    <string name="compact_confirm_body">%1$d% of the context window is used. Compacting summarizes the conversation so far into a shorter note the model keeps reading, freeing room for what comes next. Nothing is deleted.</string>
+    <string name="compact_confirm_not_now">Not now</string>
+    <string name="compact_confirm_action">Compact</string>
+    <string name="notice_rename_failed">Failed to rename conversation</string>
+    <string name="notice_delete_failed">Failed to delete conversation</string>
+    <string name="notice_archive_failed">Failed to archive conversation</string>
+    <string name="notice_duplicate_failed">Failed to duplicate conversation</string>
+    <string name="notice_share_link_failed">Failed to create share link</string>
+    <string name="notice_preset_save_failed">Could not save preset</string>
+    <string name="notice_preset_delete_failed">Could not delete preset</string>
+    <string name="notice_preset_update_failed">Could not update preset</string>
+    <string name="notice_continue_response_failed">Failed to continue with selected response</string>
+    <string name="notice_favorites_limit">You can pin up to %1$d favorites.</string>
+    <string name="notice_favorites_update_failed">Could not update favorites.</string>
+    <string name="notice_upload_failed">Failed to upload %1$s: %2$s</string>
+    <string name="notice_upload_failed_unknown">Failed to upload %1$s: Unknown error</string>
+    <string name="notice_upload_unreadable">Failed to upload %1$s: Could not read file</string>
+    <string name="notice_upload_too_large">%1$s is larger than the server limit of %2$s.</string>
+    <string name="notice_speech_permission_denied">Speech recognition permission denied</string>
+    <string name="notice_speech_unavailable">Speech recognition not available. Check Settings &gt; Privacy &gt; Speech Recognition.</string>
 </resources>

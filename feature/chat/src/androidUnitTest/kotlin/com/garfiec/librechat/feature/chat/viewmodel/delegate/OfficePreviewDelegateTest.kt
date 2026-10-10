@@ -3,8 +3,8 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
-import com.garfiec.librechat.feature.chat.viewmodel.OfficePreviewHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
+import com.garfiec.librechat.feature.chat.viewmodel.OfficePreviewHandle
 import com.google.common.truth.Truth.assertThat
 import io.mockk.mockk
 import kotlinx.coroutines.CoroutineScope

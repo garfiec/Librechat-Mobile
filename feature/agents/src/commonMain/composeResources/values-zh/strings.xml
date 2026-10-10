@@ -99,7 +99,7 @@
     <string name="auth_api_key_full">API 密钥身份验证</string>
     <string name="auth_oauth_full">OAuth 身份验证</string>
     <string name="auth_no_auth">无身份验证</string>
-    <string name="label_openapi_schema">OpenAPI Schema</string>
+    <string name="label_openapi_schema">OpenAPI 架构</string>
     <string name="openapi_schema_hint">以 JSON 或 YAML 格式粘贴你的 OpenAPI 规范。</string>
     <string name="label_openapi_spec">OpenAPI 规范（JSON 或 YAML）</string>
     <string name="validating">验证中…</string>
@@ -116,10 +116,10 @@
     <string name="auth_custom">自定义</string>
     <string name="label_custom_auth_header">自定义认证请求头</string>
     <string name="label_oauth_settings">OAuth 设置</string>
-    <string name="label_client_id">Client ID</string>
-    <string name="label_client_secret">Client Secret</string>
+    <string name="label_client_id">客户端 ID</string>
+    <string name="label_client_secret">客户端密钥</string>
     <string name="label_authorization_url">授权 URL</string>
-    <string name="label_token_url">Token URL</string>
+    <string name="label_token_url">令牌 URL</string>
     <string name="label_scope">作用域</string>
     <string name="label_token_exchange_method">Token 交换方式</string>
     <string name="token_default_post">默认（POST）</string>
@@ -259,6 +259,9 @@
     <string name="agent_file_upload_failed">文件上传失败</string>
     <string name="agent_file_remove_failed">移除文件失败</string>
     <string name="cd_remove_file">移除 %1$s</string>
+    <string name="agent_file_remove_confirm_title">移除 %1$s？</string>
+    <string name="agent_file_remove_confirm_title_generic">移除此文件？</string>
+    <string name="agent_file_remove_confirm_message">如果没有其他智能体使用此文件，它将被永久删除。</string>
 
     <!-- Skills selector (v0.8.6) -->
     <string name="label_skills">技能</string>
@@ -278,4 +281,30 @@
     <string name="subagents_allow_self">允许生成自身</string>
     <string name="add_subagent">添加子智能体</string>
     <string name="subagents_full">已达到子智能体的最大数量。</string>
+    <string name="tools_marketplace_title">工具</string>
+    <string name="tools_marketplace_description">选择此智能体能做什么</string>
+    <string name="tools_marketplace_search_hint">搜索工具、服务器和技能…</string>
+    <string name="tools_marketplace_no_matches">没有与 "%1$s" 匹配的结果</string>
+    <string name="tools_marketplace_no_favorites">为工具加星标即可固定到此处</string>
+    <string name="tools_marketplace_empty">暂无可用项</string>
+    <string name="tools_filter_all">全部</string>
+    <string name="tools_filter_favorites">收藏</string>
+    <string name="tools_filter_builtin">内置</string>
+    <string name="tools_filter_tools">工具</string>
+    <string name="tools_filter_mcp">MCP</string>
+    <string name="tools_filter_skills">技能</string>
+    <string name="tools_browse">浏览工具</string>
+    <string name="cd_pin_tool">固定</string>
+    <string name="cd_unpin_tool">取消固定</string>
+    <string name="builtin_code_interpreter">代码解释器</string>
+    <string name="builtin_code_interpreter_desc">在沙盒中运行代码，并返回输出和文件。</string>
+    <string name="builtin_file_search">文件搜索</string>
+    <string name="builtin_file_search_desc">从附加到此智能体的文件中检索段落。</string>
+    <string name="builtin_web_search">网络搜索</string>
+    <string name="builtin_web_search_desc">搜索网络并注明所引用的来源。</string>
+    <string name="builtin_file_context">文件上下文</string>
+    <string name="builtin_file_context_desc">将附加的完整文件放入智能体的上下文。</string>
+    <string name="builtin_ask_user">询问用户</string>
+    <string name="builtin_ask_user_desc">暂停运行，向你提出澄清问题。</string>
+    <string name="agent_contact_title">联系方式</string>
 </resources>

@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.conversations.viewmodel
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.garfiec.librechat.core.common.datetime.DateGroup
 import com.garfiec.librechat.core.common.extensions.RelativeTimeReference
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.ConfigRepository
@@ -37,7 +38,7 @@ import kotlinx.coroutines.launch
 
 @Immutable
 data class ConversationListUiState(
-    val groupedConversations: List<Pair<String, List<ConversationDisplayData>>> = emptyList(),
+    val groupedConversations: List<Pair<DateGroup, List<ConversationDisplayData>>> = emptyList(),
     val conversationCount: Int = 0,
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,

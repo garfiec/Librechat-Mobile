@@ -11,9 +11,12 @@ import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import com.garfiec.librechat.core.data.datastore.InlineArtifactPrefs
+import com.garfiec.librechat.core.ui.components.topbar.CoversNativeBars
+import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
+import com.garfiec.librechat.core.ui.glass.rememberGlassBackdrop
 import com.garfiec.librechat.core.ui.media.MediaActionBar
 import com.garfiec.librechat.core.ui.media.MediaPreviewState
-import com.garfiec.librechat.core.ui.media.ZoomableMediaPager
+import com.garfiec.librechat.core.ui.media.MediaViewerHost
 import com.garfiec.librechat.core.ui.media.rememberSaveImageToGallery
 import com.garfiec.librechat.core.ui.media.rememberShareImage
 import com.garfiec.librechat.feature.chat.components.artifact.LocalInlineArtifactPrefs
@@ -24,6 +27,7 @@ import com.garfiec.librechat.feature.chat.resources.cd_close
 import com.garfiec.librechat.feature.chat.resources.cd_image
 import com.garfiec.librechat.feature.chat.resources.cd_save_to_device
 import com.garfiec.librechat.feature.chat.resources.cd_share_image
+import com.garfiec.librechat.feature.chat.viewmodel.SiteIconsState
 import com.garfiec.librechat.feature.chat.viewmodel.SubagentTrace
 import org.jetbrains.compose.resources.stringResource
 
@@ -38,6 +42,15 @@ fun ChatRoot(
     mermaidRenderCache: MermaidRenderCache,
     parsedMarkdownCache: ParsedMarkdownCache,
     subagentProgress: Map<String, SubagentTrace>,
+    /** The conversation the child-thread viewer reads from. Null on the landing screen. */
+    conversationId: String?,
+    /**
+     * Whether this server can serve child threads at all. Required, not defaulted, so neither
+     * platform's `ChatScreen` can quietly drop it and offer a row that only ever says "unavailable"
+     * — `on_subagent_update` predates these routes by two releases, so a 0.8.6/0.8.7 server draws
+     * the trace cards the row would hang off.
+     */
+    subagentThreadsSupported: Boolean,
     mediaPreview: MediaPreviewState?,
     onOpenMedia: (url: String) -> Unit,
     onCloseMedia: () -> Unit,
@@ -45,6 +58,10 @@ fun ChatRoot(
     /** Required, not defaulted, so neither platform's `ChatScreen` can quietly drop the wiring. */
     promptLibraryRevision: Long,
     onRefreshPrompts: () -> Unit,
+    /** Required, not defaulted, so neither platform's `ChatScreen` can drop the icons prompt. */
+    siteIcons: SiteIconsState,
+    onSiteIconsChoice: (show: Boolean) -> Unit,
+    onSiteIconsPromptDismiss: () -> Unit,
     content: @Composable () -> Unit,
 ) {
     // Driven from the chat screen's composition rather than a ViewModel collector, which defers the
@@ -60,7 +77,31 @@ fun ChatRoot(
     var pdfRequest by rememberSaveable(stateSaver = PdfRequestSaver) { mutableStateOf<PdfRequest?>(null) }
     val openPdf = remember { { fileId: String, filename: String -> pdfRequest = PdfRequest(fileId, filename) } }
 
+    // Hosted here for the same reason the PDF overlay is: the card that opens it can scroll away,
+    // and a sheet owned by a lazy item would be disposed with it. Two saveable primitives rather
+    // than one nullable holder, because "open on the list" and "closed" are different states and
+    // both carry a null tool call.
+    var subagentSheetOpen by rememberSaveable { mutableStateOf(false) }
+    var subagentFocusToolCallId by rememberSaveable { mutableStateOf<String?>(null) }
+    val openSubagentThreads = remember {
+        { parentToolCallId: String? ->
+            subagentFocusToolCallId = parentToolCallId
+            subagentSheetOpen = true
+        }
+    }
+
+    // A search-result card raises this; the dialog lives here so several cards raise one prompt.
+    // Only a visibility latch: once the user chooses or closes it, `siteIcons` leaves ASK.
+    var siteIconsPromptRequested by remember { mutableStateOf(false) }
+    val requestSiteIconsChoice = remember { { siteIconsPromptRequested = true } }
+    val siteIconsLocal = remember(siteIcons) { SiteIcons(siteIcons, requestSiteIconsChoice) }
+
+    // Full-screen overlays hosted here are drawn in the Compose canvas, under a native glass bar.
+    CoversNativeBars(active = mediaPreview != null || pdfRequest != null)
+
     CompositionLocalProvider(
+        // What the chat's glass chrome samples: the message list records into it (MessageList).
+        LocalGlassBackdrop provides rememberGlassBackdrop(),
         LocalInlineArtifactPrefs provides inlineArtifactPrefs,
         LocalMermaidRenderCache provides mermaidRenderCache,
         LocalParsedMarkdownCache provides parsedMarkdownCache,
@@ -68,35 +109,51 @@ fun ChatRoot(
         LocalChatMediaViewer provides onOpenMedia,
         LocalAttachmentDownloader provides onDownloadAttachment,
         LocalOpenPdf provides openPdf,
+        LocalSubagentThreads provides openSubagentThreads,
+        // Both halves: a conversation to read children from, and a server that can serve them.
+        // The repository asks the version question again before it issues a request — this one
+        // decides whether the affordance is drawn at all.
+        LocalSubagentThreadsAvailable provides (conversationId != null && subagentThreadsSupported),
+        LocalSiteIcons provides siteIconsLocal,
     ) {
-        content()
-
-        // Remembered above the `if` so the save/share coroutine scope (and the permission
+        // Remembered outside the viewer so the save/share coroutine scope (and the permission
         // launcher) live as long as the chat screen, not just while the viewer is open — a
         // save/share in flight survives the user dismissing the viewer mid-operation.
         val saveImage = rememberSaveImageToGallery()
         val shareImage = rememberShareImage()
-        if (mediaPreview != null) {
-            // Resolved once here (not inside the per-item actions slot) so paging doesn't
-            // re-resolve string resources on every swipe.
-            val saveDescription = stringResource(Res.string.cd_save_to_device)
-            val shareDescription = stringResource(Res.string.cd_share_image)
-            val imageDescription = stringResource(Res.string.cd_image)
-            ZoomableMediaPager(
-                items = mediaPreview.items,
-                initialIndex = mediaPreview.initialIndex,
-                onDismiss = onCloseMedia,
-                closeContentDescription = stringResource(Res.string.cd_close),
-                defaultContentDescription = imageDescription,
-                actions = { item ->
-                    MediaActionBar(
-                        item = item,
-                        onSave = saveImage,
-                        onShare = shareImage,
-                        saveContentDescription = saveDescription,
-                        shareContentDescription = shareDescription,
-                    )
-                },
+        // Resolved once here (not inside the per-item actions slot) so paging doesn't
+        // re-resolve string resources on every swipe.
+        val saveDescription = stringResource(Res.string.cd_save_to_device)
+        val shareDescription = stringResource(Res.string.cd_share_image)
+        MediaViewerHost(
+            preview = mediaPreview,
+            onDismiss = onCloseMedia,
+            closeContentDescription = stringResource(Res.string.cd_close),
+            defaultContentDescription = stringResource(Res.string.cd_image),
+            actions = { item ->
+                MediaActionBar(
+                    item = item,
+                    onSave = saveImage,
+                    onShare = shareImage,
+                    saveContentDescription = saveDescription,
+                    shareContentDescription = shareDescription,
+                )
+            },
+            content = content,
+        )
+
+        if (siteIconsPromptRequested && siteIcons == SiteIconsState.ASK) {
+            SiteIconsPromptDialog(
+                onChoice = onSiteIconsChoice,
+                onDismiss = onSiteIconsPromptDismiss,
+            )
+        }
+
+        if (subagentSheetOpen && conversationId != null) {
+            SubagentThreadsSheet(
+                parentConversationId = conversationId,
+                focusParentToolCallId = subagentFocusToolCallId,
+                onDismiss = { subagentSheetOpen = false },
             )
         }
 

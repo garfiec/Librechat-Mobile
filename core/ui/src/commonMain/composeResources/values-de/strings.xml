@@ -2,6 +2,8 @@
 <resources>
     <!-- Accessibility label for the bottom-sheet drag handle -->
     <string name="cd_drag_handle">Ziehpunkt</string>
+    <string name="banner_dismiss">Banner schließen</string>
+    <string name="pdf_page_failed">Diese Seite konnte nicht dargestellt werden</string>
     <!-- Custom per-server request headers (issue #287); shared by the pre-login
          server screen and the post-login Settings editor -->
     <string name="server_headers_title">Benutzerdefinierte Anfrage-Header</string>
@@ -19,4 +21,81 @@
     <string name="server_headers_error_name">Kein gültiger Header-Name.</string>
     <string name="server_headers_error_value">Dieser Wert enthält Zeichen, die nicht gesendet werden können.</string>
     <string name="server_headers_error_reserved">Dieser Header wird von der App gesetzt und kann nicht überschrieben werden.</string>
+    <string name="pdf_password_title">Passwortgeschützte PDF</string>
+    <string name="pdf_password_explanation">„%1$s“ benötigt ein Passwort zum Öffnen. Damit sie an das KI-Modell gesendet werden kann, entschlüsselt Switchboard sie auf diesem Gerät und lädt die entschlüsselte Kopie hoch. Das Passwort verlässt dein Gerät nie.</string>
+    <string name="pdf_password_sensitive_warning">Passwortgeschützte Dateien enthalten oft vertrauliche Informationen. Die entschlüsselte Kopie wird auf deinem LibreChat-Server gespeichert und mit dem KI-Anbieter geteilt. Fahre nur fort, wenn du den Inhalt teilen möchtest.</string>
+    <string name="pdf_password_field">PDF-Passwort</string>
+    <string name="pdf_password_incorrect">Falsches Passwort. Versuche es erneut.</string>
+    <string name="pdf_password_show">Passwort anzeigen</string>
+    <string name="pdf_password_hide">Passwort ausblenden</string>
+    <string name="pdf_password_confirm">Entschlüsseln und hochladen</string>
+    <string name="pdf_password_cancel">Abbrechen</string>
+    <string name="param_thinking_between_tools_description">Aktiviert adaptives Denken, das über den Parameter „Aufwand“ gesteuert wird. Dieses Modell kann das Denken nicht vollständig abschalten: Beim Ausschalten wird die niedrigste Stufe verwendet, die erweitertes Denken überspringt und nur kurze Notizen zwischen Tool-Aufrufen behält. Im ausgeschalteten Zustand ist der Aufwand auf „Hoch“ begrenzt.</string>
+    <string name="discard_changes_title">Änderungen verwerfen?</string>
+    <string name="discard_changes_message">Deine nicht gespeicherten Änderungen gehen verloren.</string>
+    <string name="discard_changes_confirm">Verwerfen</string>
+    <string name="discard_changes_cancel">Abbrechen</string>
+    <!-- Context usage breakdown -->
+    <string name="context_compact">Unterhaltung komprimieren</string>
+    <string name="context_compacting">Wird komprimiert…</string>
+    <string name="context_compact_info">Fasst alles Bisherige in einer kürzeren Notiz zusammen, die das Modell weiterhin liest, und schafft so Platz im Kontext für das Weitere. Es wird nichts gelöscht.</string>
+    <string name="context_usage_label">Kontext</string>
+    <string name="context_usage_window">Kontextfenster</string>
+    <string name="context_usage_estimated">Geschätzt anhand des Nachrichtenverlaufs</string>
+    <string name="context_usage_messages">Nachrichten</string>
+    <string name="context_usage_tools">Tool-Schemas</string>
+    <string name="context_usage_summary">Zusammenfassung</string>
+    <string name="context_usage_system">System-Prompt</string>
+    <string name="context_usage_free">Freier Platz</string>
+    <string name="context_usage_input">Eingabe</string>
+    <string name="context_usage_output">Ausgabe</string>
+    <string name="context_usage_estimated_row">Geschätzt</string>
+    <string name="context_usage_tool_calls">Tool-Aufrufe</string>
+    <string name="context_usage_agent_instructions">Agenten-Anweisungen</string>
+    <string name="context_usage_tools_system">System-Tools</string>
+    <string name="context_usage_tools_system_deferred">System-Tools (verzögert)</string>
+    <string name="context_usage_tools_mcp">MCP-Tools</string>
+    <string name="context_usage_tools_mcp_deferred">MCP-Tools (verzögert)</string>
+    <string name="context_usage_skills">Skills</string>
+    <string name="context_usage_subagents">Subagenten</string>
+    <string name="context_usage_cached">Zwischengespeichert</string>
+    <string name="context_usage_cache_write">Cache-Schreibvorgang</string>
+    <string name="context_usage_by_tool">Nach Tool</string>
+    <string name="context_usage_pressure_warn">Das Kontextfenster füllt sich</string>
+    <string name="context_usage_pressure_danger">Das Kontextfenster ist fast voll</string>
+    <string name="context_usage_largest_tool">Größtes Tool: %1$s (%2$s)</string>
+    <string name="context_usage_reclaim">Jetzt zusammenzufassen könnte ≈%1$s Tokens freigeben</string>
+    <string name="context_usage_insights">Kontext-Einblicke</string>
+    <string name="context_usage_totals">Summen</string>
+    <string name="context_usage_cache_read">Cache-Lesevorgang</string>
+    <string name="context_usage_subagents_all">Subagenten (alle Zweige)</string>
+    <string name="context_usage_cost">Kosten</string>
+    <string name="context_usage_cost_branch">Kosten (dieser Zweig)</string>
+    <string name="context_usage_cost_all">Alle Zweige</string>
+    <string name="context_usage_tools_all">Tools</string>
+    <string name="context_usage_used">Belegt</string>
+    <string name="timestamp_just_now">Gerade eben</string>
+    <plurals name="timestamp_minutes_ago">
+        <item quantity="one">vor %1$d Min.</item>
+        <item quantity="other">vor %1$d Min.</item>
+    </plurals>
+    <plurals name="timestamp_hours_ago">
+        <item quantity="one">vor %1$d Std.</item>
+        <item quantity="other">vor %1$d Std.</item>
+    </plurals>
+    <plurals name="timestamp_days_ago">
+        <item quantity="one">vor %1$d Tag</item>
+        <item quantity="other">vor %1$d Tagen</item>
+    </plurals>
+    <plurals name="timestamp_weeks_ago">
+        <item quantity="one">vor %1$d Woche</item>
+        <item quantity="other">vor %1$d Wochen</item>
+    </plurals>
+    <string name="timestamp_yesterday_at">Gestern %1$s</string>
+    <string name="date_group_today">Heute</string>
+    <string name="date_group_yesterday">Gestern</string>
+    <string name="date_group_previous_7_days">Letzte 7 Tage</string>
+    <string name="date_group_previous_30_days">Letzte 30 Tage</string>
+    <string name="date_group_unknown">Unbekannt</string>
+    <string name="snackbar_dismiss">Schließen</string>
 </resources>

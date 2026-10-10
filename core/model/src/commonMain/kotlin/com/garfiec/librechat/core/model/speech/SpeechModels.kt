@@ -37,7 +37,7 @@ data class TtsVoice(
  * Handles both string arrays `["alloy","echo"]` and object arrays
  * `[{"id":"alloy","name":"Alloy"}]` from the server.
  */
-internal object TtsVoiceListSerializer : KSerializer<List<TtsVoice>> {
+object TtsVoiceListSerializer : KSerializer<List<TtsVoice>> {
     private val delegateSerializer = ListSerializer(TtsVoice.serializer())
 
     override val descriptor: SerialDescriptor = delegateSerializer.descriptor

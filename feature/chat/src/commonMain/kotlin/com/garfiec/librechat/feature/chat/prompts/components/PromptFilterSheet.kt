@@ -10,15 +10,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.AdaptiveFilterChip
+import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -42,7 +42,7 @@ fun PromptFilterSheet(
     modifier: Modifier = Modifier,
     sheetState: SheetState = rememberModalBottomSheetState(),
 ) {
-    ModalBottomSheet(
+    AdaptiveModalBottomSheet(
         onDismissRequest = onDismiss,
         dragHandle = { LowProfileDragHandle() },
         sheetState = sheetState,
@@ -72,13 +72,13 @@ fun PromptFilterSheet(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                FilterChip(
+                AdaptiveFilterChip(
                     selected = selectedCategory == null,
                     onClick = { onCategorySelect(null) },
                     label = { Text(stringResource(Res.string.label_all)) },
                 )
                 categories.forEach { category ->
-                    FilterChip(
+                    AdaptiveFilterChip(
                         selected = selectedCategory == category,
                         onClick = {
                             onCategorySelect(
@@ -105,7 +105,7 @@ fun PromptFilterSheet(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 PromptSortOrder.entries.forEach { order ->
-                    FilterChip(
+                    AdaptiveFilterChip(
                         selected = sortOrder == order,
                         onClick = { onSortOrderChange(order) },
                         label = { Text(order.label) },

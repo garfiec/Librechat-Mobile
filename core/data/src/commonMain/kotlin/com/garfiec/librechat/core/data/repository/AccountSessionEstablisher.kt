@@ -62,7 +62,7 @@ class AccountSessionEstablisher(
      * establish (cold-start restore or a re-login). A session that logs in once and stays logged in
      * never re-establishes, so on that path the orphaned pre-migration history is hidden until the user
      * re-auths — not just for a brief window. That is still strictly better than a dead session;
-     * bounding it with a foreground/sync-time claim retry is left to a follow-up (SessionWriter / PR1-B).
+     * bounding it with a foreground/sync-time claim retry is not implemented (deferred with SessionWriter).
      */
     suspend fun establish(user: User): AccountId = withContext(ioDispatcher) {
         val baseUrl = serverUrlProvider.awaitBaseUrl()

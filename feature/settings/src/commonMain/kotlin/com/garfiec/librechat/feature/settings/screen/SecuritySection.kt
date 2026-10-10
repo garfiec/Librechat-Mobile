@@ -12,15 +12,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -78,7 +78,7 @@ internal fun SecuritySection(
             }
 
             // Enable/Disable 2FA button
-            OutlinedButton(
+            AdaptiveOutlinedButton(
                 onClick = onToggleTwoFactor,
                 enabled = !isLoading,
                 modifier = Modifier.fillMaxWidth(),
@@ -90,7 +90,7 @@ internal fun SecuritySection(
 
             // View backup codes (only when 2FA is enabled)
             if (isTwoFactorEnabled) {
-                OutlinedButton(
+                AdaptiveOutlinedButton(
                     onClick = onViewBackupCodes,
                     enabled = !isLoading,
                     modifier = Modifier.fillMaxWidth(),
@@ -101,6 +101,6 @@ internal fun SecuritySection(
 
             Spacer(modifier = Modifier.height(0.dp))
         }
-        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+        AdaptiveDivider(modifier = Modifier.padding(top = 8.dp))
     }
 }

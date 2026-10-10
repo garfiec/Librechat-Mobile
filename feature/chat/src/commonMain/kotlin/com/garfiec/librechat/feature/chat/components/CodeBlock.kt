@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions") // debt: 24 functions
+
 package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.animation.AnimatedContent
@@ -50,7 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
-import com.garfiec.librechat.feature.chat.util.copyToClipboard
+import com.garfiec.librechat.feature.chat.util.rememberClipboardWriter
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 
@@ -69,6 +71,7 @@ fun CodeBlock(
     // computed off the main thread with the previous result retained.
     streaming: Boolean = false,
 ) {
+    val clipboard = rememberClipboardWriter()
     var showCopied by remember { mutableStateOf(false) }
 
     LaunchedEffect(showCopied) {
@@ -106,7 +109,7 @@ fun CodeBlock(
             Spacer(modifier = Modifier.weight(1f))
             IconButton(
                 onClick = {
-                    copyToClipboard(code, "Code")
+                    clipboard.copy(code, "Code")
                     showCopied = true
                 },
             ) {
@@ -296,6 +299,7 @@ private val constantStyle = SpanStyle(color = Color(0xFF4FC1FF))
 // Cache token rules per language to avoid recreating Regex objects on every code block render.
 private val tokenRulesCache = mutableMapOf<String, List<TokenRule>>()
 
+@Suppress("CyclomaticComplexMethod") // debt: complexity 36
 private fun getTokenRules(language: String?): List<TokenRule>? {
     if (language == null || language == "markdown" || language == "md") return null
     val key = when (language) {

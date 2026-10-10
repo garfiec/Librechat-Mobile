@@ -26,8 +26,6 @@ data class PromptsUiState(
     val isRefreshing: Boolean = false,
     val error: String? = null,
     val selectedGroup: PromptGroupDetailDisplayData? = null,
-    val totalPages: Int = 0,
-    val currentPage: Int = 1,
     // Filter and sort state
     val selectedCategory: String? = null,
     val sortOrder: PromptSortOrder = PromptSortOrder.RECENT,
@@ -41,6 +39,8 @@ data class PromptsUiState(
     val showVariableDialog: Boolean = false,
     val variablePromptTemplate: String = "",
     val variableNames: List<String> = emptyList(),
+    val pendingDeleteGroupId: String? = null,
+    val isDeleting: Boolean = false,
     // Role-permission gates — default permissive.
     val promptsCreateEnabled: Boolean = true,
     val promptsShareEnabled: Boolean = true,
@@ -102,7 +102,7 @@ class PromptsViewModel(
         }
     }
 
-    /** Fetches the first page of prompt groups once the role confirms PROMPTS.USE. Permissive on timeout. */
+    /** Fetches every prompt group once the role confirms PROMPTS.USE. Permissive on timeout. */
     private fun loadInitialGroups() {
         viewModelScope.launch {
             if (permissionGate.awaitRole()?.hasAccess(PermissionType.PROMPTS, Permission.USE) != false) {
@@ -135,10 +135,11 @@ class PromptsViewModel(
             isRefreshing = !fullSpinner,
             error = if (surfaceErrors) null else _uiState.value.error,
         )
-        when (val result = promptRepository.getGroups()) {
+        // Every group, not a page: sorting, the category filter and the category chips all run
+        // here over the whole list, and the server's paged route orders by popularity, then recency.
+        when (val result = promptRepository.getAllGroups()) {
             is Result.Success -> {
-                val response = result.data
-                val groups = response.promptGroups
+                val groups = result.data
                 rawGroups = groups
                 loadedRevision = revision
                 val categories = groups
@@ -149,8 +150,6 @@ class PromptsViewModel(
 
                 _uiState.value = _uiState.value.copy(
                     groups = groups.map { it.toDisplayData() },
-                    totalPages = if (response.hasMore) 9999 else 1,
-                    currentPage = 1,
                     isLoading = false,
                     isRefreshing = false,
                     availableCategories = categories,
@@ -180,6 +179,13 @@ class PromptsViewModel(
             when (groupResult) {
                 is Result.Success -> {
                     val group = groupResult.data
+                    if (group == null) {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            error = "This prompt is not available.",
+                        )
+                        return@launch
+                    }
                     val prompts = (promptsResult as? Result.Success)?.data ?: emptyList()
                     val mergedGroup = group.copy(prompts = prompts)
                     _uiState.value = _uiState.value.copy(
@@ -199,7 +205,7 @@ class PromptsViewModel(
     }
 
     fun clearSelectedGroup() {
-        _uiState.value = _uiState.value.copy(selectedGroup = null)
+        _uiState.value = _uiState.value.copy(selectedGroup = null, pendingDeleteGroupId = null)
     }
 
     fun onCategorySelected(category: String?) {
@@ -240,20 +246,44 @@ class PromptsViewModel(
         _uiState.value = state.copy(filteredGroups = filtered.map { it.toDisplayData() })
     }
 
-    fun deleteGroup(groupId: String) {
+    /**
+     * Asks for confirmation before [confirmDeleteGroup] runs. The server's group delete is a hard
+     * cascade over every version with no restore, so the trash icon must never delete on its own.
+     */
+    fun requestDeleteGroup(groupId: String) {
+        if (_uiState.value.isDeleting) return
+        _uiState.value = _uiState.value.copy(pendingDeleteGroupId = groupId)
+    }
+
+    fun dismissDeleteGroup() {
+        _uiState.value = _uiState.value.copy(pendingDeleteGroupId = null)
+    }
+
+    fun confirmDeleteGroup() {
+        val groupId = _uiState.value.pendingDeleteGroupId ?: return
+        _uiState.value = _uiState.value.copy(pendingDeleteGroupId = null, isDeleting = true)
+        deleteGroup(groupId)
+    }
+
+    private fun deleteGroup(groupId: String) {
         viewModelScope.launch {
             // Close the detail view only on Success — doing it unconditionally reports a prompt as
             // gone while it is still on the server. `delete` is safeApiCall-wrapped, so failure
             // arrives as a returned Result.Error and a try/catch here would never see it.
             when (val result = promptRepository.delete(groupId)) {
-                is Result.Success -> _uiState.value = _uiState.value.copy(selectedGroup = null)
+                is Result.Success -> _uiState.value = _uiState.value.copy(
+                    // The user may have backed out and opened another prompt while this was in flight.
+                    selectedGroup = _uiState.value.selectedGroup?.takeIf { it.id != groupId },
+                    isDeleting = false,
+                )
                 is Result.Error -> {
                     Logger.e(result.exception) { "Failed to delete prompt" }
                     _uiState.value = _uiState.value.copy(
                         error = result.message ?: "Failed to delete prompt",
+                        isDeleting = false,
                     )
                 }
-                is Result.Loading -> { /* no-op */ }
+                is Result.Loading -> _uiState.value = _uiState.value.copy(isDeleting = false)
             }
         }
     }

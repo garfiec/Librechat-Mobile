@@ -1,22 +1,24 @@
 package com.garfiec.librechat.feature.auth.viewmodel
 
+import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
-import com.garfiec.librechat.core.data.datastore.ServerDataStore
+import com.garfiec.librechat.core.data.datastore.SsoRiskDataStore
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.model.LoginOutcome
 import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.config.StartupConfig
-import com.garfiec.librechat.feature.auth.oauth.OAuthLauncher
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -25,6 +27,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import java.io.IOException
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class LoginViewModelTest {
@@ -33,9 +36,8 @@ class LoginViewModelTest {
 
     private val authRepository = mockk<AuthRepository>(relaxed = true)
     private val configRepository = mockk<ConfigRepository>(relaxed = true)
-    private val oAuthLauncher = mockk<OAuthLauncher>(relaxed = true)
-    private val serverDataStore = mockk<ServerDataStore>(relaxed = true)
     private val accountSwitcher = mockk<AccountSwitcher>(relaxed = true)
+    private val ssoRiskDataStore = mockk<SsoRiskDataStore>(relaxed = true)
 
     private val configFlow = MutableStateFlow<StartupConfig?>(null)
 
@@ -47,6 +49,7 @@ class LoginViewModelTest {
         every { configRepository.startupConfig } returns configFlow
         // No add-account flow pending: the VM reads the global config + live server URL.
         every { accountSwitcher.pendingAdd } returns null
+        every { ssoRiskDataStore.acknowledged } returns flowOf(false)
     }
 
     @After
@@ -57,9 +60,8 @@ class LoginViewModelTest {
     private fun createViewModel() = LoginViewModel(
         authRepository = authRepository,
         configRepository = configRepository,
-        oAuthLauncher = oAuthLauncher,
-        serverDataStore = serverDataStore,
         accountSwitcher = accountSwitcher,
+        ssoRiskDataStore = ssoRiskDataStore,
     )
 
     @Test
@@ -198,6 +200,76 @@ class LoginViewModelTest {
         assertThat(state.isLoggedIn).isFalse()
     }
 
+    /**
+     * Upstream's `validateEmailLogin` answers `403 {"message": "Email login is not allowed."}` — a
+     * LibreChat JSON envelope, so the client flags it server-authored. That is the one 403 that may
+     * hide the form.
+     */
+    @Test
+    fun `a server-authored 403 hides the email form`() = runTest {
+        coEvery { authRepository.login("user@example.com", "pw") } returns Result.Error(
+            exception = ApiException(403, "Email login is not allowed.", serverAuthored = true),
+            message = "Email login is not allowed.",
+        )
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onEmailChanged("user@example.com")
+        viewModel.onPasswordChanged("pw")
+        viewModel.login()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.emailLoginEnabled).isFalse()
+        assertThat(state.error).isEqualTo("Email and password sign-in is disabled on this server.")
+    }
+
+    /**
+     * A bouncer or WAF in front of the deployment answers the same route with a 403 too, and that is
+     * a condition the user can wait out — it must not be read as "this server has email login off".
+     */
+    @Test
+    fun `a 403 that is not LibreChat's keeps the email form`() = runTest {
+        coEvery { authRepository.login("user@example.com", "pw") } returns Result.Error(
+            exception = ApiException(403, "Access denied", serverAuthored = false),
+            message = "Access denied",
+        )
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onEmailChanged("user@example.com")
+        viewModel.onPasswordChanged("pw")
+        viewModel.login()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.emailLoginEnabled).isTrue()
+        assertThat(state.error).isEqualTo("Access denied")
+    }
+
+    /** A ban is also a server-authored 403 and must keep the form; `isBanned` is that discriminator. */
+    @Test
+    fun `a ban keeps the email form and the server's own message`() = runTest {
+        coEvery { authRepository.login("user@example.com", "pw") } returns Result.Error(
+            exception = ApiException(403, "Your account has been temporarily banned", isBanned = true, serverAuthored = true),
+            message = "Your account has been temporarily banned",
+        )
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onEmailChanged("user@example.com")
+        viewModel.onPasswordChanged("pw")
+        viewModel.login()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.emailLoginEnabled).isTrue()
+        assertThat(state.error).isEqualTo("Your account has been temporarily banned")
+    }
+
     @Test
     fun `login failure with null message uses default`() = runTest {
         coEvery { authRepository.login("user@example.com", "wrong") } returns
@@ -243,6 +315,23 @@ class LoginViewModelTest {
         assertThat(viewModel.uiState.value.socialLogins).isEmpty()
     }
 
+    // TCHAT: the server's OPENID_BUTTON_LABEL / OPENID_AUTO_REDIRECT reach the screen.
+    @Test
+    fun `startup config surfaces the openid label and auto-redirect`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        configFlow.value = StartupConfig(
+            openidLabel = "Continue with TensorGrid",
+            openidAutoRedirect = true,
+        )
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.openidLabel).isEqualTo("Continue with TensorGrid")
+        assertThat(state.openidAutoRedirect).isTrue()
+    }
+
     @Test
     fun `login shows loading state during request`() = runTest {
         coEvery { authRepository.login(any(), any()) } returns
@@ -264,74 +353,139 @@ class LoginViewModelTest {
         assertThat(viewModel.uiState.value.isLoading).isFalse()
     }
 
-    // TCHAT: the in-app OAuth WebView replaced the external-browser launch — see OAuthLauncher's kdoc.
-
     @Test
-    fun `launchOAuth shows the webview at the oauth path and clears any stale cookie first`() = runTest {
-        every { serverDataStore.getBaseUrl() } returns "https://chat.tensorgrid.space"
-
+    fun `first social tap raises the risk dialog`() = runTest {
         viewModel = createViewModel()
         advanceUntilIdle()
 
-        viewModel.launchOAuth("openid")
+        viewModel.onSsoProviderSelected("google")
+        advanceUntilIdle()
 
-        val webView = viewModel.uiState.value.oAuthWebView
-        assertThat(webView).isNotNull()
-        assertThat(webView!!.serverUrl).isEqualTo("https://chat.tensorgrid.space")
-        assertThat(webView.startUrl).isEqualTo("https://chat.tensorgrid.space/oauth/openid")
-        verify { oAuthLauncher.clearOAuthCookie("https://chat.tensorgrid.space") }
+        with(viewModel.uiState.value) {
+            assertThat(pendingSsoProvider).isEqualTo("google")
+            assertThat(ssoProvider).isNull()
+        }
+        coVerify(exactly = 0) { ssoRiskDataStore.acknowledge() }
     }
 
     @Test
-    fun `dismissOAuthWebView hides the webview without checking for a token`() = runTest {
-        every { serverDataStore.getBaseUrl() } returns "https://chat.tensorgrid.space"
-
+    fun `accepting the risk persists it and navigates`() = runTest {
         viewModel = createViewModel()
         advanceUntilIdle()
 
-        viewModel.launchOAuth("openid")
-        assertThat(viewModel.uiState.value.oAuthWebView).isNotNull()
+        viewModel.onSsoProviderSelected("google")
+        advanceUntilIdle()
+        viewModel.onSsoRiskAccepted()
+        advanceUntilIdle()
 
-        viewModel.dismissOAuthWebView()
-
-        assertThat(viewModel.uiState.value.oAuthWebView).isNull()
-        assertThat(viewModel.uiState.value.isLoggedIn).isFalse()
+        coVerify(exactly = 1) { ssoRiskDataStore.acknowledge() }
+        with(viewModel.uiState.value) {
+            assertThat(pendingSsoProvider).isNull()
+            assertThat(ssoProvider).isEqualTo("google")
+        }
     }
 
     @Test
-    fun `onOAuthWebViewComplete hides the webview and completes login from the extracted token`() = runTest {
-        every { serverDataStore.getBaseUrl() } returns "https://chat.tensorgrid.space"
-        every { oAuthLauncher.extractTokenFromCookies("https://chat.tensorgrid.space") } returns "a-refresh-token"
-        coEvery { authRepository.loginWithOAuthToken("a-refresh-token") } returns
-            Result.Success(User(email = "user@example.com"))
-
+    fun `an acknowledged risk navigates straight to sso`() = runTest {
+        every { ssoRiskDataStore.acknowledged } returns flowOf(true)
         viewModel = createViewModel()
         advanceUntilIdle()
 
-        viewModel.launchOAuth("openid")
-        viewModel.onOAuthWebViewComplete()
+        viewModel.onSsoProviderSelected("openid")
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.oAuthWebView).isNull()
-        assertThat(viewModel.uiState.value.isLoggedIn).isTrue()
-        // Once from launchOAuth (drop any stale cookie before showing the WebView), once from
-        // checkOAuthResult (drop the just-consumed one so a later ON_RESUME can't re-read it).
-        verify(exactly = 2) { oAuthLauncher.clearOAuthCookie("https://chat.tensorgrid.space") }
+        with(viewModel.uiState.value) {
+            assertThat(pendingSsoProvider).isNull()
+            assertThat(ssoProvider).isEqualTo("openid")
+        }
     }
 
     @Test
-    fun `onOAuthWebViewComplete with no cookie present leaves the user logged out`() = runTest {
-        every { serverDataStore.getBaseUrl() } returns "https://chat.tensorgrid.space"
-        every { oAuthLauncher.extractTokenFromCookies(any()) } returns null
-
+    fun `a second tap does not queue a second navigation`() = runTest {
+        every { ssoRiskDataStore.acknowledged } returns flowOf(true)
         viewModel = createViewModel()
         advanceUntilIdle()
 
-        viewModel.launchOAuth("openid")
-        viewModel.onOAuthWebViewComplete()
+        viewModel.onSsoProviderSelected("google")
+        viewModel.onSsoProviderSelected("google")
+        advanceUntilIdle()
+        // The screen navigates and consumes; a queued second selection would re-arm it here.
+        viewModel.consumeSsoNavigation()
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.oAuthWebView).isNull()
-        assertThat(viewModel.uiState.value.isLoggedIn).isFalse()
+        assertThat(viewModel.uiState.value.ssoProvider).isNull()
+    }
+
+    @Test
+    fun `a second tap on a different provider does not win`() = runTest {
+        every { ssoRiskDataStore.acknowledged } returns flowOf(true)
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onSsoProviderSelected("google")
+        viewModel.onSsoProviderSelected("github")
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.ssoProvider).isEqualTo("google")
+    }
+
+    @Test
+    fun `accepting the risk twice persists and navigates once`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onSsoProviderSelected("google")
+        advanceUntilIdle()
+        viewModel.onSsoRiskAccepted()
+        viewModel.onSsoRiskAccepted()
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { ssoRiskDataStore.acknowledge() }
+        assertThat(viewModel.uiState.value.ssoProvider).isEqualTo("google")
+    }
+
+    @Test
+    fun `an unreadable risk store still warns instead of stranding the button`() = runTest {
+        every { ssoRiskDataStore.acknowledged } returns flow { throw IOException("datastore") }
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onSsoProviderSelected("google")
+        advanceUntilIdle()
+
+        with(viewModel.uiState.value) {
+            assertThat(pendingSsoProvider).isEqualTo("google")
+            assertThat(ssoProvider).isNull()
+        }
+    }
+
+    @Test
+    fun `a failed acknowledgement still navigates`() = runTest {
+        coEvery { ssoRiskDataStore.acknowledge() } throws IOException("datastore")
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onSsoProviderSelected("google")
+        advanceUntilIdle()
+        viewModel.onSsoRiskAccepted()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.ssoProvider).isEqualTo("google")
+    }
+
+    @Test
+    fun `dismissing the risk dialog navigates nowhere`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onSsoProviderSelected("google")
+        advanceUntilIdle()
+        viewModel.onSsoRiskDismissed()
+
+        with(viewModel.uiState.value) {
+            assertThat(pendingSsoProvider).isNull()
+            assertThat(ssoProvider).isNull()
+        }
+        coVerify(exactly = 0) { ssoRiskDataStore.acknowledge() }
     }
 }

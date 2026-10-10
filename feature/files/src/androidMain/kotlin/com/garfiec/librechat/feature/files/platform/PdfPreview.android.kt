@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -33,13 +32,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import co.touchlab.kermit.Logger
+import com.garfiec.librechat.core.common.result.suspendRunCatching
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.datetime.rememberAbsoluteTimestamp
 import com.garfiec.librechat.core.ui.pdf.PdfDocumentHolder
 import com.garfiec.librechat.core.ui.pdf.PdfPageContent
 import com.garfiec.librechat.feature.files.FilePreviewDisplayData
 import com.garfiec.librechat.feature.files.resources.*
 import com.garfiec.librechat.feature.files.resources.Res
 import com.garfiec.librechat.feature.files.screen.InfoRow
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
@@ -68,11 +69,9 @@ actual fun PdfPreview(
     // finishing after dismissal is still closed rather than leaking its fd/renderer.
     val loadState by produceState<PdfLoadState>(PdfLoadState.Loading, file.fileId) {
         value = PdfLoadState.Loading
-        val bytes = try {
+        val bytes = suspendRunCatching {
             withContext(Dispatchers.IO) { currentOnDownloadFile?.invoke(file.fileId, file.userId) }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
+        }.getOrElse { e ->
             Logger.e(e) { "PdfPreview: download failed" }
             value = PdfLoadState.Error(Res.string.failed_to_download_pdf, e.message)
             return@produceState
@@ -102,7 +101,7 @@ actual fun PdfPreview(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    CircularProgressIndicator()
+                    AdaptiveCircularProgressIndicator()
                     Text(
                         text = stringResource(Res.string.loading_pdf),
                         style = MaterialTheme.typography.bodyMedium,
@@ -240,7 +239,7 @@ private fun PdfErrorFallback(
                 ) {
                     InfoRow(stringResource(Res.string.info_type), file.type)
                     InfoRow(stringResource(Res.string.info_size), file.formattedSize)
-                    file.createdAt?.let { InfoRow(stringResource(Res.string.info_created), it) }
+                    file.createdAt?.let { InfoRow(stringResource(Res.string.info_created), rememberAbsoluteTimestamp(it)) }
                     file.source?.let { InfoRow(stringResource(Res.string.info_source), it) }
                 }
             }

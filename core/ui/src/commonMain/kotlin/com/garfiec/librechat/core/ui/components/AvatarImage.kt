@@ -10,6 +10,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,12 +40,18 @@ fun AvatarImage(
     tintIcon: Boolean = false,
     contentDescription: String? = "$fallbackText avatar",
 ) {
-    if (imageUrl != null) {
+    // A load that fails has to fall through to the fallbacks below. Branching on `imageUrl != null`
+    // alone keeps drawing an AsyncImage that renders nothing, so an unreachable avatar is an
+    // invisible hole where the letter or icon should be — and takes the diagnosis with it.
+    // Keyed on the URL so a changed avatar retries rather than inheriting the previous failure.
+    var loadFailed by remember(imageUrl) { mutableStateOf(false) }
+    if (imageUrl != null && !loadFailed) {
         AsyncImage(
             model = imageUrl,
             contentDescription = contentDescription,
             modifier = modifier.size(size).clip(CircleShape),
             contentScale = ContentScale.Crop,
+            onError = { loadFailed = true },
         )
     } else if (showPersonIcon) {
         // User avatar fallback: person icon with blue background

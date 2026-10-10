@@ -201,6 +201,7 @@ class HttpResponseParser {
      * emitted at least one event). Returns false if the body is starved — caller's
      * drain() loop treats false as "wait for more bytes".
      */
+    @Suppress("ReturnCount") // debt: 11 returns
     private fun drainChunkedBody(out: MutableList<ParseEvent>): Boolean {
         when (chunkState) {
             ChunkState.READING_SIZE_LINE -> {

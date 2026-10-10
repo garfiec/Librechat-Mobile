@@ -16,4 +16,11 @@ data class McpServer(
     val error: String? = null,
     val apiKey: McpApiKeyConfig? = null,
     val oauth: McpOAuthConfig? = null,
+    /**
+     * Set on the web, never edited here. Kept only to be resent: the update route replaces the
+     * stored config, so an edit that omits it deletes it.
+     */
+    val iconPath: String? = null,
+    /** On-behalf-of token exchange, configured on the web; resent unchanged on an edit. */
+    val obo: McpOboConfig? = null,
 )

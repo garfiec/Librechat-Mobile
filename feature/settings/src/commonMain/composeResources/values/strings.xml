@@ -36,8 +36,9 @@
     <string name="cd_delete_preset">Delete preset</string>
     <string name="cd_delete_server">Delete server</string>
     <string name="cd_delete_shared_link">Delete shared link</string>
-    <string name="cd_edit">Edit</string>
     <string name="cd_edit_memory">Edit memory</string>
+    <string name="memory_redacted_key">Hidden entry</string>
+    <string name="memory_redacted_value">This server's content policy hides what's stored here. You can still delete it.</string>
     <string name="cd_edit_server">Edit server</string>
     <string name="cd_expand_tools">Expand tools</string>
     <string name="cd_loading_profile">Loading profile</string>
@@ -60,13 +61,17 @@
 
     <!-- Section headers -->
     <string name="section_about">About</string>
+    <string name="section_updates">Updates</string>
     <string name="section_advanced">Advanced</string>
     <string name="section_appearance">Appearance</string>
+    <string name="appearance_theme_and_style">Theme &amp; style</string>
+    <!-- The switch in the interface style previews: an in-joke, "go outside". -->
+    <string name="ui_style_preview_switch">Touch grass</string>
     <string name="section_balance">Balance</string>
     <string name="section_chat_preferences">Chat Preferences</string>
     <string name="section_conversations">Conversations</string>
     <string name="section_danger_zone">Danger Zone</string>
-    <string name="section_language">Language</string>
+    <string name="section_language_region">Language &amp; region</string>
     <string name="section_layout">Layout</string>
     <string name="section_mcp_servers">MCP Servers</string>
     <string name="section_prefetch">Background prefetch</string>
@@ -135,7 +140,6 @@
     <string name="prefetch_cache_messages_value">%1$d messages</string>
     <string name="prefetch_cache_images">Images and files</string>
     <string name="section_memories">Memories</string>
-    <string name="section_personalization">Personalization</string>
     <string name="section_presets">Presets</string>
     <string name="section_profile">Profile</string>
     <string name="section_security">Security</string>
@@ -169,11 +173,16 @@
     <string name="accent_color_hex">Hex</string>
     <string name="use_wallpaper_colors">Use wallpaper colors</string>
     <string name="use_wallpaper_colors_desc">Match the app accent to your system wallpaper (Material You)</string>
+    <string name="ui_style">Interface style</string>
+    <string name="ui_style_material">Material</string>
+    <string name="ui_style_liquid_glass">Liquid Glass</string>
+    <string name="ui_style_note_simulated">Liquid Glass is simulated on this iOS version. iOS 26 or later draws it natively.</string>
+    <string name="ui_style_note_blur_only">This device shows Liquid Glass as a blur, without refraction. Android 13 or later shows the full effect.</string>
+    <string name="ui_style_note_flat">This device shows Liquid Glass as a flat translucent surface.</string>
 
     <!-- Settings rows -->
     <string name="language">Language</string>
     <string name="language_system_default">System default</string>
-    <string name="personalization">Personalization</string>
     <string name="status_enabled">Enabled</string>
     <string name="status_disabled">Disabled</string>
     <string name="fork_behavior">Fork Behavior</string>
@@ -200,6 +209,33 @@
     <string name="server_build_branch_label">Server branch</string>
     <string name="server_build_date_label">Server build date</string>
 
+    <!-- App updates -->
+    <string name="update_check">Check for updates</string>
+    <string name="update_check_desc">Look for a newer release on GitHub</string>
+    <string name="update_checking">Checking…</string>
+    <string name="update_up_to_date">You're on the latest version</string>
+    <string name="update_available">Version %1$s is available</string>
+    <string name="update_see_whats_new">See what's new</string>
+    <string name="update_check_failed">Couldn't reach GitHub</string>
+    <string name="update_auto_check">Check for updates daily</string>
+    <string name="update_auto_check_desc">Checks GitHub for new releases once a day while the app is open. GitHub sees your IP address.</string>
+    <string name="whats_new_title">What's new</string>
+    <string name="whats_new_installed">You have version %1$s</string>
+    <string name="whats_new_full_changelog">Full changelog</string>
+    <string name="whats_new_download_apk">Download APK</string>
+    <string name="whats_new_view_on_github">View on GitHub</string>
+    <string name="whats_new_open_obtainium">Open Obtainium</string>
+    <string name="whats_new_open_fdroid">Open F-Droid</string>
+    <string name="whats_new_hint_obtainium">Obtainium installed this app and delivers its updates.</string>
+    <string name="whats_new_hint_fdroid">F-Droid installed this app and delivers its updates. A new release can take a few days to appear there.</string>
+    <string name="whats_new_error">Couldn't load the release notes</string>
+    <string name="release_notes_title">Release notes</string>
+    <string name="release_notes_desc">What changed in version %1$s</string>
+    <string name="release_notes_not_found">No release notes for %1$s</string>
+    <string name="release_notes_not_found_desc">This build has no published release on GitHub.</string>
+    <string name="release_notes_previous">Previous versions</string>
+    <string name="release_notes_load_older">Load older versions</string>
+
     <!-- Tablet settings -->
     <string name="sidebar_swipe_gesture">Sidebar swipe gesture</string>
     <string name="sidebar_swipe_gesture_desc">Swipe from the left edge to open the sidebar on tablet layouts</string>
@@ -222,6 +258,8 @@
     <string name="show_bubbles_desc">Add rounded bubble backgrounds to messages</string>
     <string name="show_avatars">Show avatars</string>
     <string name="show_avatars_desc">Display user and agent avatars next to messages</string>
+    <string name="chat_layout_bubbles">Bubbles</string>
+    <string name="chat_layout_avatars">Avatars</string>
     <string name="starred_models_title">Starred models</string>
     <string name="starred_models_desc">Show your pinned models and agents at the top of the model picker</string>
     <string name="starred_models_off">Off</string>
@@ -277,9 +315,9 @@
     <string name="inline_artifact_svg">SVG images</string>
     <string name="inline_artifact_svg_desc">Render SVG vector graphics inline</string>
     <string name="inline_artifact_html">HTML</string>
-    <string name="inline_artifact_html_desc">Render HTML pages inline (loads Tailwind from CDN)</string>
+    <string name="inline_artifact_html_desc">Render HTML pages inline</string>
     <string name="inline_artifact_react">React components</string>
-    <string name="inline_artifact_react_desc">Render React components inline (loads React + Babel from CDN)</string>
+    <string name="inline_artifact_react_desc">Render React components inline</string>
     <string name="inline_artifact_markdown">Markdown documents</string>
     <string name="inline_artifact_markdown_desc">Render Markdown artifacts inline with syntax-highlighted code blocks</string>
 
@@ -336,6 +374,12 @@
     <!-- Data settings -->
     <string name="clear_all_conversations">Clear All Conversations</string>
     <string name="clearing">Clearing…</string>
+    <string name="archive_all_conversations">Archive All Conversations</string>
+    <string name="archiving_all">Archiving…</string>
+    <string name="dialog_title_archive_all">Archive All Conversations?</string>
+    <string name="dialog_archive_all_message">Every conversation moves to Archived. You can still open them there, and you can unarchive any of them later.</string>
+    <string name="action_archive_all">Archive All</string>
+    <string name="archived_all_count">Archived %1$d conversations</string>
     <string name="archived_conversations">Archived Conversations</string>
     <string name="export_all_data">Export All Data</string>
     <string name="shared_links">Shared Links</string>
@@ -388,8 +432,8 @@
     <string name="tts_source_server">Server</string>
     <string name="tts_voice_label">Voice</string>
     <string name="tts_system_default">System default</string>
-    <string name="tts_speech_rate">Speech Rate: %1$.1fx</string>
-    <string name="tts_pitch">Pitch: %1$.1f</string>
+    <string name="tts_speech_rate">Speech Rate: %1$sx</string>
+    <string name="tts_pitch">Pitch: %1$s</string>
     <string name="tts_cache_audio">Cache audio</string>
     <string name="tts_preview_text">This is a preview of the selected voice.</string>
     <string name="tts_stop_preview">Stop Preview</string>
@@ -406,11 +450,13 @@
     <string name="dialog_delete_memory_message">Are you sure you want to delete the memory "%1$s"?</string>
     <string name="memory_key_label">Key</string>
     <string name="memory_value_label">Value</string>
+    <string name="memory_key_hint">Use lowercase letters and underscores only</string>
+    <string name="memory_key_invalid">Key must only contain lowercase letters and underscores</string>
+    <string name="memory_key_exists">A memory with this key already exists</string>
 
     <!-- MCP -->
     <string name="add_mcp_server">Add MCP Server</string>
     <string name="edit_mcp_server">Edit MCP Server</string>
-    <string name="mcp_not_available">MCP is not available on this server</string>
     <string name="no_mcp_servers">No MCP servers configured</string>
     <string name="mcp_add_hint">Tap the + button to add a server</string>
     <string name="mcp_name_label">Name</string>
@@ -431,6 +477,7 @@
     <string name="mcp_header_name_label">Header Name</string>
     <string name="mcp_header_name_placeholder">X-API-Key</string>
     <string name="mcp_api_key_label">API Key</string>
+    <string name="mcp_api_key_user_provides">Each user provides their own key</string>
     <string name="mcp_oauth_client_id">Client ID</string>
     <string name="mcp_oauth_client_secret">Client Secret</string>
     <string name="mcp_oauth_auth_url">Authorization URL</string>
@@ -454,11 +501,6 @@
     <string name="hint_search_languages">Search languages</string>
 
     <!-- Personalization dialog -->
-    <string name="enable_personalization">Enable personalization</string>
-    <string name="about_you_label">About you</string>
-    <string name="about_you_hint">What should the AI know about you for context?</string>
-    <string name="response_style_label">How should AI respond?</string>
-    <string name="response_style_hint">Preferred tone, format, or style for responses</string>
 
     <!-- Avatar upload dialog -->
     <string name="dialog_title_update_avatar">Update Avatar</string>
@@ -492,6 +534,7 @@
     <string name="no_shared_links">No shared links</string>
     <string name="no_shared_links_desc">Share a conversation to see it here</string>
     <string name="mcp_oauth_secret_reentry_required">The OAuth endpoints changed, so the saved secret no longer applies. Enter it again.</string>
+    <string name="mcp_api_key_reentry_required">The connection settings changed, so the saved API key no longer applies. Enter it again.</string>
     <string name="cd_update_shared_link">Update shared link</string>
     <string name="dialog_title_update_shared_link">Update Shared Link</string>
     <string name="dialog_update_shared_link_message">This republishes "%1$s" with the conversation as it is now. The link stays the same, so anyone who already has it will see the updated content.</string>
@@ -608,4 +651,74 @@
     <string name="mcp_oauth_message">This server needs your permission before it can be used. You will be sent to the provider to authorize access, then you can come back and reconnect.</string>
     <string name="mcp_oauth_continue">Continue</string>
     <string name="mcp_connection_deferred">Connecting in the background \u2014 tools appear once it is ready.</string>
+    <string name="show_site_icons">Show website icons</string>
+    <string name="show_site_icons_desc">Load icons for web search results from Google and other websites</string>
+    <string name="context_settings_where">Where it shows</string>
+    <string name="context_settings_placement">Placement</string>
+    <string name="context_settings_detail">Detail</string>
+    <string name="context_settings_compacting">Compacting</string>
+    <string name="context_settings_preview">Preview</string>
+    <string name="context_settings_custom_in_use">Custom mix in use. Turn off Advanced to use a preset.</string>
+    <string name="context_settings_advanced">Advanced</string>
+    <string name="context_settings_advanced_desc">Choose each part of the breakdown yourself</string>
+    <string name="context_preset_simple">Simple</string>
+    <string name="context_preset_standard">Standard</string>
+    <string name="context_preset_detailed">Detailed</string>
+    <string name="context_preset_custom">Custom</string>
+    <string name="context_preset_simple_desc">How much of the window is used and how much is free.</string>
+    <string name="context_preset_standard_desc">What fills the window, by category, and the cost of the conversation.</string>
+    <string name="context_preset_detailed_desc">Everything: tool types, cache, warnings, token totals and cost per branch.</string>
+    <string name="context_section_breakdown">Category breakdown</string>
+    <string name="context_section_breakdown_desc">Messages, tool calls, system prompt and tools</string>
+    <string name="context_section_tool_types">Tool types</string>
+    <string name="context_section_tool_types_desc">System tools, MCP tools, skills and subagents separately</string>
+    <string name="context_section_cache">Cache detail</string>
+    <string name="context_section_cache_desc">How much of the prompt came from the cache</string>
+    <string name="context_section_insights">Warnings and insights</string>
+    <string name="context_section_insights_desc">The filling-up warning and the ⓘ tips</string>
+    <string name="context_section_totals">Token totals</string>
+    <string name="context_section_totals_desc">Input, output and cache tokens used so far</string>
+    <string name="context_section_cost">Cost</string>
+    <string name="context_section_cost_unavailable">This server doesn't report cost, so none is shown here.</string>
+    <string name="context_cost_off">Off</string>
+    <string name="context_cost_whole">Conversation</string>
+    <string name="context_cost_both">Branch + all</string>
+    <string name="context_settings_compact_at">Suggest compacting at</string>
+    <string name="context_settings_compact_off">Off</string>
+    <string name="context_settings_compact_desc">The gauge shows a quiet suggestion when the conversation fills up. It always asks before compacting.</string>
+    <string name="context_settings_pill_label">Context</string>
+    <string name="context_settings_summary">%1$s · %2$s</string>
+    <!-- Date &amp; time settings (#445). The dialog previews each date format with a live sample -->
+    <string name="date_time_title">Date &amp; time</string>
+    <string name="date_time_timestamps">Message timestamps</string>
+    <string name="date_time_style_relative">Relative</string>
+    <string name="date_time_style_smart">Smart</string>
+    <string name="date_time_style_absolute">Absolute</string>
+    <string name="date_time_clock">Clock</string>
+    <string name="date_time_clock_system">System</string>
+    <string name="date_time_clock_12h">12-hour</string>
+    <string name="date_time_clock_24h">24-hour</string>
+    <string name="date_time_system_is_24h">Your device uses a 24-hour clock</string>
+    <string name="date_time_system_is_12h">Your device uses a 12-hour clock</string>
+    <string name="date_time_date_format">Date format</string>
+    <string name="date_format_system">System</string>
+    <string name="date_format_system_numeric">System (numeric)</string>
+    <string name="date_format_dmy_dot">Day.Month.Year</string>
+    <string name="date_format_dmy_slash">Day/Month/Year</string>
+    <string name="date_format_dmy_dash">Day-Month-Year</string>
+    <string name="date_format_mdy_slash">Month/Day/Year</string>
+    <string name="date_format_ymd_dash">Year-Month-Day</string>
+    <string name="date_format_ymd_slash">Year/Month/Day</string>
+    <string name="date_format_long">Long</string>
+    <string name="date_time_preview">Preview</string>
+    <string name="data_summary_off">Off</string>
+    <string name="data_summary_none">None</string>
+    <plurals name="data_memories_count">
+        <item quantity="one">%1$d saved</item>
+        <item quantity="other">%1$d saved</item>
+    </plurals>
+    <plurals name="data_mcp_servers_count">
+        <item quantity="one">%1$d server</item>
+        <item quantity="other">%1$d servers</item>
+    </plurals>
 </resources>

@@ -39,12 +39,10 @@ class MessageTreeDelegate(
         handle.update {
             val newBranches = content.activeBranches.toMutableMap()
             newBranches[parentMessageId] = siblingIndex
-            // The sibling we're switching to has a different message history, so the seeded context
-            // gauge no longer describes it. Clear it (we're !isStreaming here, so no live SSE to
-            // disturb) and let ContextProjectionDelegate re-project once displayMessages rebuilds
-            // with the new tail. sameWindowAs() ignores the tail, so without this the stale numerator
-            // would linger until the next send.
-            content = content.copy(activeBranches = newBranches, contextUsage = null)
+            // The context gauge is left alone: ContextProjectionDelegate re-resolves it from the
+            // rebuilt displayMessages one dispatch later. Clearing it here would flash the gauge
+            // hidden in between.
+            content = content.copy(activeBranches = newBranches)
         }
     }
 
@@ -136,6 +134,7 @@ class MessageTreeDelegate(
                 screenState = ChatScreenState.ACTIVE,
                 isStreaming = false,
                 streamingContent = "",
+                streamingThinking = "",
                 // The stream is over, so no retry can be pending. Matters for a Final that
                 // lands while a reconnect banner is up (e.g. a stop during a retry window):
                 // without this the stale banner survives the finalize.
@@ -154,6 +153,7 @@ class MessageTreeDelegate(
                 // activity groups have already picked their initial expansion and nothing re-opens
                 // them. See MessagesState.justSettledMessageId.
                 justSettledMessageId = response?.messageId,
+                isCompacting = false,
             )
         }
         if (finalMessages.isEmpty()) return emptyList()
@@ -191,6 +191,7 @@ class MessageTreeDelegate(
                 displayMessages = buildActiveMessagePath(remaining, content.activeBranches),
                 isStreaming = false,
                 streamingContent = "",
+                streamingThinking = "",
                 retryInfo = null,
                 activeToolCalls = emptyList(),
                 streamingAttachments = emptyList(),
@@ -199,6 +200,7 @@ class MessageTreeDelegate(
                 pendingResumeUserMessage = null,
                 // Nothing settled — the turn was un-sent.
                 justSettledMessageId = null,
+                isCompacting = false,
             )
         }
     }

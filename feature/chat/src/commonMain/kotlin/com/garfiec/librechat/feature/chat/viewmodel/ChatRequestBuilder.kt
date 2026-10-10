@@ -73,17 +73,19 @@ class ChatRequestBuilder(
     fun buildModelParams(): JsonObject? {
         val state = stateProvider()
         val isAgent = state.selectedEndpoint == EndpointConstants.AGENTS
-        val provider = if (isAgent) {
-            state.agents.firstOrNull { it.id == state.selectedModel }?.provider
-        } else {
-            null
-        }
+        val agent = if (isAgent) state.agents.firstOrNull { it.id == state.selectedModel } else null
         return ModelParamPayload.build(
             endpoint = state.selectedEndpoint,
-            provider = provider,
-            model = state.selectedModel,
+            provider = agent?.provider,
+            // The agent's own model, not `selectedModel` — that is the AGENT ID on this endpoint,
+            // and every model-keyed rule in the registry (Bedrock's variant dispatch, the Anthropic
+            // prompt-cache filter, Google's thinking-budget bounds) would resolve against a string
+            // no rule can match. The options sheet already passes the agent's model, so a mismatch
+            // here renders a control and then drops the value it produced.
+            model = agent?.model ?: state.selectedModel,
             extendedEffortSupported = state.extendedEffortSupported,
             params = state.modelParameters,
+            dropParamsMap = state.gates.dropParamsMap,
         ).takeIf { it.isNotEmpty() }
     }
 }

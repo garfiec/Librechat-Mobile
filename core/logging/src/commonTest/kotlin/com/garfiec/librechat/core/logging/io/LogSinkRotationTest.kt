@@ -13,7 +13,7 @@ class LogSinkRotationTest {
         val files = mutableMapOf<String, StringBuilder>()
 
         fun handle(path: String): LogFileHandle = object : LogFileHandle {
-            override fun ensureParentDir() {}
+            override fun ensureParentDir() = Unit
             override fun exists() = files.containsKey(path)
             override fun appendLine(text: String) {
                 files.getOrPut(path) { StringBuilder() }.append(text).append("\n")

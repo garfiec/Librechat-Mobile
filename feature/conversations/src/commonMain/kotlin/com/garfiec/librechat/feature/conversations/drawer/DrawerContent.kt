@@ -13,12 +13,12 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -31,11 +31,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyItemScope
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Extension
@@ -43,19 +45,16 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
-import androidx.compose.material.icons.filled.Workspaces
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -80,26 +79,45 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.garfiec.librechat.core.common.extensions.toRelativeTimeString
+import com.garfiec.librechat.core.common.datetime.listLabel
 import com.garfiec.librechat.core.model.ChatProject
 import com.garfiec.librechat.core.model.SAVED_TAG
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.EndpointIcon
+import com.garfiec.librechat.core.ui.components.ListDragSelection
+import com.garfiec.librechat.core.ui.components.MenuDragSelection
+import com.garfiec.librechat.core.ui.components.dragSelectRow
+import com.garfiec.librechat.core.ui.components.dragSelectRowIcon
+import com.garfiec.librechat.core.ui.components.listDragSelection
+import com.garfiec.librechat.core.ui.components.menuDragAnchor
+import com.garfiec.librechat.core.ui.components.pressBounce
+import com.garfiec.librechat.core.ui.components.rememberListDragSelection
+import com.garfiec.librechat.core.ui.components.rememberMenuDragSelection
+import com.garfiec.librechat.core.ui.components.rememberPressBounce
+import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
+import com.garfiec.librechat.core.ui.datetime.LocalRelativeTimeReference
+import com.garfiec.librechat.core.ui.datetime.resolve
+import com.garfiec.librechat.core.ui.glass.GlassControlColors
+import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 import com.garfiec.librechat.feature.conversations.components.ConversationActionDialogs
 import com.garfiec.librechat.feature.conversations.components.ConversationActionEffects
 import com.garfiec.librechat.feature.conversations.components.ConversationActionsMenu
-import com.garfiec.librechat.feature.conversations.components.LocalRelativeTimeReference
 import com.garfiec.librechat.feature.conversations.components.ProjectActionsMenu
 import com.garfiec.librechat.feature.conversations.components.ProjectDeleteDialog
 import com.garfiec.librechat.feature.conversations.components.ProjectNameDialog
 import com.garfiec.librechat.feature.conversations.components.ProjectPicker
-import com.garfiec.librechat.feature.conversations.components.ProvideRelativeTimeReference
 import com.garfiec.librechat.feature.conversations.components.TagPicker
 import com.garfiec.librechat.feature.conversations.export.ExportFormat
 import com.garfiec.librechat.feature.conversations.export.ExportFormatPicker
@@ -111,7 +129,7 @@ import com.garfiec.librechat.feature.conversations.resources.cd_collapse_section
 import com.garfiec.librechat.feature.conversations.resources.cd_conversation_actions
 import com.garfiec.librechat.feature.conversations.resources.cd_expand_section
 import com.garfiec.librechat.feature.conversations.resources.cd_search
-import com.garfiec.librechat.feature.conversations.resources.chats
+import com.garfiec.librechat.feature.conversations.resources.drawer_running_chats
 import com.garfiec.librechat.feature.conversations.resources.favorites
 import com.garfiec.librechat.feature.conversations.resources.files
 import com.garfiec.librechat.feature.conversations.resources.library
@@ -123,6 +141,7 @@ import com.garfiec.librechat.feature.conversations.resources.project_unassigned
 import com.garfiec.librechat.feature.conversations.resources.projects
 import com.garfiec.librechat.feature.conversations.resources.projects_all
 import com.garfiec.librechat.feature.conversations.resources.remove_bookmark
+import com.garfiec.librechat.feature.conversations.resources.schedules
 import com.garfiec.librechat.feature.conversations.resources.search_conversations_placeholder
 import com.garfiec.librechat.feature.conversations.resources.settings
 import com.garfiec.librechat.feature.conversations.resources.show_less
@@ -133,20 +152,24 @@ import org.koin.compose.viewmodel.koinViewModel
 
 // Pre-computed shapes to avoid creating new ones per item per frame
 private val ItemShape = RoundedCornerShape(8.dp)
-private val ActiveIndicatorShape = RoundedCornerShape(2.dp)
 
-// Sliding pill toggle: the rounded track, its slightly-tighter moving thumb, and each icon+label
-// cell's fixed size (equal widths so the thumb offset is a whole-cell step).
-private val PillTrackShape = RoundedCornerShape(12.dp)
-private val PillThumbShape = RoundedCornerShape(8.dp)
-private val DrawerTabCellWidth = 88.dp
-private val DrawerTabCellHeight = 34.dp
+/**
+ * A sticky header in Material; a plain item in Liquid Glass, where the opaque band a sticky header
+ * needs (so rows don't show through it) would cut across the glass panel.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+private fun LazyListScope.drawerHeader(glass: Boolean, key: Any, content: @Composable LazyItemScope.() -> Unit) {
+    if (glass) item(key = key, content = content) else stickyHeader(key = key) { content() }
+}
+private val ActiveIndicatorShape = RoundedCornerShape(2.dp)
 
 // Pulls a tappable drawer row in from the edges and clips its ripple to [ItemShape], so every row
 // reads as the same inset, rounded button instead of a full-bleed rectangular highlight. Apply
 // before .clickable so the indication is bounded by the rounded shape.
 private fun Modifier.drawerRowShape(): Modifier =
     padding(horizontal = 4.dp, vertical = 1.dp).clip(ItemShape)
+
+private const val STAR_SWELL = 0.35f
 
 // Gap between the conversation row's bottom edge and the long-press menu's top edge.
 private val MenuVerticalGap = 4.dp
@@ -165,6 +188,7 @@ fun DrawerContent(
     onAgentsClick: () -> Unit,
     onFilesClick: () -> Unit,
     onSkillsClick: () -> Unit,
+    onSchedulesClick: () -> Unit,
     accounts: List<AccountUiModel>,
     modifier: Modifier = Modifier,
     onOpenProjectsIndex: () -> Unit = {},
@@ -178,12 +202,21 @@ fun DrawerContent(
     // now-gone thread. Distinct from [onNewChat] because that also closes the phone drawer — here the
     // drawer stays open so the user can keep browsing (defaults to [onNewChat] if a host doesn't wire it).
     onActiveConversationDelete: () -> Unit = onNewChat,
+    // Whether the host is actually showing this surface (phone drawer open / tablet sidebar expanded).
+    // The phone drawer stays composed while closed, so the host must say so.
+    isOpen: Boolean = true,
     viewModel: DrawerViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.drawerUiState.collectAsStateWithLifecycle()
     val projects by viewModel.projects.collectAsStateWithLifecycle()
     val inlineProjectChats by viewModel.inlineProjectChats.collectAsStateWithLifecycle()
     val libraryTab by viewModel.drawerLibraryTab.collectAsStateWithLifecycle()
+
+    // Drives the Running group's active-jobs poll: on only while this surface is open and started.
+    LifecycleStartEffect(viewModel, isOpen) {
+        viewModel.setDrawerVisible(isOpen)
+        onStopOrDispose { viewModel.setDrawerVisible(false) }
+    }
 
     // Account switcher: the header chip opens the roster sheet; remove asks for confirmation.
     // Switch/add callbacks come from the host (they also close the drawer); remove goes straight to
@@ -202,7 +235,7 @@ fun DrawerContent(
 
     DrawerContent(
         uiState = uiState,
-        footerContent = {
+        footerContent = { dragSelection ->
             val active = accounts.firstOrNull { it.isActive }
             Spacer(modifier = Modifier.height(8.dp))
             // Footer row: Settings (icon + label) on the left takes the width; the account avatar
@@ -224,6 +257,7 @@ fun DrawerContent(
                     icon = Icons.Default.Settings,
                     label = stringResource(Res.string.settings),
                     onClick = onSettingsClick,
+                    dragSelection = dragSelection,
                     modifier = Modifier.weight(1f),
                 )
                 if (active != null) {
@@ -250,6 +284,7 @@ fun DrawerContent(
         onAgentsClick = onAgentsClick,
         onFilesClick = onFilesClick,
         onSkillsClick = onSkillsClick,
+        onSchedulesClick = onSchedulesClick,
         onToggleFavorite = { data -> viewModel.toggleFavorite(data.conversationId, data.tags) },
         onRefresh = viewModel::refreshConversations,
         onLoadMore = viewModel::loadMoreConversations,
@@ -314,10 +349,12 @@ fun DrawerContent(
     onAgentsClick: () -> Unit,
     onFilesClick: () -> Unit,
     onSkillsClick: () -> Unit,
+    onSchedulesClick: () -> Unit,
     modifier: Modifier = Modifier,
     // Slot below the footer links (Files, Agents, …) — the stateful wrapper puts the Settings row
-    // and the account avatar here, at the bottom of the drawer.
-    footerContent: (@Composable () -> Unit)? = null,
+    // and the account avatar here, at the bottom of the drawer. Its rows join the footer links'
+    // drag-to-select through the [ListDragSelection] it's given.
+    footerContent: (@Composable (ListDragSelection?) -> Unit)? = null,
     onToggleFavorite: (DrawerConversationDisplayData) -> Unit = {},
     onRefresh: () -> Unit = {},
     onLoadMore: () -> Unit = {},
@@ -372,428 +409,461 @@ fun DrawerContent(
         runCatching { focusAnchor.requestFocus() }
     }
 
-    // One ticker for every row the drawer renders, so the relative-time labels below
-    // actually advance instead of freezing at whatever they said when composed.
-    ProvideRelativeTimeReference {
-        Column(
-            modifier = modifier
-                .fillMaxHeight()
-                .width(300.dp)
-                .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .padding(top = 16.dp),
-        ) {
-            Spacer(
-                modifier = Modifier
-                    .size(1.dp)
-                    .focusRequester(focusAnchor)
-                    .focusable(),
+    val glass = isLiquidGlass
+    Column(
+        modifier = modifier
+            .fillMaxHeight()
+            .width(300.dp)
+            // In Liquid Glass the floating panel around the drawer paints it and keeps it inside the
+            // safe area, so the drawer itself is transparent and unpadded.
+            .then(
+                if (glass) {
+                    Modifier
+                } else {
+                    Modifier
+                        .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                        .statusBarsPadding()
+                        .navigationBarsPadding()
+                },
             )
+            .padding(top = 16.dp),
+    ) {
+        Spacer(
+            modifier = Modifier
+                .size(1.dp)
+                .focusRequester(focusAnchor)
+                .focusable(),
+        )
 
-            // Search field is hidden by default and revealed by the toggle beside "New Chat". Seed the
-            // toggle from the current query so a restored search stays visible across recompositions.
-            var searchExpanded by remember { mutableStateOf(uiState.searchQuery.isNotEmpty()) }
-            val searchFocusRequester = remember { FocusRequester() }
+        // Search field is hidden by default and revealed by the toggle beside "New Chat". Seed the
+        // toggle from the current query so a restored search stays visible across recompositions.
+        var searchExpanded by remember { mutableStateOf(uiState.searchQuery.isNotEmpty()) }
+        val searchFocusRequester = remember { FocusRequester() }
 
-            // Focus the field (and pop the keyboard) only when the user opens search explicitly — the
-            // focusAnchor above still steals initial focus so opening the drawer doesn't do this.
-            LaunchedEffect(searchExpanded) {
-                if (searchExpanded) {
-                    runCatching { searchFocusRequester.requestFocus() }
+        // Focus the field (and pop the keyboard) only when the user opens search explicitly — the
+        // focusAnchor above still steals initial focus so opening the drawer doesn't do this.
+        LaunchedEffect(searchExpanded) {
+            if (searchExpanded) {
+                runCatching { searchFocusRequester.requestFocus() }
+            }
+        }
+
+        // "New Chat" button at top, with a search toggle to its right.
+        val newChatBounce = rememberPressBounce()
+        val searchBounce = rememberPressBounce()
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min)
+                .padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Surface(
+                onClick = onNewChat,
+                modifier = Modifier.weight(1f).pressBounce(newChatBounce, enabled = !glass),
+                shape = if (glass) CircleShape else ItemShape,
+                color = if (glass) GlassControlColors.tint else MaterialTheme.colorScheme.primary,
+                contentColor = if (glass) Color.White else MaterialTheme.colorScheme.onPrimary,
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(Res.string.new_chat),
+                        style = MaterialTheme.typography.titleSmall,
+                    )
                 }
             }
 
-            // "New Chat" button at top, with a search toggle to its right.
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(IntrinsicSize.Min)
-                    .padding(horizontal = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Collapsing clears the query so the list resets to its normal (unsearched) state.
+            Surface(
+                onClick = {
+                    searchExpanded = !searchExpanded
+                    if (!searchExpanded) onSearchQueryChange("")
+                },
+                modifier = if (glass) {
+                    Modifier.fillMaxHeight().aspectRatio(1f)
+                } else {
+                    Modifier.fillMaxHeight().pressBounce(searchBounce)
+                },
+                shape = if (glass) CircleShape else ItemShape,
+                color = when {
+                    glass -> GlassControlColors.fill
+                    searchExpanded -> MaterialTheme.colorScheme.secondaryContainer
+                    else -> MaterialTheme.colorScheme.surfaceContainerHighest
+                },
             ) {
-                Surface(
-                    onClick = onNewChat,
-                    modifier = Modifier.weight(1f),
-                    shape = ItemShape,
-                    color = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .padding(horizontal = 12.dp),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = stringResource(Res.string.new_chat),
-                            style = MaterialTheme.typography.titleSmall,
-                        )
-                    }
+                    Icon(
+                        imageVector = if (searchExpanded) Icons.Default.Close else Icons.Default.Search,
+                        contentDescription = stringResource(Res.string.cd_search),
+                        tint = if (glass) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp),
+                    )
                 }
+            }
+        }
 
-                Spacer(modifier = Modifier.width(8.dp))
-
-                // Collapsing clears the query so the list resets to its normal (unsearched) state.
-                Surface(
-                    onClick = {
-                        searchExpanded = !searchExpanded
-                        if (!searchExpanded) onSearchQueryChange("")
-                    },
-                    modifier = Modifier.fillMaxHeight(),
-                    shape = ItemShape,
-                    color = if (searchExpanded) {
-                        MaterialTheme.colorScheme.secondaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.surfaceContainerHighest
-                    },
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .padding(horizontal = 12.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
+        // Search bar — revealed only when toggled on.
+        AnimatedVisibility(visible = searchExpanded) {
+            Column {
+                Spacer(modifier = Modifier.height(12.dp))
+                AdaptiveOutlinedTextField(
+                    value = uiState.searchQuery,
+                    onValueChange = onSearchQueryChange,
+                    leadingIcon = {
                         Icon(
-                            imageVector = if (searchExpanded) Icons.Default.Close else Icons.Default.Search,
+                            imageVector = Icons.Default.Search,
                             contentDescription = stringResource(Res.string.cd_search),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(20.dp),
                         )
+                    },
+                    trailingIcon = {
+                        if (uiState.searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { onSearchQueryChange("") }) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = stringResource(Res.string.cd_clear_search),
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                        }
+                    },
+                    placeholder = {
+                        Text(
+                            text = stringResource(Res.string.search_conversations_placeholder),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    },
+                    singleLine = true,
+                    shape = ItemShape,
+                    textStyle = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp)
+                        .focusRequester(searchFocusRequester),
+                )
+            }
+        }
+
+        // Chats / Projects toggle above the list — shown only where projects are supported. When
+        // hidden (older server / no permission) the drawer is always the recents list.
+        val projectsTabAvailable = uiState.projectsEnabled
+        val librarySwitch = rememberLibrarySwitch(selectedTab)
+        if (projectsTabAvailable) {
+            Spacer(modifier = Modifier.height(8.dp))
+            // Section heading + a compact icon pill that slides between the recents and projects
+            // views (the label names the whole section; the pill toggles what the list shows).
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(Res.string.library),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .weight(1f)
+                        .semantics { heading() },
+                )
+                DrawerTabToggle(
+                    switch = librarySwitch,
+                    selectedTab = selectedTab,
+                    onSelect = onSelectTab,
+                )
+            }
+            // Keep the folder counts fresh whenever the Projects panel comes into view, a drag included.
+            val currentOnLoadProjects by rememberUpdatedState(onLoadProjects)
+            val projectsInView = librarySwitch.projectsShown
+            LaunchedEffect(projectsInView) {
+                if (projectsInView) currentOnLoadProjects()
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Both panels are composed only mid-swap; at rest it's the selected one.
+        val showChats = !projectsTabAvailable || librarySwitch.chatsShown
+        val showProjects = projectsTabAvailable && librarySwitch.projectsShown
+        val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+        val panel = { tab: DrawerTab ->
+            if (projectsTabAvailable) Modifier.libraryPanel(librarySwitch, tab, rtl) else Modifier
+        }
+
+        // Conversation list with favorites section and date groups
+        val listState = rememberLazyListState()
+        val currentOnLoadMore by rememberUpdatedState(onLoadMore)
+
+        // Single item renderer shared by the favorites section and the date groups so the
+        // long-press action menu wiring isn't duplicated across both call sites. rowKey is the
+        // row's LazyColumn key (unique per rendered row, unlike the conversation id).
+        val renderConversationItem: @Composable (String, DrawerConversationDisplayData) -> Unit = { rowKey, data ->
+            DrawerConversationItem(
+                data = data,
+                onClick = { onConversationClick(data.conversationId) },
+                onToggleFavorite = { onToggleFavorite(data) },
+                showBookmarkToggle = uiState.bookmarksEnabled,
+                onLongPress = { menuRowKey = rowKey },
+                onMenuCancel = { menuRowKey = null },
+                menuContent = { menuOffset, menuDrag ->
+                    // Only the open row materializes the menu, so there's one menu in the tree at
+                    // a time (and the dialogs it triggers are hoisted below, outside this row).
+                    if (menuRowKey == rowKey) {
+                        ConversationActionsMenu(
+                            expanded = true,
+                            onDismiss = { menuRowKey = null },
+                            title = data.title,
+                            offset = menuOffset,
+                            isBookmarked = data.isFavorite,
+                            bookmarksEnabled = uiState.bookmarksEnabled,
+                            isPinned = data.isPinned,
+                            showPinAction = uiState.pinEnabled,
+                            onPinToggle = { onPin(data.conversationId, !data.isPinned) },
+                            showMoveToProject = uiState.projectsEnabled,
+                            onMoveToProject = {
+                                onLoadProjects()
+                                projectPickerTarget = data
+                            },
+                            // Share is shown here when the server enables shared links; the
+                            // full-screen list intentionally omits it (passes showShareAction=false).
+                            showShareAction = uiState.sharedLinksEnabled,
+                            onBookmarkToggle = { onToggleFavorite(data) },
+                            onRenameRequest = { renameTarget = data },
+                            onArchive = { onArchive(data.conversationId) },
+                            onDeleteRequest = { deleteTarget = data },
+                            onShare = { onShare(data.conversationId) },
+                            onDuplicate = { newTitle -> onDuplicate(data.conversationId, newTitle) },
+                            onTags = { tagPickerTarget = data },
+                            onExport = { exportPickerTarget = data },
+                            dragSelection = menuDrag,
+                        )
+                    }
+                },
+            )
+        }
+
+        val shouldLoadMore = remember {
+            derivedStateOf {
+                val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                val totalItems = listState.layoutInfo.totalItemsCount
+                lastVisibleItem >= totalItems - 8 && totalItems > 0
+            }
+        }
+
+        LaunchedEffect(shouldLoadMore.value) {
+            if (shouldLoadMore.value && uiState.hasMore && !uiState.isLoadingMore) {
+                currentOnLoadMore()
+            }
+        }
+
+        Box(modifier = Modifier.weight(1f)) {
+        if (showChats) {
+            PullToRefreshBox(
+                isRefreshing = uiState.isRefreshing,
+                onRefresh = onRefresh,
+                modifier = Modifier.fillMaxSize().then(panel(DrawerTab.Chats)),
+            ) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                // Pinned section (v0.8.7) — pinned conversations surfaced above favorites. This is
+                // their canonical home: when shown, they're filtered out of the date-grouped buckets
+                // (see ConversationListStateHolder.withoutPinned) so they don't appear twice. The
+                // section is hidden during search, where pinned rows instead surface in the results.
+                if (uiState.pinnedConversations.isNotEmpty() && uiState.searchQuery.isEmpty()) {
+                    item(key = "pinned_header") {
+                        SectionHeader(
+                            icon = Icons.Default.PushPin,
+                            title = stringResource(Res.string.pinned),
+                        )
+                    }
+
+                    items(
+                        items = uiState.pinnedConversations,
+                        key = { "pin_${it.conversationId}" },
+                        contentType = { "conversation" },
+                    ) { data ->
+                        renderConversationItem("pin_${data.conversationId}", data)
+                    }
+
+                    item(key = "pinned_divider") {
+                        AdaptiveDivider(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant,
+                        )
                     }
                 }
-            }
 
-            // Search bar — revealed only when toggled on.
-            AnimatedVisibility(visible = searchExpanded) {
-                Column {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    OutlinedTextField(
-                        value = uiState.searchQuery,
-                        onValueChange = onSearchQueryChange,
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = stringResource(Res.string.cd_search),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(20.dp),
+                // Favorites section — hidden entirely when BOOKMARKS.USE is denied so
+                // any locally-cached favorites from a prior permissive session don't leak.
+                // The header collapses the whole section; when expanded, only the top
+                // [FavoritesPreviewCount] show until "Show more" reveals the rest.
+                if (uiState.bookmarksEnabled && uiState.favoriteConversations.isNotEmpty() && uiState.searchQuery.isEmpty()) {
+                    val favorites = uiState.favoriteConversations
+                    drawerHeader(glass, key = "favorites_header") {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(if (glass) Color.Transparent else MaterialTheme.colorScheme.surfaceContainerLow),
+                        ) {
+                            SectionHeader(
+                                icon = Icons.Default.Star,
+                                title = stringResource(Res.string.favorites),
+                                collapsed = favoritesCollapsed,
+                                onToggle = { favoritesCollapsed = !favoritesCollapsed },
                             )
-                        },
-                        trailingIcon = {
-                            if (uiState.searchQuery.isNotEmpty()) {
-                                IconButton(onClick = { onSearchQueryChange("") }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = stringResource(Res.string.cd_clear_search),
-                                        modifier = Modifier.size(20.dp),
+                        }
+                    }
+
+                    // The whole body (preview rows + show-more + divider) lives in one item so it can
+                    // expand/collapse as a unit; the extra rows past the preview get their own nested
+                    // reveal. Favorites are a small curated set, so composing them eagerly is cheap.
+                    item(key = "favorites_body") {
+                        Column {
+                            AnimatedVisibility(
+                                visible = !favoritesCollapsed,
+                                enter = expandVertically() + fadeIn(),
+                                exit = shrinkVertically() + fadeOut(),
+                            ) {
+                                Column {
+                                    favorites.take(FavoritesPreviewCount).forEach { data ->
+                                        renderConversationItem("fav_${data.conversationId}", data)
+                                    }
+
+                                    if (favorites.size > FavoritesPreviewCount) {
+                                        AnimatedVisibility(
+                                            visible = showAllFavorites,
+                                            enter = expandVertically() + fadeIn(),
+                                            exit = shrinkVertically() + fadeOut(),
+                                        ) {
+                                            Column {
+                                                favorites.drop(FavoritesPreviewCount).forEach { data ->
+                                                    renderConversationItem("fav_${data.conversationId}", data)
+                                                }
+                                            }
+                                        }
+                                        ShowMoreLessRow(
+                                            expanded = showAllFavorites,
+                                            onClick = { showAllFavorites = !showAllFavorites },
+                                        )
+                                    }
+
+                                    AdaptiveDivider(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                        color = MaterialTheme.colorScheme.outlineVariant,
                                     )
                                 }
                             }
-                        },
-                        placeholder = {
-                            Text(
-                                text = stringResource(Res.string.search_conversations_placeholder),
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                        },
-                        singleLine = true,
-                        shape = ItemShape,
-                        textStyle = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp)
-                            .focusRequester(searchFocusRequester),
-                    )
-                }
-            }
-
-            // Chats / Projects toggle above the list — shown only where projects are supported. When
-            // hidden (older server / no permission) the drawer is always the recents list.
-            val projectsTabAvailable = uiState.projectsEnabled
-            if (projectsTabAvailable) {
-                Spacer(modifier = Modifier.height(8.dp))
-                // Section heading + a compact icon pill that slides between the recents and projects
-                // views (the label names the whole section; the pill toggles what the list shows).
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 16.dp, end = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = stringResource(Res.string.library),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier
-                            .weight(1f)
-                            .semantics { heading() },
-                    )
-                    DrawerTabToggle(
-                        selectedTab = selectedTab,
-                        onSelect = onSelectTab,
-                    )
-                }
-                // Keep the folder counts fresh whenever the user opens the Projects tab.
-                val currentOnLoadProjects by rememberUpdatedState(onLoadProjects)
-                LaunchedEffect(selectedTab) {
-                    if (selectedTab == DrawerTab.Projects) currentOnLoadProjects()
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            val showProjectsTab = projectsTabAvailable && selectedTab == DrawerTab.Projects
-
-            // Conversation list with favorites section and date groups
-            val listState = rememberLazyListState()
-            val currentOnLoadMore by rememberUpdatedState(onLoadMore)
-
-            // Single item renderer shared by the favorites section and the date groups so the
-            // long-press action menu wiring isn't duplicated across both call sites. rowKey is the
-            // row's LazyColumn key (unique per rendered row, unlike the conversation id).
-            val renderConversationItem: @Composable (String, DrawerConversationDisplayData) -> Unit = { rowKey, data ->
-                DrawerConversationItem(
-                    data = data,
-                    onClick = { onConversationClick(data.conversationId) },
-                    onToggleFavorite = { onToggleFavorite(data) },
-                    showBookmarkToggle = uiState.bookmarksEnabled,
-                    onLongPress = { menuRowKey = rowKey },
-                    menuContent = { menuOffset ->
-                        // Only the open row materializes the menu, so there's one menu in the tree at
-                        // a time (and the dialogs it triggers are hoisted below, outside this row).
-                        if (menuRowKey == rowKey) {
-                            ConversationActionsMenu(
-                                expanded = true,
-                                onDismiss = { menuRowKey = null },
-                                title = data.title,
-                                offset = menuOffset,
-                                isBookmarked = data.isFavorite,
-                                bookmarksEnabled = uiState.bookmarksEnabled,
-                                isPinned = data.isPinned,
-                                showPinAction = uiState.pinEnabled,
-                                onPinToggle = { onPin(data.conversationId, !data.isPinned) },
-                                showMoveToProject = uiState.projectsEnabled,
-                                onMoveToProject = {
-                                    onLoadProjects()
-                                    projectPickerTarget = data
-                                },
-                                // Share is shown here when the server enables shared links; the
-                                // full-screen list intentionally omits it (passes showShareAction=false).
-                                showShareAction = uiState.sharedLinksEnabled,
-                                onBookmarkToggle = { onToggleFavorite(data) },
-                                onRenameRequest = { renameTarget = data },
-                                onArchive = { onArchive(data.conversationId) },
-                                onDeleteRequest = { deleteTarget = data },
-                                onShare = { onShare(data.conversationId) },
-                                onDuplicate = { newTitle -> onDuplicate(data.conversationId, newTitle) },
-                                onTags = { tagPickerTarget = data },
-                                onExport = { exportPickerTarget = data },
-                            )
                         }
-                    },
-                )
-            }
-
-            val shouldLoadMore = remember {
-                derivedStateOf {
-                    val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-                    val totalItems = listState.layoutInfo.totalItemsCount
-                    lastVisibleItem >= totalItems - 8 && totalItems > 0
+                    }
                 }
-            }
 
-            LaunchedEffect(shouldLoadMore.value) {
-                if (shouldLoadMore.value && uiState.hasMore && !uiState.isLoadingMore) {
-                    currentOnLoadMore()
+                if (uiState.groupedConversations.isEmpty() && uiState.searchQuery.isNotEmpty()) {
+                    item(key = "empty_search") {
+                        Text(
+                            text = stringResource(Res.string.no_conversations_found),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp),
+                        )
+                    }
                 }
-            }
 
-            if (!showProjectsTab) {
-                PullToRefreshBox(
-                    isRefreshing = uiState.isRefreshing,
-                    onRefresh = onRefresh,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxSize(),
-                    ) {
-                    // Pinned section (v0.8.7) — pinned conversations surfaced above favorites. This is
-                    // their canonical home: when shown, they're filtered out of the date-grouped buckets
-                    // (see ConversationListStateHolder.withoutPinned) so they don't appear twice. The
-                    // section is hidden during search, where pinned rows instead surface in the results.
-                    if (uiState.pinnedConversations.isNotEmpty() && uiState.searchQuery.isEmpty()) {
-                        item(key = "pinned_header") {
-                            SectionHeader(
-                                icon = Icons.Default.PushPin,
-                                title = stringResource(Res.string.pinned),
-                            )
-                        }
+                uiState.groupedConversations.forEach { (group, displayItems) ->
+                    drawerHeader(glass, key = "header_${group.key}") {
+                        Text(
+                            text = when (group) {
+                                DrawerGroupKey.Running -> stringResource(Res.string.drawer_running_chats)
+                                is DrawerGroupKey.Date -> group.group.resolve()
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(if (glass) Color.Transparent else MaterialTheme.colorScheme.surfaceContainerLow)
+                                .padding(
+                                    start = 16.dp,
+                                    end = 16.dp,
+                                    top = 12.dp,
+                                    bottom = 4.dp,
+                                ),
+                        )
+                    }
 
-                        items(
-                            items = uiState.pinnedConversations,
-                            key = { "pin_${it.conversationId}" },
-                            contentType = { "conversation" },
-                        ) { data ->
-                            renderConversationItem("pin_${data.conversationId}", data)
-                        }
+                    items(
+                        items = displayItems,
+                        key = { it.conversationId },
+                        contentType = { "conversation" },
+                    ) { data ->
+                        renderConversationItem(data.conversationId, data)
+                    }
+                }
 
-                        item(key = "pinned_divider") {
-                            HorizontalDivider(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                                color = MaterialTheme.colorScheme.outlineVariant,
+                if (uiState.isLoadingMore) {
+                    item(key = "loading_more") {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            AdaptiveCircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp,
                             )
                         }
                     }
-
-                    // Favorites section — hidden entirely when BOOKMARKS.USE is denied so
-                    // any locally-cached favorites from a prior permissive session don't leak.
-                    // The header collapses the whole section; when expanded, only the top
-                    // [FavoritesPreviewCount] show until "Show more" reveals the rest.
-                    if (uiState.bookmarksEnabled && uiState.favoriteConversations.isNotEmpty() && uiState.searchQuery.isEmpty()) {
-                        val favorites = uiState.favoriteConversations
-                        stickyHeader(key = "favorites_header") {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(MaterialTheme.colorScheme.surfaceContainerLow),
-                            ) {
-                                SectionHeader(
-                                    icon = Icons.Default.Star,
-                                    title = stringResource(Res.string.favorites),
-                                    collapsed = favoritesCollapsed,
-                                    onToggle = { favoritesCollapsed = !favoritesCollapsed },
-                                )
-                            }
-                        }
-
-                        // The whole body (preview rows + show-more + divider) lives in one item so it can
-                        // expand/collapse as a unit; the extra rows past the preview get their own nested
-                        // reveal. Favorites are a small curated set, so composing them eagerly is cheap.
-                        item(key = "favorites_body") {
-                            Column {
-                                AnimatedVisibility(
-                                    visible = !favoritesCollapsed,
-                                    enter = expandVertically() + fadeIn(),
-                                    exit = shrinkVertically() + fadeOut(),
-                                ) {
-                                    Column {
-                                        favorites.take(FavoritesPreviewCount).forEach { data ->
-                                            renderConversationItem("fav_${data.conversationId}", data)
-                                        }
-
-                                        if (favorites.size > FavoritesPreviewCount) {
-                                            AnimatedVisibility(
-                                                visible = showAllFavorites,
-                                                enter = expandVertically() + fadeIn(),
-                                                exit = shrinkVertically() + fadeOut(),
-                                            ) {
-                                                Column {
-                                                    favorites.drop(FavoritesPreviewCount).forEach { data ->
-                                                        renderConversationItem("fav_${data.conversationId}", data)
-                                                    }
-                                                }
-                                            }
-                                            ShowMoreLessRow(
-                                                expanded = showAllFavorites,
-                                                onClick = { showAllFavorites = !showAllFavorites },
-                                            )
-                                        }
-
-                                        HorizontalDivider(
-                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                                            color = MaterialTheme.colorScheme.outlineVariant,
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    if (uiState.groupedConversations.isEmpty() && uiState.searchQuery.isNotEmpty()) {
-                        item(key = "empty_search") {
-                            Text(
-                                text = stringResource(Res.string.no_conversations_found),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp),
-                            )
-                        }
-                    }
-
-                    uiState.groupedConversations.forEach { (dateGroup, displayItems) ->
-                        stickyHeader(key = "header_$dateGroup") {
-                            Text(
-                                text = dateGroup,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                                    .padding(
-                                        start = 16.dp,
-                                        end = 16.dp,
-                                        top = 12.dp,
-                                        bottom = 4.dp,
-                                    ),
-                            )
-                        }
-
-                        items(
-                            items = displayItems,
-                            key = { it.conversationId },
-                            contentType = { "conversation" },
-                        ) { data ->
-                            renderConversationItem(data.conversationId, data)
-                        }
-                    }
-
-                    if (uiState.isLoadingMore) {
-                        item(key = "loading_more") {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp),
-                                    strokeWidth = 2.dp,
-                                )
-                            }
-                        }
-                    }
-                    }
                 }
-            } else {
-                DrawerProjectsList(
-                    projects = projects,
-                    inlineProjectChats = inlineProjectChats,
-                    onToggleProject = onToggleProject,
-                    onOpenProjectsIndex = onOpenProjectsIndex,
-                    onCreateProject = onCreateProject,
-                    onRenameProject = onRenameProject,
-                    onDeleteProject = onDeleteProject,
-                    renderChat = renderConversationItem,
-                    modifier = Modifier.weight(1f),
-                )
+                }
             }
-
-            // Bottom section: divider + footer links
-            HorizontalDivider(
-                modifier = Modifier.padding(horizontal = 12.dp),
-                color = MaterialTheme.colorScheme.outlineVariant,
+        }
+        if (showProjects) {
+            DrawerProjectsList(
+                projects = projects,
+                inlineProjectChats = inlineProjectChats,
+                onToggleProject = onToggleProject,
+                onOpenProjectsIndex = onOpenProjectsIndex,
+                onCreateProject = onCreateProject,
+                onRenameProject = onRenameProject,
+                onDeleteProject = onDeleteProject,
+                renderChat = renderConversationItem,
+                modifier = Modifier.fillMaxSize().then(panel(DrawerTab.Projects)),
             )
+        }
+        }
 
+        // Bottom section: divider + footer links
+        AdaptiveDivider(
+            modifier = Modifier.padding(horizontal = 12.dp),
+            color = MaterialTheme.colorScheme.outlineVariant,
+        )
+
+        val dragSelection = rememberListDragSelection()
+        Column(modifier = Modifier.listDragSelection(dragSelection)) {
             if (uiState.agentsEnabled) {
                 DrawerFooterItem(
                     icon = Icons.Default.SmartToy,
                     label = stringResource(Res.string.agents),
                     onClick = onAgentsClick,
+                    dragSelection = dragSelection,
                 )
             }
             if (uiState.skillsEnabled) {
@@ -801,18 +871,28 @@ fun DrawerContent(
                     icon = Icons.Default.Extension,
                     label = stringResource(Res.string.skills),
                     onClick = onSkillsClick,
+                    dragSelection = dragSelection,
+                )
+            }
+            if (uiState.schedulesEnabled) {
+                DrawerFooterItem(
+                    icon = Icons.Default.Schedule,
+                    label = stringResource(Res.string.schedules),
+                    onClick = onSchedulesClick,
+                    dragSelection = dragSelection,
                 )
             }
             DrawerFooterItem(
                 icon = Icons.Default.Folder,
                 label = stringResource(Res.string.files),
                 onClick = onFilesClick,
+                dragSelection = dragSelection,
             )
 
-            footerContent?.invoke()
-
-            Spacer(modifier = Modifier.height(8.dp))
+            footerContent?.invoke(dragSelection)
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
     }
 
     // Rename/Delete confirmation dialogs for the long-press action menu. Single hoisted instance
@@ -865,92 +945,6 @@ fun DrawerContent(
 }
 
 /**
- * Sliding-pill toggle for the drawer's two list modes: a rounded track holding two equal-width
- * icon+label cells (chat / workspaces) with a highlighted thumb that animates between them. Sits
- * inline to the right of the section heading; tapping a cell selects that mode.
- */
-@Composable
-private fun DrawerTabToggle(
-    selectedTab: DrawerTab,
-    onSelect: (DrawerTab) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val thumbOffsetFraction by animateFloatAsState(
-        targetValue = if (selectedTab == DrawerTab.Chats) 0f else 1f,
-        label = "DrawerTabThumb",
-    )
-    Box(
-        modifier = modifier
-            .clip(PillTrackShape)
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-            .padding(3.dp)
-            .height(DrawerTabCellHeight),
-    ) {
-        // Moving highlight behind the active cell; offset by a whole cell for the selected side.
-        Box(
-            modifier = Modifier
-                .width(DrawerTabCellWidth)
-                .fillMaxHeight()
-                .offset(x = DrawerTabCellWidth * thumbOffsetFraction)
-                .clip(PillThumbShape)
-                .background(MaterialTheme.colorScheme.secondaryContainer),
-        )
-        Row {
-            DrawerTabToggleCell(
-                icon = Icons.AutoMirrored.Filled.Chat,
-                label = stringResource(Res.string.chats),
-                selected = selectedTab == DrawerTab.Chats,
-                onClick = { onSelect(DrawerTab.Chats) },
-            )
-            DrawerTabToggleCell(
-                icon = Icons.Default.Workspaces,
-                label = stringResource(Res.string.projects),
-                selected = selectedTab == DrawerTab.Projects,
-                onClick = { onSelect(DrawerTab.Projects) },
-            )
-        }
-    }
-}
-
-/** One icon+label cell of [DrawerTabToggle]; its tint flips when it becomes the selected side. */
-@Composable
-private fun DrawerTabToggleCell(
-    icon: ImageVector,
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    val contentColor = if (selected) {
-        MaterialTheme.colorScheme.onSecondaryContainer
-    } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
-    }
-    Row(
-        modifier = Modifier
-            .width(DrawerTabCellWidth)
-            .fillMaxHeight()
-            .clip(PillThumbShape)
-            .clickable(role = Role.Tab, onClick = onClick),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(16.dp),
-            tint = contentColor,
-        )
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = contentColor,
-            maxLines = 1,
-        )
-    }
-}
-
-/**
  * The Projects tab of the drawer — an inline folder browser reached via the pill toggle. Lists the
  * Unassigned bucket + project folders; tapping a folder
  * expands its chats inline (single-expand accordion via [onToggleProject]) rendered through
@@ -983,7 +977,7 @@ private fun DrawerProjectsList(
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                    AdaptiveCircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                 }
             }
             inlineProjectChats.conversations.isEmpty() -> {
@@ -1038,7 +1032,7 @@ private fun DrawerProjectsList(
         }
 
         item(key = "projects_divider") {
-            HorizontalDivider(
+            AdaptiveDivider(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                 color = MaterialTheme.colorScheme.outlineVariant,
             )
@@ -1190,13 +1184,16 @@ private fun DrawerConversationItem(
     modifier: Modifier = Modifier,
     onToggleFavorite: () -> Unit = {},
     onLongPress: () -> Unit = {},
+    onMenuCancel: () -> Unit = {},
     showBookmarkToggle: Boolean = true,
-    menuContent: @Composable (DpOffset) -> Unit = {},
+    menuContent: @Composable (DpOffset, MenuDragSelection) -> Unit = { _, _ -> },
 ) {
-    val backgroundColor = if (data.isActive) {
-        MaterialTheme.colorScheme.secondaryContainer
-    } else {
-        Color.Transparent
+    val glass = isLiquidGlass
+    val rowShape = if (glass) CircleShape else ItemShape
+    val backgroundColor = when {
+        !data.isActive -> Color.Transparent
+        glass -> GlassControlColors.fill
+        else -> MaterialTheme.colorScheme.secondaryContainer
     }
 
     // Horizontal pixel position of the last press, so the long-press menu can open with its
@@ -1208,6 +1205,8 @@ private fun DrawerConversationItem(
     // onLongClickLabel announces the long-press action to TalkBack — without it the action menu
     // (the only way to reach rename/delete/share/etc. from the drawer) is undiscoverable.
     val longPressLabel = stringResource(Res.string.cd_conversation_actions)
+
+    val menuDrag = rememberMenuDragSelection()
 
     // Box wraps the row so the long-press action menu (a DropdownMenu) anchors to this row.
     Box(modifier = modifier) {
@@ -1222,20 +1221,28 @@ private fun DrawerConversationItem(
                         pressXpx = down.position.x
                     }
                 }
+                .menuDragAnchor(
+                    menuDrag,
+                    opensOnDrag = false,
+                    onOpen = onLongPress,
+                    onCancel = onMenuCancel,
+                )
                 .padding(horizontal = 4.dp, vertical = 1.dp)
                 .fillMaxWidth()
-                .background(backgroundColor, ItemShape)
-                .clip(ItemShape)
+                .background(backgroundColor, rowShape)
+                .clip(rowShape)
                 .combinedClickable(
                     role = Role.Button,
                     onClick = onClick,
                     onLongClickLabel = longPressLabel,
                     onLongClick = onLongPress,
+                    // menuDragAnchor already fires the hold haptic; on here it buzzes twice.
+                    hapticFeedbackEnabled = false,
                 )
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (data.isActive) {
+            if (data.isActive && !glass) {
                 Box(
                     modifier = Modifier
                         .width(3.dp)
@@ -1272,7 +1279,7 @@ private fun DrawerConversationItem(
                     text = data.title,
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (data.isActive) {
-                        MaterialTheme.colorScheme.onSecondaryContainer
+                        if (glass) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSecondaryContainer
                     } else {
                         MaterialTheme.colorScheme.onSurface
                     },
@@ -1284,13 +1291,17 @@ private fun DrawerConversationItem(
                 // on the clock, so a pre-formatted value in immutable state goes stale. The
                 // reference is a key, not just an input — it is the thing that advances, and
                 // without it this memo would never recompute. Same shape as ConversationItem.
+                val format = LocalDateTimeFormat.current
                 val reference = LocalRelativeTimeReference.current
-                val subtitle = remember(data.model, data.updatedAt, reference) {
+                val timeLabel = remember(data.updatedAt, format, reference) {
+                    data.updatedAt?.listLabel(format, reference)
+                }
+                val relativeTime = timeLabel?.resolve()
+                val subtitle = remember(data.model, relativeTime) {
                     buildString {
                         data.model?.let { model ->
                             append(model.take(20))
                         }
-                        val relativeTime = data.updatedAt?.toRelativeTimeString(reference)
                         if (!relativeTime.isNullOrEmpty()) {
                             if (isNotEmpty()) append(" \u00B7 ")
                             append(relativeTime)
@@ -1309,6 +1320,7 @@ private fun DrawerConversationItem(
             }
 
             if (showBookmarkToggle) {
+                val starBounce = rememberPressBounce()
                 Icon(
                     imageVector = if (data.isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
                     contentDescription = if (data.isFavorite) {
@@ -1318,6 +1330,8 @@ private fun DrawerConversationItem(
                     },
                     modifier = Modifier
                         .size(32.dp)
+                        .pressBounce(starBounce, depth = STAR_SWELL)
+                        .clip(CircleShape)
                         .clickable(onClick = onToggleFavorite)
                         .padding(8.dp),
                     tint = if (data.isFavorite) {
@@ -1332,7 +1346,7 @@ private fun DrawerConversationItem(
         // Open the menu just below the row, with its left edge under the press point. The
         // DropdownMenu position provider flips it above the row near the screen bottom and
         // clamps it within a margin, so it never clips off-screen.
-        menuContent(with(density) { DpOffset(x = pressXpx.toDp(), y = MenuVerticalGap) })
+        menuContent(with(density) { DpOffset(x = pressXpx.toDp(), y = MenuVerticalGap) }, menuDrag)
     }
 }
 
@@ -1433,19 +1447,19 @@ private fun DrawerFooterItem(
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    dragSelection: ListDragSelection? = null,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .drawerRowShape()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .dragSelectRow(dragSelection, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = icon,
             contentDescription = label,
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier.size(20.dp).dragSelectRowIcon(),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(modifier = Modifier.width(12.dp))

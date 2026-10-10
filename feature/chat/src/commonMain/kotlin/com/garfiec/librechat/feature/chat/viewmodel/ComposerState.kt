@@ -8,8 +8,10 @@ import com.garfiec.librechat.feature.chat.viewmodel.delegate.PickedFile
 
 /**
  * The editable composer surface: the draft text, any send-block reason, and the active
- * queued-edit session. Written by [ChatViewModel], PresetPromptDelegate, and the platform
- * voice-input delegates.
+ * queued-edit session. Written by [ChatViewModel], UploadIntakeDelegate, PresetPromptDelegate,
+ * ConversationLoadDelegate (draft / unsent-text restores only), SendDispatchDelegate (the text,
+ * quote chips and staged batch a send consumes), QueueOrchestrationDelegate (the composer swap
+ * around a queued edit) and the platform voice-input delegates.
  */
 @Immutable
 data class ComposerState(
@@ -21,13 +23,14 @@ data class ComposerState(
      *  stashed new-message draft + the item's slot so both are restored on commit/cancel. */
     val editingQueuedItem: QueuedEditSession? = null,
     /** True while a tapped send is parked waiting for its attachment(s) to finish uploading (see
-     *  `ChatViewModel.withUploadGate`). Drives the composer's send button into a spinner the user
+     *  `UploadIntakeDelegate.withUploadGate`). Drives the composer's send button into a spinner the user
      *  can tap to cancel the deferred send. */
     val isAwaitingUploadSend: Boolean = false,
     /**
      * Files picked in Manual routing mode that are waiting on the user's choice. Non-null means
      * the routing sheet is open and NOTHING has been uploaded yet — cancelling leaves no orphaned
-     * server record. Written only by [ChatViewModel].
+     * server record. Written by `UploadIntakeDelegate`; `QueueOrchestrationDelegate.applyComposer` and
+     * `SendDispatchDelegate.clearComposer` also null it, inside their own atomic composer transactions.
      */
     val pendingUploadRouting: PendingUploadRouting? = null,
     /**
@@ -41,13 +44,13 @@ data class ComposerState(
      * A **count**, not a flag: nothing disables the attach affordance while intake runs, and a
      * share can arrive on top of a pick, so two intakes overlap readily. With a boolean the first
      * to finish clears the gate while the second is still resolving, re-opening the exact window
-     * this exists to close. Written only by [ChatViewModel].
+     * this exists to close. Written only by `UploadIntakeDelegate`.
      */
     val resolvingPickCount: Int = 0,
     /**
      * Verbatim excerpts staged via the selection toolbar's "Add to chat" (v0.8.7, upstream
      * #13868), one chip each above the composer until a fresh send or a composer-origin queue
-     * takes them. Taken atomically at spec-mint time (`ChatViewModel.takePendingQuotes`);
+     * takes them. Taken atomically at spec-mint time (`SendDispatchDelegate.takePendingQuotes`);
      * composer-origin steers leave them staged, and assistants endpoints never take them.
      */
     val pendingQuotes: List<String> = emptyList(),
@@ -111,7 +114,7 @@ sealed interface SendBlockReason {
  * the user was already composing.
  *
  * These fields mirror [QueuedMessage]'s source-config fields (model/endpoint/tools/mcp/params) and
- * are captured/applied by `ChatViewModel.captureComposer`/`applyComposer`/`toComposerSnapshot` — a
+ * are captured/applied by `QueueOrchestrationDelegate.captureComposer`/`applyComposer`/`toComposerSnapshot` — a
  * new composer setting must be threaded through all of them (no compiler enforcement).
  */
 @Immutable
@@ -135,4 +138,6 @@ data class QueuedEditSession(
     val original: QueuedMessage,
     val originalIndex: Int,
     val stashed: ComposerSnapshot,
+    /** [original] was withdrawn from the server queue to be edited, so it is offered back there. */
+    val withdrawnFromServer: Boolean = false,
 )

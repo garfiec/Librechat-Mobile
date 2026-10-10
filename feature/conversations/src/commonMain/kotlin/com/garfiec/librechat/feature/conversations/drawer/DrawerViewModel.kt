@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.accountTransitions
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.ProjectRepository
@@ -19,6 +20,7 @@ import com.garfiec.librechat.core.model.ChatProject
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.ConversationTag
 import com.garfiec.librechat.core.model.SAVED_TAG
+import com.garfiec.librechat.core.model.config.isSchedulesEnabled
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.canCreateSharedLinks
@@ -28,6 +30,8 @@ import com.garfiec.librechat.feature.conversations.export.ExportFormat
 import com.garfiec.librechat.feature.conversations.viewmodel.ConversationListActionsDelegate
 import com.garfiec.librechat.feature.conversations.viewmodel.ConversationListEvent
 import com.garfiec.librechat.feature.conversations.viewmodel.ProjectActionsDelegate
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,11 +41,16 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.time.TimeSource
 
 /**
  * Drawer-data half of the navigation shell, split out of `NavHostViewModel` so `:shared` stays nav
@@ -60,6 +69,7 @@ class DrawerViewModel(
     private val conversationExporter: ConversationExporter,
     private val activeAccountProvider: ActiveAccountProvider,
     private val settingsDataStore: SettingsDataStore,
+    private val chatRepository: ChatRepository,
 ) : ViewModel() {
 
     private val conversationListStateHolder = ConversationListStateHolder(conversationRepository, viewModelScope)
@@ -68,6 +78,10 @@ class DrawerViewModel(
         conversationListStateHolder.recentConversations
             .map { list -> list.filter { SAVED_TAG in it.tags } }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /** Conversations with a live generation job; see [activeJobsPoll]. Account-scoped: cleared on a switch. */
+    private val _activeJobIds = MutableStateFlow<Set<String>>(emptySet())
+    private val activeJobIds: StateFlow<Set<String>> = _activeJobIds.asStateFlow()
 
     private val pinnedConversations: StateFlow<List<Conversation>> =
         conversationListStateHolder.recentConversations
@@ -92,7 +106,12 @@ class DrawerViewModel(
             val pinSupported = version != null && BackendVersion.isCompatibleOrNewer(version, "0.8.7")
             val projectsSupported = version != null && BackendVersion.isCompatibleOrNewer(version, "0.8.7-rc1")
             val canShare = permissions.canCreateSharedLinks(config?.sharedLinksEnabled ?: false)
-            DrawerActionMenuState(tags, canShare, pinSupported, projectsSupported)
+            // Scheduled chats are NOT version-gated. The server announces them on `interface`, and
+            // ABSENT means OFF there — the opposite of every other flag — so a version compare on
+            // top would only add a second way to get it wrong. `isSchedulesEnabled` is the one
+            // reader; do not fold it into a generic interface-flag helper.
+            val schedulesEnabled = isSchedulesEnabled(config?.interfaceConfig?.schedules)
+            DrawerActionMenuState(tags, canShare, pinSupported, projectsSupported, schedulesEnabled)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DrawerActionMenuState())
 
     // Chat Projects (v0.8.7). Loaded lazily for the move-to-project picker and the drawer's Projects
@@ -179,6 +198,8 @@ class DrawerViewModel(
                     // USE gate is fail-OPEN (read/list visibility); mutation gating
                     // lives fail-CLOSED inside feature/skills.
                     skillsEnabled = role.hasAccessOrPermissive(PermissionType.SKILLS, Permission.USE),
+                    schedulesPermitted =
+                        role.hasAccessOrPermissive(PermissionType.SCHEDULES, Permission.USE),
                 )
             }
             .stateIn(viewModelScope, SharingStarted.Eagerly, DrawerPermissionFlags())
@@ -193,7 +214,9 @@ class DrawerViewModel(
      * [DrawerUiState] from rows that were already mapped.
      */
     private val displayConversations: Flow<DrawerDisplaySnapshot> = combine(
-        conversationListStateHolder.groupedConversations,
+        combine(conversationListStateHolder.groupedConversations, activeJobIds) { grouped, running ->
+            grouped.withRunningFirst(running)
+        },
         favoriteConversations,
         pinnedConversations,
         conversationListStateHolder.activeConversationId,
@@ -233,6 +256,8 @@ class DrawerViewModel(
             agentsEnabled = perms.agentsEnabled,
             bookmarksEnabled = perms.bookmarksEnabled,
             skillsEnabled = perms.skillsEnabled,
+            // BOTH halves, in upstream's order: the permission, then the server flag.
+            schedulesEnabled = perms.schedulesPermitted && actionMenu.schedulesEnabled,
             availableTags = actionMenu.availableTags,
             sharedLinksEnabled = actionMenu.sharedLinksEnabled,
             pinEnabled = actionMenu.pinEnabled,
@@ -240,10 +265,17 @@ class DrawerViewModel(
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, DrawerUiState())
 
+    private companion object {
+        const val ACTIVE_JOBS_POLL_MS = 5_000L
+        const val ACTIVE_JOBS_GRACE_MS = 30_000L
+    }
+
     private data class DrawerPermissionFlags(
         val agentsEnabled: Boolean = true,
         val bookmarksEnabled: Boolean = true,
         val skillsEnabled: Boolean = true,
+        /** The permission half only. Scheduled chats need the server flag too — see the combine. */
+        val schedulesPermitted: Boolean = true,
     )
 
     private data class DrawerActionMenuState(
@@ -251,9 +283,51 @@ class DrawerViewModel(
         val sharedLinksEnabled: Boolean = false,
         val pinEnabled: Boolean = false,
         val projectsEnabled: Boolean = false,
+        val schedulesEnabled: Boolean = false,
     )
 
+    /**
+     * Whether a drawer surface is open and started; the active-jobs poll runs only then. Composition
+     * alone is not the signal — see DrawerContent's `isOpen`.
+     */
+    private val drawerVisible = MutableStateFlow(false)
+
+    fun setDrawerVisible(visible: Boolean) {
+        drawerVisible.value = visible
+    }
+
+    /**
+     * Upstream `useActiveJobs`: poll every [ACTIVE_JOBS_POLL_MS] while anything is running and for
+     * [ACTIVE_JOBS_GRACE_MS] after the list empties (a queued successor is admitted a moment after
+     * its predecessor ends), then go quiet until the conversation list itself moves. A failed read
+     * keeps the last answer rather than dropping the group mid-run.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val activeJobsPoll: Flow<Set<String>> = drawerVisible.flatMapLatest { visible ->
+        if (!visible) {
+            emptyFlow()
+        } else {
+            flow {
+                var lastListed: TimeSource.Monotonic.ValueTimeMark? = null
+                while (true) {
+                    val ids = (chatRepository.getActiveJobIds() as? Result.Success)?.data
+                    if (ids != null) emit(ids)
+                    if (!ids.isNullOrEmpty()) lastListed = TimeSource.Monotonic.markNow()
+                    val inGrace = lastListed?.let { it.elapsedNow().inWholeMilliseconds < ACTIVE_JOBS_GRACE_MS } == true
+                    if (inGrace) {
+                        delay(ACTIVE_JOBS_POLL_MS)
+                    } else {
+                        conversationListStateHolder.recentConversations.drop(1).first()
+                    }
+                }
+            }
+        }
+    }
+
     init {
+        viewModelScope.launch {
+            activeJobsPoll.collect { _activeJobIds.value = it }
+        }
         viewModelScope.launch {
             val persisted = DrawerTab.fromString(settingsDataStore.drawerLibraryTab.first())
             _drawerLibraryTab.update { it ?: persisted }
@@ -275,6 +349,7 @@ class DrawerViewModel(
         // reactively via the active-account gate.
         viewModelScope.launch {
             activeAccountProvider.accountTransitions().collect { transition ->
+                _activeJobIds.value = emptySet()
                 _projects.value = emptyList()
                 _expandedProjectId.value = null
                 _expandedProjectChats.value = emptyList()

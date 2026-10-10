@@ -13,9 +13,9 @@ import io.ktor.client.request.accept
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.OutgoingContent
 import io.ktor.http.contentType
 import io.ktor.http.headersOf
-import io.ktor.http.content.OutgoingContent
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json

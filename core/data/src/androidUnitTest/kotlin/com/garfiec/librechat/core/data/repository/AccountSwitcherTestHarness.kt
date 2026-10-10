@@ -37,7 +37,7 @@ internal class RecordingTokenManager : TokenManager {
         stagedAccess = accessToken
     }
     override suspend fun refreshAccessToken(usedAccessToken: String?): RefreshResult = RefreshResult.HardExpired
-    override suspend fun clearTokens() {}
+    override suspend fun clearTokens() = Unit
     override suspend fun getAccessTokenFor(accountId: String): String? = null
     override suspend fun getStagedAccessToken(): String? = stagedAccess
     override suspend fun clearStagedTokens() {

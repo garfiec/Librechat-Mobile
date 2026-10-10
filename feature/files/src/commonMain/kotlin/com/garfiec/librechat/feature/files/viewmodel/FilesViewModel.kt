@@ -8,12 +8,14 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.getOrNull
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.data.pdf.PdfPasswordProtectedException
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.model.FileObject
 import com.garfiec.librechat.core.model.request.DeleteFileEntry
 import com.garfiec.librechat.core.model.response.FileUploadConfig
 import com.garfiec.librechat.core.model.response.pickerMimeTypes
+import com.garfiec.librechat.core.ui.components.PdfPasswordPromptUi
 import com.garfiec.librechat.core.ui.media.MediaItem
 import com.garfiec.librechat.core.ui.media.MediaPreviewState
 import com.garfiec.librechat.feature.files.FileDisplayData
@@ -124,8 +126,11 @@ data class FilesUiState(
      * configured no allowlist, or it configured one we can't represent faithfully.
      */
     val pickerMimeTypes: List<String> = emptyList(),
+    /** A picked PDF needs its password before it can be uploaded; the screen asks for it. */
+    val pdfPasswordPrompt: PdfPasswordPromptUi? = null,
 )
 
+@Suppress("TooManyFunctions") // debt: 31 functions
 class FilesViewModel(
     private val fileRepository: FileRepository,
     private val configRepository: ConfigRepository,
@@ -213,6 +218,7 @@ class FilesViewModel(
             mediaPreview = transient.mediaPreview,
             hasFiles = list.hasFiles,
             viewMode = mode ?: FileViewMode.LIST,
+            pdfPasswordPrompt = transient.pdfPasswordPrompt,
             pickerMimeTypes = pickerMimeTypes,
         )
     }.stateIn(
@@ -284,12 +290,15 @@ class FilesViewModel(
 
     private var uploadJob: Job? = null
 
+    /** The picked PDF behind [FilesUiState.pdfPasswordPrompt], kept out of the UI state. */
+    private var pendingPdfRef: Any? = null
+
     /**
      * Upload a file from a platform-specific file reference.
      * On Android this is a Uri; on iOS it will be an NSURL.
      */
     @OptIn(ExperimentalUuidApi::class)
-    fun uploadFile(fileRef: Any) {
+    fun uploadFile(fileRef: Any, pdfPassword: String? = null) {
         uploadJob?.cancel()
         lateinit var thisJob: Job
         thisJob = viewModelScope.launch(ioDispatcher) {
@@ -300,6 +309,7 @@ class FilesViewModel(
                     uploadFilename = filename,
                     uploadProgress = null,
                     error = null,
+                    pdfPasswordPrompt = null,
                 )
             }
             val mimeType = fileReader.getMimeType(fileRef) ?: "application/octet-stream"
@@ -331,6 +341,7 @@ class FilesViewModel(
                 onProgress = { pct ->
                     if (thisJob.isActive) updateTransient { copy(uploadProgress = pct) }
                 },
+                pdfPassword = pdfPassword,
             )) {
                 is Result.Success -> {
                     Logger.d { "uploadFile: success -- serverFileId=${result.data.fileId}" }
@@ -344,13 +355,19 @@ class FilesViewModel(
                     }
                 }
                 is Result.Error -> {
-                    Logger.e(result.exception) { "uploadFile: server error -- ${result.message}" }
+                    val locked = result.exception as? PdfPasswordProtectedException
+                    if (locked != null) {
+                        pendingPdfRef = fileRef
+                    } else {
+                        Logger.e(result.exception) { "uploadFile: server error -- ${result.message}" }
+                    }
                     updateTransient {
                         copy(
                             isUploading = false,
                             uploadFilename = "",
                             uploadProgress = null,
-                            error = result.message ?: "Upload failed",
+                            error = if (locked != null) null else result.message ?: "Upload failed",
+                            pdfPasswordPrompt = locked?.let { PdfPasswordPromptUi(filename, it.incorrectPassword) },
                         )
                     }
                 }
@@ -358,6 +375,18 @@ class FilesViewModel(
             }
         }
         uploadJob = thisJob
+    }
+
+    /** Uploads the prompted PDF again, decrypting it on-device with [password]. */
+    fun submitPdfPassword(password: String) {
+        val fileRef = pendingPdfRef ?: return
+        pendingPdfRef = null
+        uploadFile(fileRef, pdfPassword = password)
+    }
+
+    fun dismissPdfPassword() {
+        pendingPdfRef = null
+        updateTransient { copy(pdfPasswordPrompt = null) }
     }
 
     fun cancelUpload() {
@@ -373,14 +402,24 @@ class FilesViewModel(
 
     fun deleteFile(fileId: String) {
         viewModelScope.launch {
+            // The route drops any entry with a falsy filepath before doing anything else, so a
+            // row we cannot name a path for would be filtered away and answered 204 — a silent
+            // no-op the list would then render as a successful delete.
             val file = _files.value.find { it.fileId == fileId }
-            val entry = DeleteFileEntry(
-                fileId = fileId,
-                filepath = file?.filepath ?: "",
-            )
+            if (file == null || file.filepath.isBlank()) {
+                updateTransient { copy(error = "Failed to delete file") }
+                return@launch
+            }
+            val entry = DeleteFileEntry(fileId = fileId, filepath = file.filepath)
             when (val result = fileRepository.deleteFiles(listOf(entry))) {
                 is Result.Success -> {
-                    _files.value = _files.value.filter { it.fileId != fileId }
+                    // A partial delete answers 200, so success alone does not mean the file is
+                    // gone — dropping the row anyway hides a file that is still on the server.
+                    if (fileId in result.data.failedFileIds) {
+                        updateTransient { copy(error = result.data.message ?: "Failed to delete file") }
+                    } else {
+                        _files.value = _files.value.filter { it.fileId != fileId }
+                    }
                 }
                 is Result.Error -> {
                     updateTransient {
@@ -557,17 +596,35 @@ class FilesViewModel(
         if (selectedIds.isEmpty()) return
 
         viewModelScope.launch {
+            // Only rows still in the list can be named; a selection is sticky across filter
+            // changes and survives a reload, so an id with no row is one nothing can be asked
+            // about — counting it as deleted is the same silent success as a blank filepath,
+            // which the repository now reports as a failure for every caller.
             val entries = selectedIds.mapNotNull { id ->
-                val file = _files.value.find { it.fileId == id }
-                file?.let { DeleteFileEntry(fileId = it.fileId, filepath = it.filepath) }
+                _files.value.find { it.fileId == id }
+                    ?.let { DeleteFileEntry(fileId = it.fileId, filepath = it.filepath) }
+            }
+            if (entries.isEmpty()) {
+                updateTransient { copy(error = "Failed to delete files") }
+                return@launch
             }
             when (val result = fileRepository.deleteFiles(entries)) {
                 is Result.Success -> {
-                    _files.value = _files.value.filter { it.fileId !in selectedIds }
+                    // Everything asked for MINUS what the server reported as failed. An older
+                    // server names no ids, so the failed set is empty and this evicts the whole
+                    // selection, exactly as before.
+                    val failed = result.data.failedFileIds.toSet()
+                    val removed = entries.map { it.fileId }.toSet() - failed
+                    _files.value = _files.value.filter { it.fileId !in removed }
                     updateTransient {
                         copy(
-                            isSelectionMode = false,
-                            selectedFileIds = emptySet(),
+                            isSelectionMode = failed.isNotEmpty(),
+                            selectedFileIds = failed,
+                            error = if (failed.isEmpty()) {
+                                error
+                            } else {
+                                result.data.message ?: "Failed to delete files"
+                            },
                         )
                     }
                 }
@@ -688,4 +745,5 @@ private data class TransientState(
     val selectedFileIds: Set<String> = emptySet(),
     val previewFile: FilePreviewDisplayData? = null,
     val mediaPreview: MediaPreviewState? = null,
+    val pdfPasswordPrompt: PdfPasswordPromptUi? = null,
 )

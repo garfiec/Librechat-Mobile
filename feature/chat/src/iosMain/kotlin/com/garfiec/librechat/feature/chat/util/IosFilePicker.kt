@@ -1,10 +1,9 @@
 package com.garfiec.librechat.feature.chat.util
 
 import co.touchlab.kermit.Logger
+import com.garfiec.librechat.core.common.toByteArray
 import com.garfiec.librechat.core.ui.platform.currentTopmostViewController
 import kotlinx.cinterop.ExperimentalForeignApi
-import kotlinx.cinterop.addressOf
-import kotlinx.cinterop.usePinned
 import platform.CoreGraphics.CGImageGetHeight
 import platform.CoreGraphics.CGImageGetWidth
 import platform.Foundation.NSData
@@ -34,7 +33,6 @@ import platform.darwin.NSObject
 import platform.darwin.dispatch_async
 import platform.darwin.dispatch_get_global_queue
 import platform.darwin.dispatch_get_main_queue
-import platform.posix.memcpy
 
 /**
  * Strong reference to the currently active picker delegate.
@@ -154,7 +152,7 @@ private class DocumentPickerDelegate(
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT.toLong(), 0u)) {
             val results = mutableListOf<Any>()
             for (doc in loaded) {
-                val bytes = doc.data.toByteArray() ?: continue
+                val bytes = doc.data.toByteArray().takeIf { it.isNotEmpty() } ?: continue
                 val mimeType = guessMimeType(doc.filename)
 
                 if (mimeType.startsWith("image/")) {
@@ -227,7 +225,7 @@ private class PhotoPickerDelegate(
             if (provider.hasItemConformingToTypeIdentifier("public.image")) {
                 provider.loadDataRepresentationForTypeIdentifier("public.image") { data, error ->
                     val imageData = data?.let { nsData ->
-                        val bytes = nsData.toByteArray()
+                        val bytes = nsData.toByteArray().takeIf { it.isNotEmpty() }
                         if (bytes != null) {
                             val filename = provider.suggestedName ?: "photo"
                             val image = UIImage(data = nsData)
@@ -274,7 +272,7 @@ private class CameraDelegate(
         // queue and deliver the result back on Main.
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT.toLong(), 0u)) {
             val data = UIImageJPEGRepresentation(image, 0.85) ?: return@dispatch_async
-            val bytes = data.toByteArray() ?: return@dispatch_async
+            val bytes = data.toByteArray().takeIf { it.isNotEmpty() } ?: return@dispatch_async
             val cgImage = image.CGImage
             val width = cgImage?.let { CGImageGetWidth(it).toInt() }
             val height = cgImage?.let { CGImageGetHeight(it).toInt() }
@@ -302,17 +300,6 @@ private class CameraDelegate(
 }
 
 // ── Utilities ──────────────────────────────────────────────────
-
-@OptIn(ExperimentalForeignApi::class)
-private fun NSData.toByteArray(): ByteArray? {
-    val length = this.length.toInt()
-    if (length == 0) return null
-    val bytes = ByteArray(length)
-    bytes.usePinned { pinned ->
-        memcpy(pinned.addressOf(0), this@toByteArray.bytes, this@toByteArray.length)
-    }
-    return bytes
-}
 
 private fun guessMimeType(filename: String): String {
     val ext = filename.substringAfterLast('.', "").lowercase()

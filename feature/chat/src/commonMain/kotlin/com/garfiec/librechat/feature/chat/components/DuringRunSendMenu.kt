@@ -6,9 +6,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -21,6 +19,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_during_run_options
 import com.garfiec.librechat.feature.chat.resources.during_run_always_queue
@@ -60,7 +60,7 @@ fun DuringRunSendMenu(
                 modifier = Modifier.size(20.dp),
             )
         }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        AdaptiveDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             DropdownMenuItem(
                 text = { Text(stringResource(Res.string.during_run_steer)) },
                 leadingIcon = { Icon(Icons.Default.Bolt, contentDescription = null) },
@@ -79,7 +79,7 @@ fun DuringRunSendMenu(
                     onQueueOnce()
                 },
             )
-            HorizontalDivider()
+            AdaptiveDivider()
             // Offers the OPPOSITE of the current default — the switch you would make, not a
             // restatement of the setting you are already on.
             val next = if (defaultAction == DuringRunAction.STEER) {

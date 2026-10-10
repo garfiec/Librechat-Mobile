@@ -43,6 +43,37 @@ class AgentCapabilitiesDelegate(
         observeSkillsAvailability()
         observeSubagentsAvailability()
         observeServerVersion()
+        observeFileRemovalSemantics()
+        observeDropParams()
+    }
+
+    /**
+     * v0.8.8-rc4 (#16007, landed 2026-09-17) made removing an agent's file delete it when the
+     * caller owns it and no other agent references it. A date gate so a dev build past that commit
+     * gets the confirmation too; PRESENT only, so a server that cannot be placed keeps the removal
+     * as it was rather than warning about a deletion it may not perform. See VERSION_GATES.md.
+     */
+    private fun observeFileRemovalSemantics() {
+        stateHandle.scope.launch {
+            configRepository.detectedBackend.collect { detected ->
+                val deletes = BackendVersion.supportsFeature(detected, "0.8.8-rc4", "2026-09-17")
+                // thinkingDisplay `updates`: the same gate as ChatViewModel's, kept in step with it;
+                // see VERSION_GATES.md.
+                val updates = BackendVersion.supportsFeature(detected, "0.8.8", "2026-09-29")
+                stateHandle.update {
+                    copy(agentFileRemovalDeletes = deletes, isThinkingDisplayUpdatesAvailable = updates)
+                }
+            }
+        }
+    }
+
+    /** `endpointsDropParamsMap` is stripped for unauthenticated callers, so it can arrive late. */
+    private fun observeDropParams() {
+        stateHandle.scope.launch {
+            configRepository.startupConfig.collect { config ->
+                stateHandle.update { copy(dropParamsMap = config?.endpointsDropParamsMap) }
+            }
+        }
     }
 
     /**
@@ -63,6 +94,8 @@ class AgentCapabilitiesDelegate(
                         showCollaborativeToggle = show,
                         isHandoffsAvailable = handoffsAvailable,
                         isAclAvailable = handoffsAvailable,
+                        isAgentFileUnlinkAvailable = version != null &&
+                            BackendVersion.isCompatibleOrNewer(version, "0.8.8-rc1"),
                     )
                 }
             }

@@ -11,4 +11,7 @@
     <string name="version_mismatch_message">Esta app se creó para LibreChat v%1$s, pero tu servidor ejecuta la v%2$s. Es posible que algunas funciones no funcionen correctamente.</string>
     <string name="dismiss">Descartar</string>
     <string name="dont_warn_again">No volver a avisar</string>
+    <string name="session_expired_title">Sesión cerrada</string>
+    <string name="session_expired_message">Tu sesión ha caducado. Vuelve a iniciar sesión para continuar.</string>
+    <string name="session_expired_message_named">Tu sesión en %1$s ha caducado. Vuelve a iniciar sesión para continuar.</string>
 </resources>

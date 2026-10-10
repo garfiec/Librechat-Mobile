@@ -47,8 +47,19 @@ so nothing gets hardcoded into a file upstream also edits.
   model call is routed through the broker with a fixed, server-side credential (see
   `Tchat/deploy/tchat/README.md`'s "Why users cannot switch providers") — so there is nothing for a
   user to configure, and showing the controls would look like a capability they don't actually
-  have. `sections/DataManagementSection.kt` has a same-named, unreferenced duplicate of the
-  "Revoke API keys" button (dead code, unrelated to this gate) — see the task flagged against it.
+  have.
+- **App update check** — `TchatBrand.APP_UPDATE_CHECK` (`false`) is passed as
+  `AppUpdateRepositoryImpl.isSupported` on Android (iOS already passes `false`). Upstream's check
+  reads Switchboard's GitHub Releases, so it would offer Switchboard APKs, which carry a different
+  app id and install beside Tchat instead of updating it. Off hides Settings' "Check for updates"
+  rows, the daily check and the chat update banner; `pendingUpdate` also checks the flag, so a tag
+  stored by an earlier Tchat build can't keep the banner up. The installed version's release notes
+  row stays (it still reads Switchboard's notes for the same version tag).
+- **Dead `sections/` files** — upstream still ships `screen/sections/{AccountSection,
+  ChatPreferencesSection,DataManagementSection,SpeechSection}.kt`, each an `internal` composable
+  shadowed by a same-named file-private one in the live screen, so nothing calls them. The fork
+  deletes them; a sync where upstream edits one shows up as a modify/delete conflict — keep the
+  delete after re-checking the shadowing still holds.
 - **`applicationId`** — `space.tensorgrid.tchat` (`app/build.gradle.kts`). `namespace` stays
   `com.garfiec.librechat` on purpose: `AndroidManifest.xml` uses relative class names
   (`.MainActivity`) that resolve against `namespace`, and every Kotlin source file stays in the
@@ -67,89 +78,40 @@ so nothing gets hardcoded into a file upstream also edits.
 - **Branding** — app name, splash colour (`#0C0F1A`, TensorGrid's ground colour), accent seed
   (`#4F8CFF`), launcher icons. See `design/README.md` for the icon source and regeneration steps.
 
-## Upstream bugs fixed here, and reported upstream
+## Upstream bugs fixed here first
 
-These are genuine Switchboard bugs, not Tchat-specific behaviour — kept as isolated commits so
-they cherry-pick cleanly into a PR to `garfiec/Librechat-Mobile`:
+- **OAuth was broken** (wrong `/api/oauth` path, and an external browser whose cookie jar the app
+  could never read). The fork rebuilt it on an app-owned WebView (`OAuthWebView`); upstream then
+  fixed the same bug independently and more thoroughly in garfiec/Librechat-Mobile#375
+  (`SsoLoginScreen` + `SsoWebView`). The 2026-10-10 upstream sync **dropped the fork's
+  `OAuthWebView` in favour of upstream's** — see "OIDC" below.
+- **The server's own `openidLabel` / `openidAutoRedirect` (`StartupConfig`) are parsed upstream
+  and never read.** Still fork-only: `LoginViewModel` surfaces both through `LoginUiState`;
+  `LoginScreen` labels the `openid` button with the server's `OPENID_BUTTON_LABEL` (falling back
+  to `TchatBrand.OIDC_FALLBACK_LABEL`) and honours `OPENID_AUTO_REDIRECT` by calling upstream's
+  own `onSsoProviderSelected(TchatBrand.OIDC_PROVIDER)` once per screen instance (a
+  `rememberSaveable` latch, so backing out of the SSO screen lands on a usable login screen).
 
-- **OAuth URL was wrong.** `AndroidOAuthLauncher` / `IosOAuthLauncher` built
-  `"$serverUrl/api/oauth/$provider"`; LibreChat mounts OAuth at `/oauth`, not `/api/oauth`. This
-  404'd on every server — social login in Switchboard had never worked against a real LibreChat.
-- **The server's own `openidLabel` / `openidAutoRedirect` (`StartupConfig`) were parsed and never
-  read.** `LoginScreen` hardcoded `"Continue with OpenID"` and never honoured
-  `OPENID_AUTO_REDIRECT`. Both are now wired through `LoginUiState`.
+## OIDC: upstream's in-app WebView
 
-## OIDC: rebuilt on an app-owned WebView
+Sign-in runs on upstream's `SsoLogin(provider)` route (`feature/auth/CLAUDE.md` → "OAuth Flow"
+documents it). Nothing in that flow is fork-specific; the fork only adds the label and
+auto-redirect above. Things worth knowing for Tchat:
 
-Fixing the URL above was necessary but **not sufficient** — the external-browser design
-(`OAuthLauncher.launchOAuth`, a Chrome Custom Tab / `ASWebAuthenticationSession`) presented the
-flow in the *browser's* cookie jar (Chrome's own profile / Safari's), never the store
-`OAuthLauncher.extractTokenFromCookies` reads from (`CookieManager` / `NSHTTPCookieStorage`). It
-has been replaced with `OAuthWebView` (`feature/auth/oauth/OAuthWebView.kt` + its `.android.kt` /
-`.ios.kt` actuals) — an app-owned `WebView`/`WKWebView`, embedded as a full-screen overlay by
-`LoginScreen` when `LoginViewModel.launchOAuth` is called, whose cookie jar *is* the one
-`OAuthLauncher` reads afterwards:
-
-- **Android**: `android.webkit.CookieManager` is a single global, app-wide store — the same one
-  both the embedded `WebView` and `AndroidOAuthLauncher.extractTokenFromCookies` use. No bridging
-  needed.
-- **iOS**: `WKWebView`'s default (persistent, non-ephemeral) `WKWebsiteDataStore` synchronizes with
-  `NSHTTPCookieStorage.sharedHTTPCookieStorage` (the store `IosOAuthLauncher` reads from) — a
-  documented, long-standing WebKit behaviour, not something this fork bridges by hand. Using an
-  *ephemeral* configuration would reproduce the exact bug this exists to fix, so `OAuthWebView.ios.kt`
-  deliberately does not use one.
-
-`OAuthWebView` only detects *when* the flow reaches an ordinary page back on the server (`isOAuthReturnUrl`
-in the same file) — it never reads cookies itself. The caller reacts via
-`LoginViewModel.onOAuthWebViewComplete()`, which calls the same `checkOAuthResult()` extraction the
-old design used from `ON_RESUME`; that fallback is still wired up too (`LoginScreen`'s
-`LifecycleEventEffect(ON_RESUME)`), now purely belt-and-braces since the in-app WebView no longer
-backgrounds the app the way the external-browser design did.
-
-**Android compiles clean** (`./gradlew :app:assembleDebug` — a real build, not just a review — has
-since succeeded against this code). **iOS is still unverified**: `:app:assembleDebug` only compiles
-the Android target, so `OAuthWebView.ios.kt`'s `WKNavigationDelegateProtocol` override signatures —
-the one part of this whole change with no existing precedent elsewhere in the codebase to check
-them against — have never been through a Kotlin/Native compile. Before relying on this in
-production, run an Xcode/`iosSimulatorArm64` build and exercise the flow end-to-end on both
-platforms against a real Tchat OIDC sign-in (with `ALLOW_SOCIAL_LOGIN=true`).
-
-### Known, accepted trade-off: no SSO with the system browser
-
-An embedded `WebView`/`WKWebView` has its own private cookie jar *and* its own private
-`localStorage` — isolated from the user's real Chrome/Safari by OS design, on both platforms, with
-no exception. Two consequences follow from that one fact, in opposite directions:
-
-- It's *why the old design was completely broken*: a cookie set inside a Custom Tab (Chrome's own
-  profile) or `ASWebAuthenticationSession` (Safari's) was never visible to
-  `android.webkit.CookieManager` / `NSHTTPCookieStorage` — the stores `OAuthLauncher` reads from —
-  so `extractTokenFromCookies` could never find anything, for anyone, ever. Not a login-flow bug;
-  a 100%-failure-rate bug.
-- It's *why the new design gives up SSO with the system browser*: if the user already has a live
-  TensorGrid session in their actual Chrome/Safari (e.g. their JWT sitting in that browser's
-  `localStorage` from using the TensorGrid web app), the in-app `OAuthWebView` can't see it either
-  — per `OIDC.md`'s own diagram ("Already signed in? straight through"), a Custom Tab *would* have
-  skipped straight through; the embedded WebView starts a cold session and makes the user sign in
-  to TensorGrid again, inside the app. In practice this should mostly be a one-time cost per
-  install — `OAuthWebView`'s cookie jar is the platform's normal *persistent* store, so a TensorGrid
-  session established inside the app survives across app launches and a later sign-in attempt
-  should skip straight through it. It is not one-time if the user's only prior TensorGrid session
-  lives in their system browser rather than inside this app.
-
-**Decision (kept deliberately, revisit only if this becomes a real complaint):** keep the WebView
-as-is. The alternative — recommended by OAuth's own spec for native apps, RFC 8252 — is to keep the
-system browser for the interactive part (preserving true SSO) and stop depending on cookies
-entirely: the IdP redirects to a custom URI scheme the OS hands back to the app
-(`tchat://oauth-callback?code=...`), and the app exchanges that code for tokens itself over a
-direct HTTPS call, never touching a cookie jar at all. Notably, the *old* `IosOAuthLauncher` code
-already had `callbackURLScheme = "librechat"` wired up — whoever wrote it was reaching for exactly
-this pattern — but it could never fire, because LibreChat's `oauthHandler`
-(`api/server/controllers/auth/oauth.js` in the Tchat repo) unconditionally redirects to
-`domains.client` (an ordinary web page), with no way for a client to ask for a different redirect
-target. Doing this properly needs a **Tchat backend change** too — either a small addition to
-LibreChat's own OAuth controller (a `redirect_uri` override for a registered native-app scheme), or
-a redirect-rewriting shim at the nginx/broker layer — not just a mobile-side one. Out of scope
-unless the trade-off above turns out to matter more than expected.
+- **One-time warning.** Upstream shows an "in-app browser" risk dialog before the first social
+  sign-in (`SsoRiskDataStore`), auto-redirect included. It is aimed at providers like Google that
+  may block embedded browsers; TensorGrid's own OIDC is not one of them, but the dialog is kept as
+  upstream ships it.
+- **Every sign-in starts from an empty cookie jar** — Android wipes it before each round-trip and
+  iOS uses a non-persistent `WKWebsiteDataStore`. That is deliberate upstream (a leftover provider
+  session would otherwise silently sign the next user in as the previous one), and it means a
+  TensorGrid session is never reused: the user enters TensorGrid credentials on every sign-in,
+  not just once per install as under the fork's old `OAuthWebView`.
+- **No SSO with the system browser.** An embedded WebView never sees the user's Chrome/Safari
+  session. The fix that would give real SSO is RFC 8252 (system browser + a custom-scheme
+  redirect + code exchange), and it needs a **Tchat backend change**: LibreChat's `oauthHandler`
+  (`api/server/controllers/auth/oauth.js`) always redirects to `domains.client`, with no way for a
+  client to ask for a native-app redirect. Out of scope unless this becomes a real complaint.
 
 ## Server-side prerequisite
 

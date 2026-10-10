@@ -21,8 +21,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -31,6 +31,7 @@ import com.garfiec.librechat.core.model.FeedbackRating
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.MinimalFeedback
 import com.garfiec.librechat.core.ui.components.AvatarImage
+import com.garfiec.librechat.core.ui.components.BubbleShape
 import com.garfiec.librechat.core.ui.components.endpointIconPainter
 import com.garfiec.librechat.core.ui.components.isMonochromeEndpointIcon
 import com.garfiec.librechat.feature.chat.resources.*
@@ -164,7 +165,6 @@ actual fun MessageBubble(
 @Composable
 private fun ThreadMessageBubble(
     message: Message,
-    modifier: Modifier,
     siblingIndex: Int,
     siblingCount: Int,
     onSiblingNavigation: ((Int) -> Unit)?,
@@ -198,6 +198,7 @@ private fun ThreadMessageBubble(
     onFocusedOccurrencePosition: ((LayoutCoordinates, Rect) -> Unit)?,
     showAvatars: Boolean,
     showBubbles: Boolean,
+    modifier: Modifier = Modifier,
 ) {
     val isUser = message.isCreatedByUser
     var showActions by remember(message.messageId) { mutableStateOf(showActionsInitially) }
@@ -345,6 +346,7 @@ private fun ThreadMessageBubble(
                 currentFeedback = currentFeedback,
                 userName = userName,
                 userAvatarUrl = userAvatarUrl,
+                alignImagesEnd = false,
             )
         }
     }
@@ -356,7 +358,6 @@ private fun ThreadMessageBubble(
 @Composable
 private fun TwoSidedMessageBubble(
     message: Message,
-    modifier: Modifier,
     siblingIndex: Int,
     siblingCount: Int,
     onSiblingNavigation: ((Int) -> Unit)?,
@@ -390,6 +391,7 @@ private fun TwoSidedMessageBubble(
     onFocusedOccurrencePosition: ((LayoutCoordinates, Rect) -> Unit)?,
     showAvatars: Boolean,
     showBubbles: Boolean,
+    modifier: Modifier = Modifier,
 ) {
     val isUser = message.isCreatedByUser
     var showActions by remember(message.messageId) { mutableStateOf(showActionsInitially) }
@@ -546,6 +548,7 @@ private fun TwoSidedMessageBubble(
                 currentFeedback = currentFeedback,
                 userName = userName,
                 userAvatarUrl = userAvatarUrl,
+                alignImagesEnd = isUser,
             )
         }
 

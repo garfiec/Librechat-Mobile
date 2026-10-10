@@ -24,8 +24,8 @@
   (`MessagesState`) because all five couple them.
 - Adding a field: put it on the owning slice, add a flat compat accessor on `ChatUiState`, and
   add the slice to the writer of whichever delegate(s) own it.
-- **Chrome/hot collection split (both `ChatScreen` actuals).** The screen collects `uiState` twice:
-  the thread subtree (`ChatContent` on Android, `IosChatBody` on iOS) at full rate, the rest — top
+- **Chrome/hot collection split (`ChatScreen`).** The screen collects `uiState` twice:
+  the thread subtree (`ChatContent`) at full rate, the rest — top
   bar, composer, dialogs, sheets, effects ("chrome") — as
   `map { it.neutralizeStreamingChurn() }.distinctUntilChanged()`
   (`ChatChromeEquivalence.kt`), so the 50ms flush doesn't re-execute the whole screen ~20×/s.
@@ -35,6 +35,19 @@
   `subagentProgress` is chrome-visible by design (ChatRoot → `LocalSubagentProgress`) and written
   per SSE envelope unthrottled, so subagent-heavy runs still re-execute the chrome — needs a
   separate collection path or a write-side throttle in `SubagentTraceDelegate` (open follow-up).
+
+## One screen, four platform seams
+`ChatScreen` / `NewChatScreen` are a single commonMain composable for both platforms. Where the
+platforms genuinely differ, the screen calls an `expect`, never an `if (platform)`:
+- `ChatComposer` — `ChatInput` on Android, `IosChatInput` on iOS. iOS's clipboard-image paste lives
+  inside its actual (`onPasteFiles` is ignored on Android).
+- `rememberChatAttachmentActions` — activity-result launchers vs the native iOS pickers.
+- `rememberChatStartRecording` — Android routes API 26–30 through the system recognizer overlay.
+- `Modifier.addToChatSelectionItem` — a no-op on iOS.
+
+Known iOS gaps behind those seams: the document picker ignores the endpoint's MIME allowlist, and
+there is no "Add to chat" selection item. A feature added to the screen reaches both platforms; a
+feature added to only one composer does not.
 
 ## Screen States
 `ChatScreenState` enum: `LANDING` | `LOADING` | `ACTIVE`
@@ -51,7 +64,7 @@ is the only opt-in; every other caller stays network-first **deliberately**. Eac
 precisely because the server holds something the cache does not — a just-finalized turn
 (`SendCompletionDelegate`), a just-created branch (`ComparisonModeDelegate.branchFromComparison`),
 a stream that ended server-side (`StreamingManagerDelegate`'s `StreamError` / `ResumeExpired` /
-`attemptNetworkRecovery`, plus the `launchStream` safety net), or an explicit refresh
+`Reconcile` / `attemptNetworkRecovery`), or an explicit refresh
 (`refreshMessages`) — so a cache emission there serves a snapshot that predates the very thing
 being fetched. After a Final that is also the completion flash: the finalized turn is in memory
 and Room stays stale until `cacheMessages` lands, so painting the cache re-renders the pre-Final tree.
@@ -87,8 +100,8 @@ Two consequences worth knowing before touching that block:
 - The leaf is the optimistic user message for `doSendMessage` / `editUserMessage` (passed inline alongside the message insert), and the existing parent user message for `regenerateMessageNow` / `editAiMessage` (via `anchorStreamTo`).
 - This is a one-shot rebuild — there is no stored anchor field. The truncated `displayMessages` just persists in state for the stream's duration. On Final the untruncated path is rebuilt **in memory** by `finalizeChatDisplay` (normal + temp chats); only comparison chats still rebuild via a background `loadConversation`/Room reconcile. The full tree stays in `messages`/DB, so the old branch remains reachable via sibling navigation.
 - **Invariant (load-bearing):** while streaming, nothing may write to Room or mutate `activeBranches` — otherwise the `loadConversation` observer re-emits and rebuilds `displayMessages` with no `streamingLeafId`, un-truncating the path and clobbering the in-place view. The send paths uphold this (no mid-stream Room write); `switchBranch`, `editMessage`, and `regenerateMessage` are all gated on `!isStreaming` so user taps can't break it either.
-- **Handed-off new chat (load-bearing):** when a chat is created from the landing page, the landing VM is reset and a fresh `Chat(id)` VM resumes the stream — so the optimistic user message lives only in the discarded landing VM, and the server persists the *request* message only when the reply completes (`agents/request.js` saves it right before the Final event). Without intervention the resumed screen would show only the streaming bubble (no user message) for the whole stream. Fix: `NewChatSelectionHandoff` carries the optimistic `Message`; `ChatViewModel.init` seeds it into `messages`/`displayMessages` and into `pendingResumeUserMessage`. `loadConversation` keeps that seed appended — inside its off-Main `combine` map, guarded by a `none { id matches }` check so it only appends when the server hasn't echoed it yet — until the server echoes its own copy *by id*, then drops it (so a later server-side delete still removes the row). `finalizeChatDisplay` *also* clears `pendingResumeUserMessage` in its atomic Final update, so a backend that never adopts the client-minted id can't strand the seed and re-append it as a phantom sibling. This is what feeds `finalizeChatDisplay`'s in-memory backfill in the handoff case — do **not** replace it with a network `reloadConversation` on Final (that was the #169 regression being avoided).
-- **Optimistic id reconciliation:** `doSendMessage` / `editUserMessage` mint the optimistic user message's id and send it as `ChatRequest.messageId` (the `userMessageId` arg on `startChat`), so the server adopts it and echoes it in the Final `requestMessage`. This is what lets the optimistic message reconcile by id — for normal and temp chats alike via `mergeFinalMessagesInMemory` (`finalizeChatDisplay`, in-memory). Normal chats additionally persist the finalized turn to Room via `cacheMessages` (no network reload); the response's `parentMessageId` matching the adopted id is also what lets `finalizeChatDisplay` backfill the user message into the returned turn when a loose Final payload omits `requestMessage`, so the cached turn never drops it. Mirrors the web client's top-level `messageId`; without it the optimistic message would linger as a phantom sibling. Regenerate/continue/edit-AI send no `messageId` (they create no new user message).
+- **Handed-off new chat (load-bearing):** when a chat is created from the landing page, the landing VM is reset and a fresh `Chat(id)` VM resumes the stream — so the optimistic user message lives only in the discarded landing VM, and the server persists the *request* message only when the reply completes (`agents/request.js` saves it right before the Final event). Without intervention the resumed screen would show only the streaming bubble (no user message) for the whole stream. Fix: `NewChatSelectionHandoff` carries the optimistic `Message`; `ChatViewModel.init` seeds it into `messages`/`displayMessages` and into `pendingResumeUserMessage`. `loadConversation` keeps that seed appended — inside its off-Main `combine` map, guarded so it only appends while no server row is its copy — until the server's copy arrives, then drops it (so a later server-side delete still removes the row). "Its copy" is matched by id **or** by content (`isServerCopyOf`: user-authored, same parent, same text), because rc3+ servers do not adopt the client-minted id (see *Optimistic id reconciliation*). An id-only match never fired there, so a run that ended without a Final — a resume that 404s because the job already finished — left the seed as a second root sibling, and the path's newest-sibling default showed it alone over the persisted turn and its reply. `finalizeChatDisplay` *also* clears `pendingResumeUserMessage` in its atomic Final update. This is what feeds `finalizeChatDisplay`'s in-memory backfill in the handoff case — do **not** replace it with a network `reloadConversation` on Final (that was the #169 regression being avoided).
+- **Optimistic id reconciliation:** `doSendMessage` / `editUserMessage` mint the optimistic user message's id and send it as `ChatRequest.messageId` (the `userMessageId` arg on `startChat`), which servers before v0.8.8-rc3 adopt and echo in the Final `requestMessage`. **rc3+ does not:** the agents controller persists the user message under `resolvePreallocatedUserMessageId` (`overrideUserMessageId ?? overrideParentMessageId ?? randomUUID()`, `api/server/controllers/agents/request.js`) and overwrites the request's `messageId` with it. The web client sends `overrideUserMessageId` only for steer recovery and queue drain, never for a plain send. So on those servers the reconciliation below does not happen by id: the Final's `requestMessage` merges in (via `mergeFinalMessagesInMemory`, keyed by id) as a sibling of the optimistic message rather than over it, and the newest-sibling default is what shows the server's copy. For a normal chat the optimistic row was never persisted, so the next Room emission drops it. Whether a **temporary** chat keeps both as a visible sibling pair is not verified. On older servers the optimistic message does reconcile by id, for normal and temp chats alike, via `mergeFinalMessagesInMemory` (`finalizeChatDisplay`, in-memory). Normal chats additionally persist the finalized turn to Room via `cacheMessages` (no network reload); the response's `parentMessageId` matching the adopted id is also what lets `finalizeChatDisplay` backfill the user message into the returned turn when a loose Final payload omits `requestMessage`, so the cached turn never drops it. Mirrors the web client's top-level `messageId`; without it the optimistic message would linger as a phantom sibling. Regenerate/continue/edit-AI send no `messageId` (they create no new user message).
 - `editAiMessage` resubmits the parent user turn (regenerate + `isEdited`); it does **not** persist the typed assistant edit (that's `saveEditOnly` → `updateMessageText`, the web `updateMessage` analog). Web additionally seeds the placeholder with the edited content for a transient preview — not ported.
 - **Completion render (load-bearing):** `MessageList` keys its `LazyColumn` items by the conversation **slot** (`MessageNode.treeParentKey`), and the trailing streaming bubble is keyed to the slot its finalized message will occupy (the last visible message's id == the reply's parent). This makes the streaming→final swap an in-place update of one item rather than a remove+add, so the list never loses its scroll anchor at completion. The finalize update is also atomic (it clears the streaming fields in the *same* `stateHandle.update` that swaps in the message — see `finalizeChatDisplay`), and the last message renders markdown synchronously via `LocalImmediateMarkdown` so it doesn't mount through a zero-height async-parse frame. Reverting any of these (per-id keys, a separate streaming-clear update, async parse for the last message) reintroduces the completion flicker.
 
@@ -123,13 +136,37 @@ Two consequences worth knowing before touching that block:
 - `CodeBlock` renders fenced code with syntax highlighting, language badge, and copy button (3s checkmark)
 - LaTeX: `LatexBlock` (block math) and `LatexInline` (inline math) via AndroidMath native rendering
   - Supports `$$...$$`, `\[...\]` (block) and `$...$`, `\(...\)` (inline)
-  - `$...$` requires heuristic check (`looksLikeLatex()`) to avoid false positives on dollar amounts
+  - `$...$` follows Pandoc's `tex_math_dollars` neighbour rules (`scanInlineLatex()` in
+    `MarkdownParsing.kt`): opener followed by non-space, closer preceded by non-space and not
+    followed by a digit, `\$` never delimits. Nothing inspects the span's content. Backtick code
+    spans are skipped and an open fence stops the scan (code wins, as on the web). While streaming,
+    a closer at the very end of the buffer is deferred so `US$5 to US$` + `10` never flashes as math
   - Falls back to monospace text if AndroidMath can't parse the expression
 
 ## Streaming
 - `ChatViewModel.sendMessage()` calls `ChatRepository.startChat()` which returns `Flow<StreamEvent>`
 - Two-phase: POST /api/agents/chat -> streamId, then GET SSE stream
-- `streamingBuffer: StringBuilder` accumulates text deltas
+- **`StreamingManagerDelegate` owns the session lifecycle only** (dispatch, `endStream`, resume, reconnect).
+  Text and reasoning deltas accumulate in `StreamTextBuffer` (50ms throttled flush); events that only
+  describe the reply in progress — tool calls, attachments, usage, title, retry progress, subagent
+  traces — are projected onto state by `LiveReplyDelegate`; the ViewModel-owned operations (reload,
+  un-send, key-error channel) come through `StreamingHost`. A new lifecycle event belongs in the
+  manager; a new "describes the reply" event belongs in `LiveReplyDelegate`
+- **Reasoning streams into its own buffer** (`StreamTextBuffer` → `MessagesState.streamingThinking`),
+  which the streaming bubble shows in a collapsed `ThinkingContentPart` above the text — the place the
+  persisted message renders its THINK parts. It used to share the text buffer, so it streamed as
+  body text under the sender label, and a resume's sync frame (reading only `text`) dropped it; the
+  sync now restores it from THINK parts' `think`. It follows `streamingContent` everywhere: cleared
+  in the same atomic `finalizeChatDisplay` update (no duplicate, no flash), preserved with the partial
+  on the error/abort ends, and neutralized for the chrome. Comparison panes still fold reasoning into
+  their own buffers. **Two accepted limits at settle:** the live block's expanded state (key
+  `think:streaming`) does not carry over to the persisted THINK part (keyed `messageId:index`), so a
+  block the user opened mid-stream shows collapsed after Final; and a multi-step reply's reasoning is
+  merged into the one live block at the top, so at settle it redistributes into its per-step THINK
+  parts and the reply reflows. Carrying the state across would mean hoisting the card's expand state
+  through the bubble and threading a "first THINK of the just-settled message" flag through
+  `MessageContentAndActions`, the grouping transform and `ActivityGroup` — and that first THINK is
+  often folded inside a collapsed activity group, where opening it shows nothing.
 - **The live bubble renders through `TextContentPart(streaming = true)`** (#302), so artifact
   detection runs on every flush — an unclosed artifact streams as its source via
   `IncompleteArtifact` instead of raw `:::artifact{…}` text. The `streaming` flag must stay
@@ -162,10 +199,17 @@ Two consequences worth knowing before touching that block:
 - Before the first delta there is no insertion point, so the bubble shows `StreamingWaitIndicator`
   instead of a cursor blinking against empty space.
 - Tool calls tracked in `activeToolCalls` list (start -> complete lifecycle)
-- **Stream termination is a chokepoint** for every *event-driven* end — clean/aborted Final, error, failed abort, watchdog, resume-found-expired — which funnel through the single private `endStream(reason)` in `StreamingManagerDelegate` (the one exception is a flow that ends with neither Final nor Error — a clean SSE EOF or a stream-GET 404 — which the caller's `onTerminated` safety net clears directly; a known gap, don't rely on `endStream` being the *only* teardown); the sealed reason (`Finalized` / `StreamError` / `AbortFallback` / `ResumeExpired`) decides job cancel, state write, queue policy, and whether a reload is allowed. A per-session Int counter latches each session to at most ONE end, and stale ends from a previous session are no-ops — do not add teardown steps at call sites; add them to the reason table. Structural invariant this encodes: **nothing reloads on an abort path** — the server emits the aborted frame BEFORE persisting, so any refetch there races the save (and the optimistic user message was never in Room, so a reload can lose it entirely). `Finalized` writes no state: the atomic finalize in `finalizeChatDisplay` owns that (the no-completion-flash invariant)
+- **Stream termination is a chokepoint** for every *event-driven* end — clean/aborted Final, error, failed abort, watchdog, resume-found-expired — which funnel through the single private `endStream(reason)` in `StreamingManagerDelegate` — and so does a flow that ends with neither Final nor Error: `launchStream` ends it as `Reconcile` and `resumeStream` as `ResumeExpired`, unless a Stop is pending (the abort watchdog owns that end). `SseClient` completes a flow that way only when its resume got a **404** (the job is gone, so the reply is on the server) or the account switched. **A body that merely closes is not a finished run**: upstream sends no heartbeat, so a proxy/CDN idle timeout during a long tool call or a human-review pause closes a live stream, and the server's own `res.destroy()` on a publication failure asks for a reconnect — `SseClient` resumes those with `resume=true` on its retry ladder, as upstream's transport-failure path does, keeping the partial and the pause card. Its attempt counter resets on a parsed event, not on bytes, so a 200 that carries no events (a captive portal) still climbs the ladder. **The ladder's ceiling (`RETRY_EXHAUSTED`) is not a network error either**, and neither is a persistent HTTP status such as a proxy's 502 on every resume (`STATUS_RETRY_EXHAUSTED`): neither says anything about the run, so the delegate asks `/chat/status` right away, as upstream does at its ceiling — resume if active (once per run: the flag resets at every attach — a local send, opening a conversation with a live run, foregrounding, network recovery — but not at the ceiling's own re-attach, so an unreachable live run ends instead of looping), the same end as a 404 if not (refetch, no banner). Only when the status read fails too is there an error: a network error after the transport ladder (the case the connectivity observer can recover), the status error itself after a persistent status. 401 stays in-band and is never adjudicated. An account switch also completes the flow, and ends nothing: a reload then would read the conversation with the new account's credentials. The same guard runs after the ceiling's status read, which can take seconds, so a switch during it neither resumes nor reloads. The 404 case is the network-drop recovery: the run finished while offline, and before `launchStream` ended it here the chat froze on the partial. The sealed reason (`Finalized` / `StreamError` / `AbortFallback` / `ResumeExpired` / `Reconcile`) decides job cancel, state write, queue policy, and whether a reload is allowed. A per-session Int counter latches each session to at most ONE end, and stale ends from a previous session are no-ops — do not add teardown steps at call sites; add them to the reason table. Structural invariant this encodes: **nothing reloads on an abort path** — the server emits the aborted frame BEFORE persisting, so any refetch there races the save (and the optimistic user message was never in Room, so a reload can lose it entirely). `Finalized` writes no state: the atomic finalize in `finalizeChatDisplay` owns that (the no-completion-flash invariant)
 - `stopGeneration()` POSTs `chatRepository.abortChat()` and **deliberately does not cancel the stream job.** The abort POST only acks (`{ success, aborted }`); the server ends the run by emitting an ordinary `final` frame flagged `aborted` over the same SSE stream, and *that* frame carries the partial's content parts. Cancelling the collector was the original bug — the stopped reply vanished. `handleFinal` reads `aborted` off the frame, not off local stop state, so a Stop from another client is handled identically. Stop-specific behavior: no auto-TTS, no `gen_title`, no queue drain (the hold is re-asserted). `abortRequested` guards double-taps. Works before the `created` milestone too — a null stream id makes the abort route fall back to one of the caller's active jobs (the *oldest*, and the client can't tell which, since `ChatAbortResponse` drops the returned `aborted` id — so with a second stream live server-side a null-key Stop can hit the wrong job; known gap). An acked abort arms a 15s watchdog; if the frame never lands (dead socket) or the POST fails, `endStream(AbortFallback)` stops locally with the partial preserved and NO reload
 - **Aborted finals follow the server's exact persistence contract** (`applyAbortContract` in `util/FinalMessages.kt`, applied once in `handleFinal` before anything renders or caches). `abortPersistedServerSide()` mirrors the abort route's 4-way save gate — `earlyAbort`, missing `requestMessage`, empty (already-server-filtered) `content`, or the synthesized `"${userMessageId}_"` response id all mean the server saved no response row. Persisted → the missing `text` is rebuilt via the `parseTextParts` port (TEXT + THINK, the server's literal-space join rule) so the cached row equals what a later fetch returns. Not persisted → the response is DROPPED from the frame: merging it would mint a phantom leaf the next send uses as a `parentMessageId` the server has never heard of. `cacheTurn` is then unconditional (the contract already removed anything unsaved, and the request message of a non-early abort IS persisted — caching it is the only write that persists the optimistic user message). Still suppressed: `saveConversation` (the frame's conversation is a stub with a hardcoded `New Chat` title); the title is re-read network-first instead of generated (an `immediate`-mode title that finished before the Stop exists server-side while the cache holds the placeholder) — retried past a fetched `New Chat` and never applied as a downgrade, because the server's title save is gated on the request's unwind and an immediate read races it (the same emit-then-persist race, one layer up). Both `parseTextParts` and the gate are MIRRORED SERVER LOGIC — re-verify on upstream bumps (`/sync-upstream`)
-- **earlyAbort = un-send.** A Stop that lands before `created` persisted nothing — not even the user message — so `handleFinal` removes the turn's minted optimistic message (`MessageTreeDelegate.unsendOptimisticTurn`, single atomic emission) and restores its text to the composer via the `restoreUnsentInput` callback (web parity). The minted id is threaded per-turn through `beginStreaming(isEdit, optimisticUserMessageId)`; it is NULL for regenerate/continue/edit-AI, whose user message is a persisted row the un-send must never remove
+- **earlyAbort = un-send.** A Stop that lands before `created` persisted nothing — not even the user message — so `handleFinal` asks the ViewModel to un-send the turn (`StreamingHost.unsendTurn`): it removes the minted optimistic message (`MessageTreeDelegate.unsendOptimisticTurn`, single atomic emission) and restores its text to the composer (web parity). The minted id is threaded per-turn through `beginStreaming(isEdit, optimisticUserMessageId)`; it is NULL for regenerate/continue/edit-AI, whose user message is a persisted row the un-send must never remove
+- **A failed send restores its text unless the server kept it** (#405). Before `created`: the
+  `StreamError` end un-sends exactly like an early abort. After `created` the user message is only
+  *probably* saved — the server emits `created` before building the prompt (memory, MCP config,
+  attachments) and saves the user row after — so a non-network error reloads with the optimistic
+  message as `loadConversation(unsavedTurn = …)`, and the settled read restores the text to the
+  composer when no row matches it by id or `isServerCopyOf`. Network errors are excluded: the run may
+  still be live and the connectivity observer re-attaches to it
 - **The final-frame merge is monotonic** (`Message.mergedOver` in `util/TemporaryChatMerge.kt`): applying a frame message over an in-memory copy gap-fills — incoming wins where it carries information, absent/blank keeps local, terminal-state booleans (`error`/`unfinished`) always incoming. This is why a skeletal aborted `requestMessage` no longer needs per-field guards to keep the optimistic message's attachments. ONLY valid at the final-frame chokepoint — full-record sync paths (`getMessages`, `refreshMessages`) keep meaningful nulls and must never use it. `finalizeChatDisplay` returns the POST-merge instances so `cacheTurn` writes exactly what the screen shows
 - `onPause()`/`onResume()` handle app backgrounding: checks stream status, resumes if still active. Two abort-window rules: `onPause` does NOT cancel the collector while a Stop is pending (it is carrying the aborted final that holds the partial; the watchdog covers a frame that never arrives), and `onResume` touches nothing when the session already ended while backgrounded (the old wipe of `streamingContent` here was the stop-then-background partial loss)
 
@@ -185,7 +229,10 @@ Two consequences worth knowing before touching that block:
 
 ## Prompts
 - `PromptsLibraryScreen` and `PromptDetailScreen` live in `chat/prompts/`
-- `PromptsViewModel` loads prompt groups from `PromptRepository`
+- `PromptsViewModel` loads **every** prompt group via `PromptRepository.getAllGroups()`. The
+  library's sort, category filter and category chips all run client-side over that list, so a
+  paged load (the server orders `/groups` by popularity, then recency) would sort and filter a slice.
+  Deliberate divergence from web's infinite scroll, which has no sort picker.
 - `handlePromptMention()` on ChatViewModel inserts prompt command text at `@` position
 - **`PromptRepository.revision` is how a mutation reaches the screens beneath it.** The editor is
   *pushed on top of* both the library and the chat entry, so their ViewModels are retained and
@@ -199,8 +246,8 @@ Two consequences worth knowing before touching that block:
   the revision (`ChatRoot`'s required `promptLibraryRevision`/`onRefreshPrompts` pair for the chat,
   a `LaunchedEffect` in `PromptsLibraryScreen` for the library) and call a `refreshIfStale`. That is
   the visibility gate: a bump while the screen is off-screen costs nothing until the user returns,
-  so an editor that bumps five times flipping through versions costs one reload — and the picker's
-  route is the deliberately unpaginated one. Keying the effect on the revision (rather than firing
+  so an editor that bumps five times flipping through versions costs one reload — and both read
+  the deliberately unpaginated `/api/prompts/all`. Keying the effect on the revision (rather than firing
   once on entry) is what keeps it correct if a screen *stays* composed: it still reloads the moment
   the revision moves, so nothing here depends on Nav3 disposing the entry underneath.
   Each consumer records the revision it loaded and the one it is fetching, so a re-entry with
@@ -237,13 +284,27 @@ Two consequences worth knowing before touching that block:
   `PromptsApiWireShapeTest` holds live captures of both; no test above `:core:network` can see a
   JSON key.
 
-## `ask_user_question`: one question, two cards (v0.8.8)
+## `ask_user_question`: one question, a panel then a card (v0.8.8)
 
 A clarifying question reaches the screen twice over its life, and the two must never overlap.
 
-- **While the run is paused** it is the interactive `PendingActionCard` — the only thing that can
-  resolve it. The same question is *also* sitting in `activeToolCalls`, because the agent called a
-  tool to ask it; `withoutUnansweredQuestions()` drops it from both streaming lists so the user is
+- **While the run is paused** it is the interactive `AskUserQuestionPanel`, which takes the
+  composer's place (`ChatScreen` hides the composer while it is up) with one tab per
+  question of a batch — the only thing that can resolve it. Below 600dp (phones, a folded Fold) it
+  is a Claude-style card with a page-dot pager (see the next section) where a pick or a
+  per-question Skip advances and the answer filling the last blank submits; at 600dp and up it is
+  tabbed with explicit Back / Next / Send. Both collapse to one line. **Stop appears only once a
+  resume has failed** (`MessagesState.pendingActionResumeFailed`, in the action row): hiding the
+  composer hides the only other one, and a pause this client cannot resolve (a fingerprint 403
+  fails every answer and Skip alike) would otherwise strand the user until it expires — but
+  before anything has failed it only takes width from the question. Panel submits never re-home
+  text into the hidden composer — their words stay in the drafts, on the panel; only
+  `submitAnswerFromComposer` restores. The thread keeps only a one-line `AskUserQuestionWaitingMarker`
+  (tool approval docks too; see the next section). The panel's drafts, active tab and collapse
+  state are hoisted into `MessagesState`; `sendDuringRun`'s answer-the-active-tab routing
+  remains as the fallback for a send that reaches the ViewModel while the composer is hidden.
+  The same question is *also* sitting in `activeToolCalls`, because the agent called a tool to
+  ask it; `withoutUnansweredQuestions()` drops it from both streaming lists so the user is
   not asked the same thing twice, once under a spinner for a "call" that cannot finish until they
   answer.
 - **Once answered** the same tool call renders as `AskUserQuestionRecordCard` — the durable record
@@ -266,12 +327,60 @@ which reads back as "skipped" rather than as a sentence the user typed. A call w
 schema validation carries `inputValidationError` and says so — it was never put to the user, so
 rendering it as unanswered would be a lie.
 
+## Tool approval: one call at a time, above the composer (v0.8.8)
+
+A run paused on a `tool_approval` batch shows `ToolApprovalPanel` docked **above** the composer
+(`ChatScreen` stacks it over the composer in the measured bottom box), and the thread
+keeps a one-line `ToolApprovalWaitingMarker`. Above rather than in place of the composer, unlike
+the ask panel: a decision does not compete with the composer, which keeps its Stop and queue — so
+this panel carries no Stop of its own.
+
+It pages through the batch the way the ask panel does, sharing its chrome (`PausePanelChrome.kt`:
+pager, tabs, collapse toggle, collapsed overlay, waiting marker, the 600dp split and the
+auto-advance beat). Below 600dp a `‹ ● ━ ○ ›` page-dot pager, where an Approve or Reject on a
+call not yet decided moves on and the decision completing the batch submits it; at 600dp and up
+one tab per call with Back / Next / Continue (n/N). Edit and Respond reveal their field and never
+advance on their own. Approve all / Reject all appear only when every call's policy permits that
+decision, and submit immediately.
+
+**Auto-advance is decided in `PendingActionDelegate`, not the panels**, for both panels
+(`pickAskOption` / `pickToolDecision`, tested in `PendingActionAutoAdvanceTest`). A panel only reports
+the pick and its layout's `PausePanelAutoAdvance` (compact: next open item or submit; wide: next tab,
+never submit). The delegate keeps one cancellable job, and the panel cancels it when the layout leaves
+the screen, so a fold inside the beat can't submit a compact pick under the wide layout.
+
+Paging is shared by both panels:
+- **Compact: page dots.** Filled = done, open = not yet, a short bar = on screen. Dragging along
+  the dots scrubs (iOS home-screen style, a haptic tick per item) — relative to where the drag
+  began, 48dp of travel per item (shrunk so every item fits in 80% of the window), because the
+  dots themselves are ~20dp apart and mapping the finger onto them overshoots; a tap jumps; the
+  arrows step. Past 10 items the dots fall back to `n of N` text. Screen readers get the `n of N`
+  as the row's state description and page with the arrows.
+- **Wide: a page swipe, started only from the answer controls.** `PausePanelSwipeArea` is a small
+  pager: the whole body follows the finger with its neighbour alongside, commits past a quarter of
+  the width or on a fling, and is rubber-banded at the ends so a swipe never submits. Tabs,
+  Back / Next and the auto-advance beat slide the same way. Only the `swipeHandle` modifier the
+  page lambda receives starts a swipe — the ask panel puts it on the option rows, the tool panel on
+  the decision row. The question, description, arguments and text fields deliberately don't page.
+  The handle moves with the page it drags, so the fling velocity is tracked on the finger's
+  accumulated delta, never on `change.position` (which stands still under the finger on a device;
+  the instrumented harness can't see the difference — its events land before a frame re-places
+  the page).
+- **Wide: dragging along the tabs** selects the tab under the finger, ahead of the row's own
+  scroll (Initial pass), so an overflowing row scrolls to follow the selection rather than the drag.
+
+The resume is all-or-nothing (`toolBatchResolutions` returns null until every call is decided and
+complete — the route 400s a partial batch and an edit/respond without its payload). Allowed
+decisions join by `tool_call_id`, never position. Drafts, the active call and the collapse state
+live in `MessagesState` (`toolDecisionDrafts`, `toolActiveCallId`, `toolPanelCollapsed`) and ride
+`PendingActionDelegate`'s reconnect retention with the ask panel's, so a fold or backgrounding
+doesn't cost the user their decisions.
+
 ## During-run send: queue vs steer (v0.8.8)
 Two different things can happen when the user sends while a reply is generating, and they are not
 interchangeable.
 - **Queue** (`MessageQueueDelegate`, `QueueState`) — the message becomes the *next turn*, drained FIFO
-  when the run ends. Works against every supported server; the long-standing mobile behaviour and the
-  default.
+  when the run ends. Works against every supported server, and is what steer degrades to.
 - **Steer** (`SteeringDelegate`, `SteerState`) — the message goes into the reply *being written*, injected
   at the run's next tool boundary and announced back as `on_steer_applied`. Needs a server with
   `POST /api/agents/chat/steer` (`FeatureGatesState.steeringSupported`, a date gate — see VERSION_GATES.md).
@@ -358,6 +467,11 @@ existing upload/usage path already handles them.
   and take partial content off screen, and half-written markup in a WebView is a blank box. An
   unclosed directive with **no** opening fence is *not* emitted at all — that's a prose mention, and
   emitting it would swallow the rest of the reply.
+- **A message with no content parts still gets the artifact split** when it is the assistant's
+  (`Message.textFallbackSplitsArtifacts`): replies saved before LibreChat v0.7.9 by the classic
+  endpoints have no `content`, so their artifacts live only in `text`. A user's own text is never
+  split, as on web. The renderer, `countMessageOccurrences` and the Artifacts tab all read that one
+  predicate.
 - **While streaming, complete artifacts are gated to `ArtifactButton`** even when an inline pref is
   on (`shouldRenderInlineArtifact`): the segment subtree recomposes per delta, and an inline preview
   reloads its WebView on every content change (mermaid recreates its view outright). The real
@@ -422,9 +536,8 @@ onto a major version nothing here was tested against. Neither broke a build or a
 path exists in the manifest.
 
 ## Media Players
-- `VideoContentPlayer` uses ExoPlayer (media3) — 16:9 aspect ratio Card, lifecycle-aware release
-- `AudioContentPlayer` uses MediaPlayer — play/pause + seekbar, 250ms polling for progress
-- `AudioContentPlayerFromBytes` variant writes bytes to temp file for MediaPlayer
+- `VideoContent` uses ExoPlayer (media3) on Android, AVPlayer on iOS — 16:9, released on dispose
+- `AudioContent` decodes base64 audio and plays it via ExoPlayer on Android, AVAudioPlayer on iOS
 - **Gotcha**: Both players must release resources on dispose — use `DisposableEffect`
 
 ## Feedback: rating + reason tag + comment
@@ -518,7 +631,49 @@ parameter by that name. Upstream injects it at position zero, and that ordering 
 of the contract this side can check. Lifted labels are stripped from the expanded args dump.
 Shipped ahead of upstream's own presentation, which scopes rendering as a follow-up.
 
+## Context gauge (v0.8.8)
+v0.8.8 removed the context-projection endpoint, so outside a stream `ContextProjectionDelegate`
+resolves the gauge from the displayed branch: the finished turn's saved snapshot
+(`metadata.contextUsage`), the live reading while its turn is on the branch, the deepest saved
+snapshot, the projection (older servers), then an on-device estimate (`util/ContextGaugeResolver.kt`,
+ported from upstream `tokens.ts`; registered in `scripts/mirrors.json`). Two rules are load-bearing:
+- **It re-runs on the branch itself, not its tail id.** A Room emission and the network refresh that
+  follows it usually share a tail id and differ only in `metadata`. Keying on the tail (as the old
+  `ProjectionKey` did) leaves the cached estimate on screen after the server's snapshot has arrived.
+- **`ContextUsageSource.LIVE` alone does not prove a live reading.** The stamp survives into the next
+  run until something replaces it, so the delegate records the gauge's value at stream start and only
+  carries over a reading that replaced it. Otherwise a run that reported nothing pins the previous
+  run's value.
+
+The breakdown (`util/ContextBreakdown.kt`, rendered by `ContextUsageGauge.kt`) ports web's
+`Breakdown.tsx`; Totals and Cost come from `util/UsageTotals.kt`. One more load-bearing rule:
+- **Live usage is attributed to the Final frame's response id, never the tail.** `LiveReplyDelegate`
+  folds every `on_token_usage` (buckets included, deduped by `runId:seq`, plus the resume frame's
+  `collectedUsage`) into `pendingUsage`, which counts until its reply carries `metadata.usage`.
+  `onStreamEnded` runs before the reply is swapped in, so the tail there is the user message;
+  anchoring on it makes the reply's own usage never cancel pending, and Totals and Cost double for
+  the rest of the session (`ChatViewModelUsageTotalsTest` fails with 2000 instead of 1000).
+
+**Detail levels and the compact suggestion.** The breakdown is always computed in full and filtered
+at render by the user's `ContextDetailSections` (Settings → Chat → Context usage: Simple / Standard /
+Detailed presets, or a custom mix), through `visibleBreakdown` in `:core:model`. The rendering itself
+is `ContextBreakdownCard` in `:core:ui`, so the Settings preview draws exactly what the chat does.
+`ChatUiState.compactNudge` suggests compacting from the user's threshold (default 70%), in the active
+placement only (+ a dot on the + button under the default options-sheet placement), and every
+suggestion opens `CompactConfirmDialog`; it is never one tap. Three rules, each with a test in
+`ChatUiStateCompactNudgeTest`:
+- **`canCompactNow` does not exclude an in-flight compaction**, so the nudge checks `isCompacting`
+  itself; `MessageEditingDelegate` sets it before `isStreaming` flips.
+- **An estimate never suggests compacting.** Only a real server reading (snapshot, live, projection).
+- **"Not now" snoozes a band, per conversation, persisted**, and the snooze clears once a real reading
+  is back under the threshold (`ChatViewModel.clearCompactNudgeSnoozeWhenBelowThreshold`), so the next
+  fill suggests again from the start. A chat still loading has no reading and must not clear it.
+
 ## Message Timestamps
-- `MessageTimestamp` shows relative/absolute time, toggled on tap
-- Parses multiple ISO 8601 format variants; falls back gracefully on invalid input
+- `MessageTimestamp` renders in the user's style (Relative / Smart / Absolute, #445) from
+  `LocalDateTimeFormat`. Tapping it toggles to the full date and time; under Absolute the tap is off.
+- It is the only reader of the minute ticker (`LocalRelativeTimeReference`) in the chat tree, and it skips
+  the read under Absolute. Keep it that way: reading the ticker in a bubble or the list would recompose
+  them every minute.
+- An unparseable timestamp renders nothing.
 - Integrated into `MessageBubble` action row

@@ -29,6 +29,7 @@ fun SidebarScaffold(
     onAgentsClick: () -> Unit,
     onFilesClick: () -> Unit,
     onSkillsClick: () -> Unit,
+    onSchedulesClick: () -> Unit,
     modifier: Modifier = Modifier,
     onOpenProjectsIndex: () -> Unit = {},
     onSwitchAccount: (String) -> Unit = {},
@@ -36,6 +37,9 @@ fun SidebarScaffold(
     // Deleting the open conversation navigates the pane off it; see DrawerContent's param for the
     // onNewChat distinction. Defaults to [onNewChat].
     onActiveConversationDelete: () -> Unit = onNewChat,
+    // Whether the host is showing the sidebar (phone drawer open / tablet sidebar expanded); gates
+    // the drawer's active-jobs poll.
+    isOpen: Boolean = true,
     viewModel: NavHostViewModel = koinViewModel(),
 ) {
     val sidebarMode by viewModel.sidebarMode.collectAsStateWithLifecycle()
@@ -78,6 +82,7 @@ fun SidebarScaffold(
                     onAgentsClick = onAgentsClick,
                     onFilesClick = onFilesClick,
                     onSkillsClick = onSkillsClick,
+                    onSchedulesClick = onSchedulesClick,
                     accounts = accounts,
                     onOpenProjectsIndex = onOpenProjectsIndex,
                     onSwitchAccount = onSwitchAccount,
@@ -85,6 +90,7 @@ fun SidebarScaffold(
                     // Swipe round-robins in place; the sheet's remove asks the nav shell directly.
                     onSwitchAccountInPlace = viewModel::switchAccount,
                     onRemoveAccount = viewModel::removeAccount,
+                    isOpen = isOpen,
                 )
             }
             is SidebarMode.Settings -> {

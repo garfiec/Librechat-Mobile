@@ -1,6 +1,8 @@
 package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
@@ -8,7 +10,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -22,12 +26,16 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -39,20 +47,36 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
 import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.consumeUnhandledTouches
+import com.garfiec.librechat.core.ui.components.menuDragAnchor
+import com.garfiec.librechat.core.ui.components.menuDragPressEffect
+import com.garfiec.librechat.core.ui.components.pressBounce
+import com.garfiec.librechat.core.ui.components.rememberMenuDragSelection
+import com.garfiec.librechat.core.ui.components.rememberPressBounce
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
+import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_edit_title
 import com.garfiec.librechat.feature.chat.resources.cd_more_options
 import com.garfiec.librechat.feature.chat.resources.cd_open_drawer
 import com.garfiec.librechat.feature.chat.resources.select_model
+import com.garfiec.librechat.feature.chat.resources.title_edit_discard
+import com.garfiec.librechat.feature.chat.resources.title_edit_discard_prompt
+import com.garfiec.librechat.feature.chat.resources.title_edit_keep_editing
 import com.garfiec.librechat.feature.chat.screen.rememberChatModelLabel
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
+import kotlinx.coroutines.flow.first
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -84,8 +108,9 @@ internal fun ChatFloatingTopBar(
     onShowAllMedia: (() -> Unit)? = null,
     onOpenPromptsLibrary: (() -> Unit)? = null,
 ) {
-    var showOverflowMenu by remember { mutableStateOf(false) }
     var showContextSheet by remember { mutableStateOf(false) }
+    var showCompactConfirm by remember { mutableStateOf(false) }
+    var showTraceViewer by remember { mutableStateOf(false) }
     val conversationId = uiState.conversationId
     val conversationTitle = uiState.conversationTitle
     // Interactive on the new-chat landing; once a temporary chat is active it stays visible (ON) as
@@ -93,6 +118,171 @@ internal fun ChatFloatingTopBar(
     val showTempChatToggle = (conversationId == null || uiState.isTemporaryChat) &&
         uiState.temporaryChatEnabled
 
+    // Equal gates across streamed tokens, so the menu's item lists are rebuilt only when a gate moves.
+    val overflowGates = ChatOverflowGates(
+        conversationId = conversationId,
+        hasShowAllMedia = onShowAllMedia != null,
+        presetsEnabled = uiState.presetsEnabled,
+        hasPromptsLibrary = onOpenPromptsLibrary != null,
+        promptsEnabled = uiState.promptsEnabled,
+        multiConvoEnabled = uiState.multiConvoEnabled,
+        traceViewerAvailable = uiState.traceViewerAvailable,
+        contextUsage = uiState.contextUsage,
+        contextUsageEnabled = uiState.contextUsageEnabled,
+        contextBarPlacement = uiState.contextBarPlacement,
+        compactNudgeVisible = uiState.compactNudge != null,
+        sharedLinksEnabled = uiState.sharedLinksEnabled,
+    )
+    val overflowSections = remember(overflowGates) { chatOverflowSections(overflowGates) }
+    val onOverflowItem: (ChatOverflowItem) -> Unit = { item ->
+        when (item) {
+            ChatOverflowItem.SEARCH -> viewModel.openSearch()
+            ChatOverflowItem.SHOW_ALL_MEDIA -> onShowAllMedia?.invoke()
+            ChatOverflowItem.LOAD_PRESET -> onLoadPreset()
+            ChatOverflowItem.SAVE_PRESET -> onSavePreset()
+            ChatOverflowItem.PROMPTS_LIBRARY -> onOpenPromptsLibrary?.invoke()
+            ChatOverflowItem.COMPARE -> viewModel.toggleComparison()
+            ChatOverflowItem.TRACE -> showTraceViewer = true
+            ChatOverflowItem.CONTEXT_USAGE -> showContextSheet = true
+            ChatOverflowItem.COMPACT -> showCompactConfirm = true
+            ChatOverflowItem.SHARE -> viewModel.shareConversation()
+            ChatOverflowItem.RENAME -> onRename()
+            ChatOverflowItem.DUPLICATE -> viewModel.duplicateConversation()
+            ChatOverflowItem.ARCHIVE -> viewModel.archiveConversation()
+            ChatOverflowItem.DELETE -> viewModel.showDeleteConfirmation()
+        }
+    }
+
+    val barActions = remember(viewModel) {
+        ChatTopBarActions(
+            onRename = viewModel::renameConversation,
+            onOpenModelSheet = viewModel::openModelSheet,
+            onToggleTemporaryChat = viewModel::toggleTemporaryChat,
+            onSearchQueryChange = viewModel::onSearchQueryChanged,
+            onPreviousMatch = viewModel::previousSearchMatch,
+            onNextMatch = viewModel::nextSearchMatch,
+            onCloseSearch = viewModel::closeSearch,
+        )
+    }
+
+    if (isLiquidGlass) {
+        GlassChatTopBar(
+            uiState = uiState,
+            actions = barActions,
+            sections = overflowSections,
+            onItem = onOverflowItem,
+            onOpenDrawer = onOpenDrawer,
+            showTempChatToggle = showTempChatToggle,
+            modifier = modifier,
+        )
+    } else {
+        MaterialChatTopBar(
+            uiState = uiState,
+            actions = barActions,
+            sections = overflowSections,
+            onItem = onOverflowItem,
+            onOpenDrawer = onOpenDrawer,
+            showTempChatToggle = showTempChatToggle,
+            modifier = modifier,
+        )
+    }
+
+    // The context-usage gauge's default home is just above the composer (Settings → Chat picks
+    // its placement); see CommonChatInputCore. When the user routes it to the overflow menu, the
+    // menu item hands the trigger here so the breakdown sheet opens outside the menu popup.
+    // The ⋮ menu's compact suggestion confirms here, outside the popup, like the sheet above.
+    val compactNudge = uiState.compactNudge
+    if (showCompactConfirm && compactNudge != null) {
+        CompactConfirmDialog(
+            percent = compactNudge.percent,
+            onDismiss = { showCompactConfirm = false },
+            onNotNow = {
+                showCompactConfirm = false
+                viewModel.snoozeCompactNudge()
+            },
+            onCompact = {
+                showCompactConfirm = false
+                viewModel.compactConversation()
+            },
+        )
+    }
+
+    val sheetContextGauge = uiState.contextGaugeDetails
+    if (showContextSheet && sheetContextGauge != null) {
+        ContextUsageSheet(
+            details = sheetContextGauge,
+            onDismiss = { showContextSheet = false },
+            onCompact = viewModel::compactConversation.takeIf { uiState.canCompactNow },
+        )
+    }
+
+    // Hosted here rather than from the menu item, for the same reason the context sheet is:
+    // a modal surface cannot open from inside the dropdown's popup.
+    if (showTraceViewer && conversationId != null) {
+        TraceViewerSheet(
+            conversationId = conversationId,
+            isStreaming = uiState.isStreaming,
+            onDismiss = { showTraceViewer = false },
+        )
+    }
+}
+
+/** The Liquid Glass bar, with the in-conversation search field pinned beneath it. */
+@Composable
+private fun GlassChatTopBar(
+    uiState: ChatUiState,
+    actions: ChatTopBarActions,
+    sections: List<List<ChatOverflowItem>>,
+    onItem: (ChatOverflowItem) -> Unit,
+    onOpenDrawer: (() -> Unit)?,
+    showTempChatToggle: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val spec = rememberChatTopBarSpec(
+        uiState = uiState,
+        actions = actions,
+        sections = sections,
+        onItem = onItem,
+        onOpenDrawer = onOpenDrawer,
+        showTempChatToggle = showTempChatToggle,
+    )
+    AdaptiveTopBar(
+        spec = spec,
+        modifier = modifier,
+        belowBar = {
+            AnimatedVisibility(
+                visible = uiState.isSearchOpen,
+                enter = expandVertically(),
+                exit = shrinkVertically(),
+            ) {
+                InConvoSearchBar(
+                    query = uiState.searchQuery,
+                    onQueryChange = actions.onSearchQueryChange,
+                    currentMatchIndex = uiState.currentSearchMatchIndex,
+                    totalMatches = uiState.searchMatchIndices.size,
+                    onPreviousMatch = actions.onPreviousMatch,
+                    onNextMatch = actions.onNextMatch,
+                    onClose = actions.onCloseSearch,
+                )
+            }
+        },
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MaterialChatTopBar(
+    uiState: ChatUiState,
+    actions: ChatTopBarActions,
+    sections: List<List<ChatOverflowItem>>,
+    onItem: (ChatOverflowItem) -> Unit,
+    onOpenDrawer: (() -> Unit)?,
+    showTempChatToggle: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    var showOverflowMenu by remember { mutableStateOf(false) }
+    val conversationId = uiState.conversationId
+    val conversationTitle = uiState.conversationTitle
     val fillWidth = uiState.chatHeaderAlignment == ChatHeaderAlignment.FILL
     val contentAlignment = when (uiState.chatHeaderAlignment) {
         ChatHeaderAlignment.LEFT, ChatHeaderAlignment.FILL -> Alignment.CenterStart
@@ -104,16 +294,18 @@ internal fun ChatFloatingTopBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(brush = chatTopBarScrim())
-                .consumeFloatingBarTouches()
+                .consumeUnhandledTouches()
                 .statusBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (onOpenDrawer != null) {
+                val drawerBounce = rememberPressBounce()
                 FloatingBarIconButton(
                     icon = Icons.Default.Menu,
                     contentDescription = stringResource(Res.string.cd_open_drawer),
                     onClick = onOpenDrawer,
+                    modifier = Modifier.pressBounce(drawerBounce, enabled = !isLiquidGlass),
                 )
                 Spacer(modifier = Modifier.width(8.dp))
             }
@@ -132,7 +324,7 @@ internal fun ChatFloatingTopBar(
                                 title = conversationTitle,
                                 conversationKey = conversationId,
                                 fillWidth = fillWidth,
-                                onCommit = viewModel::renameConversation,
+                                onCommit = actions.onRename,
                             )
                         }
 
@@ -145,7 +337,7 @@ internal fun ChatFloatingTopBar(
                         FloatingBarLabelChip(
                             text = label.displayModel ?: stringResource(Res.string.select_model),
                             fillWidth = fillWidth,
-                            onClick = viewModel::openModelSheet,
+                            onClick = actions.onOpenModelSheet,
                         )
                     }
 
@@ -154,60 +346,58 @@ internal fun ChatFloatingTopBar(
             }
             Spacer(modifier = Modifier.width(8.dp))
 
+            // Temporary chats are never persisted, so they have no server-side task list.
+            if (!uiState.isTemporaryChat) {
+                BackgroundTasksChip(conversationId = conversationId, isStreaming = uiState.isStreaming)
+            }
+
             if (showTempChatToggle) {
-                FloatingBarChip(modifier = Modifier.size(FloatingBarChipSize)) {
+                val tempChatBounce = rememberPressBounce()
+                FloatingBarChip(
+                    modifier = Modifier
+                        .size(FloatingBarChipSize)
+                        .pressBounce(tempChatBounce, enabled = !isLiquidGlass),
+                ) {
                     TempChatToggle(
                         isTemporary = uiState.isTemporaryChat,
-                        onToggle = viewModel::toggleTemporaryChat,
+                        onToggle = actions.onToggleTemporaryChat,
                     )
                 }
                 Spacer(modifier = Modifier.width(8.dp))
             }
 
-            Box {
+            val overflowDrag = rememberMenuDragSelection()
+            Box(
+                modifier = Modifier.menuDragAnchor(
+                    overflowDrag,
+                    enabled = !isLiquidGlass,
+                    onOpen = { showOverflowMenu = true },
+                    onCancel = { showOverflowMenu = false },
+                ),
+            ) {
+                // Material only: ⋮ turns into ⋯ while its menu is open.
+                val moreRotation by animateFloatAsState(
+                    targetValue = if (showOverflowMenu && !isLiquidGlass) 90f else 0f,
+                    animationSpec = spring(dampingRatio = 0.8f, stiffness = 200f),
+                    label = "moreRotation",
+                )
                 FloatingBarIconButton(
                     icon = Icons.Default.MoreVert,
                     contentDescription = stringResource(Res.string.cd_more_options),
                     onClick = { showOverflowMenu = true },
+                    modifier = Modifier.menuDragPressEffect(overflowDrag),
+                    iconRotation = { moreRotation },
                 )
                 ChatOverflowMenu(
                     expanded = showOverflowMenu,
                     onDismiss = { showOverflowMenu = false },
-                    conversationId = conversationId,
-                    presetsEnabled = uiState.presetsEnabled,
-                    promptsEnabled = uiState.promptsEnabled,
-                    multiConvoEnabled = uiState.multiConvoEnabled,
-                    sharedLinksEnabled = uiState.sharedLinksEnabled,
+                    sections = sections,
                     isComparisonEnabled = uiState.comparisonState.isEnabled,
-                    contextUsage = uiState.contextUsage,
-                    contextUsageEnabled = uiState.contextUsageEnabled,
-                    contextBarPlacement = uiState.contextBarPlacement,
-                    onShowContextDetails = { showContextSheet = true },
-                    onOpenSearch = viewModel::openSearch,
-                    onShowAllMedia = onShowAllMedia,
-                    onLoadPreset = onLoadPreset,
-                    onSavePreset = onSavePreset,
-                    onOpenPromptsLibrary = onOpenPromptsLibrary,
-                    onToggleComparison = viewModel::toggleComparison,
-                    onShare = viewModel::shareConversation,
-                    onRename = onRename,
-                    onDuplicate = viewModel::duplicateConversation,
-                    onArchive = viewModel::archiveConversation,
-                    onDelete = viewModel::showDeleteConfirmation,
+                    contextGauge = uiState.contextGaugeDetails,
+                    onItem = onItem,
+                    dragSelection = overflowDrag.takeIf { !isLiquidGlass },
                 )
             }
-        }
-
-        // The context-usage gauge's default home is just above the composer (Settings → Chat picks
-        // its placement); see CommonChatInputCore. When the user routes it to the overflow menu, the
-        // menu item hands the trigger here so the breakdown sheet opens outside the menu popup.
-        val sheetContextUsage = uiState.contextUsage
-        if (showContextSheet && sheetContextUsage != null) {
-            ContextUsageSheet(
-                usage = sheetContextUsage,
-                tokenUsage = uiState.tokenUsage,
-                onDismiss = { showContextSheet = false },
-            )
         }
 
         // In-conversation search bar, pinned directly under the floating bar.
@@ -218,12 +408,12 @@ internal fun ChatFloatingTopBar(
         ) {
             InConvoSearchBar(
                 query = uiState.searchQuery,
-                onQueryChange = viewModel::onSearchQueryChanged,
+                onQueryChange = actions.onSearchQueryChange,
                 currentMatchIndex = uiState.currentSearchMatchIndex,
                 totalMatches = uiState.searchMatchIndices.size,
-                onPreviousMatch = viewModel::previousSearchMatch,
-                onNextMatch = viewModel::nextSearchMatch,
-                onClose = viewModel::closeSearch,
+                onPreviousMatch = actions.onPreviousMatch,
+                onNextMatch = actions.onNextMatch,
+                onClose = actions.onCloseSearch,
             )
         }
     }
@@ -243,9 +433,11 @@ private fun HeaderTitleChip(
     onCommit: (String) -> Unit,
 ) {
     var isEditing by remember(conversationKey) { mutableStateOf(false) }
+    // On both chips, so the pop that opens the editor plays out on the editor.
+    val holdCharge = rememberHoldCharge()
 
     if (isEditing) {
-        FloatingBarContentChip(fillWidth = fillWidth) {
+        FloatingBarContentChip(fillWidth = fillWidth, modifier = Modifier.holdChargeScale(holdCharge)) {
             HeaderTitleEditor(
                 initial = title,
                 fillWidth = fillWidth,
@@ -260,8 +452,10 @@ private fun HeaderTitleChip(
         FloatingBarLabelChip(
             text = title,
             fillWidth = fillWidth,
+            modifier = Modifier.holdChargeScale(holdCharge),
             onLongClick = { isEditing = true },
             onLongClickLabel = stringResource(Res.string.cd_edit_title),
+            holdCharge = holdCharge,
         )
     }
 }
@@ -270,9 +464,11 @@ private fun HeaderTitleChip(
  * Inline single-line title editor. Commit happens ONLY on the explicit IME Done action; any focus
  * loss (tapping the composer, opening the overflow menu, switching conversations, config change) or
  * the Escape key DISCARDS the edit. This makes a rename an explicit, confirmed action — the bar's
- * scrim ([consumeFloatingBarTouches]) swallows background taps, so a commit-on-blur would otherwise
+ * scrim ([consumeUnhandledTouches]) swallows background taps, so a commit-on-blur would otherwise
  * persist abandoned, half-typed titles. Done with an unchanged or blank value also discards, which
  * covers the case where the title updated underneath an untouched editor (e.g. async gen_title).
+ * Dismissing the keyboard keeps focus, so it's watched separately: with nothing to save it ends the
+ * edit, otherwise it asks before discarding, and Keep editing brings the keyboard back.
  */
 @Composable
 private fun HeaderTitleEditor(
@@ -285,12 +481,17 @@ private fun HeaderTitleEditor(
     var value by remember { mutableStateOf(TextFieldValue(initial, TextRange(initial.length))) }
     var settled by remember { mutableStateOf(false) }
     var everFocused by remember { mutableStateOf(false) }
+    var confirmingDiscard by remember { mutableStateOf(false) }
+    var reopeningKeyboard by remember { mutableStateOf(false) }
+    val keyboard = LocalSoftwareKeyboardController.current
+    val windowInfo = LocalWindowInfo.current
+
+    fun pendingTitle(): String? = value.text.trim().takeIf { it.isNotEmpty() && it != initial }
 
     fun commit() {
         if (settled) return
         settled = true
-        val trimmed = value.text.trim()
-        if (trimmed.isNotEmpty() && trimmed != initial) onCommit(trimmed) else onCancel()
+        pendingTitle()?.let(onCommit) ?: onCancel()
     }
     fun cancel() {
         if (settled) return
@@ -321,7 +522,7 @@ private fun HeaderTitleEditor(
             .onFocusChanged { state ->
                 if (state.isFocused) {
                     everFocused = true
-                } else if (everFocused) {
+                } else if (everFocused && !confirmingDiscard) {
                     // Focus left (composer, overflow, chat switch) — discard the unconfirmed edit.
                     cancel()
                 }
@@ -329,4 +530,67 @@ private fun HeaderTitleEditor(
     )
 
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
+
+    val ime = WindowInsets.ime
+    val density = LocalDensity.current
+    LaunchedEffect(ime, density) {
+        // Only a keyboard that was up and went away; it isn't up yet when the editor opens. One that
+        // hides because this window lost focus (app backgrounded, screen off, another window) wasn't
+        // dismissed by the user.
+        var shown = false
+        snapshotFlow { ime.getBottom(density) > 0 }.collect { visible ->
+            if (visible) {
+                shown = true
+            } else if (
+                shown && windowInfo.isWindowFocused && !settled && !confirmingDiscard && !reopeningKeyboard
+            ) {
+                shown = false
+                if (pendingTitle() == null) cancel() else confirmingDiscard = true
+            }
+        }
+    }
+
+    // A keyboard shown while the dialog's window has focus belongs to the dialog and closes with it,
+    // which would read as another dismissal; wait for this window to have focus again.
+    LaunchedEffect(reopeningKeyboard) {
+        if (!reopeningKeyboard) return@LaunchedEffect
+        snapshotFlow { windowInfo.isWindowFocused }.first { it }
+        focusRequester.requestFocus()
+        keyboard?.show()
+        reopeningKeyboard = false
+    }
+
+    if (confirmingDiscard) {
+        val keepEditing: () -> Unit = {
+            confirmingDiscard = false
+            reopeningKeyboard = true
+        }
+        AdaptiveAlertDialog(
+            onDismissRequest = keepEditing,
+            title = { Text(stringResource(Res.string.title_edit_discard_prompt)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmingDiscard = false
+                        cancel()
+                    },
+                ) { Text(stringResource(Res.string.title_edit_discard)) }
+            },
+            dismissButton = {
+                TextButton(onClick = keepEditing) { Text(stringResource(Res.string.title_edit_keep_editing)) }
+            },
+        )
+    }
 }
+
+/** The ViewModel calls the bar renderers make, so the ViewModel itself stays in [ChatFloatingTopBar]. */
+@Immutable
+internal class ChatTopBarActions(
+    val onRename: (String) -> Unit,
+    val onOpenModelSheet: () -> Unit,
+    val onToggleTemporaryChat: () -> Unit,
+    val onSearchQueryChange: (String) -> Unit,
+    val onPreviousMatch: () -> Unit,
+    val onNextMatch: () -> Unit,
+    val onCloseSearch: () -> Unit,
+)

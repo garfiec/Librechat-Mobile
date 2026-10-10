@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -17,9 +16,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.network.client.HeaderRejection
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.CustomHeaderRow
 import com.garfiec.librechat.core.ui.components.CustomHeaderRowError
 import com.garfiec.librechat.core.ui.components.CustomHeadersEditor
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.core.ui.resources.server_headers_load_error
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.resources.action_cancel
@@ -78,9 +79,9 @@ fun ServerHeadersDialog(
         if (isDirty) showDiscardConfirm = true else onDismiss()
     }
 
-    AlertDialog(
+    AdaptiveAlertDialog(
         onDismissRequest = requestClose,
-        modifier = modifier,
+        modifier = modifier.clearFocusOnTap(),
         title = { Text(stringResource(Res.string.section_server_connection)) },
         text = {
             // AlertDialog clips its content instead of scrolling it, so a handful of header rows
@@ -142,7 +143,7 @@ fun ServerHeadersDialog(
     )
 
     if (showDiscardConfirm) {
-        AlertDialog(
+        AdaptiveAlertDialog(
             onDismissRequest = { showDiscardConfirm = false },
             title = { Text(stringResource(Res.string.server_headers_discard_title)) },
             text = { Text(stringResource(Res.string.server_headers_discard_message)) },

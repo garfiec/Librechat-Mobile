@@ -5,9 +5,9 @@ package com.garfiec.librechat.core.data.datastore
  * surfaced in the model-selection bottom sheet.
  *
  * - [OFF] — no dedicated section; favorites simply float to the top within their own
- *   provider/agent group (the historical behavior).
+ *   provider/agent group.
  * - [GROUPED] — a collapsible "Starred" group at the top of the sheet, styled like the
- *   provider groups. Items still also appear in their original groups.
+ *   provider groups. Items still also appear in their original groups. The default.
  * - [TOP] — starred items listed flat at the very top, no header or collapse. Items still
  *   also appear in their original groups.
  */
@@ -16,9 +16,9 @@ enum class StarredModelsDisplay {
 
     companion object {
         fun fromString(value: String?): StarredModelsDisplay = when (value) {
-            "grouped" -> GROUPED
+            "off" -> OFF
             "top" -> TOP
-            else -> OFF
+            else -> GROUPED
         }
     }
 

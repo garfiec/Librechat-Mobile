@@ -80,6 +80,7 @@ private fun closenessRanking(candidate: String, query: String): Double {
 }
 
 /** Scores [query] against [candidate], returning the best tier from [MatchRanking]. */
+@Suppress("ReturnCount") // debt: 9 returns
 fun matchRanking(candidate: String, query: String): Double {
     val preparedCandidate = candidate.prepareForComparison()
     val preparedQuery = query.prepareForComparison()

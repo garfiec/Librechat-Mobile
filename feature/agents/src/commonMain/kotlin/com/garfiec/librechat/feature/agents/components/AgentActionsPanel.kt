@@ -20,7 +20,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -33,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.ActionMetadata
 import com.garfiec.librechat.core.model.request.FunctionTool
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.feature.agents.AgentActionDisplayData
 import com.garfiec.librechat.feature.agents.resources.*
 import com.garfiec.librechat.feature.agents.resources.Res
@@ -95,7 +95,7 @@ fun AgentActionsPanel(
                     )
                 }
 
-                OutlinedButton(
+                AdaptiveOutlinedButton(
                     onClick = {
                         editingAction = null
                         showEditor = true

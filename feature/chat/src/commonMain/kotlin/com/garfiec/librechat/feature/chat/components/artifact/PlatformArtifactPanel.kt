@@ -24,7 +24,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -41,6 +40,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.core.ui.theme.isSurfaceDark
 import com.garfiec.librechat.feature.chat.components.CodeBlock
@@ -113,7 +113,7 @@ fun ArtifactPanel(
     versions: List<Artifact> = listOf(artifact),
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
-    ModalBottomSheet(
+    AdaptiveModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         modifier = modifier.fillMaxSize(),

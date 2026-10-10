@@ -17,6 +17,7 @@ import com.garfiec.librechat.feature.chat.navigation.NewChat
 import com.garfiec.librechat.shared.navigation.DeepLinkResolution
 import com.garfiec.librechat.shared.navigation.DeepLinks
 import com.garfiec.librechat.shared.navigation.PhoneLayout
+import com.garfiec.librechat.shared.navigation.TabletLayout
 import com.garfiec.librechat.shared.navigation.LibreChatNavHost as SharedLibreChatNavHost
 
 /**

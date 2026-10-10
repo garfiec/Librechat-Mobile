@@ -111,10 +111,9 @@ class ArchivedConversationsViewModel(
 
     fun unarchiveConversation(id: String) {
         viewModelScope.launch {
-            try {
-                conversationRepository.archive(id, false)
-            } catch (e: Exception) {
-                Logger.e(e) { "Failed to unarchive conversation" }
+            val result = conversationRepository.archive(id, false)
+            if (result is Result.Error) {
+                Logger.e(result.exception) { "Failed to unarchive conversation" }
                 _events.emit(ArchivedConversationsEvent.ShowError("Failed to unarchive conversation"))
             }
         }
@@ -122,10 +121,9 @@ class ArchivedConversationsViewModel(
 
     fun deleteConversation(id: String) {
         viewModelScope.launch {
-            try {
-                conversationRepository.delete(id)
-            } catch (e: Exception) {
-                Logger.e(e) { "Failed to delete conversation" }
+            val result = conversationRepository.delete(id)
+            if (result is Result.Error) {
+                Logger.e(result.exception) { "Failed to delete conversation" }
                 _events.emit(ArchivedConversationsEvent.ShowError("Failed to delete conversation"))
             }
         }

@@ -2,15 +2,18 @@ package com.garfiec.librechat.feature.agents.viewmodel.delegate
 
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.pdf.PdfPasswordProtectedException
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.model.AgentFile
 import com.garfiec.librechat.core.model.FileObject
 import com.garfiec.librechat.core.model.request.DeleteFileEntry
+import com.garfiec.librechat.core.ui.components.PdfPasswordPromptUi
 import com.garfiec.librechat.feature.agents.util.ContentReader
 import com.garfiec.librechat.feature.agents.viewmodel.AgentEditorStateHandle
 import com.garfiec.librechat.feature.agents.viewmodel.AgentEditorViewModel
 import com.garfiec.librechat.feature.agents.viewmodel.AgentFileSlot
+import com.garfiec.librechat.feature.agents.viewmodel.PendingAgentFileRemoval
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.launch
@@ -42,6 +45,18 @@ class AgentFilesDelegate(
      *  Without this cache, [loadAgentFiles] finishing first would read empty
      *  slot lists and produce a no-op enrichment. */
     private var loadedAgentFileObjects: List<FileObject>? = null
+
+    /**
+     * PDFs waiting on their password, oldest first; the head is [AgentEditorUiState.pdfPasswordPrompt].
+     * A queue because several slots can each be handed a locked PDF before the first is answered.
+     * Touched only from [AgentEditorStateHandle.scope], like the rest of this delegate's state.
+     */
+    private val pendingPdfs = ArrayDeque<PendingPdf>()
+    private var nextPromptId = 0L
+
+    private class PendingPdf(val fileRef: Any, val slot: AgentFileSlot, val prompt: PdfPasswordPromptUi)
+
+    private fun publishPdfPrompt() = stateHandle.update { copy(pdfPasswordPrompt = pendingPdfs.firstOrNull()?.prompt) }
 
     /**
      * Fetches `GET /api/files/agent/:id` and merges filename/bytes/type into
@@ -83,6 +98,7 @@ class AgentFilesDelegate(
                     filename = agentFile.filename ?: obj.filename,
                     bytes = agentFile.bytes ?: obj.bytes,
                     type = agentFile.type ?: obj.type,
+                    filepath = agentFile.filepath ?: obj.filepath,
                 )
             } ?: agentFile
         }
@@ -115,13 +131,26 @@ class AgentFilesDelegate(
         }
     }
 
+    /** Uploads the prompted PDF again into its slot, decrypting it on-device with [password]. */
+    fun submitPdfPassword(password: String) {
+        val head = pendingPdfs.removeFirstOrNull() ?: return
+        publishPdfPrompt()
+        uploadAgentFile(head.fileRef, head.slot, pdfPassword = password)
+    }
+
+    fun dismissPdfPassword() {
+        pendingPdfs.removeFirstOrNull() ?: return
+        publishPdfPrompt()
+    }
+
     /**
      * Upload a file for the given capability slot. The backend attaches the
      * file to `tool_resources.<wire>.file_ids` on the agent when both
      * `agent_id` + `tool_resource` are supplied. New (unsaved) agents can't
      * accept files yet — the user is told to save first via a snackbar.
      */
-    fun uploadAgentFile(fileRef: Any, slot: AgentFileSlot) {
+    @Suppress("TooGenericExceptionCaught") // upload boundary: any failure marks the attachment failed
+    fun uploadAgentFile(fileRef: Any, slot: AgentFileSlot, pdfPassword: String? = null) {
         val agentId = stateHandle.state.agentId
         if (agentId.isNullOrBlank()) {
             stateHandle.update {
@@ -156,6 +185,7 @@ class AgentFilesDelegate(
                     endpoint = "agents",
                     agentId = agentId,
                     toolResource = slot.wire,
+                    pdfPassword = pdfPassword,
                 )
                 stateHandle.update { copy(uploadingSlots = uploadingSlots - slot) }
                 when (result) {
@@ -166,6 +196,7 @@ class AgentFilesDelegate(
                             filename = obj.filename,
                             bytes = obj.bytes,
                             type = obj.type,
+                            filepath = obj.filepath,
                             originResource = slot.wire,
                         )
                         // Re-pick latest because the snackbar might have cleared
@@ -173,12 +204,26 @@ class AgentFilesDelegate(
                         setFilesFor(slot, filesFor(slot) + agentFile)
                     }
                     is Result.Error -> {
-                        stateHandle.update {
-                            copy(error = result.message ?: AgentEditorViewModel.AGENT_FILE_UPLOAD_FAILED_MARKER)
+                        val locked = result.exception as? PdfPasswordProtectedException
+                        if (locked != null) {
+                            val pending = PendingPdf(
+                                fileRef,
+                                slot,
+                                PdfPasswordPromptUi(filename, locked.incorrectPassword, id = nextPromptId++),
+                            )
+                            // A wrong password re-asks straight away; a new file waits its turn.
+                            if (locked.incorrectPassword) pendingPdfs.addFirst(pending) else pendingPdfs.addLast(pending)
+                            publishPdfPrompt()
+                        } else {
+                            stateHandle.update {
+                                copy(error = result.message ?: AgentEditorViewModel.AGENT_FILE_UPLOAD_FAILED_MARKER)
+                            }
                         }
                     }
                     is Result.Loading -> { /* no-op */ }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Logger.e(e) { "uploadAgentFile: unexpected error" }
                 stateHandle.update {
@@ -191,7 +236,39 @@ class AgentFilesDelegate(
         }
     }
 
+    /**
+     * The chip's remove action. On a server where removal can delete the file outright (see
+     * [AgentEditorUiState.agentFileRemovalDeletes]) it only asks; [confirmAgentFileRemoval] acts.
+     *
+     * It asks only when the removal would actually be sent. A removal [performRemoval] refuses
+     * locally (unlink unavailable, no filepath yet) goes straight there, so the user is never asked
+     * to confirm a permanent delete that is then refused without a request.
+     */
     fun removeAgentFile(fileId: String, slot: AgentFileSlot) {
+        val state = stateHandle.state
+        if (state.agentFileRemovalDeletes && !state.agentId.isNullOrBlank()) {
+            val target = filesFor(slot).firstOrNull { it.fileId == fileId } ?: return
+            if (state.isAgentFileUnlinkAvailable && !target.filepath.isNullOrBlank()) {
+                stateHandle.update {
+                    copy(pendingFileRemoval = PendingAgentFileRemoval(fileId, slot, target.filename))
+                }
+                return
+            }
+        }
+        performRemoval(fileId, slot)
+    }
+
+    fun confirmAgentFileRemoval() {
+        val pending = stateHandle.state.pendingFileRemoval ?: return
+        stateHandle.update { copy(pendingFileRemoval = null) }
+        performRemoval(pending.fileId, pending.slot)
+    }
+
+    fun dismissAgentFileRemoval() {
+        stateHandle.update { copy(pendingFileRemoval = null) }
+    }
+
+    private fun performRemoval(fileId: String, slot: AgentFileSlot) {
         val agentId = stateHandle.state.agentId
         // Local-only state when there's no agentId yet (we never let this happen
         // through uploadAgentFile, but stay defensive).
@@ -199,11 +276,23 @@ class AgentFilesDelegate(
             setFilesFor(slot, filesFor(slot).filterNot { it.fileId == fileId })
             return
         }
-        // Optimistically remove; rollback on error.
+        if (!stateHandle.state.isAgentFileUnlinkAvailable) {
+            stateHandle.update { copy(error = AgentEditorViewModel.AGENT_FILE_REMOVE_FAILED_MARKER) }
+            return
+        }
         val before = filesFor(slot)
+        val target = before.firstOrNull { it.fileId == fileId } ?: return
+        // The route drops any entry with a falsy filepath before reading `agent_id`, so an unlink
+        // without one is filtered away, answered 204, and reads back as a success while the file
+        // stays attached. Refuse instead of removing the chip over a request that does nothing.
+        val filepath = target.filepath
+        if (filepath.isNullOrBlank()) {
+            stateHandle.update { copy(error = AgentEditorViewModel.AGENT_FILE_REMOVE_FAILED_MARKER) }
+            return
+        }
+        // Optimistically remove; rollback on error.
         setFilesFor(slot, before.filterNot { it.fileId == fileId })
         stateHandle.scope.launch {
-            val target = before.firstOrNull { it.fileId == fileId } ?: return@launch
             // The Context slot UI shows files from both `context` and `ocr`
             // tool_resources merged. Route the deletion to the slot the file
             // was actually loaded from so the backend can find and remove
@@ -211,20 +300,28 @@ class AgentFilesDelegate(
             // this session (which the picker writes under slot.wire).
             val toolResource = target.originResource ?: slot.wire
             val result = fileRepository.deleteFiles(
-                files = listOf(DeleteFileEntry(fileId = target.fileId, filepath = "")),
+                files = listOf(DeleteFileEntry(fileId = target.fileId, filepath = filepath)),
                 agentId = agentId,
                 toolResource = toolResource,
             )
-            if (result is Result.Error) {
+            // A partial delete answers 200 (v0.8.8-rc2), so a reported failure has to roll the
+            // optimistic removal back exactly as a transport error does — otherwise the row
+            // disappears from the editor while the file stays attached to the agent.
+            val reportedFailed = result is Result.Success && target.fileId in result.data.failedFileIds
+            if (result is Result.Error || reportedFailed) {
                 // Rollback
                 setFilesFor(slot, before)
                 stateHandle.update {
-                    copy(error = result.message ?: AgentEditorViewModel.AGENT_FILE_REMOVE_FAILED_MARKER)
+                    copy(
+                        error = (result as? Result.Error)?.message
+                            ?: AgentEditorViewModel.AGENT_FILE_REMOVE_FAILED_MARKER,
+                    )
                 }
             }
         }
     }
 
+    @Suppress("TooGenericExceptionCaught") // upload boundary: any failure marks the attachment failed
     fun uploadAvatar(uri: Any) {
         val agentId = stateHandle.state.agentId ?: return
         stateHandle.scope.launch {

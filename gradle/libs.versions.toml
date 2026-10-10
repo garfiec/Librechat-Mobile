@@ -4,14 +4,16 @@ agp = "9.2.1"
 kotlin = "2.4.10"
 ksp = "2.3.11"
 compose-bom = "2026.06.00"
-compose-multiplatform = "1.11.0-beta03"
+compose-multiplatform = "1.12.1"
+# Simulated Liquid Glass (backdrop blur/refraction). Wrapped by :core:ui glass/, never imported elsewhere.
+kyant-backdrop = "2.0.1"
 material3 = "1.3.1"
 activity-compose = "1.13.0"
 androidx-core = "1.18.0"
-lifecycle = "2.10.0"
-lifecycle-kmp = "2.10.0"
+lifecycle = "2.11.0"
+lifecycle-kmp = "2.11.0"
 navigation3-kmp = "1.1.1"
-lifecycle-viewmodel-nav3-kmp = "2.11.0-beta01"
+lifecycle-viewmodel-nav3-kmp = "2.11.0"
 
 # DI
 koin = "4.2.2"
@@ -22,7 +24,7 @@ kotlinx-serialization = "1.11.0"
 kotlinx-datetime = "0.8.0"
 
 # Local Data
-room = "2.8.4"
+room = "2.8.5"
 sqlite = "2.6.2"
 datastore = "1.2.1"
 security-crypto = "1.1.0"
@@ -33,19 +35,18 @@ coroutines = "1.11.0"
 atomicfu = "0.33.0"
 
 # Paging
-paging = "3.5.0"
+paging = "3.5.1"
 
 # Browser
-browser = "1.10.0"
 
 # Markdown
-markdown-renderer = "0.40.2"
+markdown-renderer = "0.44.0"
 
 # Media
 media3 = "1.10.1"
 
 # Image Loading
-coil3 = "3.4.0"
+coil3 = "3.6.3"
 
 # Zoomable media viewer (KMP: Android + iOS)
 zoomimage = "1.4.0"
@@ -71,16 +72,17 @@ turbine = "1.2.1"
 mockk = "1.14.11"
 truth = "1.4.5"
 espresso = "3.7.0"
+androidx-concurrent-futures = "1.2.0"
 android-test-runner = "1.7.0"
 android-test-ext = "1.3.0"
-android-test-core = "1.6.1"
+android-test-core = "1.7.0"
 robolectric = "4.14.1"
 
 # Code Quality
 detekt = "1.23.8"
 ktlint = "12.1.2"
 compose-lint-checks = "1.5.2"
-kover = "0.9.8"
+kover = "0.9.11"
 
 # Build
 desugar = "2.1.5"
@@ -160,7 +162,6 @@ paging-compose = { group = "androidx.paging", name = "paging-compose", version.r
 paging-common = { group = "androidx.paging", name = "paging-common", version.ref = "paging" }
 
 # Browser
-browser = { group = "androidx.browser", name = "browser", version.ref = "browser" }
 
 # Markdown
 markdown-renderer-m3 = { group = "com.mikepenz", name = "multiplatform-markdown-renderer-m3", version.ref = "markdown-renderer" }
@@ -195,9 +196,12 @@ android-gradlePlugin = { group = "com.android.tools.build", name = "gradle", ver
 kotlin-gradlePlugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlin-multiplatform-gradlePlugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
 compose-gradlePlugin = { group = "org.jetbrains.kotlin", name = "compose-compiler-gradle-plugin", version.ref = "kotlin" }
+kyant-backdrop = { group = "io.github.kyant0", name = "backdrop", version.ref = "kyant-backdrop" }
 compose-multiplatform-gradlePlugin = { group = "org.jetbrains.compose", name = "compose-gradle-plugin", version.ref = "compose-multiplatform" }
 # Multiplatform PredictiveBackHandler (not bundled with compose.ui); version tracks compose-multiplatform.
 compose-ui-backhandler = { group = "org.jetbrains.compose.ui", name = "ui-backhandler", version.ref = "compose-multiplatform" }
+# Multiplatform runComposeUiTest — drives iOS pointer/text-field code on the simulator.
+compose-multiplatform-ui-test = { group = "org.jetbrains.compose.ui", name = "ui-test", version.ref = "compose-multiplatform" }
 ksp-gradlePlugin = { group = "com.google.devtools.ksp", name = "symbol-processing-gradle-plugin", version.ref = "ksp" }
 room-gradlePlugin = { group = "androidx.room", name = "room-gradle-plugin", version.ref = "room" }
 
@@ -225,6 +229,8 @@ android-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.
 android-test-core = { group = "androidx.test", name = "core", version.ref = "android-test-core" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
 espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso" }
+androidx-concurrent-futures = { group = "androidx.concurrent", name = "concurrent-futures", version.ref = "androidx-concurrent-futures" }
+androidx-concurrent-futures-ktx = { group = "androidx.concurrent", name = "concurrent-futures-ktx", version.ref = "androidx-concurrent-futures" }
 compose-ui-test = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 

@@ -1,0 +1,33 @@
+Categories:
+  - AI Chat
+License: MIT
+AuthorName: garfiec
+SourceCode: https://github.com/garfiec/Librechat-Mobile
+IssueTracker: https://github.com/garfiec/Librechat-Mobile/issues
+Changelog: https://github.com/garfiec/Librechat-Mobile/releases
+
+Name: 'Switchboard: A LibreChat Mobile App'
+AutoName: Switchboard
+
+RepoType: git
+Repo: https://github.com/garfiec/Librechat-Mobile.git
+Binaries: 
+  https://github.com/garfiec/Librechat-Mobile/releases/download/v%v/switchboard-v%v.apk
+
+Builds:
+  - versionName: 2026.10.0
+    versionCode: 20261000
+    commit: 0ea893b107d058ae9e60a4d62e21e450aa6d92b5
+    subdir: app
+    gradle:
+      - yes
+    gradleprops:
+      - unsignedRelease
+
+AllowedAPKSigningKeys: 668a71966a070614d144955d83e7236a3ced77f8640857c3fa84b03ccde40e59
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags ^v[0-9]{4}\.[0-9]{2}\.[0-9]+$
+UpdateCheckData: version.properties|versionCode=(\d+)|version.properties|versionName=(.+)
+CurrentVersion: 2026.10.0
+CurrentVersionCode: 20261000

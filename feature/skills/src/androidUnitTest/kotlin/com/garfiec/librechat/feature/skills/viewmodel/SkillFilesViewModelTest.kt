@@ -2,10 +2,12 @@ package com.garfiec.librechat.feature.skills.viewmodel
 
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.RoleRepository
+import com.garfiec.librechat.core.data.repository.SkillFileEditResult
 import com.garfiec.librechat.core.data.repository.SkillsRepository
 import com.garfiec.librechat.core.model.SkillFile
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.core.model.response.DeleteSkillFileResponse
+import com.garfiec.librechat.core.model.response.SkillFileContentResponse
 import com.garfiec.librechat.feature.skills.components.PickedDocument
 import com.google.common.truth.Truth.assertThat
 import io.mockk.CapturingSlot
@@ -125,8 +127,103 @@ class SkillFilesViewModelTest {
             UserRolePermissions(name = "USER", permissions = mapOf("SKILLS" to mapOf("CREATE" to true))),
         )
         val viewModel = vm()
+        viewModel.setSkillSource(null)
         advanceUntilIdle()
         assertThat(viewModel.uiState.value.canEditFiles).isTrue()
+    }
+
+    // --- v0.8.8: externally managed skills are read-only ---
+
+    private fun grantCreate() {
+        every { roleRepository.userPermissions } returns MutableStateFlow(
+            UserRolePermissions(name = "USER", permissions = mapOf("SKILLS" to mapOf("CREATE" to true))),
+        )
+    }
+
+    @Test
+    fun `an externally managed skill offers no file edits even with CREATE`() = runTest(testDispatcher) {
+        grantCreate()
+        val viewModel = vm()
+        viewModel.setSkillSource("github")
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.canEditFiles).isFalse()
+    }
+
+    @Test
+    fun `file edits wait for the skill's source to load`() = runTest(testDispatcher) {
+        grantCreate()
+        val viewModel = vm()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.canEditFiles).isFalse()
+        viewModel.setSkillSource("inline")
+        assertThat(viewModel.uiState.value.canEditFiles).isTrue()
+    }
+
+    // --- v0.8.8: conditional in-place editor ---
+
+    private fun content(fileId: String?) = SkillFileContentResponse(
+        fileId = fileId,
+        content = "hello",
+        mimeType = "text/markdown",
+        relativePath = "notes.md",
+        filename = "notes.md",
+    )
+
+    @Test
+    fun `a file without a revision opens read-only`() = runTest(testDispatcher) {
+        grantCreate()
+        coEvery { skillsRepository.getSkillFileContent("sk-1", "notes.md") } returns Result.Success(content(null))
+        val viewModel = vm()
+        viewModel.setSkillSource("inline")
+        viewModel.openFile(SkillFile(relativePath = "notes.md"))
+        advanceUntilIdle()
+
+        val editor = viewModel.uiState.value.editor!!
+        assertThat(editor.content).isEqualTo("hello")
+        assertThat(editor.isEditable(viewModel.uiState.value.canEditFiles)).isFalse()
+    }
+
+    @Test
+    fun `a save sends the revision it read and a 409 blocks until reload`() = runTest(testDispatcher) {
+        grantCreate()
+        coEvery { skillsRepository.getSkillFileContent("sk-1", "notes.md") } returns Result.Success(content("rev-1"))
+        coEvery {
+            skillsRepository.editSkillFile("sk-1", "notes.md", "rev-1", "edited", "notes.md", "text/markdown")
+        } returns SkillFileEditResult.Conflict
+        val viewModel = vm()
+        viewModel.setSkillSource("inline")
+        viewModel.openFile(SkillFile(relativePath = "notes.md"))
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.editor!!.isEditable(true)).isTrue()
+
+        viewModel.saveEditor("edited")
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.editor!!.conflict).isTrue()
+        assertThat(viewModel.uiState.value.editor!!.isEditable(true)).isFalse()
+
+        coEvery { skillsRepository.getSkillFileContent("sk-1", "notes.md") } returns Result.Success(content("rev-2"))
+        viewModel.reloadEditor()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.editor!!.fileId).isEqualTo("rev-2")
+        assertThat(viewModel.uiState.value.editor!!.conflict).isFalse()
+    }
+
+    @Test
+    fun `a saved edit closes the editor and reloads the list`() = runTest(testDispatcher) {
+        grantCreate()
+        coEvery { skillsRepository.getSkillFileContent("sk-1", "notes.md") } returns Result.Success(content("rev-1"))
+        coEvery { skillsRepository.editSkillFile(any(), any(), any(), any(), any(), any()) } returns
+            SkillFileEditResult.Saved(SkillFile(relativePath = "notes.md"))
+        coEvery { skillsRepository.listSkillFiles("sk-1") } returns Result.Success(emptyList())
+        val viewModel = vm()
+        viewModel.setSkillSource("inline")
+        viewModel.openFile(SkillFile(relativePath = "notes.md"))
+        advanceUntilIdle()
+
+        viewModel.saveEditor("edited")
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.editor).isNull()
+        coVerify { skillsRepository.listSkillFiles("sk-1") }
     }
 
     // --- load / delete result handling ---

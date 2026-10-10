@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.ui.media.MediaItem
 import com.garfiec.librechat.feature.chat.components.artifact.Artifact
 import com.garfiec.librechat.feature.chat.components.artifact.ArtifactSegment
 import com.garfiec.librechat.feature.chat.components.artifact.detectArtifacts
+import com.garfiec.librechat.feature.chat.components.textFallbackSplitsArtifacts
 
 /**
  * A non-image attachment surfaced in the conversation-media gallery's **Files** tab.
@@ -120,8 +121,10 @@ private fun Message.artifactSearchTexts(): List<String> {
     val parts = content
     return if (!parts.isNullOrEmpty()) {
         parts.mapNotNull { it.text ?: it.think }
-    } else {
+    } else if (textFallbackSplitsArtifacts()) {
         listOf(text)
+    } else {
+        emptyList()
     }
 }
 

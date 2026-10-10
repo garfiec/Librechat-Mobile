@@ -9,11 +9,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.UIKitView
 import com.garfiec.librechat.feature.chat.components.shareArtifact
-import kotlinx.cinterop.ExperimentalForeignApi
-import kotlinx.cinterop.cValue
-import platform.Foundation.NSURL
 import com.garfiec.librechat.feature.chat.components.web.loadVendoredHtml
 import com.garfiec.librechat.feature.chat.components.web.rememberWebAssetBaseUrl
+import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.cValue
 import platform.WebKit.WKWebView
 import platform.WebKit.WKWebViewConfiguration
 
@@ -66,13 +65,7 @@ actual fun ArtifactPreviewSurface(
 
 @Composable
 actual fun rememberShareArtifact(): (Artifact) -> Unit = remember {
-    { artifact ->
-        shareArtifact(
-            title = artifact.title,
-            content = artifact.content,
-            language = artifact.language ?: "",
-        )
-    }
+    { artifact -> shareArtifact(artifact.content) }
 }
 
 // iOS has no API to place a home-screen launcher icon, so the affordance is unavailable.

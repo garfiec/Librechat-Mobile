@@ -9,6 +9,7 @@ The app version is calendar-based — **`YYYY.MM.PATCH`** (zero-padded month, e.
 
 ```properties
 versionName=2026.06.0      # calver YYYY.MM.PATCH — bumped by the release workflow
+versionCode=20260600       # packed from versionName; written by the same bump
 backendTargetVersion=0.8.6 # LibreChat backend this build targets (best-tested)
 ```
 
@@ -18,6 +19,42 @@ backendTargetVersion=0.8.6 # LibreChat backend this build targets (best-tested)
 - `AndroidApplicationConventionPlugin` reads `versionName` and **derives** `versionCode` as
   `YEAR*10000 + MONTH*100 + PATCH`: `2026.06.0` → `20260600`, `2026.06.1` → `20260601`.
   Monotonic as the date advances; limits are MONTH ≤ 99 (trivially true), PATCH ≤ 99.
+  An `-rcN` suffix is stripped first, so a candidate and the stable it is promoted to
+  share a versionCode.
+- `version.properties` **also spells the code out**, and `scripts/bump-version.sh` writes both
+  lines together — refusing the bump if the `versionCode=` line is missing. The derivation
+  above stays authoritative: the plugin re-derives the code and **fails the build** if the
+  literal disagrees, so the two cannot drift. The literal exists because F-Droid's update
+  detection is regex-only and cannot evaluate the packing; without a number in a file it
+  cannot see new releases at all. **The literal alone is not enough**: fdroidserver's default
+  scan (`common.manifest_paths`) only reads `AndroidManifest.xml`, `build.gradle` and
+  `build.gradle.kts` *under the app module*, so it never sees a root `version.properties`.
+  Reaching it requires the fdroiddata recipe to say so explicitly:
+
+  ```yaml
+  UpdateCheckMode: Tags ^v[0-9]{4}\.[0-9]{2}\.[0-9]+$
+  UpdateCheckData: version.properties|versionCode=(\d+)|version.properties|versionName=(.+)
+  ```
+
+  Without that field the app builds and publishes fine but is never offered as an update, so
+  it belongs in the fdroiddata recipe alongside `Binaries` and `AllowedAPKSigningKeys`.
+
+  The regex on `UpdateCheckMode` is load-bearing, not decoration. `Tags` takes an optional
+  pattern, and candidates are tagged `vYYYY.MM.P-rcN` while the packing above **strips the
+  `-rcN` suffix** — so `v2026.09.1-rc1` and `v2026.09.1` share versionCode `20260901`. The
+  harm lands on whichever scan runs while only the candidate exists: it sets
+  `CurrentVersionCode` from the rc, and every later scan sees the finalized release's *equal*
+  code and treats the app as up to date, so the final is never offered. That first scan also
+  writes a build pinned to the rc tag, and `Binaries:` then resolves to the rc's own APK —
+  which exists, since candidates ship as GitHub pre-releases — so F-Droid would hand a release
+  candidate to every stable user. The pattern is matched with `re.match`, which anchors only
+  at the start, hence the explicit `$`.
+
+  The recipe and the merge-request text live in [`fdroid/`](fdroid/). The recipe there is a
+  byte-identical **copy of what was submitted**, kept so it can be diffed against the
+  fdroiddata branch — not the live metadata. Once the merge request is accepted, F-Droid's
+  bot owns the real file and this copy stops tracking it; delete it then rather than letting
+  it rot into a plausible-looking lie.
 - The About screen reads the *installed* version via `AppInfo` (package metadata), so it can never drift.
 - This is the **app's** version and is intentionally independent of `backendTargetVersion`.
 - `backendTargetVersion` is the **single source of truth** for the LibreChat backend the app
@@ -131,16 +168,100 @@ keyPassword=...
 Then `./gradlew :app:assembleRelease` produces a signed APK. Without env vars or this file,
 release builds fall back to the debug key so local builds and CI checks still work.
 
+### Unsigned release builds
+
+```bash
+./gradlew :app:assembleRelease -PunsignedRelease
+```
+
+Produces `app/build/outputs/apk/release/app-release-unsigned.apk` with no signature at all,
+for packagers that apply their own. The flag outranks any credentials present, so it can be
+tested without moving `keystore.properties` aside — and because the output filename changes,
+the two builds can never be confused for one another. Note the "will be UNSIGNED" banner is
+printed at configuration time, so a configuration-cache hit skips it; the filename is the
+reliable signal.
+
+This exists for F-Droid, whose buildserver has no credentials and would otherwise get a
+release APK quietly signed with the committed *debug* key. Its build recipe requests the flag
+with `gradleprops: [unsignedRelease]`, which passes it bare: the build tests for the property's
+presence, not its value, so `-PunsignedRelease=false` still builds unsigned. Nothing in the repo
+hardcodes that relationship — the flag is just "build unsigned", equally usable by any
+downstream packager.
+
+It is a hedge, not a requirement. fdroidserver does **not** insist on an unsigned build: its
+`verify_apks` strips and ignores any signature found on the rebuilt APK, and
+`AllowedAPKSigningKeys` is checked against the downloaded reference binary rather than the
+rebuild. Building unsigned removes one variable from that comparison — which, under
+`Binaries:`, is the step that publishes nothing at all when it fails. Do not restate this as
+"F-Droid requires an unsigned APK"; it does not.
+
+The release workflow exercises this path on every cut (see below), since nothing else does.
+Ordinary CI deliberately does not: a release cut is the only time the unsigned build matters,
+and that job already pays for one R8 run, so the check is nearly free there and would be a
+second full shrink on every pull request.
+
 ## Cutting a release
+
+> **The changelog is written by CI, never by hand.** After the bump, the release job runs
+> `scripts/generate-changelog.sh --out changelogs/<versionCode>.txt` and stages the file into
+> the release commit. It lists the `feat`/`fix`/`perf` commit subjects since the last stable
+> tag, features first, skipping the `release`, `fdroid`, `skill`, `ci`, `build` and `ios`
+> scopes, and cuts whole items to stay under F-Droid's **500-character** cap with a closing
+> "And N more" bullet pointing at the GitHub release notes. Commit subjects are therefore
+> user-facing text: write them for someone browsing an app store.
+>
+> It has to happen at dispatch: F-Droid reads changelogs only from the **tagged commit**, and
+> the versionCode (`YEAR*10000 + MONTH*100 + PATCH`) comes from the **UTC date at dispatch**,
+> so the filename is not known any earlier. **v2026.10.0 shipped with no changelog** because
+> nothing produced one; re-tagging to add it would have changed the APK and broken the
+> reproducible-build match. An `-rcN` and its final share one versionCode, and each run
+> regenerates the file from the last stable tag, so the final lists the whole train.
+>
+> **The changelog is not the only file that freezes at the tag.** F-Droid reads the whole
+> store listing — description, summary, icon, screenshots — from the tagged commit, so a
+> screenshot refresh or a description fix has to land *before* the cut to appear at all.
+> `scripts/check-fdroid-metadata.py` runs in CI on every pull request and enforces every limit
+> fdroidserver applies; it exists because fdroidserver truncates over-limit text silently and
+> `fdroid lint` cannot see these files.
+>
+> The version pins in [`fdroid/com.garfiec.librechat.yml`](fdroid/com.garfiec.librechat.yml)
+> depend on whether the submission has merged yet:
+>
+> * **Before the MR merges** — hand-edit the recipe on the fdroiddata branch and force-push.
+>   **Replace** the existing build block rather than adding one: box 36 of the App-inclusion
+>   template asks for only the latest version in the metadata before merge. Five fields move
+>   together — `versionName`, `versionCode`, the full 40-character `commit`, `CurrentVersion`
+>   and `CurrentVersionCode`.
+> * **After it merges** — nothing to do. `AutoUpdateMode: Version` plus
+>   `UpdateCheckMode: Tags` means F-Droid's own `checkupdates` bot advances them from the tag.
+>
+> Either way the tag is pushed before the draft release is published, so the bot can briefly
+> see a version whose `Binaries:` URL still 404s. That build fails and is simply retried on the
+> next pass — fdroidserver skips a build only when its output APK already exists — so publish
+> the draft and leave it alone.
 
 1. Actions → **Release** → *Run workflow* → choose the bump (`patch` for a stable
    release, or `prepatch`/`rc`/`finalize` for the candidate flow). Year/month are
    derived from the current UTC date automatically.
-2. The job bumps `version.properties`, builds a signed universal APK, signs a SLSA
-   build-provenance attestation for it, and **only then** commits + tags `vYYYY.MM.P` and creates
-   a **draft** GitHub Release with auto-generated notes and a `.sha256` checksum. Candidate
-   versions are flagged as pre-releases automatically. If the build fails, nothing is committed
-   or tagged — just re-run after fixing it.
+2. The job bumps `version.properties`, generates the changelog, commits and tags
+   `vYYYY.MM.P` **locally**, builds a signed universal APK, **asserts it carries the published signing certificate**, re-verifies
+   that the unsigned build path still works, signs a SLSA build-provenance attestation, and
+   **only then pushes** the commit and tag and creates a **draft** GitHub Release with
+   auto-generated notes and a `.sha256` checksum. Candidate versions are flagged as
+   pre-releases automatically. If any step fails, nothing is pushed — the commit and tag exist
+   only on the runner and die with it, so just re-run after fixing it.
+
+   The tag is created *before* the build on purpose: `BuildConfig.GIT_SHA` is stamped from
+   `git rev-parse HEAD` at build time, so building first shipped a binary carrying the SHA of
+   the commit *preceding* its own tag. Rebuilding from the tag then produced a different string
+   in the dex, which made the release impossible to reproduce byte-for-byte — a prerequisite for
+   F-Droid publishing our developer-signed APK rather than re-signing with its own key.
+
+   The certificate assertion compares against the fingerprint published in the README. It
+   exists because a swapped or rotated keystore secret is otherwise undetectable here: the
+   checksum, the attestation and the draft release would all faithfully describe a
+   wrongly-signed binary, and Android refuses in-place updates across a key change, so every
+   existing install would be stranded.
 3. A **secondary `ios` job** (macOS runner) then checks out the freshly tagged commit, builds
    an **unsigned device IPA**, attests it, and attaches `switchboard-vX.ipa` + `.sha256` to the
    same draft. It uses **no secrets and no Apple account** (sideload installers re-sign on the
@@ -202,10 +323,51 @@ Three checks are available to anyone who downloads an APK (or IPA), in descendin
 3. **Checksum** — `sha256sum -c <apk>.sha256`. Catches accidental corruption or a download MITM
    only; it does *not* defend against a malicious release (the attacker would control both files).
 
+To confirm an APK really was built at its own tag — the property the tag-before-build fix exists
+to guarantee — read `GIT_SHA` out of the shipped dex and compare it to the tagged commit:
+
+```sh
+expected=$(git rev-parse --short=8 'v<version>^{commit}')
+unzip -p <apk> 'classes*.dex' | strings -n 8 | grep -Fx "$expected"
+```
+
+It prints the SHA if the dex carries it and nothing (exit 1) if it does not.
+
+Ask for the expected string rather than listing every hex-looking one: the dex also contains
+`0123456789abcdef`, `9223372036854775807` and a couple of BOM artifacts, so an enumerating
+pattern leaves you eyeballing a candidate list that grows silently with the codebase. Matching
+one fixed string also sidesteps abbreviation length — `--short=8` is a *minimum*, and git
+lengthens it when 8 characters are ambiguous (and honours `core.abbrev`), so a hardcoded
+`{8}` would miss a 9-character SHA outright.
+
+Two traps in that one line. The `classes*.dex` glob: the app is single-dex today, but it is
+R8-minified across ~15 modules and `GIT_SHA` is inlined from `:core:common`, so the first
+build to cross 64K methods puts it in `classes2.dex`, and a `classes.dex`-only check would
+find nothing and make a good release look unreproducible. And **do not add `-q`**: the system
+`grep` may be ugrep (7.5.0 here), whose `-q` exits 1 despite a match when reading from a pipe
+— the check would report every release as unreproducible.
+
+**`^{commit}` is required.** Release tags are *annotated*, so a bare `git rev-parse v<version>`
+returns the tag-object SHA, which never matches anything in the dex — the check would appear to
+fail on a perfectly good release. Read the SHA from the downloaded asset rather than a local
+rebuild, or the comparison is circular.
+
 ## Distribution channels
 
 - **Obtainium** — tracks GitHub Releases directly (see the README install section). Stable
   releases are full releases; `-rcN` candidate tags are marked pre-release.
+- **F-Droid** (future) — developer-signed, verified by reproducible build (`Binaries:` +
+  `AllowedAPKSigningKeys`) rather than re-signed with F-Droid's key, because Android refuses
+  in-place upgrades across a signing-key change. The recipe and the merge-request text are in
+  [`fdroid/`](fdroid/); submission is a merge request against fdroiddata, not an RFP issue.
+  Note `Binaries:` has **no fallback**: a release that fails to reproduce is simply never
+  published, so only versions cut after the tag-before-build fix can be listed.
+
+  **Publish the draft promptly once F-Droid is live.** The workflow pushes the tag before it
+  creates the release, and the release starts as a draft whose assets 404 anonymously. A scan
+  landing in that window sees the new tag, bumps its version, and then fails to fetch the
+  reference binary — which surfaces as a `Binaries` download failure and reads like a
+  reproducibility problem when it is only an unpublished draft.
 - **IzzyOnDroid** (future) — ingests the developer-signed APK and pins the signing key via
   `AllowedAPKSigningKeys`. Use the *same* key. Reproducible builds earn a verification badge.
 - **iOS sideloading** — the unsigned `.ipa` is attached to every GitHub Release for

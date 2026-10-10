@@ -3,7 +3,6 @@ package com.garfiec.librechat.core.network.client
 import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
-import com.garfiec.librechat.core.network.client.SessionEndReason
 import com.google.common.truth.Truth.assertThat
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
@@ -13,7 +12,6 @@ import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
-import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -212,8 +210,11 @@ class AuthInterceptorTest {
 
         val engine = MockEngine {
             requestCount++
-            if (requestCount == 1) respond("Unauthorized", HttpStatusCode.Unauthorized)
-            else respond("OK", HttpStatusCode.OK)
+            if (requestCount == 1) {
+                respond("Unauthorized", HttpStatusCode.Unauthorized)
+            } else {
+                respond("OK", HttpStatusCode.OK)
+            }
         }
         val client = createClient(tokenManager, engine)
 
@@ -411,8 +412,11 @@ class AuthInterceptorTest {
         val engine = MockEngine { request ->
             requestCount++
             capturedTokens.add(request.headers[HttpHeaders.Authorization])
-            if (requestCount == 1) respond("Unauthorized", HttpStatusCode.Unauthorized)
-            else respond("OK", HttpStatusCode.OK)
+            if (requestCount == 1) {
+                respond("Unauthorized", HttpStatusCode.Unauthorized)
+            } else {
+                respond("OK", HttpStatusCode.OK)
+            }
         }
         val client = createClient(
             tokenManager,
@@ -499,6 +503,91 @@ class AuthInterceptorTest {
         assertThat(response.status).isEqualTo(HttpStatusCode.Unauthorized)
         assertThat(tokenManager.sessionExpiredCount).isEqualTo(1)
         assertThat(tokenManager.lastExpiredAccountId).isEqualTo("acct-a")
+    }
+
+    /**
+     * The image mount must never reach the expiry path: from 0.8.8-rc2 upstream secures it by
+     * default and authenticates on a cookie only, so a refreshed bearer 401s again, `alreadyRetried`
+     * fires, and a live session is torn down by every conversation holding a generated image.
+     */
+    @Test
+    fun `a 401 from the image mount neither refreshes nor expires the session`() = runTest {
+        val tokenManager = FakeTokenManager(accessToken = "my-token", refreshOutcome = RefreshResult.Refreshed)
+        var requestCount = 0
+
+        val engine = MockEngine {
+            requestCount++
+            respond("Unauthorized", HttpStatusCode.Unauthorized)
+        }
+        val client = createClient(
+            tokenManager,
+            engine,
+            serverUrlProvider = FakeServerUrlProvider("https://chat.example.com"),
+        )
+
+        val response = client.get("https://chat.example.com/images/user-1/img-abc.png")
+
+        assertThat(response.status).isEqualTo(HttpStatusCode.Unauthorized)
+        assertThat(requestCount).isEqualTo(1)
+        assertThat(tokenManager.refreshCallCount).isEqualTo(0)
+        assertThat(tokenManager.sessionExpiredCount).isEqualTo(0)
+    }
+
+    /** Upstream mounts the store at `${basePath}/images`, so a prefix match would miss these entirely. */
+    @Test
+    fun `a 401 from the image mount under a base path is exempt too`() = runTest {
+        val tokenManager = FakeTokenManager(accessToken = "my-token", refreshOutcome = RefreshResult.Refreshed)
+
+        val engine = MockEngine { respond("Unauthorized", HttpStatusCode.Unauthorized) }
+        val client = createClient(
+            tokenManager,
+            engine,
+            serverUrlProvider = FakeServerUrlProvider("https://chat.example.com/librechat"),
+        )
+
+        client.get("https://chat.example.com/librechat/images/user-1/img-abc.png")
+
+        assertThat(tokenManager.refreshCallCount).isEqualTo(0)
+        assertThat(tokenManager.sessionExpiredCount).isEqualTo(0)
+    }
+
+    /**
+     * `/api/files/images` is the multipart upload POST on the files router, behind entirely different
+     * middleware — a bearer route whose 401 is a real expired session.
+     */
+    @Test
+    fun `a 401 from the files upload route still refreshes`() = runTest {
+        val tokenManager = FakeTokenManager(accessToken = "my-token", refreshOutcome = RefreshResult.HardExpired)
+
+        val engine = MockEngine { respond("Unauthorized", HttpStatusCode.Unauthorized) }
+        val client = createClient(
+            tokenManager,
+            engine,
+            serverUrlProvider = FakeServerUrlProvider("https://chat.example.com"),
+        )
+
+        client.get("https://chat.example.com/api/files/images")
+
+        assertThat(tokenManager.refreshCallCount).isEqualTo(1)
+        assertThat(tokenManager.sessionExpiredCount).isEqualTo(1)
+    }
+
+    /** A host-root `/images/...` on a base-path deployment is not that deployment's mount. */
+    @Test
+    fun `a 401 outside the deployment's own image mount still refreshes`() = runTest {
+        val tokenManager = FakeTokenManager(accessToken = "my-token", refreshOutcome = RefreshResult.HardExpired)
+
+        val engine = MockEngine { respond("Unauthorized", HttpStatusCode.Unauthorized) }
+        val client = createClient(
+            tokenManager,
+            engine,
+            serverUrlProvider = FakeServerUrlProvider("https://chat.example.com/librechat"),
+        )
+
+        client.get("https://chat.example.com/images/user-1/img-abc.png")
+
+        assertThat(tokenManager.refreshCallCount).isEqualTo(1)
+        assertThat(tokenManager.sessionExpiredCount).isEqualTo(1)
     }
 
     @Test

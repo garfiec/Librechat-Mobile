@@ -1,10 +1,13 @@
 package com.garfiec.librechat.shared.app
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import coil3.ImageLoader
 import coil3.compose.setSingletonImageLoaderFactory
@@ -12,9 +15,11 @@ import coil3.memory.MemoryCache
 import coil3.network.ktor3.KtorNetworkFetcherFactory
 import coil3.request.crossfade
 import coil3.svg.SvgDecoder
+import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.ThemeDataStore
 import com.garfiec.librechat.core.data.datastore.ThemeMode
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
 import com.garfiec.librechat.shared.navigation.LibreChatNavHost
 import io.ktor.client.HttpClient
@@ -31,7 +36,7 @@ import org.koin.compose.koinInject
  * auth graph is shown as the start destination.
  */
 @Composable
-fun LibreChatApp() {
+fun LibreChatApp(modifier: Modifier = Modifier) {
     val httpClient = koinInject<HttpClient>()
     val imageLoaderFactory = remember(httpClient) {
         { context: coil3.PlatformContext ->
@@ -58,6 +63,7 @@ fun LibreChatApp() {
     val themeMode by themeDataStore.themeMode.collectAsState(initial = themeDataStore.initialThemeMode)
     val accentColorArgb by themeDataStore.accentColor.collectAsState(initial = themeDataStore.initialAccentColor)
     val useDynamicColor by themeDataStore.useDynamicColor.collectAsState(initial = themeDataStore.initialUseDynamicColor)
+    val storedUiStyle by themeDataStore.uiStyle.collectAsState(initial = themeDataStore.initialUiStyle)
 
     val settingsDataStore = koinInject<SettingsDataStore>()
     // Gate on the language warm-up too so a persisted non-system language is applied before the
@@ -66,6 +72,8 @@ fun LibreChatApp() {
     val selectedLanguage by settingsDataStore.selectedLanguage.collectAsState(
         initial = settingsDataStore.initialSelectedLanguage,
     )
+    // And on the date/time warm-up, so a non-default format is in place for the first timestamp.
+    val dateTimeReady by koinInject<DateTimePrefsStore>().isReady.collectAsState()
     // The DEFAULT_LANGUAGE sentinel ("system") maps to no override → keep the device locale.
     val appLocale = selectedLanguage.takeIf { it != SettingsDataStore.DEFAULT_LANGUAGE }
 
@@ -75,13 +83,16 @@ fun LibreChatApp() {
         ThemeMode.DARK -> true
         ThemeMode.SYSTEM -> systemDark
     }
-    if (themeReady && localeReady) {
+    if (themeReady && localeReady && dateTimeReady) {
         LibreChatTheme(
             darkTheme = darkTheme,
             accentColor = Color(accentColorArgb),
             useDynamicColor = useDynamicColor,
+            uiStyle = storedUiStyle,
         ) {
-            LibreChatNavHost(appLocaleTag = appLocale)
+            Box(modifier.fillMaxSize().clearFocusOnTap()) {
+                LibreChatNavHost(appLocaleTag = appLocale)
+            }
         }
     }
 }

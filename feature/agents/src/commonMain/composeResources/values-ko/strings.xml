@@ -116,11 +116,11 @@
     <string name="auth_custom">사용자 지정</string>
     <string name="label_custom_auth_header">사용자 지정 인증 헤더</string>
     <string name="label_oauth_settings">OAuth 설정</string>
-    <string name="label_client_id">Client ID</string>
-    <string name="label_client_secret">Client Secret</string>
-    <string name="label_authorization_url">Authorization URL</string>
-    <string name="label_token_url">Token URL</string>
-    <string name="label_scope">Scope</string>
+    <string name="label_client_id">클라이언트 ID</string>
+    <string name="label_client_secret">클라이언트 시크릿</string>
+    <string name="label_authorization_url">인증 URL</string>
+    <string name="label_token_url">토큰 URL</string>
+    <string name="label_scope">범위</string>
     <string name="label_token_exchange_method">토큰 교환 방식</string>
     <string name="token_default_post">기본값 (POST)</string>
     <string name="token_basic_auth_header">Basic 인증 헤더</string>
@@ -259,6 +259,9 @@
     <string name="agent_file_upload_failed">파일 업로드에 실패했습니다</string>
     <string name="agent_file_remove_failed">파일 제거에 실패했습니다</string>
     <string name="cd_remove_file">%1$s 제거</string>
+    <string name="agent_file_remove_confirm_title">%1$s을(를) 제거할까요?</string>
+    <string name="agent_file_remove_confirm_title_generic">이 파일을 제거할까요?</string>
+    <string name="agent_file_remove_confirm_message">다른 에이전트가 이 파일을 사용하지 않으면 영구적으로 삭제됩니다.</string>
 
     <!-- Skills selector (v0.8.6) -->
     <string name="label_skills">스킬</string>
@@ -278,4 +281,30 @@
     <string name="subagents_allow_self">자신을 생성하도록 허용</string>
     <string name="add_subagent">서브에이전트 추가</string>
     <string name="subagents_full">서브에이전트의 최대 수에 도달했습니다.</string>
+    <string name="tools_marketplace_title">도구</string>
+    <string name="tools_marketplace_description">이 에이전트가 할 수 있는 작업을 선택하세요</string>
+    <string name="tools_marketplace_search_hint">도구, 서버, 스킬 검색…</string>
+    <string name="tools_marketplace_no_matches">"%1$s"에 대한 결과가 없습니다</string>
+    <string name="tools_marketplace_no_favorites">도구에 별표를 표시하면 여기에 고정됩니다</string>
+    <string name="tools_marketplace_empty">아직 사용할 수 있는 항목이 없습니다</string>
+    <string name="tools_filter_all">전체</string>
+    <string name="tools_filter_favorites">즐겨찾기</string>
+    <string name="tools_filter_builtin">기본 제공</string>
+    <string name="tools_filter_tools">도구</string>
+    <string name="tools_filter_mcp">MCP</string>
+    <string name="tools_filter_skills">스킬</string>
+    <string name="tools_browse">도구 둘러보기</string>
+    <string name="cd_pin_tool">고정</string>
+    <string name="cd_unpin_tool">고정 해제</string>
+    <string name="builtin_code_interpreter">코드 인터프리터</string>
+    <string name="builtin_code_interpreter_desc">샌드박스에서 코드를 실행하고 출력과 파일을 반환합니다.</string>
+    <string name="builtin_file_search">파일 검색</string>
+    <string name="builtin_file_search_desc">이 에이전트에 첨부된 파일에서 관련 구절을 찾습니다.</string>
+    <string name="builtin_web_search">웹 검색</string>
+    <string name="builtin_web_search_desc">웹을 검색하고 사용한 출처를 인용합니다.</string>
+    <string name="builtin_file_context">파일 컨텍스트</string>
+    <string name="builtin_file_context_desc">첨부한 파일 전체를 에이전트 컨텍스트에 넣습니다.</string>
+    <string name="builtin_ask_user">사용자에게 질문</string>
+    <string name="builtin_ask_user_desc">실행을 일시정지하고 명확히 하기 위한 질문을 합니다.</string>
+    <string name="agent_contact_title">연락처</string>
 </resources>

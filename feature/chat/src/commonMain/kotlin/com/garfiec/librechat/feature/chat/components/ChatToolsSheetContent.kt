@@ -2,7 +2,6 @@ package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,11 +29,8 @@ import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -49,12 +45,19 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
-import com.garfiec.librechat.core.model.usage.ContextUsage
-import com.garfiec.librechat.core.model.usage.TokenUsage
+import com.garfiec.librechat.core.ui.components.AdaptiveCheckbox
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
+import com.garfiec.librechat.core.ui.components.ListDragSelection
+import com.garfiec.librechat.core.ui.components.dragSelectRow
+import com.garfiec.librechat.core.ui.components.dragSelectRowIcon
+import com.garfiec.librechat.core.ui.components.listDragSelection
+import com.garfiec.librechat.core.ui.components.rememberListDragSelection
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
+import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -100,12 +103,13 @@ fun ChatToolsSheetContent(
      * Camera / Photos / Files attach controls. See [ChatInputGates].
      */
     gates: ChatInputGates = ChatInputGates(),
-    /** Latest context-window usage snapshot; drives the optional context gauge above the model row. */
-    contextUsage: ContextUsage? = null,
-    /** Latest per-call token usage, for the gauge's expanded Input/Output breakdown rows. */
-    tokenUsage: TokenUsage? = null,
+    /** The context gauge's reading and breakdown; drives the optional gauge above the model row. */
+    contextGauge: ContextGaugeDetails? = null,
     /** Server/version gate for the context gauge (`interface.contextUsage` AND backend ≥ 0.8.7). */
     contextUsageEnabled: Boolean = false,
+    onCompact: (() -> Unit)? = null,
+    /** "Not now" on a compact suggestion. */
+    onSnoozeCompact: () -> Unit = {},
     /** Where the user chose to surface the gauge; the sheet only renders it when [ContextBarPlacement.OPTIONS_SHEET]. */
     contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
     /** Persisted expanded/collapsed state of the gauge's inline breakdown. */
@@ -117,11 +121,13 @@ fun ChatToolsSheetContent(
     /** Scroll position, hoisted for the same reason as [mcpExpanded]. Defaulted for hosts that keep it composed. */
     scrollState: ScrollState = rememberScrollState(),
 ) {
+    val dragSelection = rememberListDragSelection()
     Column(
         modifier = modifier
             .fillMaxWidth()
             // Tall configurations exceed the sheet height, so the content scrolls.
             .verticalScroll(scrollState)
+            .listDragSelection(dragSelection, holdOnly = true)
             .navigationBarsPadding()
             .padding(bottom = 16.dp),
     ) {
@@ -174,23 +180,24 @@ fun ChatToolsSheetContent(
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+            AdaptiveDivider(modifier = Modifier.padding(horizontal = 16.dp))
             Spacer(modifier = Modifier.height(8.dp))
         }
 
         // Context-usage gauge, surfaced here when the user picked the options-sheet placement.
         // Full-width; tapping expands the breakdown inline (no nested modal sheet).
-        val sheetContextUsage = contextUsage
+        val sheetContextGauge = contextGauge
         if (contextBarPlacement == ContextBarPlacement.OPTIONS_SHEET &&
             contextUsageEnabled &&
-            sheetContextUsage != null &&
-            sheetContextUsage.usedTokens > 0
+            sheetContextGauge != null &&
+            sheetContextGauge.usage.usedTokens > 0
         ) {
             ContextUsageExpandableGauge(
-                usage = sheetContextUsage,
+                details = sheetContextGauge,
                 expanded = contextGaugeExpanded,
                 onExpandedChange = onContextGaugeExpandedChange,
-                tokenUsage = tokenUsage,
+                onCompact = onCompact,
+                onSnoozeCompact = onSnoozeCompact,
                 modifier = Modifier
                     .padding(horizontal = 16.dp)
                     .padding(bottom = 8.dp),
@@ -202,16 +209,15 @@ fun ChatToolsSheetContent(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .sheetRowRipple()
                     // No onDismiss — see the KDoc above.
-                    .clickable { onOpenModelSelector() }
-                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                    .dragSelectRow(dragSelection, onClick = onOpenModelSelector)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
                     imageVector = Icons.Default.SmartToy,
                     contentDescription = null,
-                    modifier = Modifier.size(24.dp),
+                    modifier = Modifier.size(24.dp).dragSelectRowIcon(),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(modifier = Modifier.width(16.dp))
@@ -241,15 +247,14 @@ fun ChatToolsSheetContent(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .sheetRowRipple()
-                    .clickable { onOpenModelParameters() }
-                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                    .dragSelectRow(dragSelection, onClick = onOpenModelParameters)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
                     imageVector = Icons.Default.Tune,
                     contentDescription = null,
-                    modifier = Modifier.size(24.dp),
+                    modifier = Modifier.size(24.dp).dragSelectRowIcon(),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(modifier = Modifier.width(16.dp))
@@ -272,7 +277,7 @@ fun ChatToolsSheetContent(
             }
         }
 
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+        AdaptiveDivider(modifier = Modifier.padding(horizontal = 16.dp))
         Spacer(modifier = Modifier.height(8.dp))
 
         // Tool toggle items — ephemeral tools are hidden for the agents endpoint
@@ -296,6 +301,7 @@ fun ChatToolsSheetContent(
                         subtitle = stringResource(meta.descriptionRes),
                         isEnabled = toolKey in enabledTools,
                         onToggle = { onToggleTool(toolKey) },
+                        dragSelection = dragSelection,
                     )
                 }
             }
@@ -308,15 +314,14 @@ fun ChatToolsSheetContent(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .sheetRowRipple()
-                    .clickable { onMcpExpandedChange(!mcpExpanded) }
-                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                    .dragSelectRow(dragSelection) { onMcpExpandedChange(!mcpExpanded) }
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
                     imageVector = Icons.Default.Extension,
                     contentDescription = null,
-                    modifier = Modifier.size(24.dp),
+                    modifier = Modifier.size(24.dp).dragSelectRowIcon(),
                     tint = if (anyMcpSelected) {
                         MaterialTheme.colorScheme.primary
                     } else {
@@ -355,6 +360,7 @@ fun ChatToolsSheetContent(
                             server = server,
                             isSelected = server.name in selectedMcpServerNames,
                             onToggle = { onToggleMcpServer(server.name) },
+                            dragSelection = dragSelection,
                         )
                     }
                 }
@@ -370,13 +376,13 @@ private fun ToolToggleRow(
     subtitle: String,
     isEnabled: Boolean,
     onToggle: () -> Unit,
+    dragSelection: ListDragSelection,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .sheetRowRipple()
-            .clickable(onClick = onToggle)
-            .padding(horizontal = 12.dp, vertical = 12.dp)
+            .dragSelectRow(dragSelection, onClick = onToggle)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
             .semantics {
                 contentDescription = if (isEnabled) {
                     "$title enabled"
@@ -390,7 +396,7 @@ private fun ToolToggleRow(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            modifier = Modifier.size(24.dp),
+            modifier = Modifier.size(24.dp).dragSelectRowIcon(),
             tint = if (isEnabled) {
                 MaterialTheme.colorScheme.primary
             } else {
@@ -409,7 +415,7 @@ private fun ToolToggleRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Switch(
+        AdaptiveSwitch(
             checked = isEnabled,
             onCheckedChange = { onToggle() },
             colors = SwitchDefaults.colors(
@@ -465,19 +471,20 @@ private fun McpServerToggleRow(
     server: McpServerDisplayData,
     isSelected: Boolean,
     onToggle: () -> Unit,
+    dragSelection: ListDragSelection,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .sheetRowRipple()
-            .clickable(onClick = onToggle)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .dragSelectRow(dragSelection, onClick = onToggle)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // Connection status indicator
         Box(
             modifier = Modifier
                 .size(8.dp)
+                .dragSelectRowIcon()
                 .background(
                     color = if (server.isConnected) {
                         MaterialTheme.colorScheme.primary
@@ -506,7 +513,7 @@ private fun McpServerToggleRow(
                 )
             }
         }
-        Checkbox(
+        AdaptiveCheckbox(
             checked = isSelected,
             onCheckedChange = { onToggle() },
         )

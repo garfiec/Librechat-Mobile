@@ -12,13 +12,6 @@ import androidx.compose.ui.platform.LocalContext
 
 private lateinit var appContext: Context
 
-private fun getAppContext(context: Context): Context {
-    if (!::appContext.isInitialized) {
-        appContext = context.applicationContext
-    }
-    return appContext
-}
-
 actual fun copyToClipboard(text: String, label: String) {
     val ctx = appContext
     val clipboard = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -29,6 +22,7 @@ actual fun showToast(message: String) {
     Toast.makeText(appContext, message, Toast.LENGTH_SHORT).show()
 }
 
+@Suppress("TooGenericExceptionCaught") // ContentResolver I/O throws undocumented exceptions; reported, not thrown
 @Composable
 actual fun FileSaver(
     triggerFileName: String?,

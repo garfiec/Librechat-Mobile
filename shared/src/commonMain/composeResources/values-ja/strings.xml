@@ -11,4 +11,7 @@
     <string name="version_mismatch_message">このアプリはLibreChat v%1$s 向けに作られていますが、お使いのサーバーは v%2$s で動作しています。一部の機能が正しく動作しない可能性があります。</string>
     <string name="dismiss">閉じる</string>
     <string name="dont_warn_again">今後警告しない</string>
+    <string name="session_expired_title">サインアウトしました</string>
+    <string name="session_expired_message">セッションの有効期限が切れました。続行するには再度サインインしてください。</string>
+    <string name="session_expired_message_named">%1$s のセッションの有効期限が切れました。続行するには再度サインインしてください。</string>
 </resources>

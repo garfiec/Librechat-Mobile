@@ -20,7 +20,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -53,12 +52,13 @@ import com.garfiec.librechat.core.common.ChatLayoutConstants
 import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.MinimalFeedback
 import com.garfiec.librechat.core.model.PendingAction
-import com.garfiec.librechat.core.model.request.ToolApprovalResolution
+import com.garfiec.librechat.core.ui.components.AdaptiveFloatingActionButton
+import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
+import com.garfiec.librechat.core.ui.glass.glassBackdropSource
 import com.garfiec.librechat.core.ui.theme.isSurfaceDark
 import com.garfiec.librechat.feature.chat.components.artifact.ArtifactType
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
-import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
 import com.garfiec.librechat.feature.chat.viewmodel.SearchFocusRequest
@@ -83,9 +83,13 @@ fun MessageList(
     onRegenerateMessage: (messageId: String) -> Unit,
     onCopyMessage: (messageId: String) -> Unit,
     modifier: Modifier = Modifier,
+    /** The live reply's reasoning, shown collapsed above its text. See [StreamingMessageBubble]. */
+    streamingThinking: String = "",
     activeToolCalls: List<ActiveToolCall> = emptyList(),
     streamingAttachments: List<Attachment> = emptyList(),
     onFeedback: (messageId: String, feedback: MinimalFeedback?) -> Unit = { _, _ -> },
+    /** `interface.feedback`. Gated here rather than at each caller so every list inherits it. */
+    feedbackEnabled: Boolean = true,
     /**
      * The response that just took over from the streaming bubble, from `ChatUiState`. Read from
      * state rather than derived here from `isStreaming`: a UI-side derivation can only run in an
@@ -134,16 +138,16 @@ fun MessageList(
     topContentPadding: Dp = 0.dp,
     /**
      * The live human-review pause, or null. Rendered at the tail of the streaming section — the
-     * run is unfinished, so it belongs to the reply in progress, not after it. Only the callers
-     * that can resolve one pass it; the comparison panes leave it null.
+     * run is unfinished, so it belongs to the reply in progress, not after it: a tool approval as
+     * its resolve card, a question as a one-line marker pointing at the panel docked above the
+     * composer. Only the callers that can resolve one pass it; the comparison panes leave it null.
      */
     pendingAction: PendingAction? = null,
-    isResolvingPendingAction: Boolean = false,
-    onSubmitToolDecisions: (List<ToolApprovalResolution>) -> Unit = {},
-    onSubmitPendingAnswer: (String) -> Unit = {},
-    onSubmitPendingAnswers: (Map<String, String>) -> Unit = {},
-    askAnswerDrafts: Map<String, AskAnswerDraft> = emptyMap(),
-    onAskAnswerDraftChange: (String, AskAnswerDraft) -> Unit = { _, _ -> },
+    /**
+     * Whether this list records itself into the screen's glass backdrop. Comparison mode shows two
+     * lists, and two sources writing one backdrop would overwrite each other, so its panes opt out.
+     */
+    recordsGlassBackdrop: Boolean = true,
 ) {
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -157,7 +161,8 @@ fun MessageList(
     val topContentPaddingPx = with(LocalDensity.current) { topContentPadding.toPx() }
     var lastNavigatedParentKey by remember { mutableStateOf<String?>(null) }
 
-    // A live `ask_user_question` pause is rendered by PendingActionCard, not as a tool card.
+    // A live `ask_user_question` pause is rendered by the docked AskUserQuestionPanel, not as a
+    // tool card.
     // Attribution is by the pause's own tool_call_id where the server sends one, so a sibling ask
     // call that is genuinely still running keeps its card instead of being hidden by association.
     val pausedAskToolCallId = pendingAction?.payload?.toolCallId
@@ -181,7 +186,7 @@ fun MessageList(
     // follower's own mid-growth scroll as intent and latches, silently killing the follow.
     var programmaticScroll by remember { mutableStateOf(false) }
 
-    // True while the focus sits on something inside the list — an answer field on a pause card.
+    // True while the focus sits on something inside the list — an inline message edit.
     // The keyboard handler below stands down for those; foundation brings a focused node into
     // view on its own, and unlike this file it knows which node that is.
     var listHasFocus by remember { mutableStateOf(false) }
@@ -353,8 +358,8 @@ fun MessageList(
 
     // A run pausing for human review changes NOTHING the other scroll effects key on:
     // displayMessages.size, streamingContent and isStreaming are all unchanged. Without this the
-    // card is appended below the viewport and the user is left looking at a live cursor on a run
-    // that will never produce another token.
+    // waiting marker is appended below the viewport and the user is left looking at a live cursor
+    // on a run that will never produce another token.
     LaunchedEffect(pendingAction?.actionId) {
         if (pendingAction?.actionId != null) {
             userScrolledUp = false
@@ -396,10 +401,10 @@ fun MessageList(
                     //
                     // A pause for human review hands it back too. The run stays open across the
                     // pause, so isStreaming alone keeps this loop pinning the tail every frame
-                    // while the one thing it exists to follow — output — has stopped. The card is
-                    // brought into view once by its own effect above; after that the list is the
-                    // user's, to read a long question or reach a field, and a follower still
-                    // running would undo every scroll the instant their finger lifts.
+                    // while the one thing it exists to follow — output — has stopped. The pause
+                    // marker is brought into view once by its own effect above; after that the
+                    // list is the user's, to read the reply they are being asked about, and a
+                    // follower still running would undo every scroll the instant their finger lifts.
                     if (isTouching || userScrolledUp || isAwaitingHumanReview) {
                         programmaticScroll = false
                         continue
@@ -477,8 +482,8 @@ fun MessageList(
     // It runs ONLY while nothing inside the list holds focus. This
     // exists for the composer, which sits outside the list, so the
     // list learns about the keyboard from nothing but its own
-    // shrinking viewport. A field INSIDE the list — an answer field
-    // on a pause card — needs no help: foundation scrolls a newly
+    // shrinking viewport. A field INSIDE the list — an inline message
+    // edit — needs no help: foundation scrolls a newly
     // focused node into view by itself, and it knows where the focus
     // is, which this does not. Both running means this one wins and
     // jumps to the tail of the last item, scrolling the user off the
@@ -515,6 +520,9 @@ fun MessageList(
     }
 
     val pullToRefreshState = rememberPullToRefreshState()
+    // Parsed once per list; `contentType` below runs on every measure pass.
+    val wakeups = remember(displayMessages) { wakeupsByMessageId(displayMessages) }
+
     PullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = onRefresh,
@@ -535,6 +543,7 @@ fun MessageList(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
+                .glassBackdropSource(LocalGlassBackdrop.current.takeIf { recordsGlassBackdrop })
                 .onFocusChanged { listHasFocus = it.hasFocus }
                 .onGloballyPositioned { listCoordinates = it }
                 .pointerInput(Unit) {
@@ -565,7 +574,13 @@ fun MessageList(
                 // keeps its scroll anchor at completion. Unique within the path (one node/level).
                 key = { _, node -> node.treeParentKey },
                 contentType = { _, node ->
-                    val role = if (node.message.isCreatedByUser) "user" else "assistant"
+                    // A wake-up is a user message that renders as a system row; its own type keeps
+                    // slot reuse from handing it a user bubble's composition, or the reverse.
+                    val role = when {
+                        !node.message.isCreatedByUser -> "assistant"
+                        wakeups.wakeupOf(node, isEditing = editingMessageId == node.message.messageId) != null -> "system"
+                        else -> "user"
+                    }
                     "${chatLayoutStyle}_$role"
                 },
             ) { index, node ->
@@ -584,6 +599,26 @@ fun MessageList(
                     LocalSuppressGroupAutoCollapse provides (node.message.messageId == justSettledMessageId),
                     LocalFeedbackEnabled provides !isStreaming,
                 ) {
+                val systemEvent = wakeups.wakeupOf(node, isEditing = editingMessageId == node.message.messageId)
+                if (systemEvent != null) {
+                    SystemEventRow(
+                        display = systemEvent,
+                        messageId = node.message.messageId,
+                        fontSizeMultiplier = fontSizeMultiplier,
+                        useKatex = useKatex,
+                        siblingIndex = node.siblingIndex,
+                        siblingCount = node.siblingCount,
+                        onSiblingNavigation = { newIndex ->
+                            lastNavigatedParentKey = node.treeParentKey
+                            onSiblingNavigation(node.treeParentKey, newIndex)
+                        },
+                        onCopy = { onCopyMessage(node.message.messageId) },
+                        onEdit = { onEditMessage(node.message.messageId) },
+                        onReadAloud = { onReadAloud(node.message.messageId) },
+                        isReading = currentlyReadingMessageId == node.message.messageId,
+                        onFork = { onFork(node.message.messageId) },
+                    )
+                } else {
                 MessageBubble(
                     message = node.message,
                     siblingIndex = node.siblingIndex,
@@ -600,7 +635,7 @@ fun MessageList(
                         null
                     },
                     onCopy = { onCopyMessage(node.message.messageId) },
-                    onFeedback = if (!node.message.isCreatedByUser) {
+                    onFeedback = if (!node.message.isCreatedByUser && feedbackEnabled) {
                         { feedback -> onFeedback(node.message.messageId, feedback) }
                     } else {
                         null
@@ -651,6 +686,7 @@ fun MessageList(
                     },
                 )
                 }
+                }
             }
 
             if (isStreaming) {
@@ -671,6 +707,7 @@ fun MessageList(
                         showAvatars = showAvatars,
                         showBubbles = showBubbles,
                         useKatex = useKatex,
+                        streamingThinking = streamingThinking,
                     )
                 }
 
@@ -722,21 +759,18 @@ fun MessageList(
                     }
                 }
 
-                // Human-review pause (v0.8.8): the run is waiting on the user, so the resolve
-                // controls sit at the tail of the still-unfinished reply — the continuation
-                // streams back into the bubble above.
+                // Human-review pause (v0.8.8): the run is waiting on the user, whose controls are
+                // docked by the composer (AskUserQuestionPanel, ToolApprovalPanel). The tail of the
+                // still-unfinished reply keeps a one-line marker so it reads as waiting rather than
+                // stalled; the continuation streams back into the bubble above.
                 if (pendingAction != null) {
                     item(key = "pending_action_${pendingAction.actionId}") {
-                        PendingActionCard(
-                            pendingAction = pendingAction,
-                            isResolving = isResolvingPendingAction,
-                            onSubmitToolDecisions = onSubmitToolDecisions,
-                            onSubmitAnswer = onSubmitPendingAnswer,
-                            onSubmitAnswers = onSubmitPendingAnswers,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                            askAnswerDrafts = askAnswerDrafts,
-                            onAskAnswerDraftChange = onAskAnswerDraftChange,
-                        )
+                        val markerModifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                        if (pendingAction.isAskUserQuestion) {
+                            AskUserQuestionWaitingMarker(modifier = markerModifier)
+                        } else {
+                            ToolApprovalWaitingMarker(modifier = markerModifier)
+                        }
                     }
                 }
             }
@@ -752,7 +786,7 @@ fun MessageList(
             enter = fadeIn(),
             exit = fadeOut(),
         ) {
-            SmallFloatingActionButton(
+            AdaptiveFloatingActionButton(
                 onClick = {
                     userScrolledUp = false
                     coroutineScope.launch {
@@ -761,11 +795,11 @@ fun MessageList(
                         }
                     }
                 },
+                small = true,
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                 contentColor = MaterialTheme.colorScheme.onSurface,
-                elevation = FloatingActionButtonDefaults.elevation(
-                    defaultElevation = 4.dp,
-                ),
+                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp),
+                backdrop = LocalGlassBackdrop.current.takeIf { recordsGlassBackdrop },
             ) {
                 Icon(
                     imageVector = Icons.Default.KeyboardArrowDown,

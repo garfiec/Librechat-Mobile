@@ -11,7 +11,7 @@ Native mobile client for LibreChat (Android & iOS). Connects to existing LibreCh
 - **Network**: Ktor Client (OkHttp engine)
 - **Serialization**: Kotlinx Serialization
 - **Local Storage**: Room (cache), DataStore (prefs), EncryptedSharedPreferences (tokens)
-- **Build**: Gradle 9.5.1, AGP 9.2.1, Kotlin 2.4.10, compileSdk 36, minSdk 26
+- **Build**: Gradle 9.5.1, AGP 9.2.1, Kotlin 2.4.10, compileSdk 37, minSdk 26
 
 ## Module Layout
 
@@ -41,6 +41,10 @@ Each module has its own `CLAUDE.md` with specific guidance.
 - Unidirectional data flow: UI → ViewModel → Repository → API/Room
 - Room is a read-through cache; server is source of truth
 - Custom SSE parser over raw ByteReadChannel (not Ktor SSE plugin)
+- UI is style-agnostic: the user's Material / Liquid Glass choice flows down as a CompositionLocal
+  from `LibreChatTheme`, and `Adaptive*` components in `:core:ui` self-theme into one of two variants.
+  Screens use `Adaptive*` (detekt bans raw M3 chrome) and don't branch on style. See "The pattern"
+  in `core/ui/CLAUDE.md`.
 
 ## Adding a New Feature Module
 
@@ -63,7 +67,7 @@ Each module has its own `CLAUDE.md` with specific guidance.
 
 ## Upstream Sync
 
-- **`upstream/`** — Git submodule of the [official LibreChat repo](https://github.com/danny-avila/LibreChat). Read-only reference for API and web app parity. Do not modify.
+- **`upstream/`** — Git submodule of the [official LibreChat repo](https://github.com/LibreChat-AI/LibreChat). Read-only reference for API and web app parity. Do not modify.
 - **`UPSTREAM_VERSION`** — Tracks which official tag/commit this mobile build is based on. Updated by the `/sync-upstream` skill.
 - **`backendTargetVersion`** (root `version.properties`) — single source of truth for the targeted backend; must match the tag in `UPSTREAM_VERSION` (without `v` prefix). A core/common Gradle task code-generates `BackendVersion.SUPPORTED_BACKEND_VERSION` from it, and `release.yml` reads it for release notes. Edit the property, not the constant.
 - **`/sync-upstream`** — Claude Code skill to diff upstream releases, identify gaps, propose changes, and implement them with user approval. Uses Agent Teams (investigator, android-expert, implementer, verifier).

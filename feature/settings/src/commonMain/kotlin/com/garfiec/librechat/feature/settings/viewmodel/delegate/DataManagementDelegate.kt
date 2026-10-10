@@ -3,27 +3,24 @@ package com.garfiec.librechat.feature.settings.viewmodel.delegate
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.KeyRepository
-import com.garfiec.librechat.core.data.repository.ShareRepository
 import com.garfiec.librechat.core.logging.DiagnosticLogRepository
-import com.garfiec.librechat.core.model.SharedLink
-import com.garfiec.librechat.feature.settings.model.SharedLinkDisplayData
 import com.garfiec.librechat.feature.settings.util.PlatformCacheCleaner
+import com.garfiec.librechat.feature.settings.viewmodel.DataSettingsUiState
 import com.garfiec.librechat.feature.settings.viewmodel.LogsExportPayload
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 
 /**
- * Handles clear conversations, export, shared links, cache clearing, and key revocation.
+ * Handles clear conversations, export, cache clearing, and key revocation.
  */
 class DataManagementDelegate(
-    private val stateHandle: SettingsStateHandle,
+    private val stateHandle: SettingsStateHandle<DataSettingsUiState>,
     private val cacheCleaner: PlatformCacheCleaner,
     private val conversationRepository: ConversationRepository,
-    private val shareRepository: ShareRepository,
     private val keyRepository: KeyRepository,
     private val diagnosticLogRepository: DiagnosticLogRepository,
 ) {
@@ -48,6 +45,44 @@ class DataManagementDelegate(
         }
     }
 
+    /**
+     * v0.8.8-rc2. The gate offers this on every server the version check cannot rule out, so a 404
+     * here is a real outcome rather than a failure: the route simply is not there, and saying
+     * "failed" would send the user looking for a problem on their end.
+     */
+    fun archiveAllChats() {
+        stateHandle.scope.launch {
+            stateHandle.update { copy(isArchivingAll = true, archivedAllCount = null) }
+            when (val result = conversationRepository.archiveAll()) {
+                is Result.Success -> {
+                    stateHandle.update {
+                        copy(isArchivingAll = false, archivedAllCount = result.data)
+                    }
+                }
+                is Result.Error -> {
+                    val missing = (result.exception as? ApiException)?.statusCode == HTTP_NOT_FOUND
+                    stateHandle.update {
+                        copy(
+                            isArchivingAll = false,
+                            archiveAllSupported = !missing && archiveAllSupported,
+                            error = if (missing) {
+                                "This server doesn't support archiving everything at once."
+                            } else {
+                                result.message ?: "Failed to archive conversations"
+                            },
+                        )
+                    }
+                }
+                is Result.Loading -> { /* no-op */ }
+            }
+        }
+    }
+
+    /** Clears the consumed count so a recomposition won't re-announce it. */
+    fun consumeArchivedAllCount() {
+        stateHandle.update { copy(archivedAllCount = null) }
+    }
+
     fun exportAllData() {
         stateHandle.update { copy(showExportComingSoon = true) }
     }
@@ -61,40 +96,38 @@ class DataManagementDelegate(
     /** Loads the current on-disk buffer size into state so the UI can label the export button. */
     fun loadLogsBufferSize() {
         stateHandle.scope.launch {
-            try {
-                val bytes = diagnosticLogRepository.bufferSizeBytes()
-                stateHandle.update { copy(logsBufferBytes = bytes) }
-            } catch (e: Exception) {
-                Logger.d(e) { "Failed to read diagnostic log buffer size" }
-            }
+            suspendRunCatching { diagnosticLogRepository.bufferSizeBytes() }
+                .onSuccess { bytes -> stateHandle.update { copy(logsBufferBytes = bytes) } }
+                .onFailure { e -> Logger.d(e) { "Failed to read diagnostic log buffer size" } }
         }
     }
 
     /**
-     * Reads the redacted JSONL buffer and stashes it in [SettingsUiState.logsExportReady] as a
+     * Reads the redacted JSONL buffer and stashes it in [DataSettingsUiState.logsExportReady] as a
      * one-shot payload. The screen observes it, launches the platform file saver, and calls
      * [consumeLogsExport] once handled.
      */
     fun exportLogs() {
         stateHandle.scope.launch {
             stateHandle.update { copy(isLogsExporting = true) }
-            try {
-                val content = diagnosticLogRepository.exportText()
-                val fileName = "switchboard-logs-${Clock.System.now().toEpochMilliseconds()}.jsonl"
-                stateHandle.update {
-                    copy(
-                        isLogsExporting = false,
-                        logsExportReady = LogsExportPayload(content = content, fileName = fileName),
-                    )
+            suspendRunCatching { diagnosticLogRepository.exportText() }
+                .onSuccess { content ->
+                    val fileName = "switchboard-logs-${Clock.System.now().toEpochMilliseconds()}.log"
+                    stateHandle.update {
+                        copy(
+                            isLogsExporting = false,
+                            logsExportReady = LogsExportPayload(content = content, fileName = fileName),
+                        )
+                    }
                 }
-            } catch (e: Exception) {
-                stateHandle.update {
-                    copy(
-                        isLogsExporting = false,
-                        error = e.message ?: "Failed to export diagnostic logs",
-                    )
+                .onFailure { e ->
+                    stateHandle.update {
+                        copy(
+                            isLogsExporting = false,
+                            error = e.message ?: "Failed to export diagnostic logs",
+                        )
+                    }
                 }
-            }
         }
     }
 
@@ -107,11 +140,12 @@ class DataManagementDelegate(
     fun clearLogs() {
         stateHandle.scope.launch {
             stateHandle.update { copy(isLogsClearing = true) }
-            try {
+            suspendRunCatching {
                 diagnosticLogRepository.clear()
-                val bytes = diagnosticLogRepository.bufferSizeBytes()
+                diagnosticLogRepository.bufferSizeBytes()
+            }.onSuccess { bytes ->
                 stateHandle.update { copy(isLogsClearing = false, logsBufferBytes = bytes) }
-            } catch (e: Exception) {
+            }.onFailure { e ->
                 stateHandle.update {
                     copy(
                         isLogsClearing = false,
@@ -122,153 +156,25 @@ class DataManagementDelegate(
         }
     }
 
-    fun loadSharedLinks() {
-        stateHandle.scope.launch {
-            stateHandle.update { copy(isSharedLinksLoading = true) }
-            when (val result = shareRepository.getSharedLinksPaginated()) {
-                is Result.Success -> {
-                    stateHandle.update {
-                        copy(
-                            sharedLinks = result.data.links.map { it.toDisplayData() },
-                            sharedLinksNextCursor = result.data.nextCursor,
-                            sharedLinksHasNextPage = result.data.hasNextPage ?: false,
-                            isSharedLinksLoading = false,
-                        )
-                    }
-                }
-                is Result.Error -> {
-                    stateHandle.update {
-                        copy(
-                            isSharedLinksLoading = false,
-                            error = result.message ?: "Failed to load shared links",
-                        )
-                    }
-                }
-                is Result.Loading -> { /* no-op */ }
-            }
-        }
-    }
-
-    fun loadMoreSharedLinks() {
-        val cursor = stateHandle.state.sharedLinksNextCursor ?: return
-        stateHandle.scope.launch {
-            stateHandle.update { copy(isSharedLinksLoading = true) }
-            when (val result = shareRepository.getSharedLinksPaginated(cursor = cursor)) {
-                is Result.Success -> {
-                    stateHandle.update {
-                        copy(
-                            sharedLinks = sharedLinks + result.data.links.map { it.toDisplayData() },
-                            sharedLinksNextCursor = result.data.nextCursor,
-                            sharedLinksHasNextPage = result.data.hasNextPage ?: false,
-                            isSharedLinksLoading = false,
-                        )
-                    }
-                }
-                is Result.Error -> {
-                    stateHandle.update {
-                        copy(
-                            isSharedLinksLoading = false,
-                            error = result.message ?: "Failed to load more shared links",
-                        )
-                    }
-                }
-                is Result.Loading -> { /* no-op */ }
-            }
-        }
-    }
-
-    /**
-     * Re-publishes a shared link against the conversation as it stands now.
-     *
-     * On v0.8.8-rc1+ the link's id and URL survive, so anything already handed out keeps working;
-     * earlier servers mint a new id and orphan the old URL, which is what the confirmation copy
-     * is gated on. Either way this changes what is behind the link, which is why the route now
-     * demands SHARED_LINKS CREATE and why the caller confirms first.
-     *
-     * The response carries only `{_id, shareId, conversationId, targetMessageId}` — no title, no
-     * `createdAt`, no `isPublic` — on BOTH versions, so the row is patched rather than replaced.
-     * Rebuilding it from the response relabels every updated link "Untitled Conversation" and
-     * drops its date; adopting the returned `shareId` is what keeps a pre-rc1 row pointing at the
-     * link that now exists.
-     */
-    fun updateSharedLink(shareId: String) {
-        stateHandle.scope.launch {
-            when (val result = shareRepository.updateShareLink(shareId)) {
-                is Result.Success -> {
-                    stateHandle.update {
-                        copy(
-                            sharedLinks = sharedLinks.map { link ->
-                                if (link.shareId == shareId) {
-                                    link.copy(shareId = result.data.shareId ?: link.shareId)
-                                } else {
-                                    link
-                                }
-                            },
-                        )
-                    }
-                }
-                is Result.Error -> {
-                    // 403 is now a distinct, permanent outcome rather than a transient failure:
-                    // the role may still hold SHARED_LINKS.USE (and may still DELETE), so a
-                    // generic "failed" reads as something worth retrying when it never will be.
-                    val forbidden = (result.exception as? ApiException)?.statusCode == HTTP_FORBIDDEN
-                    stateHandle.update {
-                        copy(
-                            error = if (forbidden) {
-                                "You don't have permission to update shared links. " +
-                                    "You can still delete this link."
-                            } else {
-                                result.message ?: "Failed to update the shared link"
-                            },
-                        )
-                    }
-                }
-                is Result.Loading -> { /* no-op */ }
-            }
-        }
-    }
-
-    fun deleteSharedLink(shareId: String) {
-        stateHandle.scope.launch {
-            when (val result = shareRepository.deleteShareLink(shareId)) {
-                is Result.Success -> {
-                    stateHandle.update {
-                        copy(sharedLinks = sharedLinks.filter { it.shareId != shareId })
-                    }
-                }
-                is Result.Error -> {
-                    stateHandle.update { copy(error = result.message ?: "Failed to delete shared link") }
-                }
-                is Result.Loading -> { /* no-op */ }
-            }
-        }
-    }
-
     fun loadCacheSize() {
         stateHandle.scope.launch {
-            try {
-                val bytes = cacheCleaner.cacheSizeBytes()
-                stateHandle.update { copy(cacheSizeBytes = bytes) }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Logger.d(e) { "Failed to read cache size" }
-            }
+            suspendRunCatching { cacheCleaner.cacheSizeBytes() }
+                .onSuccess { bytes -> stateHandle.update { copy(cacheSizeBytes = bytes) } }
+                .onFailure { e -> Logger.d(e) { "Failed to read cache size" } }
         }
     }
 
     fun clearCache() {
         stateHandle.scope.launch {
             stateHandle.update { copy(isCacheClearing = true) }
-            try {
+            suspendRunCatching {
                 cacheCleaner.clearCache()
                 // Re-read rather than assume zero: the directory is shared, and something may have
                 // written to it between the walk and the delete.
-                val bytes = cacheCleaner.cacheSizeBytes()
+                cacheCleaner.cacheSizeBytes()
+            }.onSuccess { bytes ->
                 stateHandle.update { copy(isCacheClearing = false, cacheSizeBytes = bytes) }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
+            }.onFailure { e ->
                 stateHandle.update {
                     copy(
                         isCacheClearing = false,
@@ -300,12 +206,5 @@ class DataManagementDelegate(
     }
 }
 
-/** The route answers 403 when the caller's role lost SHARED_LINKS CREATE. */
-private const val HTTP_FORBIDDEN = 403
-
-private fun SharedLink.toDisplayData() = SharedLinkDisplayData(
-    shareId = shareId ?: "",
-    title = title ?: "Untitled Conversation",
-    createdAt = createdAt,
-    isPublic = isPublic,
-)
+/** A server predating `POST /api/convos/archive/all`. */
+private const val HTTP_NOT_FOUND = 404

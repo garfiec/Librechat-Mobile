@@ -41,7 +41,9 @@ actual val chatPlatformModule: Module = module {
             keyRepository = get(),
             presetRepository = get(),
             promptRepository = get(),
+            queuedTurnRepository = get(),
             shareRepository = get(),
+            traceRepository = get(),
             mcpRepository = get(),
             userRepository = get(),
             roleRepository = get(),
@@ -56,6 +58,7 @@ actual val chatPlatformModule: Module = module {
             selectionHandoff = get(),
             serverFileSelectionHandoff = get(),
             promptInsertionHandoff = get(),
+            siteIconPromptSession = get(),
             resumePinStore = get(),
         )
     }

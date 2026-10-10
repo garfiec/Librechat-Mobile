@@ -74,7 +74,8 @@ enum class PrefetchCondition(
 }
 
 /**
- * Backs both the summary in Data settings and the activity screen.
+ * Backs the prefetch status summary (the Data tab row and the Background prefetch page) and the
+ * activity screen.
  *
  * It owns no prefetch state of its own — every figure comes from [PrefetchStatusReporter], which
  * derives them from the watermark table and the live gate. The only thing this adds is the cache
@@ -149,8 +150,8 @@ class PrefetchActivityViewModel(
      * Reads the cache figures, which are a recursive directory walk and a full table scan.
      *
      * Called by the activity screen, which is the only thing that renders them. Doing it on
-     * construction instead would run both every time Data settings opens — which resolves this
-     * ViewModel for the status summary alone — and throw the results away.
+     * construction instead would run both every time the Data tab or the Background prefetch page
+     * opens — which resolve this ViewModel for the status summary alone — and throw the results away.
      */
     fun loadCacheFigures() {
         viewModelScope.launch {

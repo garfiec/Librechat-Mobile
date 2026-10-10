@@ -23,6 +23,8 @@ import kotlinx.serialization.modules.subclass
 fun EntryProviderScope<NavKey>.agentsEntries(
     onNavigate: (NavKey) -> Unit,
     onBack: () -> Unit,
+    onReplace: (NavKey) -> Unit,
+    onPopWhile: ((NavKey) -> Boolean) -> Unit,
     onStartChat: (String) -> Unit,
 ) {
     entry<AgentMarketplace> {
@@ -44,14 +46,18 @@ fun EntryProviderScope<NavKey>.agentsEntries(
     entry<AgentEditorCreate> {
         AgentEditorScreen(
             onBack = onBack,
-            onSave = { agentId -> onNavigate(AgentDetail(agentId = agentId)) },
+            onSave = { agentId -> onReplace(AgentDetail(agentId = agentId)) },
             agentId = null,
         )
     }
     entry<AgentEditorEdit> { key ->
+        val deletedDetail = AgentDetail(agentId = key.agentId)
         AgentEditorScreen(
             onBack = onBack,
-            onSave = { agentId -> onNavigate(AgentDetail(agentId = agentId)) },
+            // The editor is opened from the agent's detail page, which is still underneath.
+            onSave = { onBack() },
+            onDuplicate = { agentId -> onReplace(AgentDetail(agentId = agentId)) },
+            onDelete = { onPopWhile { it == key || it == deletedDetail } },
             agentId = key.agentId,
         )
     }

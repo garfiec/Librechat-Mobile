@@ -1,6 +1,5 @@
 package com.garfiec.librechat.feature.chat.components
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -26,12 +25,9 @@ import androidx.compose.material.icons.outlined.Create
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -56,9 +52,19 @@ import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.endpoint.KeyState
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.EndpointIcon
 import com.garfiec.librechat.core.ui.components.ErrorBanner
+import com.garfiec.librechat.core.ui.components.ListDragSelection
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
+import com.garfiec.librechat.core.ui.components.dragSelectExclude
+import com.garfiec.librechat.core.ui.components.dragSelectRow
+import com.garfiec.librechat.core.ui.components.dragSelectRowIcon
+import com.garfiec.librechat.core.ui.components.listDragSelection
+import com.garfiec.librechat.core.ui.components.rememberListDragSelection
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.util.FuzzyMatch
@@ -113,10 +119,10 @@ fun ModelSelectorSheet(
     onToggleModelFavorite: ((endpoint: String, model: String) -> Unit)? = null,
     /**
      * Mobile-only preference controlling whether pinned items also appear in a
-     * dedicated section at the top of the sheet. [StarredModelsDisplay.OFF] keeps the
-     * historical behavior (favorites float to the top within their own group).
+     * dedicated section at the top of the sheet. [StarredModelsDisplay.OFF] skips it
+     * (favorites float to the top within their own group).
      */
-    starredDisplay: StarredModelsDisplay = StarredModelsDisplay.OFF,
+    starredDisplay: StarredModelsDisplay = StarredModelsDisplay.GROUPED,
     /**
      * Per-endpoint user-provided-key state. Endpoints whose key is [KeyState.Unset]
      * or [KeyState.Expired] render a greyed group with a "Set API Key" CTA. Absent
@@ -132,11 +138,11 @@ fun ModelSelectorSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
 
-    ModalBottomSheet(
+    AdaptiveModalBottomSheet(
         onDismissRequest = onDismiss,
         dragHandle = { LowProfileDragHandle() },
         sheetState = sheetState,
-        modifier = modifier,
+        modifier = modifier.clearFocusOnTap(),
     ) {
         ModelSelectorSheetContent(
             endpointConfigs = endpointConfigs,
@@ -188,10 +194,10 @@ fun ModelSelectorSheetContent(
     onToggleModelFavorite: ((endpoint: String, model: String) -> Unit)? = null,
     /**
      * Mobile-only preference controlling whether pinned items also appear in a
-     * dedicated section at the top of the sheet. [StarredModelsDisplay.OFF] keeps the
-     * historical behavior (favorites float to the top within their own group).
+     * dedicated section at the top of the sheet. [StarredModelsDisplay.OFF] skips it
+     * (favorites float to the top within their own group).
      */
-    starredDisplay: StarredModelsDisplay = StarredModelsDisplay.OFF,
+    starredDisplay: StarredModelsDisplay = StarredModelsDisplay.GROUPED,
     /**
      * Per-endpoint user-provided-key state. Endpoints whose key is [KeyState.Unset]
      * or [KeyState.Expired] render a greyed group with a "Set API Key" CTA. Absent
@@ -282,7 +288,7 @@ fun ModelSelectorSheetContent(
                 .padding(bottom = 16.dp),
         )
 
-        OutlinedTextField(
+        AdaptiveOutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
             placeholder = { Text("Search models...") },
@@ -304,8 +310,12 @@ fun ModelSelectorSheetContent(
 
         Spacer(modifier = Modifier.height(12.dp))
 
+        // Drag-select reaches only the rows on screen: the list doesn't auto-scroll under it.
+        val dragSelection = rememberListDragSelection()
         LazyColumn(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .listDragSelection(dragSelection, holdOnly = true),
         ) {
             // Optional "Starred" section at the very top (mobile-only). Starred items
             // are duplicated here — they still render in their own groups below.
@@ -324,6 +334,7 @@ fun ModelSelectorSheetContent(
                                 iconUrl = null,
                                 leadingIcon = Icons.Default.Star,
                                 onToggle = { expandedGroups[STARRED_GROUP_KEY] = !expanded },
+                                dragSelection = dragSelection,
                             )
                         }
                         expanded
@@ -348,6 +359,7 @@ fun ModelSelectorSheetContent(
                             isFavorite = true,
                             onToggleFavorite = onToggleAgentFavorite?.let { toggle -> { toggle(agent.id) } },
                             verticalPadding = starredPadding,
+                            dragSelection = dragSelection,
                         )
                     }
                     items(
@@ -362,12 +374,13 @@ fun ModelSelectorSheetContent(
                             onClick = { onModelSelect(endpoint, model) },
                             onToggleFavorite = onToggleModelFavorite?.let { toggle -> { toggle(endpoint, model) } },
                             verticalPadding = starredPadding,
+                            dragSelection = dragSelection,
                         )
                     }
                 }
                 if (starredDisplay == StarredModelsDisplay.TOP) {
                     item(key = "starred_divider") {
-                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                        AdaptiveDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
                     }
                 }
             }
@@ -383,6 +396,7 @@ fun ModelSelectorSheetContent(
                         isExpanded = agentsExpanded,
                         iconUrl = null,
                         onToggle = { if (!isSearching) expandedGroups[EndpointConstants.AGENTS] = !agentsExpanded },
+                        dragSelection = dragSelection,
                     )
                 }
                 if (agentsExpanded) {
@@ -394,6 +408,7 @@ fun ModelSelectorSheetContent(
                             onClick = { onModelSelect(EndpointConstants.AGENTS, agent.id) },
                             isFavorite = agent.id in favoriteAgentIds,
                             onToggleFavorite = onToggleAgentFavorite?.let { toggle -> { toggle(agent.id) } },
+                            dragSelection = dragSelection,
                         )
                     }
                 }
@@ -438,6 +453,7 @@ fun ModelSelectorSheetContent(
                             onToggle = { if (!isSearching) expandedGroups[endpointName] = !isExpanded },
                             needsKey = needsKey,
                             onSetApiKey = { onSetApiKey(endpointName) },
+                            dragSelection = dragSelection,
                         )
                     }
                     if (effectiveExpanded) {
@@ -448,6 +464,7 @@ fun ModelSelectorSheetContent(
                                 isFavorite = "$endpointName::$model" in favoriteModelKeys,
                                 onClick = { onModelSelect(endpointName, model) },
                                 onToggleFavorite = onToggleModelFavorite?.let { toggle -> { toggle(endpointName, model) } },
+                                dragSelection = dragSelection,
                             )
                         }
                     }
@@ -465,6 +482,7 @@ private fun EndpointGroupHeader(
     isExpanded: Boolean,
     iconUrl: String?,
     onToggle: () -> Unit,
+    dragSelection: ListDragSelection,
     needsKey: Boolean = false,
     onSetApiKey: () -> Unit = {},
     /** When set, renders this vector instead of an [EndpointIcon] (used by the Starred group). */
@@ -481,7 +499,9 @@ private fun EndpointGroupHeader(
                 if (needsKey) {
                     Modifier.padding(horizontal = 4.dp)
                 } else {
-                    Modifier.sheetRowRipple().clickable(onClick = onToggle)
+                    Modifier
+                        .dragSelectRow(dragSelection, onClick = onToggle)
+                        .padding(horizontal = 4.dp)
                 },
             )
             .padding(horizontal = 12.dp, vertical = 8.dp),
@@ -497,7 +517,8 @@ private fun EndpointGroupHeader(
                 tint = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier
                     .size(IconSize)
-                    .alpha(labelAlpha),
+                    .alpha(labelAlpha)
+                    .dragSelectRowIcon(),
             )
         } else {
             EndpointIcon(
@@ -506,7 +527,7 @@ private fun EndpointGroupHeader(
                 size = IconSize,
                 contentDescription = "$endpointName icon",
                 glyphTint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.alpha(labelAlpha),
+                modifier = Modifier.alpha(labelAlpha).dragSelectRowIcon(),
             )
         }
         Spacer(modifier = Modifier.width(8.dp))
@@ -570,14 +591,14 @@ private fun LazyItemScope.ModelListItem(
     isFavorite: Boolean,
     onClick: () -> Unit,
     onToggleFavorite: (() -> Unit)?,
+    dragSelection: ListDragSelection,
     verticalPadding: Dp = ListItemVerticalPadding,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .sheetRowRipple()
-            .clickable(onClick = onClick)
-            .padding(vertical = verticalPadding, horizontal = 12.dp)
+            .dragSelectRow(dragSelection, onClick = onClick)
+            .padding(vertical = verticalPadding, horizontal = 16.dp)
             .animateItem(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -599,6 +620,7 @@ private fun LazyItemScope.ModelListItem(
             FavoriteStarButton(
                 isFavorite = isFavorite,
                 onToggle = onToggleFavorite,
+                modifier = Modifier.dragSelectExclude(dragSelection),
             )
         }
     }
@@ -610,6 +632,7 @@ private fun LazyItemScope.AgentListItem(
     isSelected: Boolean,
     serverUrl: String,
     onClick: () -> Unit,
+    dragSelection: ListDragSelection,
     isFavorite: Boolean = false,
     onToggleFavorite: (() -> Unit)? = null,
     verticalPadding: Dp = ListItemVerticalPadding,
@@ -622,9 +645,8 @@ private fun LazyItemScope.AgentListItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .sheetRowRipple()
-            .clickable(onClick = onClick)
-            .padding(vertical = verticalPadding, horizontal = 12.dp)
+            .dragSelectRow(dragSelection, onClick = onClick)
+            .padding(vertical = verticalPadding, horizontal = 16.dp)
             .animateItem(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -635,14 +657,15 @@ private fun LazyItemScope.AgentListItem(
                 contentDescription = "$agentName avatar",
                 modifier = Modifier
                     .size(IconSize)
-                    .clip(CircleShape),
+                    .clip(CircleShape)
+                    .dragSelectRowIcon(),
                 contentScale = ContentScale.Crop,
             )
         } else {
             Icon(
                 imageVector = Icons.Outlined.Create,
                 contentDescription = "$agentName icon",
-                modifier = Modifier.size(IconSize),
+                modifier = Modifier.size(IconSize).dragSelectRowIcon(),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -671,7 +694,11 @@ private fun LazyItemScope.AgentListItem(
         }
         if (onToggleFavorite != null) {
             Spacer(modifier = Modifier.width(4.dp))
-            FavoriteStarButton(isFavorite = isFavorite, onToggle = onToggleFavorite)
+            FavoriteStarButton(
+                isFavorite = isFavorite,
+                onToggle = onToggleFavorite,
+                modifier = Modifier.dragSelectExclude(dragSelection),
+            )
         }
     }
 }
@@ -680,8 +707,9 @@ private fun LazyItemScope.AgentListItem(
 private fun FavoriteStarButton(
     isFavorite: Boolean,
     onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    IconButton(onClick = onToggle, modifier = Modifier.size(32.dp)) {
+    IconButton(onClick = onToggle, modifier = modifier.size(32.dp)) {
         Icon(
             imageVector = if (isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
             contentDescription = stringResource(

@@ -2,6 +2,7 @@ package com.garfiec.librechat.core.data.repository
 
 import android.content.Context
 import androidx.room.Room
+import androidx.sqlite.SQLiteException
 import androidx.test.core.app.ApplicationProvider
 import com.garfiec.librechat.core.common.identity.deriveServerId
 import com.garfiec.librechat.core.data.db.LibreChatDatabase
@@ -344,10 +345,10 @@ class ServerRepositoryImplTest {
         }
 
         override suspend fun upsert(server: ServerEntity) =
-            if (failWrites) error("database unavailable") else delegate.upsert(server)
+            if (failWrites) throw SQLiteException("database unavailable") else delegate.upsert(server)
 
         override suspend fun deleteById(serverId: String) =
-            if (failWrites) error("database unavailable") else delegate.deleteById(serverId)
+            if (failWrites) throw SQLiteException("database unavailable") else delegate.deleteById(serverId)
     }
 
     private companion object {
