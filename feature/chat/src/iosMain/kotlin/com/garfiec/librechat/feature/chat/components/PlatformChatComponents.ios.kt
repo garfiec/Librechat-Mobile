@@ -72,6 +72,8 @@ import com.garfiec.librechat.core.ui.components.AdaptiveDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AvatarImage
 import com.garfiec.librechat.core.ui.components.BubbleShape
+import com.garfiec.librechat.core.ui.components.ProvideContentDirection
+import com.garfiec.librechat.core.ui.components.ProvideLtr
 import com.garfiec.librechat.core.ui.components.USER_BUBBLE_MAX_FRACTION
 import com.garfiec.librechat.core.ui.components.UserBubbleShape
 import com.garfiec.librechat.core.ui.components.endpointIconPainter
@@ -568,8 +570,34 @@ actual fun ContentPartRenderer(
 
 // ─── MarkdownContent ─────────────────────────────────────────────────
 
+/**
+ * TCHAT: the message lays out in its own direction, as web's `dir="auto"` does — a Persian reply in
+ * an English UI gets right-to-left lists and quotes. Code and math inside stay left-to-right.
+ */
 @Composable
 actual fun MarkdownContent(
+    text: String,
+    modifier: Modifier,
+    fontSizeMultiplier: Float,
+    useKatex: Boolean,
+    searchQuery: String?,
+    searchFocusedOccurrence: Int,
+    onFocusedOccurrencePosition: ((LayoutCoordinates, Rect) -> Unit)?,
+    immediate: Boolean,
+    streaming: Boolean,
+    trailingCursor: Boolean,
+) {
+    ProvideContentDirection(text) {
+        MarkdownContentBody(
+            text, modifier, fontSizeMultiplier, useKatex, searchQuery, searchFocusedOccurrence,
+            onFocusedOccurrencePosition, immediate, streaming, trailingCursor,
+        )
+    }
+}
+
+@Suppress("ModifierWithoutDefault") // TCHAT: only MarkdownContent calls it, always with a modifier
+@Composable
+private fun MarkdownContentBody(
     text: String, modifier: Modifier, fontSizeMultiplier: Float, useKatex: Boolean,
     searchQuery: String?, searchFocusedOccurrence: Int,
     onFocusedOccurrencePosition: ((LayoutCoordinates, Rect) -> Unit)?,
@@ -637,25 +665,29 @@ actual fun MarkdownContent(
                             modifier = Modifier.padding(vertical = 4.dp),
                         )
                     } else {
-                        CodeBlock(
-                            code = segment.code,
-                            language = segment.language,
-                            modifier = Modifier.padding(vertical = 4.dp),
-                            searchQuery = if (isSearchActive) searchQuery else null,
-                            searchFocusedOccurrence = focusedInSegment,
-                            onFocusedMatchPosition = onFocusedOccurrencePosition,
-                            streaming = streaming,
-                        )
+                        ProvideLtr { // TCHAT: code stays left-to-right inside an RTL message
+                            CodeBlock(
+                                code = segment.code,
+                                language = segment.language,
+                                modifier = Modifier.padding(vertical = 4.dp),
+                                searchQuery = if (isSearchActive) searchQuery else null,
+                                searchFocusedOccurrence = focusedInSegment,
+                                onFocusedMatchPosition = onFocusedOccurrencePosition,
+                                streaming = streaming,
+                            )
+                        }
                     }
                     if (index < segments.lastIndex) Spacer(modifier = Modifier.height(8.dp))
                 }
                 is MarkdownSegment.LatexBlock -> {
                     if (index > 0) Spacer(modifier = Modifier.height(8.dp))
-                    LatexBlock(
-                        latex = segment.latex,
-                        modifier = Modifier.padding(vertical = 4.dp),
-                        useKatex = useKatex,
-                    )
+                    ProvideLtr { // TCHAT: math stays left-to-right inside an RTL message
+                        LatexBlock(
+                            latex = segment.latex,
+                            modifier = Modifier.padding(vertical = 4.dp),
+                            useKatex = useKatex,
+                        )
+                    }
                     if (index < segments.lastIndex) Spacer(modifier = Modifier.height(8.dp))
                 }
                 is MarkdownSegment.InlineLatexText -> {

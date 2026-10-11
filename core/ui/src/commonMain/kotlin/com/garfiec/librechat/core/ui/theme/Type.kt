@@ -4,6 +4,7 @@ import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 
@@ -16,6 +17,10 @@ private fun style(size: Int, line: Int, weight: FontWeight, tracking: Double = 0
     fontSize = size.sp,
     lineHeight = line.sp,
     letterSpacing = tracking.em,
+    // TCHAT: paragraphs take their direction from their first strong character, so Persian or
+    // Arabic text aligns right in an English UI (and English left in an RTL one), as web's
+    // `dir="auto"` does. Unspecified would resolve to the layout direction and left-align it.
+    textDirection = TextDirection.Content,
 )
 
 val libreChatTypography = Typography(
