@@ -136,6 +136,21 @@ First pass, all in `:core:ui`:
   - *Copy*: 151 English labels moved to sentence case (proper nouns and acronyms kept). Other
     locales keep their own conventions.
 
+## Right-to-left content
+
+Tchat is used in Persian, and text follows its own direction, as web's `dir="auto"` does:
+
+- **Paragraphs** — every type-scale style sets `TextDirection.Content` (`theme/Type.kt`), so a
+  paragraph's direction and alignment come from its first strong character. Without it, Compose
+  resolves an unspecified direction to the layout direction, and Persian in an English UI
+  left-aligned. This reaches messages, the composer, titles and labels.
+- **Message layout** — `MarkdownContent` (both platforms) wraps its body in
+  `ProvideContentDirection(text)`, so list markers and quote bars mirror for an RTL message. Code
+  blocks and LaTeX are wrapped in `ProvideLtr`. The body is the unchanged upstream function, renamed
+  `MarkdownContentBody`, so syncs merge it cleanly.
+- Detection (`firstStrongDirection`, `components/ContentDirection.kt`) treats the Hebrew and
+  Arabic-script blocks as RTL and any other letter as LTR, skipping digits, punctuation and markdown.
+
 ## Model picker and Image Gen
 
 Tchat's picker replaces upstream's endpoint-grouped `ModelSelectorSheet` everywhere it opens: the
