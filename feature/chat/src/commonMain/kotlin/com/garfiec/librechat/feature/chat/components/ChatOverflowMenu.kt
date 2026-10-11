@@ -73,7 +73,7 @@ internal fun ChatOverflowMenu(
     AdaptiveDropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp), // TCHAT: radius-md (was 16)
         offset = DpOffset(x = 0.dp, y = 8.dp),
         dragSelection = dragSelection,
     ) {

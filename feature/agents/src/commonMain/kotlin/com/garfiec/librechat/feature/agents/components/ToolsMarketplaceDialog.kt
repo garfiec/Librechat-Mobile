@@ -125,7 +125,7 @@ fun ToolsMarketplaceDialog(
     ) {
         Surface(
             modifier = modifier.fillMaxSize().imePadding().padding(16.dp).clearFocusOnTap(),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(28.dp), // TCHAT: radius-xl, dialogs (was 16)
             tonalElevation = 6.dp,
         ) {
             Column(modifier = Modifier.fillMaxSize()) {

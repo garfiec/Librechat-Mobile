@@ -12,10 +12,17 @@ enum class ChatHeaderContent {
 
     companion object {
         fun fromString(value: String?): ChatHeaderContent = when (value) {
+            "title" -> TITLE
             "model" -> MODEL
             "none" -> NONE
-            else -> TITLE
+            else -> DEFAULT
         }
+
+        /**
+         * TCHAT: Tchat names the model in the bar unless the user picks otherwise, so the model in
+         * use is always visible (design/model-selection-requirements.md, D3). Upstream: [TITLE].
+         */
+        val DEFAULT: ChatHeaderContent = MODEL
     }
 
     fun toStorageString(): String = when (this) {

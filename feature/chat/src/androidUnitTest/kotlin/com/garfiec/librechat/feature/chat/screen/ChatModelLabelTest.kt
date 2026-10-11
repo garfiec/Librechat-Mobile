@@ -54,16 +54,17 @@ class ChatModelLabelTest {
     }
 
     @Test
-    fun nonAgentEndpointShowsRawModelName() {
+    fun nonAgentEndpointShowsReadableModelName() {
         val result = chatModelLabel(
             selectedEndpoint = "openAI",
             selectedModel = "gpt-4o",
             agents = listOf(Agent(id = "agent_1", name = "Research Bot")),
             agentFallbackLabel = fallback,
         )
-        // Not the agents endpoint → agentName must be null and the model shows verbatim.
+        // Not the agents endpoint → agentName must be null. TCHAT: the model shows as its
+        // readable label (formatModelLabel), not the raw id.
         assertThat(result.agentName).isNull()
-        assertThat(result.displayModel).isEqualTo("gpt-4o")
+        assertThat(result.displayModel).isEqualTo("GPT-4o")
     }
 
     @Test

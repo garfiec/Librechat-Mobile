@@ -33,6 +33,8 @@ import com.garfiec.librechat.core.ui.media.MediaPreviewState
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.model.PresetDisplayData
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
+import com.garfiec.librechat.feature.chat.tchat.IMAGE_GEN_TOOL_KEY
+import com.garfiec.librechat.feature.chat.tchat.TchatModelState
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.util.PendingUsage
@@ -111,6 +113,7 @@ data class ChatUiState(
     val selectedMcpServerNames: Set<String> get() = selection.selectedMcpServerNames
     val extendedEffortSupported: Boolean get() = selection.extendedEffortSupported
     val thinkingDisplayUpdatesSupported: Boolean get() = selection.thinkingDisplayUpdatesSupported
+    val tchat: TchatModelState get() = selection.tchat // TCHAT
     val inputText: String get() = composer.inputText
     val sendBlockReason: SendBlockReason? get() = composer.sendBlockReason
     val editingQueuedItem: QueuedEditSession? get() = composer.editingQueuedItem
@@ -336,6 +339,8 @@ data class ChatUiState(
             var tools = enabledTools
             tools = if (modelParameters.webSearch) tools + ToolConstants.WEB_SEARCH else tools - ToolConstants.WEB_SEARCH
             tools = if (modelParameters.urlContext) tools + ToolConstants.URL_CONTEXT else tools - ToolConstants.URL_CONTEXT
+            // TCHAT: Image Gen is its own selection, synthesized in the same way.
+            tools = if (tchat.activeImage != null) tools + IMAGE_GEN_TOOL_KEY else tools - IMAGE_GEN_TOOL_KEY
             return tools
         }
 

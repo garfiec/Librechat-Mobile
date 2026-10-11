@@ -131,7 +131,7 @@ fun FileSearchSourcesCard(
         ) {
             Column(
                 modifier = Modifier
-                    .padding(top = 6.dp)
+                    .padding(top = 8.dp)
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(8.dp))
                     .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp)),
@@ -158,7 +158,7 @@ private fun CitationRow(citation: FileSearchCitation, stateKey: String) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(enabled = hasContent) { showContent = !showContent }
-            .padding(horizontal = 12.dp, vertical = 10.dp)
+            .padding(horizontal = 12.dp, vertical = 12.dp)
             .semantics {
                 if (hasContent) role = Role.Button
                 contentDescription = rowCd
@@ -171,7 +171,7 @@ private fun CitationRow(citation: FileSearchCitation, stateKey: String) {
                 modifier = Modifier.size(16.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = citation.fileName,
                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
@@ -209,7 +209,7 @@ private fun CitationRow(citation: FileSearchCitation, stateKey: String) {
                     text = citation.content,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 6.dp),
+                    modifier = Modifier.padding(top = 8.dp),
                 )
             }
         }

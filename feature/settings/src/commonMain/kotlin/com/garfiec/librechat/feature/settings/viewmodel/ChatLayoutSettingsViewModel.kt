@@ -14,8 +14,8 @@ import kotlinx.coroutines.launch
 @Immutable
 data class ChatLayoutSettingsUiState(
     /** [ChatLayoutConstants.THREAD] or [ChatLayoutConstants.TWO_SIDED]. */
-    val layoutStyle: String = ChatLayoutConstants.THREAD,
-    val showBubbles: Boolean = false,
+    val layoutStyle: String = ChatLayoutConstants.DEFAULT, // TCHAT: was THREAD
+    val showBubbles: Boolean = ChatLayoutConstants.DEFAULT_SHOW_BUBBLES, // TCHAT: was false
     val showAvatars: Boolean = true,
 )
 

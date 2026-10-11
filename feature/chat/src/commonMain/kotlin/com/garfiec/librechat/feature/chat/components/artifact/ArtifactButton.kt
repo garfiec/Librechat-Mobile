@@ -32,7 +32,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.garfiec.librechat.core.model.artifactTypeLabel
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -95,7 +94,7 @@ fun ArtifactButton(
                 ) {
                     Text(
                         text = "$versionCount",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                        style = MaterialTheme.typography.labelSmall, // TCHAT: label-sm, 12sp (was a 10sp override)
                         color = MaterialTheme.colorScheme.onPrimary,
                     )
                 }

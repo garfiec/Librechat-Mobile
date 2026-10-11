@@ -51,7 +51,7 @@ fun LandingContent(
         Box(
             modifier = Modifier
                 .size(56.dp)
-                .clip(RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(12.dp)) // TCHAT: radius-md (was 16)
                 .background(MaterialTheme.colorScheme.primaryContainer),
             contentAlignment = Alignment.Center,
         ) {

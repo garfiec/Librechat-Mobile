@@ -729,7 +729,7 @@ private fun FileGridItem(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
                 ) {
                     Text(
                         text = file.filename,

@@ -155,7 +155,7 @@ fun CodeBlock(
                 text = highlightedCode,
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontFamily = FontFamily.Monospace,
-                    fontSize = 13.sp,
+                    fontSize = 14.sp, // TCHAT: the code style, 14/20 (was 13)
                     lineHeight = 20.sp,
                 ),
                 onTextLayout = { layoutResult = it },

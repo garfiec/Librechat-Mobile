@@ -17,7 +17,7 @@ import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
 import com.garfiec.librechat.core.ui.glass.glassSurface
 import com.garfiec.librechat.core.ui.glass.rememberGlassStyle
 
-private val GlassFabShape = RoundedCornerShape(16.dp)
+private val GlassFabShape = RoundedCornerShape(20.dp) // TCHAT: radius-lg (was 16)
 
 /**
  * [small] is the M3 [SmallFloatingActionButton]. Outside an [AdaptiveScaffold]'s FAB slot, pass a

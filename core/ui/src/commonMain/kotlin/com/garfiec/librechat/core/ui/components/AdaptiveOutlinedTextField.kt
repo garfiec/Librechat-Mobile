@@ -196,4 +196,4 @@ private fun glassFieldColors(colors: TextFieldColors): TextFieldColors {
     )
 }
 
-private val GlassFieldShape = RoundedCornerShape(10.dp)
+private val GlassFieldShape = RoundedCornerShape(12.dp) // TCHAT: radius-md, inputs (was 10)

@@ -32,7 +32,7 @@ data class ChatPrefsState(
      * Mobile-only preferences for the chat floating top bar: what its bubble shows
      * ([chatHeaderContent]) and how the bubble is positioned ([chatHeaderAlignment]).
      */
-    val chatHeaderContent: ChatHeaderContent = ChatHeaderContent.TITLE,
+    val chatHeaderContent: ChatHeaderContent = ChatHeaderContent.DEFAULT, // TCHAT: was TITLE
     val chatHeaderAlignment: ChatHeaderAlignment = ChatHeaderAlignment.LEFT,
     /** User preference (Settings → Chat) for where the context gauge is surfaced. */
     val contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
@@ -68,9 +68,9 @@ data class ChatPrefsState(
 data class ChatPreferences(
     val showImageDescriptions: Boolean = false,
     val dismissKeyboardOnSend: Boolean = false,
-    val chatLayoutStyle: String = ChatLayoutConstants.THREAD,
+    val chatLayoutStyle: String = ChatLayoutConstants.DEFAULT, // TCHAT: was THREAD
     val showAvatars: Boolean = true,
-    val showBubbles: Boolean = false,
+    val showBubbles: Boolean = ChatLayoutConstants.DEFAULT_SHOW_BUBBLES, // TCHAT: was false
     val latexRenderer: LatexRenderer = LatexRenderer.KATEX,
     val autoSendAfterStt: Boolean = false,
     val sttEngine: String = "",
@@ -105,7 +105,7 @@ enum class SiteIconsState {
  */
 @Immutable
 data class ChatDisplayPrefs(
-    val content: ChatHeaderContent = ChatHeaderContent.TITLE,
+    val content: ChatHeaderContent = ChatHeaderContent.DEFAULT, // TCHAT: was TITLE
     val alignment: ChatHeaderAlignment = ChatHeaderAlignment.LEFT,
     val contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
     val context: ContextUsagePrefs = ContextUsagePrefs(),

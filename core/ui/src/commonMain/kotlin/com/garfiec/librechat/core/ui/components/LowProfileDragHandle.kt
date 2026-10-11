@@ -50,7 +50,7 @@ fun LowProfileDragHandle(
                 )
                 .background(
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                    shape = RoundedCornerShape(2.dp),
+                    shape = RoundedCornerShape(4.dp), // TCHAT: radius-xs (was 2)
                 ),
         )
     }

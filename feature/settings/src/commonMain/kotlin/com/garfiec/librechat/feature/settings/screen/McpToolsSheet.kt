@@ -96,7 +96,7 @@ internal fun McpToolsSheet(
                             contentType = { "mcp_tool" },
                         ) { tool ->
                             ToolDetailItem(tool = tool)
-                            Spacer(modifier = Modifier.height(6.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
                         }
 
                         if (serverFilter == null && toolsByServer.size > 1) {
@@ -124,7 +124,7 @@ private fun ToolDetailItem(
         shape = MaterialTheme.shapes.small,
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
         ) {
             Text(
                 text = tool.name,

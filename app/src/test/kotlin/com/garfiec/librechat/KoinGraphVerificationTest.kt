@@ -17,6 +17,7 @@ import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.SsoRiskDataStore
+import com.garfiec.librechat.core.data.datastore.TchatSettingsStore
 import com.garfiec.librechat.core.data.datastore.ThemeDataStore
 import com.garfiec.librechat.core.data.prefetch.AttachmentWarmer
 import com.garfiec.librechat.core.data.prefetch.PrefetchController
@@ -55,6 +56,7 @@ import com.garfiec.librechat.core.data.repository.SkillsRepository
 import com.garfiec.librechat.core.data.repository.SpeechRepository
 import com.garfiec.librechat.core.data.repository.SubagentRepository
 import com.garfiec.librechat.core.data.repository.TagRepository
+import com.garfiec.librechat.core.data.repository.TchatModelCatalogRepository
 import com.garfiec.librechat.core.data.repository.ToolFavoritesRepository
 import com.garfiec.librechat.core.data.repository.TraceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
@@ -194,6 +196,7 @@ class KoinGraphVerificationTest {
             SettingsDataStore::class,
             SsoRiskDataStore::class,
             ThemeDataStore::class,
+            TchatSettingsStore::class, // TCHAT
             AgentRepository::class,
             AgentToolsRepository::class,
             ApiKeyRepository::class,
@@ -226,6 +229,7 @@ class KoinGraphVerificationTest {
             SubagentRepository::class,
             SpeechRepository::class,
             TagRepository::class,
+            TchatModelCatalogRepository::class, // TCHAT
             ToolFavoritesRepository::class,
             TraceRepository::class,
             UserRepository::class,

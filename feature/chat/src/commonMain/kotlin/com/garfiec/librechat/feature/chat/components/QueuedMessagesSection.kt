@@ -141,7 +141,7 @@ fun QueuedMessagesSection(
                     },
                 )
             },
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         queuedMessages.forEach { item ->
             val isDragging = draggingId == item.localId
@@ -175,7 +175,7 @@ private fun QueuedMessageRow(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp), // TCHAT: radius-md (was 16)
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (isDragging) 0.95f else 0.55f),
         tonalElevation = if (isDragging) 6.dp else 0.dp,
     ) {
@@ -184,7 +184,7 @@ private fun QueuedMessageRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(onClick = onTap)
-                .padding(start = 8.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
+                .padding(start = 8.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
         ) {
             // No handle on a server-owned row: the backend runs those in its own sequence, so
             // offering a drag would show an order it will not honour.
@@ -205,7 +205,7 @@ private fun QueuedMessageRow(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     modifier = Modifier.size(16.dp),
                 )
-                Spacer(Modifier.width(6.dp))
+                Spacer(Modifier.width(8.dp))
             }
 
             // Attachment-only queued items have no text — show a placeholder so the row isn't blank.
@@ -215,7 +215,7 @@ private fun QueuedMessageRow(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (isPlaceholder) 0.6f else 0.85f),
-                fontSize = 14.sp * fontSizeMultiplier,
+                fontSize = 15.sp * fontSizeMultiplier, // TCHAT: body-md (was 14)
                 modifier = Modifier
                     .weight(1f)
                     .padding(vertical = 2.dp),
@@ -230,7 +230,7 @@ private fun QueuedMessageRow(
                     maxLines = 1,
                     color = MaterialTheme.colorScheme.error,
                     fontSize = 12.sp * fontSizeMultiplier,
-                    modifier = Modifier.padding(horizontal = 6.dp),
+                    modifier = Modifier.padding(horizontal = 8.dp),
                 )
             }
 

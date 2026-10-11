@@ -3,12 +3,15 @@ package com.garfiec.librechat.feature.chat.components
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.FindInPage
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.resources.tchat_image_gen
+import com.garfiec.librechat.feature.chat.resources.tchat_image_gen_tool_desc
 import com.garfiec.librechat.feature.chat.resources.tool_code
 import com.garfiec.librechat.feature.chat.resources.tool_code_desc
 import com.garfiec.librechat.feature.chat.resources.tool_file_search
@@ -19,6 +22,7 @@ import com.garfiec.librechat.feature.chat.resources.tool_url_context
 import com.garfiec.librechat.feature.chat.resources.tool_url_context_desc
 import com.garfiec.librechat.feature.chat.resources.tool_web_search
 import com.garfiec.librechat.feature.chat.resources.tool_web_search_desc
+import com.garfiec.librechat.feature.chat.tchat.IMAGE_GEN_TOOL_KEY
 import org.jetbrains.compose.resources.StringResource
 
 /**
@@ -44,5 +48,8 @@ internal fun ephemeralToolMeta(toolKey: String): EphemeralToolMeta? = when (tool
         EphemeralToolMeta(Icons.Default.Code, Res.string.tool_code, Res.string.tool_code_desc)
     ToolConstants.MEMORY ->
         EphemeralToolMeta(Icons.Default.Psychology, Res.string.tool_memory, Res.string.tool_memory_desc)
+    // TCHAT: Image Gen's switch in the tools sheet.
+    IMAGE_GEN_TOOL_KEY ->
+        EphemeralToolMeta(Icons.Default.Image, Res.string.tchat_image_gen, Res.string.tchat_image_gen_tool_desc)
     else -> null
 }

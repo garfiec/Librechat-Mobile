@@ -33,6 +33,7 @@ import com.garfiec.librechat.core.network.api.SkillsApi
 import com.garfiec.librechat.core.network.api.SpeechApi
 import com.garfiec.librechat.core.network.api.SubagentsApi
 import com.garfiec.librechat.core.network.api.TagsApi
+import com.garfiec.librechat.core.network.api.TchatCatalogApi
 import com.garfiec.librechat.core.network.api.TracesApi
 import com.garfiec.librechat.core.network.api.UserApi
 import com.garfiec.librechat.core.network.client.AuthInterceptorPlugin
@@ -223,6 +224,7 @@ val networkModule = module {
     singleOf(::EndpointTokenApi)
     singleOf(::FavoritesApi)
     singleOf(::FilesApi)
+    singleOf(::TchatCatalogApi) // TCHAT: Tchat-only catalog route
     singleOf(::FilesExtApi)
     single { GitHubReleasesApi(get(KoinQualifiers.External)) }
     singleOf(::KeysApi)

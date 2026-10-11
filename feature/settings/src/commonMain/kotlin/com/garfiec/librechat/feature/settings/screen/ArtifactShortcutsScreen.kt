@@ -123,7 +123,7 @@ private fun ArtifactShortcutRow(
         ) {
             Text(
                 text = shortcut.displayGlyph,
-                fontSize = 22.sp,
+                fontSize = 24.sp, // TCHAT: on the type scale (was 22)
             )
         }
         Column(modifier = Modifier.weight(1f)) {

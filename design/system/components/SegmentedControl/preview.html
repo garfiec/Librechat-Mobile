@@ -1,0 +1,14 @@
+<!-- @dsCard group="Inputs" height=100 -->
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>SegmentedControl — preview</title></head>
+<body>
+<div id="root" class="tc-stage" style="flex-direction:column;align-items:flex-start"></div>
+<script>
+var T = window.Tchat, h = React.createElement;
+ReactDOM.createRoot(document.getElementById('root')).render(
+  h(T.SegmentedControl, {label:'Theme', options:[{value:'system',label:'System'},{value:'light',label:'Light'},{value:'dark',label:'Dark'}], defaultValue:'system'})
+);
+</script>
+</body>
+</html>

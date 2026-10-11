@@ -545,7 +545,7 @@ private fun DecisionRow(
     val ordered = DECISION_ORDER.filter { it in allowedDecisions }
     FlowRow(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         ordered.forEach { decision ->

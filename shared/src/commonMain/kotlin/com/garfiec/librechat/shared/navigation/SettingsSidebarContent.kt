@@ -140,7 +140,7 @@ private fun SettingsCategoryItem(
             .background(backgroundColor, shape)
             .then(if (glass) Modifier.clip(shape) else Modifier)
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = 16.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(

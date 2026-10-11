@@ -782,7 +782,7 @@ fun MessageList(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 // Float the FAB just above the input bar, tracking the same inset as the content.
-                .padding(bottom = (bottomContentPadding - 30.dp).coerceAtLeast(16.dp)),
+                .padding(bottom = (bottomContentPadding - 32.dp).coerceAtLeast(16.dp)),
             enter = fadeIn(),
             exit = fadeOut(),
         ) {

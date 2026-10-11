@@ -43,7 +43,7 @@ fun PromptSuggestionList(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(bottom = 6.dp),
+            .padding(bottom = 8.dp),
         shape = MaterialTheme.shapes.large,
         color = ChatInputDefaults.containerColor,
         border = BorderStroke(1.dp, ChatInputDefaults.borderColor),
@@ -69,7 +69,7 @@ private fun PromptSuggestionRow(
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .semantics { role = Role.Button }
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(

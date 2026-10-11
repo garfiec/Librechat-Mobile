@@ -1,0 +1,15 @@
+<!-- @dsCard group="Inputs" height=120 -->
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Chip — preview</title></head>
+<body>
+<div id="root" class="tc-stage" style="gap:8px"></div>
+<script>
+var T = window.Tchat, h = React.createElement;
+ReactDOM.createRoot(document.getElementById('root')).render(h(React.Fragment, null,
+  h(T.Chip, {defaultSelected:true}, 'Web search'), h(T.Chip, null, 'Code interpreter'), h(T.Chip, null, 'Artifacts'),
+  h(T.Chip, {kind:'assist', icon:'copy'}, 'Copy'), h(T.Chip, {kind:'assist', icon:'add'}, 'Attach file')
+));
+</script>
+</body>
+</html>

@@ -23,8 +23,10 @@ class ChatLayoutSettingsViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private val settingsDataStore = mockk<SettingsDataStore>(relaxed = true)
-    private val layoutStyle = MutableStateFlow(ChatLayoutConstants.THREAD)
-    private val showBubbles = MutableStateFlow(false)
+
+    // TCHAT: start from the (Tchat) defaults, so the first state equals ChatLayoutSettingsUiState().
+    private val layoutStyle = MutableStateFlow(ChatLayoutConstants.DEFAULT)
+    private val showBubbles = MutableStateFlow(ChatLayoutConstants.DEFAULT_SHOW_BUBBLES)
     private val showAvatars = MutableStateFlow(true)
 
     @Before
@@ -46,13 +48,13 @@ class ChatLayoutSettingsViewModelTest {
         advanceUntilIdle()
         assertThat(viewModel.uiState.value).isEqualTo(ChatLayoutSettingsUiState())
 
-        layoutStyle.value = ChatLayoutConstants.TWO_SIDED
-        showBubbles.value = true
+        layoutStyle.value = ChatLayoutConstants.THREAD
+        showBubbles.value = false
         showAvatars.value = false
         advanceUntilIdle()
 
         assertThat(viewModel.uiState.value).isEqualTo(
-            ChatLayoutSettingsUiState(layoutStyle = ChatLayoutConstants.TWO_SIDED, showBubbles = true, showAvatars = false),
+            ChatLayoutSettingsUiState(layoutStyle = ChatLayoutConstants.THREAD, showBubbles = false, showAvatars = false),
         )
     }
 

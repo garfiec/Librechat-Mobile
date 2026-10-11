@@ -27,7 +27,7 @@ private val ValueOverlayBrush = Brush.verticalGradient(listOf(Color.Transparent,
 
 // Static clip shapes hoisted out of the Canvas modifier chains (core/ui rule 13).
 private val PanelShape = RoundedCornerShape(12.dp)
-private val SliderShape = RoundedCornerShape(14.dp)
+private val SliderShape = RoundedCornerShape(12.dp) // TCHAT: radius-md (was 14)
 
 /**
  * Stateless saturation/value selection panel. Renders a white -> hue horizontal

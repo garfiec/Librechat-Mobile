@@ -1,0 +1,18 @@
+<!-- @dsCard group="Chat" height=420 -->
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Message — preview</title></head>
+<body>
+<div id="root" class="tc-thread"></div>
+<script>
+var T = window.Tchat, h = React.createElement;
+ReactDOM.createRoot(document.getElementById('root')).render(h(React.Fragment, null,
+  h(T.Message, {role:'user', time:'9:41'}, 'Can you turn this into a Kotlin data class?'),
+  h(T.Message, {role:'assistant', sender:'Tchat', model:'GPT-5', time:'9:41'},
+    h('p', null, 'Sure. Here it is, with defaults for the optional fields:'),
+    h('pre', null, h('code', null, 'data class Message(\n  val id: String,\n  val text: String = "",\n)'))),
+  h(T.Message, {role:'assistant', sender:'Tchat', model:'GPT-5', streaming:true}, h('p', null, 'Want me to add serialization annotations as'))
+));
+</script>
+</body>
+</html>

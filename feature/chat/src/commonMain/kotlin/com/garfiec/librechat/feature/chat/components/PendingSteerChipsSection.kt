@@ -61,7 +61,7 @@ fun PendingSteerChipsSection(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.End,
     ) {
         pendingSteers.forEach { chip ->
@@ -83,13 +83,13 @@ private fun PendingSteerRow(
 ) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp), // TCHAT: radius-md (was 16)
         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .padding(start = 10.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
+                .padding(start = 12.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
         ) {
             // The POST is still out, so the row shows a spinner instead of the bolt: until the
             // server accepts it there is nothing to cancel server-side and nothing to inject.
@@ -114,7 +114,7 @@ private fun PendingSteerRow(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
-                fontSize = 14.sp * fontSizeMultiplier,
+                fontSize = 15.sp * fontSizeMultiplier, // TCHAT: body-md (was 14)
                 modifier = Modifier
                     .weight(1f, fill = false)
                     .padding(vertical = 2.dp),

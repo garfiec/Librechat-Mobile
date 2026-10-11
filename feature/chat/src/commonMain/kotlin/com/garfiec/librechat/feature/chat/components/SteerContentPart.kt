@@ -68,7 +68,7 @@ internal fun SteerContentPart(
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(modifier = Modifier.width(8.dp))
                 // Says why a user message is sitting inside the response.
                 Text(
                     text = stringResource(Res.string.steer_sent_during_reply),

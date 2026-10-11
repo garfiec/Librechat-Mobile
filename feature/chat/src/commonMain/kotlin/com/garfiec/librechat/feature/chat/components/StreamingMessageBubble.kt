@@ -206,7 +206,7 @@ private fun TwoSidedStreamingBubble(
                 tintIcon = if (senderIconUrl == null) isMonochromeEndpointIcon(selectedEndpoint) else false,
                 size = 28.dp,
             )
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(8.dp))
         }
 
         Column(

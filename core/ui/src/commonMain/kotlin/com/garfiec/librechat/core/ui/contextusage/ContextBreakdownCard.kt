@@ -159,7 +159,7 @@ fun ContextBreakdownCard(
 
         PressureAndInsights(visible, tint)
 
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             val estimate = visible.estimate
             when {
                 visible.usedAndFreeOnly -> UsedAndFreeRows(visible, model.isEstimate)
@@ -170,7 +170,7 @@ fun ContextBreakdownCard(
 
         visible.totals?.let { branch ->
             AdaptiveDivider()
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = stringResource(Res.string.context_usage_totals).uppercase(),
                     style = MaterialTheme.typography.labelSmall,
@@ -269,7 +269,7 @@ private fun PressureAndInsights(visible: VisibleBreakdown, tint: Color?) {
 @Composable
 private fun UsedAndFreeRows(visible: VisibleBreakdown, isEstimate: Boolean) {
     val view = visible.view
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         UsageRow(stringResource(Res.string.context_usage_used), view.usedTokens, view.windowTokens)
         UsageRow(stringResource(Res.string.context_usage_free), view.freeTokens, view.windowTokens, swatch = Swatch.Track)
         if (isEstimate) EstimateNote()
@@ -357,7 +357,7 @@ private fun CostRows(cost: CostRows, currency: CurrencyConfig?) {
         cost.primaryIsWholeConversation || cost.allBranches == null -> Res.string.context_usage_cost
         else -> Res.string.context_usage_cost_branch
     }
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(stringResource(label), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(

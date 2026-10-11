@@ -91,7 +91,7 @@ internal fun BackgroundTasksChip(
                         },
                     )
                     if (state.runningCount > 0) {
-                        Spacer(Modifier.width(6.dp))
+                        Spacer(Modifier.width(8.dp))
                         Text(state.runningCount.toString(), style = MaterialTheme.typography.labelLarge)
                     }
                 }

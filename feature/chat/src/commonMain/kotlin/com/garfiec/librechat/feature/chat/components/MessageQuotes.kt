@@ -47,12 +47,12 @@ internal fun MessageQuotes(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(IntrinsicSize.Min)
-                    .background(background, RoundedCornerShape(6.dp))
+                    .background(background, RoundedCornerShape(8.dp)) // TCHAT: radius-sm (was 6)
                     .semantics { contentDescription = cd },
             ) {
                 Spacer(
                     modifier = Modifier
-                        .width(3.dp)
+                        .width(4.dp)
                         .fillMaxHeight()
                         .background(accent),
                 )
@@ -62,7 +62,7 @@ internal fun MessageQuotes(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
                 )
             }
         }

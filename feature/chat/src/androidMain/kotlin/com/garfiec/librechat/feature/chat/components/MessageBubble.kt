@@ -34,6 +34,9 @@ import com.garfiec.librechat.core.ui.components.AvatarImage
 import com.garfiec.librechat.core.ui.components.BubbleShape
 import com.garfiec.librechat.core.ui.components.endpointIconPainter
 import com.garfiec.librechat.core.ui.components.isMonochromeEndpointIcon
+import com.garfiec.librechat.core.ui.theme.UserBubbleLeadingInset
+import com.garfiec.librechat.core.ui.theme.UserBubbleTheme
+import com.garfiec.librechat.core.ui.theme.userBubbleColors
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import kotlinx.coroutines.delay
@@ -287,8 +290,12 @@ private fun ThreadMessageBubble(
         val contentStartPadding = if (showAvatars) 36.dp else 0.dp
 
         // When bubbles are ON in thread mode, wrap content in a subtle rounded background
+        // TCHAT: the user's bubble is filled (UserBubbleTheme), except while it's being edited.
+        val filledUserBubble = showBubbles && isUser && !isEditing
         val threadBubbleBackground = if (showBubbles) {
-            if (isUser) {
+            if (filledUserBubble) {
+                userBubbleColors().container
+            } else if (isUser) {
                 MaterialTheme.colorScheme.secondaryContainer
             } else {
                 MaterialTheme.colorScheme.surfaceVariant
@@ -297,57 +304,59 @@ private fun ThreadMessageBubble(
             null
         }
 
-        Column(
-            modifier = Modifier
-                .padding(start = contentStartPadding)
-                .then(
-                    if (threadBubbleBackground != null) {
-                        Modifier
-                            .background(
-                                color = threadBubbleBackground,
-                                shape = BubbleShape,
-                            )
-                            .padding(12.dp)
-                    } else {
-                        Modifier
-                    },
-                ),
-        ) {
-            MessageContentAndActions(
-                message = message,
-                isUser = isUser,
-                isEditing = isEditing,
-                editText = editText,
-                onEditTextChange = onEditTextChange,
-                onEditSaveAndSubmit = onEditSaveAndSubmit,
-                onEditSaveOnly = onEditSaveOnly,
-                onEditCancel = onEditCancel,
-                baseUrl = baseUrl,
-                fontSizeMultiplier = fontSizeMultiplier,
-                useKatex = useKatex,
-                showImageDescriptions = showImageDescriptions,
-                searchQuery = searchQuery,
-                isSearchMatch = isSearchMatch,
-                isCurrentSearchMatch = isCurrentSearchMatch,
-                searchFocusedOccurrence = searchFocusedOccurrence,
-                onFocusedOccurrencePosition = onFocusedOccurrencePosition,
-                showActions = showActions,
-                siblingIndex = siblingIndex,
-                siblingCount = siblingCount,
-                onSiblingNavigation = onSiblingNavigation,
-                onEdit = onEdit,
-                onRegenerate = onRegenerate,
-                onCopy = onCopy,
-                onFeedback = onFeedback,
-                onContinue = onContinue,
-                onReadAloud = onReadAloud,
-                onFork = onFork,
-                isReading = isReading,
-                currentFeedback = currentFeedback,
-                userName = userName,
-                userAvatarUrl = userAvatarUrl,
-                alignImagesEnd = false,
-            )
+        UserBubbleTheme(active = filledUserBubble) { // TCHAT
+            Column(
+                modifier = Modifier
+                    .padding(start = contentStartPadding)
+                    .then(
+                        if (threadBubbleBackground != null) {
+                            Modifier
+                                .background(
+                                    color = threadBubbleBackground,
+                                    shape = BubbleShape,
+                                )
+                                .padding(12.dp)
+                        } else {
+                            Modifier
+                        },
+                    ),
+            ) {
+                MessageContentAndActions(
+                    message = message,
+                    isUser = isUser,
+                    isEditing = isEditing,
+                    editText = editText,
+                    onEditTextChange = onEditTextChange,
+                    onEditSaveAndSubmit = onEditSaveAndSubmit,
+                    onEditSaveOnly = onEditSaveOnly,
+                    onEditCancel = onEditCancel,
+                    baseUrl = baseUrl,
+                    fontSizeMultiplier = fontSizeMultiplier,
+                    useKatex = useKatex,
+                    showImageDescriptions = showImageDescriptions,
+                    searchQuery = searchQuery,
+                    isSearchMatch = isSearchMatch,
+                    isCurrentSearchMatch = isCurrentSearchMatch,
+                    searchFocusedOccurrence = searchFocusedOccurrence,
+                    onFocusedOccurrencePosition = onFocusedOccurrencePosition,
+                    showActions = showActions,
+                    siblingIndex = siblingIndex,
+                    siblingCount = siblingCount,
+                    onSiblingNavigation = onSiblingNavigation,
+                    onEdit = onEdit,
+                    onRegenerate = onRegenerate,
+                    onCopy = onCopy,
+                    onFeedback = onFeedback,
+                    onContinue = onContinue,
+                    onReadAloud = onReadAloud,
+                    onFork = onFork,
+                    isReading = isReading,
+                    currentFeedback = currentFeedback,
+                    userName = userName,
+                    userAvatarUrl = userAvatarUrl,
+                    alignImagesEnd = false,
+                )
+            }
         }
     }
 }
@@ -412,11 +421,16 @@ private fun TwoSidedMessageBubble(
 
     // Use secondaryContainer for user bubbles (better dark mode contrast than primaryContainer)
     // and surfaceVariant for agent bubbles. Text uses onSecondaryContainer/onSurfaceVariant.
+    // TCHAT: the user's bubble is filled (UserBubbleTheme), except while it's being edited.
+    val filledUserBubble = showBubbles && isUser && !isEditing
     val bubbleBackground = if (showBubbles) {
-        if (isUser) {
+        if (filledUserBubble) {
+            userBubbleColors().container
+        } else if (isUser) {
             MaterialTheme.colorScheme.secondaryContainer
         } else {
-            MaterialTheme.colorScheme.surfaceVariant
+            // TCHAT: assistant replies have no bubble and run the full width (design README).
+            null
         }
     } else {
         null
@@ -431,10 +445,12 @@ private fun TwoSidedMessageBubble(
     }
 
     val textColor = if (showBubbles) {
-        if (isUser) {
+        if (filledUserBubble) {
+            userBubbleColors().content
+        } else if (isUser) {
             MaterialTheme.colorScheme.onSecondaryContainer
         } else {
-            MaterialTheme.colorScheme.onSurfaceVariant
+            MaterialTheme.colorScheme.onSurface // TCHAT: no assistant bubble, so page text
         }
     } else {
         MaterialTheme.colorScheme.onSurface
@@ -466,95 +482,100 @@ private fun TwoSidedMessageBubble(
                 tintIcon = if (message.iconURL == null) isMonochromeEndpointIcon(resolvedEndpoint) else false,
                 size = 28.dp,
             )
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(8.dp))
         }
 
+        // TCHAT: the user's bubble hugs its text on the right and never reaches the left edge.
+        if (isUser) Spacer(modifier = Modifier.width(UserBubbleLeadingInset))
+
         // Bubble content
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .then(
-                    if (effectiveBubbleBackground != null) {
-                        Modifier
-                            .background(
-                                color = effectiveBubbleBackground,
-                                shape = BubbleShape,
+        UserBubbleTheme(active = filledUserBubble) { // TCHAT
+            Column(
+                modifier = Modifier
+                    .weight(1f, fill = !isUser)
+                    .then(
+                        if (effectiveBubbleBackground != null) {
+                            Modifier
+                                .background(
+                                    color = effectiveBubbleBackground,
+                                    shape = BubbleShape,
+                                )
+                                .padding(12.dp)
+                        } else {
+                            Modifier.padding(
+                                horizontal = 4.dp,
+                                vertical = 8.dp,
                             )
-                            .padding(12.dp)
-                    } else {
-                        Modifier.padding(
-                            horizontal = 4.dp,
-                            vertical = 8.dp,
-                        )
-                    },
-                ),
-            horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
-        ) {
-            // Name + timestamp inside bubble
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = if (isUser) {
-                        userName ?: stringResource(Res.string.sender_you)
-                    } else {
-                        message.sender ?: stringResource(Res.string.sender_assistant)
-                    },
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.SemiBold,
+                        },
                     ),
-                    color = textColor,
-                )
-                val timestamp = message.createdAt
-                if (timestamp != null) {
-                    Spacer(modifier = Modifier.width(6.dp))
-                    MessageTimestamp(isoTimestamp = timestamp)
+                horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
+            ) {
+                // Name + timestamp inside bubble
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = if (isUser) {
+                            userName ?: stringResource(Res.string.sender_you)
+                        } else {
+                            message.sender ?: stringResource(Res.string.sender_assistant)
+                        },
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.SemiBold,
+                        ),
+                        color = textColor,
+                    )
+                    val timestamp = message.createdAt
+                    if (timestamp != null) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        MessageTimestamp(isoTimestamp = timestamp)
+                    }
                 }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Message content
+                MessageContentAndActions(
+                    message = message,
+                    isUser = isUser,
+                    isEditing = isEditing,
+                    editText = editText,
+                    onEditTextChange = onEditTextChange,
+                    onEditSaveAndSubmit = onEditSaveAndSubmit,
+                    onEditSaveOnly = onEditSaveOnly,
+                    onEditCancel = onEditCancel,
+                    baseUrl = baseUrl,
+                    fontSizeMultiplier = fontSizeMultiplier,
+                    useKatex = useKatex,
+                    showImageDescriptions = showImageDescriptions,
+                    searchQuery = searchQuery,
+                    isSearchMatch = isSearchMatch,
+                    isCurrentSearchMatch = isCurrentSearchMatch,
+                    searchFocusedOccurrence = searchFocusedOccurrence,
+                    onFocusedOccurrencePosition = onFocusedOccurrencePosition,
+                    showActions = showActions,
+                    siblingIndex = siblingIndex,
+                    siblingCount = siblingCount,
+                    onSiblingNavigation = onSiblingNavigation,
+                    onEdit = onEdit,
+                    onRegenerate = onRegenerate,
+                    onCopy = onCopy,
+                    onFeedback = onFeedback,
+                    onContinue = onContinue,
+                    onReadAloud = onReadAloud,
+                    onFork = onFork,
+                    isReading = isReading,
+                    currentFeedback = currentFeedback,
+                    userName = userName,
+                    userAvatarUrl = userAvatarUrl,
+                    alignImagesEnd = isUser,
+                )
             }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // Message content
-            MessageContentAndActions(
-                message = message,
-                isUser = isUser,
-                isEditing = isEditing,
-                editText = editText,
-                onEditTextChange = onEditTextChange,
-                onEditSaveAndSubmit = onEditSaveAndSubmit,
-                onEditSaveOnly = onEditSaveOnly,
-                onEditCancel = onEditCancel,
-                baseUrl = baseUrl,
-                fontSizeMultiplier = fontSizeMultiplier,
-                useKatex = useKatex,
-                showImageDescriptions = showImageDescriptions,
-                searchQuery = searchQuery,
-                isSearchMatch = isSearchMatch,
-                isCurrentSearchMatch = isCurrentSearchMatch,
-                searchFocusedOccurrence = searchFocusedOccurrence,
-                onFocusedOccurrencePosition = onFocusedOccurrencePosition,
-                showActions = showActions,
-                siblingIndex = siblingIndex,
-                siblingCount = siblingCount,
-                onSiblingNavigation = onSiblingNavigation,
-                onEdit = onEdit,
-                onRegenerate = onRegenerate,
-                onCopy = onCopy,
-                onFeedback = onFeedback,
-                onContinue = onContinue,
-                onReadAloud = onReadAloud,
-                onFork = onFork,
-                isReading = isReading,
-                currentFeedback = currentFeedback,
-                userName = userName,
-                userAvatarUrl = userAvatarUrl,
-                alignImagesEnd = isUser,
-            )
         }
 
         // User avatar on right
         if (isUser && showAvatars) {
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(8.dp))
             AvatarImage(
                 imageUrl = userAvatarUrl,
                 fallbackText = userName ?: stringResource(Res.string.sender_you),

@@ -41,6 +41,8 @@ import com.garfiec.librechat.core.ui.components.topbar.BarIcons
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.glass.GlassControlColors
+import com.garfiec.librechat.core.ui.theme.UserBubbleLeadingInset
+import com.garfiec.librechat.core.ui.theme.userBubbleColors
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.viewmodel.ChatLayoutSettingsUiState
@@ -198,7 +200,7 @@ private fun ThreadSample(message: SampleMessage, showBubbles: Boolean, showAvata
                 .padding(start = if (showAvatars) 36.dp else 0.dp)
                 .then(if (bubble != null) Modifier.background(bubble, BubbleShape).padding(12.dp) else Modifier),
         ) {
-            SampleLines(message, MaterialTheme.colorScheme.onSurface)
+            SampleLines(message, lineColor(message.isUser, showBubbles))
         }
     }
 }
@@ -206,7 +208,8 @@ private fun ThreadSample(message: SampleMessage, showBubbles: Boolean, showAvata
 @Composable
 private fun TwoSidedSample(message: SampleMessage, showBubbles: Boolean, showAvatars: Boolean) {
     val isUser = message.isUser
-    val bubble = if (showBubbles) bubbleColor(isUser) else null
+    // TCHAT: as in `MessageBubble`, assistant replies have no bubble in the two-sided layout.
+    val bubble = if (showBubbles && isUser) bubbleColor(isUser = true) else null
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
@@ -214,11 +217,13 @@ private fun TwoSidedSample(message: SampleMessage, showBubbles: Boolean, showAva
     ) {
         if (!isUser && showAvatars) {
             SampleAvatar(isUser = false)
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(8.dp))
         }
+        // TCHAT: the user's bubble hugs its text and stays off the left edge, as in `MessageBubble`.
+        if (isUser) Spacer(modifier = Modifier.width(UserBubbleLeadingInset))
         Column(
             modifier = Modifier
-                .weight(1f)
+                .weight(1f, fill = !isUser)
                 .then(
                     if (bubble != null) {
                         Modifier.background(bubble, BubbleShape).padding(12.dp)
@@ -228,13 +233,13 @@ private fun TwoSidedSample(message: SampleMessage, showBubbles: Boolean, showAva
                 ),
             horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
         ) {
-            // As in `MessageBubble`, only the name takes the bubble's content colour; the text stays onSurface.
+            // TCHAT: on the filled user bubble the name and text both take its content colour.
             SampleName(nameColor(isUser, showBubbles), height = 8.dp)
             Spacer(modifier = Modifier.height(4.dp))
-            SampleLines(message, MaterialTheme.colorScheme.onSurface)
+            SampleLines(message, lineColor(isUser, showBubbles))
         }
         if (isUser && showAvatars) {
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(8.dp))
             SampleAvatar(isUser = true)
         }
     }
@@ -271,7 +276,7 @@ private fun SampleName(color: Color, height: Dp = 10.dp) {
  */
 @Composable
 private fun SampleLines(message: SampleMessage, color: Color) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         message.lines.forEach { width ->
             Box(
                 modifier = Modifier
@@ -283,16 +288,21 @@ private fun SampleLines(message: SampleMessage, color: Color) {
     }
 }
 
+// TCHAT: the user's bubble is filled (`userBubbleColors`), as in `MessageBubble`.
 @Composable
 private fun bubbleColor(isUser: Boolean): Color =
-    if (isUser) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant
+    if (isUser) userBubbleColors().container else MaterialTheme.colorScheme.surfaceVariant
 
 @Composable
 private fun nameColor(isUser: Boolean, showBubbles: Boolean): Color = when {
     !showBubbles -> MaterialTheme.colorScheme.onSurface
-    isUser -> MaterialTheme.colorScheme.onSecondaryContainer
+    isUser -> userBubbleColors().content
     else -> MaterialTheme.colorScheme.onSurfaceVariant
 }
+
+@Composable
+private fun lineColor(isUser: Boolean, showBubbles: Boolean): Color =
+    if (showBubbles && isUser) userBubbleColors().content else MaterialTheme.colorScheme.onSurface
 
 private val SectionGap = 16.dp
 private val AvatarSize = 28.dp

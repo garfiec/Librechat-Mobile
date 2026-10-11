@@ -258,7 +258,7 @@ fun CommonChatInputCore(
             if (state.isEditingQueued) {
                 EditingQueuedBanner(
                     onCancel = onCancelEdit,
-                    modifier = Modifier.padding(bottom = 6.dp),
+                    modifier = Modifier.padding(bottom = 8.dp),
                 )
             } else if (queuedPausedCount > 0 && !state.isStreaming) {
                 // Gated on !isStreaming: resume() lifts the pause and POPS the head, but
@@ -268,7 +268,7 @@ fun CommonChatInputCore(
                 SendQueuedBanner(
                     count = queuedPausedCount,
                     onClick = onSendQueuedMessages,
-                    modifier = Modifier.padding(bottom = 6.dp),
+                    modifier = Modifier.padding(bottom = 8.dp),
                 )
             }
 
@@ -303,7 +303,7 @@ fun CommonChatInputCore(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 6.dp),
+                        .padding(bottom = 8.dp),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {

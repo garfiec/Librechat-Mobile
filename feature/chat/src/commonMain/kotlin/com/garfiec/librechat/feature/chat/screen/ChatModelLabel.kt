@@ -6,6 +6,7 @@ import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.chat_agent_fallback_label
+import com.garfiec.librechat.feature.chat.tchat.formatModelLabel
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -64,7 +65,8 @@ internal fun chatModelLabel(
     val displayModel = if (selectedEndpoint == EndpointConstants.AGENTS) {
         agentName ?: agentFallbackLabel
     } else {
-        selectedModel
+        // TCHAT: the readable label ("GPT-6 Luna"), never the raw id; the picker shows the id.
+        selectedModel?.let(::formatModelLabel)
     }
     return ChatModelLabel(agentName = agentName, displayModel = displayModel)
 }

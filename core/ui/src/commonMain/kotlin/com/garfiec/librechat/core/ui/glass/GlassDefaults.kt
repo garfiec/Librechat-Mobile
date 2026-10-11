@@ -10,7 +10,7 @@ internal object GlassDefaults {
 
     val Hairline = 0.5.dp
 
-    val MenuShape = RoundedCornerShape(16.dp)
+    val MenuShape = RoundedCornerShape(12.dp) // TCHAT: radius-md (was 16)
 
     /** Extra wash for a panel of text (sheet, menu), so rows stay legible over a busy screen. */
     fun panelThickening(surface: Color, dark: Boolean): Color =

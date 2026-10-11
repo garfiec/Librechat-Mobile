@@ -89,7 +89,7 @@ fun AgentFileAttachments(
                         modifier = Modifier.size(16.dp),
                     )
                 }
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(stringResource(Res.string.add_file))
             }
         }

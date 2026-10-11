@@ -46,6 +46,8 @@ import com.garfiec.librechat.feature.chat.components.addToChatSelectionItem
 import com.garfiec.librechat.feature.chat.components.rememberChatAttachmentActions
 import com.garfiec.librechat.feature.chat.components.rememberChatOptionsSheetController
 import com.garfiec.librechat.feature.chat.prompts.components.VariableInputDialog
+import com.garfiec.librechat.feature.chat.tchat.ImageGenComposerChip
+import com.garfiec.librechat.feature.chat.tchat.imageGenIndicatorLabel
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.UpdateBannerViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.asString
@@ -329,6 +331,16 @@ fun ChatScreen(
                                 onCancelAutoAdvance = viewModel::cancelPausePanelAutoAdvance,
                                 onSubmit = viewModel::resolveToolApproval,
                                 modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp),
+                            )
+                        }
+                        // TCHAT: Image Gen's chip above the composer (tap: picker on Image Gen; ✕: off).
+                        val imageGenLabel = uiState.imageGenIndicatorLabel
+                        if (askPause == null && imageGenLabel != null) {
+                            ImageGenComposerChip(
+                                imageLabel = imageGenLabel,
+                                onOpen = viewModel::openModelSheetOnImageGen,
+                                onTurnOff = viewModel::turnOffImageGen,
+                                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp),
                             )
                         }
                         if (askPause != null) {

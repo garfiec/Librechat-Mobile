@@ -56,7 +56,7 @@ private data class AdditionalPreferences(
     val inlineArtifactPrefs: InlineArtifactPrefs = InlineArtifactPrefs(),
     val artifactDisplayPrefs: ArtifactDisplayPrefs = ArtifactDisplayPrefs(),
     val starredModelsDisplay: StarredModelsDisplay = StarredModelsDisplay.GROUPED,
-    val chatHeaderContent: ChatHeaderContent = ChatHeaderContent.TITLE,
+    val chatHeaderContent: ChatHeaderContent = ChatHeaderContent.DEFAULT, // TCHAT: was TITLE
     val chatHeaderAlignment: ChatHeaderAlignment = ChatHeaderAlignment.LEFT,
     val contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
     val duringRunAction: DuringRunAction = DuringRunAction.STEER,

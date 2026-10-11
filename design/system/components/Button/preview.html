@@ -1,0 +1,17 @@
+<!-- @dsCard group="Actions" height=200 -->
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Button — preview</title></head>
+<body>
+<div id="root" class="tc-stack" style="max-width:none"></div>
+<script>
+var T = window.Tchat, h = React.createElement;
+function Row(p){ return h('div', {style:{display:'flex',gap:'12px',flexWrap:'wrap',alignItems:'center'}}, p.children); }
+ReactDOM.createRoot(document.getElementById('root')).render(h(React.Fragment, null,
+  h(Row, null, h(T.Button, {icon:'add'}, 'New chat'), h(T.Button, {variant:'tonal'}, 'Start a new chat'), h(T.Button, {variant:'outlined'}, 'Import'), h(T.Button, {variant:'text'}, 'Cancel')),
+  h(Row, null, h(T.Button, {tone:'danger', icon:'delete'}, 'Delete conversation'), h(T.Button, {variant:'outlined', tone:'danger'}, 'Sign out'), h(T.Button, {loading:true}, 'Saving'), h(T.Button, {disabled:true}, 'Disabled')),
+  h(Row, null, h(T.Button, {size:'sm', variant:'tonal', icon:'copy'}, 'Copy'), h(T.Button, {variant:'text', icon:'search', label:'Search conversations'}), h(T.Button, {variant:'text', icon:'close', label:'Close'}))
+));
+</script>
+</body>
+</html>

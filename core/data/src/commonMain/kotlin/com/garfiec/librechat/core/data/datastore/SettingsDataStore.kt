@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.garfiec.librechat.core.common.ChatLayoutConstants
 import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.currentAccountId
@@ -324,7 +325,7 @@ class SettingsDataStore(
     }
 
     val chatLayoutStyle: Flow<String> = dataStore.data.map { prefs ->
-        prefs[KEY_CHAT_LAYOUT_STYLE] ?: "thread"
+        prefs[KEY_CHAT_LAYOUT_STYLE] ?: ChatLayoutConstants.DEFAULT // TCHAT: was "thread"
     }
 
     // Unlike the typed enum prefs above (StarredModelsDisplay, ContextBarPlacement, …), these are
@@ -357,7 +358,7 @@ class SettingsDataStore(
     }
 
     val showBubbles: Flow<Boolean> = dataStore.data.map { prefs ->
-        prefs[KEY_SHOW_BUBBLES] ?: false
+        prefs[KEY_SHOW_BUBBLES] ?: ChatLayoutConstants.DEFAULT_SHOW_BUBBLES // TCHAT: was false
     }
 
     val inlineArtifactPrefs: Flow<InlineArtifactPrefs> = dataStore.data.map { prefs ->

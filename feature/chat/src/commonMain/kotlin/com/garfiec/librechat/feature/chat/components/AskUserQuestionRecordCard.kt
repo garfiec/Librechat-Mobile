@@ -311,7 +311,7 @@ private fun OptionRow(label: String, picked: Boolean) {
                 MaterialTheme.colorScheme.onSurfaceVariant
             },
         )
-        Spacer(modifier = Modifier.width(6.dp))
+        Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall,

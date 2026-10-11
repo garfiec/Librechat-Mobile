@@ -311,7 +311,7 @@ internal fun MessageContentAndActions(
                 if (isUser && !quotes.isNullOrEmpty()) {
                     MessageQuotes(
                         quotes = quotes,
-                        modifier = Modifier.padding(bottom = 6.dp),
+                        modifier = Modifier.padding(bottom = 8.dp),
                     )
                 }
 

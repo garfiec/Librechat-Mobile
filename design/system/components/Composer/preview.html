@@ -1,0 +1,17 @@
+<!-- @dsCard group="Chat" height=280 -->
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Composer — preview</title></head>
+<body>
+<div id="root" class="tc-stack" style="max-width:520px"></div>
+<script>
+var T = window.Tchat, h = React.createElement;
+ReactDOM.createRoot(document.getElementById('root')).render(h(React.Fragment, null,
+  h(T.Composer, null),
+  h(T.Composer, {defaultValue:'Summarize the meeting notes in three bullets'}),
+  h(T.Composer, {streaming:true, placeholder:'Message Research Agent'}),
+  h(T.Composer, {above: h(T.Chip, {icon:'image', defaultSelected:true, onClick:function(){}, onRemove:function(){}, removeLabel:'Turn off Image Gen'}, 'GPT Image')})
+));
+</script>
+</body>
+</html>

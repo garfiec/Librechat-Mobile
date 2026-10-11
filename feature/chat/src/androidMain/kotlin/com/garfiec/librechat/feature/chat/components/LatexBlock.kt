@@ -132,7 +132,7 @@ private fun NativeLatexBlock(
             .padding(vertical = 4.dp)
             .background(
                 color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                shape = RoundedCornerShape(6.dp),
+                shape = RoundedCornerShape(8.dp), // TCHAT: radius-sm, code blocks (was 6)
             )
             .horizontalScroll(rememberScrollState())
             .padding(horizontal = 12.dp, vertical = 8.dp),

@@ -240,7 +240,7 @@ private fun PolledTaskBlock(task: PolledTask) {
 
 @Composable
 private fun TaskText(label: String, text: String, isError: Boolean) {
-    Column(Modifier.padding(top = 6.dp)) {
+    Column(Modifier.padding(top = 8.dp)) {
         Text(
             label,
             style = MaterialTheme.typography.labelSmall,

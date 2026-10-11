@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tchat-only strings (model picker, Image Gen). A separate file so upstream's strings.xml
+     never conflicts on a sync. See design/model-selection-requirements.md. -->
+<resources>
+    <string name="tchat_choose_model">Choose a model</string>
+    <string name="tchat_search_models">Search models</string>
+    <string name="tchat_all">All</string>
+    <string name="tchat_free">Free</string>
+    <string name="tchat_current">Current</string>
+    <string name="tchat_pinned">Pinned</string>
+    <string name="tchat_image_gen">Image Gen</string>
+    <string name="tchat_agents">Agents</string>
+    <string name="tchat_agent">Agent</string>
+    <string name="tchat_image_gen_intro">Image models make pictures. Picking one turns Image Gen on and keeps your chat model. Pick it again to turn Image Gen off.</string>
+    <string name="tchat_image_gen_on">On</string>
+    <string name="tchat_pin">Pin</string>
+    <string name="tchat_unpin">Unpin</string>
+    <string name="tchat_no_results">No models match “%1$s”</string>
+    <string name="tchat_search_all_makers">Search all makers</string>
+    <string name="tchat_clear_search">Clear search</string>
+    <string name="tchat_trigger_cd">Choose model. Current: %1$s</string>
+    <string name="tchat_trigger_cd_image">Choose model. Current: %1$s. Image Gen: %2$s</string>
+    <string name="tchat_image_chip_cd">Image Gen: %1$s. Opens the model picker.</string>
+    <string name="tchat_image_chip_remove">Turn off Image Gen</string>
+    <string name="tchat_image_gen_tool_desc">Let the model make and edit images</string>
+    <string name="tchat_image_model_moved">%1$s only makes images, so it now runs through Image Gen. This chat continues on %2$s.</string>
+</resources>

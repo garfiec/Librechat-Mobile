@@ -66,7 +66,7 @@ data class ChatSettingsUiState(
     // Mobile-only: how pinned models/agents surface in the model-selection sheet
     val starredModelsDisplay: StarredModelsDisplay = StarredModelsDisplay.GROUPED,
     // Mobile-only: what the chat floating top bar shows + how its bubble is aligned
-    val chatHeaderContent: ChatHeaderContent = ChatHeaderContent.TITLE,
+    val chatHeaderContent: ChatHeaderContent = ChatHeaderContent.DEFAULT, // TCHAT: was TITLE
     val chatHeaderAlignment: ChatHeaderAlignment = ChatHeaderAlignment.LEFT,
     // Inline artifact rendering (per-type toggles)
     val inlineArtifactPrefs: InlineArtifactPrefs = InlineArtifactPrefs(),

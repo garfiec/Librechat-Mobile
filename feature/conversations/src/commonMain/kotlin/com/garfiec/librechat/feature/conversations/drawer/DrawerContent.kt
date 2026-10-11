@@ -161,7 +161,7 @@ private val ItemShape = RoundedCornerShape(8.dp)
 private fun LazyListScope.drawerHeader(glass: Boolean, key: Any, content: @Composable LazyItemScope.() -> Unit) {
     if (glass) item(key = key, content = content) else stickyHeader(key = key) { content() }
 }
-private val ActiveIndicatorShape = RoundedCornerShape(2.dp)
+private val ActiveIndicatorShape = RoundedCornerShape(4.dp) // TCHAT: radius-xs (was 2)
 
 // Pulls a tappable drawer row in from the edges and clips its ripple to [ItemShape], so every row
 // reads as the same inset, rounded button instead of a full-bleed rectangular highlight. Apply
@@ -1126,7 +1126,7 @@ private fun ProjectFolderAccordion(
                 .fillMaxWidth()
                 .drawerRowShape()
                 .clickable(onClick = onToggle)
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(horizontal = 12.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
@@ -1239,7 +1239,7 @@ private fun DrawerConversationItem(
                     // menuDragAnchor already fires the hold haptic; on here it buzzes twice.
                     hapticFeedbackEnabled = false,
                 )
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(horizontal = 12.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (data.isActive && !glass) {
@@ -1272,7 +1272,7 @@ private fun DrawerConversationItem(
                 )
             }
 
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -1397,7 +1397,7 @@ private fun SectionHeader(
             modifier = Modifier.size(14.dp),
             tint = MaterialTheme.colorScheme.primary,
         )
-        Spacer(modifier = Modifier.width(6.dp))
+        Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = title,
             style = MaterialTheme.typography.labelSmall,

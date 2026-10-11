@@ -35,7 +35,7 @@ import org.jetbrains.compose.resources.stringResource
 
 // Rounded to match the app's other surfaces (dialogs/sheets) rather than the menu default's
 // near-square corners.
-private val MenuShape = RoundedCornerShape(16.dp)
+private val MenuShape = RoundedCornerShape(12.dp) // TCHAT: radius-md (was 16)
 
 /**
  * Anchored dropdown variant of [ConversationActions]. Same action set, but presented as a

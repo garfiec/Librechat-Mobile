@@ -78,6 +78,76 @@ so nothing gets hardcoded into a file upstream also edits.
 - **Branding** — app name, splash colour (`#0C0F1A`, TensorGrid's ground colour), accent seed
   (`#4F8CFF`), launcher icons. See `design/README.md` for the icon source and regeneration steps.
 
+## Theme (design system)
+
+The look follows `design/system/` (tokens in `tokens.json`; what changed and why in `Audit.md`).
+First pass, all in `:core:ui`:
+
+- **Fixed palette** — `theme/TchatPalette.kt` maps the design tokens onto M3 roles (the mapping is
+  in its header comment). `LibreChatTheme` uses it instead of upstream's MaterialKolor scheme, which
+  derived every role, neutrals included, from the accent seed. The brand seed gets the token values
+  exactly; another accent from the picker changes only the accent roles; wallpaper dynamic color
+  still wins when the user turns it on. `LocalFixedPalette` tells the two apart, so
+  `GlassControlColors` can use the one accent in dark mode and paint grouped pages `bg` / cells
+  `surface`.
+- **Type scale** (`theme/Type.kt`) — all twelve token styles mapped to M3, so nothing is under 12sp
+  and `titleSmall` out-ranks body text.
+- **Corners** (`theme/Shape.kt`) — the six radius steps.
+- **Avatars** (`components/AvatarColors.kt`) — five colours darkened so white initials pass 4.5:1.
+
+- **User bubbles** (`theme/UserBubbleTheme.kt`) — filled `bubble-user` (the accent in light, deep
+  navy in dark). The bubble's contents are drawn under a recoloured scheme so text, links, code
+  wells, timestamps and actions read on the fill; the `MessageBubble` (Android) and
+  `PlatformChatComponents.ios.kt` bubble columns are wrapped in it. A bubble being edited keeps
+  the tonal fill, so the edit field is unchanged.
+
+- **Chat layout** — chats open two-sided with bubbles (`ChatLayoutConstants.DEFAULT` /
+  `DEFAULT_SHOW_BUBBLES`; upstream: thread, bubbles off). In the two-sided layout the user's bubble
+  hugs its text on the right, kept `UserBubbleLeadingInset` (48dp) off the left edge, and
+  assistant replies have no bubble and run the full width. Both remain settings.
+- **Spacing grid** — off-grid spacing literals inside `padding(…)`, `spacedBy(…)`,
+  `PaddingValues(…)` and `Spacer(…)` were moved to the nearest 4px step, ties up
+  (3→4, 6→8, 10→12, 14→16, 22→24, 30→32; 95 literals in 48 files). Component sizes (icons at
+  18dp, bars) were left alone. A later upstream sync may reintroduce off-grid values in files it
+  touches; re-run the same rule rather than hand-merging.
+
+- **Radius and font-size literals** — every `RoundedCornerShape(N.dp)` is now a token step
+  (4 / 8 / 12 / 20 / 28, plus 0 and 999 pills), chosen by role: `BubbleShape` and the composer 20,
+  menus, cards, banners and inputs 12, dialogs and sheets 28, quote and code backgrounds 8, the
+  drag handle and indicators 4. Every `fontSize = N.sp` is on the type scale (12 / 13 / 14 code /
+  15 / 16 / 24); nothing is below 12sp. Each changed literal carries a `// TCHAT:` note with the
+  old value. The Settings → Chat layout preview mirrors `MessageBubble` (filled, compact user
+  bubble; no assistant bubble two-sided).
+
+Not yet done: the Reduce Transparency glass fallback.
+
+## Model picker and Image Gen
+
+Tchat's picker replaces upstream's endpoint-grouped `ModelSelectorSheet` everywhere it opens: the
+top-bar trigger, send-block auto-opens, comparison mode's second model and the options sheet's
+Model page. It ports Tchat web's picker (`Tchat/client/src/components/Chat/Menus/Endpoints/Tchat/`).
+The design is `design/system/Model selection.md`; the requirements and the review decisions are
+in `design/model-selection-requirements.md`.
+
+- **Fork-only code** lives in `feature/chat/.../tchat/`: `ModelOwners.kt` (the owner table, label
+  rules, catalog view and repair matching, all ported from web and kept in step with it),
+  `TchatPickerModel.kt` (grouping, dedupe, pinned, search), `TchatModelDelegate.kt` (loads the
+  catalog, `imageList` and tool availability; owns Image Gen and the image-model repair),
+  `TchatModelPicker.kt` / `TchatModelTrigger.kt` (UI). Strings are in `values/tchat_strings.xml`.
+- **Server inputs**, all Tchat additions that stock LibreChat doesn't serve:
+  `GET /api/tchat/models/catalog` (`TchatCatalogApi`, `TchatModelCatalogRepository`),
+  `modelSpecs.imageList` (`ImageSpec`), and `ephemeralAgent.image_gen` (`EphemeralAgent.imageGen`).
+  Image Gen is offered only when `GET /api/agents/tools` lists `image_gen_oai`, as on web.
+- **Image Gen is app-wide**, persisted in `TchatSettingsStore.imageGenSelection` (fork-only, same DataStore), like mobile's
+  other tool toggles (web keys it per conversation). It's synthesized into `effectiveEnabledTools`
+  as `image_gen`, so the tools sheet's switch and `toggleTool` route to the delegate.
+- **Upstream files touched** carry `// TCHAT:` as usual. `ModelSelectorSheet.kt` and
+  `ModelSelectorButton.kt` are left unchanged (the latter still draws comparison mode's dual-pane
+  labels), so syncs merge them cleanly; the options sheet keeps upstream's selector as a fallback
+  branch that the Tchat host never takes.
+- **The header defaults to the model** (`ChatHeaderContent.DEFAULT`), and composer and pane labels
+  use `formatModelLabel`, so a raw model id shows only in the picker.
+
 ## Upstream bugs fixed here first
 
 - **OAuth was broken** (wrong `/api/oauth` path, and an external browser whose cookie jar the app

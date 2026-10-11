@@ -1,0 +1,20 @@
+<!-- @dsCard group="Lists" height=420 -->
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>ListGroup — preview</title></head>
+<body>
+<div id="root" style="padding:16px;max-width:420px"></div>
+<script>
+var T = window.Tchat, h = React.createElement, R = T.ListGroup.Row;
+ReactDOM.createRoot(document.getElementById('root')).render(h(React.Fragment, null,
+  h(T.ListGroup, {title:'Account'},
+    h(R, {leading: h(T.Avatar, {name:'Sam Rivera', size:'md'}), title:'Sam Rivera', subtitle:'Signed in with TensorGrid', chevron:true})),
+  h(T.ListGroup, {title:'Preferences', footer:'Applies on this device only.'},
+    h(R, {icon:'contrast', title:'Appearance', value:'System', chevron:true}),
+    h(R, {icon:'bell', title:'Notifications', chevron:true}),
+    h(R, {icon:'person', title:'Personalization', chevron:true})),
+  h(T.ListGroup, null, h(R, {icon:'delete', title:'Delete all conversations', tone:'danger', onClick:function(){}}))
+));
+</script>
+</body>
+</html>

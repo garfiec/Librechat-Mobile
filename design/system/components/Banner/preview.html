@@ -1,0 +1,17 @@
+<!-- @dsCard group="Feedback" height=330 -->
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Banner — preview</title></head>
+<body>
+<div id="root" class="tc-stack"></div>
+<script>
+var T = window.Tchat, h = React.createElement;
+ReactDOM.createRoot(document.getElementById('root')).render(h(React.Fragment, null,
+  h(T.Banner, {tone:'danger', title:"Couldn't reach the server", action:'Retry'}, 'Check your connection and try again.'),
+  h(T.Banner, {tone:'warning', dismissible:true}, 'Scheduled maintenance tonight at 23:00 UTC.'),
+  h(T.Banner, {tone:'success'}, 'Conversation exported to Downloads.'),
+  h(T.Banner, {tone:'info', action:'Review'}, '3 conversations were archived automatically.')
+));
+</script>
+</body>
+</html>

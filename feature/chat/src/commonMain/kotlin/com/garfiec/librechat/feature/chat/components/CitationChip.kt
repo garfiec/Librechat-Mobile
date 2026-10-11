@@ -111,7 +111,7 @@ fun parseCitations(text: String): Pair<AnnotatedString, List<Citation>> {
             pushStringAnnotation(tag = CITATION_TAG, annotation = citation.number.toString())
             withStyle(
                 SpanStyle(
-                    fontSize = 11.sp,
+                    fontSize = 12.sp, // TCHAT: label-sm floor (was 11)
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 0.sp,
                 ),
@@ -273,7 +273,7 @@ private fun CitationPopup(
                 )
                 Row(
                     modifier = Modifier
-                        .padding(top = 6.dp)
+                        .padding(top = 8.dp)
                         .clickable {
                             uriHandler.openUri(citationUrl)
                             onDismiss()

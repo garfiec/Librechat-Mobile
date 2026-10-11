@@ -13,6 +13,7 @@ import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.data.datastore.TchatSettingsStore
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
@@ -30,6 +31,7 @@ import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
 import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
+import com.garfiec.librechat.core.data.repository.TchatModelCatalogRepository
 import com.garfiec.librechat.core.data.repository.TraceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
@@ -52,6 +54,10 @@ import com.garfiec.librechat.feature.chat.components.ParsedMarkdownCache
 import com.garfiec.librechat.feature.chat.components.PausePanelAutoAdvance
 import com.garfiec.librechat.feature.chat.model.PresetDisplayData
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
+import com.garfiec.librechat.feature.chat.tchat.IMAGE_GEN_TOOL_KEY
+import com.garfiec.librechat.feature.chat.tchat.IMAGE_GROUP_ID
+import com.garfiec.librechat.feature.chat.tchat.ImageModelRepair
+import com.garfiec.librechat.feature.chat.tchat.TchatModelDelegate
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
 import com.garfiec.librechat.feature.chat.util.NEW_CHAT_DRAFT_KEY
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
@@ -150,6 +156,9 @@ class ChatViewModel(
     private val serverFileSelectionHandoff: ServerFileSelectionHandoff,
     private val promptInsertionHandoff: PromptInsertionHandoff,
     private val siteIconPromptSession: SiteIconPromptSession,
+    // TCHAT: TensorGrid model catalog and Tchat-only preferences for the Tchat model picker.
+    tchatModelCatalogRepository: TchatModelCatalogRepository,
+    tchatSettingsStore: TchatSettingsStore,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -210,6 +219,21 @@ class ChatViewModel(
         initialAgentId = initialAgentId,
         initialEndpoint = initialEndpoint,
         initialModel = initialModel,
+    )
+
+    // TCHAT: Tchat picker inputs, Image Gen and the image-model repair.
+    private val _imageModelRepairs = Channel<ImageModelRepair>(Channel.BUFFERED)
+
+    /** TCHAT: one-shot "this image model now runs through Image Gen" notices (R24). */
+    val imageModelRepairs: Flow<ImageModelRepair> = _imageModelRepairs.receiveAsFlow()
+    private val tchatModelDelegate = TchatModelDelegate(
+        handle = ModelSelectionHandle(stateHandle),
+        configRepository = configRepository,
+        catalogRepository = tchatModelCatalogRepository,
+        agentRepository = agentRepository,
+        tchatSettings = tchatSettingsStore,
+        selectModel = modelDelegate::onModelSelected,
+        onRepaired = { _imageModelRepairs.trySend(it) },
     )
     private val keyStatusDelegate = EndpointKeyStatusDelegate(
         handle = EndpointKeyHandle(stateHandle),
@@ -700,6 +724,8 @@ class ChatViewModel(
         // list can't supply (its projection omits the field). Continuous — the selection moves
         // well after startup.
         modelDelegate.observeSelectedAgentProvider()
+
+        tchatModelDelegate.start() // TCHAT
 
         viewModelScope.launch {
             configRepository.endpointConfigs.collect { configs ->
@@ -1309,6 +1335,7 @@ class ChatViewModel(
     fun prepareModelSelector() {
         modelDelegate.retryAgentsIfFailed(isNewConversation)
         favoritesDelegate.refresh()
+        tchatModelDelegate.refresh() // TCHAT
     }
 
     /**
@@ -1327,8 +1354,29 @@ class ChatViewModel(
 
     /** Dismisses the model-selector sheet. Called on sheet dismiss and model selection. */
     fun dismissModelSheet() {
-        _uiState.update { it.copy(selection = it.selection.copy(showModelSheet = false)) }
+        _uiState.update {
+            it.copy(
+                selection = it.selection.copy(
+                    showModelSheet = false,
+                    tchat = it.selection.tchat.copy(pickerOpenOn = null), // TCHAT
+                ),
+            )
+        }
     }
+
+    /** TCHAT: the Image Gen chip opens the picker on the Image Gen group (R20). */
+    fun openModelSheetOnImageGen() {
+        _uiState.update {
+            it.copy(selection = it.selection.copy(tchat = it.selection.tchat.copy(pickerOpenOn = IMAGE_GROUP_ID)))
+        }
+        surfaceModelSheet()
+    }
+
+    /** TCHAT: a picker's Image Gen row toggles Image Gen with that entry (R16). */
+    fun onImageRowPicked(name: String) = tchatModelDelegate.onImageRowPicked(name)
+
+    /** TCHAT: the Image Gen chip's ✕. */
+    fun turnOffImageGen() = tchatModelDelegate.setImageGen(null)
 
     /** Backs [com.garfiec.librechat.feature.chat.components.LocalAttachmentDownloader]; see [ChatConfigDelegate.downloadFileBytes]. */
     suspend fun downloadFileBytes(fileId: String): ByteArray? = chatConfigDelegate.downloadFileBytes(fileId)
@@ -1467,7 +1515,10 @@ class ChatViewModel(
     fun setSecondaryModel(endpoint: String, model: String) = comparisonDelegate.setSecondaryModel(endpoint, model)
     fun getSecondaryModelDisplayName(): String? = comparisonDelegate.getSecondaryModelDisplayName()
     fun toggleMcpServer(serverName: String) = modelDelegate.toggleMcpServer(serverName)
-    fun toggleTool(toolName: String) = modelDelegate.toggleTool(toolName)
+    fun toggleTool(toolName: String) {
+        // TCHAT: Image Gen isn't an enabledTools entry; it has its own selection.
+        if (toolName == IMAGE_GEN_TOOL_KEY) tchatModelDelegate.toggleImageGen() else modelDelegate.toggleTool(toolName)
+    }
     fun updateModelParameters(parameters: ModelParameters) = modelDelegate.updateModelParameters(parameters)
 
     fun branchFromComparison(agentId: String) = comparisonDelegate.branchFromComparison(agentId)
