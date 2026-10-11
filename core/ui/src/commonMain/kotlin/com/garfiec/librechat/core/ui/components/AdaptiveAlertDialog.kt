@@ -13,6 +13,7 @@ import com.garfiec.librechat.core.ui.glass.GlassFloatingDialog
 import com.garfiec.librechat.core.ui.glass.GlassPortal
 import com.garfiec.librechat.core.ui.glass.LocalGlassSheetHost
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
+import com.garfiec.librechat.core.ui.theme.overlaySurfaceColor
 
 /**
  * In Liquid Glass, a glass panel portalled into the app canvas; outside a host or inside another
@@ -28,7 +29,7 @@ fun AdaptiveAlertDialog(
     title: @Composable (() -> Unit)? = null,
     text: @Composable (() -> Unit)? = null,
     shape: Shape = AlertDialogDefaults.shape,
-    containerColor: Color = AlertDialogDefaults.containerColor,
+    containerColor: Color = overlaySurfaceColor, // TCHAT: `surface-overlay` (was AlertDialogDefaults.containerColor)
     iconContentColor: Color = AlertDialogDefaults.iconContentColor,
     titleContentColor: Color = AlertDialogDefaults.titleContentColor,
     textContentColor: Color = AlertDialogDefaults.textContentColor,

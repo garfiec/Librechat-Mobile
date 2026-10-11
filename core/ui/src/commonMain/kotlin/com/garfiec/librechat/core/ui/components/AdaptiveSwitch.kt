@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchColors
 import androidx.compose.material3.SwitchDefaults
@@ -45,7 +48,12 @@ fun AdaptiveSwitch(
             checked = checked,
             onCheckedChange = onCheckedChange,
             modifier = modifier,
-            thumbContent = thumbContent,
+            // TCHAT: on shows a check in the thumb, so the state reads without colour (design Switch).
+            thumbContent = thumbContent ?: if (checked) {
+                { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(SwitchDefaults.IconSize)) }
+            } else {
+                null
+            },
             enabled = enabled,
             colors = colors,
             interactionSource = interactionSource,

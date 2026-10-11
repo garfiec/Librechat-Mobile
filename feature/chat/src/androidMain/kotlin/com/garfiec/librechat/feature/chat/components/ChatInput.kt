@@ -121,8 +121,6 @@ fun ChatInput(
     val cdOpenToolsMenu = stringResource(Res.string.cd_open_tools_menu)
     val cdPasteImage = stringResource(Res.string.cd_paste_image)
     val cdMessageInput = stringResource(Res.string.cd_message_input)
-    val cdStopVoiceRec = stringResource(Res.string.cd_stop_voice_recording)
-    val cdStartVoiceRec = stringResource(Res.string.cd_start_voice_recording)
 
     val focusRequester = remember { FocusRequester() }
 
@@ -177,6 +175,13 @@ fun ChatInput(
         state = state,
         onSend = onSend,
         onStop = onStop,
+        // TCHAT: the mic lives in the trailing slot (one right-hand action: voice, send or stop).
+        voice = ComposerVoice(
+            isRecording = isRecording,
+            isTranscribing = isTranscribing,
+            onStart = onStartRecording,
+            onStop = onStopRecording,
+        ),
         onSelectPrompt = onSlashCommandSelect,
         onToggleTool = onToggleTool,
         onQueue = onQueue,
@@ -296,35 +301,6 @@ fun ChatInput(
                     keyboardOptions = ChatInputDefaults.keyboardOptions,
                     keyboardActions = KeyboardActions.Default,
                     maxLines = 6,
-                    trailingIcon = {
-                        val micBounce = rememberPressBounce()
-                        IconButton(
-                            onClick = {
-                                if (isRecording) {
-                                    onStopRecording()
-                                } else {
-                                    onStartRecording()
-                                }
-                            },
-                            modifier = Modifier
-                                .size(40.dp)
-                                .pressBounce(micBounce, enabled = !isLiquidGlass && !isTranscribing)
-                                .semantics {
-                                    contentDescription = if (isRecording) {
-                                        cdStopVoiceRec
-                                    } else {
-                                        cdStartVoiceRec
-                                    }
-                                    role = Role.Button
-                                },
-                            enabled = !isTranscribing,
-                        ) {
-                            VoiceMicIndicator(
-                                isRecording = isRecording,
-                                isTranscribing = isTranscribing,
-                            )
-                        }
-                    },
                 )
             }
         },

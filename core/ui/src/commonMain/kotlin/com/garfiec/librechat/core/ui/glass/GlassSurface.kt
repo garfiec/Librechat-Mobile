@@ -14,6 +14,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.ui.GlassCapability
 import com.garfiec.librechat.core.ui.theme.LocalDarkTheme
+import com.garfiec.librechat.core.ui.theme.LocalFixedPalette
 import com.garfiec.librechat.core.ui.theme.LocalGlassLevel
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
@@ -61,7 +62,10 @@ fun rememberGlassStyle(): GlassStyle? {
     val scheme = MaterialTheme.colorScheme
     val dark = LocalDarkTheme.current
     val density = LocalDensity.current
-    return remember(level, scheme, dark, density) {
+    // TCHAT: under the fixed palette the flat tier (Reduce Transparency, devices that can't blur) is
+    // a solid `surface-raised`, per the design; upstream used surfaceContainerHigh at 94%.
+    val fixedPalette = LocalFixedPalette.current
+    return remember(level, scheme, dark, density, fixedPalette) {
         with(density) {
             GlassStyle(
                 level = level,
@@ -72,7 +76,7 @@ fun rememberGlassStyle(): GlassStyle? {
                 } else {
                     scheme.surface.copy(alpha = LIGHT_TINT_ALPHA)
                 },
-                flatColor = scheme.surfaceContainerHigh.copy(alpha = 0.94f),
+                flatColor = if (fixedPalette) scheme.surfaceContainer else scheme.surfaceContainerHigh.copy(alpha = 0.94f),
                 hairline = scheme.outlineVariant.copy(alpha = if (dark) 0.35f else 0.55f),
                 accent = scheme.primary,
                 blurPx = BlurRadius.toPx(),

@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import com.garfiec.librechat.core.ui.glass.GlassControlColors
+import com.garfiec.librechat.core.ui.theme.focusRingColor
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 
 // In Liquid Glass every chip is an iOS pill: a borderless capsule on the secondary fill, and a
@@ -47,7 +48,7 @@ fun AdaptiveFilterChip(
         selected = selected,
         onClick = onClick,
         label = label,
-        modifier = modifier,
+        modifier = modifier.focusRing(if (glass) CircleShape else shape, focusRingColor), // TCHAT
         enabled = enabled,
         leadingIcon = leadingIcon,
         trailingIcon = trailingIcon,
@@ -80,7 +81,7 @@ fun AdaptiveInputChip(
         selected = selected,
         onClick = onClick,
         label = label,
-        modifier = modifier,
+        modifier = modifier.focusRing(if (glass) CircleShape else shape, focusRingColor), // TCHAT
         enabled = enabled,
         leadingIcon = leadingIcon,
         avatar = avatar,
@@ -111,7 +112,7 @@ fun AdaptiveAssistChip(
     AssistChip(
         onClick = onClick,
         label = label,
-        modifier = modifier,
+        modifier = modifier.focusRing(if (glass) CircleShape else shape, focusRingColor), // TCHAT
         enabled = enabled,
         leadingIcon = leadingIcon,
         trailingIcon = trailingIcon,
@@ -140,7 +141,7 @@ fun AdaptiveSuggestionChip(
     SuggestionChip(
         onClick = onClick,
         label = label,
-        modifier = modifier,
+        modifier = modifier.focusRing(if (glass) CircleShape else shape, focusRingColor), // TCHAT
         enabled = enabled,
         icon = icon,
         shape = if (glass) CircleShape else shape,

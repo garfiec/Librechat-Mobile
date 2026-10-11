@@ -33,15 +33,17 @@ import com.garfiec.librechat.core.ui.components.AdaptivePillChoice
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AvatarImage
 import com.garfiec.librechat.core.ui.components.BubbleShape
+import com.garfiec.librechat.core.ui.components.USER_BUBBLE_MAX_FRACTION
+import com.garfiec.librechat.core.ui.components.UserBubbleShape
 import com.garfiec.librechat.core.ui.components.adaptiveSection
 import com.garfiec.librechat.core.ui.components.endpointIconPainter
+import com.garfiec.librechat.core.ui.components.maxWidthFraction
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.glass.GlassControlColors
-import com.garfiec.librechat.core.ui.theme.UserBubbleLeadingInset
 import com.garfiec.librechat.core.ui.theme.userBubbleColors
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
@@ -219,14 +221,14 @@ private fun TwoSidedSample(message: SampleMessage, showBubbles: Boolean, showAva
             SampleAvatar(isUser = false)
             Spacer(modifier = Modifier.width(8.dp))
         }
-        // TCHAT: the user's bubble hugs its text and stays off the left edge, as in `MessageBubble`.
-        if (isUser) Spacer(modifier = Modifier.width(UserBubbleLeadingInset))
         Column(
             modifier = Modifier
+                // TCHAT: as in `MessageBubble`, the user's bubble hugs its text, at most 80% of the row.
                 .weight(1f, fill = !isUser)
+                .then(if (isUser) Modifier.maxWidthFraction(USER_BUBBLE_MAX_FRACTION) else Modifier)
                 .then(
                     if (bubble != null) {
-                        Modifier.background(bubble, BubbleShape).padding(12.dp)
+                        Modifier.background(bubble, UserBubbleShape).padding(12.dp)
                     } else {
                         Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
                     },

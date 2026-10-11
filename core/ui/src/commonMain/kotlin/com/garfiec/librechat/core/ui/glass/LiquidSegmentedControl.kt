@@ -61,6 +61,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.zIndex
+import com.garfiec.librechat.core.ui.theme.LocalReduceMotion
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberCombinedBackdrop
@@ -109,9 +110,11 @@ internal fun LiquidSegmentedControl(
     val density = LocalDensity.current
     val scope = rememberCoroutineScope()
     val motion = remember(scope) { LiquidThumbMotion(scope, selectedIndex.coerceAtLeast(0).toFloat()) }
+    // TCHAT: Reduce Motion turns the highlight tilt off (design Motion).
+    val reduceMotion = LocalReduceMotion.current
     val trackSurface = if (style != null && backdrop != null) {
         Modifier.glassSurface(style, CircleShape, backdrop) {
-            val tilt = motion.leanTilt
+            val tilt = if (reduceMotion) 0f else motion.leanTilt
             if (rtl) -tilt else tilt
         }
     } else {
@@ -339,7 +342,8 @@ internal fun LiquidSegmentedControl(
                         highlight = {
                             val progress = motion.pressProgress
                             if (refract && progress > 0f) {
-                                tiltedHighlight(if (rtl) -motion.sheenTilt else motion.sheenTilt, progress)
+                                val sheen = if (reduceMotion) 0f else motion.sheenTilt
+                                tiltedHighlight(if (rtl) -sheen else sheen, progress)
                             } else {
                                 null
                             }

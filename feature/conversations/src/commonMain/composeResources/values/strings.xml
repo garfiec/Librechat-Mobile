@@ -11,7 +11,7 @@
     <string name="duplicate">Duplicate</string>
     <string name="clear">Clear</string>
     <string name="back">Back</string>
-    <string name="new_chat">New Chat</string>
+    <string name="new_chat">New chat</string>
 
     <!-- Content descriptions -->
     <string name="cd_new_chat">New chat</string>
@@ -41,7 +41,7 @@
     <string name="copy_of">Copy of %1$s</string>
 
     <!-- Conversation actions -->
-    <string name="remove_bookmark">Remove Bookmark</string>
+    <string name="remove_bookmark">Remove bookmark</string>
     <string name="bookmark">Bookmark</string>
     <string name="pin">Pin</string>
     <string name="unpin">Unpin</string>
@@ -88,7 +88,7 @@
     <string name="format_markdown_description">Readable text format</string>
 
     <!-- Archived conversations screen -->
-    <string name="archived_conversations">Archived Conversations</string>
+    <string name="archived_conversations">Archived conversations</string>
     <string name="could_not_load_archived">Could not load archived conversations</string>
     <string name="no_archived_conversations">No archived conversations</string>
     <string name="archived_will_appear_here">Archived conversations will appear here</string>

@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.Banner
 import com.garfiec.librechat.core.ui.resources.Res
 import com.garfiec.librechat.core.ui.resources.banner_dismiss
+import com.garfiec.librechat.core.ui.theme.LocalStatusColors
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -83,8 +84,9 @@ private fun BannerCard(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
             .semantics { liveRegion = LiveRegionMode.Polite },
+        // TCHAT: the server banner uses the design's `warning` pair, with its own icon.
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            containerColor = LocalStatusColors.current.warningContainer,
         ),
     ) {
         Row(
@@ -97,24 +99,24 @@ private fun BannerCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                imageVector = Icons.Default.Info,
+                imageVector = Icons.Default.Warning,
                 // Decorative: the message carries the content.
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                tint = LocalStatusColors.current.onWarningContainer,
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = message,
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                color = LocalStatusColors.current.onWarningContainer,
             )
             if (dismissId != null) {
                 IconButton(onClick = { onDismiss(dismissId) }) {
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = stringResource(Res.string.banner_dismiss),
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        tint = LocalStatusColors.current.onWarningContainer,
                     )
                 }
             }

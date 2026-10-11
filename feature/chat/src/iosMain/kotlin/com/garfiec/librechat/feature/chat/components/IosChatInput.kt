@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -143,6 +142,13 @@ fun IosChatInput(
         state = state,
         onSend = onSend,
         onStop = onStop,
+        // TCHAT: the mic lives in the trailing slot (one right-hand action: voice, send or stop).
+        voice = ComposerVoice(
+            isRecording = isRecording,
+            isTranscribing = isTranscribing,
+            onStart = onStartRecording,
+            onStop = onStopRecording,
+        ),
         onSelectPrompt = onSlashCommandSelect,
         onToggleTool = onToggleTool,
         onQueue = onQueue,
@@ -231,32 +237,7 @@ fun IosChatInput(
                     keyboardOptions = ChatInputDefaults.keyboardOptions,
                     keyboardActions = KeyboardActions.Default,
                     maxLines = 6,
-                    // Invisible spacer reserves room for the overlaid mic button
-                    trailingIcon = {
-                        Spacer(modifier = Modifier.width(36.dp))
-                    },
                 )
-
-                // Mic button overlaid at trailing edge of the text field
-                IconButton(
-                    onClick = {
-                        if (isRecording) {
-                            onStopRecording()
-                        } else {
-                            onStartRecording()
-                        }
-                    },
-                    modifier = Modifier
-                        .size(40.dp)
-                        .align(Alignment.CenterEnd)
-                        .padding(end = 4.dp),
-                    enabled = !isTranscribing,
-                ) {
-                    VoiceMicIndicator(
-                        isRecording = isRecording,
-                        isTranscribing = isTranscribing,
-                    )
-                }
             }
         },
         trailingSpacer = {

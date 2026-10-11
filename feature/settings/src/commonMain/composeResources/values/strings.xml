@@ -11,7 +11,7 @@
     <string name="action_delete">Delete</string>
     <string name="action_done">Done</string>
     <string name="action_retry">Retry</string>
-    <string name="action_revoke_all">Revoke All</string>
+    <string name="action_revoke_all">Revoke all</string>
     <string name="action_save">Save</string>
     <string name="action_sign_out">Sign out</string>
     <string name="action_upload">Upload</string>
@@ -68,12 +68,12 @@
     <!-- The switch in the interface style previews: an in-joke, "go outside". -->
     <string name="ui_style_preview_switch">Touch grass</string>
     <string name="section_balance">Balance</string>
-    <string name="section_chat_preferences">Chat Preferences</string>
+    <string name="section_chat_preferences">Chat preferences</string>
     <string name="section_conversations">Conversations</string>
-    <string name="section_danger_zone">Danger Zone</string>
+    <string name="section_danger_zone">Danger zone</string>
     <string name="section_language_region">Language &amp; region</string>
     <string name="section_layout">Layout</string>
-    <string name="section_mcp_servers">MCP Servers</string>
+    <string name="section_mcp_servers">MCP servers</string>
     <string name="section_prefetch">Background prefetch</string>
     <string name="prefetch_enabled">Prefetch conversations</string>
     <string name="prefetch_enabled_desc">Load recent and pinned conversations ahead of time so they open instantly. Runs while the app is idle, and periodically while charging.</string>
@@ -146,15 +146,15 @@
     <string name="section_speech">Speech</string>
     <!-- Screen titles -->
     <string name="title_account">Account</string>
-    <string name="title_api_keys">API Keys</string>
+    <string name="title_api_keys">API keys</string>
     <string name="title_chat">Chat</string>
     <string name="title_data">Data</string>
     <string name="title_general">General</string>
     <string name="title_memories">Memories</string>
-    <string name="title_mcp_servers">MCP Servers</string>
+    <string name="title_mcp_servers">MCP servers</string>
     <string name="title_presets">Presets</string>
     <string name="title_settings">Settings</string>
-    <string name="title_shared_links">Shared Links</string>
+    <string name="title_shared_links">Shared links</string>
 
     <!-- Tabbed settings tabs -->
     <string name="tab_general">General</string>
@@ -185,8 +185,8 @@
     <string name="language_system_default">System default</string>
     <string name="status_enabled">Enabled</string>
     <string name="status_disabled">Disabled</string>
-    <string name="fork_behavior">Fork Behavior</string>
-    <string name="api_keys">API Keys</string>
+    <string name="fork_behavior">Fork behavior</string>
+    <string name="api_keys">API keys</string>
     <string name="api_keys_subtitle">Manage API keys for programmatic access</string>
     <string name="presets">Presets</string>
     <string name="presets_subtitle">Manage conversation presets</string>
@@ -241,7 +241,7 @@
     <string name="sidebar_swipe_gesture_desc">Swipe from the left edge to open the sidebar on tablet layouts</string>
 
     <!-- Balance -->
-    <string name="token_credits">Token Credits</string>
+    <string name="token_credits">Token credits</string>
     <string name="available_balance">Available balance</string>
     <string name="cd_token_balance">Token balance: %1$s credits</string>
 
@@ -322,14 +322,14 @@
     <string name="inline_artifact_markdown_desc">Render Markdown artifacts inline with syntax-highlighted code blocks</string>
 
     <!-- Security -->
-    <string name="two_factor_auth">Two-Factor Authentication</string>
-    <string name="enable_two_factor">Enable Two-Factor Authentication</string>
-    <string name="disable_two_factor">Disable Two-Factor Authentication</string>
-    <string name="view_backup_codes">View Backup Codes</string>
+    <string name="two_factor_auth">Two-factor authentication</string>
+    <string name="enable_two_factor">Enable Two-factor authentication</string>
+    <string name="disable_two_factor">Disable Two-factor authentication</string>
+    <string name="view_backup_codes">View backup codes</string>
 
     <!-- 2FA setup dialog -->
-    <string name="dialog_title_enable_2fa">Enable Two-Factor Authentication</string>
-    <string name="dialog_title_disable_2fa">Disable Two-Factor Authentication</string>
+    <string name="dialog_title_enable_2fa">Enable Two-factor authentication</string>
+    <string name="dialog_title_disable_2fa">Disable Two-factor authentication</string>
     <string name="twofa_enroll_instructions">Add this account to your authenticator app, then enter the 6-digit code it shows.</string>
     <string name="action_open_authenticator">Open in authenticator app</string>
     <string name="twofa_no_authenticator">No authenticator app found. Add the setup key below manually, or scan the QR code from another device.</string>
@@ -342,18 +342,18 @@
     <string name="hint_verification_code">Verification code</string>
 
     <!-- OTP verification dialogs -->
-    <string name="otp_title_verify_identity">Verify Identity</string>
+    <string name="otp_title_verify_identity">Verify identity</string>
     <string name="otp_desc_delete_account">Enter your 2FA code to delete your account.</string>
     <string name="otp_desc_reenroll_2fa">Enter your current 2FA code to re-enroll.</string>
     <string name="otp_desc_regenerate_backup_codes">Enter your 2FA code to regenerate backup codes.</string>
     <string name="otp_verify">Verify</string>
     <string name="otp_cancel">Cancel</string>
-    <string name="otp_backup_code_label">Backup Code</string>
+    <string name="otp_backup_code_label">Backup code</string>
     <string name="otp_use_backup_code">Use a backup code instead</string>
     <string name="otp_use_otp_code">Use OTP code instead</string>
 
     <!-- Backup codes dialog -->
-    <string name="dialog_title_backup_codes">Backup Codes</string>
+    <string name="dialog_title_backup_codes">Backup codes</string>
     <string name="backup_codes_instructions">Save these backup codes in a safe place. Each code can only be used once.</string>
 
     <!-- Danger zone -->
@@ -364,32 +364,32 @@
     <string name="dialog_delete_account_message">This action cannot be undone. All your data will be permanently deleted.</string>
 
     <!-- Clear cache dialog -->
-    <string name="dialog_title_clear_cache">Clear Cache</string>
+    <string name="dialog_title_clear_cache">Clear cache</string>
     <string name="dialog_clear_cache_message">This will clear cached images and temporary data. Your account data will not be affected.</string>
 
     <!-- Revoke keys dialog -->
-    <string name="dialog_title_revoke_keys">Revoke All API Keys</string>
+    <string name="dialog_title_revoke_keys">Revoke all API keys</string>
     <string name="dialog_revoke_keys_message">This will revoke all your stored API keys. You will need to re-enter them to continue using external services.</string>
 
     <!-- Data settings -->
-    <string name="clear_all_conversations">Clear All Conversations</string>
+    <string name="clear_all_conversations">Clear all conversations</string>
     <string name="clearing">Clearing…</string>
-    <string name="archive_all_conversations">Archive All Conversations</string>
+    <string name="archive_all_conversations">Archive all conversations</string>
     <string name="archiving_all">Archiving…</string>
     <string name="dialog_title_archive_all">Archive All Conversations?</string>
     <string name="dialog_archive_all_message">Every conversation moves to Archived. You can still open them there, and you can unarchive any of them later.</string>
-    <string name="action_archive_all">Archive All</string>
+    <string name="action_archive_all">Archive all</string>
     <string name="archived_all_count">Archived %1$d conversations</string>
-    <string name="archived_conversations">Archived Conversations</string>
-    <string name="export_all_data">Export All Data</string>
-    <string name="shared_links">Shared Links</string>
+    <string name="archived_conversations">Archived conversations</string>
+    <string name="export_all_data">Export all data</string>
+    <string name="shared_links">Shared links</string>
     <string name="clear_cache_with_size">Clear Cache (%1$s)</string>
-    <string name="clear_cache">Clear Cache</string>
-    <string name="revoke_all_api_keys">Revoke All API Keys</string>
+    <string name="clear_cache">Clear cache</string>
+    <string name="revoke_all_api_keys">Revoke all API keys</string>
     <string name="revoking">Revoking…</string>
-    <string name="dialog_title_clear_conversations">Clear All Conversations</string>
+    <string name="dialog_title_clear_conversations">Clear all conversations</string>
     <string name="dialog_clear_conversations_message">This will permanently delete all your conversations. This action cannot be undone.</string>
-    <string name="clear_all">Clear All</string>
+    <string name="clear_all">Clear all</string>
     <!-- Diagnostic logs (issue #96) -->
     <string name="export_diagnostic_logs">Export diagnostic logs</string>
     <string name="export_diagnostic_logs_with_size">Export diagnostic logs (%1$s)</string>
@@ -397,7 +397,7 @@
     <string name="clear_diagnostic_logs">Clear diagnostic logs</string>
     <string name="clearing_logs">Clearing…</string>
     <string name="logs_exported">Diagnostic logs exported</string>
-    <string name="dialog_title_clear_logs">Clear Diagnostic Logs</string>
+    <string name="dialog_title_clear_logs">Clear diagnostic logs</string>
     <string name="dialog_clear_logs_message">This will permanently delete all stored diagnostic logs from this device. This action cannot be undone.</string>
 
     <!-- Speech settings -->
@@ -405,12 +405,12 @@
     <string name="auto_send_after_speech_desc">Automatically send the message after speech-to-text finishes</string>
     <string name="auto_read_responses">Auto-read responses</string>
     <string name="auto_read_responses_desc">Automatically read AI responses aloud using text-to-speech</string>
-    <string name="tts_voice">TTS Voice</string>
-    <string name="test_voice">Test Voice</string>
+    <string name="tts_voice">TTS voice</string>
+    <string name="test_voice">Test voice</string>
     <string name="no_server_tts_voices">No server TTS voices available. Speech features may not be configured on the server.</string>
-    <string name="using_device_tts">Using device text-to-speech engine. Configure voice and speed in Text-to-Speech Settings below.</string>
-    <string name="speech_to_text_settings">Speech-to-Text Settings</string>
-    <string name="text_to_speech_settings">Text-to-Speech Settings</string>
+    <string name="using_device_tts">Using device text-to-speech engine. Configure voice and speed in Text-to-speech settings below.</string>
+    <string name="speech_to_text_settings">Speech-to-text settings</string>
+    <string name="text_to_speech_settings">Text-to-speech settings</string>
 
     <!-- STT detail dialog -->
     <string name="stt_engine_label">Engine</string>
@@ -436,17 +436,17 @@
     <string name="tts_pitch">Pitch: %1$s</string>
     <string name="tts_cache_audio">Cache audio</string>
     <string name="tts_preview_text">This is a preview of the selected voice.</string>
-    <string name="tts_stop_preview">Stop Preview</string>
-    <string name="tts_preview_voice">Preview Voice</string>
+    <string name="tts_stop_preview">Stop preview</string>
+    <string name="tts_preview_voice">Preview voice</string>
 
     <!-- Memories -->
-    <string name="enable_memories">Enable Memories</string>
+    <string name="enable_memories">Enable memories</string>
     <string name="enable_memories_desc">Allow the AI to remember information across conversations</string>
     <string name="no_memories_saved">No memories saved yet</string>
     <string name="memories_add_hint">Tap the + button to add a memory</string>
-    <string name="add_memory">Add Memory</string>
-    <string name="edit_memory">Edit Memory</string>
-    <string name="dialog_title_delete_memory">Delete Memory</string>
+    <string name="add_memory">Add memory</string>
+    <string name="edit_memory">Edit memory</string>
+    <string name="dialog_title_delete_memory">Delete memory</string>
     <string name="dialog_delete_memory_message">Are you sure you want to delete the memory "%1$s"?</string>
     <string name="memory_key_label">Key</string>
     <string name="memory_value_label">Value</string>
@@ -455,8 +455,8 @@
     <string name="memory_key_exists">A memory with this key already exists</string>
 
     <!-- MCP -->
-    <string name="add_mcp_server">Add MCP Server</string>
-    <string name="edit_mcp_server">Edit MCP Server</string>
+    <string name="add_mcp_server">Add MCP server</string>
+    <string name="edit_mcp_server">Edit MCP server</string>
     <string name="no_mcp_servers">No MCP servers configured</string>
     <string name="mcp_add_hint">Tap the + button to add a server</string>
     <string name="mcp_name_label">Name</string>
@@ -468,23 +468,23 @@
     <string name="mcp_type_streamable_http">Streamable HTTP</string>
     <string name="mcp_auth_label">Authentication</string>
     <string name="mcp_auth_none">None</string>
-    <string name="mcp_auth_api_key">API Key</string>
+    <string name="mcp_auth_api_key">API key</string>
     <string name="mcp_auth_oauth">OAuth</string>
-    <string name="mcp_auth_key_type">Key Type</string>
+    <string name="mcp_auth_key_type">Key type</string>
     <string name="mcp_auth_bearer">Bearer</string>
     <string name="mcp_auth_basic">Basic</string>
     <string name="mcp_auth_custom">Custom</string>
-    <string name="mcp_header_name_label">Header Name</string>
+    <string name="mcp_header_name_label">Header name</string>
     <string name="mcp_header_name_placeholder">X-API-Key</string>
-    <string name="mcp_api_key_label">API Key</string>
+    <string name="mcp_api_key_label">API key</string>
     <string name="mcp_api_key_user_provides">Each user provides their own key</string>
     <string name="mcp_oauth_client_id">Client ID</string>
-    <string name="mcp_oauth_client_secret">Client Secret</string>
+    <string name="mcp_oauth_client_secret">Client secret</string>
     <string name="mcp_oauth_auth_url">Authorization URL</string>
     <string name="mcp_oauth_token_url">Token URL</string>
     <string name="mcp_oauth_scope">Scope</string>
     <string name="mcp_oauth_scope_placeholder">read execute</string>
-    <string name="dialog_title_delete_server">Delete Server</string>
+    <string name="dialog_title_delete_server">Delete server</string>
     <string name="dialog_delete_server_message">Are you sure you want to delete "%1$s"?</string>
     <string name="error_failed_to_load_servers">Failed to load servers</string>
     <string name="mcp_tools_count">%1$d tool%2$s</string>
@@ -503,7 +503,7 @@
     <!-- Personalization dialog -->
 
     <!-- Avatar upload dialog -->
-    <string name="dialog_title_update_avatar">Update Avatar</string>
+    <string name="dialog_title_update_avatar">Update avatar</string>
     <string name="avatar_choose_hint">Tap the camera icon to choose an image</string>
 
     <!-- API Keys screen -->
@@ -511,16 +511,16 @@
     <string name="api_keys_not_supported">This feature is not supported on your server version.</string>
     <string name="no_api_keys">No API keys</string>
     <string name="no_api_keys_desc">Create an API key to access the API programmatically.</string>
-    <string name="dialog_title_delete_api_key">Delete API Key</string>
+    <string name="dialog_title_delete_api_key">Delete API key</string>
     <string name="dialog_delete_api_key_message">Are you sure you want to delete the API key "%1$s"? This action cannot be undone.</string>
     <string name="created_prefix">Created: %1$s</string>
 
     <!-- API Key create dialog -->
-    <string name="dialog_title_create_api_key">Create API Key</string>
+    <string name="dialog_title_create_api_key">Create API key</string>
     <string name="api_key_name_hint">Give your API key a descriptive name to help identify its purpose.</string>
     <string name="hint_key_name">Key name</string>
     <string name="hint_key_name_placeholder">e.g. My App</string>
-    <string name="dialog_title_api_key_created">API Key Created</string>
+    <string name="dialog_title_api_key_created">API key created</string>
     <string name="api_key_created_warning">Your API key has been created. Copy it now — you won't be able to see it again.</string>
     <string name="copied_to_clipboard">Copied to clipboard</string>
 
@@ -536,18 +536,18 @@
     <string name="mcp_oauth_secret_reentry_required">The OAuth endpoints changed, so the saved secret no longer applies. Enter it again.</string>
     <string name="mcp_api_key_reentry_required">The connection settings changed, so the saved API key no longer applies. Enter it again.</string>
     <string name="cd_update_shared_link">Update shared link</string>
-    <string name="dialog_title_update_shared_link">Update Shared Link</string>
+    <string name="dialog_title_update_shared_link">Update shared link</string>
     <string name="dialog_update_shared_link_message">This republishes "%1$s" with the conversation as it is now. The link stays the same, so anyone who already has it will see the updated content.</string>
     <string name="dialog_update_shared_link_message_new_url">This republishes "%1$s" with the conversation as it is now. This server issues a new link, so anyone who already has the old one will lose access.</string>
     <string name="action_update_shared_link">Update</string>
-    <string name="dialog_title_delete_shared_link">Delete Shared Link</string>
+    <string name="dialog_title_delete_shared_link">Delete shared link</string>
     <string name="dialog_delete_shared_link_message">This will remove the shared link for "%1$s". Anyone with the link will no longer be able to access it.</string>
     <string name="visibility_public">Public</string>
     <string name="visibility_private">Private</string>
     <string name="error_failed_to_load_memories">Failed to load memories</string>
 
     <!-- Provider API Keys -->
-    <string name="provider_keys_title">Provider API Keys</string>
+    <string name="provider_keys_title">Provider API keys</string>
     <string name="provider_keys_subtitle">Set your own keys for endpoints that require them</string>
     <string name="provider_keys_dialog_title">Set API Key for %1$s</string>
     <string name="provider_keys_status_set_expires">Expires in %1$s</string>
@@ -561,31 +561,31 @@
     <string name="provider_keys_field_api_key_for_endpoint">%1$s API Key</string>
     <string name="provider_keys_field_api_url_for_endpoint">%1$s API URL</string>
 
-    <string name="provider_keys_field_azure_api_key">Azure OpenAI API Key</string>
-    <string name="provider_keys_field_azure_instance">Azure Instance Name</string>
-    <string name="provider_keys_field_azure_deployment">Azure Deployment Name</string>
-    <string name="provider_keys_field_azure_api_version">Azure API Version</string>
+    <string name="provider_keys_field_azure_api_key">Azure OpenAI API key</string>
+    <string name="provider_keys_field_azure_instance">Azure instance name</string>
+    <string name="provider_keys_field_azure_deployment">Azure deployment name</string>
+    <string name="provider_keys_field_azure_api_version">Azure API version</string>
 
-    <string name="provider_keys_field_google_api_key">Google API Key</string>
+    <string name="provider_keys_field_google_api_key">Google API key</string>
     <string name="provider_keys_field_google_gemini_api">(Gemini API)</string>
-    <string name="provider_keys_field_google_service_key">Google Service Account Key</string>
+    <string name="provider_keys_field_google_service_key">Google service account key</string>
     <string name="provider_keys_field_google_import">Import Service Account JSON Key.</string>
     <string name="provider_keys_field_google_invalid">Invalid Service Account JSON Key, Did you import the correct file?</string>
-    <string name="provider_keys_field_google_imported">Successfully Imported Service Account JSON Key</string>
+    <string name="provider_keys_field_google_imported">Successfully imported service account JSON key</string>
     <string name="provider_keys_field_google_paste_label">Or paste service account JSON</string>
     <string name="provider_keys_field_google_paste_only_hint">Paste the service-account JSON below.</string>
     <string name="provider_keys_field_google_service_key_or_gemini">Google Service Key or Gemini API Key</string>
 
-    <string name="provider_keys_field_bedrock_access_key_id">Access Key ID</string>
-    <string name="provider_keys_field_bedrock_secret_access_key">Secret Access Key</string>
-    <string name="provider_keys_field_bedrock_session_token">Session Token</string>
+    <string name="provider_keys_field_bedrock_access_key_id">Access key ID</string>
+    <string name="provider_keys_field_bedrock_secret_access_key">Secret access key</string>
+    <string name="provider_keys_field_bedrock_session_token">Session token</string>
     <string name="provider_keys_field_bedrock_session_token_optional_suffix">(Optional)</string>
 
     <string name="provider_keys_required_fields">The following fields are required: %1$s</string>
     <string name="provider_keys_revoke">Revoke</string>
     <string name="provider_keys_revoke_failed">Failed to revoke API key. Please try again.</string>
     <string name="provider_keys_revoke_success">API key revoked successfully</string>
-    <string name="provider_keys_revoke_all">Revoke Keys</string>
+    <string name="provider_keys_revoke_all">Revoke keys</string>
     <string name="provider_keys_revoke_all_confirm">Are you sure you want to revoke all keys?</string>
     <string name="provider_keys_revoke_all_failed">Failed to revoke all keys</string>
     <string name="provider_keys_save_failed">Failed to save API key. Please try again.</string>
@@ -602,7 +602,7 @@
 
     <string name="provider_keys_empty_title">No endpoints require user-provided keys</string>
     <string name="provider_keys_empty_desc">Endpoints that need your own API key will appear here.</string>
-    <string name="provider_keys_revoke_all_action">Revoke All</string>
+    <string name="provider_keys_revoke_all_action">Revoke all</string>
 
     <!-- Admin: role skill access -->
     <string name="role_skills_settings_row">Skill access (admin)</string>

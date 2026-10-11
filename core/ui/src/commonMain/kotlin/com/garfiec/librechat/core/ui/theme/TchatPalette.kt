@@ -1,8 +1,11 @@
 package com.garfiec.librechat.core.ui.theme
 
 import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
@@ -162,3 +165,71 @@ private fun tchatDarkScheme(accent: AccentRoles, inversePrimary: Color): ColorSc
     surfaceContainerHigh = Color(0xFF222839),
     surfaceContainerHighest = Color(0xFF2A3043),
 )
+
+/** The status colours M3 has no role for (design tokens `success*` / `warning*`). */
+data class StatusColors(
+    val success: Color,
+    val successContainer: Color,
+    val onSuccessContainer: Color,
+    val warning: Color,
+    val warningContainer: Color,
+    val onWarningContainer: Color,
+)
+
+internal val LightStatusColors = StatusColors(
+    success = Color(0xFF00785F),
+    successContainer = Color(0xFFDCF4EC),
+    onSuccessContainer = Color(0xFF00513F),
+    warning = Color(0xFF9A5B00),
+    warningContainer = Color(0xFFFDF0D8),
+    onWarningContainer = Color(0xFF6B3F00),
+)
+
+internal val DarkStatusColors = StatusColors(
+    success = Color(0xFF3CCFA4),
+    successContainer = Color(0xFF0C3127),
+    onSuccessContainer = Color(0xFFA6ECD5),
+    warning = Color(0xFFF2B04A),
+    warningContainer = Color(0xFF36260A),
+    onWarningContainer = Color(0xFFFBD99C),
+)
+
+/** The design's status colours for the current theme. Provided by [LibreChatTheme]. */
+val LocalStatusColors = staticCompositionLocalOf { LightStatusColors }
+
+/**
+ * `surface-overlay`: dialogs and bottom sheets. White in light mode, the top surface step in dark.
+ * Under wallpaper colours it stays M3's dialog container.
+ */
+val overlaySurfaceColor: Color
+    @Composable @ReadOnlyComposable
+    get() {
+        val scheme = MaterialTheme.colorScheme
+        return when {
+            !LocalFixedPalette.current -> scheme.surfaceContainerHigh
+            LocalDarkTheme.current -> scheme.surfaceContainerHigh
+            else -> scheme.surfaceContainerLowest
+        }
+    }
+
+/** `surface-raised`: menus, popovers and the solid fallback for glass. */
+val raisedSurfaceColor: Color
+    @Composable @ReadOnlyComposable
+    get() = MaterialTheme.colorScheme.surfaceContainer
+
+/**
+ * `accent-ink`: links and accent-coloured text on surfaces (≥6:1 on bg, surface and surface-raised).
+ * The fixed palette carries it as `secondary`; under wallpaper colours it is the primary.
+ */
+val accentInkColor: Color
+    @Composable @ReadOnlyComposable
+    get() = if (LocalFixedPalette.current) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
+
+/** `focus-ring`: the accent in light mode, the lighter accent ink in dark (≥4.8:1 on every surface). */
+val focusRingColor: Color
+    @Composable @ReadOnlyComposable
+    get() = if (LocalFixedPalette.current && LocalDarkTheme.current) {
+        MaterialTheme.colorScheme.secondary
+    } else {
+        MaterialTheme.colorScheme.primary
+    }

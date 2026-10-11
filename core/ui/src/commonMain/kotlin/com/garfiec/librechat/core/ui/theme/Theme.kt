@@ -60,6 +60,8 @@ fun LibreChatTheme(
         LocalGlassLevel provides capability.takeIf { (uiStyle ?: platformDefaultUiStyle()) == UiStyle.LIQUID_GLASS },
         LocalDarkTheme provides darkTheme,
         LocalFixedPalette provides usesFixedPalette(useDynamicColor), // TCHAT
+        LocalStatusColors provides if (darkTheme) DarkStatusColors else LightStatusColors, // TCHAT
+        LocalReduceMotion provides rememberSystemReduceMotion(), // TCHAT
         // One gate for the whole app: covering surfaces and native bars must see the same instance.
         LocalNativeOverlayGate provides remember { NativeOverlayGate() },
     ) {
@@ -87,6 +89,8 @@ fun ThemePreview(
     CompositionLocalProvider(
         LocalDarkTheme provides darkTheme,
         LocalFixedPalette provides usesFixedPalette(useDynamicColor), // TCHAT
+        LocalStatusColors provides if (darkTheme) DarkStatusColors else LightStatusColors, // TCHAT
+        LocalReduceMotion provides rememberSystemReduceMotion(), // TCHAT
     ) {
         MaterialTheme(
             colorScheme = rememberLibreChatColorScheme(darkTheme, accentColor, useDynamicColor),

@@ -13,13 +13,13 @@
     <string name="action_search">Search</string>
     <string name="action_archive">Archive</string>
     <string name="action_duplicate">Duplicate</string>
-    <string name="action_copy_link">Copy Link</string>
+    <string name="action_copy_link">Copy link</string>
 
     <!-- Chat screen -->
-    <string name="new_chat">New Chat</string>
-    <string name="load_preset">Load Preset</string>
+    <string name="new_chat">New chat</string>
+    <string name="load_preset">Load preset</string>
     <string name="save_as_preset">Save as Preset</string>
-    <string name="save_and_submit">Save &amp; Submit</string>
+    <string name="save_and_submit">Save &amp; submit</string>
     <string name="preset_name_label">Preset name</string>
     <string name="code">Code</string>
     <string name="preview">Preview</string>
@@ -28,7 +28,7 @@
     <string name="starred_group">Starred</string>
     <!-- Neutral label for the active agent when its name hasn't resolved yet (never a model string). -->
     <string name="chat_agent_fallback_label">Agent</string>
-    <string name="compare_models">Compare Models</string>
+    <string name="compare_models">Compare models</string>
     <string name="how_can_i_help">How can I help you today?</string>
     <string name="recording">Recording\u2026</string>
     <string name="hint_message_model">Message %1$s</string>
@@ -201,16 +201,16 @@
     <string name="tool_files">Files</string>
     <string name="tool_server_files">Server</string>
     <string name="tool_model">Model</string>
-    <string name="tool_model_parameters">Model Parameters</string>
+    <string name="tool_model_parameters">Model parameters</string>
     <string name="tool_model_parameters_desc">Adjust temperature, tokens, and more</string>
-    <string name="tool_web_search">Web Search</string>
+    <string name="tool_web_search">Web search</string>
     <string name="tool_web_search_desc">Search the web for information</string>
     <string name="web_searched">Searched the web</string>
-    <string name="tool_url_context">URL Context</string>
+    <string name="tool_url_context">URL context</string>
     <string name="tool_url_context_desc">Let the model read URLs and YouTube you reference</string>
     <string name="tool_code">Code</string>
     <string name="tool_code_desc">Run and analyze code</string>
-    <string name="tool_file_search">File Search</string>
+    <string name="tool_file_search">File search</string>
     <string name="tool_file_search_desc">Search through uploaded files</string>
     <string name="tool_mcp">MCP</string>
     <string name="tool_mcp_desc">Model Context Protocol servers</string>
@@ -246,8 +246,8 @@
     <string name="cd_agent_handoff">Agent handoff from %1$s to %2$s</string>
     <string name="cd_handed_off_to">handed off to</string>
     <string name="agent_unknown">unknown</string>
-    <string name="agent_previous">Previous Agent</string>
-    <string name="agent_next">Next Agent</string>
+    <string name="agent_previous">Previous agent</string>
+    <string name="agent_next">Next agent</string>
 
     <!-- Audio/Video -->
     <string name="cd_pause">Pause</string>
@@ -261,7 +261,7 @@
     <string name="cd_open_citation_url">Open citation URL</string>
 
     <!-- Fork options -->
-    <string name="fork_conversation">Fork Conversation</string>
+    <string name="fork_conversation">Fork conversation</string>
     <string name="fork_visible_messages">Visible messages</string>
     <string name="fork_visible_messages_desc">Only the direct path of messages</string>
     <string name="fork_include_branches">Include branches</string>
@@ -294,11 +294,11 @@
     <string name="label_memory">Memory</string>
     <string name="cd_memory_artifacts">Memory updates: %1$d</string>
     <string name="memory_updated">Updated saved memory</string>
-    <string name="memory_error">Memory Error</string>
-    <string name="memory_updated_items">Updated Memories</string>
-    <string name="memory_deleted_items">Deleted Memories</string>
+    <string name="memory_error">Memory error</string>
+    <string name="memory_updated_items">Updated memories</string>
+    <string name="memory_deleted_items">Deleted memories</string>
     <string name="memory_deleted">Memory deleted</string>
-    <string name="memory_storage_full">Memory Storage Full</string>
+    <string name="memory_storage_full">Memory storage full</string>
     <string name="memory_already_exceeded">Memory storage already full — exceeded by %1$d tokens. Delete existing memories before adding new ones.</string>
     <string name="memory_would_exceed">Cannot save — would exceed limit by %1$d tokens. Delete existing memories to make space.</string>
 
@@ -325,7 +325,7 @@
 
     <!-- Tool-call generated-file attachments -->
     <string name="attachment_fallback">Attachment</string>
-    <string name="pdf_document">PDF Document</string>
+    <string name="pdf_document">PDF document</string>
     <string name="pdf_load_failed">Couldn't load PDF</string>
     <string name="cd_share_pdf">Share PDF</string>
     <string name="cd_open_pdf">Open PDF</string>
@@ -342,11 +342,11 @@
     <string name="cd_unpin_favorite">Unpin favorite</string>
     <string name="cd_collapse_section">Collapse %1$s</string>
     <string name="cd_expand_section">Expand %1$s</string>
-    <string name="set_api_key_action">Set API Key</string>
+    <string name="set_api_key_action">Set API key</string>
     <string name="cd_set_api_key">Configure API key for %1$s</string>
 
     <!-- Preset picker -->
-    <string name="select_preset">Select Preset</string>
+    <string name="select_preset">Select preset</string>
     <string name="no_presets_saved">No presets saved yet</string>
     <string name="cd_edit_preset">Edit %1$s</string>
     <string name="cd_delete_preset">Delete %1$s</string>
@@ -415,14 +415,14 @@
     <string name="artifact_incomplete">Incomplete</string>
 
     <!-- Prompts -->
-    <string name="prompts_library">Prompts Library</string>
+    <string name="prompts_library">Prompts library</string>
     <string name="use_in_chat">Use in Chat</string>
-    <string name="set_production">Set Production</string>
+    <string name="set_production">Set production</string>
     <string name="prompt_name_label">Name</string>
     <string name="prompt_description_label">Description</string>
     <string name="prompt_command_label">Command</string>
     <string name="prompt_text_label">Prompt text</string>
-    <string name="prompt_content">Prompt Content</string>
+    <string name="prompt_content">Prompt content</string>
     <string name="cd_share_prompt">Share prompt</string>
     <string name="cd_edit_prompt">Edit prompt</string>
     <string name="cd_delete_prompt">Delete prompt</string>
@@ -437,7 +437,7 @@
     <string name="prompt_sort_label">Sort: %1$s</string>
 
     <!-- Prompt versions -->
-    <string name="version_history">Version History</string>
+    <string name="version_history">Version history</string>
     <string name="no_versions">No versions available</string>
     <string name="label_production">Production</string>
     <string name="version_number">v%1$d</string>
@@ -448,10 +448,10 @@
     <!-- Prompt filter sheet -->
     <string name="label_category">Category</string>
     <string name="label_all">All</string>
-    <string name="label_sort_by">Sort By</string>
+    <string name="label_sort_by">Sort by</string>
 
     <!-- Prompt share dialog -->
-    <string name="dialog_title_share_prompt">Share Prompt</string>
+    <string name="dialog_title_share_prompt">Share prompt</string>
     <string name="label_permission">Permission</string>
 
     <!-- Variable input dialog -->

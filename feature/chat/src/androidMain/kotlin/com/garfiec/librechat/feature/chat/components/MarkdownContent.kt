@@ -44,13 +44,16 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -63,6 +66,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarIcons
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.components.topbar.MaterialBarStyle
+import com.garfiec.librechat.core.ui.theme.accentInkColor
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.mikepenz.markdown.m3.markdownColor
@@ -282,6 +286,8 @@ private fun MarkdownTextSegment(
     val bodyLarge = MaterialTheme.typography.bodyLarge
     val bodyMedium = MaterialTheme.typography.bodyMedium
     val typography = markdownTypography(
+        // TCHAT: links in `accent-ink` (design tokens), underlined so they never rely on colour.
+        textLink = TextLinkStyles(style = SpanStyle(color = accentInkColor, textDecoration = TextDecoration.Underline)),
         h1 = MaterialTheme.typography.headlineLarge.scaleFontSize(fontSizeMultiplier),
         h2 = MaterialTheme.typography.headlineMedium.scaleFontSize(fontSizeMultiplier),
         h3 = MaterialTheme.typography.headlineSmall.scaleFontSize(fontSizeMultiplier),

@@ -38,7 +38,7 @@
     <string name="back_to_sign_in">Back to sign in</string>
 
     <!-- Reset Password -->
-    <string name="reset_password_screen_title">Reset Password</string>
+    <string name="reset_password_screen_title">Reset password</string>
     <string name="password_reset_successful">Password reset successful</string>
     <string name="password_reset_message">Your password has been updated. You can now sign in with your new password.</string>
     <string name="set_new_password">Set new password</string>
@@ -48,7 +48,7 @@
     <string name="reset_password_button">Reset password</string>
 
     <!-- Two-Factor -->
-    <string name="two_factor_title">Two-Factor Authentication</string>
+    <string name="two_factor_title">Two-factor authentication</string>
     <string name="enter_verification_code">Enter verification code</string>
     <string name="enter_backup_code">Enter backup code</string>
     <string name="authenticator_prompt">Enter the 6-digit code from your authenticator app</string>
@@ -59,7 +59,7 @@
     <string name="backup_code_label">Backup code</string>
 
     <!-- Verify Email -->
-    <string name="verify_email_title">Verify Email</string>
+    <string name="verify_email_title">Verify email</string>
     <string name="verification_link_sent">We've sent a verification link to</string>
     <string name="click_link_to_verify">Click the link in the email to verify your account.</string>
     <string name="verification_email_sent">Verification email sent!</string>
@@ -68,7 +68,7 @@
 
     <!-- Terms -->
     <string name="terms_title">Terms of Service</string>
-    <string name="i_accept">I Accept</string>
+    <string name="i_accept">I accept</string>
     <string name="retry">Retry</string>
 
     <!-- Common -->
