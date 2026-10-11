@@ -177,6 +177,10 @@ in `design/model-selection-requirements.md`.
   branch that the Tchat host never takes.
 - **The header defaults to the model** (`ChatHeaderContent.DEFAULT`), and composer and pane labels
   use `formatModelLabel`, so a raw model id shows only in the picker.
+- **`ChatViewModel.onPendingNavigationHandled` carries `selection.tchat` over.** The new-chat
+  ViewModel rebuilds its state after the first send hands off to `Chat(id)`, and the delegate's
+  inputs come from flows that don't re-emit, so a rebuilt-empty slice stayed empty: no Image
+  section and no Free tags until the app restarted (`TchatLandingResetTest`).
 
 ## Upstream bugs fixed here first
 

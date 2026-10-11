@@ -1250,6 +1250,9 @@ class ChatViewModel(
                     mcpServers = current.mcpServers,
                     selectedMcpServerNames = current.selectedMcpServerNames,
                     enabledTools = current.enabledTools,
+                    // TCHAT: loaded once from flows that don't re-emit; dropping it loses the
+                    // picker's Image section and Free tags until the app restarts.
+                    tchat = current.selection.tchat.copy(pickerOpenOn = null),
                 ),
                 presetPrompts = current.presetPrompts,
                 voice = VoiceState(serverSttEnabled = current.serverSttEnabled),
