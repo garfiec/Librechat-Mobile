@@ -119,7 +119,22 @@ First pass, all in `:core:ui`:
   old value. The Settings → Chat layout preview mirrors `MessageBubble` (filled, compact user
   bubble; no assistant bubble two-sided).
 
-Not yet done: the Reduce Transparency glass fallback.
+- **Design-system review fixes** (2026-10-11), each from a rule in `design/system/`:
+  - *Composer*: one right-hand action. `SendButtonMode.VOICE` puts the mic in the trailing slot
+    while the field is empty (it no longer sits inside the field), and Stop is an `ink` disc.
+  - *Surfaces*: dialogs and Material sheets use `overlaySurfaceColor` (`surface-overlay`); the flat
+    glass tier (Reduce Transparency) is solid `surface-raised`.
+  - *Status*: `LocalStatusColors` carries the success/warning tokens; the server banner is `warning`.
+  - *Messages*: links in `accentInkColor`; user bubbles at most 80% of the row (`maxWidthFraction`)
+    with a 4dp tail (`UserBubbleShape`); the transcript capped at 720dp (`readingWidth()`); turns
+    12dp apart, 20dp on a sender change (`turnGap`).
+  - *Controls*: the on switch shows a check; text-field labels sit above the box (`LabeledField`
+    for the value overloads, `TextFieldLabelPosition.Above` for the state one); a 2dp keyboard
+    focus ring (`Modifier.focusRing`) on adaptive buttons, chips and the FAB; the Image Gen chip's
+    ✕ is its own 48dp button.
+  - *Motion*: `LocalReduceMotion` (system setting) turns off the press bounce and glass tilt.
+  - *Copy*: 151 English labels moved to sentence case (proper nouns and acronyms kept). Other
+    locales keep their own conventions.
 
 ## Model picker and Image Gen
 

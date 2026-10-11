@@ -21,6 +21,7 @@ import com.garfiec.librechat.core.ui.glass.GlassPortal
 import com.garfiec.librechat.core.ui.glass.GlassSheetHost
 import com.garfiec.librechat.core.ui.glass.LocalGlassSheetHost
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
+import com.garfiec.librechat.core.ui.theme.overlaySurfaceColor
 
 /**
  * In Liquid Glass, a floating glass panel portalled through [GlassSheetHost]. [sheetState] and
@@ -60,7 +61,8 @@ fun AdaptiveModalBottomSheet(
         modifier = modifier,
         sheetState = sheetState,
         shape = shape,
-        containerColor = if (glass) MaterialTheme.colorScheme.surfaceContainerLow else BottomSheetDefaults.ContainerColor,
+        // TCHAT: Material sheets are `surface-overlay` (upstream: BottomSheetDefaults.ContainerColor).
+        containerColor = if (glass) MaterialTheme.colorScheme.surfaceContainerLow else overlaySurfaceColor,
         tonalElevation = if (glass) 0.dp else BottomSheetDefaults.Elevation,
         dragHandle = dragHandle,
     ) {

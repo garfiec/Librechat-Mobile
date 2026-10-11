@@ -1,18 +1,17 @@
 package com.garfiec.librechat.feature.chat.tchat
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -21,8 +20,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -220,25 +217,19 @@ fun ImageGenComposerChip(
 ) {
     val description = stringResource(Res.string.tchat_image_chip_cd, imageLabel)
     val removeLabel = stringResource(Res.string.tchat_image_chip_remove)
-    AdaptiveInputChip(
-        selected = true,
-        onClick = onOpen,
-        label = { Text(imageLabel, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-        leadingIcon = { Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(18.dp)) },
-        trailingIcon = {
-            Icon(
-                Icons.Default.Close,
-                contentDescription = removeLabel,
-                // The chip's own tap opens the picker; the ✕ is its own button.
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .clickable(role = Role.Button, onClickLabel = removeLabel, onClick = onTurnOff)
-                    .padding(4.dp)
-                    .size(18.dp),
-            )
-        },
-        modifier = modifier.semantics { contentDescription = description },
-    )
+    // The chip opens the picker; the ✕ beside it is its own 48dp button (design: `size-touch`).
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+        AdaptiveInputChip(
+            selected = true,
+            onClick = onOpen,
+            label = { Text(imageLabel, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+            leadingIcon = { Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(18.dp)) },
+            modifier = Modifier.semantics { contentDescription = description },
+        )
+        IconButton(onClick = onTurnOff) {
+            Icon(Icons.Default.Close, contentDescription = removeLabel, modifier = Modifier.size(20.dp))
+        }
+    }
 }
 
 /** Shows the one-time repair notice (requirements R24), with web's exact wording. */

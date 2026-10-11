@@ -50,6 +50,8 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
@@ -72,6 +74,7 @@ import com.garfiec.librechat.feature.chat.resources.cd_send_message
 import com.garfiec.librechat.feature.chat.resources.cd_start_voice_recording
 import com.garfiec.librechat.feature.chat.resources.cd_steer_message
 import com.garfiec.librechat.feature.chat.resources.cd_stop_generation
+import com.garfiec.librechat.feature.chat.resources.cd_stop_voice_recording
 import com.garfiec.librechat.feature.chat.resources.cd_update_queued_message
 import com.garfiec.librechat.feature.chat.resources.editing_queued_message
 import com.garfiec.librechat.feature.chat.resources.hint_message
@@ -185,6 +188,11 @@ fun CommonChatInputCore(
     onCancelEdit: () -> Unit = {},
     /** Cancel a send parked behind an in-flight upload (see [ChatInputState.isAwaitingUploadSend]). */
     onCancelPendingSend: () -> Unit = {},
+    /**
+     * TCHAT: voice input, drawn in the trailing slot while the field is empty (the composer has one
+     * right-hand action: voice, send or stop). Null leaves the slot as Send.
+     */
+    voice: ComposerVoice? = null,
     /** Queued follow-ups (ghost rows), pinned just above the composer. Hosted here — rather than
      *  in the scrolling message list — so the list's auto-scroll-to-bottom can't make the ghosts
      *  bounce as the reply streams. Empty list renders nothing. */
@@ -374,6 +382,7 @@ fun CommonChatInputCore(
                     // A send waiting on an in-flight upload: spinner, tap to cancel.
                     isAwaitingUploadSend = state.isAwaitingUploadSend,
                     onCancelPendingSend = onCancelPendingSend,
+                    voice = voice, // TCHAT
                 )
             }
         }
@@ -383,8 +392,20 @@ fun CommonChatInputCore(
 
 private val GlassComposerShape = RoundedCornerShape(28.dp)
 
-/** Visual mode of the trailing composer button. */
-internal enum class SendButtonMode { SEND, STOP, QUEUE, STEER, ANSWER, UPDATE, AWAITING }
+/** Visual mode of the trailing composer button. TCHAT: [VOICE] is the empty-field mic. */
+internal enum class SendButtonMode { SEND, STOP, QUEUE, STEER, ANSWER, UPDATE, AWAITING, VOICE }
+
+/**
+ * TCHAT: the voice action the trailing slot shows while the field is empty. Recording and
+ * transcribing keep it there, so the mic doesn't swap away mid-dictation.
+ */
+@Immutable
+class ComposerVoice(
+    val isRecording: Boolean,
+    val isTranscribing: Boolean,
+    val onStart: () -> Unit,
+    val onStop: () -> Unit,
+)
 
 /**
  * Whether the composer holds something the trailing control can act on. Drives both that control's
@@ -418,6 +439,8 @@ internal fun sendButtonModeFor(
     duringRunTarget: DuringRunSendTarget,
     isEditingQueued: Boolean,
     isAwaitingUploadSend: Boolean,
+    /** TCHAT: the field is empty and voice input exists, or a dictation is in progress. */
+    showVoice: Boolean = false,
 ): SendButtonMode = when {
     isEditingQueued -> SendButtonMode.UPDATE
     // A send parked behind an in-flight upload only takes over the button when NOT streaming —
@@ -425,6 +448,7 @@ internal fun sendButtonModeFor(
     // behind its upload keeps Stop (the parked enqueue still fires once the upload settles).
     isAwaitingUploadSend && !isStreaming -> SendButtonMode.AWAITING
     isAwaitingUploadSend -> SendButtonMode.STOP
+    !isStreaming && showVoice -> SendButtonMode.VOICE // TCHAT
     !isStreaming -> SendButtonMode.SEND
     canQueue -> when (duringRunTarget) {
         DuringRunSendTarget.ANSWER_PAUSE -> SendButtonMode.ANSWER
@@ -467,6 +491,8 @@ fun SendStopButton(
     onUpdate: () -> Unit = {},
     isAwaitingUploadSend: Boolean = false,
     onCancelPendingSend: () -> Unit = {},
+    /** TCHAT: shown instead of a disabled Send while the field is empty. */
+    voice: ComposerVoice? = null,
 ) {
     val mode = sendButtonModeFor(
         isStreaming = isStreaming,
@@ -474,6 +500,7 @@ fun SendStopButton(
         duringRunTarget = duringRunTarget,
         isEditingQueued = isEditingQueued,
         isAwaitingUploadSend = isAwaitingUploadSend,
+        showVoice = voice != null && (!canSend || voice.isRecording || voice.isTranscribing),
     )
     // On the slot, not each button, so a send's bounce survives the swap to Stop.
     val bounce = rememberPressBounce()
@@ -525,13 +552,14 @@ fun SendStopButton(
                 }
             }
 
+            // TCHAT: Stop is an `ink` disc (design Composer), not the error colour.
             SendButtonMode.STOP -> IconButton(
                 onClick = onStop,
                 modifier = Modifier.size(56.dp),
                 colors = ChatInputDefaults.sendButtonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError,
-                    glassContentColor = MaterialTheme.colorScheme.error,
+                    containerColor = MaterialTheme.colorScheme.onSurface,
+                    contentColor = MaterialTheme.colorScheme.surface,
+                    glassContentColor = MaterialTheme.colorScheme.onSurface,
                 ),
             ) {
                 Icon(
@@ -584,6 +612,27 @@ fun SendStopButton(
                     imageVector = Icons.AutoMirrored.Filled.Send,
                     contentDescription = stringResource(Res.string.cd_answer_question),
                 )
+            }
+
+            // TCHAT: the empty-field mic, in `ink-muted`; it starts and stops dictation.
+            SendButtonMode.VOICE -> {
+                val voiceAction = voice ?: return@AnimatedContent
+                val cdStart = stringResource(Res.string.cd_start_voice_recording)
+                val cdStop = stringResource(Res.string.cd_stop_voice_recording)
+                IconButton(
+                    onClick = if (voiceAction.isRecording) voiceAction.onStop else voiceAction.onStart,
+                    modifier = Modifier
+                        .size(56.dp)
+                        .semantics {
+                            contentDescription = if (voiceAction.isRecording) cdStop else cdStart
+                        },
+                    enabled = !voiceAction.isTranscribing,
+                ) {
+                    VoiceMicIndicator(
+                        isRecording = voiceAction.isRecording,
+                        isTranscribing = voiceAction.isTranscribing,
+                    )
+                }
             }
 
             SendButtonMode.SEND -> IconButton(

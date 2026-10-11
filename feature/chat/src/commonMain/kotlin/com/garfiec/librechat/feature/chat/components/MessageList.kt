@@ -53,6 +53,7 @@ import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.MinimalFeedback
 import com.garfiec.librechat.core.model.PendingAction
 import com.garfiec.librechat.core.ui.components.AdaptiveFloatingActionButton
+import com.garfiec.librechat.core.ui.components.readingWidth
 import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
 import com.garfiec.librechat.core.ui.glass.glassBackdropSource
 import com.garfiec.librechat.core.ui.theme.isSurfaceDark
@@ -621,6 +622,14 @@ fun MessageList(
                 } else {
                 MessageBubble(
                     message = node.message,
+                    // TCHAT: reading column and turn rhythm (design Message).
+                    modifier = Modifier.readingWidth().padding(
+                        top = turnGap(
+                            chatLayoutStyle = chatLayoutStyle,
+                            senderChanged = index == 0 ||
+                                displayMessages[index - 1].message.isCreatedByUser != node.message.isCreatedByUser,
+                        ),
+                    ),
                     siblingIndex = node.siblingIndex,
                     siblingCount = node.siblingCount,
                     onSiblingNavigation = { newIndex ->
@@ -699,6 +708,13 @@ fun MessageList(
                 item(key = streamingSlotKey) {
                     StreamingMessageBubble(
                         streamingContent = streamingContent,
+                        // TCHAT: the reply follows a turn by the person, so it opens a new sender's gap.
+                        modifier = Modifier.readingWidth().padding(
+                            top = turnGap(
+                                chatLayoutStyle = chatLayoutStyle,
+                                senderChanged = displayMessages.lastOrNull()?.message?.isCreatedByUser != false,
+                            ),
+                        ),
                         senderName = streamingSenderName,
                         senderIconUrl = null,
                         fontSizeMultiplier = fontSizeMultiplier,
@@ -853,4 +869,14 @@ private class FocusedSearchMatchReport(
     val matchRect: Rect,
 ) {
     fun matches(request: SearchFocusRequest): Boolean = requestId == request.requestId
+}
+
+/**
+ * TCHAT: the extra space above a message so turns read 12dp apart from the same sender and 20dp when
+ * the sender changes (design Message). The bubbles already pad themselves: 4dp above and below in the
+ * two-sided layout, 8dp in the thread layout, which is already 16dp between same-sender turns.
+ */
+internal fun turnGap(chatLayoutStyle: String, senderChanged: Boolean): Dp = when {
+    chatLayoutStyle == ChatLayoutConstants.TWO_SIDED -> if (senderChanged) 12.dp else 4.dp
+    else -> if (senderChanged) 4.dp else 0.dp
 }

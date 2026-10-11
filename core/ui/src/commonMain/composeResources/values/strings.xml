@@ -104,7 +104,7 @@
     <!-- Conversation list section headers -->
     <string name="date_group_today">Today</string>
     <string name="date_group_yesterday">Yesterday</string>
-    <string name="date_group_previous_7_days">Previous 7 Days</string>
-    <string name="date_group_previous_30_days">Previous 30 Days</string>
+    <string name="date_group_previous_7_days">Previous 7 days</string>
+    <string name="date_group_previous_30_days">Previous 30 days</string>
     <string name="date_group_unknown">Unknown</string>
 </resources>

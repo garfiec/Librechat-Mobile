@@ -46,13 +46,16 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -69,16 +72,19 @@ import com.garfiec.librechat.core.ui.components.AdaptiveDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AvatarImage
 import com.garfiec.librechat.core.ui.components.BubbleShape
+import com.garfiec.librechat.core.ui.components.USER_BUBBLE_MAX_FRACTION
+import com.garfiec.librechat.core.ui.components.UserBubbleShape
 import com.garfiec.librechat.core.ui.components.endpointIconPainter
 import com.garfiec.librechat.core.ui.components.isMonochromeEndpointIcon
+import com.garfiec.librechat.core.ui.components.maxWidthFraction
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.components.topbar.MaterialBarStyle
-import com.garfiec.librechat.core.ui.theme.UserBubbleLeadingInset
 import com.garfiec.librechat.core.ui.theme.UserBubbleTheme
+import com.garfiec.librechat.core.ui.theme.accentInkColor
 import com.garfiec.librechat.core.ui.theme.userBubbleColors
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_close
@@ -320,7 +326,11 @@ private fun ThreadBubble(
         UserBubbleTheme(active = filledUserBubble) { // TCHAT
             Column(
                 modifier = Modifier.padding(start = contentPad).then(
-                    if (bubbleBg != null) Modifier.background(bubbleBg, BubbleShape).padding(12.dp) else Modifier,
+                    if (bubbleBg != null) {
+                    Modifier.background(bubbleBg, if (filledUserBubble) UserBubbleShape else BubbleShape).padding(12.dp)
+                } else {
+                    Modifier
+                },
                 ),
             ) {
                 MessageContentAndActions(
@@ -448,14 +458,13 @@ private fun TwoSidedBubble(
             Spacer(Modifier.width(8.dp))
         }
 
-        // TCHAT: the user's bubble hugs its text on the right and never reaches the left edge.
-        if (isUser) Spacer(Modifier.width(UserBubbleLeadingInset))
-
         UserBubbleTheme(active = filledUserBubble) { // TCHAT
             Column(
-                modifier = Modifier.weight(1f, fill = !isUser).then(
+                // TCHAT: the user's bubble hugs its text on the right, at most 80% of the row, with a tail.
+                modifier = Modifier.weight(1f, fill = !isUser)
+                    .then(if (isUser) Modifier.maxWidthFraction(USER_BUBBLE_MAX_FRACTION) else Modifier).then(
                     if (effectiveBg != null) {
-                        Modifier.background(effectiveBg, BubbleShape).padding(12.dp)
+                        Modifier.background(effectiveBg, if (filledUserBubble) UserBubbleShape else BubbleShape).padding(12.dp)
                     } else {
                         Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
                     },
@@ -578,6 +587,8 @@ actual fun MarkdownContent(
     val bl = MaterialTheme.typography.bodyLarge
     val bm = MaterialTheme.typography.bodyMedium
     val typography = markdownTypography(
+        // TCHAT: links in `accent-ink` (design tokens), underlined so they never rely on colour.
+        textLink = TextLinkStyles(style = SpanStyle(color = accentInkColor, textDecoration = TextDecoration.Underline)),
         h1 = MaterialTheme.typography.headlineLarge.scale(fontSizeMultiplier),
         h2 = MaterialTheme.typography.headlineMedium.scale(fontSizeMultiplier),
         h3 = MaterialTheme.typography.headlineSmall.scale(fontSizeMultiplier),

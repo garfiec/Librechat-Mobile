@@ -16,6 +16,7 @@ import com.garfiec.librechat.core.ui.glass.GlassBackdrop
 import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
 import com.garfiec.librechat.core.ui.glass.glassSurface
 import com.garfiec.librechat.core.ui.glass.rememberGlassStyle
+import com.garfiec.librechat.core.ui.theme.focusRingColor
 
 private val GlassFabShape = RoundedCornerShape(20.dp) // TCHAT: radius-lg (was 16)
 
@@ -52,8 +53,14 @@ fun AdaptiveFloatingActionButton(
     val fabContent = if (glass == null) contentColor else MaterialTheme.colorScheme.primary
     val fabElevation = if (glass == null) elevation else FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp)
     if (small) {
-        SmallFloatingActionButton(onClick, fabModifier, shape, fabContainer, fabContent, fabElevation, content = content)
+        SmallFloatingActionButton(
+            onClick, fabModifier.focusRing(shape, focusRingColor), shape, fabContainer, fabContent, fabElevation,
+            content = content,
+        )
     } else {
-        FloatingActionButton(onClick, fabModifier, shape, fabContainer, fabContent, fabElevation, content = content)
+        FloatingActionButton(
+            onClick, fabModifier.focusRing(shape, focusRingColor), shape, fabContainer, fabContent, fabElevation,
+            content = content,
+        )
     }
 }

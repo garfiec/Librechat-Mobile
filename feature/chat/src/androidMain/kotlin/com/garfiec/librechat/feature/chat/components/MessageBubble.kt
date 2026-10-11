@@ -32,9 +32,11 @@ import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.MinimalFeedback
 import com.garfiec.librechat.core.ui.components.AvatarImage
 import com.garfiec.librechat.core.ui.components.BubbleShape
+import com.garfiec.librechat.core.ui.components.USER_BUBBLE_MAX_FRACTION
+import com.garfiec.librechat.core.ui.components.UserBubbleShape
 import com.garfiec.librechat.core.ui.components.endpointIconPainter
 import com.garfiec.librechat.core.ui.components.isMonochromeEndpointIcon
-import com.garfiec.librechat.core.ui.theme.UserBubbleLeadingInset
+import com.garfiec.librechat.core.ui.components.maxWidthFraction
 import com.garfiec.librechat.core.ui.theme.UserBubbleTheme
 import com.garfiec.librechat.core.ui.theme.userBubbleColors
 import com.garfiec.librechat.feature.chat.resources.*
@@ -313,7 +315,7 @@ private fun ThreadMessageBubble(
                             Modifier
                                 .background(
                                     color = threadBubbleBackground,
-                                    shape = BubbleShape,
+                                    shape = if (filledUserBubble) UserBubbleShape else BubbleShape, // TCHAT: tail
                                 )
                                 .padding(12.dp)
                         } else {
@@ -485,20 +487,19 @@ private fun TwoSidedMessageBubble(
             Spacer(modifier = Modifier.width(8.dp))
         }
 
-        // TCHAT: the user's bubble hugs its text on the right and never reaches the left edge.
-        if (isUser) Spacer(modifier = Modifier.width(UserBubbleLeadingInset))
-
         // Bubble content
         UserBubbleTheme(active = filledUserBubble) { // TCHAT
             Column(
                 modifier = Modifier
+                    // TCHAT: the user's bubble hugs its text on the right, at most 80% of the row.
                     .weight(1f, fill = !isUser)
+                    .then(if (isUser) Modifier.maxWidthFraction(USER_BUBBLE_MAX_FRACTION) else Modifier)
                     .then(
                         if (effectiveBubbleBackground != null) {
                             Modifier
                                 .background(
                                     color = effectiveBubbleBackground,
-                                    shape = BubbleShape,
+                                    shape = if (filledUserBubble) UserBubbleShape else BubbleShape, // TCHAT: tail
                                 )
                                 .padding(12.dp)
                         } else {

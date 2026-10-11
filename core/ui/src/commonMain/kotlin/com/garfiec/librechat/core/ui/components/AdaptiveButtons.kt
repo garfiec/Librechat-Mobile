@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.font.FontWeight
 import com.garfiec.librechat.core.ui.glass.GlassControlColors
+import com.garfiec.librechat.core.ui.theme.focusRingColor
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 
 /**
@@ -39,12 +40,15 @@ fun AdaptiveButton(
     content: @Composable RowScope.() -> Unit,
 ) {
     if (!isLiquidGlass) {
-        Button(onClick, modifier, enabled, shape, colors, elevation, border, contentPadding, interactionSource, content)
+        Button(
+            onClick, modifier.focusRing(shape, focusRingColor), enabled, shape, colors, elevation, border,
+            contentPadding, interactionSource, content,
+        )
         return
     }
     Button(
         onClick = onClick,
-        modifier = modifier,
+        modifier = modifier.focusRing(CircleShape, focusRingColor), // TCHAT: keyboard focus ring
         enabled = enabled,
         shape = CircleShape,
         colors = colors,
@@ -78,7 +82,10 @@ fun AdaptiveOutlinedButton(
     content: @Composable RowScope.() -> Unit,
 ) {
     if (!isLiquidGlass) {
-        OutlinedButton(onClick, modifier, enabled, shape, colors, elevation, border, contentPadding, interactionSource, content)
+        OutlinedButton(
+            onClick, modifier.focusRing(shape, focusRingColor), enabled, shape, colors, elevation, border,
+            contentPadding, interactionSource, content,
+        )
         return
     }
     val accentLabel = colors == ButtonDefaults.outlinedButtonColors()
@@ -103,7 +110,10 @@ fun AdaptiveFilledTonalButton(
     content: @Composable RowScope.() -> Unit,
 ) {
     if (!isLiquidGlass) {
-        FilledTonalButton(onClick, modifier, enabled, shape, colors, elevation, border, contentPadding, interactionSource, content)
+        FilledTonalButton(
+            onClick, modifier.focusRing(shape, focusRingColor), enabled, shape, colors, elevation, border,
+            contentPadding, interactionSource, content,
+        )
         return
     }
     val accentLabel = colors == ButtonDefaults.filledTonalButtonColors()
@@ -124,7 +134,7 @@ private fun GlassBorderedButton(
     val fill = GlassControlColors.fill
     Button(
         onClick = onClick,
-        modifier = modifier,
+        modifier = modifier.focusRing(CircleShape, focusRingColor), // TCHAT: keyboard focus ring
         enabled = enabled,
         shape = CircleShape,
         colors = ButtonColors(

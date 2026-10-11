@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.theme.LocalReduceMotion
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.min
@@ -24,15 +25,21 @@ import kotlin.math.min
  * springs back to size. Only watches the pointer, so the button's own click still fires.
  */
 @Stable
-class PressBounce internal constructor(private val scope: CoroutineScope) {
+class PressBounce internal constructor(
+    private val scope: CoroutineScope,
+    /** TCHAT: the system asks for reduced motion, so the bounce is off (design Motion). */
+    private val reduced: Boolean = false,
+) {
     /** 1 = swollen, 0 = rest; [BounceSpec] overshoots below 0 as it settles. */
     internal val press = Animatable(0f)
 
     internal fun down() {
+        if (reduced) return
         scope.launch { press.animateTo(1f, SwellSpec) }
     }
 
     internal fun release() {
+        if (reduced) return
         scope.launch {
             // A quick tap lifts before the swell shows; finish it so the bounce reads.
             if (press.value < DIP_THRESHOLD) press.animateTo(1f, GrowSpec)
@@ -44,7 +51,8 @@ class PressBounce internal constructor(private val scope: CoroutineScope) {
 @Composable
 fun rememberPressBounce(): PressBounce {
     val scope = rememberCoroutineScope()
-    return remember(scope) { PressBounce(scope) }
+    val reduced = LocalReduceMotion.current // TCHAT
+    return remember(scope, reduced) { PressBounce(scope, reduced) }
 }
 
 /**

@@ -22,12 +22,14 @@ class SendButtonModeTest {
         target: DuringRunSendTarget = DuringRunSendTarget.QUEUE,
         isEditingQueued: Boolean = false,
         isAwaitingUploadSend: Boolean = false,
+        showVoice: Boolean = false,
     ) = sendButtonModeFor(
         isStreaming = isStreaming,
         canQueue = canQueue,
         duringRunTarget = target,
         isEditingQueued = isEditingQueued,
         isAwaitingUploadSend = isAwaitingUploadSend,
+        showVoice = showVoice,
     )
 
     // ── The button names its target ───────────────────────────────────────
@@ -120,5 +122,22 @@ class SendButtonModeTest {
         assertThat(
             composerCanSend(inputText = "   ", hasAttachments = false, arePicksUnsettled = false),
         ).isFalse()
+    }
+
+    // ── TCHAT: one right-hand action (voice, send or stop) ────────────────
+
+    @Test
+    fun `an idle composer with an empty field offers voice`() {
+        assertThat(mode(isStreaming = false, canQueue = false, showVoice = true)).isEqualTo(SendButtonMode.VOICE)
+    }
+
+    @Test
+    fun `voice never hides Stop while a reply streams`() {
+        assertThat(mode(isStreaming = true, canQueue = false, showVoice = true)).isEqualTo(SendButtonMode.STOP)
+    }
+
+    @Test
+    fun `voice never hides Update while a queued message is being edited`() {
+        assertThat(mode(isStreaming = false, isEditingQueued = true, showVoice = true)).isEqualTo(SendButtonMode.UPDATE)
     }
 }
