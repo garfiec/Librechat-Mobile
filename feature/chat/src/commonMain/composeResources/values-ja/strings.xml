@@ -544,6 +544,9 @@
     <string name="error_auth_banned">このアカウントまたはネットワークはサインインをブロックされています。管理者に連絡してください。</string>
     <string name="error_auth_cross_origin">別のサイトからのサインインとしてサーバーに拒否されました。これはパスワードの問題ではなくアプリのバグです。報告してください。</string>
     <string name="error_share_limit">共有リンクのリクエストが多すぎます。しばらく待ってからもう一度お試しください。</string>
+    <string name="error_message_limit">このサーバーのメッセージ上限に達しました。しばらく待ってからもう一度お試しください。</string>
+    <string name="error_ban">このアカウントはこのサーバーで一時的に制限されています。後でもう一度試すか、サーバーの管理者に連絡してください。</string>
+    <string name="error_convo_access">この会話は別のアカウントのものであるため、ここから続けることはできません。</string>
     <string name="ask_user_question_record_asked">質問済み</string>
     <string name="ask_user_question_record_asking">質問中</string>
     <string name="ask_user_question_record_answer_label">あなたの回答:</string>
@@ -653,4 +656,15 @@
     <string name="notice_upload_too_large">%1$s はサーバーの上限 %2$s を超えています。</string>
     <string name="notice_speech_permission_denied">音声認識へのアクセスが許可されていません</string>
     <string name="notice_speech_unavailable">音声認識を利用できません。設定 &gt; プライバシー &gt; 音声認識 を確認してください。</string>
+    <string name="notice_send_refused">サーバーがこのメッセージを拒否しました。</string>
+    <plurals name="notice_message_limit_retry_minutes">
+        <item quantity="other">このサーバーのメッセージ上限に達しました。%1$d分後にもう一度お試しください。</item>
+    </plurals>
+    <plurals name="notice_message_limit_retry_hours">
+        <item quantity="other">このサーバーのメッセージ上限に達しました。%1$d時間後にもう一度お試しください。</item>
+    </plurals>
+    <plurals name="notice_message_limit_retry_days">
+        <item quantity="other">このサーバーのメッセージ上限に達しました。%1$d日後にもう一度お試しください。</item>
+    </plurals>
+    <string name="queue_held_after_refusal">サーバーがメッセージを拒否しました。メッセージはキューで待機しており、自動では送信されません。準備ができたら「キューを送信」をタップしてください。</string>
 </resources>

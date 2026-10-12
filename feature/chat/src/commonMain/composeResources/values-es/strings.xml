@@ -544,6 +544,9 @@
     <string name="error_auth_banned">Esta cuenta o red tiene bloqueado el inicio de sesión. Contacta con un administrador.</string>
     <string name="error_auth_cross_origin">El servidor rechazó el inicio de sesión por provenir de otro sitio. Infórmalo: es un error de la app, no un problema de contraseña.</string>
     <string name="error_share_limit">Demasiadas solicitudes de enlaces compartidos. Espera un momento e inténtalo de nuevo.</string>
+    <string name="error_message_limit">Has alcanzado el límite de mensajes de este servidor. Espera un rato e inténtalo de nuevo.</string>
+    <string name="error_ban">Esta cuenta está restringida temporalmente en este servidor. Inténtalo más tarde o contacta con el administrador del servidor.</string>
+    <string name="error_convo_access">Esta conversación pertenece a otra cuenta, así que no se puede continuar desde aquí.</string>
     <string name="ask_user_question_record_asked">Preguntado</string>
     <string name="ask_user_question_record_asking">Preguntando</string>
     <string name="ask_user_question_record_answer_label">Respondiste:</string>
@@ -653,4 +656,21 @@
     <string name="notice_upload_too_large">%1$s supera el límite del servidor de %2$s.</string>
     <string name="notice_speech_permission_denied">Permiso de reconocimiento de voz denegado</string>
     <string name="notice_speech_unavailable">El reconocimiento de voz no está disponible. Revisa Ajustes &gt; Privacidad &gt; Reconocimiento de voz.</string>
+    <string name="notice_send_refused">El servidor rechazó este mensaje.</string>
+    <plurals name="notice_message_limit_retry_minutes">
+        <item quantity="one">Has alcanzado el límite de mensajes de este servidor. Inténtalo de nuevo en %1$d minuto.</item>
+        <item quantity="many">Has alcanzado el límite de mensajes de este servidor. Inténtalo de nuevo en %1$d minutos.</item>
+        <item quantity="other">Has alcanzado el límite de mensajes de este servidor. Inténtalo de nuevo en %1$d minutos.</item>
+    </plurals>
+    <plurals name="notice_message_limit_retry_hours">
+        <item quantity="one">Has alcanzado el límite de mensajes de este servidor. Inténtalo de nuevo en %1$d hora.</item>
+        <item quantity="many">Has alcanzado el límite de mensajes de este servidor. Inténtalo de nuevo en %1$d horas.</item>
+        <item quantity="other">Has alcanzado el límite de mensajes de este servidor. Inténtalo de nuevo en %1$d horas.</item>
+    </plurals>
+    <plurals name="notice_message_limit_retry_days">
+        <item quantity="one">Has alcanzado el límite de mensajes de este servidor. Inténtalo de nuevo en %1$d día.</item>
+        <item quantity="many">Has alcanzado el límite de mensajes de este servidor. Inténtalo de nuevo en %1$d días.</item>
+        <item quantity="other">Has alcanzado el límite de mensajes de este servidor. Inténtalo de nuevo en %1$d días.</item>
+    </plurals>
+    <string name="queue_held_after_refusal">El servidor rechazó tu mensaje. Está esperando en la cola y no se enviará solo. Toca «Enviar en cola» cuando quieras.</string>
 </resources>

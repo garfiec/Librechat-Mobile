@@ -112,6 +112,18 @@ enum class StreamErrorType(
     SHARE_LIMIT("share_limit"),
 
     /**
+     * The send was refused by the server's message rate limiter. `ViolationTypes.MESSAGE_LIMIT`.
+     * Repeated violations escalate to [BAN].
+     */
+    MESSAGE_LIMIT("message_limit"),
+
+    /** The send was refused because the account or the IP is banned. `ViolationTypes.BAN`. */
+    BAN("ban"),
+
+    /** The send named a conversation this account does not own. `ViolationTypes.CONVO_ACCESS`. */
+    CONVO_ACCESS("convo_access"),
+
+    /**
      * The SSE job 404'd — it completed, expired, or was deleted before this client subscribed.
      * Reconnecting or reopening the conversation is the resolution, not retrying the send.
      */
@@ -164,6 +176,16 @@ enum class StreamErrorType(
                 ServerErrorCode.MCP_AUTHENTICATION_REFRESH_FAILED -> MCP_AUTHENTICATION_REFRESH_FAILED.marker
                 else -> null
             }
+
+        /**
+         * The marker for a generation POST the server's middleware refused, or null when the
+         * refusal names no code this client recognizes. [refusalText] is the refused turn's text
+         * (`ChatRefusal` in `:core:network`): a typed payload's JSON, or prose.
+         *
+         * The refusal's own text is passed rather than the frame it rode in: the payload is a JSON
+         * *string* inside that frame, which [parse]'s brace walk skips over.
+         */
+        fun refusalMarker(refusalText: String): String? = parse(refusalText)?.marker
 
         /**
          * The typed error in a raw stream-error message, or null.
@@ -220,6 +242,34 @@ enum class StreamErrorType(
                     ?.takeIf { it.isNotBlank() },
             )
         }
+
+        /**
+         * How many seconds until a [MESSAGE_LIMIT] refusal's window reopens, counted from when the
+         * refusal arrived, or null for any other message or a payload that does not say.
+         *
+         * The payload (`messageLimiters.js`, via `getRateLimitReset` in
+         * `packages/api/src/utils/limiter.ts`) carries both a relative `retryAfterSeconds` and an
+         * absolute `resetAt`. Only the relative one is read: it was measured on the server's clock
+         * at the moment of refusal, while `resetAt` would be compared against this device's, which
+         * can disagree. A wait longer than the limiter's own `windowInMinutes` is discarded, as
+         * upstream's `LimitError` discards it — no reset can lie further out than one window.
+         */
+        fun messageLimitRetryAfterSeconds(rawMessage: String): Long? {
+            if (parse(rawMessage) != MESSAGE_LIMIT) return null
+            val (payload, _) = identifiedPayload(rawMessage) ?: return null
+            val seconds = payload.wholeNumber("retryAfterSeconds")?.takeIf { it > 0 } ?: return null
+            val windowMinutes = payload.wholeNumber("windowInMinutes")
+            if (windowMinutes != null && seconds > windowMinutes * SECONDS_PER_MINUTE) return null
+            return seconds
+        }
+
+        private const val SECONDS_PER_MINUTE = 60L
+
+        /** A finite whole number under [key], or null. */
+        private fun JsonObject.wholeNumber(key: String): Long? =
+            (this[key] as? JsonPrimitive)?.takeUnless { it.isString }?.contentOrNull?.toDoubleOrNull()
+                ?.takeIf { it.isFinite() && it == it.toLong().toDouble() }
+                ?.toLong()
 
         /**
          * The first payload in [rawMessage] that names an identifier, with that identifier. See

@@ -578,6 +578,96 @@ class ChatViewModelDuringRunSendTest {
             assertThat(vm.uiState.value.justSettledMessageId).isEqualTo(SETTLED_ID)
         }
 
+    /**
+     * A steer the server REFUSED waits for the user, through a clean finish that would otherwise
+     * drain it, and the screen says so. Run on the real queue for the reason the parked-steer test
+     * gives: the delegate's fakes cannot tell a self-draining enqueue from a held one.
+     */
+    @Test
+    fun `a refused steer is held through a clean finish until the user sends it`() =
+        duringRunTest(
+            preference = DuringRunAction.STEER,
+            arrange = {
+                coEvery { chatRepository.steerChat(any()) } returns Result.Error(
+                    exception = ApiException(
+                        statusCode = 200,
+                        message = "The server refused this message.",
+                        body = """{"type":"message_limit","windowInMinutes":1,"retryAfterSeconds":30}""",
+                    ),
+                )
+            },
+        ) { vm ->
+            vm.onInputChanged(TEXT)
+            vm.sendDuringRun()
+            runCurrent()
+
+            // Said at once, while the run is still streaming.
+            assertThat(vm.uiState.value.isStreaming).isTrue()
+            assertThat(vm.uiState.value.isQueueHeldForRefusal).isTrue()
+            assertThat(vm.uiState.value.error).isEqualTo(ChatNotice.MESSAGE_LIMIT_RETRY.marker(30L))
+
+            resumedStream.emit(
+                StreamEvent.Final(
+                    requestMessage = null,
+                    responseMessage = com.garfiec.librechat.core.model.Message(
+                        messageId = SETTLED_ID,
+                        conversationId = CONVERSATION_ID,
+                        text = "done",
+                        isCreatedByUser = false,
+                    ),
+                    conversation = null,
+                ),
+            )
+            runCurrent()
+
+            // A clean finish drains an ordinary queue; this one stays put.
+            assertThat(vm.uiState.value.isStreaming).isFalse()
+            assertThat(vm.uiState.value.messageQueue.map { it.text }).containsExactly(TEXT)
+            assertThat(vm.uiState.value.pausedQueueCount).isEqualTo(1)
+            assertThat(vm.uiState.value.isQueueHeldForRefusal).isTrue()
+            coVerify(exactly = 0) {
+                chatRepository.startChat(
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                    any(),
+                )
+            }
+
+            vm.sendQueuedNow()
+            runCurrent()
+
+            assertThat(vm.uiState.value.isStreaming).isTrue()
+            assertThat(vm.uiState.value.messageQueue).isEmpty()
+            assertThat(vm.uiState.value.isQueueHeldForRefusal).isFalse()
+        }
+
+    @Test
+    fun `cancelling the refused message retires the explanation but not the hold`() =
+        duringRunTest(
+            preference = DuringRunAction.STEER,
+            arrange = {
+                coEvery { chatRepository.steerChat(any()) } returns Result.Error(
+                    exception = ApiException(statusCode = 200, message = "refused", body = """{"type":"moderation"}"""),
+                )
+            },
+        ) { vm ->
+            vm.onInputChanged(TEXT)
+            vm.sendDuringRun()
+            runCurrent()
+            vm.onInputChanged("the next turn")
+            vm.queueMessage()
+            runCurrent()
+            assertThat(vm.uiState.value.isQueueHeldForRefusal).isTrue()
+
+            vm.cancelQueued(vm.uiState.value.messageQueue.first { it.text == TEXT }.localId)
+            runCurrent()
+
+            // The other follow-up is still held, but nothing in it was refused.
+            assertThat(vm.uiState.value.messageQueue.map { it.text }).containsExactly("the next turn")
+            assertThat(vm.uiState.value.isQueuePaused).isTrue()
+            assertThat(vm.uiState.value.isQueueHeldForRefusal).isFalse()
+        }
+
     // ─── pending quotes (v0.8.7 "Add to chat", SYNC A11) ─────────────
 
     /** Captures the `quotes` argument of every `startChat` the ViewModel fires. */

@@ -544,6 +544,9 @@
     <string name="error_auth_banned">Dieses Konto oder Netzwerk ist für die Anmeldung gesperrt. Wende dich an einen Administrator.</string>
     <string name="error_auth_cross_origin">Der Server hat die Anmeldung abgelehnt, da sie von einer anderen Website zu kommen scheint. Bitte melde das – es ist ein App-Fehler, kein Passwortproblem.</string>
     <string name="error_share_limit">Zu viele Anfragen für geteilte Links. Warte einen Moment und versuche es erneut.</string>
+    <string name="error_message_limit">Du hast das Nachrichtenlimit dieses Servers erreicht. Warte eine Weile und versuche es dann erneut.</string>
+    <string name="error_ban">Dieses Konto ist auf diesem Server vorübergehend eingeschränkt. Versuche es später erneut oder wende dich an den Administrator des Servers.</string>
+    <string name="error_convo_access">Diese Unterhaltung gehört zu einem anderen Konto und kann hier nicht fortgesetzt werden.</string>
     <string name="ask_user_question_record_asked">Gefragt</string>
     <string name="ask_user_question_record_asking">Fragt</string>
     <string name="ask_user_question_record_answer_label">Deine Antwort:</string>
@@ -653,4 +656,18 @@
     <string name="notice_upload_too_large">%1$s ist größer als das Serverlimit von %2$s.</string>
     <string name="notice_speech_permission_denied">Berechtigung für die Spracherkennung verweigert</string>
     <string name="notice_speech_unavailable">Spracherkennung nicht verfügbar. Prüfe Einstellungen &gt; Datenschutz &gt; Spracherkennung.</string>
+    <string name="notice_send_refused">Der Server hat diese Nachricht abgelehnt.</string>
+    <plurals name="notice_message_limit_retry_minutes">
+        <item quantity="one">Du hast das Nachrichtenlimit dieses Servers erreicht. Versuche es in %1$d Minute erneut.</item>
+        <item quantity="other">Du hast das Nachrichtenlimit dieses Servers erreicht. Versuche es in %1$d Minuten erneut.</item>
+    </plurals>
+    <plurals name="notice_message_limit_retry_hours">
+        <item quantity="one">Du hast das Nachrichtenlimit dieses Servers erreicht. Versuche es in %1$d Stunde erneut.</item>
+        <item quantity="other">Du hast das Nachrichtenlimit dieses Servers erreicht. Versuche es in %1$d Stunden erneut.</item>
+    </plurals>
+    <plurals name="notice_message_limit_retry_days">
+        <item quantity="one">Du hast das Nachrichtenlimit dieses Servers erreicht. Versuche es in %1$d Tag erneut.</item>
+        <item quantity="other">Du hast das Nachrichtenlimit dieses Servers erreicht. Versuche es in %1$d Tagen erneut.</item>
+    </plurals>
+    <string name="queue_held_after_refusal">Der Server hat deine Nachricht abgelehnt. Sie wartet in der Warteschlange und wird nicht von selbst gesendet. Tippe auf „Wartende senden“, wenn du so weit bist.</string>
 </resources>

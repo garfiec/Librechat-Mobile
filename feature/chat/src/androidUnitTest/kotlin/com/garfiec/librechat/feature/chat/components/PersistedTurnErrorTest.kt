@@ -19,6 +19,14 @@ class PersistedTurnErrorTest {
         assertThat(persistedTurnError(saved)).isEqualTo(StreamErrorType.CODE_WORKSPACE_UNAVAILABLE.marker)
     }
 
+    /** The error turn `denyRequest` saves when it refuses a send on an existing conversation. */
+    @Test
+    fun `a saved refusal is classified, not shown as JSON`() {
+        val saved = failed("""{"type":"message_limit","max":40,"limiter":"user","windowInMinutes":1}""")
+
+        assertThat(persistedTurnError(saved)).isEqualTo(StreamErrorType.MESSAGE_LIMIT.marker)
+    }
+
     @Test
     fun `an untyped failure keeps the server's own words`() {
         assertThat(persistedTurnError(failed("Connection error."))).isEqualTo("Connection error.")

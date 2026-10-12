@@ -544,6 +544,9 @@
     <string name="error_auth_banned">هذا الحساب أو هذه الشبكة محظوران من تسجيل الدخول. تواصل مع المسؤول.</string>
     <string name="error_auth_cross_origin">رفض الخادم تسجيل الدخول باعتباره صادرًا من موقع آخر. أبلغ عن ذلك — إنه خلل في التطبيق وليس مشكلة في كلمة المرور.</string>
     <string name="error_share_limit">طلبات روابط مشاركة كثيرة جدًا. انتظر قليلًا وحاول مرة أخرى.</string>
+    <string name="error_message_limit">لقد بلغت حد الرسائل على هذا الخادم. انتظر قليلًا ثم حاول مرة أخرى.</string>
+    <string name="error_ban">هذا الحساب مقيّد مؤقتًا على هذا الخادم. حاول لاحقًا أو تواصل مع مسؤول الخادم.</string>
+    <string name="error_convo_access">تنتمي هذه المحادثة إلى حساب آخر، لذا لا يمكن متابعتها من هنا.</string>
     <string name="ask_user_question_record_asked">طُرح السؤال</string>
     <string name="ask_user_question_record_asking">يسأل</string>
     <string name="ask_user_question_record_answer_label">إجابتك:</string>
@@ -653,4 +656,30 @@
     <string name="notice_upload_too_large">حجم %1$s أكبر من الحد الأقصى للخادم وهو %2$s.</string>
     <string name="notice_speech_permission_denied">تم رفض إذن التعرّف على الكلام</string>
     <string name="notice_speech_unavailable">التعرّف على الكلام غير متاح. تحقّق من الإعدادات &gt; الخصوصية &gt; التعرّف على الكلام.</string>
+    <string name="notice_send_refused">رفض الخادم هذه الرسالة.</string>
+    <plurals name="notice_message_limit_retry_minutes">
+        <item quantity="zero">لقد بلغت حد الرسائل على هذا الخادم. حاول مرة أخرى بعد %1$d دقيقة.</item>
+        <item quantity="one">لقد بلغت حد الرسائل على هذا الخادم. حاول مرة أخرى بعد دقيقة.</item>
+        <item quantity="two">لقد بلغت حد الرسائل على هذا الخادم. حاول مرة أخرى بعد دقيقتين.</item>
+        <item quantity="few">لقد بلغت حد الرسائل على هذا الخادم. حاول مرة أخرى بعد %1$d دقائق.</item>
+        <item quantity="many">لقد بلغت حد الرسائل على هذا الخادم. حاول مرة أخرى بعد %1$d دقيقة.</item>
+        <item quantity="other">لقد بلغت حد الرسائل على هذا الخادم. حاول مرة أخرى بعد %1$d دقيقة.</item>
+    </plurals>
+    <plurals name="notice_message_limit_retry_hours">
+        <item quantity="zero">لقد بلغت حد الرسائل على هذا الخادم. حاول مرة أخرى بعد %1$d ساعة.</item>
+        <item quantity="one">لقد بلغت حد الرسائل على هذا الخادم. حاول مرة أخرى بعد ساعة.</item>
+        <item quantity="two">لقد بلغت حد الرسائل على هذا الخادم. حاول مرة أخرى بعد ساعتين.</item>
+        <item quantity="few">لقد بلغت حد الرسائل على هذا الخادم. حاول مرة أخرى بعد %1$d ساعات.</item>
+        <item quantity="many">لقد بلغت حد الرسائل على هذا الخادم. حاول مرة أخرى بعد %1$d ساعة.</item>
+        <item quantity="other">لقد بلغت حد الرسائل على هذا الخادم. حاول مرة أخرى بعد %1$d ساعة.</item>
+    </plurals>
+    <plurals name="notice_message_limit_retry_days">
+        <item quantity="zero">لقد بلغت حد الرسائل على هذا الخادم. حاول مرة أخرى بعد %1$d يوم.</item>
+        <item quantity="one">لقد بلغت حد الرسائل على هذا الخادم. حاول مرة أخرى بعد يوم.</item>
+        <item quantity="two">لقد بلغت حد الرسائل على هذا الخادم. حاول مرة أخرى بعد يومين.</item>
+        <item quantity="few">لقد بلغت حد الرسائل على هذا الخادم. حاول مرة أخرى بعد %1$d أيام.</item>
+        <item quantity="many">لقد بلغت حد الرسائل على هذا الخادم. حاول مرة أخرى بعد %1$d يومًا.</item>
+        <item quantity="other">لقد بلغت حد الرسائل على هذا الخادم. حاول مرة أخرى بعد %1$d يوم.</item>
+    </plurals>
+    <string name="queue_held_after_refusal">رفض الخادم رسالتك. إنها تنتظر في قائمة الانتظار ولن تُرسل تلقائيًا. اضغط «إرسال قائمة الانتظار» عندما تكون مستعدًا.</string>
 </resources>

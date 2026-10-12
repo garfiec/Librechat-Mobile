@@ -5,12 +5,14 @@ import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.apiCallCatching
 import com.garfiec.librechat.core.model.error.ServerErrorCode
+import com.garfiec.librechat.core.model.error.StreamErrorType
 import com.garfiec.librechat.core.model.queuedturn.AgentQueuedTurnReceipt
 import com.garfiec.librechat.core.model.queuedturn.EnqueueQueuedTurnRequest
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnOutcome
 import com.garfiec.librechat.core.model.queuedturn.isDefiniteQueuedTurnRejection
 import com.garfiec.librechat.core.model.queuedturn.isDefiniteQueuedTurnsUnsupported
 import com.garfiec.librechat.core.network.api.QueuedTurnsApi
+import com.garfiec.librechat.core.network.api.chatRefusalText
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -88,6 +90,15 @@ class QueuedTurnRepositoryImpl(
         block: suspend () -> QueuedTurnOutcome<T>,
     ): QueuedTurnOutcome<T> = apiCallCatching(block) { e ->
         val api = e as? ApiException
+        // A middleware refusal (rate limit, ban, moderation) answers before the controller runs,
+        // so it proves nothing was committed — on a 200, which the status test below cannot read.
+        api?.chatRefusalText?.let { text ->
+            return@apiCallCatching QueuedTurnOutcome.Rejected(
+                statusCode = api.statusCode,
+                code = StreamErrorType.parse(text)?.wire,
+                message = StreamErrorType.refusalMarker(text) ?: api.message,
+            )
+        }
         val code = ServerErrorCode.generationCodeOf(api?.body)
         classify(api?.statusCode, code, api?.message).also {
             // **Only an UNCODED answer latches.** A coded `QUEUED_TURNS_UNSUPPORTED` is

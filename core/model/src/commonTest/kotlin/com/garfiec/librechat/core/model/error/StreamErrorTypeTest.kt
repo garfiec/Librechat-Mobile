@@ -86,6 +86,57 @@ class StreamErrorTypeTest {
     }
 
     /**
+     * The `text` of the error turn upstream's `denyRequest` writes, exactly as the middleware
+     * builds it: `JSON.stringify` of the violation object. Wire values are upstream
+     * `ViolationTypes` (`packages/data-provider/src/config.ts`), plus `ErrorTypes.MODERATION`.
+     */
+    @Test
+    fun a_refused_send_classifies_off_the_refusal_text() {
+        val expected = mapOf(
+            """{"type":"message_limit","max":40,"limiter":"ip","windowInMinutes":1,""" +
+                """"resetAt":1760000000000,"retryAfterSeconds":42}""" to StreamErrorType.MESSAGE_LIMIT,
+            """{"type":"ban"}""" to StreamErrorType.BAN,
+            """{"type":"moderation"}""" to StreamErrorType.MODERATION,
+            """{"type":"convo_access","error":"User not authorized for this conversation"}""" to
+                StreamErrorType.CONVO_ACCESS,
+        )
+        expected.forEach { (text, type) ->
+            assertEquals(type.marker, StreamErrorType.refusalMarker(text))
+        }
+    }
+
+    @Test
+    fun a_message_limit_refusal_carries_its_retry_wait() {
+        // The shape messageLimiters.js writes, getRateLimitReset's two fields spread in.
+        val raw = """{"type":"message_limit","max":40,"limiter":"ip","windowInMinutes":60,""" +
+            """"resetAt":1760000000000,"retryAfterSeconds":2700}"""
+        assertEquals(2700L, StreamErrorType.messageLimitRetryAfterSeconds(raw))
+    }
+
+    @Test
+    fun a_retry_wait_is_only_read_where_it_is_trustworthy() {
+        // Longer than one window: no reset can lie that far out, so the number is garbage.
+        assertNull(
+            StreamErrorType.messageLimitRetryAfterSeconds(
+                """{"type":"message_limit","windowInMinutes":1,"retryAfterSeconds":3600}""",
+            ),
+        )
+        // Absent, zero, or quoted: nothing to say.
+        assertNull(StreamErrorType.messageLimitRetryAfterSeconds("""{"type":"message_limit","windowInMinutes":1}"""))
+        assertNull(StreamErrorType.messageLimitRetryAfterSeconds("""{"type":"message_limit","retryAfterSeconds":0}"""))
+        assertNull(StreamErrorType.messageLimitRetryAfterSeconds("""{"type":"message_limit","retryAfterSeconds":"60"}"""))
+        // Another code's field is not a message-limit wait.
+        assertNull(StreamErrorType.messageLimitRetryAfterSeconds("""{"type":"share_limit","retryAfterSeconds":60}"""))
+    }
+
+    @Test
+    fun a_prose_refusal_has_no_marker() {
+        // moderateText's catch denies with a bare sentence; it must reach the user as the server's
+        // text, never as a guessed code.
+        assertNull(StreamErrorType.refusalMarker("error in moderation check"))
+    }
+
+    /**
      * The shape rc2's terminal-run handler actually composes: prose, a newline, then the payload
      * (`packages/api/src/agents/failures/terminal.ts`). A case built from a bare JSON object
      * passes whether or not `parse` can find an EMBEDDED payload, which is how a mapped type can

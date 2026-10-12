@@ -175,14 +175,19 @@ class MessageQueueDelegate(
     /** Clears a now-meaningless pause when the queue is empty (e.g. an edit was committed empty,
      *  deleting the last item). */
     fun clearPauseIfEmpty() {
-        handle.update { if (queue.messageQueue.isEmpty()) queue = queue.copy(isQueuePaused = false) }
+        handle.update { if (queue.messageQueue.isEmpty()) queue = queue.copy(isQueuePaused = false, refusedLocalIds = emptySet()) }
     }
 
     fun cancel(localId: String) {
         handle.update {
             val next = queue.messageQueue.filterNot { it.localId == localId }
             // Clearing the last item while paused lifts the (now meaningless) pause.
-            queue = queue.copy(messageQueue = next, isQueuePaused = queue.isQueuePaused && next.isNotEmpty())
+            val paused = queue.isQueuePaused && next.isNotEmpty()
+            queue = queue.copy(
+                messageQueue = next,
+                isQueuePaused = paused,
+                refusedLocalIds = if (paused) queue.refusedLocalIds - localId else emptySet(),
+            )
         }
     }
 
@@ -204,6 +209,16 @@ class MessageQueueDelegate(
     fun pause() {
         if (handle.state.messageQueue.isEmpty() && !handle.state.isEditingQueued) return
         handle.update { queue = queue.copy(isQueuePaused = true) }
+    }
+
+    /**
+     * Holds the queue on the queued message [localId], which the server refused, and records that
+     * this is why. Never drained on its own: a retry would only be refused again (see
+     * `SteeringDelegate.holdRefused`). The user decides.
+     */
+    fun holdForRefusal(localId: String) {
+        if (handle.state.messageQueue.isEmpty() && !handle.state.isEditingQueued) return
+        handle.update { queue = queue.copy(isQueuePaused = true, refusedLocalIds = queue.refusedLocalIds + localId) }
     }
 
     /**
@@ -236,6 +251,8 @@ class MessageQueueDelegate(
             queue = queue.copy(
                 messageQueue = released,
                 isQueuePaused = released.any { it.server != null },
+                // The tap is the user's decision to retry; a hold that remains is the server's.
+                refusedLocalIds = emptySet(),
             )
         }
         // Said rather than swallowed: the control is still there, and a tap that visibly does

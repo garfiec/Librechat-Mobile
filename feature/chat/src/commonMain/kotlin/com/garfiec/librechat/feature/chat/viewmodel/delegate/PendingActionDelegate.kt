@@ -28,6 +28,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.ChatRequestBuilder
 import com.garfiec.librechat.feature.chat.viewmodel.PendingActionHandle
 import com.garfiec.librechat.feature.chat.viewmodel.PendingActionWrites
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
+import com.garfiec.librechat.feature.chat.viewmodel.refusalErrorMarker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -697,13 +698,16 @@ class PendingActionDelegate(
                         return@launch
                     }
                     val fingerprintRejected = statusCode == HTTP_FORBIDDEN
+                    // The resume route runs the message limiters and moderation over the answer,
+                    // and their refusal arrives as a 200 naming what to do next — wait, or edit.
+                    val refusalMarker = refusalErrorMarker(result.exception)
                     handle.update {
                         isResolvingPendingAction = false
                         pendingActionResumeFailed = true
-                        error = if (fingerprintRejected) {
-                            fingerprintRejectedMessage()
-                        } else {
-                            resumeFailureMessage(result.message)
+                        error = when {
+                            refusalMarker != null -> refusalMarker
+                            fingerprintRejected -> fingerprintRejectedMessage()
+                            else -> resumeFailureMessage(result.message)
                         }
                     }
                 }

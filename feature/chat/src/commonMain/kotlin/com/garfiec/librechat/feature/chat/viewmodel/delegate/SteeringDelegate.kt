@@ -5,16 +5,19 @@ import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.model.PendingSteer
+import com.garfiec.librechat.core.model.error.StreamErrorType
 import com.garfiec.librechat.core.model.request.SteerCancelRequest
 import com.garfiec.librechat.core.model.request.SteerRequest
 import com.garfiec.librechat.core.model.response.SteerResponse
 import com.garfiec.librechat.core.model.steer.mergeRestagedQuotes
 import com.garfiec.librechat.core.model.steer.parseSteerRejectionCode
+import com.garfiec.librechat.core.network.api.chatRefusalText
 import com.garfiec.librechat.feature.chat.viewmodel.PendingSteerChip
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
 import com.garfiec.librechat.feature.chat.viewmodel.SteerChipStatus
 import com.garfiec.librechat.feature.chat.viewmodel.SteerState
 import com.garfiec.librechat.feature.chat.viewmodel.SteeringHandle
+import com.garfiec.librechat.feature.chat.viewmodel.refusalErrorMarker
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
@@ -31,7 +34,8 @@ import kotlin.uuid.Uuid
  * **Nothing here may lose the user's text, duplicate it, or send text they withdrew.** Steering
  * is best-effort by construction: the run can end, pause, or fill its queue between the user
  * hitting send and the request landing. So every failure path re-homes the words into the
- * follow-up queue, whose drain fires them when the run ends. That is also why there is no failed
+ * follow-up queue, whose drain fires them when the run ends — except a steer the server REFUSED,
+ * which would only be refused again and is held for the user instead. That is also why there is no failed
  * chip state: a queued message the user can already edit, reorder and cancel is a better home for
  * text than a dead chip they would have to nurse back to life.
  *
@@ -66,6 +70,11 @@ class SteeringDelegate(
      * PARKED for a run that ended while nobody was attached — see [reclaimParked].
      */
     private val pauseQueue: () -> Unit,
+    /**
+     * Holds the follow-up queue on a steer the server's middleware REFUSED, marked so the user is
+     * told the queue now waits for them. See the refusal branch in [steer].
+     */
+    private val holdQueueForRefusal: (localId: String) -> Unit,
     /** True while the client still believes a run is in flight. */
     private val isStreaming: () -> Boolean,
     /**
@@ -202,14 +211,41 @@ class SteeringDelegate(
                         return@launch
                     }
                     settle(localId, SteerRecord.Status.RECLAIMED)
-                    val code = parseSteerRejectionCode((result.exception as? ApiException)?.body)
-                    Logger.d { "Steer degraded to the follow-up queue (code=$code)" }
+                    val api = result.exception as? ApiException
+                    val refusal = api?.chatRefusalText
+                    if (refusal != null) {
+                        holdRefused(record, api, refusal)
+                        return@launch
+                    }
+                    Logger.d { "Steer degraded to the follow-up queue (code=${parseSteerRejectionCode(api?.body)})" }
                     record.spec?.let(enqueueFollowUp)
                 }
 
                 is Result.Loading -> settle(localId, SteerRecord.Status.RECLAIMED)
             }
         }
+    }
+
+    /**
+     * Re-homes a steer the server's middleware refused (rate limit, moderation, ban, foreign
+     * conversation — see `ChatRefusal`) into a HELD queue, and says why.
+     *
+     * Not the ordinary degrade: its queue drains on its own the moment the run ends, which for a
+     * refusal means sending the same words back into the same refusal. A rate limit counts every
+     * attempt as a violation that escalates toward a ban, moderation refuses identical text again
+     * — and on an existing conversation `denyRequest` then saves the flagged text into the thread.
+     * So the text is kept (never lose steer text) but waits for the user's own "Send queued".
+     *
+     * [enqueueParked], not [enqueueFollowUp], for the reason [reclaimParked] gives: the refusal can
+     * land after the run already ended, and the self-draining enqueue would send before the hold
+     * applied. The reason goes on the error channel at once, while the run may still be streaming.
+     */
+    private fun holdRefused(record: SteerRecord, api: ApiException, refusal: String) {
+        Logger.d { "Steer refused (code=${StreamErrorType.parse(refusal)?.wire ?: "untyped"}); held in the queue" }
+        val spec = record.spec ?: return
+        enqueueParked(spec)
+        holdQueueForRefusal(spec.localId)
+        handle.update { error = refusalErrorMarker(api) ?: api.message }
     }
 
     /**

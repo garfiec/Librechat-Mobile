@@ -566,6 +566,9 @@
     <string name="error_auth_banned">This account or network is blocked from signing in. Contact an administrator.</string>
     <string name="error_auth_cross_origin">The server rejected the sign-in as coming from another site. Report this — it is an app bug, not a password problem.</string>
     <string name="error_share_limit">Too many shared link requests. Wait a moment and try again.</string>
+    <string name="error_message_limit">You've reached this server's message limit. Wait a while, then try again.</string>
+    <string name="error_ban">This account is temporarily restricted on this server. Try again later or contact the server's administrator.</string>
+    <string name="error_convo_access">This conversation belongs to another account, so it can't be continued from here.</string>
     <!-- Durable record of a resolved ask_user_question, shown in place of its tool card -->
     <string name="ask_user_question_record_asked">Asked</string>
     <string name="ask_user_question_record_asking">Asking</string>
@@ -678,4 +681,18 @@
     <string name="notice_upload_too_large">%1$s is larger than the server limit of %2$s.</string>
     <string name="notice_speech_permission_denied">Speech recognition permission denied</string>
     <string name="notice_speech_unavailable">Speech recognition not available. Check Settings &gt; Privacy &gt; Speech Recognition.</string>
+    <string name="notice_send_refused">The server refused this message.</string>
+    <plurals name="notice_message_limit_retry_minutes">
+        <item quantity="one">You've reached this server's message limit. Try again in %1$d minute.</item>
+        <item quantity="other">You've reached this server's message limit. Try again in %1$d minutes.</item>
+    </plurals>
+    <plurals name="notice_message_limit_retry_hours">
+        <item quantity="one">You've reached this server's message limit. Try again in %1$d hour.</item>
+        <item quantity="other">You've reached this server's message limit. Try again in %1$d hours.</item>
+    </plurals>
+    <plurals name="notice_message_limit_retry_days">
+        <item quantity="one">You've reached this server's message limit. Try again in %1$d day.</item>
+        <item quantity="other">You've reached this server's message limit. Try again in %1$d days.</item>
+    </plurals>
+    <string name="queue_held_after_refusal">The server refused your message. It's waiting in the queue and won't send on its own. Tap “Send queued” when you're ready.</string>
 </resources>

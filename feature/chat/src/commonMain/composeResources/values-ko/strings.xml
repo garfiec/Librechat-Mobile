@@ -544,6 +544,9 @@
     <string name="error_auth_banned">이 계정 또는 네트워크는 로그인이 차단되었습니다. 관리자에게 문의하세요.</string>
     <string name="error_auth_cross_origin">서버가 다른 사이트에서 온 로그인으로 판단하여 거부했습니다. 비밀번호 문제가 아닌 앱 버그이니 신고해 주세요.</string>
     <string name="error_share_limit">공유 링크 요청이 너무 많습니다. 잠시 후 다시 시도하세요.</string>
+    <string name="error_message_limit">이 서버의 메시지 한도에 도달했습니다. 잠시 기다린 후 다시 시도하세요.</string>
+    <string name="error_ban">이 계정은 이 서버에서 일시적으로 제한되었습니다. 나중에 다시 시도하거나 서버 관리자에게 문의하세요.</string>
+    <string name="error_convo_access">이 대화는 다른 계정의 대화이므로 여기에서 이어갈 수 없습니다.</string>
     <string name="ask_user_question_record_asked">질문함</string>
     <string name="ask_user_question_record_asking">질문 중</string>
     <string name="ask_user_question_record_answer_label">내 답변:</string>
@@ -653,4 +656,15 @@
     <string name="notice_upload_too_large">%1$s이(가) 서버 제한인 %2$s보다 큽니다.</string>
     <string name="notice_speech_permission_denied">음성 인식 권한이 거부되었습니다</string>
     <string name="notice_speech_unavailable">음성 인식을 사용할 수 없습니다. 설정 &gt; 개인정보 보호 &gt; 음성 인식을 확인하세요.</string>
+    <string name="notice_send_refused">서버가 이 메시지를 거부했습니다.</string>
+    <plurals name="notice_message_limit_retry_minutes">
+        <item quantity="other">이 서버의 메시지 한도에 도달했습니다. %1$d분 후에 다시 시도하세요.</item>
+    </plurals>
+    <plurals name="notice_message_limit_retry_hours">
+        <item quantity="other">이 서버의 메시지 한도에 도달했습니다. %1$d시간 후에 다시 시도하세요.</item>
+    </plurals>
+    <plurals name="notice_message_limit_retry_days">
+        <item quantity="other">이 서버의 메시지 한도에 도달했습니다. %1$d일 후에 다시 시도하세요.</item>
+    </plurals>
+    <string name="queue_held_after_refusal">서버가 메시지를 거부했습니다. 메시지는 대기열에서 기다리며 자동으로 전송되지 않습니다. 준비되면 “대기 중인 메시지 보내기”를 탭하세요.</string>
 </resources>

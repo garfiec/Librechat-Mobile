@@ -1,5 +1,9 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
+import com.garfiec.librechat.core.common.result.ApiException
+import com.garfiec.librechat.core.model.error.StreamErrorType
+import com.garfiec.librechat.core.network.api.chatRefusalText
+
 /**
  * App-authored messages for the shared error channel (`ChatUiState.error`), carried as a marker and
  * localized where the channel is rendered (`localizedStreamError`), like
@@ -38,6 +42,15 @@ enum class ChatNotice(val wire: String) {
     UPLOAD_TOO_LARGE("upload_too_large"),
     SPEECH_PERMISSION_DENIED("speech_permission_denied"),
     SPEECH_UNAVAILABLE("speech_unavailable"),
+
+    /** The server's middleware refused a send with a code this build does not recognize. */
+    SEND_REFUSED("send_refused"),
+
+    /**
+     * Arg: whole seconds until the server's message limit lets a send through again. Rendered as a
+     * plural in the largest unit that fits (see `localizedStreamError`).
+     */
+    MESSAGE_LIMIT_RETRY("message_limit_retry"),
     ;
 
     fun marker(vararg args: Any): String =
@@ -63,4 +76,19 @@ enum class ChatNotice(val wire: String) {
         fun uploadFailed(filename: String, reason: String?): String =
             if (reason.isNullOrBlank()) UPLOAD_FAILED_UNKNOWN.marker(filename) else UPLOAD_FAILED.marker(filename, reason)
     }
+}
+
+/**
+ * What the error channel shows for a send the server's middleware refused (`ChatRefusal`), or null
+ * when [e] is not one. A message limit that says how long to wait is [ChatNotice.MESSAGE_LIMIT_RETRY];
+ * any other recognized code is its stream-error marker; an unrecognized one is
+ * [ChatNotice.SEND_REFUSED]. A prose refusal is also null: it is the server's own sentence, and the
+ * caller's screened message already carries it.
+ */
+internal fun refusalErrorMarker(e: Throwable?): String? {
+    val api = e as? ApiException ?: return null
+    val text = api.chatRefusalText ?: return null
+    StreamErrorType.messageLimitRetryAfterSeconds(text)?.let { return ChatNotice.MESSAGE_LIMIT_RETRY.marker(it) }
+    return StreamErrorType.refusalMarker(text)
+        ?: ChatNotice.SEND_REFUSED.marker().takeUnless { api.serverAuthored }
 }

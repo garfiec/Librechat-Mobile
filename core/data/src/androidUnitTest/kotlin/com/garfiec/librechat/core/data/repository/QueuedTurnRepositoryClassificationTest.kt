@@ -83,6 +83,17 @@ class QueuedTurnRepositoryClassificationTest {
     }
 
     @Test
+    fun `a middleware refusal on a 200 proves the row was not committed`() = runTest {
+        // denyRequest answers the limiters and moderation before the controller runs. Read by
+        // status alone, a 200 is no 4xx, and the row would sit Uncertain until the poll gave up.
+        failing(200, """{"type":"message_limit","max":40}""")
+
+        val outcome = repository.enqueue(request)
+        assertThat(outcome).isInstanceOf(QueuedTurnOutcome.Rejected::class.java)
+        assertThat((outcome as QueuedTurnOutcome.Rejected).code).isEqualTo("message_limit")
+    }
+
+    @Test
     fun `a 5xx is ambiguous and must never be resendable`() = runTest {
         failing(500, null)
 

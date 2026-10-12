@@ -22,6 +22,13 @@ data class QueueState(
      *  explicitly taps "Send queued". A successful Final drains automatically instead. */
     val isQueuePaused: Boolean = false,
     /**
+     * [QueuedMessage.localId]s of queued messages the server's middleware refused (a steer
+     * re-homed into a held queue), which the composer explains. Ids, not a flag, so cancelling the
+     * refused message retires the explanation while the rest of the queue stays held; cleared
+     * when the user resumes.
+     */
+    val refusedLocalIds: Set<String> = emptySet(),
+    /**
      * What the server has told this client about queued turns that have LEFT [messageQueue].
      *
      * Deliberately outlives the rows: an admitted turn is removed from the queue the moment the

@@ -47,6 +47,7 @@ class SteeringDelegateTest {
      */
     private val enqueued = mutableListOf<QueuedMessage>()
     private var queuePaused = false
+
     private val restaged = mutableListOf<String>()
 
     private fun spec(text: String) = QueuedMessage(
@@ -73,6 +74,7 @@ class SteeringDelegateTest {
             enqueueFollowUp = { enqueued += it },
             enqueueParked = { enqueued += it },
             pauseQueue = { queuePaused = true },
+            holdQueueForRefusal = { _ -> },
             isStreaming = { isStreaming },
             restageQuotes = { restaged += it },
         )
@@ -186,6 +188,7 @@ class SteeringDelegateTest {
                 enqueueFollowUp = { enqueued += it },
                 enqueueParked = { enqueued += it },
                 pauseQueue = { queuePaused = true },
+                holdQueueForRefusal = { _ -> },
                 isStreaming = { streaming },
                 restageQuotes = { restaged += it },
             )
@@ -479,6 +482,7 @@ class SteeringDelegateTest {
                 enqueueFollowUp = { enqueued += it },
                 enqueueParked = { enqueued += it },
                 pauseQueue = { queuePaused = true },
+                holdQueueForRefusal = { _ -> },
                 isStreaming = { true },
                 restageQuotes = { restaged += it },
             )
@@ -646,6 +650,7 @@ class SteeringDelegateTest {
                 enqueueFollowUp = { enqueued += it },
                 enqueueParked = { enqueued += it },
                 pauseQueue = { queuePaused = true },
+                holdQueueForRefusal = { _ -> },
                 isStreaming = { streaming },
                 restageQuotes = { restaged += it },
             )
@@ -685,6 +690,7 @@ class SteeringDelegateTest {
                 enqueueFollowUp = { enqueued += it },
                 enqueueParked = { enqueued += it },
                 pauseQueue = { queuePaused = true },
+                holdQueueForRefusal = { _ -> },
                 isStreaming = { true },
                 restageQuotes = { restaged += it },
             )
@@ -721,6 +727,7 @@ class SteeringDelegateTest {
                 enqueueFollowUp = { enqueued += it },
                 enqueueParked = { enqueued += it },
                 pauseQueue = { queuePaused = true },
+                holdQueueForRefusal = { _ -> },
                 isStreaming = { streaming },
                 restageQuotes = { restaged += it },
             )

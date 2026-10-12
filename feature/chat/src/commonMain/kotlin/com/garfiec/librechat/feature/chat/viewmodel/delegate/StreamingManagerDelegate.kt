@@ -16,10 +16,12 @@ import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.error.StreamErrorType
 import com.garfiec.librechat.core.model.error.parseUserKeyError
 import com.garfiec.librechat.core.model.response.ChatStatusResponse
+import com.garfiec.librechat.core.network.api.chatRefusalText
 import com.garfiec.librechat.feature.chat.util.applyAbortContract
 import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
 import com.garfiec.librechat.feature.chat.viewmodel.StreamingHandle
+import com.garfiec.librechat.feature.chat.viewmodel.refusalErrorMarker
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -124,8 +126,18 @@ class StreamingManagerDelegate(
          */
         data class Finalized(val aborted: Boolean) : StreamEndReason
 
-        /** Flow-level exception or in-band [StreamEvent.Error] — the two legacy paths, unified. */
-        data class StreamError(val message: String, val isNetwork: Boolean) : StreamEndReason
+        /**
+         * Flow-level exception or in-band [StreamEvent.Error] — the two legacy paths, unified.
+         *
+         * [refusedByServer] marks a send the server's middleware refused before the run started
+         * (`ChatRefusal`). Unlike any other failure before `created`, the server persists that
+         * turn — the user message and an error reply — whenever it names an existing conversation.
+         */
+        data class StreamError(
+            val message: String,
+            val isNetwork: Boolean,
+            val refusedByServer: Boolean = false,
+        ) : StreamEndReason
 
         /**
          * The abort POST failed (offline, 404, legacy backend) or the aborted final never arrived
@@ -207,7 +219,8 @@ class StreamingManagerDelegate(
 
     /**
      * Whether this turn reached the server's `created` milestone. Below that line nothing is
-     * persisted — not even the user message — which is what makes a failed send safe to un-send.
+     * persisted — not even the user message — which is what makes a failed send safe to un-send,
+     * with one exception: a send the server's middleware refused (see [isTurnProbablySaved]).
      * Above it the user message is *probably* persisted, not certainly: the server emits `created`
      * before building the prompt (memory, MCP config, attachments) and saves the user message only
      * after, so a failure in between ends a created turn that the server never recorded.
@@ -347,8 +360,9 @@ class StreamingManagerDelegate(
             val mcpAuthMarker = (e as? ApiException)?.let { StreamErrorType.startFailureMarker(it.body) }
             endStream(
                 StreamEndReason.StreamError(
-                    mcpAuthMarker ?: safe.message ?: "Chat request failed",
+                    refusalErrorMarker(e) ?: mcpAuthMarker ?: safe.message ?: "Chat request failed",
                     isNetwork = safe.kind == FailureKind.Network,
+                    refusedByServer = (e as? ApiException)?.chatRefusalText != null,
                 ),
             )
         }
@@ -614,6 +628,20 @@ class StreamingManagerDelegate(
     }
 
     /**
+     * Whether the failed turn's user message may be on the server, so the reload — not an
+     * un-send — decides where its text goes.
+     *
+     * Past `created`, probably. Before it, only a refusal on an existing conversation: denyRequest
+     * saves the user message and the error reply whenever the request named a conversation and a
+     * real parent, so the thread keeps the refused message under its error, as the web does,
+     * instead of the text landing in the composer as well. Not a temporary chat: those never
+     * reload, so nothing would replace the un-sent bubble.
+     */
+    private fun isTurnProbablySaved(reason: StreamEndReason.StreamError): Boolean =
+        currentTurnCreated ||
+            (reason.refusedByServer && handle.state.conversationId != null && !handle.state.isTemporaryChat)
+
+    /**
      * The stream-termination chokepoint for every *event-driven* end — clean or aborted Final,
      * error, failed abort, watchdog, resume-found-expired — so teardown steps can't drift apart
      * per exit path again. A flow that ends with neither Final nor Error comes here too, from
@@ -685,23 +713,23 @@ class StreamingManagerDelegate(
                 // A typed user-provided-key error surfaces as a snackbar with a Settings CTA
                 // instead of the generic error banner (no double-surfacing).
                 val keyError = parseUserKeyError(reason.message)
-                // The turn died before `created`, so the server persisted nothing — not even the
-                // user message. Un-send it and hand the text back to the composer, exactly as an
-                // early abort does, rather than stranding it: the optimistic bubble is invisible on
-                // a new chat anyway (screenState stays LANDING until `created`) and on an existing
+                val probablySaved = isTurnProbablySaved(reason)
+                // A turn that may be saved (see isTurnProbablySaved) may or may not have its user
+                // message on the server, and the reload below drops the optimistic bubble either
+                // way, so the reload decides: no server copy means the text goes back to the
+                // composer. Not on a network error — the run may still be alive server-side, and
+                // the connectivity observer re-attaches to it.
+                val unsavedTurn = currentTurnOptimisticUserMessageId
+                    ?.takeIf { probablySaved && !reason.isNetwork }
+                    ?.let { id -> handle.state.messages.firstOrNull { it.messageId == id } }
+                // Any other turn is un-sent and its text handed back to the composer, exactly as an
+                // early abort does, rather than stranded: the optimistic bubble is invisible on a
+                // new chat anyway (screenState stays LANDING until `created`) and on an existing
                 // conversation the reload below rebuilds the path without it. Either way the user's
                 // typed text simply disappeared, with nothing to retry from. Null id means the turn
                 // re-submitted a persisted message (regenerate / continue / edit-AI) — never remove
                 // those.
-                currentTurnOptimisticUserMessageId?.takeUnless { currentTurnCreated }?.let(host::unsendTurn)
-                // Past `created` the user message may or may not have been saved (see
-                // currentTurnCreated), and the reload below drops the optimistic bubble either way,
-                // so the reload decides: no server copy means the text goes back to the composer.
-                // Not on a network error — the run may still be alive server-side, and the
-                // connectivity observer re-attaches to it.
-                val unsavedTurn = currentTurnOptimisticUserMessageId
-                    ?.takeIf { currentTurnCreated && !reason.isNetwork }
-                    ?.let { id -> handle.state.messages.firstOrNull { it.messageId == id } }
+                currentTurnOptimisticUserMessageId?.takeUnless { probablySaved }?.let(host::unsendTurn)
                 // Preserve partial content so users can read/copy what was received.
                 handle.update {
                     content = content.resetLiveReply(false, buffer.currentText, buffer.currentThinking)

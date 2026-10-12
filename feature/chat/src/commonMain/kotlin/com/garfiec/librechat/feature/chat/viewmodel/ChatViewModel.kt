@@ -485,6 +485,7 @@ class ChatViewModel(
         // conversation open, where the run is already over. See SteeringDelegate.reclaimParked.
         enqueueParked = queueDelegate::enqueue,
         pauseQueue = { queueDelegate.pause() },
+        holdQueueForRefusal = { localId -> queueDelegate.holdForRefusal(localId) },
         isStreaming = { _uiState.value.isStreaming },
         restageQuotes = { quotes -> sendDispatchDelegate.restagePendingQuotes(quotes) },
     )

@@ -544,6 +544,9 @@
     <string name="error_auth_banned">Вход с этой учётной записи или из этой сети заблокирован. Обратитесь к администратору.</string>
     <string name="error_auth_cross_origin">Сервер отклонил вход как выполненный с другого сайта. Сообщите об этом — это ошибка приложения, а не проблема с паролем.</string>
     <string name="error_share_limit">Слишком много запросов на создание общих ссылок. Подождите немного и попробуйте снова.</string>
+    <string name="error_message_limit">Вы достигли лимита сообщений на этом сервере. Подождите немного и попробуйте снова.</string>
+    <string name="error_ban">Эта учётная запись временно ограничена на этом сервере. Попробуйте позже или обратитесь к администратору сервера.</string>
+    <string name="error_convo_access">Эта беседа принадлежит другой учётной записи, поэтому её нельзя продолжить отсюда.</string>
     <string name="ask_user_question_record_asked">Вопрос задан</string>
     <string name="ask_user_question_record_asking">Вопрос задаётся</string>
     <string name="ask_user_question_record_answer_label">Ваш ответ:</string>
@@ -653,4 +656,24 @@
     <string name="notice_upload_too_large">%1$s превышает ограничение сервера в %2$s.</string>
     <string name="notice_speech_permission_denied">Нет разрешения на распознавание речи</string>
     <string name="notice_speech_unavailable">Распознавание речи недоступно. Проверьте «Настройки» &gt; «Конфиденциальность» &gt; «Распознавание речи».</string>
+    <string name="notice_send_refused">Сервер отклонил это сообщение.</string>
+    <plurals name="notice_message_limit_retry_minutes">
+        <item quantity="one">Вы достигли лимита сообщений на этом сервере. Попробуйте снова через %1$d минуту.</item>
+        <item quantity="few">Вы достигли лимита сообщений на этом сервере. Попробуйте снова через %1$d минуты.</item>
+        <item quantity="many">Вы достигли лимита сообщений на этом сервере. Попробуйте снова через %1$d минут.</item>
+        <item quantity="other">Вы достигли лимита сообщений на этом сервере. Попробуйте снова через %1$d минуты.</item>
+    </plurals>
+    <plurals name="notice_message_limit_retry_hours">
+        <item quantity="one">Вы достигли лимита сообщений на этом сервере. Попробуйте снова через %1$d час.</item>
+        <item quantity="few">Вы достигли лимита сообщений на этом сервере. Попробуйте снова через %1$d часа.</item>
+        <item quantity="many">Вы достигли лимита сообщений на этом сервере. Попробуйте снова через %1$d часов.</item>
+        <item quantity="other">Вы достигли лимита сообщений на этом сервере. Попробуйте снова через %1$d часа.</item>
+    </plurals>
+    <plurals name="notice_message_limit_retry_days">
+        <item quantity="one">Вы достигли лимита сообщений на этом сервере. Попробуйте снова через %1$d день.</item>
+        <item quantity="few">Вы достигли лимита сообщений на этом сервере. Попробуйте снова через %1$d дня.</item>
+        <item quantity="many">Вы достигли лимита сообщений на этом сервере. Попробуйте снова через %1$d дней.</item>
+        <item quantity="other">Вы достигли лимита сообщений на этом сервере. Попробуйте снова через %1$d дня.</item>
+    </plurals>
+    <string name="queue_held_after_refusal">Сервер отклонил ваше сообщение. Оно ждёт в очереди и не отправится само. Нажмите «Отправить очередь», когда будете готовы.</string>
 </resources>

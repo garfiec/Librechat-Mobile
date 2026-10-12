@@ -266,8 +266,91 @@
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/error/StreamErrorType.kt",
         "symbol": "StreamErrorType"
       },
-      "why": "StreamErrorType transcribes the wire strings of upstream's ErrorTypes enum by hand -- the server never serves the table, it only sends one of its values on a stream-error payload. The enum lists only the codes with something actionable to say, so upstream ADDING a member is deliberately not drift; upstream RENAMING one of the listed values is, and nothing on this side can see it happen. Two entries are NOT ErrorTypes members and are not watched here: MCP_AUTHENTICATION_REJECTED / MCP_AUTHENTICATION_REFRESH_FAILED are MCPErrorCodes (packages/api/src/mcp/errors.ts, under mcp-error-codes), classified only from the chat start POST's body by startFailureMarker and never by parse.",
+      "why": "StreamErrorType transcribes the wire strings of upstream's ErrorTypes enum by hand -- the server never serves the table, it only sends one of its values on a stream-error payload. The enum lists only the codes with something actionable to say, so upstream ADDING a member is deliberately not drift; upstream RENAMING one of the listed values is, and nothing on this side can see it happen. Six entries are NOT ErrorTypes members and are not watched here: MCP_AUTHENTICATION_REJECTED / MCP_AUTHENTICATION_REFRESH_FAILED are MCPErrorCodes (packages/api/src/mcp/errors.ts, under mcp-error-codes), classified only from the chat start POST's body by startFailureMarker and never by parse; SHARE_LIMIT, MESSAGE_LIMIT, BAN and CONVO_ACCESS are ViolationTypes (under stream-error-violation-types).",
       "failure_mode": "A renamed value stops matching, so that error silently degrades to the generic message -- the user is told something went wrong instead of being told to reattach their files or pick another model. Nothing fails to decode and nothing errors."
+    },
+    {
+      "id": "stream-error-violation-types",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "ViolationTypes",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/error/StreamErrorType.kt",
+        "symbol": "StreamErrorType (SHARE_LIMIT, MESSAGE_LIMIT, BAN, CONVO_ACCESS)"
+      },
+      "why": "Four StreamErrorType members are ViolationTypes values, not ErrorTypes, so stream-error-types does not watch them. MESSAGE_LIMIT, BAN and CONVO_ACCESS arrive as the `type` of a refused generation POST's error turn (see deny-request-frames); SHARE_LIMIT keys upstream's error registry off the same field. As with ErrorTypes, upstream ADDING a member is not drift; RENAMING one of these four is.",
+      "failure_mode": "A renamed value stops matching, so a refused send falls back to the neutral 'the server refused this message' text, and a saved refusal renders as raw JSON in the thread. Nothing fails to decode."
+    },
+    {
+      "id": "deny-request-frames",
+      "upstream": {
+        "file": "api/server/middleware/denyRequest.js",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/network/src/commonMain/kotlin/com/garfiec/librechat/core/network/api/ChatRefusal.kt",
+        "symbol": "ChatRefusal"
+      },
+      "why": "How the server refuses a chat start, resume, steer, steer-cancel or queued-turn enqueue/cancel request from its middleware (message limiters, ban, moderation, foreign conversation; steer cancel and queued-turn cancel sit behind the limiters only; every caller reads it through bodyUnlessRefused): SSE frames written onto the POST itself, HTTP 200 with no Content-Type -- an `event: message` frame with the user message and `created: true`, then sendError -> handleError's `event: error` frame whose turn `text` is the violation JSON or prose. ChatRefusal reads that frame and the error turn's `text ?? message ?? error`, as the web's parseSSEErrorData does. Also watch `shouldSaveMessage`: the server persists the user message and the error turn only when the request named a conversation and a real parent, and StreamingManagerDelegate decides from that whether a refused message stays in the thread or goes back to the composer.",
+      "failure_mode": "Upstream changes the frame order, the event name or where the violation lives, and a refusal is read as an unreadable body: the user is told their server runs an incompatible LibreChat version when it rate-limited or moderated them. If the save gate changes, a refused message is either duplicated (thread and composer) or lost (neither)."
+    },
+    {
+      "id": "message-limit-payload",
+      "upstream": {
+        "file": "api/server/middleware/limiters/messageLimiters.js",
+        "symbol": "createHandler",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/error/StreamErrorType.kt",
+        "symbol": "StreamErrorType.messageLimitRetryAfterSeconds"
+      },
+      "why": "The message limiter's refusal payload: `windowInMinutes` plus getRateLimitReset's `retryAfterSeconds` (see rate-limit-reset). messageLimitRetryAfterSeconds reads those two to tell the user how long to wait, and discards a wait longer than one window, as upstream's LimitError does.",
+      "failure_mode": "A renamed or dropped field makes the wait unreadable, and a refused send falls back to the generic 'wait a while' copy instead of 'try again in N minutes'. Nothing fails to decode."
+    },
+    {
+      "id": "rate-limit-reset",
+      "upstream": {
+        "file": "packages/api/src/utils/limiter.ts",
+        "symbol": "getRateLimitReset",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/error/StreamErrorType.kt",
+        "symbol": "StreamErrorType.messageLimitRetryAfterSeconds"
+      },
+      "why": "Defines `retryAfterSeconds` as whole seconds (ceil, minimum 1) measured on the server's clock at refusal time, which is why the client reads it instead of comparing the absolute `resetAt` against the device clock.",
+      "failure_mode": "If the field changes unit or meaning (milliseconds, an absolute time), the client tells the user to wait a wildly wrong time, or discards every wait as longer than the window. Nothing errors."
+    },
+    {
+      "id": "check-ban-interactive-chat",
+      "upstream": {
+        "file": "api/server/middleware/checkBan.js",
+        "symbol": "isInteractiveAgentChatRequest",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/network/src/commonMain/kotlin/com/garfiec/librechat/core/network/api/ChatRefusal.kt",
+        "symbol": "ChatRefusal"
+      },
+      "why": "Which requests a ban refuses through denyRequest (SSE on a 200) rather than banResponse's 403 JSON. Only browser User-Agents reach this branch, and this app sends a Chrome UA, so a ban on the chat start and resume POSTs arrives as a refusal frame; from v0.8.8, where this predicate first appears, abort and steer are excluded and get the 403 that LibreChatHttpClient's ban check (ban-response-message) reads. The excluded routes are a separate constant the predicate reads -- see check-ban-control-routes.",
+      "failure_mode": "Upstream moves a route across this line and a ban arrives in the shape the client does not expect on it: a refusal frame where a 403 was handled shows the neutral refusal instead of ending the session, or a 403 where a frame was read ends the session from inside a chat send."
+    },
+    {
+      "id": "check-ban-control-routes",
+      "upstream": {
+        "file": "api/server/middleware/checkBan.js",
+        "symbol": "AGENT_CHAT_POST_CONTROL_ROUTES",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/network/src/commonMain/kotlin/com/garfiec/librechat/core/network/api/ChatRefusal.kt",
+        "symbol": "ChatRefusal"
+      },
+      "why": "The chat POST routes check-ban-interactive-chat's predicate excludes from the denyRequest branch (abort and steer). It is declared outside the predicate's block, so `resume` joining it -- or `steer` leaving it -- changes which shape a ban arrives in without that entry moving.",
+      "failure_mode": "Same as check-ban-interactive-chat: a ban on a route that crossed the line arrives as a refusal frame where a 403 was expected, or the reverse."
     },
     {
       "id": "mcp-error-codes",

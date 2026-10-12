@@ -209,7 +209,11 @@ Two consequences worth knowing before touching that block:
   attachments) and saves the user row after — so a non-network error reloads with the optimistic
   message as `loadConversation(unsavedTurn = …)`, and the settled read restores the text to the
   composer when no row matches it by id or `isServerCopyOf`. Network errors are excluded: the run may
-  still be live and the connectivity observer re-attaches to it
+  still be live and the connectivity observer re-attaches to it. **One pre-`created` failure takes
+  the reload path too:** a send the server's middleware refused (`ChatRefusal` — rate limit, ban,
+  moderation, foreign conversation) on an existing, non-temporary conversation, because upstream's
+  `denyRequest` saves the user message and its error turn whenever the request names a conversation
+  and a real parent. Un-sending it would put the text in the composer *and* the thread
 - **The final-frame merge is monotonic** (`Message.mergedOver` in `util/TemporaryChatMerge.kt`): applying a frame message over an in-memory copy gap-fills — incoming wins where it carries information, absent/blank keeps local, terminal-state booleans (`error`/`unfinished`) always incoming. This is why a skeletal aborted `requestMessage` no longer needs per-field guards to keep the optimistic message's attachments. ONLY valid at the final-frame chokepoint — full-record sync paths (`getMessages`, `refreshMessages`) keep meaningful nulls and must never use it. `finalizeChatDisplay` returns the POST-merge instances so `cacheTurn` writes exactly what the screen shows
 - `onPause()`/`onResume()` handle app backgrounding: checks stream status, resumes if still active. Two abort-window rules: `onPause` does NOT cancel the collector while a Stop is pending (it is carrying the aborted final that holds the partial; the watchdog covers a frame that never arrives), and `onResume` touches nothing when the session already ended while backgrounded (the old wipe of `streamingContent` here was the stop-then-background partial loss)
 

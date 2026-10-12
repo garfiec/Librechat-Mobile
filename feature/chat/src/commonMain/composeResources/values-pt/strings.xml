@@ -544,6 +544,9 @@
     <string name="error_auth_banned">Esta conta ou rede está bloqueada para entrar. Contate um administrador.</string>
     <string name="error_auth_cross_origin">O servidor rejeitou o login como vindo de outro site. Informe isto — é um bug do app, não um problema de senha.</string>
     <string name="error_share_limit">Muitas solicitações de link compartilhado. Aguarde um momento e tente novamente.</string>
+    <string name="error_message_limit">Você atingiu o limite de mensagens deste servidor. Aguarde um pouco e tente novamente.</string>
+    <string name="error_ban">Esta conta está temporariamente restrita neste servidor. Tente novamente mais tarde ou contate o administrador do servidor.</string>
+    <string name="error_convo_access">Esta conversa pertence a outra conta, por isso não pode ser continuada aqui.</string>
     <string name="ask_user_question_record_asked">Perguntou</string>
     <string name="ask_user_question_record_asking">Perguntando</string>
     <string name="ask_user_question_record_answer_label">Você respondeu:</string>
@@ -653,4 +656,21 @@
     <string name="notice_upload_too_large">%1$s é maior que o limite do servidor de %2$s.</string>
     <string name="notice_speech_permission_denied">Permissão de reconhecimento de fala negada</string>
     <string name="notice_speech_unavailable">O reconhecimento de fala não está disponível. Verifique Ajustes &gt; Privacidade &gt; Reconhecimento de Fala.</string>
+    <string name="notice_send_refused">O servidor recusou esta mensagem.</string>
+    <plurals name="notice_message_limit_retry_minutes">
+        <item quantity="one">Você atingiu o limite de mensagens deste servidor. Tente novamente em %1$d minuto.</item>
+        <item quantity="many">Você atingiu o limite de mensagens deste servidor. Tente novamente em %1$d minutos.</item>
+        <item quantity="other">Você atingiu o limite de mensagens deste servidor. Tente novamente em %1$d minutos.</item>
+    </plurals>
+    <plurals name="notice_message_limit_retry_hours">
+        <item quantity="one">Você atingiu o limite de mensagens deste servidor. Tente novamente em %1$d hora.</item>
+        <item quantity="many">Você atingiu o limite de mensagens deste servidor. Tente novamente em %1$d horas.</item>
+        <item quantity="other">Você atingiu o limite de mensagens deste servidor. Tente novamente em %1$d horas.</item>
+    </plurals>
+    <plurals name="notice_message_limit_retry_days">
+        <item quantity="one">Você atingiu o limite de mensagens deste servidor. Tente novamente em %1$d dia.</item>
+        <item quantity="many">Você atingiu o limite de mensagens deste servidor. Tente novamente em %1$d dias.</item>
+        <item quantity="other">Você atingiu o limite de mensagens deste servidor. Tente novamente em %1$d dias.</item>
+    </plurals>
+    <string name="queue_held_after_refusal">O servidor recusou sua mensagem. Ela está aguardando na fila e não será enviada sozinha. Toque em “Enviar fila” quando estiver pronto.</string>
 </resources>

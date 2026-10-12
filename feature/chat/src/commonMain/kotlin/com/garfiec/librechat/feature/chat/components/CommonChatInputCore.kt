@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Icon
@@ -76,6 +77,7 @@ import com.garfiec.librechat.feature.chat.resources.cd_update_queued_message
 import com.garfiec.librechat.feature.chat.resources.editing_queued_message
 import com.garfiec.librechat.feature.chat.resources.hint_message
 import com.garfiec.librechat.feature.chat.resources.hint_message_model
+import com.garfiec.librechat.feature.chat.resources.queue_held_after_refusal
 import com.garfiec.librechat.feature.chat.resources.recording
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
 import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
@@ -179,6 +181,9 @@ fun CommonChatInputCore(
     /** Number of queued messages held by a Stop/error pause. >0 shows the "Send queued" banner
      *  above the input; 0 hides it (queue empty or draining normally). */
     queuedPausedCount: Int = 0,
+    /** The pause holds a message the server refused: explain that the queue waits for the user,
+     *  even mid-run, where the "Send queued" button itself is hidden. */
+    queueHeldForRefusal: Boolean = false,
     onSendQueuedMessages: () -> Unit = {},
     /** Commit / cancel the in-progress queued edit (see [ChatInputState.isEditingQueued]). */
     onCommitEdit: () -> Unit = {},
@@ -260,16 +265,21 @@ fun CommonChatInputCore(
                     onCancel = onCancelEdit,
                     modifier = Modifier.padding(bottom = 6.dp),
                 )
-            } else if (queuedPausedCount > 0 && !state.isStreaming) {
-                // Gated on !isStreaming: resume() lifts the pause and POPS the head, but
-                // doSendWithSpec early-returns while a run is live, so the message would be
-                // removed from the queue and never sent. A HITL pause is the long-lived
-                // isStreaming window where the composer stays fully interactive.
-                SendQueuedBanner(
-                    count = queuedPausedCount,
-                    onClick = onSendQueuedMessages,
-                    modifier = Modifier.padding(bottom = 6.dp),
-                )
+            } else {
+                // Not gated on isStreaming, unlike the button: a refusal usually lands mid-run,
+                // which is exactly when a held queue looks like one waiting on the run to finish.
+                if (queueHeldForRefusal) QueueHeldNotice(modifier = Modifier.padding(bottom = 6.dp))
+                if (queuedPausedCount > 0 && !state.isStreaming) {
+                    // Gated on !isStreaming: resume() lifts the pause and POPS the head, but
+                    // doSendWithSpec early-returns while a run is live, so the message would be
+                    // removed from the queue and never sent. A HITL pause is the long-lived
+                    // isStreaming window where the composer stays fully interactive.
+                    SendQueuedBanner(
+                        count = queuedPausedCount,
+                        onClick = onSendQueuedMessages,
+                        modifier = Modifier.padding(bottom = 6.dp),
+                    )
+                }
             }
 
             AttachmentChipsRow(
@@ -642,6 +652,36 @@ private fun EditingQueuedBanner(
                 modifier = Modifier.size(18.dp),
             )
         }
+    }
+}
+
+/**
+ * Says why the queue is holding: the server refused a message and it will not send on its own.
+ * Without it a held queue reads as one waiting on the run, and the user waits for nothing.
+ */
+@Composable
+private fun QueueHeldNotice(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.secondaryContainer)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.Default.Info,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+            modifier = Modifier.size(18.dp),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = stringResource(Res.string.queue_held_after_refusal),
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 

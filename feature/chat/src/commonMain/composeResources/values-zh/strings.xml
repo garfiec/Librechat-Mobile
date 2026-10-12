@@ -544,6 +544,9 @@
     <string name="error_auth_banned">此账号或网络已被禁止登录。请联系管理员。</string>
     <string name="error_auth_cross_origin">服务器认为此登录请求来自其他站点并予以拒绝。请报告此问题——这是应用的 bug，而非密码问题。</string>
     <string name="error_share_limit">共享链接请求过多。请稍后再试。</string>
+    <string name="error_message_limit">你已达到此服务器的消息上限。请稍候再试。</string>
+    <string name="error_ban">此账号在该服务器上暂时受到限制。请稍后再试，或联系服务器管理员。</string>
+    <string name="error_convo_access">此对话属于另一个账号，因此无法在此继续。</string>
     <string name="ask_user_question_record_asked">已提问</string>
     <string name="ask_user_question_record_asking">正在提问</string>
     <string name="ask_user_question_record_answer_label">你的回答：</string>
@@ -653,4 +656,15 @@
     <string name="notice_upload_too_large">%1$s 超过了服务器的 %2$s 上限。</string>
     <string name="notice_speech_permission_denied">语音识别权限被拒绝</string>
     <string name="notice_speech_unavailable">语音识别不可用。请检查“设置”&gt;“隐私”&gt;“语音识别”。</string>
+    <string name="notice_send_refused">服务器拒绝了此消息。</string>
+    <plurals name="notice_message_limit_retry_minutes">
+        <item quantity="other">你已达到此服务器的消息上限。请在 %1$d 分钟后重试。</item>
+    </plurals>
+    <plurals name="notice_message_limit_retry_hours">
+        <item quantity="other">你已达到此服务器的消息上限。请在 %1$d 小时后重试。</item>
+    </plurals>
+    <plurals name="notice_message_limit_retry_days">
+        <item quantity="other">你已达到此服务器的消息上限。请在 %1$d 天后重试。</item>
+    </plurals>
+    <string name="queue_held_after_refusal">服务器拒绝了你的消息。它正在队列中等待，不会自动发送。准备好后请点按“发送排队消息”。</string>
 </resources>

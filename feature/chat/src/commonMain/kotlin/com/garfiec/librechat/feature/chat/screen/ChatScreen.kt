@@ -423,6 +423,7 @@ fun ChatScreen(
                                 contextBarPlacement = uiState.contextBarPlacement,
                                 // After a Stop/error pause, the queue waits for an explicit nudge.
                                 queuedPausedCount = uiState.pausedQueueCount,
+                                queueHeldForRefusal = uiState.isQueueHeldForRefusal,
                                 onSendQueuedMessages = viewModel::sendQueuedNow,
                                 isEditingQueued = uiState.isEditingQueued,
                                 onCommitEdit = viewModel::commitQueuedEdit,

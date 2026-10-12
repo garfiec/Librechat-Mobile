@@ -8,6 +8,7 @@ import com.garfiec.librechat.core.model.error.StreamErrorType
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -53,6 +54,9 @@ internal fun localizedStreamError(raw: String): String {
         StreamErrorType.AUTH_BANNED -> stringResource(Res.string.error_auth_banned)
         StreamErrorType.AUTH_CROSS_ORIGIN -> stringResource(Res.string.error_auth_cross_origin)
         StreamErrorType.SHARE_LIMIT -> stringResource(Res.string.error_share_limit)
+        StreamErrorType.MESSAGE_LIMIT -> stringResource(Res.string.error_message_limit)
+        StreamErrorType.BAN -> stringResource(Res.string.error_ban)
+        StreamErrorType.CONVO_ACCESS -> stringResource(Res.string.error_convo_access)
         StreamErrorType.STREAM_EXPIRED -> stringResource(Res.string.error_stream_expired)
         StreamErrorType.UPSTREAM_MODEL_ERROR -> stringResource(Res.string.error_upstream_model_error)
         StreamErrorType.EMPTY_MESSAGES -> stringResource(Res.string.error_empty_messages)
@@ -68,6 +72,9 @@ internal fun localizedStreamError(raw: String): String {
 
 @Composable
 private fun localizedNotice(parsed: ChatNotice.Parsed): String {
+    if (parsed.notice == ChatNotice.MESSAGE_LIMIT_RETRY) {
+        parsed.args.firstOrNull()?.toLongOrNull()?.let { return messageLimitRetry(it) }
+    }
     val res = when (parsed.notice) {
         ChatNotice.RENAME_FAILED -> Res.string.notice_rename_failed
         ChatNotice.DELETE_FAILED -> Res.string.notice_delete_failed
@@ -86,6 +93,9 @@ private fun localizedNotice(parsed: ChatNotice.Parsed): String {
         ChatNotice.UPLOAD_TOO_LARGE -> Res.string.notice_upload_too_large
         ChatNotice.SPEECH_PERMISSION_DENIED -> Res.string.notice_speech_permission_denied
         ChatNotice.SPEECH_UNAVAILABLE -> Res.string.notice_speech_unavailable
+        ChatNotice.SEND_REFUSED -> Res.string.notice_send_refused
+        // Reached only with an unreadable argument; the generic message-limit copy still applies.
+        ChatNotice.MESSAGE_LIMIT_RETRY -> Res.string.error_message_limit
     }
     val args = parsed.args
     // A notice with a third argument needs its own branch here; `else` would drop it.
@@ -95,6 +105,34 @@ private fun localizedNotice(parsed: ChatNotice.Parsed): String {
         else -> stringResource(res, args[0], args[1])
     }
 }
+
+/**
+ * The message limit with the wait in the largest whole unit that fits, rounded up so the user is
+ * never told to retry before the window reopens. Operators set the window freely (upstream's own
+ * tests use an hour and three days), so minutes alone would say "4320 minutes".
+ */
+@Composable
+private fun messageLimitRetry(seconds: Long): String {
+    val minutes = ceilDiv(seconds, SECONDS_PER_MINUTE)
+    val hours = ceilDiv(minutes, MINUTES_PER_HOUR)
+    return when {
+        minutes < MINUTES_PER_HOUR -> minutes.toInt().let {
+            pluralStringResource(Res.plurals.notice_message_limit_retry_minutes, it, it)
+        }
+        hours < HOURS_PER_DAY -> hours.toInt().let {
+            pluralStringResource(Res.plurals.notice_message_limit_retry_hours, it, it)
+        }
+        else -> ceilDiv(hours, HOURS_PER_DAY).toInt().let {
+            pluralStringResource(Res.plurals.notice_message_limit_retry_days, it, it)
+        }
+    }
+}
+
+private fun ceilDiv(value: Long, divisor: Long): Long = (value + divisor - 1) / divisor
+
+private const val SECONDS_PER_MINUTE = 60L
+private const val MINUTES_PER_HOUR = 60L
+private const val HOURS_PER_DAY = 24L
 
 /**
  * The failure a turn was saved with, ready for [localizedStreamError], or null for any other

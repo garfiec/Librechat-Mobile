@@ -477,6 +477,11 @@ data class ChatUiState(
     val pausedQueueCount: Int
         get() = if (isQueuePaused) messageQueue.size else 0
 
+    /** The pause is holding a message the server refused, so the queue will not move on its own.
+     *  Drives the explanation above the "Send queued" banner, shown even while a run streams. */
+    val isQueueHeldForRefusal: Boolean
+        get() = isQueuePaused && messageQueue.any { it.localId in queue.refusedLocalIds }
+
     /** True while the composer is editing a queued item rather than composing a new message. */
     val isEditingQueued: Boolean
         get() = editingQueuedItem != null

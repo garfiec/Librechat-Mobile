@@ -544,6 +544,9 @@
     <string name="error_auth_banned">Ce compte ou ce réseau n'est pas autorisé à se connecter. Contactez un administrateur.</string>
     <string name="error_auth_cross_origin">Le serveur a rejeté la connexion comme provenant d'un autre site. Signalez-le — il s'agit d'un bug de l'application, pas d'un problème de mot de passe.</string>
     <string name="error_share_limit">Trop de demandes de liens partagés. Patientez un instant et réessayez.</string>
+    <string name="error_message_limit">Vous avez atteint la limite de messages de ce serveur. Patientez un moment, puis réessayez.</string>
+    <string name="error_ban">Ce compte est temporairement restreint sur ce serveur. Réessayez plus tard ou contactez l'administrateur du serveur.</string>
+    <string name="error_convo_access">Cette conversation appartient à un autre compte et ne peut pas être poursuivie ici.</string>
     <string name="ask_user_question_record_asked">Question posée</string>
     <string name="ask_user_question_record_asking">Question en cours</string>
     <string name="ask_user_question_record_answer_label">Votre réponse :</string>
@@ -653,4 +656,21 @@
     <string name="notice_upload_too_large">%1$s dépasse la limite du serveur de %2$s.</string>
     <string name="notice_speech_permission_denied">Autorisation de reconnaissance vocale refusée</string>
     <string name="notice_speech_unavailable">La reconnaissance vocale n'est pas disponible. Vérifiez Réglages &gt; Confidentialité &gt; Reconnaissance vocale.</string>
+    <string name="notice_send_refused">Le serveur a refusé ce message.</string>
+    <plurals name="notice_message_limit_retry_minutes">
+        <item quantity="one">Vous avez atteint la limite de messages de ce serveur. Réessayez dans %1$d minute.</item>
+        <item quantity="many">Vous avez atteint la limite de messages de ce serveur. Réessayez dans %1$d minutes.</item>
+        <item quantity="other">Vous avez atteint la limite de messages de ce serveur. Réessayez dans %1$d minutes.</item>
+    </plurals>
+    <plurals name="notice_message_limit_retry_hours">
+        <item quantity="one">Vous avez atteint la limite de messages de ce serveur. Réessayez dans %1$d heure.</item>
+        <item quantity="many">Vous avez atteint la limite de messages de ce serveur. Réessayez dans %1$d heures.</item>
+        <item quantity="other">Vous avez atteint la limite de messages de ce serveur. Réessayez dans %1$d heures.</item>
+    </plurals>
+    <plurals name="notice_message_limit_retry_days">
+        <item quantity="one">Vous avez atteint la limite de messages de ce serveur. Réessayez dans %1$d jour.</item>
+        <item quantity="many">Vous avez atteint la limite de messages de ce serveur. Réessayez dans %1$d jours.</item>
+        <item quantity="other">Vous avez atteint la limite de messages de ce serveur. Réessayez dans %1$d jours.</item>
+    </plurals>
+    <string name="queue_held_after_refusal">Le serveur a refusé votre message. Il attend dans la file et ne partira pas tout seul. Touchez « Envoyer la file » quand vous êtes prêt.</string>
 </resources>
