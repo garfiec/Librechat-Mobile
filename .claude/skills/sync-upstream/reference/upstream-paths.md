@@ -16,6 +16,12 @@ Use these paths when generating focused diffs between the current baseline commi
 | `api/server/services/` | AuthService, MCP, Endpoints, Files, Runs, Tools, Artifacts, etc. | Business logic that shapes responses and implements features |
 | `api/models/` | Mongoose models (Agent, Conversation, Message, File, etc.) | DB schema drives API response shapes — especially fields, defaults, enums |
 
+## Client Transport Contract (`@librechat/chat`)
+
+| Path | What It Contains | Why It Matters |
+|------|------------------|----------------|
+| `packages/chat/src/core/` | `types.ts`: typed `ChatTransport` (send/reconnect/abort/status/resume/steer/queue, result variants, refusal codes, `generationProtocolVersion`). `transport/`: SSE frame parser. `reducer.ts` + `steps/`: how stream events fold into messages | Upstream's own spec of the streaming protocol mobile implements. Diffed first, by the coordinator (SKILL Phase 0 step 9). Exists from 2026-10-10 (#16964); message types are re-exported from `librechat-data-provider`, not redefined |
+
 ## Data Provider Package (canonical types + API client)
 
 | Path | What It Contains | Why It Matters |
@@ -82,6 +88,7 @@ cd upstream && git diff {base_commit}..{target_commit} --stat -- \
   api/server/middleware/ \
   api/server/services/ \
   api/models/ \
+  packages/chat/src/ \
   packages/data-provider/src/ \
   packages/data-schemas/src/ \
   packages/api/src/ \

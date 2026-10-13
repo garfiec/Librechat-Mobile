@@ -101,6 +101,29 @@ Fail LOUD on any ambiguity below — never guess a baseline or target for the us
    renamed or deleted the symbol, so the registry entry is wrong either way.
    Registry: `scripts/mirrors.json`. Adding a mirror to the codebase means adding an entry there in
    the same PR.
+9. **Client transport contract.** `packages/chat/src/core/` (`@librechat/chat`, upstream #16964)
+   is upstream's typed `ChatTransport` (`types.ts`: send/reconnect/abort/status/resume/steer/queue,
+   result variants, refusal codes, `generationProtocolVersion`) plus its reference SSE frame parser
+   (`transport/`) and stream reducer (`reducer.ts`, `steps/`). It is the closest thing upstream has
+   to a written spec of the streaming protocol this client implements, so diff it before anything
+   else reads the range:
+   ```bash
+   cd upstream
+   git cat-file -e {base_commit}:packages/chat/src/core/types.ts 2>/dev/null && echo base
+   git cat-file -e {target_commit}:packages/chat/src/core/types.ts 2>/dev/null && echo target
+   git diff {base_commit}..{target_commit} -- packages/chat/src/core/ \
+     > ../.claude/sync-upstream/artifacts/contract-diff.patch
+   ```
+   Set `contractState`:
+   - `absent` — in neither commit. The range predates the package (landed 2026-10-10); continue.
+   - `introduced` — only in target. Every capability in the file is a candidate gap, not just a diff.
+   - `changed` — non-empty patch, otherwise. If `types.ts` vanished from target, the contract moved:
+     find where with `git log --diff-filter=R --stat` before passing it on.
+   - `unchanged` — in both, empty patch.
+
+   Watch the directory, not one file — the package is still landing as a PR stack and may split it.
+   Pass `contractState` and the patch's absolute path into WF1, and carry its findings into the
+   Phase 2 interview as their own group.
 
 If a prior run's artifacts exist (`ls .claude/sync-upstream/artifacts/`), offer to resume from them.
 
@@ -116,6 +139,8 @@ Workflow({ name: "sync-upstream-discovery", args: {
   mode, baseCommit, targetCommit, targetMode, baseVersion, anchorTag,
   skillDir: "<abs path to .claude/skills/sync-upstream>",
   artifactsDir: "<abs path to .claude/sync-upstream/artifacts>",
+  contractState,           // Phase 0 step 9
+  contractDiffPath: "<abs path to artifacts/contract-diff.patch>",
 } })
 ```
 
@@ -139,6 +164,9 @@ This is the single human gate. Present the converged report, then use `AskUserQu
 - **Drifted mirrors** (Phase 0 step 8): each one is a hand-maintained copy that upstream has moved
   underneath. They are cheap to reconcile and invisible if skipped — present them explicitly rather
   than folding them into the general findings list.
+- **Transport contract** (Phase 0 step 9): findings that trace to `packages/chat/src/core/`, grouped
+  by the `ChatTransport` member they touch. When `contractState` is `introduced`, say plainly which
+  capabilities the client has no equivalent for yet.
 - Items marked `backend-blocked` are shown as knowingly-skipped, never built.
 
 Persist the approved, scoped list to `artifacts/approved-{target}.md`. If the user cancels, archive the

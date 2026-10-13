@@ -23,6 +23,8 @@ export const meta = {
 //   anchorTag:    last v-tag at/before targetCommit (e.g. "v0.8.7")
 //   skillDir:     absolute path to .claude/skills/sync-upstream
 //   artifactsDir: absolute path to .claude/sync-upstream/artifacts
+//   contractState:    'absent' | 'introduced' | 'changed' | 'unchanged'  (SKILL Phase 0 step 9)
+//   contractDiffPath: absolute path to the packages/chat/src/core/ patch over the range
 // }
 // ---------------------------------------------------------------------------
 
@@ -50,6 +52,29 @@ const LENS = IS_AUDIT
      flows, security fixes. This is the superset diff; each finding is tagged with the target
      line it first lands in so the human can filter scope at the interview.`
 
+// packages/chat/src/core/ is upstream's typed ChatTransport plus its reference SSE parser and stream
+// reducer — the closest thing to a written spec of the streaming protocol. The coordinator diffs it in Phase 0; only types-sse reads it, and the
+// critic checks every hunk landed somewhere.
+const HAS_CONTRACT = !!A.contractDiffPath && (A.contractState === 'introduced' || A.contractState === 'changed')
+const MOBILE_TRANSPORT_ANCHORS = `core/model .../response/{ChatStartResponse,ChatStatusResponse,SteerResponse}.kt,
+  .../request/ChatResumeRequest.kt, .../queuedturn/QueuedTurnWire.kt; core/network .../sse/SseEventMapper.kt,
+  .../api/QueuedTurnsApi.kt; core/data .../ChatRepositoryImpl.kt; feature/chat .../delegate/
+  {StreamingManagerDelegate,QueuedTurnDelegate,PendingActionDelegate}.kt. These are starting points —
+  grep for the wire names, the list goes stale.`
+const CONTRACT_BRIEF = !HAS_CONTRACT ? '' : `
+TRANSPORT CONTRACT (${A.contractState}): read ${A.contractDiffPath} FIRST.
+${A.contractState === 'introduced'
+    ? 'The contract first appears in this range — read the whole of upstream/packages/chat/src/core/ at the target commit, and treat every ChatTransport capability as a candidate gap.'
+    : 'It is the diff of upstream\'s typed client transport contract over the range.'}
+types.ts is the contract: each added/changed/removed ChatTransport method, result variant, request
+field, optional capability, refusal code, or generationProtocolVersion semantic is its own finding —
+name the member in the title. transport/ (SSE framing) and reducer.ts + steps/ (how events fold into
+messages) are upstream's reference implementation of what core/network's SSE client and the chat
+delegates do: a behaviour change there is a finding even when no type moved. Spec files under
+__tests__/ document intended semantics — read them, but they are not findings on their own.
+Mobile anchors: ${MOBILE_TRANSPORT_ANCHORS}
+`
+
 // Six blind angles. Each reads only its slice, categorizes only its kind of change.
 // Blindness is the point (multi-modal sweep): no angle sees the others' output.
 const ANGLES = [
@@ -58,7 +83,7 @@ const ANGLES = [
     paths: 'api/server/routes/ (incl. routes/agents, routes/files, routes/admin), api/server/controllers/, api/server/middleware/' },
   { key: 'types-sse', label: 'Types / schemas / SSE shapes',
     focus: 'Data-type / response-shape drift AND streaming payload changes. SSE shape drift is the top source of silent runtime breakage.',
-    paths: 'api/models/, packages/data-schemas/src/, packages/data-provider/src/types/, and SSE/run-event emitters. Cross-check mobile core/model StreamEvent.kt, SseContentEvent.kt, ToolCallRecord.kt, ToolCallResult.kt, ToolAuthStatus.kt.' },
+    paths: 'packages/chat/src/core/ (transport contract), api/models/, packages/data-schemas/src/, packages/data-provider/src/types/, and SSE/run-event emitters. Cross-check mobile core/model StreamEvent.kt, SseContentEvent.kt, ToolCallRecord.kt, ToolCallResult.kt, ToolAuthStatus.kt.' },
   { key: 'config-flags', label: 'Config / feature flags',
     focus: 'New or changed keys in the /api/config surface that gate UI availability.',
     paths: 'packages/data-provider/src/config.ts, librechat.example.yaml, .env.example. Mobile counterpart: core/model StartupConfig.kt.' },
@@ -99,6 +124,7 @@ ${LENS}
 
 YOUR ANGLE — ${angle.label}: ${angle.focus}
 Upstream area to read/diff: ${angle.paths}
+${angle.key === 'types-sse' ? CONTRACT_BRIEF : ''}
 Reference the full path inventory at ${A.skillDir}/reference/upstream-paths.md but stay in YOUR lane —
 other angles cover routes/types/config/ui/security/narrative separately. Do not duplicate them.
 
@@ -165,6 +191,8 @@ Do ALL of the following, then return the converged report:
    - type-schema:    check core/model/src/commonMain data classes; for SSE, the StreamEvent/SseContentEvent/
                      ToolCall* files. Note added/removed/type-changed fields precisely.
    - config-flag:    check core/model StartupConfig.kt for the key.
+   - transport:      for findings traced to packages/chat/src/core/, start from ${MOBILE_TRANSPORT_ANCHORS}
+                     Record which ChatTransport member each maps to.
    - ui:             check the matching feature/* module (commonMain + platform sources).
 3. Read ${A.skillDir}/reference/{api-mapping.md,model-mapping.md,ui-mapping.md} to resolve upstream→mobile,
    and DISCOVERY.md at repo root for already-catalogued endpoints/quirks.
@@ -213,7 +241,10 @@ Your ONLY job is to find what the sweep MISSED. Check, concretely:
 - Any path group in ${A.skillDir}/reference/upstream-paths.md that no angle actually diffed over ${RANGE}?
   (Verify with: cd upstream && git diff --stat ${RANGE} -- <path> ; a non-empty diff with no matching
   finding is a miss.)
-- Any finding missing landingCommit or landedDate (would break version gating downstream)?
+${HAS_CONTRACT ? `- Every non-test hunk in ${A.contractDiffPath} (upstream's typed ChatTransport contract + reference
+  stream reducer) maps to a finding, or is explicitly a no-op (doc/reformat, or a pure move with no
+  wire or behaviour change). An unmapped hunk is a miss.
+` : ''}- Any finding missing landingCommit or landedDate (would break version gating downstream)?
 - Any claim asserted without diff/commit/release-note evidence?
 - Any NEW client-only "vapor" feature (upstream UI with no shipped backend) not yet in
   ${A.skillDir}/reference/upstream-backend-gaps.md?
