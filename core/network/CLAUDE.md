@@ -147,6 +147,15 @@ is long-lived and never rotates, so an `http://` downgrade or an unknown base UR
   down a live session — leaving the user logged out *and* unable to sign back in until the network
   block lifted. An unrecognised 403 now fails the request without ending the session. The refresh
   client's half of this rule lives in `core/data/CLAUDE.md`.
+- **A genuine ban does not end the session from the client either.** Upstream's `checkBan` guards
+  only some routes (auth, agents — which includes chat sends under `/api/agents/chat` — files,
+  assistants, permissions; not convos, messages, user or config), so `BANNED` raises a
+  once-per-account "Account restricted" dialog and leaves the user where they are. The server decides
+  how long that lasts: `banViolation()` deletes a violating user's sessions, so the access token keeps
+  working until it lapses and then the refresh is rejected and the normal `EXPIRED` sign-out follows;
+  an IP ban of an account that did nothing keeps its session. So
+  `BANNED` must not set the store's one-shot `sessionExpiryReported` latch, or that later expiry would
+  be swallowed.
 - **A gateway block is not an expired session.** The refresh path maps it to
   `RefreshAttempt.GatewayBlocked` → `Transient`, and deliberately not through `settle()`: the request
   never reached LibreChat, so it is no evidence the session is dead, and logging out over it costs the

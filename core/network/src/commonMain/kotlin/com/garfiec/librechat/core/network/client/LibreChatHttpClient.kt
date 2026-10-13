@@ -161,7 +161,7 @@ object LibreChatHttpClient {
 
                     if (isBanned) {
                         // Scoped to the request's snapshot account: a ban landing on a switched-away
-                        // account's straggler request must not tear down the live session. A pending
+                        // account's straggler request must not be reported against the live one. A pending
                         // add-flow request passes through entirely (its accountId is null, which
                         // emitSessionExpired treats as "active session, always emit") — a ban from
                         // the server being ADDED belongs to the add flow, mirroring the 401 path.
@@ -217,10 +217,10 @@ object LibreChatHttpClient {
      *
      * This used to be `bodyText.contains("ban")` against the raw body, which matches any 403 whose
      * body happens to contain those three letters — including a reverse proxy's or WAF's block page.
-     * Emitting [SessionEndReason.BANNED] for one of those tears down a perfectly live session over a
-     * network-layer block, and the user cannot re-authenticate until the block lifts, which is how a
-     * temporary IP ban became a hard logout in #376. Requiring LibreChat's own JSON shape means an
-     * unrecognised 403 now fails the request without ending the session.
+     * Emitting [SessionEndReason.BANNED] for one of those tells the user their account is restricted
+     * over a network-layer block (and once turned a temporary IP ban into a hard logout, #376).
+     * Requiring LibreChat's own JSON shape means an unrecognised 403 fails the request without
+     * reporting a ban.
      */
     private fun isLibreChatBan(statusCode: Int, extracted: ExtractedError): Boolean {
         if (statusCode != 403 || !extracted.serverAuthored) return false

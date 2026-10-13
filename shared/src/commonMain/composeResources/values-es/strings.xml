@@ -16,4 +16,7 @@
     <string name="session_expired_message_named">Tu sesión en %1$s ha caducado. Vuelve a iniciar sesión para continuar.</string>
     <string name="session_expired_switched_named">Tu sesión en %1$s ha caducado, así que ahora usas %2$s. Vuelve a iniciar sesión en %1$s desde el selector de cuentas.</string>
     <string name="session_expired_switched">Tu sesión ha caducado, así que ahora usas %1$s. Vuelve a iniciar sesión desde el selector de cuentas.</string>
+    <string name="session_banned_title">Cuenta restringida</string>
+    <string name="session_banned_message">Tu servidor ha restringido temporalmente esta cuenta, por ejemplo tras demasiadas solicitudes o una infracción de sus normas. Hasta que se levante la restricción, no podrás enviar mensajes, usar agentes ni subir archivos, y es posible que se cierre tu sesión. Si no se levanta, contacta con el administrador del servidor.</string>
+    <string name="session_banned_message_named">Tu servidor ha restringido temporalmente %1$s, por ejemplo tras demasiadas solicitudes o una infracción de sus normas. Hasta que se levante la restricción, no podrás enviar mensajes, usar agentes ni subir archivos, y es posible que se cierre tu sesión. Si no se levanta, contacta con el administrador del servidor.</string>
 </resources>

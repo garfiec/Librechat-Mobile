@@ -53,10 +53,16 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /**
- * An unannounced sign-out. [accountLabel] is blank when the account can't be named; [switchedTo] is
- * the account the app moved to instead of signing out, or null when it routed to sign-in.
+ * An unannounced sign-out, or a ban. [accountLabel] is blank when the account can't be named;
+ * [switchedTo] is the account the app moved to instead of signing out, or null when it routed to
+ * sign-in. [banned] marks a ban, which moves nothing: the user stays where they are until the server
+ * ends the session itself.
  */
-data class SessionExpiredNotice(val accountLabel: String, val switchedTo: String? = null)
+data class SessionExpiredNotice(
+    val accountLabel: String,
+    val switchedTo: String? = null,
+    val banned: Boolean = false,
+)
 
 /** Where a session change sends the app: sign-in, or the chat of the account now active. */
 enum class SessionRoute { SignIn, Chat }
@@ -115,8 +121,8 @@ class NavHostViewModel(
     private val _sessionRoute = Channel<SessionRoute>(Channel.CONFLATED)
     val sessionRoute: Flow<SessionRoute> = _sessionRoute.receiveAsFlow()
 
-    /** The unannounced sign-out to report, or null when there is nothing to report. Set only for
-     *  [SessionEndReason.EXPIRED] — see [SessionEndReason]. */
+    /** The unannounced sign-out or ban to report, or null when there is nothing to report. Set for
+     *  [SessionEndReason.EXPIRED] and [SessionEndReason.BANNED] — see [SessionEndReason]. */
     private val _sessionExpiredNotice = MutableStateFlow<SessionExpiredNotice?>(null)
     val sessionExpiredNotice: StateFlow<SessionExpiredNotice?> = _sessionExpiredNotice.asStateFlow()
 
@@ -131,6 +137,10 @@ class NavHostViewModel(
     // The account the last failover landed on. An expiry handled while it is active and still live was
     // reported for the account it replaced. Guarded by [sessionDecision].
     private var failoverTarget: String? = null
+
+    // The account a ban was last announced for. Every request to a ban-checked route reports the ban
+    // again, so without this the dialog would come back each time the user dismissed it.
+    private var banAnnouncedFor: String? = null
 
     fun dismissSessionExpiredNotice() {
         _sessionExpiredNotice.value = null
@@ -250,7 +260,9 @@ class NavHostViewModel(
         // [AccountTransition.Ended], so without this the flag stays true for the rest of the process
         // and the first-frame routing after an Activity recreation still believes the user is signed in.
         viewModelScope.launch {
-            tokenManager.sessionExpiredFlow.collect { reason -> onSessionEnded(reason) }
+            tokenManager.sessionExpiredFlow.collect { reason ->
+                if (reason == SessionEndReason.BANNED) onBanned() else onSessionEnded(reason)
+            }
         }
         // The active account changed underneath this Activity-scoped VM (switch / add-completion /
         // remove → Switched; remove-last → Ended; plain logout also lands here as Ended, where the
@@ -374,6 +386,22 @@ class NavHostViewModel(
                 _sessionRoute.trySend(SessionRoute.SignIn)
             }
         }
+    }
+
+    /**
+     * A ban leaves the user where they are (see [SessionEndReason.BANNED]); if the server ended the
+     * session, the next refresh reports EXPIRED and signs out through [onSessionEnded]. Routing to
+     * sign-in here would end a session the server may not have ended, and sign-in is ban-checked too.
+     * Announced once per account, only to someone signed in (the sign-in form shows the server's
+     * own ban message), and never over a notice the user hasn't read yet.
+     */
+    private suspend fun onBanned() {
+        if (!_isLoggedIn.value || _sessionExpiredNotice.value != null) return
+        // Empty for a legacy session with no account id, which still needs the once-only guard.
+        val accountKey = activeAccountId().orEmpty()
+        if (accountKey == banAnnouncedFor) return
+        banAnnouncedFor = accountKey
+        _sessionExpiredNotice.value = SessionExpiredNotice(expiredAccountLabel().orEmpty(), banned = true)
     }
 
     private fun activeAccountId(): String? =

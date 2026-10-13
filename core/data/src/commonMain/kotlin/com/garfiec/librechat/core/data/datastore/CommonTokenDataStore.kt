@@ -1140,7 +1140,9 @@ abstract class CommonTokenDataStore(
             Diag.d("Auth") { "session expiry discovered with no subscriber - leaving the signal armed" }
             return
         }
-        sessionExpiryReported = true
+        // A ban ends nothing by itself, but upstream deletes a violator's sessions when it bans, so the
+        // next refresh fails and reports EXPIRED. Latching on the ban would swallow exactly that.
+        if (reason != SessionEndReason.BANNED) sessionExpiryReported = true
         _sessionExpired.tryEmit(reason)
     }
 

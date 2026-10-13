@@ -16,4 +16,7 @@
     <string name="session_expired_message_named">你在 %1$s 的会话已过期。请重新登录以继续。</string>
     <string name="session_expired_switched_named">你在 %1$s 的会话已过期，已切换到 %2$s。可在账号切换器中重新登录 %1$s。</string>
     <string name="session_expired_switched">你的会话已过期，已切换到 %1$s。可在账号切换器中重新登录。</string>
+    <string name="session_banned_title">账户受限</string>
+    <string name="session_banned_message">服务器已暂时限制此账户，例如因请求过多或违反政策。在限制解除前，你无法发送消息、使用智能体或上传文件，并且可能会被退出登录。如果限制一直未解除，请联系服务器管理员。</string>
+    <string name="session_banned_message_named">服务器已暂时限制 %1$s，例如因请求过多或违反政策。在限制解除前，你无法发送消息、使用智能体或上传文件，并且可能会被退出登录。如果限制一直未解除，请联系服务器管理员。</string>
 </resources>

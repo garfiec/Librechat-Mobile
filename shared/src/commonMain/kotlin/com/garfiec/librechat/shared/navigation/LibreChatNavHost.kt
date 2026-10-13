@@ -100,6 +100,9 @@ import com.garfiec.librechat.feature.skills.navigation.skillsEntries
 import com.garfiec.librechat.shared.resources.Res
 import com.garfiec.librechat.shared.resources.dismiss
 import com.garfiec.librechat.shared.resources.dont_warn_again
+import com.garfiec.librechat.shared.resources.session_banned_message
+import com.garfiec.librechat.shared.resources.session_banned_message_named
+import com.garfiec.librechat.shared.resources.session_banned_title
 import com.garfiec.librechat.shared.resources.session_expired_message
 import com.garfiec.librechat.shared.resources.session_expired_message_named
 import com.garfiec.librechat.shared.resources.session_expired_switched
@@ -356,7 +359,8 @@ fun LibreChatNavHost(
     }
 }
 
-/** Reports an unannounced sign-out, and the account the app moved to when there was one. */
+/** Reports an unannounced sign-out and the account the app moved to when there was one, or a ban,
+ *  which doesn't move the user. */
 @Composable
 private fun SessionExpiredDialog(notice: SessionExpiredNotice, onDismiss: () -> Unit) {
     val accountLabel = notice.accountLabel
@@ -364,13 +368,17 @@ private fun SessionExpiredDialog(notice: SessionExpiredNotice, onDismiss: () -> 
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = stringResource(Res.string.session_expired_title),
+                text = stringResource(
+                    if (notice.banned) Res.string.session_banned_title else Res.string.session_expired_title,
+                ),
                 style = MaterialTheme.typography.headlineSmall,
             )
         },
         text = {
             Text(
                 text = when {
+                    notice.banned && accountLabel.isBlank() -> stringResource(Res.string.session_banned_message)
+                    notice.banned -> stringResource(Res.string.session_banned_message_named, accountLabel)
                     notice.switchedTo != null && accountLabel.isNotBlank() ->
                         stringResource(Res.string.session_expired_switched_named, accountLabel, notice.switchedTo)
                     notice.switchedTo != null ->

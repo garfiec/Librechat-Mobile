@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.data.datastore
 
 import com.garfiec.librechat.core.network.client.RefreshResult
+import com.garfiec.librechat.core.network.client.SessionEndReason
 import com.google.common.truth.Truth.assertThat
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
@@ -181,6 +182,24 @@ class CommonTokenDataStoreSessionExpiryTest {
         store.emitSessionExpired()
 
         assertThat(emissions).isEqualTo(2)
+        job.cancel()
+    }
+
+    @Test
+    fun `a ban does not spend the expiry report`() = runTest {
+        val store = seededStore(noRefresh)
+        val reasons = mutableListOf<SessionEndReason>()
+        val job = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            store.sessionExpiredFlow.collect { reasons += it }
+        }
+
+        store.emitSessionExpired("acctA", SessionEndReason.BANNED)
+        store.emitSessionExpired("acctA", SessionEndReason.BANNED)
+        store.emitSessionExpired("acctA")
+
+        assertThat(reasons)
+            .containsExactly(SessionEndReason.BANNED, SessionEndReason.BANNED, SessionEndReason.EXPIRED)
+            .inOrder()
         job.cancel()
     }
 

@@ -16,4 +16,7 @@
     <string name="session_expired_message_named">Deine Sitzung für %1$s ist abgelaufen. Melde dich erneut an, um fortzufahren.</string>
     <string name="session_expired_switched_named">Deine Sitzung für %1$s ist abgelaufen, daher nutzt du jetzt %2$s. Melde dich über den Kontowechsler erneut bei %1$s an.</string>
     <string name="session_expired_switched">Deine Sitzung ist abgelaufen, daher nutzt du jetzt %1$s. Melde dich über den Kontowechsler erneut an.</string>
+    <string name="session_banned_title">Konto eingeschränkt</string>
+    <string name="session_banned_message">Dein Server hat dieses Konto vorübergehend eingeschränkt, etwa nach zu vielen Anfragen oder einem Richtlinienverstoß. Bis die Einschränkung aufgehoben ist, kannst du keine Nachrichten senden, keine Agenten nutzen und keine Dateien hochladen, und du wirst möglicherweise abgemeldet. Falls sie bestehen bleibt, wende dich an deinen Server-Admin.</string>
+    <string name="session_banned_message_named">Dein Server hat %1$s vorübergehend eingeschränkt, etwa nach zu vielen Anfragen oder einem Richtlinienverstoß. Bis die Einschränkung aufgehoben ist, kannst du keine Nachrichten senden, keine Agenten nutzen und keine Dateien hochladen, und du wirst möglicherweise abgemeldet. Falls sie bestehen bleibt, wende dich an deinen Server-Admin.</string>
 </resources>

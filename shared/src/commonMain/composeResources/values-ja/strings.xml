@@ -16,4 +16,7 @@
     <string name="session_expired_message_named">%1$s のセッションの有効期限が切れました。続行するには再度サインインしてください。</string>
     <string name="session_expired_switched_named">%1$s のセッションの有効期限が切れたため、%2$s に切り替えました。アカウント切り替えから %1$s に再度サインインできます。</string>
     <string name="session_expired_switched">セッションの有効期限が切れたため、%1$s に切り替えました。アカウント切り替えから再度サインインできます。</string>
+    <string name="session_banned_title">アカウントが制限されています</string>
+    <string name="session_banned_message">リクエストが多すぎる、またはポリシー違反などの理由で、サーバーがこのアカウントを一時的に制限しました。制限が解除されるまで、メッセージの送信、エージェントの利用、ファイルのアップロードはできず、サインアウトされる場合があります。解除されない場合は、サーバー管理者にお問い合わせください。</string>
+    <string name="session_banned_message_named">リクエストが多すぎる、またはポリシー違反などの理由で、サーバーが %1$s を一時的に制限しました。制限が解除されるまで、メッセージの送信、エージェントの利用、ファイルのアップロードはできず、サインアウトされる場合があります。解除されない場合は、サーバー管理者にお問い合わせください。</string>
 </resources>
