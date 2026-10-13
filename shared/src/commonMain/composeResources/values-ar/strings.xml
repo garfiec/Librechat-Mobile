@@ -14,4 +14,6 @@
     <string name="session_expired_title">تم تسجيل الخروج</string>
     <string name="session_expired_message">انتهت صلاحية جلستك. سجّل الدخول مجددًا للمتابعة.</string>
     <string name="session_expired_message_named">انتهت صلاحية جلستك على %1$s. سجّل الدخول مجددًا للمتابعة.</string>
+    <string name="session_expired_switched_named">انتهت صلاحية جلستك على %1$s، لذا تستخدم الآن %2$s. سجّل الدخول إلى %1$s مجددًا من مبدّل الحسابات.</string>
+    <string name="session_expired_switched">انتهت صلاحية جلستك، لذا تستخدم الآن %1$s. سجّل الدخول مجددًا من مبدّل الحسابات.</string>
 </resources>

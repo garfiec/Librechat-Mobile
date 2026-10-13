@@ -109,6 +109,99 @@ class AccountSwitcherRemoveTest {
         }
 
     @Test
+    fun `removing the active account skips a survivor whose session expired`() =
+        runTest(testDispatcher) {
+            val h = harness()
+            val accountC = deriveAccountId(deriveServerId(serverB), "user-c")
+            h.roster.upsertAndActivate(entry(accountC, serverB, lastActiveAt = 5L))
+            h.roster.upsertAndActivate(entry(accountB, serverB, lastActiveAt = 10L))
+            h.roster.upsertAndActivate(entry(accountA, serverA, lastActiveAt = 20L))
+            h.tokenManager.expiredAccounts += accountB.value
+
+            h.switcher.remove(accountA.value)
+
+            // B is the more recent, but its slot is empty: switching to it lands on a screen of 401s.
+            assertThat(h.provider.state.value).isEqualTo(Resolved(accountC))
+            assertThat(h.tokenManager.selections).containsExactly(accountC.value)
+            assertThat(h.tokenManager.expiredEmissions).isEmpty()
+        }
+
+    @Test
+    fun `removing the active account with only expired survivors signs out and keeps them listed`() =
+        runTest(testDispatcher) {
+            val h = harness()
+            h.roster.upsertAndActivate(entry(accountB, serverB, lastActiveAt = 10L))
+            h.roster.upsertAndActivate(entry(accountA, serverA, lastActiveAt = 20L))
+            h.tokenManager.expiredAccounts += accountB.value
+
+            h.switcher.remove(accountA.value)
+
+            assertThat(h.provider.state.value).isEqualTo(Resolved(null))
+            assertThat(h.tokenManager.selections).isEmpty()
+            assertThat(h.tokenManager.expiredReasons).containsExactly(SessionEndReason.SIGNED_OUT)
+            // B stays so it can be signed back in to; it just isn't made active.
+            val snapshot = h.roster.snapshot()
+            assertThat(snapshot.entries.map { it.accountId }).containsExactly(accountB.value)
+            assertThat(snapshot.activeId).isNull()
+        }
+
+    @Test
+    fun `failing over from an expired active account moves to the most recent live one`() =
+        runTest(testDispatcher) {
+            val h = harness()
+            val accountC = deriveAccountId(deriveServerId(serverB), "user-c")
+            h.roster.upsertAndActivate(entry(accountC, serverB, lastActiveAt = 5L))
+            h.roster.upsertAndActivate(entry(accountB, serverB, lastActiveAt = 10L))
+            h.roster.upsertAndActivate(entry(accountA, serverA, lastActiveAt = 20L))
+            h.tokenManager.expiredAccounts += listOf(accountA.value, accountB.value)
+
+            val result = h.switcher.failOverFromActive()
+
+            assertThat((result as FailoverResult.Switched).entry.accountId).isEqualTo(accountC.value)
+            assertThat(h.provider.state.value).isEqualTo(Resolved(accountC))
+            // The expired account is kept, not removed: the user signs back in to it.
+            assertThat(h.roster.snapshot().entries.map { it.accountId }).contains(accountA.value)
+            assertThat(h.tokenManager.removedAccounts).isEmpty()
+        }
+
+    @Test
+    fun `failing over with no live account left does nothing`() = runTest(testDispatcher) {
+        val h = harness()
+        h.roster.upsertAndActivate(entry(accountB, serverB, lastActiveAt = 10L))
+        h.roster.upsertAndActivate(entry(accountA, serverA, lastActiveAt = 20L))
+        h.tokenManager.expiredAccounts += listOf(accountA.value, accountB.value)
+
+        assertThat(h.switcher.failOverFromActive()).isEqualTo(FailoverResult.NoLiveAccount)
+        assertThat(h.provider.state.value).isEqualTo(Resolved(accountA))
+        assertThat(h.tokenManager.selections).isEmpty()
+    }
+
+    @Test
+    fun `failing over while the active account still holds a session does nothing`() =
+        runTest(testDispatcher) {
+            val h = harness()
+            h.roster.upsertAndActivate(entry(accountB, serverB, lastActiveAt = 10L))
+            h.roster.upsertAndActivate(entry(accountA, serverA, lastActiveAt = 20L))
+
+            // An expiry reported for an account that has since been switched away from.
+            assertThat(h.switcher.failOverFromActive()).isEqualTo(FailoverResult.ActiveStillLive)
+            assertThat(h.provider.state.value).isEqualTo(Resolved(accountA))
+            assertThat(h.tokenManager.selections).isEmpty()
+        }
+
+    @Test
+    fun `switching to an account whose session expired is refused`() = runTest(testDispatcher) {
+        val h = harness()
+        h.roster.upsertAndActivate(entry(accountB, serverB, lastActiveAt = 10L))
+        h.roster.upsertAndActivate(entry(accountA, serverA, lastActiveAt = 20L))
+        h.tokenManager.expiredAccounts += accountB.value
+
+        assertThat(h.switcher.switch(accountB.value)).isFalse()
+        assertThat(h.provider.state.value).isEqualTo(Resolved(accountA))
+        assertThat(h.tokenManager.selections).isEmpty()
+    }
+
+    @Test
     fun `removing the last account tears down to logged-out and signals session expiry`() =
         runTest(testDispatcher) {
             val h = harness()

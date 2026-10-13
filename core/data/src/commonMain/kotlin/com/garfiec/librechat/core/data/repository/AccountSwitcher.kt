@@ -51,6 +51,18 @@ class PendingAddSession internal constructor(
     }
 }
 
+/** What [AccountSwitcher.failOverFromActive] did. */
+sealed interface FailoverResult {
+    /** The active account still holds a session, so nothing was changed. */
+    data object ActiveStillLive : FailoverResult
+
+    /** Moved to [entry], the most recent other account that still holds a session. */
+    data class Switched(val entry: AccountEntry) : FailoverResult
+
+    /** No account is active, or no other one holds a session. The caller routes to sign-in. */
+    data object NoLiveAccount : FailoverResult
+}
+
 /**
  * Runs [block] under this pending add flow's request identity — routing its HTTP calls to the server
  * being added, with the staged bearer — or straight through when there is no add in progress. The one
@@ -112,24 +124,26 @@ class AccountSwitcher(
         private set
 
     /**
-     * Switch the active account to [accountId]. No-op when it isn't in the roster or is already active.
+     * Switch the active account to [accountId]. No-op when it isn't in the roster, is already active,
+     * or its session has expired (its slot is empty, so every request on it would 401). Returns whether
+     * the switch happened.
      * The URL + token-key + roster pointer + identity repoint runs inside [SwitchGate.withSwitch], so
      * new requests park until it completes and in-flight requests finish against the account they were
      * snapshotted for. Publishing identity last (inside the gate) makes `SessionManager` reconcile the
      * old session away only once the flip is atomic and complete.
      */
-    suspend fun switch(accountId: String) {
-        switchGate.withSwitch {
-            // Resolve the target and the no-op guards INSIDE the barrier: reading the roster / active
-            // pointer outside it opens a TOCTOU window where a concurrent logout could remove the entry
-            // (or flip the active account) between the check and the flip, leaving the live identity
-            // pointing at an account the persisted roster no longer marks active. Under the gate the
-            // read and the repoint are atomic with respect to any other switch/teardown.
-            val entry = roster.snapshot().entries.firstOrNull { it.accountId == accountId }
-                ?: return@withSwitch
-            if (activeAccountProvider.currentAccountId()?.value == accountId) return@withSwitch
-            flipTo(entry)
-        }
+    suspend fun switch(accountId: String): Boolean = switchGate.withSwitch {
+        // Resolve the target and the no-op guards INSIDE the barrier: reading the roster / active
+        // pointer outside it opens a TOCTOU window where a concurrent logout could remove the entry
+        // (or flip the active account) between the check and the flip, leaving the live identity
+        // pointing at an account the persisted roster no longer marks active. Under the gate the
+        // read and the repoint are atomic with respect to any other switch/teardown.
+        val entry = roster.snapshot().entries.firstOrNull { it.accountId == accountId }
+            ?: return@withSwitch false
+        if (activeAccountProvider.currentAccountId()?.value == accountId) return@withSwitch false
+        if (!hasSession(accountId)) return@withSwitch false
+        flipTo(entry)
+        true
     }
 
     /**
@@ -333,9 +347,9 @@ class AccountSwitcher(
             // deleted tokens, or vice versa) at rest.
             withContext(NonCancellable) {
                 if (activeAccountProvider.currentAccountId()?.value == accountId) {
-                    val successor = entries
-                        .filterNot { it.accountId == accountId }
-                        .maxByOrNull { it.lastActiveAt }
+                    // Only a survivor that still holds a session. With none, the expired ones stay
+                    // listed for re-sign-in and this tears down like a remove-last.
+                    val successor = liveSuccessor(entries, excluding = accountId)
                     if (successor != null) {
                         flipTo(successor)
                     } else {
@@ -371,4 +385,31 @@ class AccountSwitcher(
             accountDataPurger.purge(AccountId(accountId))
         }
     }
+
+    /**
+     * The active account's session just ended hard: move to the most recent other account that still
+     * holds a session, keeping the expired one listed so it can be signed back in to.
+     *
+     * Checks the active account's own slot first, under the gate. The expiry signal carries no account,
+     * and a flip can land between its emission and its handling (a cold start's own failover, a user
+     * switch), so "the active account expired" may describe an account that is no longer active.
+     * Failing over from the live one would move the user off a working session.
+     */
+    suspend fun failOverFromActive(): FailoverResult = switchGate.withSwitch {
+        val active = activeAccountProvider.currentAccountId()?.value
+            ?: return@withSwitch FailoverResult.NoLiveAccount
+        if (hasSession(active)) return@withSwitch FailoverResult.ActiveStillLive
+        val successor = liveSuccessor(roster.snapshot().entries, excluding = active)
+            ?: return@withSwitch FailoverResult.NoLiveAccount
+        flipTo(successor)
+        FailoverResult.Switched(successor)
+    }
+
+    /** Whether [accountId]'s keyed slot still holds a session. A hard expiry empties it. */
+    suspend fun hasSession(accountId: String): Boolean = tokenManager.getAccessTokenFor(accountId) != null
+
+    private suspend fun liveSuccessor(entries: List<AccountEntry>, excluding: String): AccountEntry? =
+        entries
+            .filter { it.accountId != excluding && hasSession(it.accountId) }
+            .maxByOrNull { it.lastActiveAt }
 }

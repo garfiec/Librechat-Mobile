@@ -50,6 +50,8 @@ data class AccountUiModel(
     val serverHost: String,
     val avatarUrl: String?,
     val isActive: Boolean,
+    /** The session expired: the account stays listed, but needs signing in to before it's usable. */
+    val needsSignIn: Boolean = false,
 )
 
 /**

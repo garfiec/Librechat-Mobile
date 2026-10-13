@@ -31,6 +31,9 @@ internal class RecordingTokenManager : TokenManager {
     val expiredEmissions = mutableListOf<String?>()
     val expiredReasons = mutableListOf<SessionEndReason>()
 
+    /** Accounts whose keyed slot a hard expiry has emptied. Every other account holds a session. */
+    val expiredAccounts = mutableSetOf<String>()
+
     override val isAuthenticated: Boolean = true
     override suspend fun getAccessToken(): String? = null
     override suspend fun setTokens(accessToken: String, refreshToken: String) {
@@ -38,7 +41,8 @@ internal class RecordingTokenManager : TokenManager {
     }
     override suspend fun refreshAccessToken(usedAccessToken: String?): RefreshResult = RefreshResult.HardExpired
     override suspend fun clearTokens() = Unit
-    override suspend fun getAccessTokenFor(accountId: String): String? = null
+    override suspend fun getAccessTokenFor(accountId: String): String? =
+        if (accountId in expiredAccounts) null else "access-$accountId"
     override suspend fun getStagedAccessToken(): String? = stagedAccess
     override suspend fun clearStagedTokens() {
         stagedAccess = null

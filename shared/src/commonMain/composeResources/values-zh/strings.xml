@@ -14,4 +14,6 @@
     <string name="session_expired_title">已退出登录</string>
     <string name="session_expired_message">你的会话已过期。请重新登录以继续。</string>
     <string name="session_expired_message_named">你在 %1$s 的会话已过期。请重新登录以继续。</string>
+    <string name="session_expired_switched_named">你在 %1$s 的会话已过期，已切换到 %2$s。可在账号切换器中重新登录 %1$s。</string>
+    <string name="session_expired_switched">你的会话已过期，已切换到 %1$s。可在账号切换器中重新登录。</string>
 </resources>

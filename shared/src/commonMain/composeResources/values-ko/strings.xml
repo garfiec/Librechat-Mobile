@@ -14,4 +14,6 @@
     <string name="session_expired_title">로그아웃됨</string>
     <string name="session_expired_message">세션이 만료되었습니다. 계속하려면 다시 로그인하세요.</string>
     <string name="session_expired_message_named">%1$s의 세션이 만료되었습니다. 계속하려면 다시 로그인하세요.</string>
+    <string name="session_expired_switched_named">%1$s의 세션이 만료되어 %2$s(으)로 전환했습니다. 계정 전환에서 %1$s에 다시 로그인하세요.</string>
+    <string name="session_expired_switched">세션이 만료되어 %1$s(으)로 전환했습니다. 계정 전환에서 다시 로그인하세요.</string>
 </resources>

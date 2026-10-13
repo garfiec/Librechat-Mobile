@@ -14,4 +14,6 @@
     <string name="session_expired_title">Sessão encerrada</string>
     <string name="session_expired_message">Sua sessão expirou. Entre novamente para continuar.</string>
     <string name="session_expired_message_named">Sua sessão em %1$s expirou. Entre novamente para continuar.</string>
+    <string name="session_expired_switched_named">Sua sessão em %1$s expirou, então agora você está usando %2$s. Entre novamente em %1$s pelo seletor de contas.</string>
+    <string name="session_expired_switched">Sua sessão expirou, então agora você está usando %1$s. Entre novamente pelo seletor de contas.</string>
 </resources>

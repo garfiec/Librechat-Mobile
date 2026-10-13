@@ -16,4 +16,6 @@
     <string name="session_expired_title">Signed out</string>
     <string name="session_expired_message">Your session has expired. Sign in again to continue.</string>
     <string name="session_expired_message_named">Your session for %1$s has expired. Sign in again to continue.</string>
+    <string name="session_expired_switched_named">Your session for %1$s has expired, so you’re now using %2$s. Sign in to %1$s again from the account switcher.</string>
+    <string name="session_expired_switched">Your session has expired, so you’re now using %1$s. Sign in again from the account switcher.</string>
 </resources>

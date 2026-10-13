@@ -14,4 +14,6 @@
     <string name="session_expired_title">Abgemeldet</string>
     <string name="session_expired_message">Deine Sitzung ist abgelaufen. Melde dich erneut an, um fortzufahren.</string>
     <string name="session_expired_message_named">Deine Sitzung für %1$s ist abgelaufen. Melde dich erneut an, um fortzufahren.</string>
+    <string name="session_expired_switched_named">Deine Sitzung für %1$s ist abgelaufen, daher nutzt du jetzt %2$s. Melde dich über den Kontowechsler erneut bei %1$s an.</string>
+    <string name="session_expired_switched">Deine Sitzung ist abgelaufen, daher nutzt du jetzt %1$s. Melde dich über den Kontowechsler erneut an.</string>
 </resources>

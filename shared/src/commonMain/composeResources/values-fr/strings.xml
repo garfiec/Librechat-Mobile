@@ -14,4 +14,6 @@
     <string name="session_expired_title">Déconnecté</string>
     <string name="session_expired_message">Votre session a expiré. Reconnectez-vous pour continuer.</string>
     <string name="session_expired_message_named">Votre session pour %1$s a expiré. Reconnectez-vous pour continuer.</string>
+    <string name="session_expired_switched_named">Votre session pour %1$s a expiré : vous utilisez maintenant %2$s. Reconnectez-vous à %1$s depuis le sélecteur de comptes.</string>
+    <string name="session_expired_switched">Votre session a expiré : vous utilisez maintenant %1$s. Reconnectez-vous depuis le sélecteur de comptes.</string>
 </resources>

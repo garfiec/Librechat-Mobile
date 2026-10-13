@@ -61,6 +61,7 @@ import com.garfiec.librechat.core.ui.components.listDragSelection
 import com.garfiec.librechat.core.ui.components.rememberListDragSelection
 import com.garfiec.librechat.core.ui.components.testTagsAsResourceIdSubtree
 import com.garfiec.librechat.feature.conversations.resources.Res
+import com.garfiec.librechat.feature.conversations.resources.account_signed_out
 import com.garfiec.librechat.feature.conversations.resources.accounts
 import com.garfiec.librechat.feature.conversations.resources.add_account
 import com.garfiec.librechat.feature.conversations.resources.cancel
@@ -199,11 +200,12 @@ fun AccountChip(
  * Cycles a STABLE order (by [AccountUiModel.accountId]) rather than the display list's active-first
  * order — the latter moves the target under the user's finger after every switch. [delta] is +1
  * (next) / -1 (previous), wrapping at the ends. Returns null when there's nothing to switch to
- * (fewer than two accounts, or no active entry).
+ * (no other signed-in account, or no active entry).
  */
 internal fun adjacentAccountId(accounts: List<AccountUiModel>, delta: Int): String? {
-    if (accounts.size < 2) return null
-    val ordered = accounts.sortedBy { it.accountId }
+    // A signed-out account has nothing to switch to; the swipe skips it.
+    val ordered = accounts.filter { it.isActive || !it.needsSignIn }.sortedBy { it.accountId }
+    if (ordered.size < 2) return null
     val activeIndex = ordered.indexOfFirst { it.isActive }
     if (activeIndex < 0) return null
     val size = ordered.size
@@ -245,7 +247,13 @@ fun AccountSwitcherSheet(
             accounts.forEach { account ->
                 AccountRow(
                     account = account,
-                    onClick = { if (!account.isActive) onSwitchAccount(account.accountId) },
+                    onClick = {
+                        when {
+                            account.isActive -> Unit
+                            account.needsSignIn -> onAddAccount()
+                            else -> onSwitchAccount(account.accountId)
+                        }
+                    },
                     onRemoveRequest = { onRemoveAccountRequest(account) },
                     dragSelection = dragSelection,
                 )
@@ -310,9 +318,17 @@ private fun AccountRow(
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = account.serverHost,
+                text = if (account.needsSignIn) {
+                    stringResource(Res.string.account_signed_out, account.serverHost)
+                } else {
+                    account.serverHost
+                },
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (account.needsSignIn) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

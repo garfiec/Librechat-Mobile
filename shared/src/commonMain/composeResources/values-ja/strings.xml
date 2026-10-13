@@ -14,4 +14,6 @@
     <string name="session_expired_title">サインアウトしました</string>
     <string name="session_expired_message">セッションの有効期限が切れました。続行するには再度サインインしてください。</string>
     <string name="session_expired_message_named">%1$s のセッションの有効期限が切れました。続行するには再度サインインしてください。</string>
+    <string name="session_expired_switched_named">%1$s のセッションの有効期限が切れたため、%2$s に切り替えました。アカウント切り替えから %1$s に再度サインインできます。</string>
+    <string name="session_expired_switched">セッションの有効期限が切れたため、%1$s に切り替えました。アカウント切り替えから再度サインインできます。</string>
 </resources>

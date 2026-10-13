@@ -102,6 +102,8 @@ import com.garfiec.librechat.shared.resources.dismiss
 import com.garfiec.librechat.shared.resources.dont_warn_again
 import com.garfiec.librechat.shared.resources.session_expired_message
 import com.garfiec.librechat.shared.resources.session_expired_message_named
+import com.garfiec.librechat.shared.resources.session_expired_switched
+import com.garfiec.librechat.shared.resources.session_expired_switched_named
 import com.garfiec.librechat.shared.resources.session_expired_title
 import com.garfiec.librechat.shared.resources.version_mismatch_message
 import com.garfiec.librechat.shared.resources.version_mismatch_title
@@ -219,10 +221,19 @@ fun LibreChatNavHost(
         Diag.i("Breadcrumb", attrs = mapOf("screen" to screen)) { "nav" }
     }
 
-    // Handle session expiry
+    // Session expiry and failover. The ViewModel decides between signing in and moving to another
+    // account that is still signed in; this only carries out the route.
     LaunchedEffect(Unit) {
-        navHostViewModel.sessionExpired.collect {
-            navigator.navigateToAuth()
+        navHostViewModel.sessionRoute.collect { route ->
+            when (route) {
+                SessionRoute.SignIn -> navigator.navigateToAuth()
+                // Only off the sign-in screens: on chat, the account flip has already reset the stack.
+                SessionRoute.Chat -> if (navigator.isInAuthFlow) {
+                    navigator.navigateToChat(
+                        accountScope = (navHostViewModel.accountState.value as? AccountState.Resolved)?.id?.value,
+                    )
+                }
+            }
         }
     }
 
@@ -277,7 +288,9 @@ fun LibreChatNavHost(
             withContext(Dispatchers.IO) { imageLoader.diskCache?.clear() }
             // Reset the stack only on an account-to-account flip; on account-to-logged-out the
             // initiating flow (or the session-expired signal) owns navigation.
-            if (previous != null && current != null) {
+            // A flip that lands with the session already gone (the account switched to expired, and
+            // its sign-in route went out first) must not be routed back to chat on top of it.
+            if (previous != null && current != null && navHostViewModel.isLoggedIn.value) {
                 // Scoped to the incoming account, or the landing's ViewModel would survive the
                 // flip — see Navigator.navigateToChat.
                 navigator.navigateToChat(accountScope = current)
@@ -334,18 +347,19 @@ fun LibreChatNavHost(
         // Rendered here rather than inside the auth screens: it sits above NavDisplay and so survives
         // the back-stack reset that routed the user to auth in the first place.
         val sessionExpiredNotice by navHostViewModel.sessionExpiredNotice.collectAsStateWithLifecycle()
-        sessionExpiredNotice?.let { accountLabel ->
+        sessionExpiredNotice?.let { notice ->
             SessionExpiredDialog(
-                accountLabel = accountLabel,
+                notice = notice,
                 onDismiss = navHostViewModel::dismissSessionExpiredNotice,
             )
         }
     }
 }
 
-/** Reports an unannounced sign-out. [accountLabel] is blank when the account can't be named. */
+/** Reports an unannounced sign-out, and the account the app moved to when there was one. */
 @Composable
-private fun SessionExpiredDialog(accountLabel: String, onDismiss: () -> Unit) {
+private fun SessionExpiredDialog(notice: SessionExpiredNotice, onDismiss: () -> Unit) {
+    val accountLabel = notice.accountLabel
     AdaptiveAlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -356,10 +370,13 @@ private fun SessionExpiredDialog(accountLabel: String, onDismiss: () -> Unit) {
         },
         text = {
             Text(
-                text = if (accountLabel.isBlank()) {
-                    stringResource(Res.string.session_expired_message)
-                } else {
-                    stringResource(Res.string.session_expired_message_named, accountLabel)
+                text = when {
+                    notice.switchedTo != null && accountLabel.isNotBlank() ->
+                        stringResource(Res.string.session_expired_switched_named, accountLabel, notice.switchedTo)
+                    notice.switchedTo != null ->
+                        stringResource(Res.string.session_expired_switched, notice.switchedTo)
+                    accountLabel.isBlank() -> stringResource(Res.string.session_expired_message)
+                    else -> stringResource(Res.string.session_expired_message_named, accountLabel)
                 },
                 style = MaterialTheme.typography.bodyMedium,
             )
@@ -429,6 +446,14 @@ fun PhoneLayout(
             val offset = drawerState.currentOffset
             !offset.isNaN() && drawerWidthPx > 0 && offset > -drawerWidthPx + 1f
         }
+    }
+
+    // The drawer is an authenticated surface, and once the session ends its gestures are off (below),
+    // which also takes away the scrim tap that would close it. Shut it here, or it stays open over
+    // the sign-in screen with nothing to dismiss it on iOS.
+    val signedOut = !isLoggedIn || navigator.isInAuthFlow
+    LaunchedEffect(signedOut) {
+        if (signedOut && !drawerState.isClosed) drawerState.snapTo(DrawerValue.Closed)
     }
 
     // Reset sidebar mode to Conversations when the drawer closes

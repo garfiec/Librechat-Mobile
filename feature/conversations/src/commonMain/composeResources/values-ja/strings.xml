@@ -115,6 +115,7 @@
     <string name="cd_active_account">使用中のアカウント</string>
     <string name="remove">削除</string>
     <string name="remove_account">アカウントを削除</string>
+    <string name="account_signed_out">サインアウト済み · %1$s</string>
     <string name="remove_account_message">%1$s とそのデータがこのデバイスから削除されます。サーバー上のアカウントには影響しません。</string>
     <string name="remove_account_title">アカウントを削除しますか？</string>
     <string name="drawer_running_chats">実行中</string>

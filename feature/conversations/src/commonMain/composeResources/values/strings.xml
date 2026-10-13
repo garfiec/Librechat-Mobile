@@ -115,6 +115,7 @@
     <string name="cd_active_account">Active account</string>
     <string name="remove">Remove</string>
     <string name="remove_account">Remove account</string>
+    <string name="account_signed_out">Signed out · %1$s</string>
     <string name="remove_account_message">%1$s and its data will be removed from this device. The account on the server is not affected.</string>
     <string name="remove_account_title">Remove account?</string>
     <string name="drawer_running_chats">Running</string>

@@ -14,4 +14,6 @@
     <string name="session_expired_title">Выполнен выход</string>
     <string name="session_expired_message">Ваш сеанс истёк. Войдите снова, чтобы продолжить.</string>
     <string name="session_expired_message_named">Ваш сеанс для %1$s истёк. Войдите снова, чтобы продолжить.</string>
+    <string name="session_expired_switched_named">Сеанс для %1$s истёк, поэтому вы переключены на %2$s. Снова войдите в %1$s через переключатель аккаунтов.</string>
+    <string name="session_expired_switched">Сеанс истёк, поэтому вы переключены на %1$s. Снова войдите через переключатель аккаунтов.</string>
 </resources>

@@ -115,6 +115,7 @@
     <string name="cd_active_account">Conta ativa</string>
     <string name="remove">Remover</string>
     <string name="remove_account">Remover conta</string>
+    <string name="account_signed_out">Sessão encerrada · %1$s</string>
     <string name="remove_account_message">%1$s e seus dados serão removidos deste dispositivo. A conta no servidor não é afetada.</string>
     <string name="remove_account_title">Remover conta?</string>
     <string name="drawer_running_chats">Em execução</string>

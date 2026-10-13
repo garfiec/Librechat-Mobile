@@ -115,6 +115,7 @@
     <string name="cd_active_account">Активный аккаунт</string>
     <string name="remove">Удалить</string>
     <string name="remove_account">Удалить аккаунт</string>
+    <string name="account_signed_out">Выполнен выход · %1$s</string>
     <string name="remove_account_message">%1$s и связанные данные будут удалены с этого устройства. Аккаунт на сервере не затрагивается.</string>
     <string name="remove_account_title">Удалить аккаунт?</string>
     <string name="drawer_running_chats">Выполняются</string>

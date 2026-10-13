@@ -14,4 +14,6 @@
     <string name="session_expired_title">Sesión cerrada</string>
     <string name="session_expired_message">Tu sesión ha caducado. Vuelve a iniciar sesión para continuar.</string>
     <string name="session_expired_message_named">Tu sesión en %1$s ha caducado. Vuelve a iniciar sesión para continuar.</string>
+    <string name="session_expired_switched_named">Tu sesión en %1$s ha caducado, así que ahora usas %2$s. Vuelve a iniciar sesión en %1$s desde el selector de cuentas.</string>
+    <string name="session_expired_switched">Tu sesión ha caducado, así que ahora usas %1$s. Vuelve a iniciar sesión desde el selector de cuentas.</string>
 </resources>

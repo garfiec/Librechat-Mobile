@@ -223,6 +223,14 @@ fun DrawerContent(
     // the ViewModel against the tapped row's id — no captured drawer state (Nav3 stale-closure rule).
     var showAccountSheet by remember { mutableStateOf(false) }
     var removeAccountTarget by remember { mutableStateOf<AccountUiModel?>(null) }
+    // The sheet and its confirm are popups, so they outlive the drawer closing under them — on a
+    // session ending, over the sign-in screen.
+    LaunchedEffect(isOpen) {
+        if (!isOpen) {
+            showAccountSheet = false
+            removeAccountTarget = null
+        }
+    }
 
     // Side-effects for the long-press action menu (share-link copy, export file-save, navigate to
     // a duplicated conversation, error toasts). Lives in feature/conversations so it owns the
@@ -268,8 +276,9 @@ fun DrawerContent(
                         // without opening the sheet. Switches in place via the ViewModel so the user
                         // can swipe through several accounts against the same avatar. The sheet path
                         // keeps the drawer open too (the host no longer closes it on switch).
-                        // Disabled (null) with a single account.
-                        onSwitchAdjacent = if (accounts.size > 1) {
+                        // Disabled (null) with nothing to switch to: a single account, or every
+                        // other one signed out.
+                        onSwitchAdjacent = if (accounts.any { !it.isActive && !it.needsSignIn }) {
                             { delta -> adjacentAccountId(accounts, delta)?.let(onSwitchAccountInPlace) }
                         } else {
                             null
@@ -333,6 +342,10 @@ fun DrawerContent(
             onConfirm = {
                 onRemoveAccount(target.accountId)
                 removeAccountTarget = null
+                // Removing the active account can end the session (the last one, or none left signed
+                // in), and the sheet would otherwise stay up over the sign-in screen. Any other removal
+                // keeps it open for the next.
+                if (target.isActive) showAccountSheet = false
             },
             onDismiss = { removeAccountTarget = null },
         )
