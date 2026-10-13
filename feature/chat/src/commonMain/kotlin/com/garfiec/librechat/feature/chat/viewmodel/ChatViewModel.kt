@@ -13,6 +13,7 @@ import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.data.datastore.SiteIconsStore
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
@@ -150,6 +151,7 @@ class ChatViewModel(
     private val serverFileSelectionHandoff: ServerFileSelectionHandoff,
     private val promptInsertionHandoff: PromptInsertionHandoff,
     private val siteIconPromptSession: SiteIconPromptSession,
+    private val siteIconsStore: SiteIconsStore,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -332,7 +334,7 @@ class ChatViewModel(
     // Third stage: a stored choice wins; with none, ask unless the prompt was already closed
     // this process (see SiteIconPromptSession).
     private val siteIconsState = combine(
-        settingsDataStore.siteIconsChoice,
+        siteIconsStore.choice,
         siteIconPromptSession.dismissed,
     ) { choice, dismissed ->
         when (choice) {
@@ -360,7 +362,12 @@ class ChatViewModel(
             inlineArtifactPrefs = sttRenderer.inlineArtifactPrefs,
             siteIcons = siteIcons,
         )
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, ChatPreferences())
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.Eagerly,
+        // A store build's icons are on by default; seed that so they don't pop in on the first read.
+        ChatPreferences(siteIcons = if (siteIconsStore.default == true) SiteIconsState.ON else SiteIconsState.OFF),
+    )
 
     // In-memory echo of the gauge-expanded toggle: a tap flips the UI synchronously instead of
     // waiting on the DataStore write round-trip (which would also make a quick second tap read
@@ -1027,7 +1034,7 @@ class ChatViewModel(
 
     /** The website-icons prompt's answer; also what stops it asking again. */
     fun setShowSiteIcons(show: Boolean) {
-        viewModelScope.launch { settingsDataStore.setShowSiteIcons(show) }
+        viewModelScope.launch { siteIconsStore.set(show) }
     }
 
     /** The website-icons prompt was closed without a choice: stay quiet until the next launch. */

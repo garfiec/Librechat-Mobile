@@ -192,7 +192,7 @@ jobs:
           # build-tools is not on PATH on GitHub runners, and which versions ship changes
           # with the image, so take the newest installed.
           apksigner="$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)"
-          apk="app/build/outputs/apk/release/app-release.apk"
+          apk="app/build/outputs/apk/foss/release/app-foss-release.apk"
           # apksigner prints lowercase hex with no separators; the README publishes it
           # colon-separated and uppercase. Normalise both sides rather than either one.
           norm() { tr -d ':' | tr '[:lower:]' '[:upper:]'; }
@@ -208,12 +208,26 @@ jobs:
           fi
           echo "Release certificate matches the published fingerprint."
 
+      # The published APK is the open-source channel. A store build here would hide the update
+      # check from everyone who installs from GitHub, Obtainium or F-Droid.
+      - name: Verify the APK is the open-source channel
+        run: |
+          set -euo pipefail
+          aapt2="$(ls -d "$ANDROID_HOME"/build-tools/*/aapt2 | sort -V | tail -1)"
+          apk="app/build/outputs/apk/foss/release/app-foss-release.apk"
+          if ! "$aapt2" dump xmltree --file AndroidManifest.xml "$apk" \
+            | grep -A2 'com.garfiec.librechat.CHANNEL' | grep -q '"oss"'; then
+            echo "::error title=Wrong distribution channel::the release APK does not declare channel oss"
+            exit 1
+          fi
+          echo "Release APK declares the open-source channel."
+
       - name: Prepare artifacts
         id: artifacts
         env:
           VERSION: ${{ steps.bump.outputs.version_name }}
         run: |
-          src="app/build/outputs/apk/release/app-release.apk"
+          src="app/build/outputs/apk/foss/release/app-foss-release.apk"
           out="switchboard-v${VERSION}.apk"
           cp "$src" "$out"
           sha256sum "$out" > "${out}.sha256"
@@ -225,24 +239,24 @@ jobs:
       # still verify and publish. What is lost is the margin, not the release: the comparison
       # exercises signature-stripping instead of its designed signed-vs-unsigned case, in a
       # step that has no fallback when it fails. Must run *after* the artifact is copied
-      # out — building unsigned replaces app-release.apk with app-release-unsigned.apk —
+      # out — building unsigned replaces app-foss-release.apk with app-foss-release-unsigned.apk —
       # and before the tag is pushed, so a failure here publishes nothing.
       - name: Verify the unsigned release path still works
         run: |
           set -euo pipefail
           ./gradlew :app:assembleRelease -PunsignedRelease --no-daemon
-          dir="app/build/outputs/apk/release"
+          dir="app/build/outputs/apk/foss/release"
           # AGP appends `-unsigned` only when the variant resolved no signing config at all.
           # Asserting the signed name is *gone* is the other half: it rules out an unsigned
           # APK produced alongside a signed one.
-          test -f "$dir/app-release-unsigned.apk"
-          test ! -f "$dir/app-release.apk"
+          test -f "$dir/app-foss-release-unsigned.apk"
+          test ! -f "$dir/app-foss-release.apk"
           apksigner="$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)"
           # Not `unzip | grep META-INF/*.RSA`: v1 signing is off at minSdk >= 24, so an APK
           # that fell through to the debug key has no META-INF signature entry either, and
           # that check would pass on exactly the artifact this guards against. The v2/v3
           # signature lives in the APK Signing Block, which only apksigner reads.
-          if "$apksigner" verify "$dir/app-release-unsigned.apk"; then
+          if "$apksigner" verify "$dir/app-foss-release-unsigned.apk"; then
             echo "::error title=Unsigned release is signed::-PunsignedRelease produced a SIGNED APK."
             exit 1
           fi
@@ -422,6 +436,13 @@ jobs:
           apps=(./*.app)
           if [ "${#apps[@]}" -ne 1 ]; then
             echo "::error::expected exactly 1 .app in the archive, found ${#apps[@]}: ${apps[@]+${apps[*]}}"
+            exit 1
+          fi
+          # The sideload IPA is the open-source channel, like the APK. A store channel here would
+          # hide the release notes from, and turn website icons on for, everyone who sideloads it.
+          got="$(/usr/libexec/PlistBuddy -c 'Print :SwitchboardChannel' "${apps[0]}/Info.plist" 2>/dev/null || true)"
+          if [ "$got" != "oss" ]; then
+            echo "::error title=Wrong distribution channel::the IPA declares ${got:-<missing>}, expected oss"
             exit 1
           fi
           mkdir -p Payload && mv "${apps[0]}" Payload/

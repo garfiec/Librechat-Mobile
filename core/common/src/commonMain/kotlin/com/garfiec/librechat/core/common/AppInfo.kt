@@ -19,4 +19,7 @@ interface AppInfo {
      * This is NOT an integrity check: a self-reported SHA proves nothing about a tampered binary.
      */
     val gitSha: String
+
+    /** Which distribution channel this build was made for. See [DistributionChannel]. */
+    val channel: DistributionChannel
 }

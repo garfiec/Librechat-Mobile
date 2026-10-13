@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.settings.viewmodel
 
 import com.garfiec.librechat.core.common.AppInfo
+import com.garfiec.librechat.core.common.DistributionChannel
 import com.garfiec.librechat.core.common.datetime.ClockFormat
 import com.garfiec.librechat.core.common.datetime.DateFormatStyle
 import com.garfiec.librechat.core.common.datetime.DateTimeFormatPrefs
@@ -65,6 +66,7 @@ class GeneralSettingsViewModelTest {
             override val versionName = "0.1.0"
             override val versionCode = 1L
             override val gitSha = "testsha0"
+            override val channel = DistributionChannel.OPEN_SOURCE
         },
     )
 

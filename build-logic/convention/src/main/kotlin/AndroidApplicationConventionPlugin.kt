@@ -23,7 +23,7 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
             if (unsignedRelease) {
                 logger.lifecycle(
                     "-PunsignedRelease: the release APK will be UNSIGNED " +
-                        "(app/build/outputs/apk/release/app-release-unsigned.apk).",
+                        "(app/build/outputs/apk/foss/release/app-foss-release-unsigned.apk).",
                 )
             }
 
@@ -73,7 +73,7 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
                         // `unsignedRelease` must stay the first branch: it deliberately
                         // outranks credentials so the path stays testable with a
                         // keystore.properties in place. A null config is what makes AGP emit
-                        // `app-release-unsigned.apk`.
+                        // `app-<flavor>-release-unsigned.apk`.
                         signingConfig = when {
                             unsignedRelease -> null
                             release != null -> signingConfigs.getByName("release")

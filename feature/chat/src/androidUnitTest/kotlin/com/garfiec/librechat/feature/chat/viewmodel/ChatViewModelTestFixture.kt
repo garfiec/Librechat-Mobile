@@ -13,6 +13,7 @@ import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.data.datastore.SiteIconsStore
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.ChatRepository
@@ -87,6 +88,7 @@ internal class ChatViewModelTestFixture {
     val connectivityObserver = mockk<ConnectivityObserver>(relaxed = true)
     val serverDataStore = mockk<ServerDataStore>(relaxed = true)
     val settingsDataStore = mockk<SettingsDataStore>(relaxed = true)
+    val siteIconsStore = mockk<SiteIconsStore>(relaxed = true)
     val platformDelegateFactory = mockk<PlatformDelegateFactory>(relaxed = true)
     val serverFileSelectionHandoff = mockk<ServerFileSelectionHandoff>(relaxed = true)
 
@@ -135,7 +137,7 @@ internal class ChatViewModelTestFixture {
         every { settingsDataStore.effectiveContextSections } returns MutableStateFlow(ContextDetailPreset.STANDARD.sections)
         every { settingsDataStore.compactNudgeThreshold } returns MutableStateFlow(DEFAULT_COMPACT_NUDGE_THRESHOLD)
         every { settingsDataStore.compactNudgeSnoozes } returns MutableStateFlow(emptyMap())
-        every { settingsDataStore.siteIconsChoice } returns MutableStateFlow(null)
+        every { siteIconsStore.choice } returns MutableStateFlow(null)
         every { settingsDataStore.duringRunAction } returns MutableStateFlow(DuringRunAction.QUEUE)
     }
 
@@ -180,6 +182,7 @@ internal class ChatViewModelTestFixture {
         serverFileSelectionHandoff = serverFileSelectionHandoff,
         promptInsertionHandoff = PromptInsertionHandoff(),
         siteIconPromptSession = siteIconPromptSession,
+        siteIconsStore = siteIconsStore,
         activeAccountProvider = activeAccountProvider,
     )
 }

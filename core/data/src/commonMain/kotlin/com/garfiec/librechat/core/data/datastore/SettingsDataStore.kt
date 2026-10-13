@@ -211,15 +211,6 @@ class SettingsDataStore(
         prefs[KEY_SHOW_IMAGE_DESCRIPTIONS] ?: false
     }
 
-    /**
-     * Whether web-search results may load site icons from external servers (Google's favicon
-     * service, or an icon URL the search result carries). Null until the user has chosen, which
-     * the chat screen treats as "off, and ask once". Device-wide, not per account.
-     */
-    val siteIconsChoice: Flow<Boolean?> = dataStore.data.map { prefs ->
-        prefs[KEY_SHOW_SITE_ICONS]
-    }.distinctUntilChanged()
-
     val selectedVoiceId: Flow<String?> = dataStore.data.map { prefs ->
         prefs[KEY_SELECTED_VOICE_ID]
     }
@@ -563,12 +554,6 @@ class SettingsDataStore(
     suspend fun setShowImageDescriptions(show: Boolean) {
         dataStore.edit { prefs ->
             prefs[KEY_SHOW_IMAGE_DESCRIPTIONS] = show
-        }
-    }
-
-    suspend fun setShowSiteIcons(show: Boolean) {
-        dataStore.edit { prefs ->
-            prefs[KEY_SHOW_SITE_ICONS] = show
         }
     }
 
@@ -942,7 +927,6 @@ class SettingsDataStore(
         private const val MAX_COMPACT_SNOOZES = 200
         private val KEY_AUTO_READ_ENABLED = booleanPreferencesKey("auto_read_enabled")
         private val KEY_SHOW_IMAGE_DESCRIPTIONS = booleanPreferencesKey("show_image_descriptions")
-        private val KEY_SHOW_SITE_ICONS = booleanPreferencesKey("show_site_icons")
         private val KEY_SELECTED_VOICE_ID = stringPreferencesKey("selected_voice_id")
         private const val LAST_USED_ENDPOINT = "last_used_endpoint"
         private const val LAST_USED_MODEL = "last_used_model"

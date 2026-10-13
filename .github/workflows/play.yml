@@ -1,0 +1,137 @@
+name: Google Play Upload
+
+# Manual upload of an existing stable tag to Google Play as the `play` channel
+# (com.garfiec.librechat.play). Separate from release.yml, like appstore.yml: cutting a GitHub
+# release never contacts Google. Setup, prerequisites & runbook: docs/RELEASING.md
+# "Distribution channels" → Google Play.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing stable release tag (vYYYY.MM.N, no -rcN); tags older than the play flavor have no bundlePlayRelease task"
+        required: true
+        type: string
+      track:
+        description: "Play track to release to"
+        required: true
+        default: internal
+        type: choice
+        options: [internal, alpha, beta, production]
+      status:
+        description: "Release status (draft until the app's first release has been reviewed)"
+        required: true
+        default: completed
+        type: choice
+        options: [completed, draft]
+
+concurrency:
+  group: play
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  upload:
+    name: Build, sign & upload to Google Play
+    runs-on: ubuntu-latest
+    # Same reviewer-gated environment as the other signing secrets.
+    environment: release
+
+    steps:
+      # Same pattern F-Droid's UpdateCheckMode uses for stable tags.
+      - name: Refuse release candidates
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          if [[ ! "$TAG" =~ ^v[0-9]{4}\.[0-9]{2}\.[0-9]+$ ]]; then
+            echo "::error title=Not a stable tag::$TAG is not vYYYY.MM.N. Release candidates never ship to Play: they share their final release's versionCode, which Play accepts only once."
+            exit 1
+          fi
+
+      # Fail in seconds if secrets are missing/blank — not after a full R8 build.
+      - name: Verify Play secrets
+        env:
+          SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          missing=""
+          [ -z "$SIGNING_KEYSTORE_BASE64" ] && missing="$missing SIGNING_KEYSTORE_BASE64"
+          [ -z "$SIGNING_STORE_PASSWORD" ] && missing="$missing SIGNING_STORE_PASSWORD"
+          [ -z "$SIGNING_KEY_PASSWORD" ] && missing="$missing SIGNING_KEY_PASSWORD"
+          [ -z "$SIGNING_KEY_ALIAS" ] && missing="$missing SIGNING_KEY_ALIAS"
+          [ -z "$PLAY_SERVICE_ACCOUNT_JSON" ] && missing="$missing PLAY_SERVICE_ACCOUNT_JSON"
+          if [ -n "$missing" ]; then
+            echo "::error title=Missing Play secrets::Set these in the 'release' environment:$missing"
+            exit 1
+          fi
+
+      - name: Checkout (release tag)
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Setup Gradle
+        # SHA-pinned to match release.yml's supply-chain policy (Dependabot bumps it).
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+
+      - name: Decode keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
+          echo "SIGNING_STORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+
+      # -PbuildPlay: playRelease is disabled without it (see app/build.gradle.kts).
+      - name: Build signed Play bundle
+        env:
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+        run: ./gradlew :app:bundlePlayRelease -PbuildPlay --no-daemon
+
+      # Without credentials the build falls back to the debug key, and Play would reject the upload
+      # only after the API round trip. The package check is the one that matters most: a bundle for
+      # the open-source package would claim the id F-Droid and Obtainium users update through.
+      - name: Verify the bundle's signer and package
+        env:
+          # Same value release.yml checks: README's "Verifying the signing key".
+          EXPECTED_CERT_SHA256: "66:8A:71:96:6A:07:06:14:D1:44:95:5D:83:E7:23:6A:3C:ED:77:F8:64:08:57:C3:FA:84:B0:3C:CD:E4:0E:59"
+        run: |
+          set -euo pipefail
+          aab="app/build/outputs/bundle/playRelease/app-play-release.aab"
+          norm() { tr -d ':' | tr '[:lower:]' '[:upper:]'; }
+          got="$(keytool -printcert -jarfile "$aab" | awk '/SHA256:/ { print $2; exit }' | norm || true)"
+          want="$(printf '%s' "$EXPECTED_CERT_SHA256" | norm)"
+          if [ "$got" != "$want" ]; then
+            echo "::error title=Wrong signing certificate::expected $want, got ${got:-<unsigned>}"
+            exit 1
+          fi
+          # The bundle manifest is protobuf; its strings are stored verbatim. Not `grep -q`: stopping
+          # at the first match can SIGPIPE unzip mid-write, which pipefail reports as a failure.
+          if ! unzip -p "$aab" base/manifest/AndroidManifest.xml | grep -a 'com\.garfiec\.librechat\.play' > /dev/null; then
+            echo "::error title=Wrong package::the bundle is not com.garfiec.librechat.play"
+            exit 1
+          fi
+          echo "Bundle is com.garfiec.librechat.play, signed with the release key."
+
+      - name: Upload to Google Play
+        # Pinned to a commit SHA, like every action in a secret-bearing job.
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.garfiec.librechat.play
+          releaseFiles: app/build/outputs/bundle/playRelease/app-play-release.aab
+          releaseName: ${{ inputs.tag }}
+          track: ${{ inputs.track }}
+          status: ${{ inputs.status }}
+          mappingFile: app/build/outputs/mapping/playRelease/mapping.txt

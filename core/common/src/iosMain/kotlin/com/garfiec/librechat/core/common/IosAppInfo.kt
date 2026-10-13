@@ -24,4 +24,11 @@ internal class IosAppInfo : AppInfo {
     // (git rev-parse --short=8). Falls back to "unknown" if absent. Android bakes it via BuildConfig.
     override val gitSha: String =
         bundle.objectForInfoDictionaryKey("GitSHA") as? String ?: "unknown"
+
+    // Info.plist expands it from the SWITCHBOARD_CHANNEL build setting, which each Xcode build
+    // configuration sets. A configuration that forgets it expands to "" and fails here at launch.
+    override val channel: DistributionChannel = DistributionChannel.fromWireName(
+        bundle.objectForInfoDictionaryKey("SwitchboardChannel") as? String,
+        source = "Info.plist SwitchboardChannel (the SWITCHBOARD_CHANNEL build setting in iosApp.xcodeproj)",
+    )
 }

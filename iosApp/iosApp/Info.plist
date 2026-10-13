@@ -34,6 +34,11 @@
 	     key; the "unknown" literal is the fallback when there's no git checkout. -->
 	<key>GitSHA</key>
 	<string>unknown</string>
+	<!-- The distribution channel (DistributionChannel wire name), from the SWITCHBOARD_CHANNEL
+	     build setting: oss for Debug/Release, appstore for Release-AppStore. AppInfo.channel
+	     refuses to start without a known value. -->
+	<key>SwitchboardChannel</key>
+	<string>$(SWITCHBOARD_CHANNEL)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<!-- The app only uses the OS's standard TLS (HTTPS) — exempt encryption under App

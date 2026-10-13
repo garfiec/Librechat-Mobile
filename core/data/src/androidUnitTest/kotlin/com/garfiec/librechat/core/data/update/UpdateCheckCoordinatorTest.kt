@@ -36,6 +36,7 @@ class UpdateCheckCoordinatorTest {
     }
 
     private class FakeRepository(override val isSupported: Boolean = true) : AppUpdateRepository {
+        override val releaseNotesSupported = true
         val checks = Channel<Unit>(Channel.UNLIMITED)
         override val checkState: StateFlow<UpdateCheckState> = MutableStateFlow(UpdateCheckState.Idle)
         override val autoCheckEnabled: Flow<Boolean> = flowOf(false)

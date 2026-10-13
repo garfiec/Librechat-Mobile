@@ -27,13 +27,17 @@ data class PendingUpdate(val tag: String, val version: String)
 /**
  * Checks GitHub Releases for a newer build of the app, and reads the installed build's notes.
  *
- * The update check is Android only: the APK on GitHub, Obtainium and F-Droid is the same binary, so
- * it is a runtime capability rather than a flavor. iOS updates through the App Store, so
- * [isSupported] is false there and every update surface hides itself. [installedRelease] and
- * [olderReleases] are not an update check and work on both, since the IPA ships on the same release tags.
+ * Both halves are decided by the build's distribution channel (`ChannelPolicy`). The update check
+ * runs only on Android's open-source channel; on a store build, and on iOS, [isSupported] is false
+ * and every update surface hides itself. [installedRelease] and [olderReleases] are not an update
+ * check: they work on the open-source channel of both platforms, since the IPA ships on the same
+ * release tags, and [releaseNotesSupported] turns them off on store builds.
  */
 interface AppUpdateRepository {
     val isSupported: Boolean
+
+    /** Whether [installedRelease] and [olderReleases] read GitHub at all. */
+    val releaseNotesSupported: Boolean
 
     /** The installed build's release tag, e.g. `v2026.10.1`; null when its version is not a release's. */
     val installedTag: String?

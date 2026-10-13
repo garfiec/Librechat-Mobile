@@ -22,8 +22,11 @@ class UpdateCheckViewModel(
 
     val isSupported: Boolean = repository.isSupported
 
-    /** The installed build has a release tag to read notes for. Unlike [isSupported], true on iOS too. */
-    val releaseNotesAvailable: Boolean = repository.installedTag != null
+    /**
+     * The installed build has a release tag to read notes for. Unlike [isSupported], true on the
+     * open-source iOS build too; false on every store build.
+     */
+    val releaseNotesAvailable: Boolean = repository.releaseNotesSupported && repository.installedTag != null
 
     val uiState: StateFlow<UpdateCheckUiState> = combine(
         repository.checkState,

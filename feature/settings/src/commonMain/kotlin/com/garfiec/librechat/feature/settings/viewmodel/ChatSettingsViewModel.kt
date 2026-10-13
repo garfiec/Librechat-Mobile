@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.data.datastore.SiteIconsStore
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
 import com.garfiec.librechat.core.model.speech.TtsVoice
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.update
 @Suppress("TooManyFunctions")
 class ChatSettingsViewModel(
     settingsDataStore: SettingsDataStore,
+    siteIconsStore: SiteIconsStore,
     speechSettingsFactory: SpeechSettingsFactory,
 ) : ViewModel() {
 
@@ -38,6 +40,7 @@ class ChatSettingsViewModel(
     /** Owns the DataStore read flows + write setters; merges them with [_uiState]. */
     private val prefsController = ChatPreferencesController(
         settingsDataStore,
+        siteIconsStore,
         _uiState,
         viewModelScope,
     )

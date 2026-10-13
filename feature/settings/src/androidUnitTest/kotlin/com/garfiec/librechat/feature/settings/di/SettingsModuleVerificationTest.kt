@@ -6,6 +6,7 @@ import com.garfiec.librechat.core.common.AppInfo
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.data.datastore.SiteIconsStore
 import com.garfiec.librechat.core.data.datastore.ThemeDataStore
 import com.garfiec.librechat.core.data.prefetch.AttachmentWarmer
 import com.garfiec.librechat.core.data.prefetch.PrefetchController
@@ -64,6 +65,7 @@ class SettingsModuleVerificationTest {
                 ServerRepository::class,
                 DateTimePrefsStore::class,
                 SettingsDataStore::class,
+                SiteIconsStore::class,
                 ContentReader::class,
                 AttachmentWarmer::class,
                 PrefetchStatusReporter::class,

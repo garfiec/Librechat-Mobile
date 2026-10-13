@@ -30,6 +30,7 @@ fun logStartupHeader(
                 put("versionName", appInfo.versionName)
                 put("versionCode", appInfo.versionCode.toString())
                 put("gitSha", appInfo.gitSha)
+                put("channel", appInfo.channel.wireName)
                 put("osName", platformInfo.osName)
                 put("osVersion", platformInfo.osVersion)
                 put("deviceModel", platformInfo.deviceModel)

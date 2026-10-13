@@ -4,6 +4,7 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.data.datastore.SiteIconsStore
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
 import com.garfiec.librechat.core.data.repository.SpeechRepository
 import com.garfiec.librechat.core.model.speech.SpeechConfig
@@ -33,6 +34,7 @@ class ChatSettingsViewModelTest {
 
     private val speechSettingsContract = mockk<SpeechSettingsContract>(relaxed = true)
     private val settingsDataStore = mockk<SettingsDataStore>(relaxed = true)
+    private val siteIconsStore = mockk<SiteIconsStore>(relaxed = true)
     private val uploadRoutingModeFlow = MutableStateFlow(UploadRoutingMode.AUTO)
     private val siteIconsChoiceFlow = MutableStateFlow<Boolean?>(null)
     private val speechRepository = mockk<SpeechRepository>(relaxed = true)
@@ -65,8 +67,8 @@ class ChatSettingsViewModelTest {
         every { settingsDataStore.sttEndOfSpeech } returns MutableStateFlow(false)
         // The preferences state is one combine chain, so a source that never emits stalls all of it —
         // an unstubbed flow here shows up as an unrelated setting silently keeping its default.
-        every { settingsDataStore.siteIconsChoice } returns siteIconsChoiceFlow
-        coEvery { settingsDataStore.setShowSiteIcons(any()) } answers { siteIconsChoiceFlow.value = firstArg() }
+        every { siteIconsStore.choice } returns siteIconsChoiceFlow
+        coEvery { siteIconsStore.set(any()) } answers { siteIconsChoiceFlow.value = firstArg() }
         every { settingsDataStore.latexRenderer } returns MutableStateFlow(LatexRenderer.KATEX)
         every { settingsDataStore.uploadRoutingMode } returns uploadRoutingModeFlow
         coEvery { settingsDataStore.setUploadRoutingMode(any()) } answers { uploadRoutingModeFlow.value = firstArg() }
@@ -83,6 +85,7 @@ class ChatSettingsViewModelTest {
 
     private fun createViewModel() = ChatSettingsViewModel(
         settingsDataStore = settingsDataStore,
+        siteIconsStore = siteIconsStore,
         speechSettingsFactory = SpeechSettingsFactory { speechSettingsContract },
     )
 
@@ -95,7 +98,7 @@ class ChatSettingsViewModelTest {
         viewModel.setShowSiteIcons(true)
         advanceUntilIdle()
 
-        coVerify { settingsDataStore.setShowSiteIcons(true) }
+        coVerify { siteIconsStore.set(true) }
         assertThat(viewModel.uiState.value.showSiteIcons).isTrue()
     }
 

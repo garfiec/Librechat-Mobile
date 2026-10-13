@@ -11,8 +11,9 @@ import android.os.Build
  * user may update from a different source than the one that first installed the app. That is
  * why it picks a button, never whether the check runs.
  *
- * The packages named here must also be listed under `<queries>` in the app manifest, or Android 11+
- * hides them and [openInstaller] finds no launch intent.
+ * The packages named here must also be listed under `<queries>` in the `foss` flavor's manifest
+ * (`app/src/foss/AndroidManifest.xml`), or Android 11+ hides them and [openInstaller] finds no
+ * launch intent. Store builds bind [NoopAppInstallSource] instead: they have no What's new screen.
  */
 class AndroidAppInstallSource(private val context: Context) : AppInstallSource {
 

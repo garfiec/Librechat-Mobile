@@ -2,6 +2,7 @@ package com.garfiec.librechat.core.data.update
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.garfiec.librechat.core.common.AppInfo
+import com.garfiec.librechat.core.common.DistributionChannel
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.network.api.GitHubReleasesApi
 import com.garfiec.librechat.core.network.di.librechatJson
@@ -73,6 +74,7 @@ class AppUpdateRepositoryImplTest {
         status: HttpStatusCode = HttpStatusCode.OK,
         body: String = "[]",
         supported: Boolean = true,
+        releaseNotes: Boolean = true,
         now: Long = 1_000L,
         hang: Boolean = false,
     ): Harness {
@@ -94,8 +96,9 @@ class AppUpdateRepositoryImplTest {
             override val versionName = installed
             override val versionCode = 0L
             override val gitSha = "unknown"
+            override val channel = DistributionChannel.OPEN_SOURCE
         }
-        val repo = AppUpdateRepositoryImpl(supported, GitHubReleasesApi(client), store, appInfo) { now }
+        val repo = AppUpdateRepositoryImpl(supported, releaseNotes, GitHubReleasesApi(client), store, appInfo) { now }
         return Harness(repo, store, { requests }, paths)
     }
 
@@ -179,6 +182,23 @@ class AppUpdateRepositoryImplTest {
     }
 
     @Test
+    fun unsupportedBuildNeverAnnouncesAStoredTag() = runBlocking {
+        val h = harness(supported = false)
+        h.store.setAutoCheckEnabled(true)
+        h.store.setAvailableTag("v2026.10.0")
+        assertThat(h.store.availableTag.first()).isEqualTo("v2026.10.0")
+        assertThat(h.repo.pendingUpdate.first()).isNull()
+    }
+
+    @Test
+    fun storeBuildNeverReadsReleaseNotes() = runBlocking {
+        val h = harness(supported = false, releaseNotes = false, body = release("v2026.09.0"))
+        assertThat(h.repo.installedRelease()).isEqualTo(Result.Success(null))
+        assertThat(h.repo.olderReleases(1)).isEqualTo(Result.Success(ReleasePage(emptyList(), hasMore = false)))
+        assertThat(h.requests()).isEqualTo(0)
+    }
+
+    @Test
     fun installedReleaseFetchesTheInstalledTag() = runBlocking {
         val h = harness(installed = "2026.10.0-debug", body = release("v2026.10.0"))
         assertThat(h.repo.installedTag).isEqualTo("v2026.10.0")
@@ -204,7 +224,7 @@ class AppUpdateRepositoryImplTest {
 
     @Test
     fun installedReleaseWorksWhereTheUpdateCheckDoesNot() = runBlocking {
-        // iOS: no update check, but the IPA ships on the same tags.
+        // The open-source iOS build: no update check, but the IPA ships on the same tags.
         val h = harness(supported = false, body = release("v2026.09.0"))
         assertThat((h.repo.installedRelease() as Result.Success).data?.tag).isEqualTo("v2026.09.0")
     }

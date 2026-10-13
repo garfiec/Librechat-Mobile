@@ -62,6 +62,7 @@ val settingsModule = module {
     viewModel {
         ChatSettingsViewModel(
             settingsDataStore = get(),
+            siteIconsStore = get(),
             speechSettingsFactory = get(),
         )
     }

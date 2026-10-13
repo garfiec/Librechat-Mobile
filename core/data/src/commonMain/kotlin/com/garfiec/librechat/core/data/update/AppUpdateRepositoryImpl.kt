@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlin.coroutines.cancellation.CancellationException
@@ -24,6 +25,7 @@ import kotlin.time.Clock
 
 class AppUpdateRepositoryImpl(
     override val isSupported: Boolean,
+    override val releaseNotesSupported: Boolean,
     private val api: GitHubReleasesApi,
     private val store: UpdateCheckStore,
     appInfo: AppInfo,
@@ -39,16 +41,21 @@ class AppUpdateRepositoryImpl(
 
     override val autoCheckEnabled: Flow<Boolean> = store.autoCheckEnabled
 
-    override val pendingUpdate: Flow<PendingUpdate?> = combine(
-        store.autoCheckEnabled,
-        store.availableTag,
-        store.notifiedTag,
-    ) { enabled, available, notified ->
-        if (!enabled || available == null || available == notified) return@combine null
-        val version = AppVersion.parse(available) ?: return@combine null
-        if (installed == null || version <= installed) return@combine null
-        PendingUpdate(tag = available, version = version.toString())
-    }.distinctUntilChanged()
+    // A build that cannot check has no business announcing a tag, whatever the store holds.
+    override val pendingUpdate: Flow<PendingUpdate?> = if (!isSupported) {
+        flowOf(null)
+    } else {
+        combine(
+            store.autoCheckEnabled,
+            store.availableTag,
+            store.notifiedTag,
+        ) { enabled, available, notified ->
+            if (!enabled || available == null || available == notified) return@combine null
+            val version = AppVersion.parse(available) ?: return@combine null
+            if (installed == null || version <= installed) return@combine null
+            PendingUpdate(tag = available, version = version.toString())
+        }.distinctUntilChanged()
+    }
 
     override suspend fun setAutoCheckEnabled(enabled: Boolean) = store.setAutoCheckEnabled(enabled)
 
@@ -84,6 +91,7 @@ class AppUpdateRepositoryImpl(
     override suspend fun markNotified(tag: String) = store.setNotifiedTag(tag)
 
     override suspend fun installedRelease(): Result<AppRelease?> {
+        if (!releaseNotesSupported) return Result.Success(null)
         val version = installed ?: return Result.Success(null)
         // Not safeApiCall: a missing release is an expected answer here, not an error to log.
         return apiCallCatching<Result<AppRelease?>>({
@@ -95,6 +103,7 @@ class AppUpdateRepositoryImpl(
     }
 
     override suspend fun olderReleases(page: Int): Result<ReleasePage> = safeApiCall {
+        if (!releaseNotesSupported) return@safeApiCall ReleasePage(emptyList(), hasMore = false)
         val releases = api.listReleases(page)
         val older = releases
             .asSequence()

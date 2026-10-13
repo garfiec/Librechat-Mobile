@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
+import com.garfiec.librechat.core.common.ChannelPolicy
 import com.garfiec.librechat.core.common.di.KoinQualifiers
 import com.garfiec.librechat.core.data.datastore.CommonTokenDataStore
 import com.garfiec.librechat.core.data.datastore.TokenDataStore
@@ -25,6 +26,7 @@ import com.garfiec.librechat.core.data.update.AndroidAppInstallSource
 import com.garfiec.librechat.core.data.update.AppInstallSource
 import com.garfiec.librechat.core.data.update.AppUpdateRepository
 import com.garfiec.librechat.core.data.update.AppUpdateRepositoryImpl
+import com.garfiec.librechat.core.data.update.NoopAppInstallSource
 import com.garfiec.librechat.core.network.client.ImageCookieCredentials
 import com.garfiec.librechat.core.network.client.TokenManager
 import io.ktor.client.HttpClient
@@ -45,9 +47,18 @@ actual val dataPlatformModule: Module = module {
     single<AttachmentWarmer> { CoilAttachmentWarmer(androidContext()) }
     single<PrefetchScheduler> { WorkManagerPrefetchScheduler(androidContext()) }
     single<PdfNormalizer> { AndroidPdfNormalizer(androidContext()) }
-    single<AppInstallSource> { AndroidAppInstallSource(androidContext()) }
+    single<AppInstallSource> {
+        if (get<ChannelPolicy>().selfUpdateCheck) AndroidAppInstallSource(androidContext()) else NoopAppInstallSource()
+    }
     single<AppUpdateRepository> {
-        AppUpdateRepositoryImpl(isSupported = true, api = get(), store = get(), appInfo = get())
+        val policy = get<ChannelPolicy>()
+        AppUpdateRepositoryImpl(
+            isSupported = policy.selfUpdateCheck,
+            releaseNotesSupported = policy.releaseNotes,
+            api = get(),
+            store = get(),
+            appInfo = get(),
+        )
     }
 
     // --- Database ---

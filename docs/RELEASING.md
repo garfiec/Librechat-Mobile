@@ -174,7 +174,7 @@ release builds fall back to the debug key so local builds and CI checks still wo
 ./gradlew :app:assembleRelease -PunsignedRelease
 ```
 
-Produces `app/build/outputs/apk/release/app-release-unsigned.apk` with no signature at all,
+Produces `app/build/outputs/apk/foss/release/app-foss-release-unsigned.apk` with no signature at all,
 for packagers that apply their own. The flag outranks any credentials present, so it can be
 tested without moving `keystore.properties` aside — and because the output filename changes,
 the two builds can never be confused for one another. Note the "will be UNSIGNED" banner is
@@ -234,6 +234,14 @@ second full shrink on every pull request.
 >   and `CurrentVersionCode`.
 > * **After it merges** — nothing to do. `AutoUpdateMode: Version` plus
 >   `UpdateCheckMode: Tags` means F-Droid's own `checkupdates` bot advances them from the tag.
+>
+> **The first release with channel flavors needs `gradle: [foss]`, not `gradle: [yes]`.** With
+> `yes`, fdroidserver looks for the APK only in `build/outputs/apk/release/`, and a flavored build
+> writes it to `build/outputs/apk/foss/release/`, so the build fails with "Failed to find any
+> output apks". Builds of older commits must keep `yes`: they have no `foss` flavor. Before the
+> MR merges, set it while replacing the block. After it merges, the bot copies the latest block
+> for each new tag, so the first flavored version needs a hand-written block (an fdroiddata MR)
+> landed before its tag. After that, the bot carries `foss` forward.
 >
 > Either way the tag is pushed before the draft release is published, so the bot can briefly
 > see a version whose `Binaries:` URL still 404s. That build fails and is simply retried on the
@@ -354,6 +362,55 @@ rebuild, or the comparison is circular.
 
 ## Distribution channels
 
+Every channel below is the **open-source build** (the `foss` flavor, `com.garfiec.librechat`;
+the `Release` Xcode configuration) except the two stores. The store builds come from the `play`
+flavor (`com.garfiec.librechat.play`) and the `Release-AppStore` configuration. What differs
+between the two kinds is listed in one place, `ChannelPolicy` in `:core:common`: store builds
+have no update check and no GitHub release notes, and show website icons by default.
+
+The Play build is signed with the same release key as the open-source APK. **Its separate
+applicationId is load-bearing**: with one key on one package, either build would install over the
+other as an ordinary update, and the store build may carry things (telemetry among them) that
+nobody who chose the open-source channel agreed to. `DistributionChannelManifestTest` fails if a
+flavor's package changes.
+
+- **Google Play** — `.github/workflows/play.yml`, run by hand with an existing **stable** tag,
+  a track (default `internal`) and a status. It refuses `-rcN` tags: an rc shares its final
+  release's versionCode, and Play accepts each versionCode only once, so an uploaded rc would lock
+  its release out of Play. Test candidates through the GitHub pre-releases, and move a build
+  between Play tracks by promoting it in Play Console, not by re-uploading. It builds
+  `:app:bundlePlayRelease -PbuildPlay` (the `playRelease` variant does not exist without the
+  flag), checks the bundle is `com.garfiec.librechat.play` signed with the release key, and
+  uploads it with the R8 mapping.
+  One-time setup:
+  1. Create the app in Play Console. Create app never asks for a package: the **first uploaded
+     bundle** fixes it, permanently, even if that release is discarded. Check the bundle is
+     `com.garfiec.librechat.play` before uploading (the workflow's verify step shows how). The
+     bare `com.garfiec.librechat` registered under Android developer verification is the
+     open-source package and stays as it is. For Play App Signing, let
+     Google generate the app-signing key and register the release key as the **upload** key: Play
+     then sees only its certificate. Do **not** upload the release key itself as the app-signing
+     key. That hands Google the private key that the README fingerprint, F-Droid's
+     `AllowedAPKSigningKeys` and every Obtainium install trust, so the open-source channel would
+     no longer be signed only by us. The package, not the key, keeps the channels apart, so
+     nothing needs Play to sign with our key.
+  2. Upload the **first** bundle by hand (build it locally with the release key and `-PbuildPlay`).
+     The Play Developer API cannot create an app, so the workflow fails until this exists.
+  3. In a Google Cloud project, enable the Google Play Android Developer API and create a service
+     account (no Cloud roles) with a JSON key. In Play Console → Users and permissions, invite its
+     email with app permissions on `com.garfiec.librechat.play` only: release to testing tracks,
+     plus production if the workflow should publish there. Store the whole JSON as
+     `PLAY_SERVICE_ACCOUNT_JSON` in the `release` environment and delete the local copy. The
+     workflow reuses the existing `SIGNING_*` secrets.
+  4. Until the app's first release has passed review, run the workflow with status `draft`: Play
+     refuses a completed release on an app that has never been published.
+
+  Data safety form: declare that web-search results load site icons from Google's favicon service
+  (on by default here), which receives each result's host name. Declare microphone and camera use
+  (voice input, attachments) and that the user's own server receives their conversations. Play
+  requires a privacy-policy URL.
+- **App Store** — `.github/workflows/appstore.yml`, archived with the `Release-AppStore`
+  configuration (see .github/CLAUDE.md).
 - **Obtainium** — tracks GitHub Releases directly (see the README install section). Stable
   releases are full releases; `-rcN` candidate tags are marked pre-release.
 - **F-Droid** (future) — developer-signed, verified by reproducible build (`Binaries:` +

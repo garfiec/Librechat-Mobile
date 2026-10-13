@@ -43,6 +43,11 @@ Each module has its own `CLAUDE.md` with specific guidance.
   from `LibreChatTheme`, and `Adaptive*` components in `:core:ui` self-theme into one of two variants.
   Screens use `Adaptive*` (detekt bans raw M3 chrome) and don't branch on style. See "The pattern"
   in `core/ui/CLAUDE.md`.
+- Distribution channels: open source (`foss` flavor, `com.garfiec.librechat`; Xcode `Release`) vs
+  store (`play` flavor, `com.garfiec.librechat.play`; Xcode `Release-AppStore`). Anything that
+  differs between them is a field on `ChannelPolicy` (`:core:common`), injected where needed.
+  Never branch on `BuildConfig.FLAVOR` or `DistributionChannel` at a call site. A channel that
+  can't be determined fails at launch by design. See `docs/RELEASING.md` "Distribution channels".
 
 ## Adding a New Feature Module
 

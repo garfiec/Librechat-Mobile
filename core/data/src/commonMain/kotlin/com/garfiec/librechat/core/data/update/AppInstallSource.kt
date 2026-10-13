@@ -17,7 +17,7 @@ interface AppInstallSource {
     fun openInstaller(): Boolean
 }
 
-/** For platforms without sideloading, where the update check is unsupported anyway. */
+/** For builds where the update check is unsupported anyway: iOS, and every store build. */
 class NoopAppInstallSource : AppInstallSource {
     override val channel: InstallChannel = InstallChannel.DIRECT
     override fun openInstaller(): Boolean = false

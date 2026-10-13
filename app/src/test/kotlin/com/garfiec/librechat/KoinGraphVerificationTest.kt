@@ -3,6 +3,7 @@ package com.garfiec.librechat
 import android.app.Application
 import android.content.Context
 import com.garfiec.librechat.core.common.AppInfo
+import com.garfiec.librechat.core.common.ChannelPolicy
 import com.garfiec.librechat.core.common.conversation.OpenConversationRegistry
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.lifecycle.DeferredWorkWindow
@@ -16,6 +17,7 @@ import com.garfiec.librechat.core.data.datastore.ConfigCacheDataStore
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.data.datastore.SiteIconsStore
 import com.garfiec.librechat.core.data.datastore.SsoRiskDataStore
 import com.garfiec.librechat.core.data.datastore.ThemeDataStore
 import com.garfiec.librechat.core.data.prefetch.AttachmentWarmer
@@ -146,6 +148,7 @@ class KoinGraphVerificationTest {
             RequestActivityTracker::class,
             ActiveAccountProvider::class,
             AppInfo::class,
+            ChannelPolicy::class,
             // core:logging provides
             DiagnosticLogRepository::class,
             // core:network provides
@@ -192,6 +195,7 @@ class KoinGraphVerificationTest {
             AccountSwitcher::class,
             DateTimePrefsStore::class,
             SettingsDataStore::class,
+            SiteIconsStore::class,
             SsoRiskDataStore::class,
             ThemeDataStore::class,
             AgentRepository::class,

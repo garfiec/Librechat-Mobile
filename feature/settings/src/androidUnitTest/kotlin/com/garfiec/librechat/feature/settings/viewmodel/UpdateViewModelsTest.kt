@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.settings.viewmodel
 
 import com.garfiec.librechat.core.common.AppInfo
+import com.garfiec.librechat.core.common.DistributionChannel
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.update.AppInstallSource
 import com.garfiec.librechat.core.data.update.AppUpdateRepository
@@ -31,6 +32,7 @@ class UpdateViewModelsTest {
         initial: UpdateCheckState = UpdateCheckState.Idle,
         private val result: UpdateCheckState = UpdateCheckState.UpToDate,
         override val installedTag: String? = "v2026.09.0",
+        override val releaseNotesSupported: Boolean = true,
         var installedResult: Result<AppRelease?> = Result.Success(null),
         val pages: MutableMap<Int, Result<ReleasePage>> =
         mutableMapOf(1 to Result.Success(ReleasePage(emptyList(), false))),
@@ -72,6 +74,7 @@ class UpdateViewModelsTest {
         override val versionName = "2026.09.0"
         override val versionCode = 20260900L
         override val gitSha = "unknown"
+        override val channel = DistributionChannel.OPEN_SOURCE
     }
 
     private fun release(tag: String) = AppRelease(
@@ -98,6 +101,12 @@ class UpdateViewModelsTest {
         val viewModel = UpdateCheckViewModel(repo)
         viewModel.check()
         assertEquals(listOf("v2026.10.0"), repo.notified)
+    }
+
+    @Test
+    fun storeBuildOffersNoReleaseNotesEvenWithATag() {
+        assertEquals(true, UpdateCheckViewModel(FakeRepository()).releaseNotesAvailable)
+        assertEquals(false, UpdateCheckViewModel(FakeRepository(releaseNotesSupported = false)).releaseNotesAvailable)
     }
 
     @Test

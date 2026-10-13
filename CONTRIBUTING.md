@@ -32,7 +32,7 @@ Build and install on a connected device or emulator:
 
 ```bash
 ./gradlew assembleDebug
-adb install app/build/outputs/apk/debug/app-debug.apk
+adb install app/build/outputs/apk/foss/debug/app-foss-debug.apk
 ```
 
 Or run directly via Android Studio's run configuration.

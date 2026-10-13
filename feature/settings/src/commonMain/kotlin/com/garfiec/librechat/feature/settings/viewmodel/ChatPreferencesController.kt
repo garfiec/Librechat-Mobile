@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.InlineArtifactPrefs
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.data.datastore.SiteIconsStore
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
 import kotlinx.coroutines.CoroutineScope
@@ -74,6 +75,7 @@ private data class AdditionalPreferences(
 @Suppress("TooManyFunctions") // debt: 19 functions
 class ChatPreferencesController(
     private val settingsDataStore: SettingsDataStore,
+    private val siteIconsStore: SiteIconsStore,
     baseState: StateFlow<ChatSettingsUiState>,
     private val scope: CoroutineScope,
 ) {
@@ -178,10 +180,15 @@ class ChatPreferencesController(
         additional.copy(sttOnDevice = sttOnDevice)
     }.combine(settingsDataStore.sttEndOfSpeech) { additional, sttEndOfSpeech ->
         additional.copy(sttEndOfSpeech = sttEndOfSpeech)
-    }.combine(settingsDataStore.siteIconsChoice) { additional, siteIcons ->
+    }.combine(siteIconsStore.choice) { additional, siteIcons ->
         // Never chosen reads as off: the chat screen asks before anything loads.
         additional.copy(showSiteIcons = siteIcons ?: false)
-    }.stateIn(scope, SharingStarted.Eagerly, AdditionalPreferences(false, "", "", true))
+    }.stateIn(
+        scope,
+        SharingStarted.Eagerly,
+        // Seeded with the channel default so a store build's toggle doesn't flash off on open.
+        AdditionalPreferences(false, "", "", true, showSiteIcons = siteIconsStore.default ?: false),
+    )
 
     /** The single public UI state that merges DataStore preferences with imperative state. */
     val uiState: StateFlow<ChatSettingsUiState> = combine(
@@ -268,7 +275,7 @@ class ChatPreferencesController(
     }
 
     fun setShowSiteIcons(show: Boolean) {
-        scope.launch { settingsDataStore.setShowSiteIcons(show) }
+        scope.launch { siteIconsStore.set(show) }
     }
 
     fun setDismissKeyboardOnSend(enabled: Boolean) {

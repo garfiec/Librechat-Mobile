@@ -59,6 +59,7 @@ actual val chatPlatformModule: Module = module {
             serverFileSelectionHandoff = get(),
             promptInsertionHandoff = get(),
             siteIconPromptSession = get(),
+            siteIconsStore = get(),
             resumePinStore = get(),
         )
     }

@@ -12,6 +12,23 @@ android {
         applicationId = "com.garfiec.librechat"
     }
 
+    // `play` must keep its own applicationId: both channels are signed with the same key, so on one
+    // package either would install over the other as an ordinary update. See docs/RELEASING.md
+    // "Distribution channels".
+    flavorDimensions += "channel"
+    productFlavors {
+        create("foss") {
+            dimension = "channel"
+            isDefault = true
+            manifestPlaceholders["distributionChannel"] = "oss"
+        }
+        create("play") {
+            dimension = "channel"
+            applicationIdSuffix = ".play"
+            manifestPlaceholders["distributionChannel"] = "play"
+        }
+    }
+
     buildTypes {
         debug {
             // Release must keep the bare id — Obtainium tracks updates by package name.
@@ -51,9 +68,26 @@ android {
     // whitelisted from the recipe the way a source path can with scanignore. F-Droid's own
     // rebuild is unsigned so it never has the block; only the developer-signed APK we publish
     // as the reproducible-build reference does, which is what gets scanned.
+    // Only an APK is ever scanned by F-Droid, so the bundle (Play only) keeps the block: Play reads
+    // it to warn about known-bad SDK versions.
     dependenciesInfo {
         includeInApk = false
-        includeInBundle = false
+        includeInBundle = true
+    }
+
+    testOptions {
+        // Robolectric needs the merged manifest on the unit-test classpath to see the flavor's
+        // channel meta-data.
+        unitTests.isIncludeAndroidResources = true
+    }
+}
+
+// playRelease exists only on request, so `assembleRelease` yields exactly one APK: the open-source
+// one the release workflow publishes and F-Droid rebuilds. Only play.yml produces a Play release.
+val buildPlay = providers.gradleProperty("buildPlay").isPresent
+androidComponents {
+    beforeVariants(selector().withFlavor("channel" to "play").withBuildType("release")) {
+        it.enable = buildPlay
     }
 }
 
@@ -88,6 +122,9 @@ dependencies {
     implementation(libs.kermit)
 
     debugImplementation(libs.leakcanary)
+
+    testImplementation(libs.robolectric)
+    testImplementation(libs.android.test.core)
 
     androidTestImplementation(libs.compose.ui.test)
     // Pin espresso ≥3.7.0: the 3.5.x pulled in transitively by ui-test-junit4 injects

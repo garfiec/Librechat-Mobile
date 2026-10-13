@@ -3,6 +3,8 @@ package com.garfiec.librechat.core.data.datastore
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import com.garfiec.librechat.core.common.ChannelPolicy
+import com.garfiec.librechat.core.common.DistributionChannel
 import com.garfiec.librechat.core.common.datetime.ClockFormat
 import com.garfiec.librechat.core.common.datetime.DateFormatStyle
 import com.garfiec.librechat.core.common.datetime.DateTimeFormatPrefs
@@ -174,18 +176,30 @@ class DataStoreRoundTripTest {
     }
 
     @Test
-    fun settingsDataStore_siteIconsChoice_unsetUntilChosen() = runTest(testDispatcher) {
+    fun siteIconsStore_openSource_unsetUntilChosen() = runTest(testDispatcher) {
         val ds = createDataStore("settings-site-icons")
-        val store = settingsStore(ds)
+        val store = SiteIconsStore(ds, ChannelPolicy(DistributionChannel.OPEN_SOURCE))
 
         // Null means "never asked" -- distinct from an explicit off.
-        assertThat(store.siteIconsChoice.first()).isNull()
+        assertThat(store.choice.first()).isNull()
 
-        store.setShowSiteIcons(false)
-        assertThat(store.siteIconsChoice.first()).isFalse()
+        store.set(false)
+        assertThat(store.choice.first()).isFalse()
 
-        store.setShowSiteIcons(true)
-        assertThat(store.siteIconsChoice.first()).isTrue()
+        store.set(true)
+        assertThat(store.choice.first()).isTrue()
+    }
+
+    @Test
+    fun siteIconsStore_storeBuild_onUntilTheUserTurnsItOff() = runTest(testDispatcher) {
+        val ds = createDataStore("settings-site-icons-store")
+        val store = SiteIconsStore(ds, ChannelPolicy(DistributionChannel.PLAY_STORE))
+
+        assertThat(store.default).isTrue()
+        assertThat(store.choice.first()).isTrue()
+
+        store.set(false)
+        assertThat(store.choice.first()).isFalse()
     }
 
     @Test

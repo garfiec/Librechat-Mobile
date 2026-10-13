@@ -45,7 +45,7 @@ class ChatViewModelSiteIconsTest {
         every { settingsDataStore.sttEngine } returns MutableStateFlow("")
         every { settingsDataStore.sttLanguage } returns MutableStateFlow("")
         every { settingsDataStore.inlineArtifactPrefs } returns MutableStateFlow(InlineArtifactPrefs())
-        every { settingsDataStore.siteIconsChoice } returns siteIconsChoice
+        every { fixture.siteIconsStore.choice } returns siteIconsChoice
     }
 
     @After
@@ -95,7 +95,7 @@ class ChatViewModelSiteIconsTest {
             val second = fixture.build(testDispatcher)
             advanceUntilIdle()
             assertThat(second.chatPreferences.value.siteIcons).isEqualTo(SiteIconsState.OFF)
-            coVerify(exactly = 0) { settingsDataStore.setShowSiteIcons(any()) }
+            coVerify(exactly = 0) { fixture.siteIconsStore.set(any()) }
         }
 
     @Test
@@ -106,6 +106,6 @@ class ChatViewModelSiteIconsTest {
         viewModel.setShowSiteIcons(true)
         advanceUntilIdle()
 
-        coVerify { settingsDataStore.setShowSiteIcons(true) }
+        coVerify { fixture.siteIconsStore.set(true) }
     }
 }

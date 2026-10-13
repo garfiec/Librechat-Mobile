@@ -141,7 +141,7 @@ Without this setting, the server's violation system may accumulate ban points ag
 ./gradlew assembleDebug
 ```
 
-The debug APK will be at `app/build/outputs/apk/debug/app-debug.apk`.
+The debug APK will be at `app/build/outputs/apk/foss/debug/app-foss-debug.apk`.
 
 For a release build:
 

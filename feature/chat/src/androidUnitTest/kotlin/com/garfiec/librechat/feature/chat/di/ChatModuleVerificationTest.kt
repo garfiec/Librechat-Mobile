@@ -6,6 +6,7 @@ import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.network.ConnectivityObserver
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.data.datastore.SiteIconsStore
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.BackgroundTaskRepository
 import com.garfiec.librechat.core.data.repository.ChatRepository
@@ -80,6 +81,7 @@ class ChatModuleVerificationTest {
                 ActiveAccountProvider::class,
                 ServerDataStore::class,
                 SettingsDataStore::class,
+                SiteIconsStore::class,
                 AppUpdateRepository::class,
                 // Dispatchers are supplied via Koin qualifiers in explicit blocks; verify()
                 // can't see qualifiers, so whitelist the type as externally provided.

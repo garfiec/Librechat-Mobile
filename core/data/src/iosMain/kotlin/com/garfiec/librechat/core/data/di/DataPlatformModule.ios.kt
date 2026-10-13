@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
+import com.garfiec.librechat.core.common.ChannelPolicy
 import com.garfiec.librechat.core.common.di.KoinQualifiers
 import com.garfiec.librechat.core.data.datastore.CommonTokenDataStore
 import com.garfiec.librechat.core.data.datastore.IosTokenDataStore
@@ -54,7 +55,14 @@ actual val dataPlatformModule: Module = module {
     single<PdfNormalizer> { PdfKitPdfNormalizer() }
     single<AppInstallSource> { NoopAppInstallSource() }
     single<AppUpdateRepository> {
-        AppUpdateRepositoryImpl(isSupported = false, api = get(), store = get(), appInfo = get())
+        // iOS has no self-update path on any channel; the open-source IPA still offers release notes.
+        AppUpdateRepositoryImpl(
+            isSupported = false,
+            releaseNotesSupported = get<ChannelPolicy>().releaseNotes,
+            api = get(),
+            store = get(),
+            appInfo = get(),
+        )
     }
 
     // --- Database ---
