@@ -33,6 +33,7 @@ class SteeringDelegateRefusalTest {
     private val followUps = mutableListOf<QueuedMessage>()
     private val parked = mutableListOf<QueuedMessage>()
     private var heldForRefusal = false
+    private val queuedNotices = mutableListOf<Int>()
 
     private fun spec(text: String) = QueuedMessage(
         localId = "spec-$text",
@@ -53,6 +54,7 @@ class SteeringDelegateRefusalTest {
             enqueueParked = { parked += it },
             pauseQueue = {},
             holdQueueForRefusal = { _ -> heldForRefusal = true },
+            onQueuedAsFollowUp = { queuedNotices += it },
             isStreaming = { true },
             restageQuotes = {},
         )
@@ -77,6 +79,8 @@ class SteeringDelegateRefusalTest {
         assertThat(heldForRefusal).isTrue()
         assertThat(flow.value.pendingSteers).isEmpty()
         assertThat(flow.value.error).isEqualTo(ChatNotice.MESSAGE_LIMIT_RETRY.marker(42L))
+        // Held, not queued to send: the "queued to send after it" notice would be untrue here.
+        assertThat(queuedNotices).isEmpty()
     }
 
     @Test
@@ -111,5 +115,6 @@ class SteeringDelegateRefusalTest {
         assertThat(parked).isEmpty()
         assertThat(heldForRefusal).isFalse()
         assertThat(flow.value.error).isNull()
+        assertThat(queuedNotices).containsExactly(1)
     }
 }

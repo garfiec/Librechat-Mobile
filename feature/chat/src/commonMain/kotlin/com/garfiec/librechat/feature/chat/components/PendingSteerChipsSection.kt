@@ -21,12 +21,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_cancel_steer
+import com.garfiec.librechat.feature.chat.resources.steer_pending_hint
 import com.garfiec.librechat.feature.chat.viewmodel.PendingSteerChip
 import com.garfiec.librechat.feature.chat.viewmodel.SteerChipStatus
 import org.jetbrains.compose.resources.stringResource
@@ -42,7 +44,8 @@ import org.jetbrains.compose.resources.stringResource
  * what the server has already queued.
  *
  * A row disappears on its own the moment the run injects it (`on_steer_applied`); the × withdraws
- * it before that happens.
+ * it before that happens. A steer the run never takes moves to the follow-up queue, which the
+ * caption warns of and `SteerQueuedSnackbarEffect` confirms.
  */
 @Composable
 fun PendingSteerChipsSection(
@@ -64,6 +67,15 @@ fun PendingSteerChipsSection(
         verticalArrangement = Arrangement.spacedBy(6.dp),
         horizontalAlignment = Alignment.End,
     ) {
+        // Not while every chip is still SENDING: the server may yet refuse it.
+        if (pendingSteers.any { it.status == SteerChipStatus.PENDING }) {
+            Text(
+                text = stringResource(Res.string.steer_pending_hint),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.End,
+            )
+        }
         pendingSteers.forEach { chip ->
             PendingSteerRow(
                 chip = chip,

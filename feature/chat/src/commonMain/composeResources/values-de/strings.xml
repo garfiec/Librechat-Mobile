@@ -567,6 +567,8 @@
     <string name="during_run_queue">Zur Warteschlange hinzufügen</string>
     <string name="during_run_always_steer">Während der Generierung immer lenken</string>
     <string name="during_run_always_queue">Während der Generierung immer einreihen</string>
+    <string name="steer_pending_hint">Wird beim nächsten Tool-Schritt in die Antwort eingefügt. Endet die Antwort vorher, wird sie danach gesendet.</string>
+    <string name="steer_queued_as_follow_up">Deine Nachricht konnte nicht mehr in diese Antwort einfließen und wird danach gesendet.</string>
     <string name="system_event_label">System</string>
     <string name="wakeup_explainer">Dieses dauerhafte Ergebnis hat den Agenten geweckt, um die Unterhaltung fortzusetzen.</string>
     <string name="wakeup_subagent_completed">Subagent-Aufgabe abgeschlossen</string>

@@ -567,6 +567,8 @@
     <string name="during_run_queue">キューに追加</string>
     <string name="during_run_always_steer">生成中は常に軌道修正</string>
     <string name="during_run_always_queue">生成中は常にキューに追加</string>
+    <string name="steer_pending_hint">次のツールステップで応答に反映されます。先に応答が終わった場合は、その後に送信されます。</string>
+    <string name="steer_queued_as_follow_up">メッセージをこの応答に反映できなかったため、応答の後に送信するようキューに追加しました。</string>
     <string name="system_event_label">システム</string>
     <string name="wakeup_explainer">この永続的な結果によりエージェントが再開し、会話を続けました。</string>
     <string name="wakeup_subagent_completed">サブエージェントのタスクが完了しました</string>

@@ -75,6 +75,7 @@ class SteeringDelegateTest {
             enqueueParked = { enqueued += it },
             pauseQueue = { queuePaused = true },
             holdQueueForRefusal = { _ -> },
+            onQueuedAsFollowUp = { _ -> },
             isStreaming = { isStreaming },
             restageQuotes = { restaged += it },
         )
@@ -189,6 +190,7 @@ class SteeringDelegateTest {
                 enqueueParked = { enqueued += it },
                 pauseQueue = { queuePaused = true },
                 holdQueueForRefusal = { _ -> },
+                onQueuedAsFollowUp = { _ -> },
                 isStreaming = { streaming },
                 restageQuotes = { restaged += it },
             )
@@ -483,6 +485,7 @@ class SteeringDelegateTest {
                 enqueueParked = { enqueued += it },
                 pauseQueue = { queuePaused = true },
                 holdQueueForRefusal = { _ -> },
+                onQueuedAsFollowUp = { _ -> },
                 isStreaming = { true },
                 restageQuotes = { restaged += it },
             )
@@ -651,6 +654,7 @@ class SteeringDelegateTest {
                 enqueueParked = { enqueued += it },
                 pauseQueue = { queuePaused = true },
                 holdQueueForRefusal = { _ -> },
+                onQueuedAsFollowUp = { _ -> },
                 isStreaming = { streaming },
                 restageQuotes = { restaged += it },
             )
@@ -691,6 +695,7 @@ class SteeringDelegateTest {
                 enqueueParked = { enqueued += it },
                 pauseQueue = { queuePaused = true },
                 holdQueueForRefusal = { _ -> },
+                onQueuedAsFollowUp = { _ -> },
                 isStreaming = { true },
                 restageQuotes = { restaged += it },
             )
@@ -728,6 +733,7 @@ class SteeringDelegateTest {
                 enqueueParked = { enqueued += it },
                 pauseQueue = { queuePaused = true },
                 holdQueueForRefusal = { _ -> },
+                onQueuedAsFollowUp = { _ -> },
                 isStreaming = { streaming },
                 restageQuotes = { restaged += it },
             )

@@ -409,6 +409,17 @@ selected, readiness timeout) and a degraded steer has no composer left to put th
 `enqueueSpec` self-drains once the run is over, so an ended run still sends immediately. This is why the
 rejection codes are diagnostic only; there is no `SteerFallback` branch.
 
+**Every re-home into the self-draining queue is announced** (`onQueuedAsFollowUp` →
+`ChatViewModel.steersQueuedAsFollowUp` → `SteerQueuedSnackbarEffect`), and the chips carry a caption saying
+a steer joins at the next tool step or is sent after the reply. A reply with no tool calls never offers an
+injection point, so without these the chip would vanish and the words come back as a new turn. It is a one-shot
+channel, **not** the `error` field: a clean Final drains the queue inline, and the drained send clears
+`error` in the same dispatch, before anything renders it. The parked routes (`reclaimAborted`,
+`reclaimLocalChips`, `reclaimParked`) and a refusal do not announce: they hold the queue, so "sent after"
+would be untrue. For the same reason `ChatViewModel` drops the notice whenever the queue is already
+paused when the steer lands in it (behind a refusal hold, or a Stop / stream-error hold on a non-empty
+queue): `enqueueSpec` does not drain a paused queue.
+
 A steer carries the `QueuedMessage` spec it *would* have become, minted at send time: rebuilding one at
 failure time would capture whatever model, tools, and attachments the composer holds seconds later.
 

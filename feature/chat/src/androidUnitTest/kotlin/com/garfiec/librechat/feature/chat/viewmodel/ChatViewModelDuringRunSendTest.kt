@@ -43,6 +43,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -556,18 +557,7 @@ class ChatViewModelDuringRunSendTest {
             runCurrent()
             assertThat(vm.uiState.value.messageQueue).hasSize(1)
 
-            resumedStream.emit(
-                StreamEvent.Final(
-                    requestMessage = null,
-                    responseMessage = com.garfiec.librechat.core.model.Message(
-                        messageId = SETTLED_ID,
-                        conversationId = CONVERSATION_ID,
-                        text = "done",
-                        isCreatedByUser = false,
-                    ),
-                    conversation = null,
-                ),
-            )
+            resumedStream.emit(cleanFinal())
             runCurrent()
 
             // The drain really ran — without this the assertion below could pass simply because
@@ -576,6 +566,68 @@ class ChatViewModelDuringRunSendTest {
             assertThat(vm.uiState.value.isStreaming).isTrue()
 
             assertThat(vm.uiState.value.justSettledMessageId).isEqualTo(SETTLED_ID)
+        }
+
+    /**
+     * A steer the reply finished before taking (no tool step to inject at) comes back on the
+     * Final and is sent as a follow-up, and the user is told. Run on the real queue: the drain starts
+     * inline in the Final's own dispatch and its send clears the error channel, which is why the
+     * notice is a one-shot signal and must still have been emitted once the drain is under way.
+     */
+    @Test
+    fun `a steer the reply finished before taking is sent as a follow-up and the user is told`() =
+        duringRunTest(DuringRunAction.STEER) { vm ->
+            val notices = mutableListOf<Int>()
+            backgroundScope.launch { vm.steersQueuedAsFollowUp.collect { notices += it } }
+            vm.onInputChanged(TEXT)
+            vm.sendDuringRun()
+            runCurrent()
+            assertThat(vm.uiState.value.pendingSteers.map { it.text }).containsExactly(TEXT)
+            assertThat(notices).isEmpty()
+
+            resumedStream.emit(cleanFinal(listOf(PendingSteer(steerId = "steer-1", text = TEXT, createdAt = 1L))))
+            runCurrent()
+
+            assertThat(vm.uiState.value.pendingSteers).isEmpty()
+            assertThat(vm.uiState.value.messageQueue).isEmpty()
+            assertThat(vm.uiState.value.isStreaming).isTrue()
+            assertThat(notices).containsExactly(1)
+        }
+
+    /**
+     * The same hand-back into a queue already HELD (here by a refused steer) is not sent after the
+     * reply — the clean finish leaves a paused queue alone — so saying it will be would be untrue.
+     */
+    @Test
+    fun `a steer handed back into a held queue is not announced as sent after`() =
+        duringRunTest(
+            preference = DuringRunAction.STEER,
+            arrange = {
+                coEvery { chatRepository.steerChat(any()) } returnsMany listOf(
+                    Result.Error(
+                        exception = ApiException(statusCode = 200, message = "refused", body = """{"type":"moderation"}"""),
+                    ),
+                    Result.Success(SteerResponse(status = "queued", steerId = "steer-2")),
+                )
+            },
+        ) { vm ->
+            val notices = mutableListOf<Int>()
+            backgroundScope.launch { vm.steersQueuedAsFollowUp.collect { notices += it } }
+            vm.onInputChanged("refused words")
+            vm.sendDuringRun()
+            runCurrent()
+            assertThat(vm.uiState.value.isQueueHeldForRefusal).isTrue()
+            vm.onInputChanged(TEXT)
+            vm.sendDuringRun()
+            runCurrent()
+            assertThat(vm.uiState.value.pendingSteers.map { it.text }).containsExactly(TEXT)
+
+            resumedStream.emit(cleanFinal(listOf(PendingSteer(steerId = "steer-2", text = TEXT, createdAt = 1L))))
+            runCurrent()
+
+            assertThat(vm.uiState.value.isStreaming).isFalse()
+            assertThat(vm.uiState.value.messageQueue.map { it.text }).containsExactly("refused words", TEXT).inOrder()
+            assertThat(notices).isEmpty()
         }
 
     /**
@@ -606,18 +658,7 @@ class ChatViewModelDuringRunSendTest {
             assertThat(vm.uiState.value.isQueueHeldForRefusal).isTrue()
             assertThat(vm.uiState.value.error).isEqualTo(ChatNotice.MESSAGE_LIMIT_RETRY.marker(30L))
 
-            resumedStream.emit(
-                StreamEvent.Final(
-                    requestMessage = null,
-                    responseMessage = com.garfiec.librechat.core.model.Message(
-                        messageId = SETTLED_ID,
-                        conversationId = CONVERSATION_ID,
-                        text = "done",
-                        isCreatedByUser = false,
-                    ),
-                    conversation = null,
-                ),
-            )
+            resumedStream.emit(cleanFinal())
             runCurrent()
 
             // A clean finish drains an ordinary queue; this one stays put.
@@ -720,18 +761,7 @@ class ChatViewModelDuringRunSendTest {
                 .containsExactly("the selected excerpt")
             assertThat(vm.uiState.value.pendingQuotes).isEmpty()
 
-            resumedStream.emit(
-                StreamEvent.Final(
-                    requestMessage = null,
-                    responseMessage = com.garfiec.librechat.core.model.Message(
-                        messageId = SETTLED_ID,
-                        conversationId = CONVERSATION_ID,
-                        text = "done",
-                        isCreatedByUser = false,
-                    ),
-                    conversation = null,
-                ),
-            )
+            resumedStream.emit(cleanFinal())
             runCurrent()
 
             assertThat(vm.uiState.value.messageQueue).isEmpty()
@@ -868,6 +898,19 @@ class ChatViewModelDuringRunSendTest {
                 questions = ids.map { AskUserQuestionItem(id = it, question = "Which $it?") },
             ),
         ),
+    )
+
+    /** The run finishing cleanly, handing back [pendingSteers] it never injected. */
+    private fun cleanFinal(pendingSteers: List<PendingSteer> = emptyList()) = StreamEvent.Final(
+        requestMessage = null,
+        responseMessage = com.garfiec.librechat.core.model.Message(
+            messageId = SETTLED_ID,
+            conversationId = CONVERSATION_ID,
+            text = "done",
+            isCreatedByUser = false,
+        ),
+        conversation = null,
+        pendingSteers = pendingSteers,
     )
 
     private fun duringRunTest(

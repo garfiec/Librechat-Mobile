@@ -567,6 +567,8 @@
     <string name="during_run_queue">Добавить в очередь</string>
     <string name="during_run_always_steer">Всегда корректировать во время генерации</string>
     <string name="during_run_always_queue">Всегда ставить в очередь во время генерации</string>
+    <string name="steer_pending_hint">Попадёт в ответ на следующем шаге инструмента. Если ответ завершится раньше, сообщение отправится после него.</string>
+    <string name="steer_queued_as_follow_up">Ваше сообщение не успело попасть в этот ответ, поэтому оно поставлено в очередь и отправится после него.</string>
     <string name="system_event_label">Система</string>
     <string name="wakeup_explainer">Этот сохранённый результат пробудил агента, чтобы продолжить беседу.</string>
     <string name="wakeup_subagent_completed">Задача субагента завершена</string>

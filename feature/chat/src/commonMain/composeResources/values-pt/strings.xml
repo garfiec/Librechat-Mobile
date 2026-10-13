@@ -567,6 +567,8 @@
     <string name="during_run_queue">Adicionar à fila</string>
     <string name="during_run_always_steer">Sempre direcionar durante a geração</string>
     <string name="during_run_always_queue">Sempre enfileirar durante a geração</string>
+    <string name="steer_pending_hint">Entra na resposta no próximo passo de ferramenta. Se a resposta terminar antes, é enviada depois.</string>
+    <string name="steer_queued_as_follow_up">Sua mensagem não pôde entrar nesta resposta, então foi colocada na fila para ser enviada depois.</string>
     <string name="system_event_label">Sistema</string>
     <string name="wakeup_explainer">Este resultado durável acordou o agente para continuar a conversa.</string>
     <string name="wakeup_subagent_completed">Tarefa do subagente concluída</string>

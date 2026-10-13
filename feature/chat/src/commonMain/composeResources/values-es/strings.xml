@@ -567,6 +567,8 @@
     <string name="during_run_queue">Añadir a la cola</string>
     <string name="during_run_always_steer">Redirigir siempre durante la generación</string>
     <string name="during_run_always_queue">Poner siempre en cola durante la generación</string>
+    <string name="steer_pending_hint">Se añade a la respuesta en su próximo paso de herramienta. Si la respuesta termina antes, se envía después.</string>
+    <string name="steer_queued_as_follow_up">Tu mensaje no pudo unirse a esta respuesta, así que se ha puesto en cola para enviarse después.</string>
     <string name="system_event_label">Sistema</string>
     <string name="wakeup_explainer">Este resultado persistente reactivó al agente para continuar la conversación.</string>
     <string name="wakeup_subagent_completed">Tarea de subagente completada</string>

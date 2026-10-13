@@ -567,6 +567,8 @@
     <string name="during_run_queue">إضافة إلى قائمة الانتظار</string>
     <string name="during_run_always_steer">التوجيه دائمًا أثناء الإنشاء</string>
     <string name="during_run_always_queue">الإضافة إلى قائمة الانتظار دائمًا أثناء الإنشاء</string>
+    <string name="steer_pending_hint">تنضم إلى الرد في خطوة الأداة التالية. إذا انتهى الرد أولًا، فستُرسل بعده.</string>
+    <string name="steer_queued_as_follow_up">تعذّر ضم رسالتك إلى هذا الرد، لذا أُضيفت إلى قائمة الانتظار لتُرسل بعده.</string>
     <string name="system_event_label">النظام</string>
     <string name="wakeup_explainer">أيقظت هذه النتيجة الدائمة الوكيل لمواصلة المحادثة.</string>
     <string name="wakeup_subagent_completed">اكتملت مهمة الوكيل الفرعي</string>

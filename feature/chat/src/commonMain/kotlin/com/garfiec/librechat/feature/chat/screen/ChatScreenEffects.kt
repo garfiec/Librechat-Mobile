@@ -71,6 +71,11 @@ internal fun ChatScreenEffects(
         snackbarHostState = snackbarHostState,
     )
 
+    SteerQueuedSnackbarEffect(
+        viewModel = viewModel,
+        snackbarHostState = snackbarHostState,
+    )
+
     // Navigate back after delete/archive (conversationId becomes null)
     var hadConversation by remember { mutableStateOf(uiState.conversationId != null) }
     LaunchedEffect(uiState.conversationId) {

@@ -567,6 +567,8 @@
     <string name="during_run_queue">대기열에 추가</string>
     <string name="during_run_always_steer">생성 중에는 항상 방향 조정</string>
     <string name="during_run_always_queue">생성 중에는 항상 대기열에 추가</string>
+    <string name="steer_pending_hint">다음 도구 단계에서 응답에 반영됩니다. 응답이 먼저 끝나면 그 뒤에 전송됩니다.</string>
+    <string name="steer_queued_as_follow_up">메시지를 이 응답에 반영하지 못해 응답 뒤에 보내도록 대기열에 추가했습니다.</string>
     <string name="system_event_label">시스템</string>
     <string name="wakeup_explainer">이 지속 결과가 에이전트를 깨워 대화를 이어가게 했습니다.</string>
     <string name="wakeup_subagent_completed">서브에이전트 작업 완료됨</string>

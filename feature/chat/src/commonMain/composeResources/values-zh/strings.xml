@@ -567,6 +567,8 @@
     <string name="during_run_queue">加入队列</string>
     <string name="during_run_always_steer">生成时始终引导</string>
     <string name="during_run_always_queue">生成时始终加入队列</string>
+    <string name="steer_pending_hint">将在下一个工具步骤加入回复。如果回复先结束，则会在回复之后发送。</string>
+    <string name="steer_queued_as_follow_up">你的消息未能加入这条回复，已加入队列，将在回复之后发送。</string>
     <string name="system_event_label">系统</string>
     <string name="wakeup_explainer">此持久结果唤醒了智能体以继续对话。</string>
     <string name="wakeup_subagent_completed">子智能体任务已完成</string>

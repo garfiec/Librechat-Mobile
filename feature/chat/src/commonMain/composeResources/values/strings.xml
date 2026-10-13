@@ -592,6 +592,8 @@
     <string name="during_run_queue">Add to queue</string>
     <string name="during_run_always_steer">Always steer while generating</string>
     <string name="during_run_always_queue">Always queue while generating</string>
+    <string name="steer_pending_hint">Joins the reply at its next tool step. If the reply finishes first, it’s sent after it.</string>
+    <string name="steer_queued_as_follow_up">Your message couldn’t join this reply, so it’s queued to send after it.</string>
     <!-- System events: wake-up turns (v0.8.8-rc4 styling) -->
     <string name="system_event_label">System</string>
     <string name="wakeup_explainer">This durable result woke the agent to continue the conversation.</string>

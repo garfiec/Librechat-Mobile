@@ -567,6 +567,8 @@
     <string name="during_run_queue">Ajouter à la file d'attente</string>
     <string name="during_run_always_steer">Toujours orienter pendant la génération</string>
     <string name="during_run_always_queue">Toujours mettre en file d'attente pendant la génération</string>
+    <string name="steer_pending_hint">Rejoint la réponse à sa prochaine étape d’outil. Si la réponse se termine avant, il est envoyé ensuite.</string>
+    <string name="steer_queued_as_follow_up">Votre message n’a pas pu rejoindre cette réponse ; il est mis en file pour être envoyé ensuite.</string>
     <string name="system_event_label">Système</string>
     <string name="wakeup_explainer">Ce résultat durable a réveillé l'agent pour poursuivre la conversation.</string>
     <string name="wakeup_subagent_completed">Tâche du sous-agent terminée</string>

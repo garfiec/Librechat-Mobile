@@ -234,6 +234,11 @@ class ChatViewModel(
     private val _queuedMessagesDropped = Channel<Int>(Channel.BUFFERED)
     val queuedMessagesDropped: Flow<Int> = _queuedMessagesDropped.receiveAsFlow()
 
+    // Channel-backed one-shot signal: N steers went to the follow-up queue instead of into the
+    // reply (it finished first, or the run could not take them). Surfaced as a snackbar.
+    private val _steersQueuedAsFollowUp = Channel<Int>(Channel.BUFFERED)
+    val steersQueuedAsFollowUp: Flow<Int> = _steersQueuedAsFollowUp.receiveAsFlow()
+
     // Explicitly typed: inference cannot close the loop through sendDispatchDelegate.
     private val queueDelegate: MessageQueueDelegate = MessageQueueDelegate(
         handle = QueueHandle(stateHandle),
@@ -486,6 +491,11 @@ class ChatViewModel(
         enqueueParked = queueDelegate::enqueue,
         pauseQueue = { queueDelegate.pause() },
         holdQueueForRefusal = { localId -> queueDelegate.holdForRefusal(localId) },
+        // A held queue (behind a Stop, a stream error, a refused steer) does not self-drain, so "queued to
+        // send after it" would be untrue; the row waits behind "Send queued", which is visible.
+        onQueuedAsFollowUp = { count ->
+            if (!_uiState.value.isQueuePaused) _steersQueuedAsFollowUp.trySend(count)
+        },
         isStreaming = { _uiState.value.isStreaming },
         restageQuotes = { quotes -> sendDispatchDelegate.restagePendingQuotes(quotes) },
     )

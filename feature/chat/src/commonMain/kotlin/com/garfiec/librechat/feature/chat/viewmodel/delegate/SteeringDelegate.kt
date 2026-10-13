@@ -75,6 +75,12 @@ class SteeringDelegate(
      * told the queue now waits for them. See the refusal branch in [steer].
      */
     private val holdQueueForRefusal: (localId: String) -> Unit,
+    /**
+     * Tells the user that [count] steers went to the follow-up queue through [enqueueFollowUp]
+     * instead of into the reply. A one-shot signal rather than the error channel: a clean Final drains the queue inline, and the send it starts clears `error`
+     * before anything can render it.
+     */
+    private val onQueuedAsFollowUp: (count: Int) -> Unit,
     /** True while the client still believes a run is in flight. */
     private val isStreaming: () -> Boolean,
     /**
@@ -218,7 +224,7 @@ class SteeringDelegate(
                         return@launch
                     }
                     Logger.d { "Steer degraded to the follow-up queue (code=${parseSteerRejectionCode(api?.body)})" }
-                    record.spec?.let(enqueueFollowUp)
+                    record.spec?.let(::queueAsFollowUp)
                 }
 
                 is Result.Loading -> settle(localId, SteerRecord.Status.RECLAIMED)
@@ -294,7 +300,7 @@ class SteeringDelegate(
                 else -> SteerRecord.Status.RECLAIMED
             }
             settle(localId, status)
-            if (status == SteerRecord.Status.RECLAIMED) record.spec?.let(enqueueFollowUp)
+            if (status == SteerRecord.Status.RECLAIMED) record.spec?.let(::queueAsFollowUp)
             return
         }
 
@@ -332,7 +338,7 @@ class SteeringDelegate(
         if (!isStreaming() || record.turnEpoch != turnEpoch) {
             records[serverId] = record.copy(status = SteerRecord.Status.RECLAIMED)
             publishChips()
-            record.spec?.let(enqueueFollowUp)
+            record.spec?.let(::queueAsFollowUp)
             return
         }
         records[serverId] = record.copy(status = SteerRecord.Status.PENDING)
@@ -423,7 +429,14 @@ class SteeringDelegate(
      * again on the aborted final — so ids already settled are skipped rather than queued a second
      * time. A steer the user cancelled is skipped for the same reason it is not re-seeded.
      */
-    fun reclaim(steers: List<PendingSteer>): Int = reclaimInto(steers, enqueueFollowUp)
+    fun reclaim(steers: List<PendingSteer>): Int =
+        reclaimInto(steers, enqueueFollowUp).also { if (it > 0) onQueuedAsFollowUp(it) }
+
+    /** [enqueueFollowUp] for one steer this client sent, telling the user it went to the queue. */
+    private fun queueAsFollowUp(spec: QueuedMessage) {
+        enqueueFollowUp(spec)
+        onQueuedAsFollowUp(1)
+    }
 
     /** [reclaim] for a stopped run's reports — the abort ack and the aborted final. */
     fun reclaimAborted(steers: List<PendingSteer>) {
