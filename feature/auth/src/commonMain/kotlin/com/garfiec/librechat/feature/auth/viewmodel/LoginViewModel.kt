@@ -11,6 +11,7 @@ import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.model.LoginOutcome
+import com.garfiec.librechat.feature.auth.diagnostics.offersDiagnosticLog
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,6 +24,8 @@ data class LoginUiState(
     val password: String = "",
     val isLoading: Boolean = false,
     val error: String? = null,
+    /** [error] came from a failure the diagnostic log can help with; see `offersDiagnosticLog`. */
+    val offerDiagnosticLog: Boolean = false,
     val isLoggedIn: Boolean = false,
     val twoFactorTempToken: String? = null,
     val registrationEnabled: Boolean = false,
@@ -126,14 +129,14 @@ class LoginViewModel(
     }
 
     fun login() {
-        val state = _uiState.value
+        val state = _uiState.value.copy(offerDiagnosticLog = false)
         if (state.email.isBlank() || state.password.isBlank()) {
             _uiState.value = state.copy(error = "Please enter email and password")
             return
         }
 
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null, offerDiagnosticLog = false)
 
             when (val result = authRepository.login(state.email, state.password)) {
                 is Result.Success -> {
@@ -176,6 +179,7 @@ class LoginViewModel(
                         } else {
                             result.message ?: "Login failed"
                         },
+                        offerDiagnosticLog = result.offersDiagnosticLog(),
                         emailLoginEnabled = if (isEmailLoginDisabled) false else _uiState.value.emailLoginEnabled,
                     )
                 }

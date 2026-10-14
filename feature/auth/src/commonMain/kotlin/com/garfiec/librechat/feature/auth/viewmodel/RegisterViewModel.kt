@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
+import com.garfiec.librechat.feature.auth.diagnostics.offersDiagnosticLog
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,6 +21,8 @@ data class RegisterUiState(
     val confirmPassword: String = "",
     val isLoading: Boolean = false,
     val error: String? = null,
+    /** [error] came from a failure the diagnostic log can help with; see `offersDiagnosticLog`. */
+    val offerDiagnosticLog: Boolean = false,
     val isRegistered: Boolean = false,
     val minPasswordLength: Int = 8,
 )
@@ -65,7 +68,7 @@ class RegisterViewModel(
     }
 
     fun register() {
-        val state = _uiState.value
+        val state = _uiState.value.copy(offerDiagnosticLog = false)
 
         if (state.name.isBlank() || state.email.isBlank() || state.username.isBlank() || state.password.isBlank()) {
             _uiState.value = state.copy(error = "All fields are required")
@@ -81,7 +84,7 @@ class RegisterViewModel(
         }
 
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null, offerDiagnosticLog = false)
 
             when (val result = authRepository.register(state.name, state.email, state.username, state.password)) {
                 is Result.Success -> {
@@ -94,6 +97,7 @@ class RegisterViewModel(
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         error = result.message ?: "Registration failed",
+                        offerDiagnosticLog = result.offersDiagnosticLog(),
                     )
                 }
                 is Result.Loading -> { /* no-op */ }

@@ -80,4 +80,7 @@
     <string name="sso_risk_title">アプリ内ブラウザーでサインインしますか？</string>
     <string name="sso_risk_body">Google を含む一部のプロバイダーは公式にはこれをサポートしておらず、いつでもブロックされる可能性があります。自己責任でご利用ください。</string>
     <string name="sso_sign_in_failed">サインインに失敗しました。もう一度お試しください。</string>
+    <string name="diagnostic_log_export">診断ログをエクスポート</string>
+    <string name="diagnostic_log_exported">ログをエクスポートしました。問題を報告する際に添付してください。</string>
+    <string name="diagnostic_log_failed">ログをエクスポートできませんでした。</string>
 </resources>

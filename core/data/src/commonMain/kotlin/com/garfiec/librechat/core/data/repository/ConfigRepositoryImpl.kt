@@ -12,6 +12,7 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.safeApiCall
 import com.garfiec.librechat.core.data.datastore.ConfigCacheDataStore
 import com.garfiec.librechat.core.logging.Diag
+import com.garfiec.librechat.core.logging.LogOrigin
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.model.response.Category
@@ -111,38 +112,60 @@ class ConfigRepositoryImpl(
             // safeApiCall's dispatcher hop explicitly (#326).
             val config = withContext(dispatcher) { configApi.getStartupConfig() }
             if (!isValidLibreChatConfig(config)) {
-                Result.Error(message = "This doesn't appear to be a LibreChat server")
+                probeFailed("not_librechat", Result.Error(message = "This doesn't appear to be a LibreChat server"))
             } else {
                 onValid(config)
                 Result.Success(config)
             }
         } catch (e: SerializationException) {
-            Result.Error(e, "This doesn't appear to be a LibreChat server")
+            probeFailed("not_librechat", Result.Error(e, "This doesn't appear to be a LibreChat server"))
         } catch (e: ApiException) {
             val message = when (e.statusCode) {
                 404 -> "This doesn't appear to be a LibreChat server"
                 in 500..599 -> "Server error. Please try again later."
                 else -> e.message ?: "Could not connect to server"
             }
-            Result.Error(e, message)
+            probeFailed("http_status", Result.Error(e, message))
         } catch (e: HttpRequestTimeoutException) {
-            Result.Error(e, "Connection timed out. Check the URL and try again.")
+            probeFailed("timeout", Result.Error(e, "Connection timed out. Check the URL and try again."))
         } catch (e: AccessGatewayException) {
             // Must stay above the blanket catch, which would call a reachable-and-answering gateway a
             // connection problem. Worded here rather than via FailureKind.message(): both callers are
             // the pre-login server screen, and the shared wording points at Settings — which needs
             // the sign-in the gateway is blocking.
-            Result.Error(
-                exception = e,
-                message = "Your server's access gateway rejected this request. " +
-                    "Check the gateway headers under Advanced.",
-                kind = FailureKind.AccessGateway,
+            probeFailed(
+                "access_gateway",
+                Result.Error(
+                    exception = e,
+                    message = "Your server's access gateway rejected this request. " +
+                        "Check the gateway headers under Advanced.",
+                    kind = FailureKind.AccessGateway,
+                ),
             )
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            Result.Error(e, "Could not reach the server. Check the URL and your connection.")
+            probeFailed("unreachable", Result.Error(e, "Could not reach the server. Check the URL and your connection."))
         }
+    }
+
+    /**
+     * Records why the server check failed: this path maps its own failures instead of going through
+     * safeApiCall, so nothing else logs them. Never log the host — the log is exported before sign-in.
+     */
+    private fun probeFailed(reason: String, error: Result.Error): Result.Error {
+        val status = (error.exception as? ApiException)?.statusCode
+        Diag.w(
+            "ServerProbe",
+            origin = if (status != null || reason == "not_librechat") LogOrigin.SERVER else LogOrigin.NETWORK,
+            throwable = error.exception,
+            attrs = buildMap {
+                put("path", "/api/config")
+                put("reason", reason)
+                status?.let { put("status", it.toString()) }
+            },
+        ) { "server check failed" }
+        return error
     }
 
     /**

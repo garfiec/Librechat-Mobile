@@ -35,6 +35,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicato
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.feature.auth.diagnostics.DiagnosticLogLink
 import com.garfiec.librechat.feature.auth.resources.*
 import com.garfiec.librechat.feature.auth.resources.Res
 import com.garfiec.librechat.feature.auth.viewmodel.LoginViewModel
@@ -145,6 +146,7 @@ fun LoginScreen(
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.testTag("login_error"),
                 )
+                if (uiState.offerDiagnosticLog) DiagnosticLogLink()
             }
 
             if (uiState.emailLoginEnabled) {

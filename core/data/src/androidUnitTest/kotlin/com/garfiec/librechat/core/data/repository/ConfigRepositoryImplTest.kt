@@ -1,10 +1,15 @@
 package com.garfiec.librechat.core.data.repository
 
+import co.touchlab.kermit.LogWriter
+import co.touchlab.kermit.Logger
+import co.touchlab.kermit.Severity
 import com.garfiec.librechat.core.common.BackendVersion
 import com.garfiec.librechat.core.common.result.AccessGatewayException
+import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.FailureKind
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ConfigCacheDataStore
+import com.garfiec.librechat.core.logging.LogEnvelope
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.network.api.ConfigApi
@@ -18,6 +23,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import java.net.ConnectException
 
 /**
  * The probe/reload seams added for multi-account (issue #179): validation for a server being ADDED
@@ -159,5 +165,59 @@ class ConfigRepositoryImplTest {
         // gateway is blocking.
         assertThat(error.message).doesNotContain("Settings")
         assertThat(error.message).contains("Advanced")
+    }
+
+    private class CapturingLogWriter : LogWriter() {
+        val entries = mutableListOf<Pair<Severity, LogEnvelope.Decoded>>()
+
+        override fun log(severity: Severity, message: String, tag: String, throwable: Throwable?) {
+            if (tag == "ServerProbe") entries += severity to LogEnvelope.decode(message)
+        }
+    }
+
+    private suspend fun captureProbeLogs(block: suspend () -> Unit): List<Pair<Severity, LogEnvelope.Decoded>> {
+        val writer = CapturingLogWriter()
+        Logger.setLogWriters(writer)
+        try {
+            block()
+        } finally {
+            Logger.setLogWriters(emptyList())
+        }
+        return writer.entries
+    }
+
+    @Test
+    fun `an unreachable server is logged with its reason and without the host`() = runTest {
+        coEvery { configApi.getStartupConfig() } throws ConnectException("Failed to connect")
+        val repo = repository()
+
+        val logged = captureProbeLogs { repo.probeServerUrl() }
+
+        val (severity, entry) = logged.single()
+        assertThat(severity).isEqualTo(Severity.Warn)
+        assertThat(entry.attrs).containsExactly("path", "/api/config", "reason", "unreachable")
+        assertThat(entry.origin).isEqualTo("network")
+    }
+
+    @Test
+    fun `a server that answers with an error status is logged with that status`() = runTest {
+        coEvery { configApi.getStartupConfig() } throws ApiException(502, "Bad gateway")
+        val repo = repository()
+
+        val logged = captureProbeLogs { repo.validateServerUrl("https://b.example.com") }
+
+        val (_, entry) = logged.single()
+        assertThat(entry.attrs).containsExactly("path", "/api/config", "reason", "http_status", "status", "502")
+        assertThat(entry.origin).isEqualTo("server")
+    }
+
+    @Test
+    fun `a successful server check logs nothing here`() = runTest {
+        coEvery { configApi.getStartupConfig() } returns validConfig
+        val repo = repository()
+
+        val logged = captureProbeLogs { repo.probeServerUrl() }
+
+        assertThat(logged).isEmpty()
     }
 }

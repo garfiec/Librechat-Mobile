@@ -44,7 +44,7 @@ import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
-import com.garfiec.librechat.feature.settings.platform.LogFileSaver
+import com.garfiec.librechat.core.ui.platform.TextFileSaver
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.viewmodel.DataSettingsViewModel
@@ -155,7 +155,7 @@ fun DataSettingsContent(
         viewModel.consumeLogsExport()
     }
 
-    LogFileSaver(
+    TextFileSaver(
         triggerFileName = pendingLogsFileName,
         content = pendingLogsContent,
         onComplete = { success, errorMessage ->

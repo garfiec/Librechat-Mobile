@@ -62,6 +62,19 @@
   consistent with an overridden agent.
 - Supported providers configured by server: Google, GitHub, Discord, Facebook, Apple, OpenID
 
+## Diagnostic log
+- `DiagnosticLogLink` ("Export diagnostic logs", the same label as Settings) offers the log under a
+  sign-in error. Settings → Data has the same export but can't be reached before sign-in.
+- Where: ServerUrl (any error), the SSO error pane, and Login / Register / ForgotPassword /
+  ResetPassword / TwoFactor only when their UiState's `offerDiagnosticLog` is set. That flag follows
+  `Result.Error.offersDiagnosticLog()`: no answer, a page LibreChat didn't write, or a 5xx — not
+  LibreChat judging the input (wrong password, rate limit, ban). Each submit clears it first, so a
+  later local validation error doesn't inherit it. 2FA offers it only on `ConnectionFailure`:
+  `NotEvaluated` mixes 5xx with 400/429 and carries no status.
+- It exports `DiagnosticLogRepository`'s buffer as is (already redacted on write) through
+  `TextFileSaver` in `:core:ui`, with its own ViewModel. The log is kept across sign-out on purpose:
+  an expired session is the case it exists for.
+
 ## Token Storage
 - Tokens stored in `EncryptedSharedPreferences` via `TokenDataStore` in `:core:data`
 - Refresh token sent as Cookie header (backend reads `cookies.parse(req.headers.cookie)`)

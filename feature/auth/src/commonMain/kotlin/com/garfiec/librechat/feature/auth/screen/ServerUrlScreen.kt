@@ -45,6 +45,7 @@ import com.garfiec.librechat.core.ui.resources.server_headers_load_error
 import com.garfiec.librechat.core.ui.resources.server_headers_no_server
 import com.garfiec.librechat.core.ui.resources.server_headers_save_error
 import com.garfiec.librechat.core.ui.resources.server_headers_unverified_delete
+import com.garfiec.librechat.feature.auth.diagnostics.DiagnosticLogLink
 import com.garfiec.librechat.feature.auth.resources.*
 import com.garfiec.librechat.feature.auth.resources.Res
 import com.garfiec.librechat.feature.auth.viewmodel.HeaderFieldError
@@ -170,6 +171,11 @@ fun ServerUrlScreen(
                 } else {
                     Text(stringResource(Res.string.server_url_connect))
                 }
+            }
+
+            if (uiState.error != null && !uiState.isLoading) {
+                Spacer(modifier = Modifier.height(8.dp))
+                DiagnosticLogLink()
             }
         }
 

@@ -3,6 +3,10 @@ package com.garfiec.librechat.core.logging
 import com.garfiec.librechat.core.logging.io.LogSink
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
+import kotlin.time.Clock
+
+/** File name for an exported copy of the buffer; the timestamp keeps successive exports apart. */
+fun diagnosticLogFileName(): String = "switchboard-logs-${Clock.System.now().toEpochMilliseconds()}.log"
 
 /**
  * Read/clear access to the persistent diagnostic buffer, for the Settings → Data export/clear UI.

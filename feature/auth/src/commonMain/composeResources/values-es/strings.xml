@@ -80,4 +80,7 @@
     <string name="sso_risk_title">¿Iniciar sesión en un navegador dentro de la app?</string>
     <string name="sso_risk_body">Algunos proveedores, incluido Google, no admiten esto oficialmente y pueden bloquearlo en cualquier momento. Úsalo bajo tu propia responsabilidad.</string>
     <string name="sso_sign_in_failed">Error al iniciar sesión. Inténtalo de nuevo.</string>
+    <string name="diagnostic_log_export">Exportar registros de diagnóstico</string>
+    <string name="diagnostic_log_exported">Registro exportado. Adjúntalo cuando informes del problema.</string>
+    <string name="diagnostic_log_failed">No se pudo exportar el registro.</string>
 </resources>

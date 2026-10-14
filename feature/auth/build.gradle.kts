@@ -10,6 +10,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(project(":core:network"))
+            implementation(project(":core:logging"))
         }
         named("androidUnitTest").dependencies {
             implementation(libs.kotlinx.serialization.json)

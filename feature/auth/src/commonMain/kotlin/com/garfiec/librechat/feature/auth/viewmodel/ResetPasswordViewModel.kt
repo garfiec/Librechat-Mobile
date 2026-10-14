@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.AuthRepository
+import com.garfiec.librechat.feature.auth.diagnostics.offersDiagnosticLog
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,6 +17,8 @@ data class ResetPasswordUiState(
     val confirmPassword: String = "",
     val isLoading: Boolean = false,
     val error: String? = null,
+    /** [error] came from a failure the diagnostic log can help with; see `offersDiagnosticLog`. */
+    val offerDiagnosticLog: Boolean = false,
     val isReset: Boolean = false,
 )
 
@@ -40,7 +43,7 @@ class ResetPasswordViewModel(
     }
 
     fun resetPassword() {
-        val state = _uiState.value
+        val state = _uiState.value.copy(offerDiagnosticLog = false)
 
         if (state.password.isBlank()) {
             _uiState.value = state.copy(error = "Please enter a new password")
@@ -60,7 +63,7 @@ class ResetPasswordViewModel(
         }
 
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null, offerDiagnosticLog = false)
             when (val result = authRepository.resetPassword(userId, token, state.password, state.confirmPassword)) {
                 is Result.Success -> {
                     _uiState.value = _uiState.value.copy(
@@ -73,6 +76,7 @@ class ResetPasswordViewModel(
                         isLoading = false,
                         error = result.rateLimitMessageOrNull()
                             ?: "Could not reset password. The link may have expired.",
+                        offerDiagnosticLog = result.offersDiagnosticLog(),
                     )
                 }
                 is Result.Loading -> { /* no-op */ }

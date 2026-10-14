@@ -7,12 +7,12 @@ import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.KeyRepository
 import com.garfiec.librechat.core.logging.DiagnosticLogRepository
+import com.garfiec.librechat.core.logging.diagnosticLogFileName
 import com.garfiec.librechat.feature.settings.util.PlatformCacheCleaner
 import com.garfiec.librechat.feature.settings.viewmodel.DataSettingsUiState
 import com.garfiec.librechat.feature.settings.viewmodel.LogsExportPayload
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
 import kotlinx.coroutines.launch
-import kotlin.time.Clock
 
 /**
  * Handles clear conversations, export, cache clearing, and key revocation.
@@ -112,7 +112,7 @@ class DataManagementDelegate(
             stateHandle.update { copy(isLogsExporting = true) }
             suspendRunCatching { diagnosticLogRepository.exportText() }
                 .onSuccess { content ->
-                    val fileName = "switchboard-logs-${Clock.System.now().toEpochMilliseconds()}.log"
+                    val fileName = diagnosticLogFileName()
                     stateHandle.update {
                         copy(
                             isLogsExporting = false,

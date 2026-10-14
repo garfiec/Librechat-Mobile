@@ -223,6 +223,7 @@ class LoginViewModelTest {
         val state = viewModel.uiState.value
         assertThat(state.emailLoginEnabled).isFalse()
         assertThat(state.error).isEqualTo("Email and password sign-in is disabled on this server.")
+        assertThat(state.offerDiagnosticLog).isFalse()
     }
 
     /**
@@ -247,6 +248,7 @@ class LoginViewModelTest {
         val state = viewModel.uiState.value
         assertThat(state.emailLoginEnabled).isTrue()
         assertThat(state.error).isEqualTo("Access denied")
+        assertThat(state.offerDiagnosticLog).isTrue()
     }
 
     /** A ban is also a server-authored 403 and must keep the form; `isBanned` is that discriminator. */
@@ -268,6 +270,7 @@ class LoginViewModelTest {
         val state = viewModel.uiState.value
         assertThat(state.emailLoginEnabled).isTrue()
         assertThat(state.error).isEqualTo("Your account has been temporarily banned")
+        assertThat(state.offerDiagnosticLog).isFalse()
     }
 
     @Test
@@ -470,5 +473,43 @@ class LoginViewModelTest {
             assertThat(ssoProvider).isNull()
         }
         coVerify(exactly = 0) { ssoRiskDataStore.acknowledge() }
+    }
+
+    @Test
+    fun `a wrong password does not offer the diagnostic log`() = runTest {
+        coEvery { authRepository.login("user@example.com", "wrong") } returns Result.Error(
+            exception = ApiException(401, "Incorrect password.", serverAuthored = true),
+            message = "Incorrect password.",
+        )
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onEmailChanged("user@example.com")
+        viewModel.onPasswordChanged("wrong")
+        viewModel.login()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.offerDiagnosticLog).isFalse()
+    }
+
+    @Test
+    fun `a connection failure offers the log, and a later input error withdraws it`() = runTest {
+        coEvery { authRepository.login("user@example.com", "pw") } returns
+            Result.Error(exception = IOException("unreachable"), message = "Network unavailable.")
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onEmailChanged("user@example.com")
+        viewModel.onPasswordChanged("pw")
+        viewModel.login()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.offerDiagnosticLog).isTrue()
+
+        viewModel.onPasswordChanged("")
+        viewModel.login()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.error).isEqualTo("Please enter email and password")
+        assertThat(viewModel.uiState.value.offerDiagnosticLog).isFalse()
     }
 }

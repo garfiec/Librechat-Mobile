@@ -18,6 +18,8 @@ data class TwoFactorUiState(
     val backupCode: String = "",
     val isLoading: Boolean = false,
     val error: String? = null,
+    /** [error] came from a failure the diagnostic log can help with; see `offersDiagnosticLog`. */
+    val offerDiagnosticLog: Boolean = false,
     val isVerified: Boolean = false,
     // Bumped whenever the entered code is cleared as spent (evaluated-and-rejected, or accepted
     // with an unusable session); the code input keys its focus-reset effect on this.
@@ -81,7 +83,7 @@ class TwoFactorViewModel(
 
         val generation = submitGeneration
         // Set before launching so a second submit in the same frame sees it and bails.
-        _uiState.value = state.copy(isLoading = true, error = null)
+        _uiState.value = state.copy(isLoading = true, error = null, offerDiagnosticLog = false)
         viewModelScope.launch {
             when (val outcome = authRepository.verifyTwoFactor(tempToken, code, isBackupCode = state.isBackupMode)) {
                 // Always honored, even when superseded by a mode toggle: the session is already
@@ -105,6 +107,7 @@ class TwoFactorViewModel(
                     generation,
                     "Couldn't reach the server. Check your connection and try again.",
                     clearEntry = false,
+                    offerDiagnosticLog = true,
                 )
             }
         }
@@ -117,12 +120,18 @@ class TwoFactorViewModel(
      * supersession guard lives here alone: a failure whose generation was superseded by a mode
      * toggle is dropped so it can't repaint the freshly-switched screen.
      */
-    private fun applyVerifyFailure(generation: Int, message: String, clearEntry: Boolean) {
+    private fun applyVerifyFailure(
+        generation: Int,
+        message: String,
+        clearEntry: Boolean,
+        offerDiagnosticLog: Boolean = false,
+    ) {
         if (generation != submitGeneration) return
         val state = _uiState.value
         _uiState.value = state.copy(
             isLoading = false,
             error = message,
+            offerDiagnosticLog = offerDiagnosticLog,
             code = if (clearEntry) "" else state.code,
             backupCode = if (clearEntry) "" else state.backupCode,
             codeAttempt = if (clearEntry) state.codeAttempt + 1 else state.codeAttempt,

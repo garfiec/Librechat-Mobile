@@ -80,4 +80,7 @@
     <string name="sso_risk_title">Войти во встроенном браузере?</string>
     <string name="sso_risk_body">Некоторые провайдеры, включая Google, официально этого не поддерживают и могут заблокировать вход в любой момент. Используйте на свой страх и риск.</string>
     <string name="sso_sign_in_failed">Не удалось войти. Попробуйте ещё раз.</string>
+    <string name="diagnostic_log_export">Экспортировать диагностические журналы</string>
+    <string name="diagnostic_log_exported">Журнал экспортирован. Приложите его к сообщению о проблеме.</string>
+    <string name="diagnostic_log_failed">Не удалось экспортировать журнал.</string>
 </resources>

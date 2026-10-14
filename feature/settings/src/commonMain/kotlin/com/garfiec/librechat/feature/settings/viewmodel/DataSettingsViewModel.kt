@@ -65,7 +65,7 @@ data class DataSettingsUiState(
     val logsBufferBytes: Long = 0,
     /**
      * One-shot export payload. Set when [DataSettingsViewModel.exportLogs] finishes reading the
-     * buffer; the screen observes it, hands it to the platform `LogFileSaver`, then calls
+     * buffer; the screen observes it, hands it to the platform `TextFileSaver`, then calls
      * [DataSettingsViewModel.consumeLogsExport] to clear it (so a recomposition doesn't re-trigger
      * the save). Mirrors the conversations `ExportReady` event but state-based, since Settings
      * has no events SharedFlow.

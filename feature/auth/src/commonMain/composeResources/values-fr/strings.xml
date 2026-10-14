@@ -80,4 +80,7 @@
     <string name="sso_risk_title">Se connecter dans un navigateur intégré ?</string>
     <string name="sso_risk_body">Certains fournisseurs, dont Google, ne le prennent pas officiellement en charge et peuvent le bloquer à tout moment. À utiliser à vos risques et périls.</string>
     <string name="sso_sign_in_failed">Échec de la connexion. Veuillez réessayer.</string>
+    <string name="diagnostic_log_export">Exporter les journaux de diagnostic</string>
+    <string name="diagnostic_log_exported">Journal exporté. Joignez-le lorsque vous signalez le problème.</string>
+    <string name="diagnostic_log_failed">Impossible d'exporter le journal.</string>
 </resources>

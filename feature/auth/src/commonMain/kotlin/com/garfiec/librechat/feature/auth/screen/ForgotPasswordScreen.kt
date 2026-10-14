@@ -33,6 +33,7 @@ import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
+import com.garfiec.librechat.feature.auth.diagnostics.DiagnosticLogLink
 import com.garfiec.librechat.feature.auth.resources.*
 import com.garfiec.librechat.feature.auth.resources.Res
 import com.garfiec.librechat.feature.auth.viewmodel.ForgotPasswordViewModel
@@ -135,6 +136,11 @@ fun ForgotPasswordScreen(
                     } else {
                         Text(stringResource(Res.string.send_reset_link))
                     }
+                }
+
+                if (uiState.error != null && uiState.offerDiagnosticLog) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    DiagnosticLogLink()
                 }
             }
         }

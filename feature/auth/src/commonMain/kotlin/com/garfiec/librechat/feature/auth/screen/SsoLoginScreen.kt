@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.feature.auth.diagnostics.DiagnosticLogLink
 import com.garfiec.librechat.feature.auth.resources.*
 import com.garfiec.librechat.feature.auth.resources.Res
 import com.garfiec.librechat.feature.auth.viewmodel.SsoLoginError
@@ -110,6 +111,8 @@ private fun SsoErrorPane(error: SsoLoginError, onBack: (() -> Unit)?) {
                 AdaptiveButton(onClick = { onBack?.invoke() }) {
                     Text(stringResource(Res.string.back_to_sign_in))
                 }
+                Spacer(modifier = Modifier.height(8.dp))
+                DiagnosticLogLink()
             }
         }
     }

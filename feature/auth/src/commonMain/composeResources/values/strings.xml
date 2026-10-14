@@ -80,4 +80,7 @@
     <string name="sso_risk_title">Sign in with an in-app browser?</string>
     <string name="sso_risk_body">Some providers, including Google, do not officially support this and may block it at any time. Use at your own risk.</string>
     <string name="sso_sign_in_failed">Sign-in failed. Please try again.</string>
+    <string name="diagnostic_log_export">Export diagnostic logs</string>
+    <string name="diagnostic_log_exported">Log exported. Attach it when you report the problem.</string>
+    <string name="diagnostic_log_failed">Couldn't export the log.</string>
 </resources>

@@ -30,7 +30,8 @@ kotlin {
             implementation(libs.lifecycle.runtime.compose.kmp)
         }
         androidMain.dependencies {
-            // Runtime-permission launcher for saving images to the gallery (API < 29).
+            // Activity-result launchers: the gallery-save permission request (API < 29) and
+            // TextFileSaver's Storage Access Framework picker.
             implementation(libs.activity.compose)
             implementation(libs.kermit)
         }

@@ -316,4 +316,22 @@ class TwoFactorViewModelTest {
         const val TEMP_TOKEN = "temp-abc"
         val USER = User(mongoId = "u1", email = "a@b.com")
     }
+
+    @Test
+    fun `only a connection failure offers the diagnostic log`() = runTest {
+        coEvery { authRepository.verifyTwoFactor(any(), any(), any()) } returns
+            VerifyTwoFactorOutcome.ConnectionFailure
+        val viewModel = createViewModel()
+        viewModel.onCodeChanged("123456")
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.offerDiagnosticLog).isTrue()
+
+        coEvery { authRepository.verifyTwoFactor(any(), any(), any()) } returns
+            VerifyTwoFactorOutcome.CodeRejected("Invalid code")
+        viewModel.onCodeChanged("654321")
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.error).isEqualTo("Invalid code")
+        assertThat(viewModel.uiState.value.offerDiagnosticLog).isFalse()
+    }
 }

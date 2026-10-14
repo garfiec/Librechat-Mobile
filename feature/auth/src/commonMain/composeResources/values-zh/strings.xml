@@ -80,4 +80,7 @@
     <string name="sso_risk_title">在应用内浏览器中登录？</string>
     <string name="sso_risk_body">包括 Google 在内的部分服务商并不正式支持这种方式，并可能随时封锁。请自行承担风险。</string>
     <string name="sso_sign_in_failed">登录失败，请重试。</string>
+    <string name="diagnostic_log_export">导出诊断日志</string>
+    <string name="diagnostic_log_exported">日志已导出。报告问题时请附上它。</string>
+    <string name="diagnostic_log_failed">无法导出日志。</string>
 </resources>

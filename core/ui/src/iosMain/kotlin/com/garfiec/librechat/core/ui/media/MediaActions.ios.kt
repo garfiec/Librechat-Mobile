@@ -82,7 +82,7 @@ private fun shareUrl(url: String) {
 
 // Writes the downloaded bytes to a temp file and shares the file URL, so the user can open it in
 // another app / save to Files / AirDrop. Mirrors the diagnostic-log saver's NSData + temp-file
-// pattern (see feature/settings LogFileSaver.ios.kt and the project iOS cinterop gotchas).
+// pattern (see platform/TextFileSaver.ios.kt and the project iOS cinterop gotchas).
 // The NSData copy and disk write are sized by the file, so they run off the main thread; only the
 // UIKit presentation hops back to main.
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)

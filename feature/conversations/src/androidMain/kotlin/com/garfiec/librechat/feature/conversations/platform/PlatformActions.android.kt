@@ -4,10 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
 
 private lateinit var appContext: Context
@@ -22,39 +19,10 @@ actual fun showToast(message: String) {
     Toast.makeText(appContext, message, Toast.LENGTH_SHORT).show()
 }
 
-@Suppress("TooGenericExceptionCaught") // ContentResolver I/O throws undocumented exceptions; reported, not thrown
 @Composable
-actual fun FileSaver(
-    triggerFileName: String?,
-    content: String?,
-    onComplete: (success: Boolean, message: String?) -> Unit,
-    onReset: () -> Unit,
-) {
+internal actual fun RegisterPlatformActions() {
     val context = LocalContext.current
-    // Initialize app context for clipboard/toast
     if (!::appContext.isInitialized) {
         appContext = context.applicationContext
-    }
-
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("*/*"),
-    ) { uri ->
-        if (uri != null && content != null) {
-            try {
-                context.contentResolver.openOutputStream(uri)?.use { outputStream ->
-                    outputStream.write(content.toByteArray())
-                }
-                onComplete(true, null)
-            } catch (e: Exception) {
-                onComplete(false, e.message)
-            }
-        }
-        onReset()
-    }
-
-    LaunchedEffect(triggerFileName) {
-        if (triggerFileName != null) {
-            launcher.launch(triggerFileName)
-        }
     }
 }

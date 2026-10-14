@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.conversations.platform
 
 import androidx.compose.runtime.Composable
+import com.garfiec.librechat.core.ui.platform.TextFileSaver
 
 /**
  * Copy text to the system clipboard.
@@ -13,15 +14,23 @@ expect fun copyToClipboard(text: String, label: String = "")
 expect fun showToast(message: String)
 
 /**
- * Composable that provides a file-save callback.
- * When [triggerFileName] changes to a non-null value, the platform
- * prompts the user to save a file with that name and writes [content] to it.
- * Calls [onComplete] with success/failure message.
+ * Saves an exported conversation through the shared [TextFileSaver]; see it for the callback
+ * contract.
+ *
+ * Also the reason [copyToClipboard] and [showToast] work on Android: they need a Context and are
+ * called from effects that have none, so composing this registers one.
  */
 @Composable
-expect fun FileSaver(
+fun FileSaver(
     triggerFileName: String?,
     content: String?,
     onComplete: (success: Boolean, message: String?) -> Unit,
     onReset: () -> Unit,
-)
+) {
+    RegisterPlatformActions()
+    TextFileSaver(triggerFileName, content, onComplete, onReset, mimeType = "*/*")
+}
+
+/** Android: hands [copyToClipboard] and [showToast] the application Context. iOS: nothing to do. */
+@Composable
+internal expect fun RegisterPlatformActions()

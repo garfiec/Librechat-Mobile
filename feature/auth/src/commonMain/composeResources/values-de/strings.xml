@@ -80,4 +80,7 @@
     <string name="sso_risk_title">Im In-App-Browser anmelden?</string>
     <string name="sso_risk_body">Manche Anbieter, darunter Google, unterstützen das nicht offiziell und können es jederzeit blockieren. Nutzung auf eigene Gefahr.</string>
     <string name="sso_sign_in_failed">Anmeldung fehlgeschlagen. Bitte versuche es erneut.</string>
+    <string name="diagnostic_log_export">Diagnoseprotokolle exportieren</string>
+    <string name="diagnostic_log_exported">Protokoll exportiert. Hänge es an, wenn du das Problem meldest.</string>
+    <string name="diagnostic_log_failed">Das Protokoll konnte nicht exportiert werden.</string>
 </resources>
