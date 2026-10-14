@@ -225,6 +225,8 @@
     <string name="whats_new_error">Não foi possível carregar as notas da versão</string>
     <string name="release_notes_title">Notas da versão</string>
     <string name="release_notes_desc">O que mudou na versão %1$s</string>
+    <string name="privacy_policy_title">Política de privacidade</string>
+    <string name="privacy_policy_desc">O que o app faz com seus dados</string>
     <string name="release_notes_not_found">Não há notas da versão %1$s</string>
     <string name="release_notes_not_found_desc">Esta compilação não tem uma versão publicada no GitHub.</string>
     <string name="release_notes_previous">Versões anteriores</string>

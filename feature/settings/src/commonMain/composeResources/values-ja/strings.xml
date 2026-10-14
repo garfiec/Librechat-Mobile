@@ -225,6 +225,8 @@
     <string name="whats_new_error">リリースノートを読み込めませんでした</string>
     <string name="release_notes_title">リリースノート</string>
     <string name="release_notes_desc">バージョン %1$s の変更点</string>
+    <string name="privacy_policy_title">プライバシーポリシー</string>
+    <string name="privacy_policy_desc">アプリがデータをどう扱うか</string>
     <string name="release_notes_not_found">%1$s のリリースノートはありません</string>
     <string name="release_notes_not_found_desc">このビルドには GitHub で公開されたリリースがありません。</string>
     <string name="release_notes_previous">以前のバージョン</string>

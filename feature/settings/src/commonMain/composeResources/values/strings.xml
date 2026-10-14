@@ -231,6 +231,8 @@
     <string name="whats_new_error">Couldn't load the release notes</string>
     <string name="release_notes_title">Release notes</string>
     <string name="release_notes_desc">What changed in version %1$s</string>
+    <string name="privacy_policy_title">Privacy policy</string>
+    <string name="privacy_policy_desc">What the app does with your data</string>
     <string name="release_notes_not_found">No release notes for %1$s</string>
     <string name="release_notes_not_found_desc">This build has no published release on GitHub.</string>
     <string name="release_notes_previous">Previous versions</string>

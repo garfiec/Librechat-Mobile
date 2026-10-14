@@ -225,6 +225,8 @@
     <string name="whats_new_error">Versionshinweise konnten nicht geladen werden</string>
     <string name="release_notes_title">Versionshinweise</string>
     <string name="release_notes_desc">Was sich in Version %1$s geändert hat</string>
+    <string name="privacy_policy_title">Datenschutzerklärung</string>
+    <string name="privacy_policy_desc">Was die App mit deinen Daten macht</string>
     <string name="release_notes_not_found">Keine Versionshinweise für %1$s</string>
     <string name="release_notes_not_found_desc">Für diesen Build gibt es keine veröffentlichte Version auf GitHub.</string>
     <string name="release_notes_previous">Frühere Versionen</string>

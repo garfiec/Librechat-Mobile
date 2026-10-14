@@ -17,6 +17,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Tablet
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -29,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -207,6 +209,16 @@ fun GeneralSettingsContent(
                             gitSha = uiState.gitSha,
                             serverVersion = uiState.serverVersion,
                             buildInfo = uiState.buildInfo,
+                        )
+                    }
+                    row(key = "privacy_policy") {
+                        val uriHandler = LocalUriHandler.current
+                        GeneralSettingsRow(
+                            icon = Icons.Default.PrivacyTip,
+                            title = stringResource(Res.string.privacy_policy_title),
+                            subtitle = stringResource(Res.string.privacy_policy_desc),
+                            // Android throws when no browser is installed (de-Googled ROMs, work profiles).
+                            onClick = { runCatching { uriHandler.openUri(PRIVACY_POLICY_URL) } },
                         )
                     }
                 }
@@ -439,3 +451,10 @@ private fun GeneralSettingsRow(
         if (showDivider) AdaptiveDivider()
     }
 }
+
+/**
+ * The published policy (docs/PRIVACY.md). Google Play and the App Store both require an in-app link;
+ * it is shown on every channel. Installed builds keep this URL for good, so moving the file needs a
+ * stub left at this path, plus the Play Console entry and PRIVACY.md section 16.
+ */
+private const val PRIVACY_POLICY_URL = "https://github.com/garfiec/Librechat-Mobile/blob/develop/docs/PRIVACY.md"

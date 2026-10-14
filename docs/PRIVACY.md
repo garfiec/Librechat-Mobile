@@ -158,8 +158,9 @@ Open-source channels only. The store builds never contact GitHub.
 - **Daily update check** (Android open-source build only): off by default. If you turn it on in
   Settings, once a day when you open the app it requests the release list at
   `https://api.github.com/repos/garfiec/Librechat-Mobile/releases`.
-- **Release notes**: when you open "Release notes" in Settings → About, the app requests the notes
-  for your installed version from the same API. Nothing is fetched until you tap.
+- **Release notes**: when you open "Release notes" in Settings → General → Updates, the app
+  requests the notes for your installed version from the same API. Nothing is fetched until you
+  tap.
 - **What is sent**: your IP address and the user agent `Switchboard/<version>`. These requests go
   through a separate HTTP client that carries none of your server's tokens, gateway headers or
   browser identity.
@@ -356,8 +357,9 @@ and with us at appsupport@garfiec.com for anything we hold.
 ## 16. Changes to this policy
 
 When the app's data handling changes, this policy changes with it. The current version lives at
-https://github.com/garfiec/Librechat-Mobile/blob/develop/docs/PRIVACY.md. The effective date at
-the top tells you when it last changed, and the changelog for each release notes privacy-relevant changes. Material changes
+https://github.com/garfiec/Librechat-Mobile/blob/develop/docs/PRIVACY.md and is linked from
+Settings → General → About. The effective date at the top tells you when it last changed, and the
+changelog for each release notes privacy-relevant changes. Material changes
 to a store build's data collection will be reflected in the store's data declarations before that
 build ships.
 

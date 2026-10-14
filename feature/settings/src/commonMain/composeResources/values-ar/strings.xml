@@ -225,6 +225,8 @@
     <string name="whats_new_error">تعذّر تحميل ملاحظات الإصدار</string>
     <string name="release_notes_title">ملاحظات الإصدار</string>
     <string name="release_notes_desc">ما الذي تغيّر في الإصدار %1$s</string>
+    <string name="privacy_policy_title">سياسة الخصوصية</string>
+    <string name="privacy_policy_desc">ما يفعله التطبيق ببياناتك</string>
     <string name="release_notes_not_found">لا توجد ملاحظات إصدار لـ %1$s</string>
     <string name="release_notes_not_found_desc">لا يوجد إصدار منشور على GitHub لهذا البناء.</string>
     <string name="release_notes_previous">الإصدارات السابقة</string>
