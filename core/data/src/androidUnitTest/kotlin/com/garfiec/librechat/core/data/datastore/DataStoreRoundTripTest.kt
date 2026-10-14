@@ -176,30 +176,30 @@ class DataStoreRoundTripTest {
     }
 
     @Test
-    fun siteIconsStore_openSource_unsetUntilChosen() = runTest(testDispatcher) {
+    fun siteIcons_openSource_unsetUntilChosen() = runTest(testDispatcher) {
         val ds = createDataStore("settings-site-icons")
-        val store = SiteIconsStore(ds, ChannelPolicy(DistributionChannel.OPEN_SOURCE))
+        val store = PreferenceStore(ds, ChannelPolicy(DistributionChannel.OPEN_SOURCE))
 
         // Null means "never asked" -- distinct from an explicit off.
-        assertThat(store.choice.first()).isNull()
+        assertThat(store.observe(AppPreferences.SiteIcons).first()).isNull()
 
-        store.set(false)
-        assertThat(store.choice.first()).isFalse()
+        store.set(AppPreferences.SiteIcons, false)
+        assertThat(store.observe(AppPreferences.SiteIcons).first()).isFalse()
 
-        store.set(true)
-        assertThat(store.choice.first()).isTrue()
+        store.set(AppPreferences.SiteIcons, true)
+        assertThat(store.observe(AppPreferences.SiteIcons).first()).isTrue()
     }
 
     @Test
-    fun siteIconsStore_storeBuild_onUntilTheUserTurnsItOff() = runTest(testDispatcher) {
+    fun siteIcons_storeBuild_onUntilTheUserTurnsItOff() = runTest(testDispatcher) {
         val ds = createDataStore("settings-site-icons-store")
-        val store = SiteIconsStore(ds, ChannelPolicy(DistributionChannel.PLAY_STORE))
+        val store = PreferenceStore(ds, ChannelPolicy(DistributionChannel.PLAY_STORE))
 
-        assertThat(store.default).isTrue()
-        assertThat(store.choice.first()).isTrue()
+        assertThat(store.initial(AppPreferences.SiteIcons)).isTrue()
+        assertThat(store.observe(AppPreferences.SiteIcons).first()).isTrue()
 
-        store.set(false)
-        assertThat(store.choice.first()).isFalse()
+        store.set(AppPreferences.SiteIcons, false)
+        assertThat(store.observe(AppPreferences.SiteIcons).first()).isFalse()
     }
 
     @Test

@@ -3,25 +3,31 @@ package com.garfiec.librechat.core.common
 /**
  * What differs between distribution channels. Code that needs to behave differently on a store
  * build reads a field here, never [DistributionChannel] directly, so every channel difference is
- * listed in one place.
+ * listed in one place. Preference defaults that differ by channel are declared with [pick] in the
+ * preference registry (`AppPreferences` in `:core:data`).
  */
-class ChannelPolicy(channel: DistributionChannel) {
-    private val openSource = channel == DistributionChannel.OPEN_SOURCE
-
+class ChannelPolicy(private val channel: DistributionChannel) {
     /**
      * Whether the app may check GitHub for a newer release and offer it. Only the open-source
      * channel: a store updates its own installs, and Play policy forbids an app updating itself
      * outside Play. iOS has no self-update path on any channel, so its binding forces this off.
      */
-    val selfUpdateCheck: Boolean = openSource
+    val selfUpdateCheck: Boolean = pick(openSource = true, playStore = false, appStore = false)
 
     /** Whether Settings offers the GitHub release notes. A store's listing carries its own. */
-    val releaseNotes: Boolean = openSource
+    val releaseNotes: Boolean = pick(openSource = true, playStore = false, appStore = false)
 
     /**
-     * What "show website icons" means before the user has chosen. `null` keeps the choice open,
-     * which shows icons off and asks on first use. The open-source channels do that because the
-     * icons are fetched from a third-party favicon service, which sees every host a result links to.
+     * The value for this build's channel. Every channel is named, so adding one fails to compile
+     * until each caller decides its value.
+     *
+     * For the fields above and the preference registry's `perChannel` defaults and migration
+     * scopes only. A feature that calls it directly is branching on the channel at a call site,
+     * which is what this class exists to prevent: add a field here instead.
      */
-    val siteIconsDefault: Boolean? = if (openSource) null else true
+    fun <T> pick(openSource: T, playStore: T, appStore: T): T = when (channel) {
+        DistributionChannel.OPEN_SOURCE -> openSource
+        DistributionChannel.PLAY_STORE -> playStore
+        DistributionChannel.APP_STORE -> appStore
+    }
 }

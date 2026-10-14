@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import com.garfiec.librechat.core.common.AppInfo
 import com.garfiec.librechat.core.common.ChannelPolicy
+import com.garfiec.librechat.core.common.DistributionChannel
 import com.garfiec.librechat.core.common.conversation.OpenConversationRegistry
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.lifecycle.DeferredWorkWindow
@@ -15,9 +16,9 @@ import com.garfiec.librechat.core.common.power.PowerStateObserver
 import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.datastore.ConfigCacheDataStore
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
+import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
-import com.garfiec.librechat.core.data.datastore.SiteIconsStore
 import com.garfiec.librechat.core.data.datastore.SsoRiskDataStore
 import com.garfiec.librechat.core.data.datastore.ThemeDataStore
 import com.garfiec.librechat.core.data.prefetch.AttachmentWarmer
@@ -108,6 +109,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import org.junit.Test
 import org.koin.core.annotation.KoinExperimentalAPI
+import org.koin.test.verify.definition
+import org.koin.test.verify.injectedParameters
 import org.koin.test.verify.verify
 import java.io.File
 import kotlin.reflect.KClass
@@ -195,7 +198,7 @@ class KoinGraphVerificationTest {
             AccountSwitcher::class,
             DateTimePrefsStore::class,
             SettingsDataStore::class,
-            SiteIconsStore::class,
+            PreferenceStore::class,
             SsoRiskDataStore::class,
             ThemeDataStore::class,
             AgentRepository::class,
@@ -266,7 +269,12 @@ class KoinGraphVerificationTest {
         }
 
         sharedKoinModules.forEach { module ->
-            module.verify(extraTypes = extraTypes)
+            module.verify(
+                extraTypes = extraTypes,
+                // Exempt for ChannelPolicy alone: DistributionChannel is deliberately not in the
+                // graph, so a definition that injects it must still fail here.
+                injections = injectedParameters(definition<ChannelPolicy>(DistributionChannel::class)),
+            )
         }
     }
 }

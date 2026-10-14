@@ -9,11 +9,12 @@ import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.network.ConnectivityObserver
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.datastore.AppPreferences
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
+import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
-import com.garfiec.librechat.core.data.datastore.SiteIconsStore
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
@@ -151,7 +152,7 @@ class ChatViewModel(
     private val serverFileSelectionHandoff: ServerFileSelectionHandoff,
     private val promptInsertionHandoff: PromptInsertionHandoff,
     private val siteIconPromptSession: SiteIconPromptSession,
-    private val siteIconsStore: SiteIconsStore,
+    private val preferenceStore: PreferenceStore,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -334,7 +335,7 @@ class ChatViewModel(
     // Third stage: a stored choice wins; with none, ask unless the prompt was already closed
     // this process (see SiteIconPromptSession).
     private val siteIconsState = combine(
-        siteIconsStore.choice,
+        preferenceStore.observe(AppPreferences.SiteIcons),
         siteIconPromptSession.dismissed,
     ) { choice, dismissed ->
         when (choice) {
@@ -366,7 +367,9 @@ class ChatViewModel(
         viewModelScope,
         SharingStarted.Eagerly,
         // A store build's icons are on by default; seed that so they don't pop in on the first read.
-        ChatPreferences(siteIcons = if (siteIconsStore.default == true) SiteIconsState.ON else SiteIconsState.OFF),
+        ChatPreferences(
+            siteIcons = if (preferenceStore.initial(AppPreferences.SiteIcons) == true) SiteIconsState.ON else SiteIconsState.OFF,
+        ),
     )
 
     // In-memory echo of the gauge-expanded toggle: a tap flips the UI synchronously instead of
@@ -1034,7 +1037,7 @@ class ChatViewModel(
 
     /** The website-icons prompt's answer; also what stops it asking again. */
     fun setShowSiteIcons(show: Boolean) {
-        viewModelScope.launch { siteIconsStore.set(show) }
+        viewModelScope.launch { preferenceStore.set(AppPreferences.SiteIcons, show) }
     }
 
     /** The website-icons prompt was closed without a choice: stay quiet until the next launch. */

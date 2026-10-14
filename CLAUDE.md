@@ -44,10 +44,14 @@ Each module has its own `CLAUDE.md` with specific guidance.
   Screens use `Adaptive*` (detekt bans raw M3 chrome) and don't branch on style. See "The pattern"
   in `core/ui/CLAUDE.md`.
 - Distribution channels: open source (`foss` flavor, `com.garfiec.librechat`; Xcode `Release`) vs
-  store (`play` flavor, `com.garfiec.librechat.play`; Xcode `Release-AppStore`). Anything that
-  differs between them is a field on `ChannelPolicy` (`:core:common`), injected where needed.
-  Never branch on `BuildConfig.FLAVOR` or `DistributionChannel` at a call site. A channel that
-  can't be determined fails at launch by design. See `docs/RELEASING.md` "Distribution channels".
+  store (`play` flavor, `com.garfiec.librechat.play`; Xcode `Release-AppStore`). A behaviour that
+  differs between them is a field on `ChannelPolicy` (`:core:common`), injected where needed; a
+  preference default that differs is a `perChannel(…)` default in `AppPreferences` (`:core:data`).
+  Never branch on `BuildConfig.FLAVOR` or `DistributionChannel` at a call site (detekt bans the
+  import in non-test code; `:core:common` uses it from its own package), and don't call
+  `ChannelPolicy.pick` from a feature either: add a field. A channel that can't be determined fails
+  at launch by design.
+  See `docs/RELEASING.md` "Distribution channels".
 
 ## Adding a New Feature Module
 

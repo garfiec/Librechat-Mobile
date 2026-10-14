@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
 import com.garfiec.librechat.core.common.ChatLayoutConstants
+import com.garfiec.librechat.core.data.datastore.AppPreferences
 import com.garfiec.librechat.core.data.datastore.InlineArtifactPrefs
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.google.common.truth.Truth.assertThat
@@ -45,7 +46,7 @@ class ChatViewModelSiteIconsTest {
         every { settingsDataStore.sttEngine } returns MutableStateFlow("")
         every { settingsDataStore.sttLanguage } returns MutableStateFlow("")
         every { settingsDataStore.inlineArtifactPrefs } returns MutableStateFlow(InlineArtifactPrefs())
-        every { fixture.siteIconsStore.choice } returns siteIconsChoice
+        every { fixture.preferenceStore.observe(AppPreferences.SiteIcons) } returns siteIconsChoice
     }
 
     @After
@@ -95,7 +96,7 @@ class ChatViewModelSiteIconsTest {
             val second = fixture.build(testDispatcher)
             advanceUntilIdle()
             assertThat(second.chatPreferences.value.siteIcons).isEqualTo(SiteIconsState.OFF)
-            coVerify(exactly = 0) { fixture.siteIconsStore.set(any()) }
+            coVerify(exactly = 0) { fixture.preferenceStore.set(AppPreferences.SiteIcons, any()) }
         }
 
     @Test
@@ -106,6 +107,6 @@ class ChatViewModelSiteIconsTest {
         viewModel.setShowSiteIcons(true)
         advanceUntilIdle()
 
-        coVerify { fixture.siteIconsStore.set(true) }
+        coVerify { fixture.preferenceStore.set(AppPreferences.SiteIcons, true) }
     }
 }

@@ -6,14 +6,15 @@ import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
 import com.garfiec.librechat.core.common.network.ConnectivityObserver
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.datastore.AppPreferences
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
 import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
+import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
-import com.garfiec.librechat.core.data.datastore.SiteIconsStore
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.ChatRepository
@@ -88,7 +89,7 @@ internal class ChatViewModelTestFixture {
     val connectivityObserver = mockk<ConnectivityObserver>(relaxed = true)
     val serverDataStore = mockk<ServerDataStore>(relaxed = true)
     val settingsDataStore = mockk<SettingsDataStore>(relaxed = true)
-    val siteIconsStore = mockk<SiteIconsStore>(relaxed = true)
+    val preferenceStore = mockk<PreferenceStore>(relaxed = true)
     val platformDelegateFactory = mockk<PlatformDelegateFactory>(relaxed = true)
     val serverFileSelectionHandoff = mockk<ServerFileSelectionHandoff>(relaxed = true)
 
@@ -137,7 +138,8 @@ internal class ChatViewModelTestFixture {
         every { settingsDataStore.effectiveContextSections } returns MutableStateFlow(ContextDetailPreset.STANDARD.sections)
         every { settingsDataStore.compactNudgeThreshold } returns MutableStateFlow(DEFAULT_COMPACT_NUDGE_THRESHOLD)
         every { settingsDataStore.compactNudgeSnoozes } returns MutableStateFlow(emptyMap())
-        every { siteIconsStore.choice } returns MutableStateFlow(null)
+        every { preferenceStore.observe(AppPreferences.SiteIcons) } returns MutableStateFlow(null)
+        every { preferenceStore.initial(AppPreferences.SiteIcons) } returns null
         every { settingsDataStore.duringRunAction } returns MutableStateFlow(DuringRunAction.QUEUE)
     }
 
@@ -182,7 +184,7 @@ internal class ChatViewModelTestFixture {
         serverFileSelectionHandoff = serverFileSelectionHandoff,
         promptInsertionHandoff = PromptInsertionHandoff(),
         siteIconPromptSession = siteIconPromptSession,
-        siteIconsStore = siteIconsStore,
+        preferenceStore = preferenceStore,
         activeAccountProvider = activeAccountProvider,
     )
 }

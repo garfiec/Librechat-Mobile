@@ -61,6 +61,11 @@ class LogRedactorTest {
     }
 
     @Test
+    fun channel_attr_passes_through() {
+        assertEquals("play", redactor.redactAttrs(mapOf("channel" to "play"))["channel"])
+    }
+
+    @Test
     fun content_attr_keys_are_dropped_by_length() {
         val out = redactor.redactAttrs(mapOf("message" to "hello secret world", "endpoint" to "/api/x"))
         assertEquals("<redacted len=18>", out["message"])

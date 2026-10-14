@@ -4,27 +4,31 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ChannelPolicyTest {
 
     @Test
-    fun openSourceChecksForUpdatesAndAsksAboutSiteIcons() {
+    fun openSourceChecksForUpdates() {
         val policy = ChannelPolicy(DistributionChannel.OPEN_SOURCE)
         assertTrue(policy.selfUpdateCheck)
         assertTrue(policy.releaseNotes)
-        assertNull(policy.siteIconsDefault)
     }
 
     @Test
-    fun storesNeverSelfUpdateAndShowSiteIcons() {
+    fun storesNeverSelfUpdate() {
         for (channel in listOf(DistributionChannel.PLAY_STORE, DistributionChannel.APP_STORE)) {
             val policy = ChannelPolicy(channel)
             assertFalse(policy.selfUpdateCheck, "$channel")
             assertFalse(policy.releaseNotes, "$channel")
-            assertEquals(true, policy.siteIconsDefault, "$channel")
         }
+    }
+
+    @Test
+    fun pickReturnsTheValueNamedForTheChannel() {
+        assertEquals("oss", ChannelPolicy(DistributionChannel.OPEN_SOURCE).pick("oss", "play", "appstore"))
+        assertEquals("play", ChannelPolicy(DistributionChannel.PLAY_STORE).pick("oss", "play", "appstore"))
+        assertEquals("appstore", ChannelPolicy(DistributionChannel.APP_STORE).pick("oss", "play", "appstore"))
     }
 
     @Test

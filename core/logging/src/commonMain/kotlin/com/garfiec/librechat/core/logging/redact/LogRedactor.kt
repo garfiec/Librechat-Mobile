@@ -115,7 +115,7 @@ class LogRedactor(private val salt: String = DEFAULT_SALT) {
         // here; an omitted key is dropped (safe-by-default), so add new keys deliberately.
         private val safeKeys = setOf(
             // build / device / platform (startup header)
-            "versionname", "versioncode", "gitsha", "osname", "osversion", "devicemodel",
+            "versionname", "versioncode", "gitsha", "channel", "osname", "osversion", "devicemodel",
             // backend version + server-config snapshot flags
             "supportedbackendversion", "detectedbackendversion", "compatible",
             "registrationenabled", "emailloginenabled", "socialloginenabled", "passwordresetenabled",

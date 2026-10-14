@@ -115,6 +115,14 @@ style:
         reason: "Use AdaptiveSnackbarHost (core/ui components)."
       - value: "androidx.compose.material3.CircularProgressIndicator"
         reason: "Use AdaptiveCircularProgressIndicator (core/ui components)."
+      # Not chrome: channel differences go through ChannelPolicy or a perChannel preference
+      # default, so every one of them is listed in one place.
+      - value: "com.garfiec.librechat.core.common.DistributionChannel"
+        reason: "Read a ChannelPolicy field, or declare a perChannel default in AppPreferences."
+      # Values are matched against the whole import, so the type entry alone lets an enum-entry
+      # import (`…DistributionChannel.PLAY_STORE`) through.
+      - value: "com.garfiec.librechat.core.common.DistributionChannel.*"
+        reason: "Read a ChannelPolicy field, or declare a perChannel default in AppPreferences."
     # Tests may drive the raw M3 control on purpose: the ban governs shipped chrome.
     excludes:
       - "**/core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/topbar/**"

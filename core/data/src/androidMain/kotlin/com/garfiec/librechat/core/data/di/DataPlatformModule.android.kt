@@ -1,13 +1,14 @@
 package com.garfiec.librechat.core.data.di
 
-import android.content.Context
 import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.preferencesDataStore
+import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.room.Room
 import com.garfiec.librechat.core.common.ChannelPolicy
 import com.garfiec.librechat.core.common.di.KoinQualifiers
 import com.garfiec.librechat.core.data.datastore.CommonTokenDataStore
+import com.garfiec.librechat.core.data.datastore.PreferenceMigrationRunner
 import com.garfiec.librechat.core.data.datastore.TokenDataStore
 import com.garfiec.librechat.core.data.db.LibreChatDatabase
 import com.garfiec.librechat.core.data.db.migration.MIGRATION_3_4
@@ -34,11 +35,6 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
 import org.koin.dsl.binds
 import org.koin.dsl.module
-
-private val Context.settingsDataStore: DataStore<Preferences> by preferencesDataStore(
-    name = DATASTORE_FILE_NAME,
-    corruptionHandler = settingsCorruptionHandler(),
-)
 
 actual val dataPlatformModule: Module = module {
 
@@ -69,7 +65,16 @@ actual val dataPlatformModule: Module = module {
     }
 
     // --- DataStore ---
-    single<DataStore<Preferences>> { androidContext().settingsDataStore }
+    // Built here rather than by the preferencesDataStore delegate, which cannot reach the Koin graph
+    // the migration runner needs. Same file: the delegate resolves to preferencesDataStoreFile(name).
+    single<DataStore<Preferences>> {
+        val context = androidContext()
+        PreferenceDataStoreFactory.create(
+            corruptionHandler = settingsCorruptionHandler(),
+            migrations = listOf(PreferenceMigrationRunner(get())),
+            produceFile = { context.preferencesDataStoreFile(DATASTORE_FILE_NAME) },
+        )
+    }
 
     // --- Token Storage ---
     single {

@@ -149,6 +149,33 @@ every write there goes to memory and a test would pass for the wrong reason. It 
 - `AgentRepository.getAgentsPaginated()` — server-side paginated agent fetch, maps response to `PaginatedAgents` domain model
 - Both bound in `DataModule.kt` via `singleOf`, both use `safeApiCall`, no local caching
 
+### Preference registry and one-time migrations (`AppPreferences`, `PreferenceMigrations`)
+New device-wide preferences are declared in `AppPreferences` and read and written through
+`PreferenceStore`, not added as members of `SettingsDataStore` (the older settings move over as
+their code is touched; keep each key name exactly, or that setting resets for every user).
+- **A default is applied on read and never written**, so a stored choice always wins and an
+  unchosen preference follows the build's current default. `always(x)` or
+  `perChannel(openSource, playStore, appStore)`; the latter names every channel, so a new channel
+  fails to compile until each default decides. `AppPreferencesTest` pins every default per channel
+  and rejects duplicate keys, but only among the specs listed in `AppPreferences.all`: it cannot
+  see a key that `SettingsDataStore` or another store on the same file still owns, so when a
+  setting moves over, delete its old member in the same change.
+- **One-time changes are `PreferenceMigrations`**, run by `PreferenceMigrationRunner`, a DataStore
+  `DataMigration` on the preferences store: they run before anything can read it, and the change and
+  its ledger entry (`applied_pref_migrations`, a set of ids) land in one atomic write. Ids are
+  `YYYYMMDD-slug`, append-only and immutable once shipped. `reset(spec)` clears a stored choice so
+  the (new) default applies; `force(spec, value)` writes one.
+- **Ledger rules:** only migrations that ran (or were waived) on this channel are recorded, so a
+  channel-scoped one still runs if a different channel's build opens the data (the iOS store and
+  sideload builds share a bundle id). A fresh install (empty store, no ledger) waives this channel's
+  migrations. Unknown ids from a newer build are kept across a downgrade.
+- **A migration body must be total.** A throw fails every read and write of the shared settings
+  store (server URL, account roster, every setting). DataStore retries the initialization on the
+  next access, so a throw that always happens fails them on every launch, and the corruption handler
+  cannot recover it.
+- A corrupt preferences file is replaced with an empty one before migrations run, so it reads as a
+  fresh install and its migrations are waived.
+
 ### Date/time format (`DateTimePrefsStore`)
 Timestamp style, clock and date format, global (not per-account). Its own class on the shared
 preferences `DataStore` rather than more members on `SettingsDataStore`, which sits at detekt's

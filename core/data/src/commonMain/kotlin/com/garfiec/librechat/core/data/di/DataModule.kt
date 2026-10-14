@@ -9,10 +9,10 @@ import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.datastore.AccountScopedPrefsPurger
 import com.garfiec.librechat.core.data.datastore.ConfigCacheDataStore
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
+import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.RoleCacheDataStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
-import com.garfiec.librechat.core.data.datastore.SiteIconsStore
 import com.garfiec.librechat.core.data.datastore.SsoRiskDataStore
 import com.garfiec.librechat.core.data.datastore.ThemeDataStore
 import com.garfiec.librechat.core.data.datastore.TokenCacheWarmer
@@ -269,7 +269,7 @@ val dataModule = module {
             ioDispatcher = get(KoinQualifiers.IO),
         )
     }
-    single { SiteIconsStore(dataStore = get(), channelPolicy = get()) }
+    single { PreferenceStore(dataStore = get(), channelPolicy = get()) }
 
     // --- Repositories (special wiring) ---
 

@@ -1,5 +1,6 @@
 package com.garfiec.librechat.feature.settings.viewmodel
 
+import com.garfiec.librechat.core.data.datastore.AppPreferences
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayPrefs
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
@@ -9,8 +10,8 @@ import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.InlineArtifactPrefs
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
+import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
-import com.garfiec.librechat.core.data.datastore.SiteIconsStore
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
 import kotlinx.coroutines.CoroutineScope
@@ -75,7 +76,7 @@ private data class AdditionalPreferences(
 @Suppress("TooManyFunctions") // debt: 19 functions
 class ChatPreferencesController(
     private val settingsDataStore: SettingsDataStore,
-    private val siteIconsStore: SiteIconsStore,
+    private val preferenceStore: PreferenceStore,
     baseState: StateFlow<ChatSettingsUiState>,
     private val scope: CoroutineScope,
 ) {
@@ -180,14 +181,14 @@ class ChatPreferencesController(
         additional.copy(sttOnDevice = sttOnDevice)
     }.combine(settingsDataStore.sttEndOfSpeech) { additional, sttEndOfSpeech ->
         additional.copy(sttEndOfSpeech = sttEndOfSpeech)
-    }.combine(siteIconsStore.choice) { additional, siteIcons ->
+    }.combine(preferenceStore.observe(AppPreferences.SiteIcons)) { additional, siteIcons ->
         // Never chosen reads as off: the chat screen asks before anything loads.
         additional.copy(showSiteIcons = siteIcons ?: false)
     }.stateIn(
         scope,
         SharingStarted.Eagerly,
         // Seeded with the channel default so a store build's toggle doesn't flash off on open.
-        AdditionalPreferences(false, "", "", true, showSiteIcons = siteIconsStore.default ?: false),
+        AdditionalPreferences(false, "", "", true, showSiteIcons = preferenceStore.initial(AppPreferences.SiteIcons) ?: false),
     )
 
     /** The single public UI state that merges DataStore preferences with imperative state. */
@@ -275,7 +276,7 @@ class ChatPreferencesController(
     }
 
     fun setShowSiteIcons(show: Boolean) {
-        scope.launch { siteIconsStore.set(show) }
+        scope.launch { preferenceStore.set(AppPreferences.SiteIcons, show) }
     }
 
     fun setDismissKeyboardOnSend(enabled: Boolean) {

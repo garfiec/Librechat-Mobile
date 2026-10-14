@@ -365,8 +365,9 @@ rebuild, or the comparison is circular.
 Every channel below is the **open-source build** (the `foss` flavor, `com.garfiec.librechat`;
 the `Release` Xcode configuration) except the two stores. The store builds come from the `play`
 flavor (`com.garfiec.librechat.play`) and the `Release-AppStore` configuration. What differs
-between the two kinds is listed in one place, `ChannelPolicy` in `:core:common`: store builds
-have no update check and no GitHub release notes, and show website icons by default.
+between the two kinds is listed in two places: behaviour in `ChannelPolicy` (`:core:common`),
+where store builds have no update check and no GitHub release notes, and preference defaults in
+`AppPreferences` (`:core:data`), where store builds show website icons by default.
 
 The Play build is signed with the same release key as the open-source APK. **Its separate
 applicationId is load-bearing**: with one key on one package, either build would install over the

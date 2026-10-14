@@ -35,8 +35,8 @@ val commonModule = module {
     single { ForegroundSignal() }
     single { OpenConversationRegistry() }
 
-    single { get<AppInfo>().channel }
     // Eager, so a build that cannot name its channel fails in startKoin. Lazily, the first Android
     // resolve of AppInfo can land inside the best-effort diagnostics setup, which swallows it.
-    single(createdAtStart = true) { ChannelPolicy(get()) }
+    // DistributionChannel itself is deliberately not in the graph: callers get ChannelPolicy.
+    single(createdAtStart = true) { ChannelPolicy(get<AppInfo>().channel) }
 }

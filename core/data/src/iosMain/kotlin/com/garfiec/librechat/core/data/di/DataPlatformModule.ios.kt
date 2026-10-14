@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.common.ChannelPolicy
 import com.garfiec.librechat.core.common.di.KoinQualifiers
 import com.garfiec.librechat.core.data.datastore.CommonTokenDataStore
 import com.garfiec.librechat.core.data.datastore.IosTokenDataStore
+import com.garfiec.librechat.core.data.datastore.PreferenceMigrationRunner
 import com.garfiec.librechat.core.data.datastore.ServerUrlKeychainFallback
 import com.garfiec.librechat.core.data.db.LibreChatDatabase
 import com.garfiec.librechat.core.data.db.migration.MIGRATION_3_4
@@ -83,6 +84,7 @@ actual val dataPlatformModule: Module = module {
         val path = "$datastoreDir/$DATASTORE_FILE_NAME.preferences_pb"
         PreferenceDataStoreFactory.createWithPath(
             corruptionHandler = settingsCorruptionHandler(),
+            migrations = listOf(PreferenceMigrationRunner(get())),
             produceFile = { path.toPath() },
         )
     }
