@@ -47,6 +47,16 @@ class LogRedactor(private val salt: String = DEFAULT_SALT) {
         out = objectIdRegex.replace(out) { m -> "id:" + hash8(m.value) }
         // url: drop the scheme/`://` so `https?://` no longer matches; keep path (diagnostically useful).
         out = urlRegex.replace(out) { m -> "url:" + hash8(m.groupValues[1] + m.groupValues[2]) + m.groupValues[3] }
+        // Transport errors name the host without a scheme ("Failed to connect to /10.0.2.2:3080"),
+        // so urlRegex never sees it. Matched by the phrases that carry one rather than by a generic
+        // host shape, which would also hash class names and stack frames. `(?!host:)` keeps it idempotent.
+        for (regex in hostPhraseRegexes) {
+            out = regex.replace(out) { m -> m.groupValues[1] + "host:" + hash8(m.groupValues[2]) }
+        }
+        // Whatever addresses are left (another library's wording). The replacement has no dots or
+        // brackets, so it cannot re-match.
+        out = ipv4Regex.replace(out) { m -> "ip:" + hash8(m.value) }
+        out = ipv6Regex.replace(out) { m -> "ip:" + hash8(m.value) }
         return out
     }
 
@@ -94,6 +104,24 @@ class LogRedactor(private val salt: String = DEFAULT_SALT) {
         // dotted-TLD-only pattern would miss. Over-matching a stray `a@b` token in a log is acceptable.
         private val emailRegex = Regex("[A-Za-z0-9._%+-]+@[A-Za-z0-9][A-Za-z0-9._-]*")
         private val urlRegex = Regex("(?i)(https?://)([^/\\s:?#]+)([^\\s]*)")
+
+        // Group 2 is the host token. Wordings: OkHttp's ConnectException ("Failed to connect to
+        // host/1.2.3.4:443"), Android libcore's connect timeout ("failed to connect to host/1.2.3.4
+        // (port 443) …"), Android's UnknownHostException, and OkHttp's hostname-verification and
+        // cleartext refusals.
+        private val hostPhraseRegexes = listOf(
+            Regex("(?i)(failed to connect to\\s+)(?!host:)([^\\s\"',;()]+)"),
+            Regex("(?i)(unable to resolve host\\s+\")(?!host:)([^\"]+)"),
+            Regex("(?i)(hostname\\s+)(?!host:)(\\S+)(?=\\s+not verified)"),
+            Regex("(?i)(cleartext communication to\\s+)(?!host:)(\\S+)(?=\\s+not permitted)"),
+        )
+
+        // Dotted quad with an optional port, not inside a longer dotted or word token (so a
+        // four-part version like "1.2.3.4-beta" still matches, but "v1.2.3.4.5" does not).
+        private val ipv4Regex = Regex("(?<![\\w.])\\d{1,3}(?:\\.\\d{1,3}){3}(?::\\d{1,5})?(?![\\w.])")
+
+        // Bracketed IPv6 only ("[::1]:3080"): bare IPv6 can't be told apart from a timestamp.
+        private val ipv6Regex = Regex("\\[[0-9a-fA-F]*:[0-9a-fA-F:.]*\\](?::\\d{1,5})?")
 
         // Bare identifiers anywhere in text (incl. URL/path segments): UUID and 24-char Mongo ObjectId.
         private val uuidRegex =

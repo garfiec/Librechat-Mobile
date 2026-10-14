@@ -162,4 +162,61 @@ class LogRedactorTest {
         assertFalse(out.contains("eyJsecrettoken"), out)
         assertFalse(out.contains("bob@corp.io"), out)
     }
+
+    @Test
+    fun hosts_in_transport_error_text_are_hashed() {
+        val cases = mapOf(
+            "java.net.ConnectException: Failed to connect to /10.0.2.2:3080" to listOf("10.0.2.2", "3080"),
+            "Failed to connect to chat.example.com/203.0.113.5:443" to listOf("chat.example.com", "203.0.113.5"),
+            "failed to connect to chat.example.com/203.0.113.5 (port 443) from /10.0.2.16 (port 51234) after 10000ms"
+                to listOf("chat.example.com", "203.0.113.5", "10.0.2.16"),
+            "Unable to resolve host \"chat.example.com\": No address associated with hostname"
+                to listOf("chat.example.com"),
+            "Hostname chat.example.com not verified:" to listOf("chat.example.com"),
+            "CLEARTEXT communication to chat.example.com not permitted by network security policy"
+                to listOf("chat.example.com"),
+            "connect to [::1]:3080 refused" to listOf("::1"),
+        )
+        for ((input, secrets) in cases) {
+            val out = redactor.redact(input)
+            for (secret in secrets) assertFalse(out.contains(secret), "\"$secret\" leaked: $out")
+        }
+    }
+
+    @Test
+    fun the_same_host_hashes_the_same_way_so_lines_still_correlate() {
+        val a = redactor.redact("Failed to connect to chat.example.com/203.0.113.5:443")
+        assertEquals(a, redactor.redact("Failed to connect to chat.example.com/203.0.113.5:443"))
+        assertTrue(a.startsWith("Failed to connect to host:"), a)
+    }
+
+    @Test
+    fun host_redaction_is_idempotent() {
+        val inputs = listOf(
+            "Failed to connect to /10.0.2.2:3080",
+            "Unable to resolve host \"chat.example.com\": No address",
+            "Hostname chat.example.com not verified",
+            "CLEARTEXT communication to chat.example.com not permitted",
+            "peer 192.168.1.20:8443 reset",
+            "connect to [fe80::1]:3080",
+        )
+        for (input in inputs) {
+            val once = redactor.redact(input)
+            assertEquals(once, redactor.redact(once), "not idempotent for: $input")
+        }
+    }
+
+    @Test
+    fun text_that_only_looks_like_a_host_is_left_alone() {
+        val untouched = listOf(
+            "backend 0.8.8-rc4 detected",
+            "versionName 2026.10.3-debug",
+            "at okhttp3.internal.connection.ConnectPlan.connectSocket(ConnectPlan.kt:278)",
+            "ts 2026-10-14T01:20:25.227153Z",
+            "Could not connect to server",
+            "A server with the specified hostname could not be found.",
+            "TextFileSaver::class",
+        )
+        for (input in untouched) assertEquals(input, redactor.redact(input))
+    }
 }
