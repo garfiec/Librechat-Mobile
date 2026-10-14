@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -39,7 +40,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -49,9 +49,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
@@ -419,6 +417,7 @@ private fun FullscreenTableDialog(
                         headers = headers,
                         alignments = alignments,
                         rows = rows,
+                        pan = true,
                         fontSizeMultiplier = fontSizeMultiplier,
                     )
                 }
@@ -428,12 +427,12 @@ private fun FullscreenTableDialog(
 }
 
 /**
- * Renders a markdown table with a header row and data rows. The table supports
- * horizontal scrolling for wide tables with many columns. Header cells are bold
+ * Renders a markdown table with a header row and data rows. Header cells are bold
  * with a bottom divider. Subtle row dividers and column dividers provide structure.
  *
- * Column widths are computed from the text content so that all cells in the same
- * column share a uniform width, giving a proper grid appearance.
+ * All cells in a column share one width, and the columns are fitted to the available
+ * width by [fitTableColumns], wrapping their text. The table pans horizontally only when
+ * it has too many columns to fit readably, or always when [pan] (the fullscreen view).
  */
 @Composable
 private fun MarkdownTable(
@@ -441,50 +440,58 @@ private fun MarkdownTable(
     alignments: List<TableCellAlignment>,
     rows: List<List<String>>,
     modifier: Modifier = Modifier,
+    pan: Boolean = false,
     fontSizeMultiplier: Float = 1.0f,
     searchQuery: String? = null,
     searchFocusedOccurrence: Int = -1,
     onFocusedMatchPosition: ((LayoutCoordinates, Rect) -> Unit)? = null,
 ) {
+    val bodyStyle = MaterialTheme.typography.bodyMedium.scaleFontSize(fontSizeMultiplier)
+    val headerStyle = bodyStyle.copy(fontWeight = FontWeight.Bold)
+    val cellPaddingH = 12.dp
+    val cells = rememberRenderedTableCells(headers, rows)
+
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val columnWidths =
+            rememberTableColumnWidths(cells, headerStyle, bodyStyle, cellPaddingH, constraints.maxWidth, pan)
+        MarkdownTableGrid(
+            headers = cells.headers,
+            alignments = alignments,
+            rows = cells.rows,
+            columnWidths = columnWidths,
+            bodyStyle = bodyStyle,
+            headerStyle = headerStyle,
+            cellPaddingH = cellPaddingH,
+            searchQuery = searchQuery,
+            searchFocusedOccurrence = searchFocusedOccurrence,
+            onFocusedMatchPosition = onFocusedMatchPosition,
+        )
+    }
+}
+
+@Composable
+private fun MarkdownTableGrid(
+    headers: List<AnnotatedString>,
+    alignments: List<TableCellAlignment>,
+    rows: List<List<AnnotatedString>>,
+    columnWidths: List<Dp>,
+    bodyStyle: TextStyle,
+    headerStyle: TextStyle,
+    cellPaddingH: Dp,
+    searchQuery: String?,
+    searchFocusedOccurrence: Int,
+    onFocusedMatchPosition: ((LayoutCoordinates, Rect) -> Unit)?,
+) {
     val isSearchActive = !searchQuery.isNullOrBlank()
     val textColor = MaterialTheme.colorScheme.onSurface
     val headerBackground = MaterialTheme.colorScheme.surfaceContainerHigh
     val dividerColor = MaterialTheme.colorScheme.outlineVariant
-    val bodyStyle = MaterialTheme.typography.bodyMedium.scaleFontSize(fontSizeMultiplier)
-    val headerStyle = bodyStyle.copy(fontWeight = FontWeight.Bold)
-    val cellPaddingH = 12.dp
     val cellPaddingV = 8.dp
 
-    // Measure column widths from text content using TextMeasurer
-    val textMeasurer = rememberTextMeasurer()
-    val density = LocalDensity.current
-    val columnCount = headers.size
-
-    val columnWidths = remember(headers, rows, fontSizeMultiplier) {
-        val cellPaddingPx = with(density) { (cellPaddingH * 2).roundToPx() }
-        List(columnCount) { col ->
-            var maxWidth = textMeasurer.measure(
-                text = headers[col],
-                style = headerStyle,
-            ).size.width
-            for (row in rows) {
-                val cellText = row.getOrElse(col) { "" }
-                val measured = textMeasurer.measure(
-                    text = cellText,
-                    style = bodyStyle,
-                ).size.width
-                if (measured > maxWidth) maxWidth = measured
-            }
-            with(density) { (maxWidth + cellPaddingPx).toDp() }
-        }
-    }
-
-    val scrollState = rememberScrollState()
-
     Box(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
-            .horizontalScroll(scrollState)
+            .horizontalScroll(rememberScrollState())
             .clip(MaterialTheme.shapes.small),
     ) {
         Column {
@@ -497,12 +504,12 @@ private fun MarkdownTable(
                     var acc = 0
                     headers.forEachIndexed { i, header ->
                         hOffsets[i] = acc
-                        acc += countOccurrences(header, searchQuery)
+                        acc += countOccurrences(header.text, searchQuery)
                     }
                     rows.forEachIndexed { r, row ->
                         row.forEachIndexed { c, cell ->
                             rOffsets[r][c] = acc
-                            acc += countOccurrences(cell, searchQuery)
+                            acc += countOccurrences(cell.text, searchQuery)
                         }
                     }
                 }
@@ -579,7 +586,7 @@ private fun MarkdownTable(
  */
 @Composable
 private fun TableCell(
-    text: String,
+    text: AnnotatedString,
     style: TextStyle,
     color: Color,
     alignment: TableCellAlignment,
@@ -600,13 +607,13 @@ private fun TableCell(
     val isDarkTheme = isSystemInDarkTheme()
     val display = remember(text, searchQuery, searchFocusedOccurrence, isDarkTheme) {
         if (searchQuery.isNullOrBlank()) {
-            AnnotatedString(text)
+            text
         } else {
-            buildHighlightedString(text, searchQuery, searchFocusedOccurrence, isDarkTheme)
+            addSearchSpans(text, searchQuery, searchFocusedOccurrence, isDarkTheme)
         }
     }
     val focusedRange = remember(text, searchQuery, searchFocusedOccurrence) {
-        if (searchQuery.isNullOrBlank()) null else findOccurrenceRange(text, searchQuery, searchFocusedOccurrence)
+        if (searchQuery.isNullOrBlank()) null else findOccurrenceRange(text.text, searchQuery, searchFocusedOccurrence)
     }
     var layoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
 
@@ -625,12 +632,6 @@ private fun TableCell(
             style = style,
             color = color,
             textAlign = textAlign,
-            // Only the cell holding the focused match needs full layout so its wrapped-line rect
-            // reports accurately (getBoundingBox clamps to laid-out lines). Every other cell — even
-            // while search is open — keeps the 10-line clamp so opening search doesn't balloon whole
-            // tables. focusedRange is non-null exactly for the focused cell.
-            maxLines = if (focusedRange != null) Int.MAX_VALUE else 10,
-            overflow = TextOverflow.Ellipsis,
             onTextLayout = { layoutResult = it },
             modifier = Modifier.reportFocusedMatchPosition(layoutResult, focusedRange, onFocusedMatchPosition),
         )

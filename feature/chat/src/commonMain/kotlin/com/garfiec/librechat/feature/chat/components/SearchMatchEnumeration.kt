@@ -51,18 +51,24 @@ internal fun countSegmentOccurrences(segment: MarkdownSegment, query: String): I
     is MarkdownSegment.Table -> tableCellTexts(segment).sumOf { countOccurrences(it, query) }
 }
 
-/** Table cell texts in highlight order: headers left-to-right, then rows row-major. */
+/** Table cell texts as displayed, in highlight order: headers left-to-right, then rows row-major. */
 internal fun tableCellTexts(segment: MarkdownSegment.Table): List<String> =
-    segment.headers + segment.rows.flatten()
+    (segment.headers + segment.rows.flatten()).map(::tableCellPlainText)
 
 /** Occurrences in one markdown text run (a whole part, or one artifact Text segment). */
 internal fun countMarkdownOccurrences(text: String, query: String): Int {
-    // Fast-path bail before the (relatively expensive) parse: every counted match is a substring
-    // of [text], so if the query isn't present at all the message contributes nothing. This keeps
-    // per-keystroke search enumeration cheap for the many messages that don't match.
-    if (text.isBlank() || query.isBlank() || !text.contains(query, ignoreCase = true)) return 0
+    if (cannotMatch(text, query)) return 0
     return parseMarkdownSegments(text).sumOf { countSegmentOccurrences(it, query) }
 }
+
+/**
+ * Fast-path bail before the (relatively expensive) parse, keeping per-keystroke search enumeration
+ * cheap for the many messages that don't match. Every match outside a table is a substring of
+ * [text]; a table cell is counted as displayed, with its markdown markers gone (`**CO** alarm`
+ * shows `CO alarm`), so text that might hold a table is always parsed.
+ */
+private fun cannotMatch(text: String, query: String): Boolean =
+    text.isBlank() || query.isBlank() || (!text.contains(query, ignoreCase = true) && '|' !in text)
 
 /**
  * Whether a message without content parts renders its `text` with the artifact split, as a TEXT part
@@ -86,7 +92,7 @@ internal fun countArtifactOccurrences(artifact: Artifact, query: String): Int =
 /** Occurrences in a TEXT part's body, honoring the artifact split (see contract above). */
 internal fun countTextPartOccurrences(text: String, query: String): Int {
     // Same fast-path bail: skip detectArtifacts + parsing when the query can't be here.
-    if (text.isBlank() || query.isBlank() || !text.contains(query, ignoreCase = true)) return 0
+    if (cannotMatch(text, query)) return 0
     return detectArtifacts(text).sumOf { segment ->
         when (segment) {
             is ArtifactSegment.Text -> countMarkdownOccurrences(segment.text, query)
