@@ -6,6 +6,7 @@ import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.common.network.RequestActivityTracker
 import com.garfiec.librechat.core.common.result.AccessGatewayException
 import com.garfiec.librechat.core.common.result.FailureKind
+import com.garfiec.librechat.core.common.result.failureKind
 import com.garfiec.librechat.core.common.result.message
 import com.garfiec.librechat.core.logging.Diag
 import com.garfiec.librechat.core.logging.LogOrigin
@@ -206,6 +207,16 @@ class SseClient(
                     ) { "SSE blocked by access gateway" }
                     // Terminal — every remaining attempt would be rejected by the same gateway.
                     emit(StreamEvent.Error(message = FailureKind.AccessGateway.message()))
+                    done = true
+                } else if (e.failureKind() == FailureKind.Tls) {
+                    Diag.w(
+                        "SSE",
+                        origin = LogOrigin.NETWORK,
+                        throwable = e,
+                        attrs = mapOf("attempt" to attempt.toString()),
+                    ) { "SSE TLS failure" }
+                    // Terminal — the same certificate fails every remaining attempt.
+                    emit(StreamEvent.Error(message = FailureKind.Tls.message()))
                     done = true
                 } else if (ioError != null) {
                     Diag.w(

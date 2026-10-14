@@ -233,6 +233,13 @@ deployment's mount at all. A null or pending account attaches nothing.
 - `HttpResponseValidator` in the client converts non-2xx to exceptions.
 - API services throw on error. Repositories in `:core:data` catch via `safeApiCall` from `:core:common`.
 - Respect `429 Too Many Requests` and parse `Retry-After` header on auth endpoints.
+- A certificate failure (`FailureKind.Tls`) is terminal like a gateway block: `configureRetryPolicy`
+  and `SseClient` both stop on it, since the same certificate fails every attempt. Android only, and
+  only from the certificate exception *beneath* the TLS failure: an `SSLHandshakeException` alone is
+  also a reset mid-handshake or `https://` against a plain-HTTP port, which must stay retryable / read
+  as unreachable. iOS never classifies it: Darwin reports an untyped `DarwinHttpRequestException`,
+  and the iOS SSE transport maps `nw_error_domain_tls` to a plain `Exception`, which `SseClient`
+  retries like any other failure.
 
 ## Rules
 

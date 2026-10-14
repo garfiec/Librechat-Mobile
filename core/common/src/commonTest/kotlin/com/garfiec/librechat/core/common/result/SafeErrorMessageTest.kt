@@ -21,6 +21,16 @@ class SafeErrorMessageTest {
 
     private class IOException(message: String) : Exception(message)
 
+    private class SSLHandshakeException(message: String, cause: Throwable? = null) : Exception(message, cause)
+
+    private class SSLPeerUnverifiedException(message: String) : Exception(message)
+
+    private class CertificateException(message: String) : Exception(message)
+
+    private class CertPathValidatorException(message: String) : Exception(message)
+
+    private class SSLException(message: String) : Exception(message)
+
     private val gatewayRedirectMessage =
         "Expected response body of the type 'class com.garfiec.librechat.core.model.User' " +
             "but was 'class io.ktor.utils.io.SourceByteReadChannel'\n" +
@@ -48,6 +58,40 @@ class SafeErrorMessageTest {
 
         assertEquals(FailureKind.Network, IOException("Connection reset").toSafeError().kind)
         assertEquals(FailureMessages.NETWORK, IOException("Connection reset").toSafeError().message)
+    }
+
+    @Test
+    fun `a certificate failure is reported as TLS, not as the network`() {
+        val untrusted = SSLHandshakeException(
+            "Trust anchor for certification path not found.",
+            CertificateException("Trust anchor for certification path not found."),
+        ).toSafeError()
+        assertEquals(FailureKind.Tls, untrusted.kind)
+        assertEquals(FailureMessages.TLS, untrusted.message)
+
+        assertEquals(FailureKind.Tls, SSLPeerUnverifiedException("Hostname not verified").toSafeError().kind)
+        // Android reports an untrusted chain with the validator's exception as the cause.
+        val wrapped = RuntimeException("wrapped", CertPathValidatorException("Trust anchor not found"))
+        assertEquals(FailureKind.Tls, wrapped.toSafeError().kind)
+    }
+
+    @Test
+    fun `a bare SSLException is neither a certificate problem nor the network`() {
+        // What Android throws for https:// against a plain-HTTP port. The network is fine, so it
+        // must not read as "Network unavailable".
+        val error = SSLException("Unable to parse TLS packet header").toSafeError()
+
+        assertEquals(FailureKind.Unknown, error.kind)
+    }
+
+    @Test
+    fun `a handshake that failed without a certificate verdict is not a certificate problem`() {
+        // https:// against a plain-HTTP port, and a reset mid-handshake: both retryable or a URL fix.
+        val wrongPort = SSLHandshakeException("SSL handshake aborted: WRONG_VERSION_NUMBER").toSafeError()
+        assertEquals(FailureKind.Unknown, wrongPort.kind)
+
+        val reset = SSLHandshakeException("Read error", IOException("Connection reset by peer")).toSafeError()
+        assertEquals(FailureKind.Network, reset.kind)
     }
 
     @Test

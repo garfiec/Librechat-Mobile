@@ -3,6 +3,8 @@ package com.garfiec.librechat.core.network.client
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.network.RequestActivityTracker
 import com.garfiec.librechat.core.common.result.AccessGatewayException
+import com.garfiec.librechat.core.common.result.FailureKind
+import com.garfiec.librechat.core.common.result.failureKind
 import com.garfiec.librechat.core.logging.Diag
 import com.garfiec.librechat.core.logging.LogOrigin
 import com.garfiec.librechat.core.logging.redact.LogRedactor
@@ -284,7 +286,9 @@ internal fun HttpRequestRetryConfig.configureRetryPolicy() {
             // Deterministic until the user edits the credential, so retrying only delays the report.
             // Excluded here rather than by install order: this plugin is installed first and so runs
             // outermost, which it must stay for the transient failures it exists to absorb.
-            cause !is AccessGatewayException
+            cause !is AccessGatewayException &&
+            // Same for a certificate the device doesn't trust.
+            cause.failureKind() != FailureKind.Tls
     }
     exponentialDelay()
 }

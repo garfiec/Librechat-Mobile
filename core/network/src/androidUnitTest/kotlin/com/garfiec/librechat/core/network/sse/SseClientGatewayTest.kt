@@ -4,6 +4,8 @@ import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
 import com.garfiec.librechat.core.common.result.AccessGatewayException
+import com.garfiec.librechat.core.common.result.FailureKind
+import com.garfiec.librechat.core.common.result.message
 import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.network.client.GatewayDetectionPlugin
 import com.google.common.truth.Truth.assertThat
@@ -24,6 +26,8 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import org.junit.Test
+import java.security.cert.CertificateException
+import javax.net.ssl.SSLHandshakeException
 
 /**
  * The streaming path's gateway behaviour, end to end: detection plugin → transport → [SseClient].
@@ -125,6 +129,36 @@ class SseClientGatewayTest {
         assertThat(errors).hasSize(1)
         assertThat(errors.single().message).contains("gateway")
         assertThat(events.filterIsInstance<StreamEvent.Retrying>()).isEmpty()
+    }
+
+    @Test
+    fun `an untrusted certificate ends the stream at once with its own message`() = runTest(UnconfinedTestDispatcher()) {
+        var requestCount = 0
+        val engine = MockEngine(
+            MockEngineConfig().apply {
+                dispatcher = Dispatchers.Unconfined
+                addHandler {
+                    requestCount++
+                    throw SSLHandshakeException("Trust anchor for certification path not found.").apply {
+                        initCause(CertificateException("Trust anchor for certification path not found."))
+                    }
+                }
+            },
+        )
+        val client = SseClient(
+            json = Json { ignoreUnknownKeys = true },
+            transport = SseHttpTransport(HttpClient(engine) { defaultRequest { url(SERVER) } }),
+            activeAccountProvider = InMemoryActiveAccountProvider(AccountState.Resolved(AccountId("srv-1:user-a"))),
+        )
+
+        val events = client.connect("api/agents/chat/stream/abc").toList()
+
+        val errors = events.filterIsInstance<StreamEvent.Error>()
+        assertThat(errors).hasSize(1)
+        assertThat(errors.single().message).isEqualTo(FailureKind.Tls.message())
+        assertThat(errors.single().isNetworkError).isFalse()
+        assertThat(events.filterIsInstance<StreamEvent.Retrying>()).isEmpty()
+        assertThat(requestCount).isEqualTo(1)
     }
 
     /** The generic arm would retry five times with backoff and then report the wrong cause. */

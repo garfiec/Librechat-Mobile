@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.common.result.AccessGatewayException
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.FailureKind
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.common.result.failureKind
 import com.garfiec.librechat.core.common.result.safeApiCall
 import com.garfiec.librechat.core.data.datastore.ConfigCacheDataStore
 import com.garfiec.librechat.core.logging.Diag
@@ -145,7 +146,20 @@ class ConfigRepositoryImpl(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            probeFailed("unreachable", Result.Error(e, "Could not reach the server. Check the URL and your connection."))
+            if (e.failureKind() == FailureKind.Tls) {
+                probeFailed(
+                    "tls",
+                    Result.Error(
+                        exception = e,
+                        message = "This server's security certificate was rejected: it isn't trusted by this " +
+                            "device, has expired, or was issued for a different address. Self-signed and " +
+                            "private certificates aren't supported yet.",
+                        kind = FailureKind.Tls,
+                    ),
+                )
+            } else {
+                probeFailed("unreachable", Result.Error(e, "Could not reach the server. Check the URL and your connection."))
+            }
         }
     }
 

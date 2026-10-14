@@ -12,6 +12,8 @@ import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import java.io.IOException
+import java.security.cert.CertificateException
+import javax.net.ssl.SSLHandshakeException
 
 /**
  * Locks the retry-scoping invariant: the shared [configureRetryPolicy] must replay only
@@ -65,5 +67,35 @@ class HttpRetryScopingTest {
         assertThat(attempts["GET"]).isEqualTo(SAFE_ATTEMPTS)
         assertThat(attempts["POST"]).isEqualTo(UNSAFE_ATTEMPTS)
         assertThat(attempts["DELETE"]).isEqualTo(UNSAFE_ATTEMPTS)
+    }
+
+    @Test
+    fun `does not retry a GET whose certificate is untrusted`() = runTest {
+        var attempts = 0
+        val engine = MockEngine {
+            attempts++
+            throw SSLHandshakeException("Trust anchor for certification path not found.").apply {
+                initCause(CertificateException("Trust anchor for certification path not found."))
+            }
+        }
+        val client = countingClient(engine)
+
+        runCatching { client.get("https://example.com/api/config") }
+
+        assertThat(attempts).isEqualTo(1)
+    }
+
+    @Test
+    fun `retries a GET whose handshake failed for a reason other than the certificate`() = runTest {
+        var attempts = 0
+        val engine = MockEngine {
+            attempts++
+            throw SSLHandshakeException("SSL handshake aborted: I/O error during system call, Connection reset by peer")
+        }
+        val client = countingClient(engine)
+
+        runCatching { client.get("https://example.com/api/config") }
+
+        assertThat(attempts).isEqualTo(SAFE_ATTEMPTS)
     }
 }

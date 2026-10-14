@@ -24,6 +24,8 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import java.net.ConnectException
+import java.security.cert.CertificateException
+import javax.net.ssl.SSLHandshakeException
 
 /**
  * The probe/reload seams added for multi-account (issue #179): validation for a server being ADDED
@@ -197,6 +199,37 @@ class ConfigRepositoryImplTest {
         assertThat(severity).isEqualTo(Severity.Warn)
         assertThat(entry.attrs).containsExactly("path", "/api/config", "reason", "unreachable")
         assertThat(entry.origin).isEqualTo("network")
+    }
+
+    @Test
+    fun `an untrusted certificate is reported as a certificate problem, not as unreachable`() = runTest {
+        coEvery { configApi.getStartupConfig() } throws
+            SSLHandshakeException("java.security.cert.CertPathValidatorException: Trust anchor not found").apply {
+                initCause(CertificateException("java.security.cert.CertPathValidatorException: Trust anchor not found"))
+            }
+        val repo = repository()
+
+        lateinit var result: Result<*>
+        val logged = captureProbeLogs { result = repo.probeServerUrl() }
+
+        val error = result as Result.Error
+        assertThat(error.kind).isEqualTo(FailureKind.Tls)
+        assertThat(error.message).contains("certificate")
+        assertThat(logged.single().second.attrs).containsExactly("path", "/api/config", "reason", "tls")
+    }
+
+    /** LibreChat's default port serves plain HTTP; https:// against it is a URL fix, not a certificate one. */
+    @Test
+    fun `https against a plain-HTTP port is reported as unreachable, not as a certificate problem`() = runTest {
+        coEvery { configApi.getStartupConfig() } throws
+            SSLHandshakeException("SSL handshake aborted: Failure in SSL library, usually a protocol error WRONG_VERSION_NUMBER")
+        val repo = repository()
+
+        lateinit var result: Result<*>
+        val logged = captureProbeLogs { result = repo.probeServerUrl() }
+
+        assertThat((result as Result.Error).kind).isNotEqualTo(FailureKind.Tls)
+        assertThat(logged.single().second.attrs).containsExactly("path", "/api/config", "reason", "unreachable")
     }
 
     @Test

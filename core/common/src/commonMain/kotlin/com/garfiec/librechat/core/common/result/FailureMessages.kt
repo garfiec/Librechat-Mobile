@@ -24,6 +24,14 @@ enum class FailureKind {
     /** A response arrived but wasn't what the API promised: HTML, truncated JSON, wrong shape. */
     MalformedResponse,
 
+    /**
+     * The TLS handshake failed: the server's certificate is self-signed, from a private CA, expired,
+     * or issued for another name. Retrying won't help. Recognised on Android only, from the
+     * certificate exception beneath the TLS failure; iOS reports these as an untyped
+     * `DarwinHttpRequestException` (and its SSE transport as a plain `Exception`).
+     */
+    Tls,
+
     /** An access gateway intercepted the request. See [AccessGatewayException]. */
     AccessGateway,
 
@@ -45,6 +53,8 @@ internal object FailureMessages {
     const val NETWORK = "Network unavailable. Check your connection."
     const val TIMEOUT = "The server took too long to respond."
     const val MALFORMED = "Unexpected response from the server."
+    const val TLS = "A secure connection couldn't be made: the server's certificate is invalid " +
+        "or isn't trusted by this device."
     const val GATEWAY = "Your server's access gateway rejected this request. " +
         "Check Server connection in Settings."
     const val UNKNOWN = "Something went wrong. Please try again."
@@ -102,6 +112,13 @@ internal fun classifyFailure(throwable: Throwable): FailureKind {
         val name = error::class.simpleName.orEmpty()
         when {
             name.contains("Timeout") -> return FailureKind.Timeout
+            // A certificate problem fails the same way on every retry, so it isn't "the network".
+            // Not SSLHandshakeException by name: Android also throws it for a reset mid-handshake
+            // and for https:// against a plain-HTTP port. A rejected certificate is the
+            // CertificateException beneath it, which this walk reaches next.
+            name.contains("SSLPeerUnverified") ||
+                name.contains("CertPath") ||
+                name.contains("Certificate") -> return FailureKind.Tls
             name.contains("UnresolvedAddress") ||
                 name.contains("UnknownHost") ||
                 name.contains("ConnectException") ||
@@ -126,11 +143,18 @@ private const val TRAVERSAL_LIMIT = 8
  */
 fun FailureKind.message(): String = defaultMessage()
 
+/**
+ * The [FailureKind] of this failure, for callers that branch on it themselves. Unlike [toSafeError]
+ * it doesn't log.
+ */
+fun Throwable.failureKind(): FailureKind = classifyFailure(this)
+
 /** The safe, user-facing text for a [FailureKind]. */
 internal fun FailureKind.defaultMessage(): String = when (this) {
     FailureKind.Network -> FailureMessages.NETWORK
     FailureKind.Timeout -> FailureMessages.TIMEOUT
     FailureKind.MalformedResponse -> FailureMessages.MALFORMED
+    FailureKind.Tls -> FailureMessages.TLS
     FailureKind.AccessGateway -> FailureMessages.GATEWAY
     FailureKind.Server, FailureKind.Unknown -> FailureMessages.UNKNOWN
 }
