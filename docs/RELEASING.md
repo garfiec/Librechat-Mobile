@@ -384,19 +384,26 @@ flavor's package changes.
   flag), checks the bundle is `com.garfiec.librechat.play` signed with the release key, and
   uploads it with the R8 mapping.
   One-time setup:
-  1. Create the app in Play Console. Create app never asks for a package: the **first uploaded
-     bundle** fixes it, permanently, even if that release is discarded. Check the bundle is
-     `com.garfiec.librechat.play` before uploading (the workflow's verify step shows how). The
-     bare `com.garfiec.librechat` registered under Android developer verification is the
-     open-source package and stays as it is. For Play App Signing, let
-     Google generate the app-signing key and register the release key as the **upload** key: Play
-     then sees only its certificate. Do **not** upload the release key itself as the app-signing
-     key. That hands Google the private key that the README fingerprint, F-Droid's
-     `AllowedAPKSigningKeys` and every Obtainium install trust, so the open-source channel would
-     no longer be signed only by us. The package, not the key, keeps the channels apart, so
-     nothing needs Play to sign with our key.
-  2. Upload the **first** bundle by hand (build it locally with the release key and `-PbuildPlay`).
-     The Play Developer API cannot create an app, so the workflow fails until this exists.
+  1. Create the app in Play Console (Home → Create app) with package name
+     `com.garfiec.librechat.play`. The form asks for the package and binds the app to it at
+     creation, so use **Check availability** and make sure it is the `.play` id. The bare
+     `com.garfiec.librechat` is the open-source package: it is registered under Android
+     developer verification (Play Console → Android developer verification) and needs no Play
+     app. Package registrations there outlive the apps: deleting a draft app leaves its package
+     registered to the account, and Create app can reuse it. Free apps get Play's "automatic
+     protection" installer check by default; it only affects Play-signed builds and can be turned
+     off under App integrity.
+  2. Play App Signing is set up by the app's first uploaded bundle. Let Google generate the
+     app-signing key, so the release key becomes the **upload** key and Play sees only its
+     certificate. Do **not** upload the release key itself as the app-signing key. That hands
+     Google the private key that the README fingerprint, F-Droid's `AllowedAPKSigningKeys` and
+     every Obtainium install trust, so the open-source channel would no longer be signed only by
+     us. The package, not the key, keeps the channels apart, so nothing needs Play to sign with our
+     key. Because the app now exists before any upload, the workflow's first run may be able to
+     make that first upload itself. That is unverified: if the run fails on the API call, upload
+     one bundle by hand to internal testing (build it locally with the release key and
+     `-PbuildPlay`, then check it is `com.garfiec.librechat.play` signed with the release key, as
+     the workflow's verify step does) and rerun.
   3. In a Google Cloud project, enable the Google Play Android Developer API and create a service
      account (no Cloud roles) with a JSON key. In Play Console → Users and permissions, invite its
      email with app permissions on `com.garfiec.librechat.play` only: release to testing tracks,
@@ -406,10 +413,10 @@ flavor's package changes.
   4. Until the app's first release has passed review, run the workflow with status `draft`: Play
      refuses a completed release on an app that has never been published.
 
-  Data safety form: declare that web-search results load site icons from Google's favicon service
-  (on by default here), which receives each result's host name. Declare microphone and camera use
-  (voice input, attachments) and that the user's own server receives their conversations. Play
-  requires a privacy-policy URL.
+  Data safety form: no data collected, no data shared. The app sends user data only to the
+  LibreChat server the user chose; [`PRIVACY-NOTES.md`](PRIVACY-NOTES.md) section A has the form
+  answers. Privacy-policy URL:
+  `https://github.com/garfiec/Librechat-Mobile/blob/develop/docs/PRIVACY.md`.
 - **App Store** — `.github/workflows/appstore.yml`, archived with the `Release-AppStore`
   configuration (see .github/CLAUDE.md).
 - **Obtainium** — tracks GitHub Releases directly (see the README install section). Stable

@@ -16,7 +16,8 @@ arrives there.
 
 ## 1. The short version
 
-- **We run no servers and receive nothing from the app automatically.** Switchboard has no
+- **Switchboard does not collect your data.** We run no servers and receive nothing from the app
+  automatically. What you send goes to the LibreChat server you chose, not to us. Switchboard has no
   analytics, advertising, crash-reporting or telemetry SDK in any channel. The only ways data about
   you can reach us are (a) aggregate crash and performance statistics that Google Play or Apple
   collect on their own and show to developers, which depend on your device settings and your
