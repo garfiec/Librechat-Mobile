@@ -1,7 +1,9 @@
 # Store metadata
 
 `metadata/android/en-US/` is the [fastlane metadata layout](https://f-droid.org/docs/All_About_Descriptions_Graphics_and_Screenshots/)
-that F-Droid and IzzyOnDroid read for the store listing. Nothing in this directory is
+that F-Droid and IzzyOnDroid read for the store listing. Google Play and the App Store do not
+read it: their listings are kept by hand in each console and describe the store builds, whose
+defaults differ (see `CLAUDE.md` here). Nothing in this directory is
 compiled into the app, and there is no fastlane installation — the layout is a convention,
 not a tool dependency.
 
