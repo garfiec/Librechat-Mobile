@@ -45,15 +45,17 @@ class SearchIndexState(private val dataStore: DataStore<Preferences>) {
     }
 
     /**
-     * The (messages, indexed) row counts the last repair left behind. Unclaimed legacy rows are
-     * counted in `messages` but never indexed, so equal counts can't be the only "nothing to do"
-     * signal; an unchanged pair means the last repair already looked.
+     * How many more rows `messages` held than the index when the last repair finished. Unclaimed
+     * legacy rows are counted in `messages` but never indexed, so equal counts can't be the only
+     * "nothing to do" signal; an unchanged gap means the last repair already looked. Comparing the
+     * gap rather than both counts keeps new and pruned messages, which move both, from re-running
+     * a repair that has to read every wide row.
      */
-    suspend fun repairSettledAt(): Pair<Int, Int>? =
+    suspend fun repairSettledGap(): Int? =
         dataStore.data.first()[REPAIR_SETTLED]?.split(':')?.let { parts ->
             val messages = parts.getOrNull(0)?.toIntOrNull()
             val indexed = parts.getOrNull(1)?.toIntOrNull()
-            if (messages != null && indexed != null) messages to indexed else null
+            if (messages != null && indexed != null) messages - indexed else null
         }
 
     suspend fun saveRepairSettledAt(messages: Int, indexed: Int) {
@@ -63,7 +65,7 @@ class SearchIndexState(private val dataStore: DataStore<Preferences>) {
     companion object {
         /**
          * Makes the next repair look again, whatever the counts say. For writes that index-eligible
-         * rows appear through without changing either count, which is what the legacy claim does:
+         * rows appear through without changing the gap, which is what the legacy claim does:
          * stamping `accountId` on unclaimed rows makes them indexable, but `messages` already counted
          * them. Takes the caller's edit so it lands in the same write as that change.
          */

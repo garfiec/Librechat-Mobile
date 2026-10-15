@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.data.db.dao.ConversationDao
 import com.garfiec.librechat.core.data.db.dao.MessageDao
 import com.garfiec.librechat.core.data.db.dao.PrefetchWatermarkDao
 import com.garfiec.librechat.core.data.db.entity.ConversationEntity
+import com.garfiec.librechat.core.data.search.SearchIndexMaintenance
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.SAVED_TAG
 import com.garfiec.librechat.core.model.response.ConversationListResponse
@@ -137,6 +138,30 @@ class ConversationRepositoryImplTest {
         assertThat(result).isInstanceOf(Result.Success::class.java)
         coVerify(exactly = 1) { messageDao.deleteAllForAccount(account.value) }
         coVerify(exactly = 1) { prefetchWatermarkDao.deleteAllForAccount(account.value) }
+        coVerify(exactly = 1) { conversationDao.deleteAllForAccount(account.value) }
+    }
+
+    @Test
+    fun `deleteAll purges messages through the search index when it has one`() = runTest {
+        val maintenance = mockk<SearchIndexMaintenance>()
+        coEvery { maintenance.purgeAccountMessages(account.value) } returns SearchIndexMaintenance.PurgePath.Rebuild
+        coEvery { conversationsApi.deleteAllConversations() } just Runs
+        val indexed = ConversationRepositoryImpl(
+            conversationsApi = conversationsApi,
+            conversationDao = conversationDao,
+            messageDao = messageDao,
+            prefetchWatermarkDao = prefetchWatermarkDao,
+            activeAccountProvider = activeAccountProvider,
+            roster = roster,
+            json = json,
+            dispatcher = UnconfinedTestDispatcher(),
+            searchIndexMaintenance = maintenance,
+        )
+
+        indexed.deleteAll()
+
+        coVerify(exactly = 1) { maintenance.purgeAccountMessages(account.value) }
+        coVerify(exactly = 0) { messageDao.deleteAllForAccount(any()) }
         coVerify(exactly = 1) { conversationDao.deleteAllForAccount(account.value) }
     }
 

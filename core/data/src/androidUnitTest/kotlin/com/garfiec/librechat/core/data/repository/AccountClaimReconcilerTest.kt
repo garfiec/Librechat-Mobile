@@ -134,7 +134,7 @@ class AccountClaimReconcilerTest {
         AccountClaimReconciler(db.accountClaimDao(), store, dispatcher).claimIfNeeded(AccountId("srv:userA"), userKey = "userA")
 
         // The claim moved no count, so a remembered pair would skip the rows it just made indexable.
-        assertThat(indexState.repairSettledAt()).isNull()
+        assertThat(indexState.repairSettledGap()).isNull()
     }
 
     @Test

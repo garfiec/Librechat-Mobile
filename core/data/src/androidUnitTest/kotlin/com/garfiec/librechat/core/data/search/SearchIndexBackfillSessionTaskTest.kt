@@ -2,8 +2,11 @@ package com.garfiec.librechat.core.data.search
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.garfiec.librechat.core.data.db.AccountIsolationTestBase
+import com.garfiec.librechat.core.data.db.dao.MessageSearchDao
 import com.garfiec.librechat.core.data.prefetch.PrefetchConditions
 import com.google.common.truth.Truth.assertThat
+import io.mockk.coVerify
+import io.mockk.spyk
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -51,8 +54,8 @@ class SearchIndexBackfillSessionTaskTest : AccountIsolationTestBase() {
     )
     private val activity = LocalSearchActivity()
 
-    private fun task() = SearchIndexBackfillSessionTask(
-        dao = db.messageSearchDao(),
+    private fun task(dao: MessageSearchDao = db.messageSearchDao()) = SearchIndexBackfillSessionTask(
+        dao = dao,
         state = state,
         maintenance = SearchIndexMaintenance(db),
         window = object : SearchIndexWindow {
@@ -103,7 +106,7 @@ class SearchIndexBackfillSessionTaskTest : AccountIsolationTestBase() {
         // filled in the rest. Had the cursor been ignored, the counts would already have matched
         // and the repair would have recorded nothing.
         assertThat(indexedCount()).isEqualTo(50)
-        assertThat(state.repairSettledAt()).isEqualTo(50 to 50)
+        assertThat(state.repairSettledGap()).isEqualTo(0)
     }
 
     @Test
@@ -114,7 +117,7 @@ class SearchIndexBackfillSessionTaskTest : AccountIsolationTestBase() {
         task().run()
 
         assertThat(indexedCount()).isEqualTo(5)
-        assertThat(state.repairSettledAt()).isEqualTo(5 to 5)
+        assertThat(state.repairSettledGap()).isEqualTo(0)
     }
 
     @Test
@@ -125,7 +128,33 @@ class SearchIndexBackfillSessionTaskTest : AccountIsolationTestBase() {
         task().run()
 
         assertThat(indexedCount()).isEqualTo(0)
-        assertThat(state.repairSettledAt()).isEqualTo(3 to 0)
+        assertThat(state.repairSettledGap()).isEqualTo(3)
+    }
+
+    @Test
+    fun newIndexedMessagesDoNotRerunARepairThatSettledOnUnclaimedRows() = runTest {
+        seedUnindexed(3, accountId = null)
+        state.markBackfillDone()
+        task().run()
+
+        db.messageDao().upsertAllIndexed(listOf(message("fresh", conversationId = "c2", accountId = accountA)))
+        val dao = spyk(db.messageSearchDao())
+        task(dao).run()
+
+        coVerify(exactly = 0) { dao.repairBatch(any()) }
+    }
+
+    @Test
+    fun anUnindexedRowAfterASettleRunsTheRepair() = runTest {
+        seedUnindexed(3, accountId = null)
+        state.markBackfillDone()
+        task().run()
+
+        db.messageDao().upsertAll(listOf(message("stray", conversationId = "c2", accountId = accountA)))
+        task().run()
+
+        assertThat(indexedCount()).isEqualTo(1)
+        assertThat(state.repairSettledGap()).isEqualTo(3)
     }
 
     @Test

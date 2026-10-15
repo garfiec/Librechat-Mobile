@@ -85,7 +85,6 @@ class SearchIndexMaintenanceTest : AccountIsolationTestBase() {
             tagDao = db.conversationTagDao(),
             prefetchWatermarkDao = db.prefetchWatermarkDao(),
             ioDispatcher = Dispatchers.Unconfined,
-            searchDao = db.messageSearchDao(),
             searchIndexMaintenance = maintenance,
         )
         seed("a", accountA, 2_100, "heron")
@@ -95,6 +94,20 @@ class SearchIndexMaintenanceTest : AccountIsolationTestBase() {
 
         assertThat(count("SELECT COUNT(*) FROM messages")).isEqualTo(10)
         assertThat(ftsHits("heron")).isEqualTo(10)
+    }
+
+    @Test
+    fun aPurgeRebuildsOnlyWhenTheAccountHoldsMostOfALargeIndex() = runTest {
+        seed("a", accountA, 2_100, "heron")
+        seed("b", accountB, 2_200, "heron")
+        seed("c", "acct-c", 10, "heron")
+
+        // B holds more than A, so A goes row by row; B then holds most of what is left.
+        assertThat(maintenance.purgeAccountMessages(accountA)).isEqualTo(SearchIndexMaintenance.PurgePath.PerRow)
+        assertThat(maintenance.purgeAccountMessages(accountB)).isEqualTo(SearchIndexMaintenance.PurgePath.Rebuild)
+        assertThat(maintenance.purgeAccountMessages("acct-c")).isEqualTo(SearchIndexMaintenance.PurgePath.PerRow)
+        assertThat(count("SELECT COUNT(*) FROM messages")).isEqualTo(0)
+        assertThat(ftsHits("heron")).isEqualTo(0)
     }
 
     // ---- indexed text ----

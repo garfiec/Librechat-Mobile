@@ -55,6 +55,27 @@ class SearchIndexMaintenance(private val db: LibreChatDatabase) {
     }
 
     /**
+     * Deletes every cached message of [accountId], the cheaper way. An ordinary delete runs the
+     * index's delete trigger once per message, tokenizing each one back out; when this account holds
+     * most of the index, [deleteAccountMessages] and a rebuild from what remains costs less.
+     * Otherwise the rebuild would cost more than it saves.
+     */
+    suspend fun purgeAccountMessages(accountId: String): PurgePath {
+        val searchDao = db.messageSearchDao()
+        val own = searchDao.countForAccount(accountId)
+        val remaining = searchDao.countAllIndexed() - own
+        if (own >= FAST_PURGE_MIN_ROWS && own > remaining) {
+            deleteAccountMessages(accountId)
+            return PurgePath.Rebuild
+        }
+        db.messageDao().deleteAllForAccount(accountId)
+        return PurgePath.PerRow
+    }
+
+    /** How [purgeAccountMessages] deleted. */
+    enum class PurgePath { Rebuild, PerRow }
+
+    /**
      * Deletes [accountId]'s messages (and, through the foreign key, their side rows) without
      * tokenizing each one out of the index: with the triggers dropped the cascade is a plain delete,
      * and `'rebuild'` then re-indexes the rows that remain, which costs what the remaining accounts
@@ -84,6 +105,8 @@ class SearchIndexMaintenance(private val db: LibreChatDatabase) {
     }
 
     companion object {
+        private const val FAST_PURGE_MIN_ROWS = 2_000
+
         /**
          * Room's content-sync triggers for `messages_fts`, verbatim from the exported schema's
          * `contentSyncTriggers` (`SearchIndexMaintenanceTest` compares them, so a Room change that

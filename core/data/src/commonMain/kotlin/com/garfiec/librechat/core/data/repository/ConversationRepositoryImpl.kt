@@ -15,6 +15,7 @@ import com.garfiec.librechat.core.data.db.dao.PrefetchWatermarkDao
 import com.garfiec.librechat.core.data.mapper.toEntity
 import com.garfiec.librechat.core.data.mapper.toModel
 import com.garfiec.librechat.core.data.mapper.toModels
+import com.garfiec.librechat.core.data.search.SearchIndexMaintenance
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.ConversationPage
 import com.garfiec.librechat.core.model.SAVED_TAG
@@ -39,6 +40,7 @@ class ConversationRepositoryImpl(
     private val roster: AccountRoster,
     private val json: Json,
     private val dispatcher: CoroutineDispatcher,
+    private val searchIndexMaintenance: SearchIndexMaintenance? = null,
 ) : ConversationRepository {
 
     // toModels() decodes each row's tags JSON and formats two timestamps, so the whole cached list
@@ -286,7 +288,7 @@ class ConversationRepositoryImpl(
                 // conversation-only wipe would strand every cached message (still searchable, still
                 // counted); a watermark outliving its rows reads as "already warm", so the
                 // prefetcher would never re-fetch a conversation restored from an import.
-                messageDao.deleteAllForAccount(accountId)
+                searchIndexMaintenance?.purgeAccountMessages(accountId) ?: messageDao.deleteAllForAccount(accountId)
                 prefetchWatermarkDao.deleteAllForAccount(accountId)
                 conversationDao.deleteAllForAccount(accountId)
             }

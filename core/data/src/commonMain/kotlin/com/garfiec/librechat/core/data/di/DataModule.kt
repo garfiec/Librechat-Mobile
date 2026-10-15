@@ -247,7 +247,6 @@ val dataModule = module {
             tagDao = get(),
             prefetchWatermarkDao = get(),
             ioDispatcher = get(KoinQualifiers.IO),
-            searchDao = get(),
             searchIndexMaintenance = get(),
         )
     }
@@ -476,6 +475,7 @@ val dataModule = module {
             roster = get(),
             json = get(),
             dispatcher = get(KoinQualifiers.Default),
+            searchIndexMaintenance = get(),
         )
     }
 

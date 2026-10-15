@@ -16,14 +16,14 @@ import kotlin.time.TimeSource
 /**
  * Fills the message search index for messages cached before it existed, then keeps it complete.
  *
- * - **Backfill** (once per index version): walks `messages` newest rowid first in batches of 100,
- *   each one transaction that reads the rows and inserts their missing side rows. It never writes
- *   `messages`, so no chat observer re-fires and no wide row is rewritten. The cursor is saved every
- *   10 batches, so a restart doesn't re-read finished ranges. Rows written after it started already
+ * - **Backfill** (once per index version): walks `messages` newest rowid first in batches of
+ *   [BATCH_SIZE], each one transaction that reads the rows and inserts their missing side rows. It
+ *   never writes `messages`, so no chat observer re-fires and no wide row is rewritten. The cursor
+ *   is saved every [CURSOR_SAVE_EVERY] batches, so a restart doesn't re-read finished ranges. Rows written after it started already
  *   carry side rows, which is why rowid order is enough.
  * - **Repair** (every session, after the backfill): indexes anything that has no side row, such
- *   as legacy rows claimed after the backfill passed them. Skipped when the row counts haven't
- *   moved since the last repair looked.
+ *   as legacy rows claimed after the backfill passed them. Skipped when the gap between the two row
+ *   counts hasn't moved since the last repair looked: an indexed write or a prune moves both.
  * - **Merge**: after the backfill, merges the index's segments in bounded steps.
  *
  * Runs only while the app is in front, idle, and not power-constrained, and steps aside for a
@@ -90,9 +90,8 @@ class SearchIndexBackfillSessionTask(
     }
 
     private suspend fun repair() {
-        val messages = dao.countAllMessages()
-        val indexed = dao.countAllIndexed()
-        if (messages == indexed || state.repairSettledAt() == (messages to indexed)) return
+        val gap = dao.countAllMessages() - dao.countAllIndexed()
+        if (gap == 0 || state.repairSettledGap() == gap) return
         var repaired = 0
         while (true) {
             awaitWindow()
