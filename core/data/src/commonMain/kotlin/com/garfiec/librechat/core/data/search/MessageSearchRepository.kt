@@ -90,7 +90,6 @@ class MessageSearchRepositoryImpl(
     private val activity: LocalSearchActivity,
     private val indexState: SearchIndexState,
     private val snippetDispatcher: CoroutineDispatcher,
-    /** The server's detected version, or null before it's known. */
     private val backendVersion: () -> String? = { null },
     private val clock: Clock = Clock.System,
     private val timeSource: TimeSource = TimeSource.Monotonic,
@@ -188,7 +187,6 @@ class MessageSearchRepositoryImpl(
         if (skipped == RemoteSkipReason.Offline) {
             // Back online, the server half runs after all; a newer query cancels the wait.
             connectivity.isConnected.first { it }
-            // A probe made while offline left the answer unknown; ask again now there's a connection.
             if (capability.serverSearchEnabled.first() == null) withTimeoutOrNull(PROBE_WAIT) { capability.refresh() }
             remoteBlocker()?.let { blocker ->
                 if (blocker != skipped) emit(base.copy(remoteSkipped = blocker))
@@ -494,7 +492,6 @@ internal class RemoteSearchCache(private val clock: Clock) {
 
     suspend fun put(accountId: String, query: String, pageSize: Int, messages: List<Message>) = lock.withLock {
         val key = accountId to query.trim()
-        // A smaller answer never replaces a larger one that is still fresh.
         val kept = entries[key]?.takeIf { it.pageSize > pageSize && clock.now() - it.at <= TTL }
         entries.remove(key)
         entries[key] = kept ?: Entry(clock.now(), pageSize, messages)

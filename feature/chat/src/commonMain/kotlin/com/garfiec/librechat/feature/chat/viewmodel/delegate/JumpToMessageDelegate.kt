@@ -33,9 +33,6 @@ import kotlin.time.Duration.Companion.seconds
  * main thread: counting occurrences renders each message's markdown. If the message is still
  * missing once the refresh has settled, or after [appearTimeout], [notFound] fires.
  *
- * `jumpPending` is set from [start] until the jump has focused or given up, so the list holds its
- * first scroll to the bottom instead of showing the bottom and then scrolling up to the message.
- *
  * Find-in-page takes the query's words each on its own, under the index's rule for short words, so
  * it opens on the whole query and focuses the target's first match: in its reply, or in its
  * reasoning when the hit was there. With none of the words literally there (the index folds

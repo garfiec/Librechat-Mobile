@@ -19,8 +19,8 @@ import kotlin.time.TimeSource
  * - **Backfill** (once per index version): walks `messages` newest rowid first in batches of
  *   [BATCH_SIZE], each one transaction that reads the rows and inserts their missing side rows. It
  *   never writes `messages`, so no chat observer re-fires and no wide row is rewritten. The cursor
- *   is saved every [CURSOR_SAVE_EVERY] batches, so a restart doesn't re-read finished ranges. Rows written after it started already
- *   carry side rows, which is why rowid order is enough.
+ *   is saved every [CURSOR_SAVE_EVERY] batches, so a restart doesn't re-read finished ranges. Rows
+ *   written after it started already carry side rows, which is why rowid order is enough.
  * - **Repair** (every session, after the backfill): indexes anything that has no side row, such
  *   as legacy rows claimed after the backfill passed them. Skipped when the gap between the two row
  *   counts hasn't moved since the last repair looked: an indexed write or a prune moves both.
