@@ -95,7 +95,7 @@ class InlineLatexDetectionTest {
     }
 
     @Test
-    fun `a mid-line triple backtick is a code span opener, not a fence`() {
+    fun `a mid-line triple backtick is a code span opener and not a fence`() {
         assertEquals(listOf("x"), mathIn("wrap it in ``` fences, then \$x\$"))
         assertProse("``` \$a \$b ``` and \$c")
     }
@@ -106,7 +106,7 @@ class InlineLatexDetectionTest {
     }
 
     @Test
-    fun `a closer followed by a dollar still closes, as in pandoc`() {
+    fun `a closer followed by a dollar still closes as in pandoc`() {
         assertEquals(
             listOf(InlineSegment.Latex("x"), InlineSegment.Text("\$")),
             scanInlineLatex("\$x\$\$"),

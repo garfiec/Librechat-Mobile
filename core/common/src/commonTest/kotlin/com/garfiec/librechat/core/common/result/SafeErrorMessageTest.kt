@@ -61,7 +61,7 @@ class SafeErrorMessageTest {
     }
 
     @Test
-    fun `a certificate failure is reported as TLS, not as the network`() {
+    fun `a certificate failure is reported as TLS rather than as the network`() {
         val untrusted = SSLHandshakeException(
             "Trust anchor for certification path not found.",
             CertificateException("Trust anchor for certification path not found."),

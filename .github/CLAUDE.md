@@ -49,6 +49,9 @@ File: `.github/workflows/ci.yml`
 ### Jobs
 
 #### `lint`
+- `scripts/check-native-test-names.py` — fails on a backtick-quoted name Kotlin/Native rejects
+  (`. , ; : / \ < > [ ]`) in any source set compiled for iOS. The JVM accepts some of them (`,`
+  for one), so without this only the `ios` job notices.
 - `./gradlew detekt :app:lint --continue` (`detekt` covers every source set of every module; see `DetektConventionPlugin`)
 - Uploads merged detekt SARIF to GitHub Code Scanning + lint HTML report
 
@@ -66,11 +69,12 @@ File: `.github/workflows/ci.yml`
 
 #### `ios` (Build iOS App)
 - Selects Xcode 27.1 (pinned; see Environment)
-- Runs `iosSimulatorArm64Test` for `:shared`, `:core:ui`, `:core:common` and `:core:data` — every
-  module with an `iosTest` source set. That task runs the module's `iosTest` and its `commonTest`
-  compiled for iOS. The `ubuntu` `test` job cannot run Kotlin/Native tests, so a module not listed
-  here never has its tests run on iOS in CI — including modules with only a `commonTest`
-  (`:core:model`, `:core:network`, `:core:logging`, `:feature:chat`, `:feature:conversations`).
+- Runs `iosSimulatorArm64Test` for every KMP module with tests: `:shared`, `:core:ui`,
+  `:core:common`, `:core:data` (which have an `iosTest`), plus `:core:model`, `:core:network`,
+  `:core:logging`, `:feature:chat` and `:feature:conversations` (`commonTest` only). That task runs
+  the module's `iosTest` and its `commonTest` compiled for iOS. The `ubuntu` `test` job cannot run
+  Kotlin/Native tests, so a module left off this list never has its tests compiled or run for iOS
+  in CI: a new module with a `commonTest` or `iosTest` must be added.
 - Caches `~/.konan`
 - Runs `xcodebuild` for the iOS simulator (arm64-only, no signing). The Kotlin framework is built by the Xcode "Compile Kotlin Framework" build phase (`./gradlew :shared:embedAndSignAppleFrameworkForXcode`) — no separate link step.
 
@@ -89,6 +93,6 @@ File: `.github/workflows/ci.yml`
 
 - No release signing configured yet
 - Instrumented/UI tests are never *executed* in CI (no emulator) — `:feature:chat`'s suite is only
-  compiled, as a gate. Executed test coverage in CI is unit tests plus the iOS tests of the four modules above.
+  compiled, as a gate. Executed test coverage in CI is unit tests plus the iOS tests of the nine modules above.
 - The debug APK is uploaded as an artifact; the iOS app is built but not uploaded
 - Detekt SARIF is uploaded to GitHub Code Scanning (requires GitHub Advanced Security for private repos)

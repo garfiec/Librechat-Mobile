@@ -42,6 +42,9 @@ jobs:
       - name: Verify F-Droid store listing
         run: scripts/check-fdroid-metadata.py
 
+      - name: Verify Kotlin/Native-safe names
+        run: scripts/check-native-test-names.py
+
       - name: Run lint
         run: ./gradlew detekt :app:lint --continue
 
@@ -194,9 +197,9 @@ jobs:
           restore-keys: ${{ runner.os }}-konan-
 
       # Kotlin/Native tests on the simulator arch, which the ubuntu `test` job can't run.
-      # Every module with an iosTest source set belongs here; one left off never runs on iOS in CI.
-      # :shared exercises the real iOS Koin graph (iOS actuals); :core:ui runs the iOS
-      # gesture and layout tests.
+      # Every KMP module with tests (commonTest or iosTest) belongs here; one left off never has
+      # its tests compiled or run for iOS in CI. :shared exercises the real iOS Koin graph
+      # (iOS actuals); :core:ui runs the iOS gesture and layout tests.
       - name: iOS tests
         run: >-
           ./gradlew
@@ -204,6 +207,11 @@ jobs:
           :core:ui:iosSimulatorArm64Test
           :core:common:iosSimulatorArm64Test
           :core:data:iosSimulatorArm64Test
+          :core:model:iosSimulatorArm64Test
+          :core:network:iosSimulatorArm64Test
+          :core:logging:iosSimulatorArm64Test
+          :feature:chat:iosSimulatorArm64Test
+          :feature:conversations:iosSimulatorArm64Test
 
       # The Kotlin framework is built by the Xcode "Compile Kotlin Framework" build
       # phase (./gradlew :shared:embedAndSignAppleFrameworkForXcode) — no separate
