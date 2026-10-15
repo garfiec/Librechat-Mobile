@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.settings.viewmodel
 
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.BalanceRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
@@ -9,6 +10,7 @@ import com.garfiec.librechat.core.model.Balance
 import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.config.BalanceConfig
 import com.garfiec.librechat.core.model.config.StartupConfig
+import com.garfiec.librechat.core.ui.media.PreparedImage
 import com.garfiec.librechat.feature.settings.util.ContentReader
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -39,6 +41,10 @@ class AccountSettingsViewModelTest {
     private val balanceRepository = mockk<BalanceRepository>(relaxed = true)
     private val configRepository = mockk<ConfigRepository>(relaxed = true)
     private val startupConfig = MutableStateFlow<StartupConfig?>(null)
+    private val serverDataStore = mockk<ServerDataStore> {
+        every { currentUrlFlow } returns MutableStateFlow("https://chat.example.com")
+    }
+    private var preparedImage: PreparedImage? = null
 
     private val testUser = User(
         email = "test@example.com",
@@ -66,7 +72,9 @@ class AccountSettingsViewModelTest {
         authRepository = authRepository,
         balanceRepository = balanceRepository,
         contentReader = contentReader,
+        avatarImagePreparer = { preparedImage },
         configRepository = configRepository,
+        serverDataStore = serverDataStore,
         ioDispatcher = testDispatcher,
     )
 
@@ -233,5 +241,67 @@ class AccountSettingsViewModelTest {
         assertThat(viewModel.uiState.value.balanceEnabled).isTrue()
         assertThat(viewModel.uiState.value.tokenCredits).isEqualTo(1234)
         coVerify(exactly = 1) { balanceRepository.getBalance() }
+    }
+
+    @Test
+    fun `a relative local-storage avatar is resolved against the server url`() = runTest {
+        coEvery { userRepository.getUser() } returns
+            Result.Success(testUser.copy(avatar = "/images/u1/avatar-1.png?manual=true"))
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.user?.avatar)
+            .isEqualTo("https://chat.example.com/images/u1/avatar-1.png?manual=true")
+    }
+
+    @Test
+    fun `uploading sends the prepared image and shows the new avatar`() = runTest {
+        every { contentReader.readBytes(any()) } returns byteArrayOf(1, 2, 3)
+        preparedImage = PreparedImage.jpeg(byteArrayOf(9))
+        coEvery { userRepository.uploadAvatar(any(), any(), any()) } returns
+            Result.Success("/images/u1/avatar-2.png?manual=true")
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.showAvatarDialog()
+        viewModel.uploadAvatar(Any())
+        advanceUntilIdle()
+
+        coVerify { userRepository.uploadAvatar(byteArrayOf(9), "image/jpeg", "avatar.jpg") }
+        val state = viewModel.uiState.value
+        assertThat(state.user?.avatar).isEqualTo("https://chat.example.com/images/u1/avatar-2.png?manual=true")
+        assertThat(state.showAvatarDialog).isFalse()
+        assertThat(state.isAvatarUploading).isFalse()
+        assertThat(state.error).isNull()
+    }
+
+    @Test
+    fun `an image still over the server limit after preparing is refused without uploading`() = runTest {
+        every { contentReader.readBytes(any()) } returns byteArrayOf(1)
+        preparedImage = PreparedImage.png(ByteArray(2 * 1024 * 1024 + 1))
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.uploadAvatar(Any())
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.error).isEqualTo("Image is too large to use as a profile picture")
+        assertThat(viewModel.uiState.value.isAvatarUploading).isFalse()
+        coVerify(exactly = 0) { userRepository.uploadAvatar(any(), any(), any()) }
+    }
+
+    @Test
+    fun `a file that is not a decodable image is refused without uploading`() = runTest {
+        every { contentReader.readBytes(any()) } returns byteArrayOf(1)
+        preparedImage = null
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.uploadAvatar(Any())
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.error).isEqualTo("Could not read selected image")
+        coVerify(exactly = 0) { userRepository.uploadAvatar(any(), any(), any()) }
     }
 }

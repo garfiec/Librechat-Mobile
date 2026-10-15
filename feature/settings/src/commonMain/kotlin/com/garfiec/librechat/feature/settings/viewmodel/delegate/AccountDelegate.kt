@@ -5,6 +5,7 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.repository.BalanceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
+import com.garfiec.librechat.core.ui.media.AvatarImagePreparer
 import com.garfiec.librechat.feature.settings.util.ContentReader
 import com.garfiec.librechat.feature.settings.viewmodel.AccountSettingsUiState
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
@@ -25,6 +26,7 @@ class AccountDelegate(
     private val userRepository: UserRepository,
     private val balanceRepository: BalanceRepository,
     private val contentReader: ContentReader,
+    private val avatarImagePreparer: AvatarImagePreparer,
     private val ioDispatcher: CoroutineDispatcher,
 ) {
 
@@ -106,17 +108,27 @@ class AccountDelegate(
                 }
                 return@launch
             }
-            if (bytes == null) {
+            // Decoding and re-encoding a camera photo is CPU-heavy too.
+            val prepared = bytes?.let {
+                suspendRunCatching { withContext(ioDispatcher) { avatarImagePreparer.prepare(it) } }.getOrNull()
+            }
+            if (prepared == null) {
                 stateHandle.update {
                     copy(isAvatarUploading = false, error = "Could not read selected image")
                 }
                 return@launch
             }
-            when (val result = userRepository.uploadAvatar(bytes)) {
+            if (prepared.bytes.size > AVATAR_SIZE_LIMIT_BYTES) {
+                stateHandle.update {
+                    copy(isAvatarUploading = false, error = "Image is too large to use as a profile picture")
+                }
+                return@launch
+            }
+            when (val result = userRepository.uploadAvatar(prepared.bytes, prepared.mimeType, prepared.fileName)) {
                 is Result.Success -> {
                     stateHandle.update {
                         copy(
-                            user = result.data.toDisplayData(),
+                            user = user?.copy(avatar = result.data),
                             isAvatarUploading = false,
                             showAvatarDialog = false,
                         )
@@ -177,5 +189,11 @@ class AccountDelegate(
     private companion object {
         /** Upstream SystemRoles.ADMIN — the role name manageRoles checks. */
         const val ADMIN_ROLE = "ADMIN"
+
+        /**
+         * Upstream's default `fileConfig.avatarSizeLimit` (packages/data-provider/src/file-config.ts).
+         * The preparer keeps photos well under it; this catches what it can't shrink enough.
+         */
+        const val AVATAR_SIZE_LIMIT_BYTES = 2 * 1024 * 1024
     }
 }

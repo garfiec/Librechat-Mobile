@@ -207,7 +207,17 @@ GET    /api/files/download/:userId/:file_id
 DELETE /api/files              → delete file(s)  (with agent_id: unlink on rc1–rc3, may DELETE on rc4 — see v0.8.8-rc4 sync)
 POST   /api/files/speech/stt   → speech-to-text
 POST   /api/files/speech/tts   → text-to-speech
+POST   /api/files/images/avatar → profile picture (multipart `file` + `manual=true`) → { url }
 ```
+
+The profile-picture route is under `/api/files`, not `/api/user` (there is no `/api/user/avatar`). With
+`manual=true` the server writes `url` to the user's `avatar` itself; under local storage it is a relative
+`/images/<userId>/avatar-<ts>.<ext>?manual=true` (`<ext>` follows `imageOutputType`) and must go through `resolveAvatarUrl` before display.
+The server rejects anything over `fileConfig.avatarSizeLimit` (2 MB by default) with a generic 500, takes
+the type from the part's filename, and crops to a centered square resized to 150 px (250 px for a GIF)
+without applying EXIF orientation. So the client uploads through `AvatarImagePreparer` (`:core:ui`), which
+turns the image upright and encodes it as JPEG capped at 1024 px, or as PNG capped at 512 px when it has
+an alpha channel.
 
 ### v0.8.6 endpoint surface (confirmed during sync; mobile status noted)
 ```

@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.settings.di
 
 import com.garfiec.librechat.core.common.di.KoinQualifiers
+import com.garfiec.librechat.core.ui.media.AvatarImagePreparer
 import com.garfiec.librechat.feature.settings.viewmodel.AccountSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ApiKeysViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.AppearanceSettingsViewModel
@@ -33,6 +34,8 @@ expect val settingsPlatformModule: Module
 val settingsModule = module {
     includes(settingsPlatformModule)
 
+    single { AvatarImagePreparer.Platform }
+
     // Explicit block (not viewModelOf) so the IO dispatcher can be resolved by
     // qualifier — constructor-DSL resolves CoroutineDispatcher by type only.
     viewModel {
@@ -41,7 +44,9 @@ val settingsModule = module {
             authRepository = get(),
             balanceRepository = get(),
             contentReader = get(),
+            avatarImagePreparer = get(),
             configRepository = get(),
+            serverDataStore = get(),
             ioDispatcher = get(KoinQualifiers.IO),
         )
     }

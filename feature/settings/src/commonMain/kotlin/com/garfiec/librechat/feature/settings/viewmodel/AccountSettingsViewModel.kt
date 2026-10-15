@@ -3,11 +3,14 @@ package com.garfiec.librechat.feature.settings.viewmodel
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.BalanceRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.model.User
+import com.garfiec.librechat.core.model.media.resolveAvatarUrl
+import com.garfiec.librechat.core.ui.media.AvatarImagePreparer
 import com.garfiec.librechat.feature.settings.model.UserDisplayData
 import com.garfiec.librechat.feature.settings.util.ContentReader
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.AccountDelegate
@@ -86,24 +89,36 @@ class AccountSettingsViewModel(
     authRepository: AuthRepository,
     balanceRepository: BalanceRepository,
     contentReader: ContentReader,
+    avatarImagePreparer: AvatarImagePreparer,
     configRepository: ConfigRepository,
+    serverDataStore: ServerDataStore,
     ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AccountSettingsUiState())
     private val stateHandle = SettingsStateHandle(_uiState, viewModelScope)
 
-    private val accountDelegate =
-        AccountDelegate(stateHandle, userRepository, balanceRepository, contentReader, ioDispatcher)
+    private val accountDelegate = AccountDelegate(
+        stateHandle,
+        userRepository,
+        balanceRepository,
+        contentReader,
+        avatarImagePreparer,
+        ioDispatcher,
+    )
     private val twoFactorDelegate = TwoFactorSecurityDelegate(stateHandle, authRepository)
 
     /**
      * `allowAccountDeletion` defaults to `true` (older-server behaviour) when the field is absent
      * or the config hasn't loaded yet — see VERSION_GATES.md guideline #2.
+     *
+     * The avatar is resolved here because local storage hands back a relative `/images/…` path,
+     * which Coil cannot load; `_uiState` keeps what the server sent.
      */
     val uiState: StateFlow<AccountSettingsUiState> =
-        combine(_uiState, configRepository.startupConfig) { state, config ->
+        combine(_uiState, configRepository.startupConfig, serverDataStore.currentUrlFlow) { state, config, baseUrl ->
             state.copy(
+                user = state.user?.let { it.copy(avatar = resolveAvatarUrl(it.avatar, baseUrl)) },
                 allowAccountDeletion = config?.allowAccountDeletion ?: true,
                 balanceEnabled = config?.balance?.enabled == true,
             )

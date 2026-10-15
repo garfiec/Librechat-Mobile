@@ -4,6 +4,7 @@ import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.request.OtpVerificationRequest
 import com.garfiec.librechat.core.model.request.ResendVerificationRequest
 import com.garfiec.librechat.core.model.request.VerifyEmailRequest
+import com.garfiec.librechat.core.model.response.AvatarUploadResponse
 import com.garfiec.librechat.core.model.response.TermsAcceptResponse
 import com.garfiec.librechat.core.model.response.TermsResponse
 import io.ktor.client.HttpClient
@@ -59,16 +60,21 @@ class UserApi constructor(
             url { path("api/user/terms/accept") }
         }.body()
 
-    suspend fun updateAvatar(imageBytes: ByteArray): User =
+    /**
+     * `POST /api/files/images/avatar`. Multer infers the type from [fileName]'s extension, so it must
+     * match [imageBytes]. The server rejects anything over `fileConfig.avatarSizeLimit` (2 MB by
+     * default). `manual=true` is what makes the server write the URL to the user's `avatar` field.
+     */
+    suspend fun uploadAvatar(imageBytes: ByteArray, mimeType: String, fileName: String): AvatarUploadResponse =
         client.submitFormWithBinaryData(
             formData = formData {
                 append("file", imageBytes, Headers.build {
-                    append(HttpHeaders.ContentDisposition, "filename=\"avatar.png\"")
-                    append(HttpHeaders.ContentType, "image/png")
+                    append(HttpHeaders.ContentDisposition, "filename=\"$fileName\"")
+                    append(HttpHeaders.ContentType, mimeType)
                 })
                 append("manual", "true")
             },
         ) {
-            url { path("api/user/avatar") }
+            url { path("api/files/images/avatar") }
         }.body()
 }

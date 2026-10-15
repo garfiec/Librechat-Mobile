@@ -1248,6 +1248,20 @@
       },
       "why": "The categorical `--series-1..8` colours (light and dark blocks) the context meter and its legend use. A CSS property run has no declaration a block anchor can find, so the whole file is watched; only the `--series-*` lines matter.",
       "failure_mode": "The app's meter colours drift from web's, so the same category reads as a different colour on the two clients."
+    },
+    {
+      "id": "avatar-size-limit",
+      "upstream": {
+        "file": "packages/data-provider/src/file-config.ts",
+        "symbol": "fileConfig",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/viewmodel/delegate/AccountDelegate.kt",
+        "symbol": "AVATAR_SIZE_LIMIT_BYTES (also AgentFilesDelegate.AVATAR_SIZE_LIMIT_BYTES in feature/agents)"
+      },
+      "why": "The default `avatarSizeLimit` (2 MB) that both avatar upload paths pre-check before sending. The whole `fileConfig` default block is watched, so most changes to it are unrelated; only `avatarSizeLimit` matters. The profile-picture path also sizes its re-encode (`AvatarImagePreparer`: 1024 px JPEG, 512 px PNG) to land well under it.",
+      "failure_mode": "If upstream raises the limit, the app refuses images the server would accept. If it lowers it, the app sends images the server rejects with a generic 500 instead of showing the size message."
     }
   ]
 }
