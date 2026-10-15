@@ -44,27 +44,8 @@ fun buildActiveMessagePath(
 ): List<MessageNode> {
     if (messages.isEmpty()) return emptyList()
 
-    // Group children by their parentMessageId
-    val childrenByParent = mutableMapOf<String, MutableList<Message>>()
     val messageIds = messages.mapTo(mutableSetOf()) { it.messageId }
-    for (message in messages) {
-        val parentId = message.parentMessageId
-            ?.takeIf { it != NO_PARENT && it.isNotBlank() }
-            ?: NO_PARENT
-        childrenByParent.getOrPut(parentId) { mutableListOf() }.add(message)
-    }
-
-    // Re-parent orphans: messages whose parentId isn't NO_PARENT and isn't
-    // in the message set (e.g. system/root messages not returned by the API).
-    // Move them under NO_PARENT so the tree walk can find them.
-    val orphanParents = childrenByParent.keys
-        .filter { it != NO_PARENT && it !in messageIds }
-    if (orphanParents.isNotEmpty()) {
-        val roots = childrenByParent.getOrPut(NO_PARENT) { mutableListOf() }
-        for (orphanParentId in orphanParents) {
-            childrenByParent.remove(orphanParentId)?.let { roots.addAll(it) }
-        }
-    }
+    val childrenByParent = childrenByTreeParent(messages, messageIds)
 
     // Ancestor chain of the streaming leaf (inclusive), so the walk can follow it
     // and stop there regardless of activeBranches. Each level on the way to the leaf
@@ -130,6 +111,57 @@ fun buildActiveMessagePath(
     }
 
     return result
+}
+
+/**
+ * Children grouped under the key the walk and `activeBranches` use: the parent id, with a missing,
+ * blank or [NO_PARENT] parent mapped to [NO_PARENT], and orphans (a parent not in the list, e.g. a
+ * system root the API didn't return) moved under [NO_PARENT] too. Siblings keep input order.
+ */
+private fun childrenByTreeParent(messages: List<Message>, messageIds: Set<String>): Map<String, List<Message>> {
+    val childrenByParent = mutableMapOf<String, MutableList<Message>>()
+    for (message in messages) {
+        val parentId = message.parentMessageId
+            ?.takeIf { it != NO_PARENT && it.isNotBlank() }
+            ?: NO_PARENT
+        childrenByParent.getOrPut(parentId) { mutableListOf() }.add(message)
+    }
+    val orphanParents = childrenByParent.keys.filter { it != NO_PARENT && it !in messageIds }
+    if (orphanParents.isNotEmpty()) {
+        val roots = childrenByParent.getOrPut(NO_PARENT) { mutableListOf() }
+        for (orphanParentId in orphanParents) {
+            childrenByParent.remove(orphanParentId)?.let { roots.addAll(it) }
+        }
+    }
+    return childrenByParent
+}
+
+/**
+ * The `activeBranches` entries that make [buildActiveMessagePath] pass through [targetId]: for each
+ * ancestor of the target (and the target itself), its index among its siblings, keyed by the same
+ * tree-parent key the walk uses. Null when [targetId] isn't in [messages]. One pass over the list,
+ * then one step per ancestor.
+ *
+ * Merge the result over the current selection: branches below the target, and those off its
+ * ancestor chain, keep whatever the user had chosen.
+ */
+fun branchSelectionFor(messages: List<Message>, targetId: String): Map<String, Int>? {
+    val byId = messages.associateBy { it.messageId }
+    if (targetId !in byId) return null
+    val childrenByParent = childrenByTreeParent(messages, byId.keys)
+    val parentKeyOf = HashMap<String, String>(messages.size)
+    childrenByParent.forEach { (parentKey, children) -> children.forEach { parentKeyOf[it.messageId] = parentKey } }
+    val selection = HashMap<String, Int>()
+    val visited = HashSet<String>()
+    var id: String? = targetId
+    while (id != null && visited.add(id)) {
+        val parentKey = parentKeyOf[id] ?: break
+        val index = childrenByParent[parentKey]?.indexOfFirst { it.messageId == id } ?: -1
+        if (index < 0) break
+        selection[parentKey] = index
+        id = parentKey.takeIf { it != NO_PARENT }
+    }
+    return selection
 }
 
 /**

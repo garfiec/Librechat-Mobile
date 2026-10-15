@@ -1,7 +1,9 @@
 package com.garfiec.librechat.feature.conversations.drawer
 
 import androidx.compose.runtime.Immutable
+import com.garfiec.librechat.core.data.search.MessageSearchHit
 import com.garfiec.librechat.core.model.ConversationTag
+import com.garfiec.librechat.feature.conversations.search.SearchNote
 import kotlin.time.Instant
 
 /**
@@ -82,4 +84,29 @@ data class DrawerUiState(
     val pinEnabled: Boolean = false,
     // Version-gated (v0.8.7+): whether the move-to-project action is offered.
     val projectsEnabled: Boolean = false,
+    /** Message hits for the current query; [DrawerMessageSearch.Idle] while not searching. */
+    val messageSearch: DrawerMessageSearch = DrawerMessageSearch.Idle,
 )
+
+/**
+ * The drawer's Messages section: a short preview of the query's message hits, with the full list a
+ * tap away on the Search screen.
+ */
+@Immutable
+data class DrawerMessageSearch(
+    /** The first [PREVIEW_COUNT] hits. */
+    val preview: List<MessageSearchHit> = emptyList(),
+    val totalCount: Int = 0,
+    /** [totalCount] hit the drawer's search limit, so there may be more. */
+    val countCapped: Boolean = false,
+    /** A result has landed for the current query (before it, the section shows nothing). */
+    val searched: Boolean = false,
+    val searchingServer: Boolean = false,
+    /** Why only cached messages were searched, or null when the server answered too. */
+    val note: SearchNote? = null,
+) {
+    companion object {
+        const val PREVIEW_COUNT: Int = 5
+        val Idle = DrawerMessageSearch()
+    }
+}

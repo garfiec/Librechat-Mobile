@@ -714,4 +714,8 @@
     <string name="ui_style_note_simulated">此 iOS 版本上的 Liquid Glass 为模拟效果。iOS 26 或更高版本会原生绘制。</string>
     <string name="ui_style_note_blur_only">此设备将 Liquid Glass 显示为模糊效果，没有折射。Android 13 或更高版本可显示完整效果。</string>
     <string name="ui_style_note_flat">此设备将 Liquid Glass 显示为平面半透明表面。</string>
+    <!-- Message search -->
+    <string name="section_search">搜索</string>
+    <string name="advanced_search">高级搜索</string>
+    <string name="advanced_search_desc">面向高级用户。在搜索界面中添加区分大小写、全字匹配、正则表达式，以及角色、模型和日期筛选。</string>
 </resources>

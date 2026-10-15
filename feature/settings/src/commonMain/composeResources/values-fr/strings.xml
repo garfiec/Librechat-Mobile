@@ -716,4 +716,8 @@
     <string name="ui_style_note_simulated">Liquid Glass est simulé sur cette version d'iOS. iOS 26 ou version ultérieure l'affiche nativement.</string>
     <string name="ui_style_note_blur_only">Cet appareil affiche Liquid Glass sous forme de flou, sans réfraction. Android 13 ou version ultérieure affiche l'effet complet.</string>
     <string name="ui_style_note_flat">Cet appareil affiche Liquid Glass comme une surface translucide plate.</string>
+    <!-- Message search -->
+    <string name="section_search">Recherche</string>
+    <string name="advanced_search">Recherche avancée</string>
+    <string name="advanced_search_desc">Pour les utilisateurs avancés. Ajoute la casse, le mot entier, les expressions régulières et des filtres de rôle, de modèle et de date à l'écran de recherche.</string>
 </resources>

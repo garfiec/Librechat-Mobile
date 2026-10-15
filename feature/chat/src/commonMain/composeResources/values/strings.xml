@@ -697,4 +697,6 @@
         <item quantity="other">You've reached this server's message limit. Try again in %1$d days.</item>
     </plurals>
     <string name="queue_held_after_refusal">The server refused your message. It's waiting in the queue and won't send on its own. Tap “Send queued” when you're ready.</string>
+    <string name="jump_message_not_found">That message isn't in this chat any more.</string>
+    <string name="jump_branch_switched">Switched to response %1$d of %2$d, the branch that contains this message.</string>
 </resources>

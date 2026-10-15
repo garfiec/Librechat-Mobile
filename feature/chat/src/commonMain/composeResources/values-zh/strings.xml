@@ -669,4 +669,6 @@
         <item quantity="other">你已达到此服务器的消息上限。请在 %1$d 天后重试。</item>
     </plurals>
     <string name="queue_held_after_refusal">服务器拒绝了你的消息。它正在队列中等待，不会自动发送。准备好后请点按“发送排队消息”。</string>
+    <string name="jump_message_not_found">该消息已不在此聊天中。</string>
+    <string name="jump_branch_switched">已切换到第 %1$d 个回复（共 %2$d 个），即包含此消息的分支。</string>
 </resources>

@@ -51,6 +51,7 @@ import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
 import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.ScheduleRepository
+import com.garfiec.librechat.core.data.repository.SearchCapabilityRepository
 import com.garfiec.librechat.core.data.repository.SearchRepository
 import com.garfiec.librechat.core.data.repository.ServerRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
@@ -61,6 +62,7 @@ import com.garfiec.librechat.core.data.repository.TagRepository
 import com.garfiec.librechat.core.data.repository.ToolFavoritesRepository
 import com.garfiec.librechat.core.data.repository.TraceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
+import com.garfiec.librechat.core.data.search.MessageSearchRepository
 import com.garfiec.librechat.core.data.update.AppInstallSource
 import com.garfiec.librechat.core.data.update.AppUpdateRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
@@ -90,6 +92,7 @@ import com.garfiec.librechat.core.network.api.ProjectsApi
 import com.garfiec.librechat.core.network.api.PromptsApi
 import com.garfiec.librechat.core.network.api.QueuedTurnsApi
 import com.garfiec.librechat.core.network.api.SchedulesApi
+import com.garfiec.librechat.core.network.api.SearchApi
 import com.garfiec.librechat.core.network.api.ShareApi
 import com.garfiec.librechat.core.network.api.SkillsApi
 import com.garfiec.librechat.core.network.api.SpeechApi
@@ -169,6 +172,7 @@ class KoinGraphVerificationTest {
             ChatApi::class,
             ConfigApi::class,
             ConversationsApi::class,
+            SearchApi::class,
             EndpointTokenApi::class,
             FavoritesApi::class,
             FilesApi::class,
@@ -228,6 +232,8 @@ class KoinGraphVerificationTest {
             RoleRepository::class,
             ScheduleRepository::class,
             SearchRepository::class,
+            MessageSearchRepository::class,
+            SearchCapabilityRepository::class,
             ShareRepository::class,
             SkillsRepository::class,
             SubagentRepository::class,

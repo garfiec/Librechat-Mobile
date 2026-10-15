@@ -669,4 +669,6 @@
         <item quantity="other">이 서버의 메시지 한도에 도달했습니다. %1$d일 후에 다시 시도하세요.</item>
     </plurals>
     <string name="queue_held_after_refusal">서버가 메시지를 거부했습니다. 메시지는 대기열에서 기다리며 자동으로 전송되지 않습니다. 준비되면 “대기 중인 메시지 보내기”를 탭하세요.</string>
+    <string name="jump_message_not_found">이 메시지는 더 이상 이 채팅에 없습니다.</string>
+    <string name="jump_branch_switched">이 메시지가 있는 분기인 응답 %1$d/%2$d(으)로 전환했습니다.</string>
 </resources>

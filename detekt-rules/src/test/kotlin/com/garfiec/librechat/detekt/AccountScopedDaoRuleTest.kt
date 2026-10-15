@@ -52,6 +52,35 @@ class AccountScopedDaoRuleTest {
     }
 
     @Test
+    fun searchTablesAreTenantTables() {
+        val findings = lint(
+            """
+            import androidx.room.Dao
+            import androidx.room.Query
+
+            @Dao
+            interface SearchDao {
+                @Query("SELECT COUNT(*) FROM message_search")
+                suspend fun unscopedSideRead(): Int
+
+                @Query("SELECT searchText FROM messages_fts WHERE messages_fts MATCH :m")
+                suspend fun directFtsRead(m: String): List<String>
+
+                @Query("SELECT messageId FROM message_search WHERE accountId = :a AND +rowid IN (SELECT rowid FROM messages_fts WHERE messages_fts MATCH :m)")
+                suspend fun searchWithoutOptOut(a: String, m: String): List<String>
+
+                @Query("SELECT COUNT(*) FROM message_search WHERE accountId = :a")
+                suspend fun accountFilteredRead(a: String): Int
+            }
+            """.trimIndent(),
+        )
+        assertTrue(findings.flagged("unscopedSideRead"), "message_search must need an accountId predicate")
+        assertTrue(findings.flagged("directFtsRead"), "messages_fts spans every account and must be flagged")
+        assertTrue(findings.flagged("searchWithoutOptOut"), "a statement over both search tables is fail-closed")
+        assertTrue(!findings.flagged("accountFilteredRead"), "a scoped message_search read passes")
+    }
+
+    @Test
     fun firesOnEntityDelete() {
         val findings = lint(
             """

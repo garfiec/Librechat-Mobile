@@ -251,3 +251,41 @@ sequence number, read-modify-write inside `dataStore.edit` under `NonCancellable
 - **The table is named for the deployment, not for the headers**, because per-server state with
   nowhere else to live (cert pinning, detected backend version, a user-chosen label) belongs here. It
   carries only the headers today; see the natural-primary-key bullet before adding a column.
+
+### Message search index (`message_search` + `messages_fts`)
+Offline full-text search over cached messages. FTS4 + `unicode61` (the only full-text setup both
+drivers have; no FTS5 on Android's framework SQLite), external-content over a narrow side table.
+- **Search data never lives on `messages`.** Its trailing columns sit behind `text`/`content`, so
+  reading them walks overflow pages, and a column there would make the backfill rewrite every wide
+  row. `message_search` holds the filter/sort columns and the flattened text
+  (`searchTextOf`: content parts flattened like the server's Meilisearch plugin, TEXT + THINK +
+  STEER, capped at 128k chars).
+- **Write messages only through `MessageDao.upsertAllIndexed`** (or `replaceAllForConversation` /
+  `updateText`, which use it). It indexes in the same transaction and skips side rows whose
+  `updatedAt` hasn't moved, since any update re-tokenizes the row. `MessageWritePairingTest` fails a
+  raw `upsert`/`upsertAll` outside the DAO package.
+- **Deletes need nothing**: the side table's FK (the DB's first) cascades, and the cascade fires the
+  FTS delete trigger. Room turns `foreign_keys` on in its generated `onOpen`.
+- **Unclaimed rows (`accountId IS NULL`) are never indexed.** Side rows copy the parent's stamped
+  account, never the active one.
+- **Never select content from `messages_fts`** (it spans every account), never `VACUUM` without a
+  `'rebuild'`, only add nullable columns to `message_search`, never `REPLACE` either table, never
+  `'optimize'`. The entity KDocs say why.
+- `SearchIndexBackfillSessionTask` indexes rows cached before the index existed, then runs a repair
+  each session. It is gated on `SearchIndexWindow` (in front, idle, unconstrained; not the prefetch
+  opt-in or the network) and steps aside while a local search runs.
+- Typed input goes through `FtsQuery.plan` (quoted tokens only, so no operator reaches the parser);
+  CJK/Thai input and regex go to the bounded `MessageScanEngine` instead.
+- **`searchText` is the visible text, then the reasoning**, with `visibleLength` marking the split
+  (`searchTextOf`). The "in reasoning" marker and "answers only" both compare a match against that
+  offset, so neither reads the wide `messages` rows.
+- **Changing what `searchTextOf` produces means bumping `SearchIndexState.CURRENT_FORMAT`.** The
+  backfill then empties the index once (`SearchIndexMaintenance.resetIndex`: triggers dropped, wipe,
+  `'rebuild'`, triggers recreated) and refills it. Without the bump, old rows keep the old shape.
+- Two operations run with the sync triggers dropped, in one transaction: the reset, and
+  `AccountDataPurger`'s fast path for an account that holds most of the index (2k+ rows and more
+  than every other account combined), which deletes without per-row tokenizing and rebuilds what
+  remains. `SYNC_TRIGGERS` is compared with the exported schema by `SearchIndexMaintenanceTest`.
+- A prune of 1k+ messages merges the index afterwards, inside the prefetch window.
+- `SearchIndexBenchmark` (androidInstrumentedTest, off unless `searchBench=true`) times the
+  budgets in TRUNCATE and WAL; see its KDoc to run it.

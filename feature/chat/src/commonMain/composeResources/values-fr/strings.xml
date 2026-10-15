@@ -675,4 +675,6 @@
         <item quantity="other">Vous avez atteint la limite de messages de ce serveur. Réessayez dans %1$d jours.</item>
     </plurals>
     <string name="queue_held_after_refusal">Le serveur a refusé votre message. Il attend dans la file et ne partira pas tout seul. Touchez « Envoyer la file » quand vous êtes prêt.</string>
+    <string name="jump_message_not_found">Ce message n'est plus dans ce chat.</string>
+    <string name="jump_branch_switched">Passage à la réponse %1$d sur %2$d, la branche qui contient ce message.</string>
 </resources>

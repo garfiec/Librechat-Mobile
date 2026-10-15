@@ -54,6 +54,13 @@ class ConfigCacheDataStore(
     suspend fun loadTokenConfig(): Map<String, Map<String, ModelTokenomics>>? =
         load(TOKEN_CONFIG, "token config") { json.decodeFromString(tokenConfigSerializer, it) }
 
+    /** Whether this server's message search (Meilisearch) answered as enabled at the last probe. */
+    suspend fun saveSearchEnabled(enabled: Boolean) =
+        save(SEARCH_ENABLED, "search availability") { enabled.toString() }
+
+    suspend fun loadSearchEnabled(): Boolean? =
+        load(SEARCH_ENABLED, "search availability") { it.toBooleanStrictOrNull() }
+
     suspend fun clear() {
         // Scope to the logged-out server only: logout keeps the base URL, so serverId() still
         // resolves to it. Other retained accounts may sit on different servers whose cached
@@ -100,7 +107,8 @@ class ConfigCacheDataStore(
         const val ENDPOINT_CONFIGS = "cached_endpoint_configs"
         const val AVAILABLE_MODELS = "cached_available_models"
         const val TOKEN_CONFIG = "cached_token_config"
-        val BASES = listOf(STARTUP_CONFIG, ENDPOINT_CONFIGS, AVAILABLE_MODELS, TOKEN_CONFIG)
+        const val SEARCH_ENABLED = "cached_search_enabled"
+        val BASES = listOf(STARTUP_CONFIG, ENDPOINT_CONFIGS, AVAILABLE_MODELS, TOKEN_CONFIG, SEARCH_ENABLED)
 
         val endpointSerializer = MapSerializer(String.serializer(), EndpointConfig.serializer())
         val modelsSerializer = MapSerializer(String.serializer(), ListSerializer(String.serializer()))

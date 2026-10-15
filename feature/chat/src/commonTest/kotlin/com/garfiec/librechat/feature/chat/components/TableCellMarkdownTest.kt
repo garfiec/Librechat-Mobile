@@ -50,7 +50,9 @@ class TableCellMarkdownTest {
             |---|---|
             | **CO** alarm | carbon monoxide |
         """.trimIndent()
-        assertEquals(1, countMarkdownOccurrences(text, "CO alarm"))
+        // Quoted, so it is one phrase: unquoted, find counts each word, and "Alarm" in the header
+        // and "CO" and "alarm" in the cell would make three.
+        assertEquals(1, countMarkdownOccurrences(text, "\"CO alarm\""))
     }
 
     @Test

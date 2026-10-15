@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
 import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.PlatformBackHandler
 import com.garfiec.librechat.core.ui.components.consumeUnhandledTouches
 import com.garfiec.librechat.core.ui.components.menuDragAnchor
 import com.garfiec.librechat.core.ui.components.menuDragPressEffect
@@ -163,6 +164,14 @@ internal fun ChatFloatingTopBar(
             onNextMatch = viewModel::nextSearchMatch,
             onCloseSearch = viewModel::closeSearch,
         )
+    }
+
+    // Back closes find-in-page before it leaves the chat, as the bar's close button does. A sheet
+    // over the chat registers later, so its own back still wins while it is up.
+    val keyboardController = LocalSoftwareKeyboardController.current
+    PlatformBackHandler(enabled = uiState.isSearchOpen) {
+        keyboardController?.hide()
+        viewModel.closeSearch()
     }
 
     if (isLiquidGlass) {

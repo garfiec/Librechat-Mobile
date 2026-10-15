@@ -1,5 +1,6 @@
 package com.garfiec.librechat.feature.chat.components
 
+import com.garfiec.librechat.core.data.mapper.LegacyThinking
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.content.MessageContentPart
@@ -20,7 +21,8 @@ import com.garfiec.librechat.feature.chat.util.steerText
 //
 // Render-order contract (mirrors MessageContentAndActions → ContentPartDispatcher):
 //  1. Content parts in list order; only TEXT/TEXT_DELTA (part.text) and THINK (part.think)
-//     render searchable text. Messages without parts render message.text as one TEXT part
+//     render searchable text. Messages without parts render a legacy `:::thinking` block first
+//     (as reasoning, see [legacyTextRuns]), then the rest of message.text as one TEXT part
 //     (clause 2) when [textFallbackSplitsArtifacts], else via MarkdownContent directly.
 //  2. TEXT parts split on artifact directives first (TextContentPart). Plain Text segments are
 //     enumerated. Artifact segments depend on Artifact.isComplete:
@@ -38,13 +40,14 @@ import com.garfiec.librechat.feature.chat.util.steerText
 
 /** Occurrences contributed by one parsed [MarkdownSegment], in its render order. */
 internal fun countSegmentOccurrences(segment: MarkdownSegment, query: String): Int = when (segment) {
-    is MarkdownSegment.TextBlock -> countOccurrences(segment.text, query)
+    // What the markdown displays, not its source (see SearchableMarkdown).
+    is MarkdownSegment.TextBlock -> countDisplayedOccurrences(segment.text, query)
     is MarkdownSegment.CodeBlock ->
         if (segment.language?.lowercase() == "mermaid") 0 else countOccurrences(segment.code, query)
     is MarkdownSegment.LatexBlock -> 0
     is MarkdownSegment.InlineLatexText -> segment.segments.sumOf { inline ->
         when (inline) {
-            is InlineSegment.Text -> countOccurrences(inline.text, query)
+            is InlineSegment.Text -> countDisplayedOccurrences(inline.text, query)
             is InlineSegment.Latex -> 0
         }
     }
@@ -63,12 +66,13 @@ internal fun countMarkdownOccurrences(text: String, query: String): Int {
 
 /**
  * Fast-path bail before the (relatively expensive) parse, keeping per-keystroke search enumeration
- * cheap for the many messages that don't match. Every match outside a table is a substring of
- * [text]; a table cell is counted as displayed, with its markdown markers gone (`**CO** alarm`
- * shows `CO alarm`), so text that might hold a table is always parsed.
+ * cheap for the many messages that don't match. Every match outside a table holds one of the
+ * query's words as a substring of [text] ([mayContain]); a table cell is counted as displayed,
+ * with its markdown markers gone (`**CO** alarm` shows `CO alarm`), so text that might hold a
+ * table is always parsed.
  */
 private fun cannotMatch(text: String, query: String): Boolean =
-    text.isBlank() || query.isBlank() || (!text.contains(query, ignoreCase = true) && '|' !in text)
+    text.isBlank() || query.isBlank() || (!mayContain(text, query) && '|' !in text)
 
 /**
  * Whether a message without content parts renders its `text` with the artifact split, as a TEXT part
@@ -157,29 +161,56 @@ internal fun countMessageOccurrences(message: Message, query: String): Int {
         parts.withIndex().sumOf { (index, part) ->
             countPartOccurrences(part, query, consumedLateBatchLabel = index in consumed)
         }
-    } else if (message.textFallbackSplitsArtifacts()) {
-        countTextPartOccurrences(message.text, query)
     } else {
-        countMarkdownOccurrences(message.text, query)
+        val runs = message.legacyTextRuns()
+        countMarkdownOccurrences(runs.reasoning.orEmpty(), query) + countAnswerOccurrences(message, runs.answer, query)
     }
 }
 
+/** A text-only message's answer: split for artifacts or not, as [MessageContentAndActions] renders it. */
+private fun countAnswerOccurrences(message: Message, answer: String, query: String): Int =
+    if (message.textFallbackSplitsArtifacts()) countTextPartOccurrences(answer, query) else countMarkdownOccurrences(answer, query)
+
 /**
- * Character range of the [occurrence]-th (0-based) case-insensitive match of [query]
- * in [text], or null when out of range. Must walk matches exactly like
- * [buildHighlightedString] so the orange span and the reported rect agree.
+ * For each of [message]'s occurrences of [query], in [countMessageOccurrences]' numbering, whether it
+ * is in the message's reasoning (a THINK part, or a legacy `:::thinking` block) rather than its reply.
+ */
+internal fun occurrencesInReasoning(message: Message, query: String): List<Boolean> {
+    if (isPersistedTurnError(message) || systemEventFor(message, isEditing = false) != null) return emptyList()
+    val parts = message.content
+    return if (!parts.isNullOrEmpty()) {
+        val consumed = findLateBatchLabelsConsumedByPhase(parts)
+        parts.withIndex().flatMap { (index, part) ->
+            val count = countPartOccurrences(part, query, consumedLateBatchLabel = index in consumed)
+            List(count) { part.type == ContentType.THINK }
+        }
+    } else {
+        val runs = message.legacyTextRuns()
+        List(countMarkdownOccurrences(runs.reasoning.orEmpty(), query)) { true } +
+            List(countAnswerOccurrences(message, runs.answer, query)) { false }
+    }
+}
+
+/** A text-only message's legacy reasoning block (null when it has none) and the reply around it. */
+internal class LegacyTextRuns(val reasoning: String?, val answer: String)
+
+/**
+ * A text-only message split the way the web client renders it (`parseThinkingContent`): a
+ * `:::thinking … :::` block is reasoning, drawn first as a reasoning block, and the rest is the
+ * reply. Messages saved before reasoning had its own content part carry it this way. The renderer,
+ * [countMessageOccurrences] and the Artifacts tab all read this one split.
+ */
+internal fun Message.legacyTextRuns(): LegacyTextRuns {
+    val split = LegacyThinking.split(text) ?: return LegacyTextRuns(reasoning = null, answer = text)
+    return LegacyTextRuns(reasoning = split.reasoning.ifBlank { null }, answer = split.answer)
+}
+
+/**
+ * Character range of the [occurrence]-th (0-based) match of [query] in [text], or null when out of
+ * range. The same walk as [buildHighlightedString] ([occurrenceRanges]), so the orange span and the
+ * reported rect agree.
  */
 internal fun findOccurrenceRange(text: String, query: String, occurrence: Int): IntRange? {
     if (occurrence < 0 || query.isBlank() || text.isEmpty()) return null
-    // Match against the original string (see [addSearchSpans]): a lowercased copy can change
-    // length and shift the returned range off the actual characters.
-    var startIndex = 0
-    var index = 0
-    while (true) {
-        val foundIndex = text.indexOf(query, startIndex, ignoreCase = true)
-        if (foundIndex < 0) return null
-        if (index == occurrence) return foundIndex until foundIndex + query.length
-        index++
-        startIndex = foundIndex + query.length
-    }
+    return occurrenceRanges(text, query).getOrNull(occurrence)
 }

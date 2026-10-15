@@ -11,6 +11,7 @@ import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.db.dao.ConversationDao
 import com.garfiec.librechat.core.data.db.dao.MessageDao
+import com.garfiec.librechat.core.data.db.dao.PrefetchWatermarkDao
 import com.garfiec.librechat.core.data.mapper.toEntity
 import com.garfiec.librechat.core.data.mapper.toModel
 import com.garfiec.librechat.core.data.mapper.toModels
@@ -33,6 +34,7 @@ class ConversationRepositoryImpl(
     private val conversationsApi: ConversationsApi,
     private val conversationDao: ConversationDao,
     private val messageDao: MessageDao,
+    private val prefetchWatermarkDao: PrefetchWatermarkDao,
     private val activeAccountProvider: ActiveAccountProvider,
     private val roster: AccountRoster,
     private val json: Json,
@@ -278,7 +280,16 @@ class ConversationRepositoryImpl(
         val accountId = activeAccountProvider.currentAccountId()?.value
         return safeApiCall {
             conversationsApi.deleteAllConversations()
-            if (accountId != null) conversationDao.deleteAllForAccount(accountId)
+            if (accountId != null) {
+                // The same set AccountDataPurger clears, minus the account-level rows (drafts, tags)
+                // the server call never touched. Messages have no FK to their conversation, so a
+                // conversation-only wipe would strand every cached message (still searchable, still
+                // counted); a watermark outliving its rows reads as "already warm", so the
+                // prefetcher would never re-fetch a conversation restored from an import.
+                messageDao.deleteAllForAccount(accountId)
+                prefetchWatermarkDao.deleteAllForAccount(accountId)
+                conversationDao.deleteAllForAccount(accountId)
+            }
         }
     }
 

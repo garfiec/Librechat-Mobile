@@ -10,6 +10,7 @@ import com.garfiec.librechat.feature.auth.navigation.Register
 import com.garfiec.librechat.feature.auth.navigation.ServerUrl
 import com.garfiec.librechat.feature.chat.navigation.Chat
 import com.garfiec.librechat.feature.chat.navigation.NewChat
+import com.garfiec.librechat.feature.conversations.navigation.Search
 import com.garfiec.librechat.feature.settings.navigation.ProviderKeys
 import com.garfiec.librechat.feature.settings.navigation.SettingsTabbed
 import com.garfiec.librechat.shared.navigation.Navigator
@@ -291,5 +292,60 @@ class NavigatorTest {
         navigator.navigateToTopLevel(NewChat(agentId = "agent_X"))
 
         assertEquals(listOf<NavKey>(NewChat(agentId = "agent_X")), navigator.backStack.toList())
+    }
+
+    @Test
+    fun `navigateToSearch pushes Search above the current screen`() {
+        val navigator = createNavigator(NewChat(), Chat("c1"))
+
+        navigator.navigateToSearch("kotlin")
+
+        assertEquals(listOf(NewChat(), Chat("c1"), Search("kotlin")), navigator.backStack.toList())
+    }
+
+    @Test
+    fun `navigateToSearch replaces an open Search instead of stacking another`() {
+        val navigator = createNavigator(NewChat(), Search("old"))
+
+        navigator.navigateToSearch("new")
+
+        assertEquals(listOf(NewChat(), Search("new")), navigator.backStack.toList())
+    }
+
+    @Test
+    fun `the Search shortcut opens Search once and never while signing in`() {
+        val navigator = createNavigator(NewChat(), Chat("c1"))
+
+        assertTrue(navigator.openSearchFromShortcut())
+        assertTrue(navigator.openSearchFromShortcut())
+        assertEquals(listOf(NewChat(), Chat("c1"), Search("")), navigator.backStack.toList())
+
+        val signingIn = createNavigator(ServerUrl)
+        assertFalse(signingIn.openSearchFromShortcut())
+        assertEquals(listOf(ServerUrl), signingIn.backStack.toList())
+    }
+
+    @Test
+    fun `a jump to a reasoning hit says so on the chat route`() {
+        val navigator = createNavigator(NewChat(), Search("hashcat"))
+
+        navigator.navigateToMessage("c1", "m1", "hashcat", inReasoning = true)
+
+        assertEquals(
+            Chat("c1", targetMessageId = "m1", highlightQuery = "hashcat", targetInReasoning = true),
+            navigator.backStack.last(),
+        )
+    }
+
+    @Test
+    fun `navigateToMessage opens the chat at the hit and keeps Search beneath`() {
+        val navigator = createNavigator(NewChat(), Search("pelican"))
+
+        navigator.navigateToMessage("c1", "m1", "pelican")
+
+        assertEquals(
+            listOf(NewChat(), Search("pelican"), Chat("c1", targetMessageId = "m1", highlightQuery = "pelican")),
+            navigator.backStack.toList(),
+        )
     }
 }

@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.common.BackendVersion
 import com.garfiec.librechat.core.common.identity.AccountTransition
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.accountTransitions
+import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.ChatRepository
@@ -70,9 +71,17 @@ class DrawerViewModel(
     private val activeAccountProvider: ActiveAccountProvider,
     private val settingsDataStore: SettingsDataStore,
     private val chatRepository: ChatRepository,
+    private val search: DrawerSearchSources,
 ) : ViewModel() {
 
-    private val conversationListStateHolder = ConversationListStateHolder(conversationRepository, viewModelScope)
+    private val conversationListStateHolder = ConversationListStateHolder(
+        conversationRepository = conversationRepository,
+        scope = viewModelScope,
+        remoteTitleSearch = search::remoteTitles,
+    )
+
+    private val messageSearch: Flow<DrawerMessageSearch> =
+        search.messageSearch(conversationListStateHolder.searchQuery, activeAccountProvider)
 
     private val favoriteConversations: StateFlow<List<Conversation>> =
         conversationListStateHolder.recentConversations
@@ -231,8 +240,18 @@ class DrawerViewModel(
         )
     }
 
+    /** The search query as typed, for the field itself; [drawerUiState] carries it a beat later. */
+    val searchQuery: StateFlow<String> = conversationListStateHolder.searchQuery
+
+    /**
+     * Where the drawer's cursor and list were. Unfolding a Fold moves the drawer from the phone sheet
+     * to the tablet sidebar, a new place in the tree (and usually a recreated activity), so nothing
+     * the old one remembered reaches the new one; this instance is shared by both.
+     */
+    val viewMemory = DrawerViewMemory()
+
     val drawerUiState: StateFlow<DrawerUiState> = combine(
-        displayConversations,
+        combine(displayConversations, messageSearch) { display, messages -> display to messages },
         conversationListStateHolder.searchQuery,
         combine(
             conversationListStateHolder.isRefreshing,
@@ -243,9 +262,10 @@ class DrawerViewModel(
         },
         drawerPermissionFlags,
         drawerActionMenuState,
-    ) { display, query, refreshState, perms, actionMenu ->
+    ) { (display, messages), query, refreshState, perms, actionMenu ->
         val (refreshing, loadingMore, hasMore) = refreshState
         DrawerUiState(
+            messageSearch = if (query.isBlank()) DrawerMessageSearch.Idle else messages,
             groupedConversations = display.grouped,
             favoriteConversations = display.favorites,
             pinnedConversations = display.pinned,
@@ -264,6 +284,9 @@ class DrawerViewModel(
             projectsEnabled = actionMenu.projectsEnabled,
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, DrawerUiState())
+
+    /** Whether [accountId] is still the active account: a hit drawn before a switch is not opened. */
+    fun isActiveAccount(accountId: String): Boolean = activeAccountProvider.currentAccountId()?.value == accountId
 
     private companion object {
         const val ACTIVE_JOBS_POLL_MS = 5_000L

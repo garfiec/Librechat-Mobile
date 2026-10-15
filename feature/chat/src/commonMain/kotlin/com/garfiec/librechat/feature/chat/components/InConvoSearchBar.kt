@@ -22,16 +22,26 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_close_search
@@ -60,9 +70,19 @@ fun InConvoSearchBar(
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
 
-    // Focus the field on appear so search is type-ready. Guarded because requestFocus can throw if the
-    // node isn't placed yet during the caller's enter transition; a miss just degrades to tap-to-focus.
-    LaunchedEffect(Unit) { runCatching { focusRequester.requestFocus() } }
+    // Focus the field on appear so search is type-ready, unless it opened with a query (a jump from a
+    // search hit): that query was already committed, so the keyboard stays down. Guarded because
+    // requestFocus can throw if the node isn't placed yet during the caller's enter transition; a miss
+    // just degrades to tap-to-focus.
+    val openedEmpty = remember { query.isEmpty() }
+    LaunchedEffect(Unit) { if (openedEmpty) runCatching { focusRequester.requestFocus() } }
+    // The field keeps its own value. Fed straight from [query], each keystroke round-trips through
+    // the screen's state, and a burst of them lands on a value a keystroke behind, which puts the
+    // cursor back mid-word ("the" became "th|e"). Only an outside reset (emptied) is copied back in.
+    var field by remember { mutableStateOf(TextFieldValue(query, TextRange(query.length))) }
+    LaunchedEffect(query) {
+        if (query.isEmpty() && field.text.isNotEmpty()) field = TextFieldValue()
+    }
 
     FloatingBarChip(
         modifier = modifier
@@ -85,11 +105,24 @@ fun InConvoSearchBar(
 
             val searchCd = stringResource(Res.string.cd_search_in_conversation)
             BasicTextField(
-                value = query,
-                onValueChange = onQueryChange,
+                value = field,
+                onValueChange = { value ->
+                    val textChanged = value.text != field.text
+                    field = value
+                    if (textChanged) onQueryChange(value.text)
+                },
                 modifier = Modifier
                     .weight(1f)
                     .focusRequester(focusRequester)
+                    // Esc closes find with a hardware keyboard, as in a browser.
+                    .onPreviewKeyEvent { event ->
+                        val escape = event.key == Key.Escape && event.type == KeyEventType.KeyUp
+                        if (escape) {
+                            keyboardController?.hide()
+                            onClose()
+                        }
+                        escape
+                    }
                     .semantics { contentDescription = searchCd },
                 textStyle = MaterialTheme.typography.bodyMedium.copy(
                     color = MaterialTheme.colorScheme.onSurface,
@@ -105,7 +138,7 @@ fun InConvoSearchBar(
                 ),
                 decorationBox = { innerTextField ->
                     Box(contentAlignment = Alignment.CenterStart) {
-                        if (query.isEmpty()) {
+                        if (field.text.isEmpty()) {
                             Text(
                                 text = stringResource(Res.string.hint_find_in_conversation),
                                 style = MaterialTheme.typography.bodyMedium,

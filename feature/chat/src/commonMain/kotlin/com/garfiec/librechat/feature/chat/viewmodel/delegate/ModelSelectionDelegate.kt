@@ -369,11 +369,22 @@ class ModelSelectionDelegate(
         // that selectedModel is actually one of the loaded agent IDs.
         // When modelsForEndpoint is absent (still loading), skip the check
         // rather than clobber the selection.
+        //
+        // Any other endpoint keeps the conversation's model while the endpoint itself exists, as
+        // the web client does (`useNavigateToConvo` rebuilds a conversation only when its endpoint
+        // is missing from the config). The model list is not a whitelist: a fetched list can leave
+        // out a model the chat ran on (a dated id like `grok-4-0709`), and replacing it would open the
+        // chat on an unrelated model. Only a vanished endpoint falls back.
         val currentEndpoint = handle.state.selectedEndpoint
         val currentModel = handle.state.selectedModel
         val modelsForEndpoint = filtered[currentEndpoint]
-        val selectionValid = currentModel != null &&
-            (modelsForEndpoint == null || currentModel in modelsForEndpoint)
+        val endpointConfigs = configRepository.endpointConfigs.value
+        val endpointGone = currentEndpoint != null && endpointConfigs.isNotEmpty() && currentEndpoint !in endpointConfigs
+        val selectionValid = currentModel != null && if (currentEndpoint == EndpointConstants.AGENTS) {
+            modelsForEndpoint == null || currentModel in modelsForEndpoint
+        } else {
+            !endpointGone
+        }
 
         if (selectionValid) return
 

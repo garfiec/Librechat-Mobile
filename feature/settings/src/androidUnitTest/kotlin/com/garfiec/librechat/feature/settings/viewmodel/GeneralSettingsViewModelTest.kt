@@ -6,7 +6,9 @@ import com.garfiec.librechat.core.common.datetime.ClockFormat
 import com.garfiec.librechat.core.common.datetime.DateFormatStyle
 import com.garfiec.librechat.core.common.datetime.DateTimeFormatPrefs
 import com.garfiec.librechat.core.common.datetime.TimestampStyle
+import com.garfiec.librechat.core.data.datastore.AppPreferences
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
+import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.ConfigRepository
@@ -38,6 +40,9 @@ class GeneralSettingsViewModelTest {
     private val selectedLanguageFlow = MutableStateFlow(SettingsDataStore.DEFAULT_LANGUAGE)
     private val dateTimePrefsFlow = MutableStateFlow(DateTimeFormatPrefs())
     private val version = MutableStateFlow<String?>(null)
+    private val preferenceStore = mockk<PreferenceStore>(relaxed = true) {
+        every { observe(AppPreferences.AdvancedSearch) } returns MutableStateFlow(false)
+    }
 
     @Before
     fun setup() {
@@ -68,6 +73,7 @@ class GeneralSettingsViewModelTest {
             override val gitSha = "testsha0"
             override val channel = DistributionChannel.OPEN_SOURCE
         },
+        preferenceStore = preferenceStore,
     )
 
     @Test

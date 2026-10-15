@@ -163,13 +163,15 @@ class ModelSelectionDelegateTest {
         val scope = TestScope(StandardTestDispatcher(testScheduler))
         val handle = newHandle(
             scope,
-            uiState(conversationId = "c1", selectedEndpoint = "openAI", selectedModel = "ghost"),
+            uiState(conversationId = "c1", selectedEndpoint = "removed", selectedModel = "ghost"),
         )
         val delegate = newDelegate(handle)
         delegate.conversationModelLoaded = true
         delegate.cachedLastUsedEndpoint = "anthropic"
         delegate.cachedLastUsedModel = "claude-3"
         availableModels.value = mapOf("openAI" to listOf("gpt-4o"), "anthropic" to listOf("claude-3"))
+        // The selection's endpoint is gone from the config; the others are live.
+        endpointConfigs.value = availableModels.value.keys.associateWith { EndpointConfig() }
 
         delegate.refilterModels(isNewConversation = false)
         advanceUntilIdle()
@@ -179,15 +181,40 @@ class ModelSelectionDelegateTest {
     }
 
     @Test
+    fun refilterKeepsAModelItsLiveEndpointDoesNotList() = runTest {
+        // As on web: the model list is not a whitelist. A chat that ran on a model the fetched list
+        // leaves out (a dated id) opens on that model, not on the list's first.
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val handle = newHandle(
+            scope,
+            uiState(conversationId = "c1", selectedEndpoint = "xAI", selectedModel = "grok-4-0709"),
+        )
+        val delegate = newDelegate(handle)
+        delegate.conversationModelLoaded = true
+        delegate.cachedLastUsedEndpoint = "openAI"
+        delegate.cachedLastUsedModel = "gpt-4o"
+        availableModels.value = linkedMapOf("openAI" to listOf("gpt-4o"), "xAI" to listOf("grok-4"))
+        endpointConfigs.value = mapOf("openAI" to EndpointConfig(), "xAI" to EndpointConfig())
+
+        delegate.refilterModels(isNewConversation = false)
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedEndpoint).isEqualTo("xAI")
+        assertThat(handle.state.selectedModel).isEqualTo("grok-4-0709")
+    }
+
+    @Test
     fun refilterInvalidSelectionNoLastUsedPicksFirstConfigModel() = runTest {
         val scope = TestScope(StandardTestDispatcher(testScheduler))
         val handle = newHandle(
             scope,
-            uiState(conversationId = "c1", selectedEndpoint = "openAI", selectedModel = "ghost"),
+            uiState(conversationId = "c1", selectedEndpoint = "removed", selectedModel = "ghost"),
         )
         val delegate = newDelegate(handle)
         delegate.conversationModelLoaded = true
         availableModels.value = linkedMapOf("openAI" to listOf("gpt-4o"), "anthropic" to listOf("claude-3"))
+        // The selection's endpoint is gone from the config; the others are live.
+        endpointConfigs.value = availableModels.value.keys.associateWith { EndpointConfig() }
 
         delegate.refilterModels(isNewConversation = false)
         advanceUntilIdle()
@@ -272,11 +299,13 @@ class ModelSelectionDelegateTest {
         val scope = TestScope(StandardTestDispatcher(testScheduler))
         val handle = newHandle(
             scope,
-            uiState(conversationId = "c1", selectedEndpoint = "openAI", selectedModel = "ghost"),
+            uiState(conversationId = "c1", selectedEndpoint = "removed", selectedModel = "ghost"),
         )
         val delegate = newDelegate(handle)
         delegate.conversationModelLoaded = true
         availableModels.value = mapOf("openAI" to listOf("gpt-4o"))
+        // The selection's endpoint is gone from the config; the others are live.
+        endpointConfigs.value = availableModels.value.keys.associateWith { EndpointConfig() }
 
         delegate.refilterModels(isNewConversation = false)
         advanceUntilIdle()
@@ -1047,7 +1076,7 @@ class ModelSelectionDelegateTest {
             scope,
             uiState(
                 conversationId = "c1",
-                selectedEndpoint = "openAI",
+                selectedEndpoint = "removed",
                 selectedModel = "ghost",
                 agents = listOf(Agent(id = "agent_1")),
             ),
@@ -1058,6 +1087,8 @@ class ModelSelectionDelegateTest {
         delegate.cachedLastUsedEndpoint = EndpointConstants.AGENTS
         delegate.cachedLastUsedModel = "agent_1"
         availableModels.value = mapOf("openAI" to listOf("gpt-4o"))
+        // The selection's endpoint is gone from the config; the others are live.
+        endpointConfigs.value = availableModels.value.keys.associateWith { EndpointConfig() }
 
         delegate.refilterModels(isNewConversation = false)
         advanceUntilIdle()
@@ -1073,7 +1104,7 @@ class ModelSelectionDelegateTest {
             scope,
             uiState(
                 conversationId = "c1",
-                selectedEndpoint = "openAI",
+                selectedEndpoint = "removed",
                 selectedModel = "ghost",
                 agents = listOf(Agent(id = "agent_1")),
             ),
@@ -1084,6 +1115,8 @@ class ModelSelectionDelegateTest {
         delegate.cachedLastUsedEndpoint = EndpointConstants.AGENTS
         delegate.cachedLastUsedModel = "agent_missing" // not in the loaded list
         availableModels.value = mapOf("openAI" to listOf("gpt-4o"))
+        // The selection's endpoint is gone from the config; the others are live.
+        endpointConfigs.value = availableModels.value.keys.associateWith { EndpointConfig() }
 
         delegate.refilterModels(isNewConversation = false)
         advanceUntilIdle()
@@ -1099,20 +1132,22 @@ class ModelSelectionDelegateTest {
         val scope = TestScope(StandardTestDispatcher(testScheduler))
         val handle = newHandle(
             scope,
-            uiState(conversationId = "c1", selectedEndpoint = "openAI", selectedModel = "ghost"),
+            uiState(conversationId = "c1", selectedEndpoint = "removed", selectedModel = "ghost"),
         )
         val delegate = newDelegate(handle)
         delegate.conversationModelLoaded = true
         delegate.cachedLastUsedEndpoint = EndpointConstants.AGENTS
         delegate.cachedLastUsedModel = "agent_1"
         availableModels.value = mapOf("openAI" to listOf("gpt-4o"))
+        // The selection's endpoint is gone from the config; the others are live.
+        endpointConfigs.value = availableModels.value.keys.associateWith { EndpointConfig() }
         allowAgents()
         coEvery { agentRepository.getAgents() } returns Result.Success(listOf(Agent(id = "agent_1")))
 
         delegate.refilterModels(isNewConversation = false)
         advanceUntilIdle()
         // Held: agents unloaded, so neither last-used nor first-model was applied.
-        assertThat(handle.state.selectedEndpoint).isEqualTo("openAI")
+        assertThat(handle.state.selectedEndpoint).isEqualTo("removed")
         assertThat(handle.state.selectedModel).isEqualTo("ghost")
 
         delegate.loadAgents(isNewConversation = false)

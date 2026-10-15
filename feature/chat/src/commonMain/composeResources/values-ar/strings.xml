@@ -684,4 +684,6 @@
         <item quantity="other">لقد بلغت حد الرسائل على هذا الخادم. حاول مرة أخرى بعد %1$d يوم.</item>
     </plurals>
     <string name="queue_held_after_refusal">رفض الخادم رسالتك. إنها تنتظر في قائمة الانتظار ولن تُرسل تلقائيًا. اضغط «إرسال قائمة الانتظار» عندما تكون مستعدًا.</string>
+    <string name="jump_message_not_found">لم تعد هذه الرسالة موجودة في هذه المحادثة.</string>
+    <string name="jump_branch_switched">تم التبديل إلى الرد %1$d من %2$d، الفرع الذي يحتوي على هذه الرسالة.</string>
 </resources>

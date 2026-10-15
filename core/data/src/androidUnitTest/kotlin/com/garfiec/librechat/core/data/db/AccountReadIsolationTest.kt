@@ -77,4 +77,18 @@ class AccountReadIsolationTest : AccountIsolationTestBase() {
         val tagsA = tagDao.observeTagsForAccount(accountA).first()
         assertThat(tagsA.map { it.tag }).containsExactly("work")
     }
+
+    @Test
+    fun messageSearch_isAccountScoped_ftsScanAndCount() = runTest {
+        val msgDao = db.messageDao()
+        val searchDao = db.messageSearchDao()
+        // Same word, same conversationId, two accounts: the shared FTS index must not leak B's hit.
+        msgDao.upsertAllIndexed(listOf(message("mA", conversationId = "conv", accountId = accountA, text = "pelican")))
+        msgDao.upsertAllIndexed(listOf(message("mB", conversationId = "conv", accountId = accountB, text = "pelican")))
+
+        assertThat(searchDao.search(accountA, "\"pelican\"", limit = 10).map { it.messageId }).containsExactly("mA")
+        assertThat(searchDao.scanPage(accountA, Long.MAX_VALUE, Long.MAX_VALUE, limit = 10).map { it.messageId })
+            .containsExactly("mA")
+        assertThat(searchDao.countForAccount(accountA)).isEqualTo(1)
+    }
 }

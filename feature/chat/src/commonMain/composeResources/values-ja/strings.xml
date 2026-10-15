@@ -669,4 +669,6 @@
         <item quantity="other">このサーバーのメッセージ上限に達しました。%1$d日後にもう一度お試しください。</item>
     </plurals>
     <string name="queue_held_after_refusal">サーバーがメッセージを拒否しました。メッセージはキューで待機しており、自動では送信されません。準備ができたら「キューを送信」をタップしてください。</string>
+    <string name="jump_message_not_found">そのメッセージはこのチャットにもうありません。</string>
+    <string name="jump_branch_switched">このメッセージを含むブランチ（応答 %1$d / %2$d）に切り替えました。</string>
 </resources>

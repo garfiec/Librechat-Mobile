@@ -1,13 +1,8 @@
 package com.garfiec.librechat.feature.chat.components
 
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
@@ -20,44 +15,39 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.sp
+import com.garfiec.librechat.core.ui.theme.isSurfaceDark
+import com.garfiec.librechat.core.ui.theme.searchFocusedMatchColor
+import com.garfiec.librechat.core.ui.theme.searchMatchColor
 import kotlin.math.max
 import kotlin.math.min
-
-// --- Light mode highlight colors ---
-private val SearchHighlightYellowLight = Color(0xFFFFEB3B)
-private val SearchHighlightOrangeLight = Color(0xFFFF9800)
-
-// --- Dark mode highlight colors (muted, for readable contrast with light text) ---
-private val SearchHighlightYellowDark = Color(0xFF5C4800)
-private val SearchHighlightOrangeDark = Color(0xFF804D00)
 
 /**
  * Background color for all search matches (non-focused), adapted to theme.
  */
 val SearchHighlightYellow: Color
-    @Composable get() = if (isSystemInDarkTheme()) SearchHighlightYellowDark else SearchHighlightYellowLight
+    @Composable get() = searchMatchColor(isSurfaceDark())
 
 /**
  * Background color for the currently focused search match, adapted to theme.
  */
 val SearchHighlightOrange: Color
-    @Composable get() = if (isSystemInDarkTheme()) SearchHighlightOrangeDark else SearchHighlightOrangeLight
+    @Composable get() = searchFocusedMatchColor(isSurfaceDark())
 
 /**
  * Returns the non-focused search highlight color for the given theme.
  */
 fun searchHighlightYellow(isDarkTheme: Boolean): Color =
-    if (isDarkTheme) SearchHighlightYellowDark else SearchHighlightYellowLight
+    searchMatchColor(isDarkTheme)
 
 /**
  * Returns the focused search highlight color for the given theme.
  */
 fun searchHighlightOrange(isDarkTheme: Boolean): Color =
-    if (isDarkTheme) SearchHighlightOrangeDark else SearchHighlightOrangeLight
+    searchFocusedMatchColor(isDarkTheme)
 
 /**
- * Builds an [AnnotatedString] from [text] with background spans applied to all
- * case-insensitive occurrences of [query].
+ * Builds an [AnnotatedString] from [text] with background spans applied to every match of
+ * [query] (see [occurrenceRanges]).
  *
  * All matches get a yellow background. If [focusedOccurrence] >= 0,
  * that specific occurrence (0-based within this text) gets an orange background
@@ -90,76 +80,72 @@ fun addSearchSpans(
     val focusedColor = searchHighlightOrange(isDarkTheme)
 
     val builder = AnnotatedString.Builder(base)
-    var startIndex = 0
-    var occurrence = 0
-
-    // Match case-insensitively against the original string (not a lowercased copy): some
-    // characters change length when lowercased (e.g. Turkish 'İ' → "i̇"), which would shift
-    // every subsequent index and mis-place spans/rects. `indexOf(ignoreCase)` compares
-    // char-by-char and returns original-string offsets, so `foundIndex + query.length` stays valid.
-    while (true) {
-        val foundIndex = base.text.indexOf(query, startIndex, ignoreCase = true)
-        if (foundIndex < 0) break
-
-        val bgColor = if (occurrence == focusedOccurrence) {
-            focusedColor
-        } else {
-            highlightColor
-        }
-
-        builder.addStyle(
-            SpanStyle(background = bgColor),
-            start = foundIndex,
-            end = foundIndex + query.length,
-        )
-
-        occurrence++
-        startIndex = foundIndex + query.length
+    occurrenceRanges(base.text, query).forEachIndexed { occurrence, range ->
+        val bgColor = if (occurrence == focusedOccurrence) focusedColor else highlightColor
+        builder.addStyle(SpanStyle(background = bgColor), start = range.first, end = range.last + 1)
     }
     return builder.toAnnotatedString()
 }
 
 /**
- * Renders a text run with search-highlight spans during active in-conversation search.
- * Used by both platforms' MarkdownContent in place of the markdown renderer (plain text
- * keeps occurrence offsets and [TextLayoutResult] character rects tractable).
+ * Every match of a find [query] in [text], sorted and merged where they overlap: the one walk the
+ * count, the spans and the focused rect all number matches by.
  *
- * When [onFocusedMatchPosition] is non-null and [focusedOccurrence] falls inside this
- * run, every layout/position pass reports the segment's [LayoutCoordinates] plus the
- * focused match's bounding [Rect] *within* the segment (from [TextLayoutResult]), letting
- * the message list scroll precisely to the match rather than to the whole segment.
+ * A query is its words, each found on its own and case-insensitively: a word of
+ * [MIN_ANYWHERE_CHARS] or more characters anywhere, a shorter one only as a whole word. That is how
+ * the message index takes a short word, so a jump from a search for `so` lands on "so", not on the
+ * start of "SoftEther", and a typed `so` doesn't light up every "some".
+ *
+ * A query in double quotes is one phrase, spaces included: how a regex jump carries the text its
+ * pattern matched (`"SoftEther VPN"`), which split into words would also match every "VPN".
+ *
+ * Matching runs on the original string, not a lowercased copy: some characters change length when
+ * lowercased (Turkish 'İ' → "i̇"), which would shift every later offset and misplace spans and rects.
  */
-@Composable
-internal fun HighlightedTextSegment(
-    content: String,
-    searchQuery: String,
-    modifier: Modifier = Modifier,
-    focusedOccurrence: Int = -1,
-    fontSizeMultiplier: Float = 1.0f,
-    onFocusedMatchPosition: ((LayoutCoordinates, Rect) -> Unit)? = null,
-) {
-    val bodyStyle = MaterialTheme.typography.bodyLarge
-    val scaledStyle = bodyStyle.scaleFontSize(fontSizeMultiplier)
-    val isDarkTheme = isSystemInDarkTheme()
-    val highlighted = remember(content, searchQuery, focusedOccurrence, isDarkTheme) {
-        buildHighlightedString(content, searchQuery, focusedOccurrence, isDarkTheme)
+fun occurrenceRanges(text: String, query: String): List<IntRange> {
+    if (text.isEmpty()) return emptyList()
+    val words = findWords(query)
+    if (words.isEmpty()) return emptyList()
+    val found = ArrayList<IntRange>()
+    for (word in words) {
+        val wholeWord = word.length < MIN_ANYWHERE_CHARS
+        var at = text.indexOf(word, 0, ignoreCase = true)
+        while (at >= 0) {
+            val end = at + word.length
+            val bounded = !wholeWord ||
+                ((at == 0 || !text[at - 1].isLetterOrDigit()) && (end == text.length || !text[end].isLetterOrDigit()))
+            if (bounded) found += at until end
+            at = text.indexOf(word, if (bounded) end else at + 1, ignoreCase = true)
+        }
     }
-    val focusedRange = remember(content, searchQuery, focusedOccurrence) {
-        findOccurrenceRange(content, searchQuery, focusedOccurrence)
+    found.sortBy { it.first }
+    val merged = ArrayList<IntRange>(found.size)
+    for (range in found) {
+        val last = merged.lastOrNull()
+        if (last != null && range.first <= last.last + 1) {
+            merged[merged.lastIndex] = last.first..maxOf(last.last, range.last)
+        } else {
+            merged += range
+        }
     }
-
-    var layoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
-
-    Text(
-        text = highlighted,
-        style = scaledStyle,
-        color = MaterialTheme.colorScheme.onSurface,
-        onTextLayout = { layoutResult = it },
-        modifier = modifier
-            .fillMaxWidth()
-            .reportFocusedMatchPosition(layoutResult, focusedRange, onFocusedMatchPosition),
-    )
+    return merged
 }
+
+/** Whether any word of [query] occurs in [text] at all: a cheap check before parsing [text]. */
+internal fun mayContain(text: String, query: String): Boolean =
+    findWords(query).any { text.contains(it, ignoreCase = true) }
+
+private fun findWords(query: String): List<String> {
+    val trimmed = query.trim()
+    if (trimmed.length > 2 && trimmed.first() == '"' && trimmed.last() == '"') {
+        return listOf(trimmed.substring(1, trimmed.length - 1)).filter { it.isNotBlank() }
+    }
+    return trimmed.split(FIND_WHITESPACE).filter { it.isNotEmpty() }.distinct()
+}
+
+/** Words this long match anywhere; shorter ones only as whole words, as the message index takes them. */
+private const val MIN_ANYWHERE_CHARS = 3
+private val FIND_WHITESPACE = Regex("\\s+")
 
 /**
  * Reports the focused search match's position for scroll targeting. When both
@@ -212,18 +198,8 @@ internal fun TextStyle.scaleFontSize(multiplier: Float): TextStyle {
     return copy(fontSize = scaledFontSize, lineHeight = scaledLineHeight)
 }
 
-/**
- * Counts the number of case-insensitive occurrences of [query] in [text].
- */
+/** The number of matches of [query] in [text] (see [occurrenceRanges]). */
 fun countOccurrences(text: String, query: String): Int {
     if (query.isBlank() || text.isBlank()) return 0
-    var count = 0
-    var startIndex = 0
-    while (true) {
-        val foundIndex = text.indexOf(query, startIndex, ignoreCase = true)
-        if (foundIndex < 0) break
-        count++
-        startIndex = foundIndex + query.length
-    }
-    return count
+    return occurrenceRanges(text, query).size
 }

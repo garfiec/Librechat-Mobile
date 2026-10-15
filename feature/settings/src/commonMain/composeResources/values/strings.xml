@@ -73,6 +73,9 @@
     <string name="section_danger_zone">Danger Zone</string>
     <string name="section_language_region">Language &amp; region</string>
     <string name="section_layout">Layout</string>
+    <string name="section_search">Search</string>
+    <string name="advanced_search">Advanced search</string>
+    <string name="advanced_search_desc">For power users. Adds match case, whole word, regex, and role, model and date filters to the Search screen.</string>
     <string name="section_mcp_servers">MCP Servers</string>
     <string name="section_prefetch">Background prefetch</string>
     <string name="prefetch_enabled">Prefetch conversations</string>

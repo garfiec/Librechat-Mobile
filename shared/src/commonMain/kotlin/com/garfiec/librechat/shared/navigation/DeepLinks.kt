@@ -65,9 +65,14 @@ object DeepLinks {
     )
 
     fun resolve(uri: DeepLinkUri): DeepLinkResolution = when (uri.host) {
+        // `?message=<uuid>` opens the chat at that message. It resolves within whichever account is
+        // active, like the conversation id itself; a message that isn't there reports "not found".
         "conversation" -> uri.pathSegments.firstOrNull()
             ?.takeIf { UUID_PATTERN.matches(it) }
-            ?.let { DeepLinkResolution.Route(Chat(it), requiresAuth = true) }
+            ?.let { id ->
+                val message = uri.query["message"]?.takeIf { UUID_PATTERN.matches(it) }
+                DeepLinkResolution.Route(Chat(id, targetMessageId = message), requiresAuth = true)
+            }
             ?: DeepLinkResolution.None
 
         "artifact" -> uri.pathSegments.firstOrNull()

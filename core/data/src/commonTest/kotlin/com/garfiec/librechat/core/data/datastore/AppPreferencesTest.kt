@@ -50,6 +50,7 @@ class AppPreferencesTest {
             "prefetch_attachments" to everyChannel(false),
             "prefetch_on_metered" to everyChannel(true),
             "prefetch_depth" to everyChannel(50),
+            "advanced_search" to everyChannel(false),
         )
         assertEquals(expected, actual)
     }

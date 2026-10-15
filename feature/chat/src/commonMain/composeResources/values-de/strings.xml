@@ -672,4 +672,6 @@
         <item quantity="other">Du hast das Nachrichtenlimit dieses Servers erreicht. Versuche es in %1$d Tagen erneut.</item>
     </plurals>
     <string name="queue_held_after_refusal">Der Server hat deine Nachricht abgelehnt. Sie wartet in der Warteschlange und wird nicht von selbst gesendet. Tippe auf „Wartende senden“, wenn du so weit bist.</string>
+    <string name="jump_message_not_found">Diese Nachricht ist nicht mehr in diesem Chat.</string>
+    <string name="jump_branch_switched">Zu Antwort %1$d von %2$d gewechselt, dem Zweig mit dieser Nachricht.</string>
 </resources>

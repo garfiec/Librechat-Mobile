@@ -12,6 +12,7 @@ import com.garfiec.librechat.core.data.db.entity.ConversationEntity
 import com.garfiec.librechat.core.data.db.entity.ConversationTagEntity
 import com.garfiec.librechat.core.data.db.entity.DraftEntity
 import com.garfiec.librechat.core.data.db.entity.MessageEntity
+import com.garfiec.librechat.core.data.search.SearchIndexState
 import com.garfiec.librechat.core.model.NEW_CHAT_DRAFT_KEY
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -121,6 +122,19 @@ class AccountClaimReconcilerTest {
         assertThat(accountIdOf("conversations", "conversationId", "convA")).isEqualTo("srv:userA")
         assertThat(rowExists("conversations", "conversationId", "convB")).isFalse()
         assertThat(accountIdOf("messages", "messageId", "mA")).isEqualTo("srv:userA")
+    }
+
+    @Test
+    fun claimingMakesTheNextSearchRepairLookAgain() = runTest(dispatcher) {
+        seedLegacyRows()
+        val store = dataStore("repair")
+        val indexState = SearchIndexState(store)
+        indexState.saveRepairSettledAt(messages = 3, indexed = 1)
+
+        AccountClaimReconciler(db.accountClaimDao(), store, dispatcher).claimIfNeeded(AccountId("srv:userA"), userKey = "userA")
+
+        // The claim moved no count, so a remembered pair would skip the rows it just made indexable.
+        assertThat(indexState.repairSettledAt()).isNull()
     }
 
     @Test

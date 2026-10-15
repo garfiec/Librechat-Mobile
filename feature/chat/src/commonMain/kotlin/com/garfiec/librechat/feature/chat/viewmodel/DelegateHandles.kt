@@ -54,6 +54,20 @@ class StreamingHandle(root: ChatStateHandle) : DelegateHandle(root) {
         root.update { StreamingWrites(this).apply(block).applyTo(this) }
 }
 
+// ── JumpToMessageDelegate ─────────────────────────────────────────────────
+class JumpWrites internal constructor(state: ChatUiState) {
+    var content: MessagesState = state.content
+    var search: ChatSearchState = state.search
+    internal fun applyTo(s: ChatUiState) = s.copy(content = content, search = search)
+}
+
+/** Writes the branch selection and the find-in-page focus; reads the live state to wait on it. */
+class JumpHandle(root: ChatStateHandle) : DelegateHandle(root) {
+    val stateFlow: StateFlow<ChatUiState> get() = root.stateFlow
+    fun update(block: JumpWrites.() -> Unit) =
+        root.update { JumpWrites(this).apply(block).applyTo(this) }
+}
+
 // ── MessageTreeDelegate ───────────────────────────────────────────────────
 class MessageTreeWrites internal constructor(state: ChatUiState) {
     var content: MessagesState = state.content

@@ -103,8 +103,8 @@ actual fun MarkdownContent(
     val segments = rememberMarkdownSegments(text, streaming)
     val isSearchActive = !searchQuery.isNullOrBlank()
 
-    // Search rewrites text segments into HighlightedTextSegment, which builds its own AnnotatedString
-    // and never reaches the annotator — so an active query forces the block-level cursor too.
+    // Search draws text segments with its own components (SearchableMarkdown), which don't run the
+    // cursor's annotator — so an active query forces the block-level cursor too.
     val inlineCursor = trailingCursor && !isSearchActive &&
         segments.lastOrNull()?.let { canHostInlineCursor(it) } == true
 
@@ -172,14 +172,18 @@ actual fun MarkdownContent(
                                 is InlineSegment.Text -> {
                                     if (inlineSegment.text.isNotBlank()) {
                                         if (isSearchActive) {
-                                            val runOccurrences = countOccurrences(inlineSegment.text, searchQuery)
-                                            val focusedInRun = focusedInSegment - inlineOffset
-                                            HighlightedTextSegment(
+                                            val runOccurrences =
+                                                countDisplayedOccurrences(inlineSegment.text, searchQuery)
+                                            MarkdownTextSegment(
                                                 content = inlineSegment.text,
-                                                searchQuery = searchQuery,
-                                                focusedOccurrence = focusedInRun,
                                                 fontSizeMultiplier = fontSizeMultiplier,
-                                                onFocusedMatchPosition = onFocusedOccurrencePosition,
+                                                immediate = immediate,
+                                                search = rememberMarkdownSearch(
+                                                    inlineSegment.text,
+                                                    searchQuery,
+                                                    focusedInSegment - inlineOffset,
+                                                    onFocusedOccurrencePosition,
+                                                ),
                                             )
                                             inlineOffset += runOccurrences
                                         } else {
@@ -221,12 +225,13 @@ actual fun MarkdownContent(
                 }
                 is MarkdownSegment.TextBlock -> {
                     if (isSearchActive) {
-                        HighlightedTextSegment(
+                        // Markdown stays rendered with find open; matches are marked in what it
+                        // displays. Citation chips are left out while finding.
+                        MarkdownTextSegment(
                             content = segment.text,
-                            searchQuery = searchQuery,
-                            focusedOccurrence = focusedInSegment,
                             fontSizeMultiplier = fontSizeMultiplier,
-                            onFocusedMatchPosition = onFocusedOccurrencePosition,
+                            immediate = immediate,
+                            search = rememberMarkdownSearch(segment.text, searchQuery, focusedInSegment, onFocusedOccurrencePosition),
                         )
                     } else {
                         val hasCitations = remember(segment.text) {
@@ -270,7 +275,9 @@ private fun MarkdownTextSegment(
     immediate: Boolean = false,
     streaming: Boolean = false,
     trailingCursor: Boolean = false,
+    search: MarkdownSearch? = null,
 ) {
+    val components = remember(search) { search?.let(::searchMarkdownComponents) ?: ChatMarkdownComponents }
     val colors = markdownColor(
         text = MaterialTheme.colorScheme.onSurface,
         codeBackground = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -312,6 +319,7 @@ private fun MarkdownTextSegment(
             immediate = immediate,
             streaming = streaming,
             trailingCursor = trailingCursor,
+            components = components,
         )
     }
 }

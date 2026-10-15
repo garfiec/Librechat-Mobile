@@ -2,6 +2,7 @@ package com.garfiec.librechat.shared.navigation
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -38,6 +39,7 @@ import com.garfiec.librechat.feature.agents.navigation.AgentMarketplace
 import com.garfiec.librechat.feature.auth.navigation.AddAccountServerUrl
 import com.garfiec.librechat.feature.chat.navigation.NewChat
 import com.garfiec.librechat.feature.conversations.navigation.Projects
+import com.garfiec.librechat.feature.conversations.navigation.Search
 import com.garfiec.librechat.feature.files.navigation.Files
 import com.garfiec.librechat.feature.schedules.navigation.SchedulesList
 import com.garfiec.librechat.feature.settings.navigation.SettingsTabbed
@@ -63,6 +65,15 @@ fun TabletLayout(
     // The sidebar is an authenticated surface, same rule as PhoneLayout's drawer gestures: a
     // logged-out deep link (artifact viewer atop the auth base) is not in the auth flow either.
     val showSidebar = isLoggedIn && !navigator.isInAuthFlow
+    // Search's list and preview pane need the whole width (an unfolded Fold leaves it under the
+    // two-pane threshold beside the sidebar), so the sidebar steps aside while Search is on top.
+    // Nothing is persisted: closing Search brings it back as it was.
+    val searchOpen = navigator.currentRoute is Search
+    val sidebarReveal by animateFloatAsState(
+        targetValue = if (searchOpen) 0f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow),
+        label = "sidebarReveal",
+    )
     val glass = rememberGlassStyle()
 
     // Persisted sidebar state from DataStore -- single source of truth in the ViewModel.
@@ -87,7 +98,7 @@ fun TabletLayout(
 
     // Back press closes sidebar before navigating away. Gated on the sidebar being shown: armed while
     // hidden, it swallows back on the root auth screen and silently persists the sidebar closed.
-    PlatformBackHandler(enabled = showSidebar && isSidebarOpen) {
+    PlatformBackHandler(enabled = showSidebar && isSidebarOpen && !searchOpen) {
         navHostViewModel.setTabletSidebarOpen(false)
     }
 
@@ -121,7 +132,7 @@ fun TabletLayout(
     }
 
     if (showSidebar) {
-        val swipeModifier = if (gestureEnabled) {
+        val swipeModifier = if (gestureEnabled && !searchOpen) {
             Modifier.pointerInput(sidebarWidthPx, dragSign) {
                 val velocityTracker = VelocityTracker()
                 detectHorizontalDragGestures(
@@ -213,6 +224,12 @@ fun TabletLayout(
                             onOpenProjectsIndex = {
                                 navigator.navigate(Projects)
                             },
+                            onOpenSearch = { query ->
+                                navigator.navigateToSearch(query)
+                            },
+                            onMessageClick = { conversationId, messageId, query, inReasoning ->
+                                navigator.navigateToMessage(conversationId, messageId, query, inReasoning)
+                            },
                             onSwitchAccount = { accountId ->
                                 navHostViewModel.switchAccount(accountId)
                             },
@@ -260,7 +277,7 @@ fun TabletLayout(
                 .clipToBounds(),
         ) { measurables, constraints ->
             val sidebarPx = SidebarWidth.roundToPx()
-            val animatedPx = sidebarOffset.value.toInt()
+            val animatedPx = (sidebarOffset.value * sidebarReveal).toInt()
 
             val sidebarPlaceable = measurables[0].measure(
                 constraints.copy(minWidth = sidebarPx, maxWidth = sidebarPx),

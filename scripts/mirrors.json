@@ -1262,6 +1262,75 @@
       },
       "why": "The default `avatarSizeLimit` (2 MB) that both avatar upload paths pre-check before sending. The whole `fileConfig` default block is watched, so most changes to it are unrelated; only `avatarSizeLimit` matters. The profile-picture path also sizes its re-encode (`AvatarImagePreparer`: 1024 px JPEG, 512 px PNG) to land well under it.",
       "failure_mode": "If upstream raises the limit, the app refuses images the server would accept. If it lowers it, the app sends images the server rejects with a generic 500 instead of showing the size message."
+    },
+    {
+      "id": "parse-text-parts",
+      "upstream": {
+        "file": "packages/data-provider/src/parsers.ts",
+        "symbol": "parseTextParts",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/content/MessageTextParts.kt",
+        "symbol": "flattenSearchableText"
+      },
+      "why": "Which content parts become a message's plain text (TEXT always, THINK unless skipReasoning, STEER only on opt-in) and the literal-space join rule. The abort path rebuilds a stopped reply's cached `text` with it (includeSteer, like GenerationJobManager), and the offline search index flattens agent replies with it (includeSteer, like mongoMeili.ts), so local hits match what server search finds.",
+      "failure_mode": "Upstream starts folding in a new part type (or changes the separator) and the cached text of an aborted reply no longer equals what a later fetch returns, while offline search silently misses or mis-snippets text the server's search finds."
+    },
+    {
+      "id": "messages-search-route",
+      "upstream": {
+        "file": "api/server/routes/messages.js",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/network/src/commonMain/kotlin/com/garfiec/librechat/core/network/api/MessagesApi.kt",
+        "symbol": "searchMessages"
+      },
+      "why": "What the server's message search returns, which the client merges with its offline hits: one page (no cursor), pageSize defaulting to 25 and capped at MEILI_SEARCH_LIMIT (1000) for both the hit count and the getConvosQueried conversation limit (web sends none; the client sends MessagesApi.SEARCH_PAGE_SIZE and reads a full page as 'the server has more', MessageSearchResult.remoteCapped), archived conversations included, and each hit's model taken from its conversation. Watched file-level because the search branch lives inside the router.get('/') handler.",
+      "failure_mode": "Upstream starts paging, renames or caps pageSize lower, raises the limit or filters archived chats, and the merged results quietly drop server hits or label them wrongly, with nothing failing to decode."
+    },
+    {
+      "id": "convos-search-matches-messages",
+      "upstream": {
+        "file": "packages/data-schemas/src/methods/conversation.ts",
+        "symbol": "getConvosByCursor",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/search/TitleMatch.kt",
+        "symbol": "TitleMatch"
+      },
+      "why": "The conversation search (`/api/convos?search=`) unions Meilisearch conversation hits with message hits, each capped at MEILI_SEARCH_LIMIT (1000), so it returns every conversation whose title OR any message matched, with nothing to say which, newest first behind a cursor. The client therefore decides title hits itself (TitleMatch) and treats the rest as message matches, in the drawer (ConversationListStateHolder) and on the Search screen (SearchViewModel.merge), and the Search screen follows the cursor to SearchRepository.ALL_MATCHES as the web sidebar does.",
+      "failure_mode": "Upstream makes it title-only, adds a match-source field, drops the message union or changes the 1000 cap, and the client keeps filtering on its own title rule or stops paging at the wrong count: title-only would lose the 'Matches in messages' groups, a source field would go unused, and nothing fails to decode."
+    },
+    {
+      "id": "convos-page-limit",
+      "upstream": {
+        "file": "packages/api/src/utils/query.ts",
+        "symbol": "normalizeLimit",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/repository/SearchRepository.kt",
+        "symbol": "MAX_PAGE"
+      },
+      "why": "The conversation list's `limit` defaults to DEFAULT_PAGE_LIMIT (25) and is clamped to MAX_PAGE_LIMIT (100). SearchRepositoryImpl asks for pages of SearchRepository.MAX_PAGE while it walks the search cursor, so a common word takes ten requests rather than forty.",
+      "failure_mode": "Upstream lowers the clamp and each page quietly holds fewer conversations than asked; the walk still ends at the last cursor, but takes more requests. Raising it leaves the client paging in smaller steps than it could."
+    },
+    {
+      "id": "legacy-thinking-block",
+      "upstream": {
+        "file": "client/src/components/Chat/Messages/Content/MessageContent.tsx",
+        "symbol": "parseThinkingContent",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/mapper/MessageSearchMapper.kt",
+        "symbol": "LegacyThinking"
+      },
+      "why": "Messages saved before reasoning had its own content part keep it in `text` as a `:::thinking ... :::` block. The web client splits the first such block off as reasoning; search does the same, so the block is indexed as reasoning (the in-reasoning badge, answers only) and the preview shows the answer without it.",
+      "failure_mode": "Upstream changes the marker or the split (all blocks, a different delimiter), and search keeps indexing the old shape: the reasoning badge and answers-only quietly disagree with what the web shows, and nothing fails."
     }
   ]
 }

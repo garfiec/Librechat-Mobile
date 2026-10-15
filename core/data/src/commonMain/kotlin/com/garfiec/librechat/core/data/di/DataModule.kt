@@ -81,6 +81,9 @@ import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.RoleRepositoryImpl
 import com.garfiec.librechat.core.data.repository.ScheduleRepository
 import com.garfiec.librechat.core.data.repository.ScheduleRepositoryImpl
+import com.garfiec.librechat.core.data.repository.SearchCapabilityRepository
+import com.garfiec.librechat.core.data.repository.SearchCapabilityRepositoryImpl
+import com.garfiec.librechat.core.data.repository.SearchCapabilitySessionTask
 import com.garfiec.librechat.core.data.repository.SearchRepository
 import com.garfiec.librechat.core.data.repository.SearchRepositoryImpl
 import com.garfiec.librechat.core.data.repository.ServerRepository
@@ -101,6 +104,15 @@ import com.garfiec.librechat.core.data.repository.TraceRepository
 import com.garfiec.librechat.core.data.repository.TraceRepositoryImpl
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.repository.UserRepositoryImpl
+import com.garfiec.librechat.core.data.search.LocalSearchActivity
+import com.garfiec.librechat.core.data.search.MessageScanEngine
+import com.garfiec.librechat.core.data.search.MessageSearchRepository
+import com.garfiec.librechat.core.data.search.MessageSearchRepositoryImpl
+import com.garfiec.librechat.core.data.search.PrefetchGateSearchIndexWindow
+import com.garfiec.librechat.core.data.search.SearchIndexBackfillSessionTask
+import com.garfiec.librechat.core.data.search.SearchIndexMaintenance
+import com.garfiec.librechat.core.data.search.SearchIndexState
+import com.garfiec.librechat.core.data.search.SearchIndexWindow
 import com.garfiec.librechat.core.data.update.UpdateCheckCoordinator
 import com.garfiec.librechat.core.data.update.UpdateCheckStore
 import com.garfiec.librechat.core.data.util.AccountLabelBackfillSessionTask
@@ -130,6 +142,7 @@ val dataModule = module {
 
     single { get<LibreChatDatabase>().conversationDao() }
     single { get<LibreChatDatabase>().messageDao() }
+    single { get<LibreChatDatabase>().messageSearchDao() }
     single { get<LibreChatDatabase>().agentDao() }
     single { get<LibreChatDatabase>().presetDao() }
     single { get<LibreChatDatabase>().conversationTagDao() }
@@ -138,6 +151,28 @@ val dataModule = module {
     single { get<LibreChatDatabase>().artifactShortcutDao() }
     single { get<LibreChatDatabase>().serverDao() }
     single { get<LibreChatDatabase>().prefetchWatermarkDao() }
+
+    // --- Message search index ---
+    single { SearchIndexState(get()) }
+    single { SearchIndexMaintenance(get()) }
+    single { LocalSearchActivity() }
+    single<SearchIndexWindow> { PrefetchGateSearchIndexWindow(get()) }
+    single { MessageScanEngine(dao = get(), matchDispatcher = get(KoinQualifiers.Default)) }
+    singleOf(::SearchCapabilityRepositoryImpl) bind SearchCapabilityRepository::class
+    single<MessageSearchRepository> {
+        MessageSearchRepositoryImpl(
+            searchDao = get(),
+            conversationDao = get(),
+            scanEngine = get(),
+            messagesApi = get(),
+            capability = get(),
+            connectivity = get(),
+            activeAccountProvider = get(),
+            activity = get(),
+            indexState = get(),
+            snippetDispatcher = get(KoinQualifiers.Default),
+        )
+    }
 
     // --- Account identity (row-tenancy) ---
 
@@ -211,6 +246,8 @@ val dataModule = module {
             tagDao = get(),
             prefetchWatermarkDao = get(),
             ioDispatcher = get(KoinQualifiers.IO),
+            searchDao = get(),
+            searchIndexMaintenance = get(),
         )
     }
     // Sole owner of account-Session transitions. Lazy, but constructed at Koin start in practice
@@ -311,6 +348,16 @@ val dataModule = module {
     singleOf(::SyncFavoritesSessionTask) bind SessionTask::class
     singleOf(::EndpointConfigFetchSessionTask) bind SessionTask::class
     singleOf(::AccountLabelBackfillSessionTask) bind SessionTask::class
+    singleOf(::SearchCapabilitySessionTask) bind SessionTask::class
+    single {
+        SearchIndexBackfillSessionTask(
+            dao = get(),
+            state = get(),
+            maintenance = get(),
+            window = get(),
+            activity = get(),
+        )
+    } bind SessionTask::class
     single {
         SessionTaskRunner(
             tasks = getAll<SessionTask>(),
@@ -348,6 +395,7 @@ val dataModule = module {
             serverUrlProvider = get(),
             foregroundSignal = get(),
             ioDispatcher = get(KoinQualifiers.IO),
+            searchIndexMaintenance = get(),
         )
     }
     // Eager: its entire job is to collect SessionManager.current, so a lazy binding nobody resolves
@@ -422,6 +470,7 @@ val dataModule = module {
             conversationsApi = get(),
             conversationDao = get(),
             messageDao = get(),
+            prefetchWatermarkDao = get(),
             activeAccountProvider = get(),
             roster = get(),
             json = get(),

@@ -1,9 +1,9 @@
 package com.garfiec.librechat.feature.chat.util
 
-import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.content.MessageContentPart
+import com.garfiec.librechat.core.model.content.flattenSearchableText
 
 /**
  * The assistant reply carried by a Final event. The server may deliver it in either
@@ -22,32 +22,16 @@ fun StreamEvent.Final.finalMessages(): List<Message> =
     listOfNotNull(requestMessage, resolvedResponseMessage())
 
 /**
- * Faithful port of the server's `parseTextParts`
- * (upstream/packages/data-provider/src/parsers.ts) as the abort path calls it — with
- * `skipReasoning = false`, so THINK parts are folded in alongside TEXT parts (stopping a
- * reasoning model mid-think persists the reasoning as the row's `text`). The separator rule
- * is the server's exactly: a single `' '` between two chunks iff the running result is
- * non-empty, the incoming value is non-empty, the result's last char is not `' '`, and the
- * incoming's first char is not `' '` — a literal-space comparison, NOT isWhitespace(), so a
- * chunk ending in `\n` still gets the space the server inserts.
+ * The server's `parseTextParts` as the abort path calls it (`GenerationJobManager.ts`):
+ * `skipReasoning = false` and `includeSteer = true`, so THINK and STEER parts are folded in
+ * alongside TEXT parts (stopping a reasoning model mid-think persists the reasoning as the row's
+ * `text`). The port itself, with the server's literal-space join rule, is
+ * [flattenSearchableText].
  *
  * MIRRORED SERVER LOGIC — verify against upstream on version bumps (/sync-upstream).
  */
-fun parseTextParts(parts: List<MessageContentPart>): String {
-    val result = StringBuilder()
-    for (part in parts) {
-        val value = when (part.type) {
-            ContentType.TEXT -> part.text
-            ContentType.THINK -> part.think
-            else -> null
-        } ?: continue
-        if (result.isNotEmpty() && value.isNotEmpty() && result.last() != ' ' && value.first() != ' ') {
-            result.append(' ')
-        }
-        result.append(value)
-    }
-    return result.toString()
-}
+fun parseTextParts(parts: List<MessageContentPart>): String =
+    parts.flattenSearchableText(includeSteer = true)
 
 /**
  * Whether the server actually persisted this aborted turn's response — the exact client-side

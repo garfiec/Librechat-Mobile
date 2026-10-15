@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.db.dao.ConversationDao
 import com.garfiec.librechat.core.data.db.dao.MessageDao
+import com.garfiec.librechat.core.data.db.dao.PrefetchWatermarkDao
 import com.garfiec.librechat.core.data.db.entity.ConversationEntity
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.SAVED_TAG
@@ -33,6 +34,7 @@ class ConversationRepositoryImplTest {
     private val conversationsApi = mockk<ConversationsApi>(relaxed = true)
     private val conversationDao = mockk<ConversationDao>(relaxed = true)
     private val messageDao = mockk<MessageDao>(relaxed = true)
+    private val prefetchWatermarkDao = mockk<PrefetchWatermarkDao>(relaxed = true)
     private val roster = mockk<AccountRoster>(relaxed = true)
     private val json = Json { ignoreUnknownKeys = true }
     private val account = AccountId("srv:user-1")
@@ -46,6 +48,7 @@ class ConversationRepositoryImplTest {
             conversationsApi = conversationsApi,
             conversationDao = conversationDao,
             messageDao = messageDao,
+            prefetchWatermarkDao = prefetchWatermarkDao,
             activeAccountProvider = activeAccountProvider,
             roster = roster,
             json = json,
@@ -123,6 +126,30 @@ class ConversationRepositoryImplTest {
         // Unresolved account: the by-PK local deletes can't be safely scoped, so neither runs.
         coVerify(exactly = 0) { conversationDao.deleteById(any(), any()) }
         coVerify(exactly = 0) { messageDao.deleteAllForConversation(any(), any()) }
+    }
+
+    @Test
+    fun `deleteAll also clears the account's cached messages and prefetch watermarks`() = runTest {
+        coEvery { conversationsApi.deleteAllConversations() } just Runs
+
+        val result = repository.deleteAll()
+
+        assertThat(result).isInstanceOf(Result.Success::class.java)
+        coVerify(exactly = 1) { messageDao.deleteAllForAccount(account.value) }
+        coVerify(exactly = 1) { prefetchWatermarkDao.deleteAllForAccount(account.value) }
+        coVerify(exactly = 1) { conversationDao.deleteAllForAccount(account.value) }
+    }
+
+    @Test
+    fun `deleteAll keeps local rows when no account is resolved`() = runTest {
+        activeAccountProvider.clear()
+        coEvery { conversationsApi.deleteAllConversations() } just Runs
+
+        repository.deleteAll()
+
+        coVerify(exactly = 0) { messageDao.deleteAllForAccount(any()) }
+        coVerify(exactly = 0) { prefetchWatermarkDao.deleteAllForAccount(any()) }
+        coVerify(exactly = 0) { conversationDao.deleteAllForAccount(any()) }
     }
 
     @Test

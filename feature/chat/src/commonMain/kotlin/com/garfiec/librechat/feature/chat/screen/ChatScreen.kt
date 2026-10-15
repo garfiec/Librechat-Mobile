@@ -82,6 +82,10 @@ fun ChatScreen(
      *  home-screen model shortcut / quick action. Mutually exclusive with [initialAgentId]. */
     initialEndpoint: String? = null,
     initialModel: String? = null,
+    /** Opens the chat at this message, highlighting [highlightQuery] (a search hit). */
+    targetMessageId: String? = null,
+    highlightQuery: String? = null,
+    targetInReasoning: Boolean = false,
     onConversationStart: ((conversationId: String, isTemporary: Boolean) -> Unit)? = null,
     onNavigateToConversation: ((String) -> Unit)? = null,
     onOpenDrawer: (() -> Unit)? = null,
@@ -97,7 +101,16 @@ fun ChatScreen(
 ) {
     val viewModel: ChatViewModel =
         koinViewModel {
-            parametersOf(conversationId, initialAgentId, isTemporaryRoute, initialEndpoint, initialModel)
+            parametersOf(
+                conversationId,
+                initialAgentId,
+                isTemporaryRoute,
+                initialEndpoint,
+                initialModel,
+                targetMessageId,
+                highlightQuery,
+                targetInReasoning,
+            )
         }
     // Chrome-rate state; ChatContent collects at full rate. Never read a neutralized field here.
     val chromeFlow = remember(viewModel) {

@@ -340,4 +340,93 @@ class SearchMatchEnumerationTest {
         )
         assertThat(countMessageOccurrences(failed, "workspace")).isEqualTo(0)
     }
+
+    // --- find words (see occurrenceRanges) ---
+
+    @Test
+    fun `each word of a query is found on its own and overlaps merge`() {
+        val text = "Kotlin flow and a Kotlin flowchart"
+
+        assertThat(occurrenceRanges(text, "kotlin flow").map { text.substring(it) })
+            .containsExactly("Kotlin", "flow", "Kotlin", "flow").inOrder()
+        assertThat(occurrenceRanges("overflowing", "flow over").map { "overflowing".substring(it) })
+            .containsExactly("overflow")
+    }
+
+    @Test
+    fun `a word under three characters matches whole words only`() {
+        assertThat(countOccurrences("SoftEther is so good, some say so.", "so")).isEqualTo(2)
+        assertThat(countOccurrences("SoftEther is so good", "sof")).isEqualTo(1)
+    }
+
+    @Test
+    fun `the focused range follows the same walk as the count`() {
+        val text = "alpha beta alpha"
+        assertThat(findOccurrenceRange(text, "beta alpha", 1)).isEqualTo(6..9)
+        assertThat(findOccurrenceRange(text, "beta alpha", 3)).isNull()
+    }
+
+    // --- legacy :::thinking (rendered as a reasoning block ahead of the reply) ---
+
+    @Test
+    fun `a legacy thinking block counts first and is marked as reasoning`() {
+        val msg = message(text = ":::thinking\nabout pelicans\n:::\nPelicans fly")
+
+        assertThat(countMessageOccurrences(msg, "pelicans")).isEqualTo(2)
+        assertThat(occurrencesInReasoning(msg, "pelicans")).containsExactly(true, false).inOrder()
+        assertThat(msg.legacyTextRuns().answer).isEqualTo("Pelicans fly")
+    }
+
+    @Test
+    fun `reasoning parts are marked as reasoning in render order`() {
+        val msg = message(parts = listOf(thinkPart("pelican thoughts"), textPart("a pelican")))
+
+        assertThat(occurrencesInReasoning(msg, "pelican")).containsExactly(true, false).inOrder()
+    }
+
+    // --- rendered markdown (see SearchableMarkdown): matches count in what is displayed ---
+
+    @Test
+    fun `markup is not counted and a link's address is never found`() {
+        val markdown = "**bold** and [a link](https://bold.example)"
+
+        assertThat(countMarkdownOccurrences(markdown, "bold")).isEqualTo(1)
+        assertThat(countMarkdownOccurrences(markdown, "**")).isEqualTo(0)
+    }
+
+    @Test
+    fun `headings, paragraphs and list items are runs in render order`() {
+        val markdown = "# Kotlin tips\n\nUse Kotlin flow.\n\n- one kotlin\n- two\n\n> quoted kotlin"
+
+        assertThat(markdownRuns(markdown).map { it.text })
+            .containsExactly("Kotlin tips", "Use Kotlin flow.", "one kotlin", "two", "quoted kotlin").inOrder()
+        assertThat(countMarkdownOccurrences(markdown, "kotlin")).isEqualTo(4)
+    }
+
+    @Test
+    fun `each run is keyed by the node the renderer draws`() {
+        val runs = markdownRuns("first para\n\nsecond para")
+
+        assertThat(runs.map { it.nodeStart }).containsExactly(0, 12).inOrder()
+    }
+
+    // --- quoted phrases: a regex jump carries its matched text in quotes ---
+
+    @Test
+    fun `a quoted query is one phrase, not its words`() {
+        val text = "SoftEther VPN Protocol, OpenVPN and vpncmd"
+
+        assertThat(occurrenceRanges(text, "\"SoftEther VPN\"")).containsExactly(0 until 13)
+        assertThat(countOccurrences(text, "SoftEther VPN")).isEqualTo(4)
+    }
+
+    @Test
+    fun `a quoted phrase matches case-insensitively`() {
+        assertThat(countOccurrences("softether vpn and SOFTETHER VPN", "\"SoftEther VPN\"")).isEqualTo(2)
+    }
+
+    @Test
+    fun `empty quotes find nothing`() {
+        assertThat(countOccurrences("text", "\"\"")).isEqualTo(0)
+    }
 }

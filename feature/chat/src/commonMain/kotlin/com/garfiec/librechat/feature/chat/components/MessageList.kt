@@ -61,6 +61,7 @@ import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
+import com.garfiec.librechat.feature.chat.viewmodel.JumpFlash
 import com.garfiec.librechat.feature.chat.viewmodel.SearchFocusRequest
 import com.garfiec.librechat.feature.chat.viewmodel.SearchMatch
 import kotlinx.coroutines.CancellationException
@@ -125,6 +126,8 @@ fun MessageList(
     currentSearchMatchIndex: Int = 0,
     searchFocusRequest: SearchFocusRequest? = null,
     onSearchScrollHandle: () -> Unit = {},
+    /** A jumped-to message with nothing to highlight in it flashes instead. */
+    jumpFlash: JumpFlash? = null,
     // Scrollable bottom inset that keeps the latest content clear of the overlaid input bar. The
     // caller measures the actual bar height (which grows as queued ghost rows stack above the
     // composer) so streaming text rests above the ghosts rather than behind them. It's a
@@ -281,13 +284,20 @@ fun MessageList(
     // Two-phase, race-free jump to the focused search occurrence:
     //   Phase 1: scrollToItem composes the target message (a LazyColumn item
     //            composes fully even when taller than the viewport), like a
-    //            browser's instant find-in-page jump.
+    //            browser's instant find-in-page jump. It lands the target itself
+    //            first in view: the list holds its first visible item fixed, and
+    //            messages render asynchronously (markdown, code highlighting), so
+    //            landing with the message above first would let that message grow and
+    //            push the target out of view.
     //   Phase 2: the focused segment reports its live LayoutCoordinates plus
     //            the match's rect within it on every position pass (keyed
     //            state, never a consumable flag — reports for a stale target
-    //            are simply ignored). Once a report matching the CURRENT
-    //            request exists, one animateScrollBy places the match on the
-    //            browser-style anchor line (~1/3 down the usable viewport).
+    //            are simply ignored). From the latest report for the CURRENT
+    //            request the match is placed on the browser-style anchor line
+    //            (~1/3 down the usable viewport): a far move instantly and
+    //            relative to the target message (so growth above can't carry it
+    //            off), a short one animated. That repeats a few times while the
+    //            messages around it finish rendering.
     var listCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
     var focusedMatchReport by remember { mutableStateOf<FocusedSearchMatchReport?>(null) }
     val currentOnSearchScrollHandled by rememberUpdatedState(onSearchScrollHandle)
@@ -301,32 +311,51 @@ fun MessageList(
         val request = searchFocusRequest ?: return@LaunchedEffect
         if (request.messageIndex !in displayMessages.indices) return@LaunchedEffect
 
+        // A jump that opens a chat issues its request before the list's first layout, when the
+        // viewport still reads 0 and the anchor line would sit at the very top.
+        snapshotFlow { listState.layoutInfo.viewportSize.height }.first { it > 0 }
         val viewportHeight = listState.layoutInfo.viewportSize.height.toFloat()
         val anchorLine = topContentPaddingPx + (viewportHeight - topContentPaddingPx) / 3f
 
-        // Only jump when the target message isn't laid out yet; a far jump is expected to be
-        // instant. When it's already composed (next/prev within the same or a visible message),
-        // skip the jump so phase 2 animates straight to the match with no teleport-then-reverse.
+        // Only jump when the target message isn't laid out yet. When it's already composed
+        // (next/prev within the same or a visible message), phase 2 moves straight to the match
+        // with no teleport-then-reverse.
         val alreadyLaidOut = listState.layoutInfo.visibleItemsInfo.any { it.index == request.messageIndex }
-        if (!alreadyLaidOut) {
-            listState.scrollToItem(request.messageIndex, scrollOffset = -anchorLine.toInt())
-        }
+        if (!alreadyLaidOut) listState.scrollToItem(request.messageIndex)
 
-        val report = withTimeoutOrNull(SEARCH_FOCUS_REPORT_TIMEOUT_MS) {
-            snapshotFlow { focusedMatchReport }
-                .first { it != null && it.matches(request) && it.coordinates.isAttached }
-        }
-
-        val listCoords = listCoordinates
-        if (report != null && listCoords != null && listCoords.isAttached && report.coordinates.isAttached) {
-            val matchTop = listCoords.localPositionOf(
-                report.coordinates,
-                Offset(0f, report.matchRect.top),
-            ).y
+        var placed = false
+        for (pass in 0 until SEARCH_FOCUS_SETTLE_PASSES) {
+            val report = withTimeoutOrNull(SEARCH_FOCUS_REPORT_TIMEOUT_MS) {
+                snapshotFlow { focusedMatchReport }
+                    .first { it != null && it.matches(request) && it.coordinates.isAttached }
+            } ?: break
+            val listCoords = listCoordinates?.takeIf { it.isAttached } ?: break
+            placed = true
+            val matchTop = listCoords.localPositionOf(report.coordinates, Offset(0f, report.matchRect.top)).y
             val delta = matchTop - anchorLine
-            if (abs(delta) > 1f) {
-                listState.animateScrollBy(delta, SearchFocusScrollSpec)
+            val tolerance = if (pass == 0) 1f else SEARCH_FOCUS_SETTLE_TOLERANCE_PX
+            if (abs(delta) <= tolerance) {
+                if (pass > 0) break
+            } else {
+                val target = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == request.messageIndex }
+                if (target != null && abs(delta) > viewportHeight / 2) {
+                    // Relative to the target, which stays first in view when the match is near its top.
+                    val withinTarget = matchTop - target.offset
+                    listState.scrollToItem(request.messageIndex, (withinTarget - anchorLine).toInt().coerceAtLeast(0))
+                } else {
+                    listState.animateScrollBy(delta, SearchFocusScrollSpec)
+                }
             }
+            delay(SEARCH_FOCUS_SETTLE_MS)
+        }
+        // No match to place (folded away, or a jump's flash-only fallback): keep the target first in
+        // view, in case something above it moved while waiting. Also when it was already laid out but
+        // starts above the viewport: a chat that opened at its bottom shows only a long target's tail.
+        val targetStartsAbove = listState.layoutInfo.visibleItemsInfo
+            .firstOrNull { it.index == request.messageIndex }
+            ?.let { it.offset < listState.layoutInfo.viewportStartOffset + topContentPaddingPx } == true
+        if (!placed && (!alreadyLaidOut || targetStartsAbove)) {
+            listState.scrollToItem(request.messageIndex)
         }
         currentOnSearchScrollHandled()
     }
@@ -351,7 +380,9 @@ fun MessageList(
     var hasScrolledToBottom by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(displayMessages.size) {
         if (!hasScrolledToBottom && displayMessages.isNotEmpty()) {
-            listState.scrollToItem(totalItemCount - 1, scrollOffset = Int.MAX_VALUE)
+            // A chat opened by a jump to one message starts there, not at the bottom: scrolling
+            // down here would override the jump's own scroll, which is already under way.
+            if (searchFocusRequest == null) listState.scrollToItem(totalItemCount - 1, scrollOffset = Int.MAX_VALUE)
             hasScrolledToBottom = true
         }
     }
@@ -498,12 +529,15 @@ fun MessageList(
     //  - It naturally handles any cause of viewport shrinkage, not
     //    just keyboard appearance.
     // ───────────────────────────────────────────────────────────────
+    // Not while a find or jump scroll is placing a match: opening the find bar shrinks the
+    // viewport too, and a scroll to the bottom then would interrupt that scroll and cancel it.
+    val currentFocusRequest by rememberUpdatedState(searchFocusRequest)
     LaunchedEffect(Unit) {
         var previousViewportEnd = 0
         snapshotFlow {
             listState.layoutInfo.viewportEndOffset
         }.collect { viewportEnd ->
-            if (previousViewportEnd > 0 && viewportEnd < previousViewportEnd && !listHasFocus) {
+            if (previousViewportEnd > 0 && viewportEnd < previousViewportEnd && !listHasFocus && currentFocusRequest == null) {
                 // Viewport shrank (e.g., keyboard opened). If user was
                 // near the bottom, scroll to keep them there.
                 val info = listState.layoutInfo
@@ -588,6 +622,16 @@ fun MessageList(
                 val isCurrent = currentSearchMatch != null && index == currentSearchMatch.messageIndex
                 // Which occurrence within this message is focused (-1 when this isn't the current match).
                 val focusedOccurrenceInMessage = if (isCurrent) currentSearchMatch.occurrenceInMessage else -1
+                val isJumpTarget = jumpFlash?.messageIndex == index
+                val flash = rememberJumpFlash(jumpFlash?.takeIf { isJumpTarget && it.fade }?.requestId)
+                val flashColor = jumpFlashColor()
+                // Outlined while find-in-page is open on it (closing it clears the target); a target with no
+                // match to find gets the fading flash instead, so nothing is left drawn on it.
+                val jumpOutline = if (isJumpTarget && jumpFlash?.fade == false) {
+                    Modifier.jumpTargetOutline(MaterialTheme.colorScheme.primary)
+                } else {
+                    Modifier
+                }
 
                 // Last message parses markdown synchronously; see [LocalImmediateMarkdown].
                 // Publish the focus-request nonce only around the current match so a collapsible
@@ -621,6 +665,7 @@ fun MessageList(
                 } else {
                 MessageBubble(
                     message = node.message,
+                    modifier = jumpOutline.jumpFlashBackground(flash, flashColor),
                     siblingIndex = node.siblingIndex,
                     siblingCount = node.siblingCount,
                     onSiblingNavigation = { newIndex ->
@@ -812,6 +857,13 @@ fun MessageList(
 
 /** How long phase 2 waits for the focused occurrence to report before settling for the message top. */
 private const val SEARCH_FOCUS_REPORT_TIMEOUT_MS = 500L
+
+/** How many times a focused match is re-placed while the message around it settles, and how far apart. */
+private const val SEARCH_FOCUS_SETTLE_PASSES = 4
+private const val SEARCH_FOCUS_SETTLE_MS = 250L
+
+/** A settled match this close to the anchor line (px) is left where it is. */
+private const val SEARCH_FOCUS_SETTLE_TOLERANCE_PX = 48f
 
 // ── Streaming follow tuning ───────────────────────────────────────────
 // Fraction of the remaining distance-to-bottom consumed per frame. Recomputed from live layout

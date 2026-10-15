@@ -1,5 +1,13 @@
 package com.garfiec.librechat.shared.navigation
 
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isMetaPressed
+import androidx.compose.ui.input.key.isShiftPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.type
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import com.garfiec.librechat.feature.auth.navigation.AuthRoute
@@ -7,6 +15,7 @@ import com.garfiec.librechat.feature.auth.navigation.ServerUrl
 import com.garfiec.librechat.feature.auth.navigation.isAddAccountFlowRoute
 import com.garfiec.librechat.feature.chat.navigation.Chat
 import com.garfiec.librechat.feature.chat.navigation.NewChat
+import com.garfiec.librechat.feature.conversations.navigation.Search
 import com.garfiec.librechat.feature.settings.navigation.ProviderKeys
 
 /**
@@ -42,6 +51,30 @@ class Navigator(val backStack: NavBackStack<NavKey>) {
         }
     }
 
+    /**
+     * Handles the Search shortcut (Ctrl+Shift+F, or ⌘+Shift+F on a Mac keyboard). Returns whether the
+     * event was consumed. Not offered while signing in: there is no account to search.
+     */
+    fun openSearchOnShortcut(event: KeyEvent): Boolean {
+        val shortcut = event.type == KeyEventType.KeyDown && event.key == Key.F && event.isShiftPressed &&
+            (event.isCtrlPressed || event.isMetaPressed)
+        return shortcut && openSearchFromShortcut()
+    }
+
+    /** The Search shortcut, from a platform host that matched the key itself (see [AppShortcuts]). */
+    fun openSearchFromShortcut(): Boolean {
+        if (isInAuthFlow) return false
+        // Already on Search: keep what's typed there rather than replacing it with an empty screen.
+        if (backStack.lastOrNull() !is Search) navigateToSearch("")
+        return true
+    }
+
+    /** Open the Search screen with [query]; an open Search screen is replaced rather than stacked. */
+    fun navigateToSearch(query: String) {
+        if (backStack.lastOrNull() is Search) backStack.removeLastOrNull()
+        backStack.add(Search(query))
+    }
+
     /** Navigate to a chat, replacing any current chat on the stack. [isTemporary] marks a
      *  temporary chat so a restored Chat(id) entry stays temp-aware and never persists
      *  the server-hidden conversation to Room — see [Chat.isTemporary]. */
@@ -50,6 +83,25 @@ class Navigator(val backStack: NavBackStack<NavKey>) {
             backStack.removeLastOrNull()
         }
         backStack.add(Chat(conversationId, isTemporary))
+    }
+
+    /**
+     * Opens [conversationId] at [messageId] with [query] highlighted (a search hit), at a match in the
+     * reasoning when [inReasoning]. Replaces a chat on top like [navigateToChat]; a Search screen
+     * beneath stays, so back returns to the results.
+     */
+    fun navigateToMessage(conversationId: String, messageId: String, query: String, inReasoning: Boolean = false) {
+        if (backStack.lastOrNull() is Chat) {
+            backStack.removeLastOrNull()
+        }
+        backStack.add(
+            Chat(
+                conversationId,
+                targetMessageId = messageId,
+                highlightQuery = query.ifBlank { null },
+                targetInReasoning = inReasoning,
+            ),
+        )
     }
 
     /**

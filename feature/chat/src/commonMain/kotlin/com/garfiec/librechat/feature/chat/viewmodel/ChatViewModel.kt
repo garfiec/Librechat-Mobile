@@ -60,6 +60,7 @@ import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import com.garfiec.librechat.feature.chat.util.extractBranchMedia
 import com.garfiec.librechat.feature.chat.util.serializeMessageForClipboard
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.BranchSwitch
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ChatConfigDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ComparisonModeDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ContextProjectionDelegate
@@ -68,6 +69,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.delegate.ConversationLoadDel
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.EndpointKeyStatusDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.FavoritesDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.InConversationSearchDelegate
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.JumpToMessageDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.LiveReplyDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.MessageEditingDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.MessageQueueDelegate
@@ -121,6 +123,11 @@ class ChatViewModel(
      *  survives process death: a restored entry re-initializes temp-aware and never persists the
      *  server-hidden conversation to Room. SECURITY: temp-chat data-at-rest guard — see init. */
     initialIsTemporary: Boolean = false,
+    /** A message to open the chat at (a search hit), and the query to highlight in it. */
+    initialTargetMessageId: String? = null,
+    initialHighlightQuery: String? = null,
+    /** The hit matched in the target's reasoning, so the jump lands on a match there. */
+    initialTargetInReasoning: Boolean = false,
     private val agentRepository: AgentRepository,
     private val chatRepository: ChatRepository,
     private val messageRepository: MessageRepository,
@@ -197,6 +204,11 @@ class ChatViewModel(
         endpointTokenRepository,
     )
     private val searchDelegate = InConversationSearchDelegate(SearchHandle(stateHandle))
+    private val jumpDelegate = JumpToMessageDelegate(JumpHandle(stateHandle), defaultDispatcher)
+
+    /** Fires when a requested message isn't in the chat, for a "Message not found" snackbar. */
+    val messageNotFound: Flow<Unit> = jumpDelegate.notFound
+    val jumpBranchSwitched: Flow<BranchSwitch> = jumpDelegate.branchSwitched
     private val conversationActionsDelegate =
         ConversationActionsDelegate(ConversationActionsHandle(stateHandle), conversationRepository, shareRepository)
     private val presetPromptDelegate =
@@ -665,6 +677,7 @@ class ChatViewModel(
                 }
             }
             conversationLoadDelegate.loadConversation(conversationId, cacheFirst = true)
+            initialTargetMessageId?.let { jumpDelegate.start(it, initialHighlightQuery, initialTargetInReasoning) }
             conversationLoadDelegate.loadConversationModel(conversationId)
             conversationLoadDelegate.restoreDraft(conversationId)
             // Check if there's an active stream for this conversation (e.g. when

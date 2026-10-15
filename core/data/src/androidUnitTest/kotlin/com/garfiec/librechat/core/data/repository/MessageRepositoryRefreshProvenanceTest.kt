@@ -6,6 +6,7 @@ import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.db.dao.MessageDao
+import com.garfiec.librechat.core.data.db.entity.MessageEntity
 import com.garfiec.librechat.core.data.mapper.toEntity
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.network.api.MessagesApi
@@ -13,6 +14,7 @@ import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -131,5 +133,19 @@ class MessageRepositoryRefreshProvenanceTest {
         repository.refreshMessages("conv-1", originAccount = accountA)
 
         coVerify(exactly = 0) { messageDao.replaceAllForConversation(any(), any(), any()) }
+    }
+
+    @Test
+    fun `a turn cached after a switch is written and indexed under its origin account`() = runTest {
+        activeAccountProvider.set(accountB)
+        val written = slot<List<MessageEntity>>()
+        coEvery { messageDao.upsertAllIndexed(capture(written)) } returns Unit
+
+        repository.cacheMessages(listOf(message("m1")), originAccount = accountA)
+
+        // upsertAllIndexed builds each search row from the stamped entity, so this stamp is the
+        // account the message is searchable under.
+        assertThat(written.captured.map { it.accountId }).containsExactly(accountA.value)
+        coVerify(exactly = 0) { messageDao.upsertAll(any()) }
     }
 }

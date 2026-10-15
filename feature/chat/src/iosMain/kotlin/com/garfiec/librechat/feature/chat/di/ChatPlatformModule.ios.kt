@@ -29,6 +29,11 @@ actual val chatPlatformModule: Module = module {
             // [3] initialEndpoint, [4] initialModel — model-shortcut pre-select; absent otherwise.
             initialEndpoint = params.values.getOrNull(3) as String?,
             initialModel = params.values.getOrNull(4) as String?,
+            // [5] targetMessageId, [6] highlightQuery — open at a search hit; absent otherwise.
+            initialTargetMessageId = params.values.getOrNull(5) as String?,
+            initialHighlightQuery = params.values.getOrNull(6) as String?,
+            // [7] the hit matched in the target's reasoning; absent otherwise.
+            initialTargetInReasoning = params.values.getOrNull(7) as? Boolean ?: false,
             agentRepository = get(),
             chatRepository = get(),
             messageRepository = get(),

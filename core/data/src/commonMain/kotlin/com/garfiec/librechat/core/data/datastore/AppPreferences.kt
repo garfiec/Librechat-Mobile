@@ -41,6 +41,12 @@ object AppPreferences {
         decode = { it.coerceIn(PrefetchDepth.RANGE) },
     )
 
+    /**
+     * Whether the Search screen shows its power-user options (match case, whole word, regex, and
+     * role/model/date/archive filters). Off by default: the plain search box is what most people want.
+     */
+    val AdvancedSearch = boolPreference("advanced_search", default = always(false))
+
     val all: List<PreferenceSpec<*, *>> =
-        listOf(SiteIcons, PrefetchEnabled, PrefetchAttachments, PrefetchOnMetered, PrefetchDepthSetting)
+        listOf(SiteIcons, PrefetchEnabled, PrefetchAttachments, PrefetchOnMetered, PrefetchDepthSetting, AdvancedSearch)
 }

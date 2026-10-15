@@ -568,8 +568,8 @@ actual fun MarkdownContent(
 
     val isSearchActive = !searchQuery.isNullOrBlank()
 
-    // Mirrors androidMain: search rewrites text segments into HighlightedTextSegment, which never
-    // reaches the annotator, so an active query forces the block-level cursor.
+    // Mirrors androidMain: search draws text segments with its own components (SearchableMarkdown),
+    // which don't run the cursor's annotator, so an active query forces the block-level cursor.
     val inlineCursor = trailingCursor && !isSearchActive &&
         segments.lastOrNull()?.let { canHostInlineCursor(it) } == true
 
@@ -631,15 +631,27 @@ actual fun MarkdownContent(
                                 is InlineSegment.Text -> {
                                     if (inlineSegment.text.isNotBlank()) {
                                         if (isSearchActive) {
-                                            val runOccurrences = countOccurrences(inlineSegment.text, searchQuery)
-                                            val focusedInRun = focusedInSegment - inlineOffset
-                                            HighlightedTextSegment(
-                                                content = inlineSegment.text,
-                                                searchQuery = searchQuery,
-                                                focusedOccurrence = focusedInRun,
-                                                fontSizeMultiplier = fontSizeMultiplier,
-                                                onFocusedMatchPosition = onFocusedOccurrencePosition,
+                                            val runOccurrences =
+                                                countDisplayedOccurrences(inlineSegment.text, searchQuery)
+                                            val search = rememberMarkdownSearch(
+                                                inlineSegment.text,
+                                                searchQuery,
+                                                focusedInSegment - inlineOffset,
+                                                onFocusedOccurrencePosition,
                                             )
+                                            val components = remember(search) {
+                                                search?.let(::searchMarkdownComponents) ?: ChatMarkdownComponents
+                                            }
+                                            key(fontSizeMultiplier) {
+                                                CachedMarkdown(
+                                                    content = inlineSegment.text,
+                                                    colors = colors,
+                                                    typography = typography,
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    immediate = immediate,
+                                                    components = components,
+                                                )
+                                            }
                                             inlineOffset += runOccurrences
                                         } else {
                                             key(fontSizeMultiplier) {
@@ -684,13 +696,22 @@ actual fun MarkdownContent(
                 }
                 is MarkdownSegment.TextBlock -> {
                     if (isSearchActive) {
-                        HighlightedTextSegment(
-                            content = segment.text,
-                            searchQuery = searchQuery,
-                            focusedOccurrence = focusedInSegment,
-                            fontSizeMultiplier = fontSizeMultiplier,
-                            onFocusedMatchPosition = onFocusedOccurrencePosition,
-                        )
+                        // Markdown stays rendered with find open; matches are marked in what it
+                        // displays (see SearchableMarkdown).
+                        val search =
+                            rememberMarkdownSearch(segment.text, searchQuery, focusedInSegment, onFocusedOccurrencePosition)
+                        val components =
+                            remember(search) { search?.let(::searchMarkdownComponents) ?: ChatMarkdownComponents }
+                        key(fontSizeMultiplier, index) {
+                            CachedMarkdown(
+                                content = segment.text,
+                                colors = colors,
+                                typography = typography,
+                                modifier = Modifier.fillMaxWidth(),
+                                immediate = immediate,
+                                components = components,
+                            )
+                        }
                     } else {
                         key(fontSizeMultiplier, index) {
                             CachedMarkdown(

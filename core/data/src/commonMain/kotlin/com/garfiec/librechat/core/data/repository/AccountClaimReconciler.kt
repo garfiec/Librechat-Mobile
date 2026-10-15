@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.data.db.dao.AccountClaimDao
+import com.garfiec.librechat.core.data.search.SearchIndexState
 import com.garfiec.librechat.core.model.NEW_CHAT_DRAFT_KEY
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.first
@@ -42,7 +43,11 @@ class AccountClaimReconciler(
                 userKey = userKey,
                 newChatKey = NEW_CHAT_DRAFT_KEY,
             )
-            dataStore.edit { prefs -> prefs[KEY_LEGACY_CLAIM_DONE] = true }
+            dataStore.edit { prefs ->
+                prefs[KEY_LEGACY_CLAIM_DONE] = true
+                // The claimed rows are indexable now, but no count moved, so the repair would skip them.
+                SearchIndexState.forgetRepair(prefs)
+            }
         }
     }
 

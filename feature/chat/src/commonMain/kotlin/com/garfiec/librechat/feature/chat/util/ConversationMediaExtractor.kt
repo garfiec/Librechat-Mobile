@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.ui.media.MediaItem
 import com.garfiec.librechat.feature.chat.components.artifact.Artifact
 import com.garfiec.librechat.feature.chat.components.artifact.ArtifactSegment
 import com.garfiec.librechat.feature.chat.components.artifact.detectArtifacts
+import com.garfiec.librechat.feature.chat.components.legacyTextRuns
 import com.garfiec.librechat.feature.chat.components.textFallbackSplitsArtifacts
 
 /**
@@ -122,7 +123,8 @@ private fun Message.artifactSearchTexts(): List<String> {
     return if (!parts.isNullOrEmpty()) {
         parts.mapNotNull { it.text ?: it.think }
     } else if (textFallbackSplitsArtifacts()) {
-        listOf(text)
+        // A legacy `:::thinking` block renders apart from the reply, like a THINK part.
+        legacyTextRuns().let { listOfNotNull(it.reasoning, it.answer) }
     } else {
         emptyList()
     }

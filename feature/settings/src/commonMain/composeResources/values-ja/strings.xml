@@ -714,4 +714,8 @@
     <string name="ui_style_note_simulated">このバージョンのiOSではLiquid Glassをシミュレートしています。iOS 26以降ではネイティブに描画されます。</string>
     <string name="ui_style_note_blur_only">このデバイスではLiquid Glassが屈折のないぼかしとして表示されます。Android 13以降では完全な効果が表示されます。</string>
     <string name="ui_style_note_flat">このデバイスではLiquid Glassが平らな半透明の面として表示されます。</string>
+    <!-- Message search -->
+    <string name="section_search">検索</string>
+    <string name="advanced_search">高度な検索</string>
+    <string name="advanced_search_desc">上級ユーザー向け。検索画面に大文字と小文字の区別、単語単位、正規表現、およびロール・モデル・日付のフィルターを追加します。</string>
 </resources>

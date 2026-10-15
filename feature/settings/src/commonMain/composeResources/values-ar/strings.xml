@@ -724,4 +724,8 @@
     <string name="ui_style_note_simulated">تتم محاكاة Liquid Glass في إصدار iOS هذا. يعرضه iOS 26 أو الأحدث بشكل أصلي.</string>
     <string name="ui_style_note_blur_only">يعرض هذا الجهاز Liquid Glass كتمويه دون انكسار. يعرض Android 13 أو الأحدث التأثير الكامل.</string>
     <string name="ui_style_note_flat">يعرض هذا الجهاز Liquid Glass كسطح شفاف مسطح.</string>
+    <!-- Message search -->
+    <string name="section_search">البحث</string>
+    <string name="advanced_search">البحث المتقدم</string>
+    <string name="advanced_search_desc">للمستخدمين المتقدمين. يضيف مطابقة حالة الأحرف والكلمة الكاملة والتعبيرات النمطية، وعوامل تصفية الدور والنموذج والتاريخ إلى شاشة البحث.</string>
 </resources>

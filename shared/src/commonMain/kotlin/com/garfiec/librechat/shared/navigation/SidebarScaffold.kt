@@ -32,6 +32,11 @@ fun SidebarScaffold(
     onSchedulesClick: () -> Unit,
     modifier: Modifier = Modifier,
     onOpenProjectsIndex: () -> Unit = {},
+    // Opens the Search screen with the drawer's query; see DrawerContent's param.
+    onOpenSearch: ((String) -> Unit)? = null,
+    // A drawer message hit was tapped; opens the chat at that message. Defaults to the conversation.
+    onMessageClick: (conversationId: String, messageId: String, query: String, inReasoning: Boolean) -> Unit =
+        { conversationId, _, _, _ -> onConversationClick(conversationId) },
     onSwitchAccount: (String) -> Unit = {},
     onAddAccount: () -> Unit = {},
     // Deleting the open conversation navigates the pane off it; see DrawerContent's param for the
@@ -85,6 +90,8 @@ fun SidebarScaffold(
                     onSchedulesClick = onSchedulesClick,
                     accounts = accounts,
                     onOpenProjectsIndex = onOpenProjectsIndex,
+                    onOpenSearch = onOpenSearch,
+                    onMessageClick = onMessageClick,
                     onSwitchAccount = onSwitchAccount,
                     onAddAccount = onAddAccount,
                     // Swipe round-robins in place; the sheet's remove asks the nav shell directly.

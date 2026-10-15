@@ -10,8 +10,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import com.garfiec.librechat.feature.chat.components.localizedStreamError
+import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.resources.jump_branch_switched
+import com.garfiec.librechat.feature.chat.resources.jump_message_not_found
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
+import org.jetbrains.compose.resources.getString
 
 /**
  * Hosts the chat screen's one-shot side effects so [ChatScreen] reads as layout.
@@ -75,6 +79,20 @@ internal fun ChatScreenEffects(
         viewModel = viewModel,
         snackbarHostState = snackbarHostState,
     )
+
+    // A search hit's message wasn't in the chat (deleted, or on a branch the server no longer has).
+    SignalSnackbarEffect(
+        signal = viewModel.messageNotFound,
+        message = Res.string.jump_message_not_found,
+        snackbarHostState = snackbarHostState,
+    )
+
+    // A search hit lived on another branch: say the chat now shows that one.
+    LaunchedEffect(viewModel) {
+        viewModel.jumpBranchSwitched.collect { switch ->
+            snackbarHostState.showSnackbar(message = getString(Res.string.jump_branch_switched, switch.index, switch.count))
+        }
+    }
 
     // Navigate back after delete/archive (conversationId becomes null)
     var hadConversation by remember { mutableStateOf(uiState.conversationId != null) }

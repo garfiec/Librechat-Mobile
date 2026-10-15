@@ -5,6 +5,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import com.mikepenz.markdown.compose.components.MarkdownComponents
 import com.mikepenz.markdown.m3.Markdown
 import com.mikepenz.markdown.model.MarkdownColors
 import com.mikepenz.markdown.model.MarkdownTypography
@@ -63,6 +64,8 @@ fun CachedMarkdown(
     immediate: Boolean = false,
     streaming: Boolean = false,
     trailingCursor: Boolean = false,
+    // How each node draws; find-in-page swaps in components that mark matches (SearchableMarkdown).
+    components: MarkdownComponents = ChatMarkdownComponents,
 ) {
     val cache = LocalParsedMarkdownCache.current
     val rendered = if (trailingCursor) withStreamingCursor(content) else content
@@ -87,6 +90,7 @@ fun CachedMarkdown(
                 modifier = modifier,
                 annotator = annotator,
                 inlineContent = inlineContent,
+                components = components,
             )
             return
         }
@@ -130,5 +134,6 @@ fun CachedMarkdown(
         modifier = modifier,
         annotator = annotator,
         inlineContent = inlineContent,
+        components = components,
     )
 }

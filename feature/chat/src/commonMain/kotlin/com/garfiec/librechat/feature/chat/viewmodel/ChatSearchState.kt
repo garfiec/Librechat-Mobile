@@ -14,6 +14,19 @@ data class ChatSearchState(
     val currentSearchMatchIndex: Int = 0,
     /** The search occurrence to scroll to when the focused match changes. Consumed by MessageList. */
     val searchFocusRequest: SearchFocusRequest? = null,
+    /**
+     * A jump's target: outlined while find-in-page is open on it (closing it clears this), or, when
+     * [JumpFlash.fade] (its query had no literal match to highlight), flashed once instead.
+     */
+    val jumpFlash: JumpFlash? = null,
+)
+
+/** Flash [messageIndex] once; [requestId] makes a repeat jump replay it. */
+@Immutable
+data class JumpFlash(
+    val messageIndex: Int,
+    val requestId: Long,
+    val fade: Boolean = true,
 )
 
 /**

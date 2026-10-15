@@ -678,4 +678,6 @@
         <item quantity="other">Вы достигли лимита сообщений на этом сервере. Попробуйте снова через %1$d дня.</item>
     </plurals>
     <string name="queue_held_after_refusal">Сервер отклонил ваше сообщение. Оно ждёт в очереди и не отправится само. Нажмите «Отправить очередь», когда будете готовы.</string>
+    <string name="jump_message_not_found">Этого сообщения больше нет в чате.</string>
+    <string name="jump_branch_switched">Показан ответ %1$d из %2$d — ветка с этим сообщением.</string>
 </resources>

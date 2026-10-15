@@ -6,6 +6,7 @@ import com.garfiec.librechat.core.common.extensions.RelativeTimeReference
 import com.garfiec.librechat.core.common.extensions.dayBoundaryReferences
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.ConversationRepository
+import com.garfiec.librechat.core.data.search.TitleMatch
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.feature.conversations.viewmodel.groupedByDateBucket
 import kotlinx.coroutines.CoroutineScope
@@ -28,11 +29,24 @@ class ConversationListStateHolder(
     // Injectable so tests can supply a finite flow: the production one never completes, and a
     // repeating delay makes `advanceUntilIdle()` advance virtual time forever.
     private val dayBoundaries: Flow<RelativeTimeReference> = dayBoundaryReferences(),
+    /**
+     * The server's conversation search, or null when it can't answer (search disabled, offline,
+     * failed). It returns conversations whose title **or any message** matched, so only those whose
+     * title matches ([TitleMatch]) join the local title hits; body matches are the Messages
+     * section's job.
+     */
+    private val remoteTitleSearch: (suspend (String) -> List<Conversation>?)? = null,
 ) {
 
     companion object {
         private const val SEARCH_DEBOUNCE_MS = 300L
+
+        /** Shorter queries stay local: upstream doesn't rate-limit search, so the client does. */
+        private const val MIN_REMOTE_QUERY_CHARS = 3
     }
+
+    /** Server title hits for the current query. Cleared whenever the query changes. */
+    private var remoteTitleHits: List<Conversation> = emptyList()
 
     private val _recentConversations = MutableStateFlow<List<Conversation>>(emptyList())
     val recentConversations: StateFlow<List<Conversation>> = _recentConversations.asStateFlow()
@@ -102,8 +116,16 @@ class ConversationListStateHolder(
         _groupedConversations.value = if (query.isBlank()) {
             conversations.withoutPinned().groupedByDateBucket()
         } else {
-            filterByQuery(conversations, query).groupedByDateBucket()
+            searchResults(conversations, query).groupedByDateBucket()
         }
+    }
+
+    /** The local title filter's hits, then any server hits that aren't cached. */
+    private fun searchResults(conversations: List<Conversation>, query: String): List<Conversation> {
+        val local = filterByQuery(conversations, query)
+        if (remoteTitleHits.isEmpty()) return local
+        val localIds = local.mapTo(HashSet()) { it.conversationId }
+        return local + remoteTitleHits.filter { it.conversationId !in localIds && TitleMatch.matches(it.title, query) }
     }
 
     private fun loadInitialConversations() {
@@ -151,6 +173,7 @@ class ConversationListStateHolder(
     }
 
     fun onSearchQueryChanged(query: String) {
+        if (query.trim() != _searchQuery.value.trim()) remoteTitleHits = emptyList()
         _searchQuery.value = query
         if (query.isBlank()) {
             regroup()
@@ -166,17 +189,27 @@ class ConversationListStateHolder(
                 .debounce(SEARCH_DEBOUNCE_MS)
                 .collectLatest { query ->
                     _groupedConversations.value =
-                        filterByQuery(_recentConversations.value, query).groupedByDateBucket()
+                        searchResults(_recentConversations.value, query).groupedByDateBucket()
+                    val search = remoteTitleSearch ?: return@collectLatest
+                    if (query.trim().length < MIN_REMOTE_QUERY_CHARS) return@collectLatest
+                    val remote = search(query.trim()) ?: return@collectLatest
+                    // A reply for a query the user has since changed (or that a reset blanked on an
+                    // account switch) belongs to nothing on screen.
+                    if (_searchQuery.value != query) return@collectLatest
+                    remoteTitleHits = remote
+                    regroup()
                 }
         }
     }
 
+    /** Titles matched the way messages are: every word, the last one as a prefix. */
     private fun filterByQuery(conversations: List<Conversation>, query: String): List<Conversation> =
-        conversations.filter { it.title?.contains(query, ignoreCase = true) == true }
+        conversations.filter { TitleMatch.matches(it.title, query) }
 
     fun reset() {
         searchObserverJob?.cancel()
         searchObserverJob = null
+        remoteTitleHits = emptyList()
         _recentConversations.value = emptyList()
         _groupedConversations.value = emptyList()
         _activeConversationId.value = null

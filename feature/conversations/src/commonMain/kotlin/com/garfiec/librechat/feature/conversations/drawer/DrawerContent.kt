@@ -1,11 +1,25 @@
 package com.garfiec.librechat.feature.conversations.drawer
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,12 +32,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -33,10 +50,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
@@ -44,6 +64,7 @@ import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.OpenInFull
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
@@ -69,32 +90,46 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.common.datetime.listLabel
+import com.garfiec.librechat.core.data.search.FtsQuery
+import com.garfiec.librechat.core.data.search.FtsQueryPlan
+import com.garfiec.librechat.core.data.search.MessageSearchHit
+import com.garfiec.librechat.core.data.search.TitleMatch
 import com.garfiec.librechat.core.model.ChatProject
 import com.garfiec.librechat.core.model.SAVED_TAG
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
-import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.EndpointIcon
 import com.garfiec.librechat.core.ui.components.ListDragSelection
 import com.garfiec.librechat.core.ui.components.MenuDragSelection
@@ -111,6 +146,8 @@ import com.garfiec.librechat.core.ui.datetime.LocalRelativeTimeReference
 import com.garfiec.librechat.core.ui.datetime.resolve
 import com.garfiec.librechat.core.ui.glass.GlassControlColors
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
+import com.garfiec.librechat.core.ui.theme.isSurfaceDark
+import com.garfiec.librechat.core.ui.theme.searchMatchColor
 import com.garfiec.librechat.feature.conversations.components.ConversationActionDialogs
 import com.garfiec.librechat.feature.conversations.components.ConversationActionEffects
 import com.garfiec.librechat.feature.conversations.components.ConversationActionsMenu
@@ -124,10 +161,11 @@ import com.garfiec.librechat.feature.conversations.export.ExportFormatPicker
 import com.garfiec.librechat.feature.conversations.resources.Res
 import com.garfiec.librechat.feature.conversations.resources.agents
 import com.garfiec.librechat.feature.conversations.resources.bookmark
-import com.garfiec.librechat.feature.conversations.resources.cd_clear_search
+import com.garfiec.librechat.feature.conversations.resources.cd_close_search
 import com.garfiec.librechat.feature.conversations.resources.cd_collapse_section
 import com.garfiec.librechat.feature.conversations.resources.cd_conversation_actions
 import com.garfiec.librechat.feature.conversations.resources.cd_expand_section
+import com.garfiec.librechat.feature.conversations.resources.cd_open_search
 import com.garfiec.librechat.feature.conversations.resources.cd_search
 import com.garfiec.librechat.feature.conversations.resources.drawer_running_chats
 import com.garfiec.librechat.feature.conversations.resources.favorites
@@ -142,7 +180,8 @@ import com.garfiec.librechat.feature.conversations.resources.projects
 import com.garfiec.librechat.feature.conversations.resources.projects_all
 import com.garfiec.librechat.feature.conversations.resources.remove_bookmark
 import com.garfiec.librechat.feature.conversations.resources.schedules
-import com.garfiec.librechat.feature.conversations.resources.search_conversations_placeholder
+import com.garfiec.librechat.feature.conversations.resources.search_open_all
+import com.garfiec.librechat.feature.conversations.resources.search_title
 import com.garfiec.librechat.feature.conversations.resources.settings
 import com.garfiec.librechat.feature.conversations.resources.show_less
 import com.garfiec.librechat.feature.conversations.resources.show_more
@@ -177,6 +216,9 @@ private val MenuVerticalGap = 4.dp
 // Favorites shown before the "Show more" toggle reveals the rest.
 private const val FavoritesPreviewCount = 5
 
+/** Title hits the drawer lists while searching; the rest are in Search. */
+private const val TITLE_HIT_PREVIEW = 5
+
 /**
  * Stateful DrawerContent that collects its own state from the ViewModel.
  */
@@ -205,9 +247,18 @@ fun DrawerContent(
     // Whether the host is actually showing this surface (phone drawer open / tablet sidebar expanded).
     // The phone drawer stays composed while closed, so the host must say so.
     isOpen: Boolean = true,
+    // A message search hit was tapped. The default opens just its conversation.
+    onMessageClick: (conversationId: String, messageId: String, query: String, inReasoning: Boolean) -> Unit =
+        { conversationId, _, _, _ -> onConversationClick(conversationId) },
+    // Opens the full Search screen with the drawer's query; null hides both ways in (the field's
+    // expand button and "See all").
+    onOpenSearch: ((String) -> Unit)? = null,
     viewModel: DrawerViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.drawerUiState.collectAsStateWithLifecycle()
+    // The field reads the query straight from its own state flow: the combined UI state carries it
+    // a frame or more later, and a field showing that copy drops keystrokes typed in between.
+    val searchFieldText by viewModel.searchQuery.collectAsStateWithLifecycle()
     val projects by viewModel.projects.collectAsStateWithLifecycle()
     val inlineProjectChats by viewModel.inlineProjectChats.collectAsStateWithLifecycle()
     val libraryTab by viewModel.drawerLibraryTab.collectAsStateWithLifecycle()
@@ -243,6 +294,8 @@ fun DrawerContent(
 
     DrawerContent(
         uiState = uiState,
+        searchFieldText = searchFieldText,
+        viewMemory = viewModel.viewMemory,
         footerContent = { dragSelection ->
             val active = accounts.firstOrNull { it.isActive }
             Spacer(modifier = Modifier.height(8.dp))
@@ -290,6 +343,14 @@ fun DrawerContent(
         onSearchQueryChange = viewModel::onSearchQueryChanged,
         onNewChat = onNewChat,
         onConversationClick = onConversationClick,
+        // A hit drawn before an account switch belongs to the previous account: ignore the tap
+        // rather than open a conversation id under the wrong account.
+        onMessageHitClick = { hit ->
+            if (viewModel.isActiveAccount(hit.accountId)) {
+                onMessageClick(hit.conversationId, hit.messageId, uiState.searchQuery.trim(), hit.inReasoning)
+            }
+        },
+        onOpenSearch = onOpenSearch,
         onAgentsClick = onAgentsClick,
         onFilesClick = onFilesClick,
         onSkillsClick = onSkillsClick,
@@ -368,6 +429,8 @@ fun DrawerContent(
     // and the account avatar here, at the bottom of the drawer. Its rows join the footer links'
     // drag-to-select through the [ListDragSelection] it's given.
     footerContent: (@Composable (ListDragSelection?) -> Unit)? = null,
+    onMessageHitClick: (MessageSearchHit) -> Unit = {},
+    onOpenSearch: ((String) -> Unit)? = null,
     onToggleFavorite: (DrawerConversationDisplayData) -> Unit = {},
     onRefresh: () -> Unit = {},
     onLoadMore: () -> Unit = {},
@@ -394,6 +457,10 @@ fun DrawerContent(
     onDuplicate: (String, String) -> Unit = { _, _ -> },
     onUpdateTags: (DrawerConversationDisplayData, List<String>) -> Unit = { _, _ -> },
     onExportFormat: (DrawerConversationDisplayData, ExportFormat) -> Unit = { _, _ -> },
+    /** What the search field shows: the query as typed, ahead of [uiState]'s copy of it. */
+    searchFieldText: String = uiState.searchQuery,
+    /** Cursor and scroll position, kept where the next drawer composed (fold ↔ unfold) finds them. */
+    viewMemory: DrawerViewMemory = remember { DrawerViewMemory() },
 ) {
     // Which row's long-press action menu is currently open (null = none). Keyed by the row's
     // LazyColumn key, not the conversation id: a favorited conversation appears in BOTH the
@@ -428,7 +495,8 @@ fun DrawerContent(
             .fillMaxHeight()
             .width(300.dp)
             // In Liquid Glass the floating panel around the drawer paints it and keeps it inside the
-            // safe area, so the drawer itself is transparent and unpadded.
+            // safe area (the keyboard included), so the drawer itself is transparent and unpadded.
+            // Material pads itself, the keyboard too, so its search results end above it.
             .then(
                 if (glass) {
                     Modifier
@@ -437,6 +505,7 @@ fun DrawerContent(
                         .background(MaterialTheme.colorScheme.surfaceContainerLow)
                         .statusBarsPadding()
                         .navigationBarsPadding()
+                        .imePadding()
                 },
             )
             .padding(top = 16.dp),
@@ -452,6 +521,21 @@ fun DrawerContent(
         // toggle from the current query so a restored search stays visible across recompositions.
         var searchExpanded by remember { mutableStateOf(uiState.searchQuery.isNotEmpty()) }
         val searchFocusRequester = remember { FocusRequester() }
+        var searchFocused by remember { mutableStateOf(false) }
+        // Derived, so the drawer recomposes when the keyboard comes or goes, not on every frame of its
+        // slide.
+        val ime = WindowInsets.ime
+        val density = LocalDensity.current
+        val keyboardUp by remember(ime, density) { derivedStateOf { ime.getBottom(density) > 0 } }
+        // Search takes the query over: the drawer's copy is cleared and the box collapsed, so the
+        // drawer is back to its normal list when the user returns to it.
+        val openSearchAndReset: ((String) -> Unit)? = onOpenSearch?.let { open ->
+            { query ->
+                searchExpanded = false
+                onSearchQueryChange("")
+                open(query)
+            }
+        }
 
         // Focus the field (and pop the keyboard) only when the user opens search explicitly — the
         // focusAnchor above still steals initial focus so opening the drawer doesn't do this.
@@ -461,117 +545,166 @@ fun DrawerContent(
             }
         }
 
-        // "New Chat" button at top, with a search toggle to its right.
+        // New Chat and the search box share one slot: the search toggle turns the button into the
+        // field, and the toggle becomes close, which turns the slot back into New Chat. The field
+        // carries "open in Search". Material moves: the glyph flies from the toggle into the field,
+        // the label slides out to the left as the field slides in behind it. Liquid Glass morphs in
+        // place, as iOS controls do: the + fades into the search glyph where it sits, the label
+        // into the field, the tint into the grey fill.
         val newChatBounce = rememberPressBounce()
         val searchBounce = rememberPressBounce()
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(IntrinsicSize.Min)
-                .padding(horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Surface(
-                onClick = onNewChat,
-                modifier = Modifier.weight(1f).pressBounce(newChatBounce, enabled = !glass),
-                shape = if (glass) CircleShape else ItemShape,
-                color = if (glass) GlassControlColors.tint else MaterialTheme.colorScheme.primary,
-                contentColor = if (glass) Color.White else MaterialTheme.colorScheme.onPrimary,
+        val focusManager = LocalFocusManager.current
+        val collapseSearch = {
+            focusManager.clearFocus()
+            searchExpanded = false
+            onSearchQueryChange("")
+        }
+        val slotColor by animateColorAsState(
+            targetValue = when {
+                !searchExpanded && glass -> GlassControlColors.tint
+                !searchExpanded -> MaterialTheme.colorScheme.primary
+                glass -> GlassControlColors.fill
+                else -> MaterialTheme.colorScheme.surfaceContainerHigh
+            },
+            animationSpec = MorphColorSpec,
+        )
+        SharedTransitionLayout {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min)
+                    .padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                Surface(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(SlotHeight)
+                        .pressBounce(newChatBounce, enabled = !glass && !searchExpanded),
+                    // Round in both styles: the header's buttons are pills, as in glass.
+                    shape = CircleShape,
+                    color = slotColor,
+                    contentColor = if (glass) Color.White else MaterialTheme.colorScheme.onPrimary,
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = stringResource(Res.string.new_chat),
-                        style = MaterialTheme.typography.titleSmall,
-                    )
+                    Box(contentAlignment = Alignment.CenterStart) {
+                        // Qualified: inside the Row, the RowScope overload would win and can't be called here.
+                        androidx.compose.animation.AnimatedVisibility(
+                            visible = !searchExpanded,
+                            enter = morphIn(glass, fromStart = true),
+                            exit = morphOut(glass, toStart = true),
+                        ) {
+                            NewChatLabel(onClick = onNewChat)
+                        }
+                        // Qualified: inside the Row, the RowScope overload would win and can't be called here.
+                        androidx.compose.animation.AnimatedVisibility(
+                            visible = searchExpanded,
+                            enter = morphIn(glass, fromStart = false),
+                            exit = morphOut(glass, toStart = false),
+                        ) {
+                            DrawerSearchField(
+                                query = searchFieldText,
+                                onQueryChange = onSearchQueryChange,
+                                initialSelection = viewMemory.searchSelection,
+                                onSelectionChange = { viewMemory.searchSelection = it },
+                                // Enter opens the full Search screen with the query: the keyboard's way
+                                // to "see everything", and what a search box's Enter is expected to do.
+                                onSubmit = {
+                                    val query = searchFieldText.trim()
+                                    if (openSearchAndReset != null && query.isNotEmpty()) openSearchAndReset(query)
+                                },
+                                onOpenInSearch = openSearchAndReset?.let { open -> { open(searchFieldText.trim()) } },
+                                focusRequester = searchFocusRequester,
+                                onFocusChange = { searchFocused = it },
+                                // In glass the glyph takes the +'s place, so it starts where the + does.
+                                startPadding = if (glass) NewChatStartPadding else 12.dp,
+                                glyph = {
+                                    Icon(
+                                        imageVector = Icons.Default.Search,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier
+                                            .then(
+                                                if (glass) {
+                                                    Modifier
+                                                } else {
+                                                    Modifier.sharedElement(
+                                                        rememberSharedContentState(SearchGlyphKey),
+                                                        animatedVisibilityScope = this@AnimatedVisibility,
+                                                    )
+                                                },
+                                            )
+                                            .size(20.dp),
+                                    )
+                                },
+                            )
+                        }
+                    }
                 }
-            }
 
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // Collapsing clears the query so the list resets to its normal (unsearched) state.
-            Surface(
-                onClick = {
-                    searchExpanded = !searchExpanded
-                    if (!searchExpanded) onSearchQueryChange("")
-                },
-                modifier = if (glass) {
-                    Modifier.fillMaxHeight().aspectRatio(1f)
-                } else {
-                    Modifier.fillMaxHeight().pressBounce(searchBounce)
-                },
-                shape = if (glass) CircleShape else ItemShape,
-                color = when {
-                    glass -> GlassControlColors.fill
-                    searchExpanded -> MaterialTheme.colorScheme.secondaryContainer
-                    else -> MaterialTheme.colorScheme.surfaceContainerHighest
-                },
-            ) {
-                Box(
+                // Search, then close once the field is out: closing turns the slot back into New Chat.
+                Spacer(modifier = Modifier.width(8.dp))
+                Surface(
+                    onClick = { if (searchExpanded) collapseSearch() else searchExpanded = true },
                     modifier = Modifier
                         .fillMaxHeight()
-                        .padding(horizontal = 12.dp),
-                    contentAlignment = Alignment.Center,
+                        .aspectRatio(1f)
+                        .pressBounce(searchBounce, enabled = !glass),
+                    shape = CircleShape,
+                    color = if (glass) GlassControlColors.fill else MaterialTheme.colorScheme.surfaceContainerHighest,
                 ) {
-                    Icon(
-                        imageVector = if (searchExpanded) Icons.Default.Close else Icons.Default.Search,
-                        contentDescription = stringResource(Res.string.cd_search),
-                        tint = if (glass) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp),
-                    )
+                    AnimatedContent(
+                        targetState = searchExpanded,
+                        transitionSpec = {
+                            (scaleIn(MorphScaleSpec, initialScale = 0.6f) + fadeIn(MorphFadeInSpec))
+                                .togetherWith(scaleOut(MorphScaleSpec, targetScale = 0.6f) + fadeOut(MorphFadeOutSpec))
+                        },
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxHeight().padding(horizontal = 12.dp),
+                    ) { expanded ->
+                        val tint = if (glass) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        Box(modifier = Modifier.fillMaxHeight(), contentAlignment = Alignment.Center) {
+                            if (expanded) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = stringResource(Res.string.cd_close_search),
+                                    tint = tint,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = stringResource(Res.string.cd_search),
+                                    tint = tint,
+                                    modifier = Modifier
+                                        .then(
+                                            if (glass) {
+                                                Modifier
+                                            } else {
+                                                Modifier.sharedElement(
+                                                    rememberSharedContentState(SearchGlyphKey),
+                                                    animatedVisibilityScope = this@AnimatedContent,
+                                                )
+                                            },
+                                        )
+                                        .size(20.dp),
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
 
-        // Search bar — revealed only when toggled on.
-        AnimatedVisibility(visible = searchExpanded) {
-            Column {
-                Spacer(modifier = Modifier.height(12.dp))
-                AdaptiveOutlinedTextField(
-                    value = uiState.searchQuery,
-                    onValueChange = onSearchQueryChange,
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = stringResource(Res.string.cd_search),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp),
-                        )
-                    },
-                    trailingIcon = {
-                        if (uiState.searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { onSearchQueryChange("") }) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = stringResource(Res.string.cd_clear_search),
-                                    modifier = Modifier.size(20.dp),
-                                )
-                            }
-                        }
-                    },
-                    placeholder = {
-                        Text(
-                            text = stringResource(Res.string.search_conversations_placeholder),
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    },
-                    singleLine = true,
-                    shape = ItemShape,
-                    textStyle = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp)
-                        .focusRequester(searchFocusRequester),
-                )
-            }
+        // Pinned under the slot, outside the list: the bottom "See all" link sits past every title and
+        // message hit, where a long result list hides it.
+        AnimatedVisibility(
+            visible = searchExpanded && openSearchAndReset != null && FtsQuery.plan(searchFieldText) != FtsQueryPlan.Empty,
+        ) {
+            SearchLinkRow(
+                text = stringResource(Res.string.search_open_all),
+                onClick = { openSearchAndReset?.invoke(searchFieldText.trim()) },
+                modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 8.dp),
+            )
         }
 
         // Chats / Projects toggle above the list — shown only where projects are supported. When
@@ -621,7 +754,16 @@ fun DrawerContent(
         }
 
         // Conversation list with favorites section and date groups
-        val listState = rememberLazyListState()
+        // Not rememberLazyListState: that is saveable per place in the tree, so after the activity is
+        // recreated (fold ↔ unfold) each layout's drawer would restore its own old position over this one.
+        val listState = remember(viewMemory) { LazyListState(viewMemory.listIndex, viewMemory.listOffset) }
+        LaunchedEffect(listState, viewMemory) {
+            snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
+                .collect { (index, offset) ->
+                    viewMemory.listIndex = index
+                    viewMemory.listOffset = offset
+                }
+        }
         val currentOnLoadMore by rememberUpdatedState(onLoadMore)
 
         // Single item renderer shared by the favorites section and the date groups so the
@@ -630,6 +772,7 @@ fun DrawerContent(
         val renderConversationItem: @Composable (String, DrawerConversationDisplayData) -> Unit = { rowKey, data ->
             DrawerConversationItem(
                 data = data,
+                searchQuery = uiState.searchQuery.takeIf { it.isNotBlank() },
                 onClick = { onConversationClick(data.conversationId) },
                 onToggleFavorite = { onToggleFavorite(data) },
                 showBookmarkToggle = uiState.bookmarksEnabled,
@@ -789,45 +932,71 @@ fun DrawerContent(
                     }
                 }
 
-                if (uiState.groupedConversations.isEmpty() && uiState.searchQuery.isNotEmpty()) {
-                    item(key = "empty_search") {
-                        Text(
-                            text = stringResource(Res.string.no_conversations_found),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp),
-                        )
+                val searching = uiState.searchQuery.isNotBlank()
+                val openSearch = openSearchAndReset?.let { open -> { open(uiState.searchQuery.trim()) } }
+                if (searching) {
+                    // Title hits only, flat and capped: the full list would push the message hits
+                    // (and the way into Search) off the bottom of a long drawer.
+                    val titleHits = uiState.groupedConversations.flatMap { it.second }
+                    conversationResultsHeader(count = titleHits.size)
+                    if (titleHits.isEmpty()) {
+                        item(key = "empty_search") {
+                            Text(
+                                text = stringResource(Res.string.no_conversations_found),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            )
+                        }
                     }
-                }
-
-                uiState.groupedConversations.forEach { (group, displayItems) ->
-                    drawerHeader(glass, key = "header_${group.key}") {
-                        Text(
-                            text = when (group) {
-                                DrawerGroupKey.Running -> stringResource(Res.string.drawer_running_chats)
-                                is DrawerGroupKey.Date -> group.group.resolve()
-                            },
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(if (glass) Color.Transparent else MaterialTheme.colorScheme.surfaceContainerLow)
-                                .padding(
-                                    start = 16.dp,
-                                    end = 16.dp,
-                                    top = 12.dp,
-                                    bottom = 4.dp,
-                                ),
-                        )
-                    }
-
                     items(
-                        items = displayItems,
+                        items = titleHits.take(TITLE_HIT_PREVIEW),
                         key = { it.conversationId },
                         contentType = { "conversation" },
                     ) { data ->
                         renderConversationItem(data.conversationId, data)
                     }
+                    if (titleHits.size > TITLE_HIT_PREVIEW && openSearch != null) {
+                        moreChatsLink(titleHits.size - TITLE_HIT_PREVIEW, openSearch)
+                    }
+                } else {
+                    uiState.groupedConversations.forEach { (group, displayItems) ->
+                        drawerHeader(glass, key = "header_${group.key}") {
+                            Text(
+                                text = when (group) {
+                                    DrawerGroupKey.Running -> stringResource(Res.string.drawer_running_chats)
+                                    is DrawerGroupKey.Date -> group.group.resolve()
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(if (glass) Color.Transparent else MaterialTheme.colorScheme.surfaceContainerLow)
+                                    .padding(
+                                        start = 16.dp,
+                                        end = 16.dp,
+                                        top = 12.dp,
+                                        bottom = 4.dp,
+                                    ),
+                            )
+                        }
+
+                        items(
+                            items = displayItems,
+                            key = { it.conversationId },
+                            contentType = { "conversation" },
+                        ) { data ->
+                            renderConversationItem(data.conversationId, data)
+                        }
+                    }
+                }
+
+                if (searching) {
+                    messageResultsSection(
+                        search = uiState.messageSearch,
+                        onHitClick = onMessageHitClick,
+                        onSeeAll = openSearch,
+                    )
                 }
 
                 if (uiState.isLoadingMore) {
@@ -863,49 +1032,53 @@ fun DrawerContent(
         }
         }
 
-        // Bottom section: divider + footer links
-        AdaptiveDivider(
-            modifier = Modifier.padding(horizontal = 12.dp),
-            color = MaterialTheme.colorScheme.outlineVariant,
-        )
-
-        val dragSelection = rememberListDragSelection()
-        Column(modifier = Modifier.listDragSelection(dragSelection)) {
-            if (uiState.agentsEnabled) {
-                DrawerFooterItem(
-                    icon = Icons.Default.SmartToy,
-                    label = stringResource(Res.string.agents),
-                    onClick = onAgentsClick,
-                    dragSelection = dragSelection,
-                )
-            }
-            if (uiState.skillsEnabled) {
-                DrawerFooterItem(
-                    icon = Icons.Default.Extension,
-                    label = stringResource(Res.string.skills),
-                    onClick = onSkillsClick,
-                    dragSelection = dragSelection,
-                )
-            }
-            if (uiState.schedulesEnabled) {
-                DrawerFooterItem(
-                    icon = Icons.Default.Schedule,
-                    label = stringResource(Res.string.schedules),
-                    onClick = onSchedulesClick,
-                    dragSelection = dragSelection,
-                )
-            }
-            DrawerFooterItem(
-                icon = Icons.Default.Folder,
-                label = stringResource(Res.string.files),
-                onClick = onFilesClick,
-                dragSelection = dragSelection,
+        // Bottom section: divider + footer links. Hidden while the keyboard is up for the drawer's search:
+        // the drawer shrinks above it, and the links would take what room is left from the results. Only
+        // for this field: a tablet's sidebar stays open while the chat composer has the keyboard.
+        if (!(searchFocused && keyboardUp)) {
+            AdaptiveDivider(
+                modifier = Modifier.padding(horizontal = 12.dp),
+                color = MaterialTheme.colorScheme.outlineVariant,
             )
 
-            footerContent?.invoke(dragSelection)
-        }
+            val dragSelection = rememberListDragSelection()
+            Column(modifier = Modifier.listDragSelection(dragSelection)) {
+                if (uiState.agentsEnabled) {
+                    DrawerFooterItem(
+                        icon = Icons.Default.SmartToy,
+                        label = stringResource(Res.string.agents),
+                        onClick = onAgentsClick,
+                        dragSelection = dragSelection,
+                    )
+                }
+                if (uiState.skillsEnabled) {
+                    DrawerFooterItem(
+                        icon = Icons.Default.Extension,
+                        label = stringResource(Res.string.skills),
+                        onClick = onSkillsClick,
+                        dragSelection = dragSelection,
+                    )
+                }
+                if (uiState.schedulesEnabled) {
+                    DrawerFooterItem(
+                        icon = Icons.Default.Schedule,
+                        label = stringResource(Res.string.schedules),
+                        onClick = onSchedulesClick,
+                        dragSelection = dragSelection,
+                    )
+                }
+                DrawerFooterItem(
+                    icon = Icons.Default.Folder,
+                    label = stringResource(Res.string.files),
+                    onClick = onFilesClick,
+                    dragSelection = dragSelection,
+                )
 
-        Spacer(modifier = Modifier.height(8.dp))
+                footerContent?.invoke(dragSelection)
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+        }
     }
 
     // Rename/Delete confirmation dialogs for the long-press action menu. Single hoisted instance
@@ -956,6 +1129,133 @@ fun DrawerContent(
         )
     }
 }
+
+/** New Chat's label, filling the shared slot so the whole slot is the button. */
+@Composable
+private fun NewChatLabel(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxSize()
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = NewChatStartPadding),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(text = stringResource(Res.string.new_chat), style = MaterialTheme.typography.titleSmall)
+    }
+}
+
+/**
+ * The drawer's search box, drawn inside New Chat's slot. A bare text field, because the slot is
+ * New Chat's height and an outlined field is taller; the slot supplies the fill. [glyph] is the
+ * leading search icon: in Material, the shared element the toggle's glyph flies into. [onOpenInSearch] opens
+ * the full Search screen with the query; null hides it.
+ *
+ * The field keeps its own [TextFieldValue], so the cursor is its own: [initialSelection] places it
+ * when the field is created (end of the text when null), and [onSelectionChange] reports it.
+ */
+@Composable
+private fun DrawerSearchField(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    initialSelection: TextRange?,
+    onSelectionChange: (TextRange) -> Unit,
+    onSubmit: () -> Unit,
+    onOpenInSearch: (() -> Unit)?,
+    focusRequester: FocusRequester,
+    onFocusChange: (Boolean) -> Unit,
+    startPadding: Dp,
+    glyph: @Composable () -> Unit,
+) {
+    val hint = MaterialTheme.colorScheme.onSurfaceVariant
+    val textStyle = MaterialTheme.typography.bodyMedium
+    // The String overload would start a new field's cursor at 0, which is where it landed on unfold.
+    var value by remember {
+        val selection = initialSelection?.takeIf { it.max <= query.length } ?: TextRange(query.length)
+        mutableStateOf(TextFieldValue(query, selection))
+    }
+    // Only a clear comes from outside (close, open in Search, account switch). Syncing every change
+    // would race the query's state flow, a frame behind the keys, and drop what was typed meanwhile.
+    LaunchedEffect(query) {
+        if (query.isEmpty() && value.text.isNotEmpty()) value = TextFieldValue()
+    }
+    Row(
+        modifier = Modifier.fillMaxSize().padding(start = startPadding, end = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        glyph()
+        Spacer(modifier = Modifier.width(8.dp))
+        BasicTextField(
+            value = value,
+            onValueChange = { next ->
+                val changed = next.text != value.text
+                value = next
+                onSelectionChange(next.selection)
+                if (changed) onQueryChange(next.text)
+            },
+            singleLine = true,
+            textStyle = textStyle.copy(color = MaterialTheme.colorScheme.onSurface),
+            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = { onSubmit() }),
+            decorationBox = { field ->
+                Box(contentAlignment = Alignment.CenterStart) {
+                    if (value.text.isEmpty()) {
+                        Text(text = stringResource(Res.string.search_title), style = textStyle, color = hint, maxLines = 1)
+                    }
+                    field()
+                }
+            },
+            modifier = Modifier
+                .weight(1f)
+                .focusRequester(focusRequester)
+                .onFocusChanged { onFocusChange(it.isFocused) },
+        )
+        if (onOpenInSearch != null) {
+            IconButton(onClick = onOpenInSearch, modifier = Modifier.size(36.dp)) {
+                Icon(
+                    imageVector = Icons.Default.OpenInFull,
+                    contentDescription = stringResource(Res.string.cd_open_search),
+                    tint = hint,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
+    }
+}
+
+/** New Chat's height; the search box takes the same slot, so nothing below moves when it opens. */
+private val SlotHeight = 44.dp
+private const val SearchGlyphKey = "drawer_search_glyph"
+private val MorphColorSpec = tween<Color>(durationMillis = 250)
+private val MorphSlideSpec =
+    spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow, visibilityThreshold = IntOffset.VisibilityThreshold)
+private val MorphScaleSpec = spring<Float>(dampingRatio = 0.7f, stiffness = Spring.StiffnessMedium)
+private val MorphFadeInSpec = tween<Float>(durationMillis = 180, delayMillis = 70)
+private val MorphFadeOutSpec = tween<Float>(durationMillis = 90)
+
+/** Liquid Glass's morph: both sides fade at once, so the slot crossfades where it is. */
+private val InPlaceFadeSpec = tween<Float>(durationMillis = 220)
+
+/** How one side of the slot arrives: sliding a quarter in from its side (Material), or fading in place (glass). */
+private fun morphIn(glass: Boolean, fromStart: Boolean): EnterTransition =
+    if (glass) {
+        fadeIn(InPlaceFadeSpec)
+    } else {
+        slideInHorizontally(MorphSlideSpec) { if (fromStart) -it / 4 else it / 4 } + fadeIn(MorphFadeInSpec)
+    }
+
+/** How one side of the slot leaves; see [morphIn]. */
+private fun morphOut(glass: Boolean, toStart: Boolean): ExitTransition =
+    if (glass) {
+        fadeOut(InPlaceFadeSpec)
+    } else {
+        slideOutHorizontally(MorphSlideSpec) { if (toStart) -it / 4 else it / 4 } + fadeOut(MorphFadeOutSpec)
+    }
+
+/** Where New Chat's + sits; the glass field's glyph starts there too, to take its place. */
+private val NewChatStartPadding = 16.dp
 
 /**
  * The Projects tab of the drawer — an inline folder browser reached via the pill toggle. Lists the
@@ -1199,6 +1499,8 @@ private fun DrawerConversationItem(
     onLongPress: () -> Unit = {},
     onMenuCancel: () -> Unit = {},
     showBookmarkToggle: Boolean = true,
+    // While searching: the query, so the title's matching words are marked.
+    searchQuery: String? = null,
     menuContent: @Composable (DpOffset, MenuDragSelection) -> Unit = { _, _ -> },
 ) {
     val glass = isLiquidGlass
@@ -1288,8 +1590,16 @@ private fun DrawerConversationItem(
             Spacer(modifier = Modifier.width(10.dp))
 
             Column(modifier = Modifier.weight(1f)) {
+                val matchColor = searchMatchColor(isSurfaceDark())
+                val title = remember(data.title, searchQuery, matchColor) {
+                    val ranges = searchQuery?.let { TitleMatch.of(data.title, it) }.orEmpty()
+                    buildAnnotatedString {
+                        append(data.title)
+                        ranges.forEach { addStyle(SpanStyle(background = matchColor), it.first, it.last + 1) }
+                    }
+                }
                 Text(
-                    text = data.title,
+                    text = title,
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (data.isActive) {
                         if (glass) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSecondaryContainer

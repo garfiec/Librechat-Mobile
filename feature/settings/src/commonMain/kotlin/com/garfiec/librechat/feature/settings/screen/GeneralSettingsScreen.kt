@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.ManageSearch
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material.icons.filled.Schedule
@@ -49,6 +50,9 @@ import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
+import com.garfiec.librechat.feature.settings.resources.advanced_search
+import com.garfiec.librechat.feature.settings.resources.advanced_search_desc
+import com.garfiec.librechat.feature.settings.resources.section_search
 import com.garfiec.librechat.feature.settings.viewmodel.AppearanceSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.GeneralSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.UpdateCheckViewModel
@@ -163,6 +167,21 @@ fun GeneralSettingsContent(
                     }
                 }
 
+                item(key = "search_header") {
+                    AdaptiveSectionHeader(stringResource(Res.string.section_search))
+                }
+                adaptiveSection {
+                    row(key = "advanced_search") {
+                        SwitchSettingRow(
+                            icon = Icons.Default.ManageSearch,
+                            title = stringResource(Res.string.advanced_search),
+                            subtitle = stringResource(Res.string.advanced_search_desc),
+                            checked = uiState.advancedSearchEnabled,
+                            onCheckedChange = viewModel::setAdvancedSearchEnabled,
+                        )
+                    }
+                }
+
                 if (updateViewModel.releaseNotesAvailable || updateViewModel.isSupported) {
                     item(key = "updates_header") {
                         AdaptiveSectionHeader(stringResource(Res.string.section_updates))
@@ -252,6 +271,25 @@ private fun TabletSidebarGestureToggle(
     onGestureEnabledChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    SwitchSettingRow(
+        icon = Icons.Default.Tablet,
+        title = stringResource(Res.string.sidebar_swipe_gesture),
+        subtitle = stringResource(Res.string.sidebar_swipe_gesture_desc),
+        checked = gestureEnabled,
+        onCheckedChange = onGestureEnabledChange,
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun SwitchSettingRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(modifier = modifier) {
         Column(
             modifier = Modifier
@@ -263,7 +301,7 @@ private fun TabletSidebarGestureToggle(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
-                    imageVector = Icons.Default.Tablet,
+                    imageVector = icon,
                     contentDescription = null,
                     modifier = Modifier.size(24.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -271,19 +309,19 @@ private fun TabletSidebarGestureToggle(
                 Spacer(modifier = Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = stringResource(Res.string.sidebar_swipe_gesture),
+                        text = title,
                         style = MaterialTheme.typography.bodyLarge,
                     )
                     Text(
-                        text = stringResource(Res.string.sidebar_swipe_gesture_desc),
+                        text = subtitle,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 AdaptiveSwitch(
-                    checked = gestureEnabled,
-                    onCheckedChange = onGestureEnabledChange,
+                    checked = checked,
+                    onCheckedChange = onCheckedChange,
                 )
             }
         }

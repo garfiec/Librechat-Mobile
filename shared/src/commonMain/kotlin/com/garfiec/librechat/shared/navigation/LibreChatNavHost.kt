@@ -5,9 +5,11 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.material3.DrawerDefaults
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.MaterialTheme
@@ -32,6 +34,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
@@ -311,20 +314,33 @@ fun LibreChatNavHost(
         // back to the opaque M3 sheet.
         ProvideDateTimeFormat(dateTimePrefs) {
             GlassSheetHost {
-                if (content != null) {
-                    content(navigator, navHostViewModel, modifier)
-                } else {
-                    // Read from the window rather than a size class so iPad Split View / Slide Over, which
-                    // resize the window without a rotation, flip the layout too. iOS resizes in place, so
-                    // both layouts share one movable NavDisplay; see rememberMovableNavDisplay.
-                    val navDisplay = rememberMovableNavDisplay(navigator)
-                    val windowWidth = with(LocalDensity.current) {
-                        LocalWindowInfo.current.containerSize.width.toDp()
-                    }
-                    if (windowWidth >= TabletMinWidth) {
-                        TabletLayout(navigator = navigator, modifier = modifier, navDisplay = navDisplay)
+                // Ctrl/⌘+Shift+F. This handler sees keys only while something is focused, so the
+                // platform hosts also catch it before Compose (AppShortcuts).
+                DisposableEffect(navigator) {
+                    val openSearch = { navigator.openSearchFromShortcut() }
+                    AppShortcuts.openSearch = openSearch
+                    onDispose { if (AppShortcuts.openSearch === openSearch) AppShortcuts.openSearch = null }
+                }
+                Box(
+                    modifier = modifier.onPreviewKeyEvent { navigator.openSearchOnShortcut(it) },
+                    propagateMinConstraints = true,
+                ) {
+                    if (content != null) {
+                        content(navigator, navHostViewModel, Modifier)
                     } else {
-                        PhoneLayout(navigator = navigator, modifier = modifier, navDisplay = navDisplay)
+                        // Read from the window rather than a size class so iPad Split View / Slide
+                        // Over, which resize the window without a rotation, flip the layout too. iOS
+                        // resizes in place, so both layouts share one movable NavDisplay; see
+                        // rememberMovableNavDisplay.
+                        val navDisplay = rememberMovableNavDisplay(navigator)
+                        val windowWidth = with(LocalDensity.current) {
+                            LocalWindowInfo.current.containerSize.width.toDp()
+                        }
+                        if (windowWidth >= TabletMinWidth) {
+                            TabletLayout(navigator = navigator, navDisplay = navDisplay)
+                        } else {
+                            PhoneLayout(navigator = navigator, navDisplay = navDisplay)
+                        }
                     }
                 }
             }
@@ -522,6 +538,14 @@ fun PhoneLayout(
                         scope.launch { drawerState.close() }
                         navigator.navigate(Projects)
                     },
+                    onOpenSearch = { query ->
+                        scope.launch { drawerState.close() }
+                        navigator.navigateToSearch(query)
+                    },
+                    onMessageClick = { conversationId, messageId, query, inReasoning ->
+                        scope.launch { drawerState.close() }
+                        navigator.navigateToMessage(conversationId, messageId, query, inReasoning)
+                    },
                     onSwitchAccount = { accountId ->
                         navHostViewModel.switchAccount(accountId)
                     },
@@ -532,7 +556,9 @@ fun PhoneLayout(
                 )
             }
             if (glass == null) {
-                ModalDrawerSheet(drawerState = drawerState) { sidebar() }
+                // The sheet itself ends above the keyboard, as the glass panel does, rather than running
+                // on behind it with only its contents padded.
+                ModalDrawerSheet(drawerState = drawerState, modifier = Modifier.imePadding()) { sidebar() }
             } else {
                 // A transparent sheet keeps M3's drawer gestures and predictive back; the panel inside
                 // it is the visible sidebar.
@@ -660,6 +686,9 @@ fun MainNavDisplay(
                     navigator.navigate(ProjectChats(projectId, projectName))
                 },
                 onBack = { navigator.goBack() },
+                onOpenMessage = { conversationId, messageId, query, inReasoning ->
+                    navigator.navigateToMessage(conversationId, messageId, query, inReasoning)
+                },
             )
             agentsEntries(
                 onNavigate = { navigator.navigate(it) },

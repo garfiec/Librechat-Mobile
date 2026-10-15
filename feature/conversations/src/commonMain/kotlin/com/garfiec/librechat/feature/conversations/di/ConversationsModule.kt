@@ -3,14 +3,17 @@ package com.garfiec.librechat.feature.conversations.di
 import com.garfiec.librechat.core.common.di.KoinQualifiers
 import com.garfiec.librechat.core.common.extensions.RelativeTimeReference
 import com.garfiec.librechat.core.common.extensions.dayBoundaryReferences
+import com.garfiec.librechat.feature.conversations.drawer.DrawerSearchSources
 import com.garfiec.librechat.feature.conversations.drawer.DrawerViewModel
 import com.garfiec.librechat.feature.conversations.export.ConversationExporter
 import com.garfiec.librechat.feature.conversations.export.ConversationImporter
+import com.garfiec.librechat.feature.conversations.search.SearchViewModel
 import com.garfiec.librechat.feature.conversations.viewmodel.ArchivedConversationsViewModel
 import com.garfiec.librechat.feature.conversations.viewmodel.ConversationListViewModel
 import com.garfiec.librechat.feature.conversations.viewmodel.ProjectChatsViewModel
 import com.garfiec.librechat.feature.conversations.viewmodel.ProjectsViewModel
 import kotlinx.coroutines.flow.Flow
+import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
@@ -38,7 +41,21 @@ val conversationsModule = module {
     viewModelOf(::ArchivedConversationsViewModel)
     viewModelOf(::ProjectsViewModel)
     // Drawer-data half of the nav shell's NavHostViewModel.
+    factoryOf(::DrawerSearchSources)
     viewModelOf(::DrawerViewModel)
+    // The Search screen's initial query arrives from the navigation layer via parametersOf.
+    viewModel { params ->
+        SearchViewModel(
+            initialQuery = params.get(),
+            sources = get(),
+            conversationRepository = get(),
+            messageRepository = get(),
+            agentRepository = get(),
+            activeAccountProvider = get(),
+            defaultDispatcher = get(KoinQualifiers.Default),
+            preferenceStore = get(),
+        )
+    }
     // projectId arrives from the navigation layer via parametersOf.
     viewModel { params ->
         ProjectChatsViewModel(

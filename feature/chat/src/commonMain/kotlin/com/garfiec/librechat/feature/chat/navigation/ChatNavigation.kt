@@ -60,7 +60,15 @@ import org.koin.compose.koinInject
  * Chat(id) entry re-initializes temp-aware and never persists the server-hidden conversation to
  * Room. SECURITY: this is the temp-chat data-at-rest guard for the handed-off / restored Chat VM.
  */
-@Serializable data class Chat(val conversationId: String? = null, val isTemporary: Boolean = false) : ChatRoute
+@Serializable data class Chat(
+    val conversationId: String? = null,
+    val isTemporary: Boolean = false,
+    /** Open at this message (a search hit): select its branch, scroll to it, highlight [highlightQuery]. */
+    val targetMessageId: String? = null,
+    val highlightQuery: String? = null,
+    /** The hit matched in the message's reasoning, so the jump lands on a match there. */
+    val targetInReasoning: Boolean = false,
+) : ChatRoute
 
 @Serializable data object PromptsLibrary : ChatRoute
 
@@ -121,6 +129,9 @@ fun EntryProviderScope<NavKey>.chatEntries(
                 // A restored temp Chat(id) entry carries isTemporary=true so the VM re-initializes
                 // temp-aware (never persists the server-hidden conversation). See ChatViewModel.init.
                 isTemporaryRoute = key.isTemporary,
+                targetMessageId = key.targetMessageId,
+                highlightQuery = key.highlightQuery,
+                targetInReasoning = key.targetInReasoning,
                 onOpenDrawer = onOpenDrawer,
                 onNavigateToPromptsLibrary = { onNavigate(PromptsLibrary) },
                 onNavigateBack = onBack,

@@ -4,6 +4,7 @@ import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.google.common.truth.Truth.assertThat
+import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Test
 
 /**
@@ -34,6 +35,16 @@ class FinalMessagesTest {
             MessageContentPart(type = ContentType.TEXT, text = "and a sentence"),
         )
         assertThat(parseTextParts(parts)).isEqualTo("reasoning so far and a sentence")
+    }
+
+    @Test
+    fun `includes STEER parts like the server's abort call`() {
+        // GenerationJobManager rebuilds the aborted text with { includeSteer: true }.
+        val parts = listOf(
+            MessageContentPart(type = ContentType.TEXT, text = "draft"),
+            MessageContentPart(type = ContentType.STEER, steer = JsonPrimitive("make it shorter")),
+        )
+        assertThat(parseTextParts(parts)).isEqualTo("draft make it shorter")
     }
 
     @Test

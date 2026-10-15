@@ -1,9 +1,11 @@
 package com.garfiec.librechat
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -56,6 +58,7 @@ import com.garfiec.librechat.feature.chat.ShareIntentConsumer
 import com.garfiec.librechat.feature.chat.SharedContent
 import com.garfiec.librechat.navigation.LibreChatNavHost
 import com.garfiec.librechat.navigation.toDeepLinkUri
+import com.garfiec.librechat.shared.navigation.AppShortcuts
 import com.garfiec.librechat.shared.navigation.DeepLinkResolution
 import com.garfiec.librechat.shared.navigation.DeepLinks
 import com.garfiec.librechat.shortcuts.ModelShortcuts
@@ -210,6 +213,17 @@ class MainActivity : ComponentActivity() {
         // Preserve a link that hasn't been placed on the back stack yet, so a recreation during the
         // warm-up gate doesn't drop it (restored in onCreate). A consumed link is already null.
         deepLinkUri?.let { outState.putString(KEY_PENDING_DEEP_LINK, it.toString()) }
+    }
+
+    // Ctrl/⌘+Shift+F is caught here, before Compose, which misses it while nothing holds focus (see AppShortcuts).
+    // RestrictedApi: overriding dispatchKeyEvent is public Activity API; lint resolves the super call to
+    // androidx.core's ComponentActivity override, which is marked library-group only.
+    @SuppressLint("RestrictedApi")
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val searchShortcut = event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0 &&
+            event.keyCode == KeyEvent.KEYCODE_F && event.isShiftPressed && (event.isCtrlPressed || event.isMetaPressed)
+        if (searchShortcut && AppShortcuts.openSearch?.invoke() == true) return true
+        return super.dispatchKeyEvent(event)
     }
 
     override fun onNewIntent(intent: Intent) {

@@ -46,7 +46,7 @@ class MessageRepositoryImpl(
             val accountId = activeAccountProvider.currentAccountId()?.value
             val messages = messagesApi.getMessages(conversationId)
             if (accountId != null) {
-                messageDao.upsertAll(messages.entitiesFor(accountId))
+                messageDao.upsertAllIndexed(messages.entitiesFor(accountId))
             }
             messages
         }
@@ -73,7 +73,7 @@ class MessageRepositoryImpl(
         // null-stamped row is invisible to every account-filtered read and unreapable by the scoped
         // logout purge, and resurrecting a removed account's rows would leak purged data.
         val accountId = resolveWriteAccountId(originAccount, activeAccountProvider, roster) ?: return
-        messageDao.upsertAll(messages.entitiesFor(accountId))
+        messageDao.upsertAllIndexed(messages.entitiesFor(accountId))
     }
 
     override suspend fun refreshMessages(

@@ -23,6 +23,27 @@ class DeepLinksTest {
     }
 
     @Test
+    fun conversationWithMessage_opensAtThatMessage() {
+        val id = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+        val message = "0f1e2d3c-4b5a-4968-8776-655443322110"
+        val route = assertIs<DeepLinkResolution.Route>(
+            DeepLinks.resolve(uri("conversation", id, mapOf("message" to message))),
+        )
+        val chat = assertIs<Chat>(route.target)
+        assertEquals(id, chat.conversationId)
+        assertEquals(message, chat.targetMessageId)
+    }
+
+    @Test
+    fun conversationWithMalformedMessage_opensTheChatOnly() {
+        val id = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+        val route = assertIs<DeepLinkResolution.Route>(
+            DeepLinks.resolve(uri("conversation", id, mapOf("message" to "x"))),
+        )
+        assertEquals(null, assertIs<Chat>(route.target).targetMessageId)
+    }
+
+    @Test
     fun conversationMalformedId_isNotRouted() {
         assertEquals(DeepLinkResolution.None, DeepLinks.resolve(uri("conversation", "not-a-uuid")))
         // A 24-hex Mongo ObjectID is NOT a conversationId — must be rejected (regression lock).

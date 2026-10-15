@@ -28,7 +28,14 @@ data class PrefetchCandidateDetail(
     fun toCandidate(): PrefetchCandidate = PrefetchCandidate(conversationId, updatedAt, pinned)
 }
 
-@Suppress("TooManyFunctions") // debt: 20 functions
+/** What a search hit shows of its conversation. */
+data class ConversationTitle(
+    val conversationId: String,
+    val title: String,
+    val isArchived: Boolean,
+)
+
+@Suppress("TooManyFunctions") // debt: 22 functions
 @Dao
 interface ConversationDao {
 
@@ -61,6 +68,17 @@ interface ConversationDao {
             "WHERE accountId = :accountId AND isArchived = 0 AND pinned = 1",
     )
     suspend fun pinnedForPrefetch(accountId: String): List<PrefetchCandidate>
+
+    /** Titles for search hits. Chunk the ids — SQLite binds at most ~999 variables per statement. */
+    @Query(
+        "SELECT conversationId, title, isArchived FROM conversations " +
+            "WHERE accountId = :accountId AND conversationId IN (:conversationIds)",
+    )
+    suspend fun titlesFor(accountId: String, conversationIds: List<String>): List<ConversationTitle>
+
+    /** Archived conversation ids, so a search that excludes them can filter scanned rows. */
+    @Query("SELECT conversationId FROM conversations WHERE accountId = :accountId AND isArchived = 1")
+    suspend fun archivedIds(accountId: String): List<String>
 
     /** Prune candidates. Archived rows are included: they are the least likely to be reopened. */
     @Query("SELECT conversationId FROM conversations WHERE accountId = :accountId AND updatedAt < :cutoff")

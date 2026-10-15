@@ -33,6 +33,7 @@ class InConversationSearchDelegate(
                 searchMatchIndices = emptyList(),
                 currentSearchMatchIndex = 0,
                 searchFocusRequest = null,
+                jumpFlash = null,
             )
         }
     }

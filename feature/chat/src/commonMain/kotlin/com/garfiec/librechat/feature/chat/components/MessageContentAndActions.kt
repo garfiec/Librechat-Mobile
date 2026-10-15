@@ -490,22 +490,43 @@ internal fun MessageContentAndActions(
                         val query = if (isSearchMatch) searchQuery else null
                         val focused = if (isCurrentSearchMatch) searchFocusedOccurrence else -1
                         val onFocused = if (isCurrentSearchMatch) onFocusedOccurrencePosition else null
-                        if (message.textFallbackSplitsArtifacts()) {
-                            TextContentPart(
-                                text = message.text,
+                        // Reasoning saved inside the text (`:::thinking`) renders as a reasoning
+                        // block ahead of the reply, as on web; its matches are numbered first.
+                        val runs = remember(message.text) { message.legacyTextRuns() }
+                        val reasoningMatches = remember(runs, query) {
+                            if (query.isNullOrBlank()) 0 else countMarkdownOccurrences(runs.reasoning.orEmpty(), query)
+                        }
+                        runs.reasoning?.let { reasoning ->
+                            ThinkingContentPart(
+                                thinkingText = reasoning,
+                                modifier = Modifier.padding(bottom = 8.dp),
                                 fontSizeMultiplier = fontSizeMultiplier,
                                 useKatex = useKatex,
                                 searchQuery = query,
-                                searchFocusedOccurrence = focused,
+                                searchFocusedOccurrence = if (focused < reasoningMatches) focused else -1,
+                                onFocusedOccurrencePosition = onFocused,
+                                stateKey = "${message.messageId}:legacy",
+                            )
+                        }
+                        val answerFocused = if (focused >= reasoningMatches) focused - reasoningMatches else -1
+                        if (runs.answer.isBlank()) {
+                            // Reasoning only: nothing else to draw.
+                        } else if (message.textFallbackSplitsArtifacts()) {
+                            TextContentPart(
+                                text = runs.answer,
+                                fontSizeMultiplier = fontSizeMultiplier,
+                                useKatex = useKatex,
+                                searchQuery = query,
+                                searchFocusedOccurrence = answerFocused,
                                 onFocusedOccurrencePosition = onFocused,
                             )
                         } else {
                             MarkdownContent(
-                                text = message.text,
+                                text = runs.answer,
                                 fontSizeMultiplier = fontSizeMultiplier,
                                 useKatex = useKatex,
                                 searchQuery = query,
-                                searchFocusedOccurrence = focused,
+                                searchFocusedOccurrence = answerFocused,
                                 onFocusedOccurrencePosition = onFocused,
                             )
                         }

@@ -14,6 +14,7 @@ import com.garfiec.librechat.core.data.db.dao.ConversationDao
 import com.garfiec.librechat.core.data.db.dao.ConversationTagDao
 import com.garfiec.librechat.core.data.db.dao.DraftDao
 import com.garfiec.librechat.core.data.db.dao.MessageDao
+import com.garfiec.librechat.core.data.db.dao.MessageSearchDao
 import com.garfiec.librechat.core.data.db.dao.PrefetchWatermarkDao
 import com.garfiec.librechat.core.data.db.dao.PresetDao
 import com.garfiec.librechat.core.data.db.dao.ServerDao
@@ -23,6 +24,8 @@ import com.garfiec.librechat.core.data.db.entity.ConversationEntity
 import com.garfiec.librechat.core.data.db.entity.ConversationTagEntity
 import com.garfiec.librechat.core.data.db.entity.DraftEntity
 import com.garfiec.librechat.core.data.db.entity.MessageEntity
+import com.garfiec.librechat.core.data.db.entity.MessageSearchEntity
+import com.garfiec.librechat.core.data.db.entity.MessageSearchFtsEntity
 import com.garfiec.librechat.core.data.db.entity.PrefetchWatermarkEntity
 import com.garfiec.librechat.core.data.db.entity.PresetEntity
 import com.garfiec.librechat.core.data.db.entity.ServerEntity
@@ -38,8 +41,10 @@ import com.garfiec.librechat.core.data.db.entity.ServerEntity
         ArtifactShortcutEntity::class,
         ServerEntity::class,
         PrefetchWatermarkEntity::class,
+        MessageSearchEntity::class,
+        MessageSearchFtsEntity::class,
     ],
-    version = 9,
+    version = 10,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -57,6 +62,9 @@ import com.garfiec.librechat.core.data.db.entity.ServerEntity
         AutoMigration(from = 7, to = 8),
         // 8 -> 9 adds the account-scoped prefetch_watermarks table (background cache warming).
         AutoMigration(from = 8, to = 9),
+        // 9 -> 10 adds the message search side table and its FTS4 index, both empty: DDL only, it
+        // never reads `messages`. SearchIndexBackfillSessionTask fills them after launch.
+        AutoMigration(from = 9, to = 10),
     ],
 )
 @TypeConverters(Converters::class)
@@ -72,6 +80,7 @@ abstract class LibreChatDatabase : RoomDatabase() {
     abstract fun artifactShortcutDao(): ArtifactShortcutDao
     abstract fun serverDao(): ServerDao
     abstract fun prefetchWatermarkDao(): PrefetchWatermarkDao
+    abstract fun messageSearchDao(): MessageSearchDao
 }
 
 // Room KSP auto-generates the actual implementations for each platform

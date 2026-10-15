@@ -5,7 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.AppInfo
 import com.garfiec.librechat.core.common.datetime.DateTimeFormatPrefs
+import com.garfiec.librechat.core.data.datastore.AppPreferences
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
+import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.ConfigRepository
@@ -25,6 +27,7 @@ data class GeneralSettingsUiState(
     val dateTimePrefs: DateTimeFormatPrefs = DateTimeFormatPrefs(),
     val showDateTimeDialog: Boolean = false,
     val tabletSidebarGestureEnabled: Boolean = true,
+    val advancedSearchEnabled: Boolean = false,
     val serverUrl: String = "",
     /** Human-facing app version (e.g. `0.1.0`), sourced from the installed package. */
     val appVersion: String = "",
@@ -49,7 +52,12 @@ data class GeneralSettingsUiState(
 private data class GeneralDialogs(val language: Boolean = false, val dateTime: Boolean = false)
 
 /** Persisted preferences, combined first to stay within `combine`'s five-flow overload. */
-private data class GeneralPrefs(val language: String, val dateTime: DateTimeFormatPrefs, val tabletGesture: Boolean)
+private data class GeneralPrefs(
+    val language: String,
+    val dateTime: DateTimeFormatPrefs,
+    val tabletGesture: Boolean,
+    val advancedSearch: Boolean,
+)
 
 /** Backs the General tab: language, date & time, tablet gesture, and About. No network loads. */
 class GeneralSettingsViewModel(
@@ -58,6 +66,7 @@ class GeneralSettingsViewModel(
     serverDataStore: ServerDataStore,
     configRepository: ConfigRepository,
     appInfo: AppInfo,
+    private val preferenceStore: PreferenceStore,
 ) : ViewModel() {
 
     private val dialogs = MutableStateFlow(GeneralDialogs())
@@ -66,6 +75,7 @@ class GeneralSettingsViewModel(
         settingsDataStore.selectedLanguage,
         dateTimePrefsStore.prefs,
         settingsDataStore.tabletSidebarGestureEnabled,
+        preferenceStore.observe(AppPreferences.AdvancedSearch),
         ::GeneralPrefs,
     )
 
@@ -84,6 +94,7 @@ class GeneralSettingsViewModel(
             dateTimePrefs = prefs.dateTime,
             showDateTimeDialog = dialogs.dateTime,
             tabletSidebarGestureEnabled = prefs.tabletGesture,
+            advancedSearchEnabled = prefs.advancedSearch,
             serverUrl = serverUrl,
             buildInfo = config?.buildInfo,
             serverVersion = version,
@@ -118,5 +129,9 @@ class GeneralSettingsViewModel(
 
     fun setTabletSidebarGestureEnabled(enabled: Boolean) {
         viewModelScope.launch { settingsDataStore.setTabletSidebarGestureEnabled(enabled) }
+    }
+
+    fun setAdvancedSearchEnabled(enabled: Boolean) {
+        viewModelScope.launch { preferenceStore.set(AppPreferences.AdvancedSearch, enabled) }
     }
 }

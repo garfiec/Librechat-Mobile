@@ -18,6 +18,7 @@ import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.MessageRepository
+import com.garfiec.librechat.core.data.search.SearchIndexMaintenance
 import com.garfiec.librechat.core.logging.Diag
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.media.resolveAttachmentUrl
@@ -79,6 +80,8 @@ class PrefetchEngine(
     // genuinely unresolvable dependencies.
     private val timeSource: TimeSource = TimeSource.Monotonic,
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
+    /** Merges the search index after a big prune; null in tests that don't exercise it. */
+    private val searchIndexMaintenance: SearchIndexMaintenance? = null,
 ) {
 
     /**
@@ -389,15 +392,19 @@ class PrefetchEngine(
 
             // Chunked because SQLite binds at most ~999 variables per statement, and the first prune
             // on a long-lived install is exactly where that limit is met.
+            var deletedMessages = 0
             prunable.chunked(PRUNE_CHUNK).forEach { chunk ->
                 withContext(NonCancellable) {
-                    messageDao.deleteForConversations(accountId.value, chunk)
+                    deletedMessages += messageDao.deleteForConversations(accountId.value, chunk)
                     // Together, always: a watermark left behind reports its conversation as warm, so
                     // the rows just deleted would never be fetched again.
                     watermarkDao.deleteFor(accountId.value, chunk)
                 }
             }
             Diag.d("Prefetch", attrs = mapOf("pruned" to prunable.size.toString())) { "pruned stale message cache" }
+            // A big prune leaves the search index as many small segments full of deletion markers;
+            // merge them while the prefetch window is still open, a bounded step at a time.
+            if (deletedMessages >= MERGE_AFTER_PRUNED_MESSAGES) searchIndexMaintenance?.mergeUntilDone()
         }
 
         /**
@@ -542,6 +549,9 @@ class PrefetchEngine(
 
         private const val HTTP_TOO_MANY_REQUESTS = 429
         private const val PRUNE_CHUNK = 400
+
+        /** Pruned messages past which the search index is worth merging. */
+        private const val MERGE_AFTER_PRUNED_MESSAGES = 1_000
 
         /** Ceiling per conversation. A single thread of screenshots must not become the whole pass. */
         private const val MAX_ATTACHMENTS_PER_CONVERSATION = 20

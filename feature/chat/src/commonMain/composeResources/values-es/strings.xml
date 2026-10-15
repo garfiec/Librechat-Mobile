@@ -675,4 +675,6 @@
         <item quantity="other">Has alcanzado el límite de mensajes de este servidor. Inténtalo de nuevo en %1$d días.</item>
     </plurals>
     <string name="queue_held_after_refusal">El servidor rechazó tu mensaje. Está esperando en la cola y no se enviará solo. Toca «Enviar en cola» cuando quieras.</string>
+    <string name="jump_message_not_found">Ese mensaje ya no está en este chat.</string>
+    <string name="jump_branch_switched">Se cambió a la respuesta %1$d de %2$d, la rama que contiene este mensaje.</string>
 </resources>
