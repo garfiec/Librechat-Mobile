@@ -141,8 +141,11 @@ internal fun mayContain(text: String, query: String): Boolean {
     val words = findWords(query).flatMap { it.split(FIND_WHITESPACE) }.filter { it.isNotEmpty() }
     if (words.any { text.contains(it, ignoreCase = true) }) return true
     if (text.none { it in INLINE_MARKERS } && words.none { word -> word.any { it in INLINE_MARKERS } }) return false
+    // A word of markers only (`**`) strips to nothing, which every message would "contain".
+    val bareWords = words.map { word -> word.filterNot { it in INLINE_MARKERS } }.filter { it.isNotEmpty() }
+    if (bareWords.isEmpty()) return false
     val bare = text.filterNot { it in INLINE_MARKERS }
-    return words.any { word -> bare.contains(word.filterNot { it in INLINE_MARKERS }, ignoreCase = true) }
+    return bareWords.any { bare.contains(it, ignoreCase = true) }
 }
 
 /** Characters inline markdown can drop from what it displays. */

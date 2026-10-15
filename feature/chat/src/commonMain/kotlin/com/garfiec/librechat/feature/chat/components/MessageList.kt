@@ -383,8 +383,10 @@ fun MessageList(
     LaunchedEffect(displayMessages.size, jumpPending) {
         if (!hasScrolledToBottom && displayMessages.isNotEmpty() && !jumpPending) {
             // A chat opened by a jump to one message starts there, not at the bottom: the jump is
-            // waited out, and only one that gave up without a message to focus lands at the bottom.
-            if (searchFocusRequest == null) listState.scrollToItem(totalItemCount - 1, scrollOffset = Int.MAX_VALUE)
+            // waited out, and only one that gave up without a message to focus lands at the bottom,
+            // and only if the user hasn't scrolled the list while it waited.
+            val untouched = listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
+            if (searchFocusRequest == null && untouched) listState.scrollToItem(totalItemCount - 1, scrollOffset = Int.MAX_VALUE)
             hasScrolledToBottom = true
         }
     }

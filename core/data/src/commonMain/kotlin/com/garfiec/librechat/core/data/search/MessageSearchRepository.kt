@@ -189,7 +189,7 @@ class MessageSearchRepositoryImpl(
             // Back online, the server half runs after all; a newer query cancels the wait.
             connectivity.isConnected.first { it }
             // A probe made while offline left the answer unknown; ask again now there's a connection.
-            if (capability.serverSearchEnabled.first() == null) capability.refresh()
+            if (capability.serverSearchEnabled.first() == null) withTimeoutOrNull(PROBE_WAIT) { capability.refresh() }
             remoteBlocker()?.let { blocker ->
                 if (blocker != skipped) emit(base.copy(remoteSkipped = blocker))
                 return@flow
