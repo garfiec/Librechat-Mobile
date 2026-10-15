@@ -200,7 +200,11 @@ class MessageSearchRepositoryImpl(
         }
         if (!remoteEligible) return@flow
         if (probePending) {
-            withTimeoutOrNull(PROBE_WAIT) { capability.serverSearchEnabled.first { it != null } }
+            withTimeoutOrNull(PROBE_WAIT) {
+                // The session's probe may have given up offline; nothing else would ask again.
+                if (capability.serverSearchEnabled.first() == null) capability.refresh()
+                capability.serverSearchEnabled.first { it != null }
+            }
             remoteBlocker()?.let { blocker ->
                 emit(base.copy(remoteStatus = RemoteSearchStatus.Unavailable, remoteSkipped = blocker))
                 return@flow
@@ -217,7 +221,8 @@ class MessageSearchRepositoryImpl(
         val pageSize = request.remotePageSize
         val remote = remoteCache.get(accountId, request.query, pageSize)
             ?: when (val fetched = safeApiCall { messagesApi.searchMessages(request.query, pageSize) }) {
-                is Result.Success -> fetched.data.messages.also { remoteCache.put(accountId, request.query, pageSize, it) }
+                // An older server answers 25 whatever was asked; keep what was asked for, as the cache does.
+                is Result.Success -> fetched.data.messages.take(pageSize).also { remoteCache.put(accountId, request.query, pageSize, it) }
                 else -> null
             }
         // The request ran on the account that was live when it was sent; a reply landing after a

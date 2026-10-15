@@ -334,6 +334,21 @@ class JumpToMessageDelegateTest {
     }
 
     @Test
+    fun `a stream that never ends reports a message on another branch as not found`() = scope.runTest {
+        rebuildDisplayOnBranchChange()
+        load(tree, streaming = true)
+        val reports = mutableListOf<Unit>()
+        backgroundScope.launch { delegate.notFound.toList(reports) }
+
+        delegate.start("b1", "pelican")
+        advanceTimeBy(31.seconds)
+        runCurrent()
+
+        assertThat(reports).hasSize(1)
+        assertThat(stateFlow.value.content.activeBranches).isEmpty()
+    }
+
+    @Test
     fun `a cancelled jump is no longer pending`() = scope.runTest {
         load(tree.dropLast(2))
         val jumpScope = CoroutineScope(coroutineContext + Job())

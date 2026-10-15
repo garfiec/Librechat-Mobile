@@ -236,6 +236,19 @@ class MessageSearchRepositoryImplTest : AccountIsolationTestBase() {
     }
 
     @Test
+    fun aSearchAfterReconnectingAsksAgainWhenTheColdStartProbeFoundNoConnection() = runBlocking<Unit> {
+        serverEnabled.value = null
+        probeAnswer = true
+        seed("local-1", accountA, "local quokka")
+
+        val (_, done) = collect("quokka", 2)
+
+        assertThat(refreshes.get()).isEqualTo(1)
+        assertThat(done.remoteStatus).isEqualTo(RemoteSearchStatus.Done)
+        assertThat(done.hits.map { it.messageId }).containsExactly("local-1", "remote-1").inOrder()
+    }
+
+    @Test
     fun offlineWinsOverAServerKnownToBeOff() = runBlocking<Unit> {
         serverEnabled.value = false
         online.value = false

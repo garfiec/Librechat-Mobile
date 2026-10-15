@@ -76,7 +76,10 @@ class JumpToMessageDelegate(
     private suspend fun jump(targetMessageId: String, query: String, inReasoning: Boolean): Boolean {
         if (!awaitTarget(targetMessageId)) return false
         val wasShown = handle.state.displayMessages.any { it.message.messageId == targetMessageId }
-        if (withTimeoutOrNull(streamWait) { handle.stateFlow.first { !it.isStreaming } } != null) {
+        val streamEnded = withTimeoutOrNull(streamWait) { handle.stateFlow.first { !it.isStreaming } } != null
+        // Still streaming, the branches can't move: the message is reachable only if it is on screen.
+        if (!streamEnded && !wasShown) return false
+        if (streamEnded) {
             val messages = handle.state.messages
             val selection = withContext(computeDispatcher) { branchSelectionFor(messages, targetMessageId) } ?: return false
             // A stream can start while the selection is computed off Main; branches must not move
