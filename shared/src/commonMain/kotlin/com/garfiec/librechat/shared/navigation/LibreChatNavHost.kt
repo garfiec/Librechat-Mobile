@@ -1,14 +1,8 @@
 package com.garfiec.librechat.shared.navigation
 
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
@@ -616,31 +610,12 @@ fun MainNavDisplay(
             slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(300)) togetherWith
                 fadeOut(animationSpec = tween(150))
         },
-        popTransitionSpec = {
-            (fadeIn(initialAlpha = 0.5f, animationSpec = tween(300, easing = LinearEasing)) +
-                scaleIn(initialScale = 0.92f, animationSpec = tween(300, easing = LinearEasing))) togetherWith
-                (slideOutHorizontally(
-                    targetOffsetX = { (it * 0.15f).toInt() },
-                    animationSpec = tween(300, easing = FastOutSlowInEasing),
-                ) + scaleOut(
-                    targetScale = 0.92f,
-                    animationSpec = tween(300, easing = LinearEasing),
-                ))
-        },
-        predictivePopTransitionSpec = {
-            (fadeIn(initialAlpha = 0.5f, animationSpec = tween(300, easing = LinearEasing)) +
-                scaleIn(initialScale = 0.92f, animationSpec = tween(300, easing = LinearEasing))) togetherWith
-                (slideOutHorizontally(
-                    targetOffsetX = { (it * 0.15f).toInt() },
-                    animationSpec = tween(300, easing = FastOutSlowInEasing),
-                ) + scaleOut(
-                    targetScale = 0.92f,
-                    animationSpec = tween(300, easing = LinearEasing),
-                ))
-        },
+        popTransitionSpec = { popTransform() },
+        predictivePopTransitionSpec = { predictivePopTransform() },
         entryDecorators = listOf(
             rememberSaveableStateHolderNavEntryDecorator(),
             rememberViewModelStoreNavEntryDecorator(),
+            rememberPredictiveBackCardDecorator(navigator.backStack),
         ),
         entryProvider = entryProvider {
             authEntries(
