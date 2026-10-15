@@ -131,9 +131,22 @@ fun occurrenceRanges(text: String, query: String): List<IntRange> {
     return merged
 }
 
-/** Whether any word of [query] occurs in [text] at all: a cheap check before parsing [text]. */
-internal fun mayContain(text: String, query: String): Boolean =
-    findWords(query).any { text.contains(it, ignoreCase = true) }
+/**
+ * Whether [query] might match what markdown [text] displays: a cheap check before parsing it. It
+ * may say yes wrongly, never no wrongly. The source isn't what is displayed: a phrase can span
+ * markup (`**foo** bar` shows "foo bar") and an escape hides a character (`a\_b` shows "a_b"), so
+ * each word of the query is looked for on its own, in the source with its inline markers removed.
+ */
+internal fun mayContain(text: String, query: String): Boolean {
+    val words = findWords(query).flatMap { it.split(FIND_WHITESPACE) }.filter { it.isNotEmpty() }
+    if (words.any { text.contains(it, ignoreCase = true) }) return true
+    if (text.none { it in INLINE_MARKERS } && words.none { word -> word.any { it in INLINE_MARKERS } }) return false
+    val bare = text.filterNot { it in INLINE_MARKERS }
+    return words.any { word -> bare.contains(word.filterNot { it in INLINE_MARKERS }, ignoreCase = true) }
+}
+
+/** Characters inline markdown can drop from what it displays. */
+private const val INLINE_MARKERS = "\\*_~`"
 
 private fun findWords(query: String): List<String> {
     val trimmed = query.trim()

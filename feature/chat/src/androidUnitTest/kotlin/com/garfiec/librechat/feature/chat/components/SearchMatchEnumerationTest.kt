@@ -6,6 +6,7 @@ import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.feature.chat.components.artifact.ArtifactSegment
 import com.garfiec.librechat.feature.chat.components.artifact.detectArtifacts
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Test
 
 /**
@@ -428,5 +429,29 @@ class SearchMatchEnumerationTest {
     @Test
     fun `empty quotes find nothing`() {
         assertThat(countOccurrences("text", "\"\"")).isEqualTo(0)
+    }
+
+    // --- the prefilter must not hide what the markdown displays ---
+
+    /** What the highlighter marks: the query counted in each displayed run. */
+    private fun highlighted(markdown: String, query: String) = markdownRuns(markdown).sumOf { countOccurrences(it.text, query) }
+
+    @Test
+    fun `a match the source spells differently is counted as it is highlighted`() {
+        listOf(
+            "**foo** bar" to "\"foo bar\"",
+            "a\\_b is here" to "a_b",
+            "see [the docs](https://x.test) now" to "\"the docs now\"",
+        ).forEach { (markdown, query) ->
+            val shown = highlighted(markdown, query)
+            assertWithMessage(markdown).that(shown).isGreaterThan(0)
+            assertWithMessage(markdown).that(countMarkdownOccurrences(markdown, query)).isEqualTo(shown)
+        }
+    }
+
+    @Test
+    fun `text without the query is still skipped`() {
+        assertThat(mayContain("plain words here", "quokka")).isFalse()
+        assertThat(mayContain("**bold** words", "quokka")).isFalse()
     }
 }
