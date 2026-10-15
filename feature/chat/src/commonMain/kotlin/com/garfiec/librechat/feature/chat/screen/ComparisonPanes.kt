@@ -158,6 +158,7 @@ internal fun ComparisonPanes(
             currentSearchMatchIndex = uiState.currentSearchMatchIndex,
             searchFocusRequest = uiState.searchFocusRequest,
             jumpFlash = uiState.jumpFlash,
+            jumpPending = uiState.jumpPending,
             onSearchScrollHandle = viewModel::onSearchScrollHandled,
             bottomContentPadding = bottomContentPadding,
             // The comparison container is already padded clear of the floating bar.

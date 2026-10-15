@@ -10,7 +10,10 @@ import com.garfiec.librechat.feature.chat.viewmodel.JumpHandle
 import com.garfiec.librechat.feature.chat.viewmodel.MessagesState
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -257,11 +260,92 @@ class JumpToMessageDelegateTest {
         backgroundScope.launch { delegate.notFound.toList(reports) }
 
         delegate.start("gone", "pelican")
-        advanceTimeBy(11.seconds)
+        advanceTimeBy(31.seconds)
         runCurrent()
 
         assertThat(reports).hasSize(1)
         assertThat(stateFlow.value.content.activeBranches).isEmpty()
+        assertThat(stateFlow.value.jumpPending).isFalse()
+    }
+
+    @Test
+    fun `a refresh that settles without the message reports it at once`() = scope.runTest {
+        load(tree)
+        stateFlow.value = stateFlow.value.copy(content = stateFlow.value.content.copy(isRefreshingMessages = true))
+        val reports = mutableListOf<Unit>()
+        backgroundScope.launch { delegate.notFound.toList(reports) }
+
+        delegate.start("gone", "pelican")
+        runCurrent()
+        stateFlow.value = stateFlow.value.copy(content = stateFlow.value.content.copy(isRefreshingMessages = false))
+        advanceTimeBy(3.seconds)
+        runCurrent()
+
+        assertThat(reports).hasSize(1)
+    }
+
+    @Test
+    fun `a slow first load still lands`() = scope.runTest {
+        rebuildDisplayOnBranchChange()
+        load(emptyList())
+        stateFlow.value = stateFlow.value.copy(content = stateFlow.value.content.copy(isRefreshingMessages = true))
+        val reports = mutableListOf<Unit>()
+        backgroundScope.launch { delegate.notFound.toList(reports) }
+
+        delegate.start("b1", "pelican")
+        advanceTimeBy(15.seconds)
+        stateFlow.value = stateFlow.value.copy(content = stateFlow.value.content.copy(messages = tree, isRefreshingMessages = false))
+        runCurrent()
+
+        assertThat(reports).isEmpty()
+        assertThat(stateFlow.value.displayMessages.last().message.messageId).isEqualTo("b1")
+        assertThat(stateFlow.value.searchFocusRequest).isNotNull()
+    }
+
+    @Test
+    fun `the jump is pending until it focuses`() = scope.runTest {
+        rebuildDisplayOnBranchChange()
+        load(tree, streaming = true)
+
+        delegate.start("b1", "pelican")
+        runCurrent()
+        assertThat(stateFlow.value.jumpPending).isTrue()
+
+        stateFlow.value = stateFlow.value.copy(content = stateFlow.value.content.copy(isStreaming = false))
+        runCurrent()
+        assertThat(stateFlow.value.searchFocusRequest).isNotNull()
+        assertThat(stateFlow.value.jumpPending).isFalse()
+    }
+
+    @Test
+    fun `a stream that never ends still focuses a message already on screen`() = scope.runTest {
+        rebuildDisplayOnBranchChange()
+        load(tree, streaming = true)
+        runCurrent()
+
+        // "a2" is on the default path, so it is shown without any branch change.
+        delegate.start("a2", "second")
+        advanceTimeBy(31.seconds)
+        runCurrent()
+
+        assertThat(stateFlow.value.content.activeBranches).isEmpty()
+        assertThat(stateFlow.value.searchFocusRequest?.messageIndex).isEqualTo(1)
+        assertThat(stateFlow.value.jumpPending).isFalse()
+    }
+
+    @Test
+    fun `a cancelled jump is no longer pending`() = scope.runTest {
+        load(tree.dropLast(2))
+        val jumpScope = CoroutineScope(coroutineContext + Job())
+        val cancellable = JumpToMessageDelegate(JumpHandle(ChatStateHandle(stateFlow, jumpScope)), dispatcher)
+
+        cancellable.start("b1", "pelican")
+        runCurrent()
+        assertThat(stateFlow.value.jumpPending).isTrue()
+        jumpScope.cancel()
+        runCurrent()
+
+        assertThat(stateFlow.value.jumpPending).isFalse()
     }
 
     @Test

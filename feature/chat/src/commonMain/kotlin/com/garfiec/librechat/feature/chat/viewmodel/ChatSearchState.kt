@@ -19,6 +19,11 @@ data class ChatSearchState(
      * [JumpFlash.fade] (its query had no literal match to highlight), flashed once instead.
      */
     val jumpFlash: JumpFlash? = null,
+    /**
+     * A jump to a message is under way: the list holds its first scroll to the bottom until the
+     * jump focuses the message or gives up, so the chat doesn't show its end first.
+     */
+    val jumpPending: Boolean = false,
 )
 
 /** Flash [messageIndex] once; [requestId] makes a repeat jump replay it. */

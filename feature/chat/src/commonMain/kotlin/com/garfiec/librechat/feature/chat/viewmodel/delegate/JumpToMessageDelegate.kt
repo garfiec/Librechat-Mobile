@@ -5,6 +5,7 @@ import com.garfiec.librechat.feature.chat.components.occurrencesInReasoning
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.util.branchSelectionFor
 import com.garfiec.librechat.feature.chat.util.collapseParallelToPrimary
+import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.JumpFlash
 import com.garfiec.librechat.feature.chat.viewmodel.JumpHandle
 import com.garfiec.librechat.feature.chat.viewmodel.SearchFocusRequest
@@ -27,8 +28,13 @@ import kotlin.time.Duration.Companion.seconds
  *
  * Waits for the message to appear (a cached chat has it at once; otherwise the network refresh
  * brings it) and for any stream to end, since branch selection must not change mid-stream (see
- * `MessageTreeDelegate.switchBranch`). The match list is built off the main thread: counting
- * occurrences renders each message's markdown. If the message never appears, [notFound] fires.
+ * `MessageTreeDelegate.switchBranch`). A stream that outlasts [streamWait] leaves the branches as
+ * they are, and the jump lands if the message is on screen anyway. The match list is built off the
+ * main thread: counting occurrences renders each message's markdown. If the message is still
+ * missing once the refresh has settled, or after [appearTimeout], [notFound] fires.
+ *
+ * `jumpPending` is set from [start] until the jump has focused or given up, so the list holds its
+ * first scroll to the bottom instead of showing the bottom and then scrolling up to the message.
  *
  * Find-in-page takes the query's words each on its own, under the index's rule for short words, so
  * it opens on the whole query and focuses the target's first match: in its reply, or in its
@@ -40,7 +46,9 @@ import kotlin.time.Duration.Companion.seconds
 class JumpToMessageDelegate(
     private val handle: JumpHandle,
     private val computeDispatcher: CoroutineDispatcher,
-    private val appearTimeout: Duration = 10.seconds,
+    private val appearTimeout: Duration = 30.seconds,
+    private val streamWait: Duration = 30.seconds,
+    private val settleGrace: Duration = 2.seconds,
 ) {
     private val _notFound = Channel<Unit>(Channel.BUFFERED)
     val notFound: Flow<Unit> = _notFound.receiveAsFlow()
@@ -54,35 +62,58 @@ class JumpToMessageDelegate(
     private var nextRequestId = REQUEST_ID_BASE
 
     fun start(targetMessageId: String, highlightQuery: String?, inReasoning: Boolean = false) {
+        handle.update { search = search.copy(jumpPending = true) }
         handle.scope.launch {
-            val appeared = withTimeoutOrNull(appearTimeout) {
-                handle.stateFlow.first { state -> state.messages.any { it.messageId == targetMessageId } }
+            try {
+                if (!jump(targetMessageId, highlightQuery?.trim().orEmpty(), inReasoning)) _notFound.trySend(Unit)
+            } finally {
+                handle.update { search = search.copy(jumpPending = false) }
             }
-            if (appeared == null) {
-                _notFound.trySend(Unit)
-                return@launch
-            }
-            handle.stateFlow.first { !it.isStreaming }
-            val wasShown = handle.state.displayMessages.any { it.message.messageId == targetMessageId }
+        }
+    }
+
+    /** False when the message can't be reached. */
+    private suspend fun jump(targetMessageId: String, query: String, inReasoning: Boolean): Boolean {
+        if (!awaitTarget(targetMessageId)) return false
+        val wasShown = handle.state.displayMessages.any { it.message.messageId == targetMessageId }
+        if (withTimeoutOrNull(streamWait) { handle.stateFlow.first { !it.isStreaming } } != null) {
             val messages = handle.state.messages
-            val selection = withContext(computeDispatcher) { branchSelectionFor(messages, targetMessageId) } ?: return@launch
+            val selection = withContext(computeDispatcher) { branchSelectionFor(messages, targetMessageId) } ?: return false
             // A stream can start while the selection is computed off Main; branches must not move
             // mid-stream, so the write re-checks in the same update and waits out a stream that began.
-            var applied = false
-            while (!applied) {
-                handle.stateFlow.first { !it.isStreaming }
-                handle.update {
-                    applied = !content.isStreaming
-                    if (applied) content = content.copy(activeBranches = content.activeBranches + selection)
+            withTimeoutOrNull(streamWait) {
+                var applied = false
+                while (!applied) {
+                    handle.stateFlow.first { !it.isStreaming }
+                    handle.update {
+                        applied = !content.isStreaming
+                        if (applied) content = content.copy(activeBranches = content.activeBranches + selection)
+                    }
                 }
             }
-
-            val shown = withTimeoutOrNull(appearTimeout) {
-                handle.stateFlow.first { state -> state.displayMessages.any { it.message.messageId == targetMessageId } }
-            } ?: return@launch
-            if (!wasShown) switchedBranchOf(shown.displayMessages, targetMessageId)?.let { _branchSwitched.trySend(it) }
-            focus(shown.displayMessages, targetMessageId, highlightQuery?.trim().orEmpty(), inReasoning)
         }
+        val shown = withTimeoutOrNull(appearTimeout) {
+            handle.stateFlow.first { state -> state.displayMessages.any { it.message.messageId == targetMessageId } }
+        } ?: return false
+        if (!wasShown) switchedBranchOf(shown.displayMessages, targetMessageId)?.let { _branchSwitched.trySend(it) }
+        return focus(shown.displayMessages, targetMessageId, query, inReasoning)
+    }
+
+    /**
+     * Waits for [targetMessageId] to be loaded: false once the refresh has settled without it (with
+     * a moment for its rows to reach the list), or after [appearTimeout].
+     */
+    private suspend fun awaitTarget(targetMessageId: String): Boolean {
+        fun ChatUiState.hasTarget() = messages.any { it.messageId == targetMessageId }
+        var refreshSeen = false
+        val outcome = withTimeoutOrNull(appearTimeout) {
+            handle.stateFlow.first { state ->
+                if (state.isRefreshingMessages) refreshSeen = true
+                state.hasTarget() || state.content.messagesLoadFailed || (refreshSeen && !state.isRefreshingMessages)
+            }
+        } ?: return false
+        if (outcome.hasTarget()) return true
+        return withTimeoutOrNull(settleGrace) { handle.stateFlow.first { it.hasTarget() } } != null
     }
 
     /** The nearest turn at or above the target that has siblings: the branch point that moved. */
@@ -98,10 +129,10 @@ class JumpToMessageDelegate(
         targetMessageId: String,
         query: String,
         inReasoning: Boolean,
-    ) {
+    ): Boolean {
         val rendered = collapseParallelToPrimary(nodes)
         val targetIndex = rendered.indexOfFirst { it.message.messageId == targetMessageId }
-        if (targetIndex < 0) return
+        if (targetIndex < 0) return false
         val (findText, matches, first) = withContext(computeDispatcher) {
             val target = rendered[targetIndex].message
             // The target's first match on the side the hit was on; any of its matches otherwise.
@@ -134,9 +165,10 @@ class JumpToMessageDelegate(
                     currentSearchMatchIndex = current,
                     searchFocusRequest = request,
                     jumpFlash = target,
+                    jumpPending = false,
                 )
             } else {
-                search.copy(searchFocusRequest = request, jumpFlash = target)
+                search.copy(searchFocusRequest = request, jumpFlash = target, jumpPending = false)
             }
         }
         if (!found) {
@@ -147,6 +179,7 @@ class JumpToMessageDelegate(
                 if (search.jumpFlash?.requestId == request.requestId) search = search.copy(jumpFlash = null)
             }
         }
+        return true
     }
 
     private companion object {

@@ -87,6 +87,7 @@ data class ChatUiState(
     val currentSearchMatchIndex: Int get() = search.currentSearchMatchIndex
     val searchFocusRequest: SearchFocusRequest? get() = search.searchFocusRequest
     val jumpFlash: JumpFlash? get() = search.jumpFlash
+    val jumpPending: Boolean get() = search.jumpPending
     val favoriteAgentIds: Set<String> get() = favorites.favoriteAgentIds
     val favoriteModelKeys: Set<String> get() = favorites.favoriteModelKeys
     val subagentProgress: Map<String, SubagentTrace> get() = subagents.subagentProgress

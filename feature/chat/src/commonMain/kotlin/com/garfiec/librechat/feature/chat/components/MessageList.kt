@@ -128,6 +128,8 @@ fun MessageList(
     onSearchScrollHandle: () -> Unit = {},
     /** A jumped-to message with nothing to highlight in it flashes instead. */
     jumpFlash: JumpFlash? = null,
+    /** A jump to a message is under way: the first scroll waits for it rather than going to the bottom. */
+    jumpPending: Boolean = false,
     // Scrollable bottom inset that keeps the latest content clear of the overlaid input bar. The
     // caller measures the actual bar height (which grows as queued ghost rows stack above the
     // composer) so streaming text rests above the ghosts rather than behind them. It's a
@@ -378,10 +380,10 @@ fun MessageList(
     // full-screen artifact route disposes the chat entry); otherwise the initial
     // scroll re-fires on return and overrides the restored scroll position.
     var hasScrolledToBottom by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(displayMessages.size) {
-        if (!hasScrolledToBottom && displayMessages.isNotEmpty()) {
-            // A chat opened by a jump to one message starts there, not at the bottom: scrolling
-            // down here would override the jump's own scroll, which is already under way.
+    LaunchedEffect(displayMessages.size, jumpPending) {
+        if (!hasScrolledToBottom && displayMessages.isNotEmpty() && !jumpPending) {
+            // A chat opened by a jump to one message starts there, not at the bottom: the jump is
+            // waited out, and only one that gave up without a message to focus lands at the bottom.
             if (searchFocusRequest == null) listState.scrollToItem(totalItemCount - 1, scrollOffset = Int.MAX_VALUE)
             hasScrolledToBottom = true
         }
