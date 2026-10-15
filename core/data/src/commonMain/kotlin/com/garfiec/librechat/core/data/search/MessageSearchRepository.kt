@@ -170,7 +170,8 @@ class MessageSearchRepositoryImpl(
         val skipped = chosen ?: if (longEnough) remoteBlocker(unknownBlocks = false) else null
         // Before the first capability probe answers (a cold start with nothing cached) the server
         // isn't known to be off: the local hits go out as "searching", and the probe gets a moment.
-        val probePending = skipped == null && longEnough && capability.serverSearchEnabled.first() == null
+        // Read again, so an answer of "off" landing since the check above is caught by the wait.
+        val probePending = skipped == null && longEnough && capability.serverSearchEnabled.first() != true
         val remoteEligible = skipped == null && longEnough
         val base = MessageSearchResult(
             accountId = accountId,
@@ -221,7 +222,7 @@ class MessageSearchRepositoryImpl(
         val pageSize = request.remotePageSize
         val remote = remoteCache.get(accountId, request.query, pageSize)
             ?: when (val fetched = safeApiCall { messagesApi.searchMessages(request.query, pageSize) }) {
-                // An older server answers 25 whatever was asked; keep what was asked for, as the cache does.
+                // An older server answers its default whatever was asked; keep what was asked for, as the cache does.
                 is Result.Success -> fetched.data.messages.take(pageSize).also { remoteCache.put(accountId, request.query, pageSize, it) }
                 else -> null
             }
@@ -256,7 +257,7 @@ class MessageSearchRepositoryImpl(
         )
     }
 
-    /** A server older than v0.8.8-rc2 answers 25 hits whatever `pageSize` asked for. */
+    /** A server older than v0.8.8-rc2 answers at most 20 hits whatever `pageSize` asked for. */
     private fun mayIgnorePageSize(): Boolean {
         val version = backendVersion() ?: return true
         return !BackendVersion.isCompatibleOrNewer(version, PAGE_SIZE_SINCE)

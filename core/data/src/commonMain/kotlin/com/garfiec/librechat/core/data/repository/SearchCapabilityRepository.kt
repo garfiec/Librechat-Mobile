@@ -10,10 +10,15 @@ import com.garfiec.librechat.core.common.result.safeApiCall
 import com.garfiec.librechat.core.data.datastore.ConfigCacheDataStore
 import com.garfiec.librechat.core.data.util.SessionTask
 import com.garfiec.librechat.core.network.api.SearchApi
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /** Whether the connected server can answer message searches. */
 interface SearchCapabilityRepository {
@@ -38,14 +43,20 @@ interface SearchCapabilityRepository {
  * Every answer is tagged with the account it was probed for, and only shows while that account is
  * active: a probe that lands after a switch, possibly from another server, reads as unknown
  * rather than as the new account's answer.
+ *
+ * A probe runs in [scope] and concurrent refreshes for one account share it, so a search that
+ * asks and is then cancelled by the next keystroke doesn't cancel the probe with it.
  */
 class SearchCapabilityRepositoryImpl(
     private val searchApi: SearchApi,
     private val cache: ConfigCacheDataStore,
     private val activeAccountProvider: ActiveAccountProvider,
+    private val scope: CoroutineScope,
 ) : SearchCapabilityRepository {
 
     private val answer = MutableStateFlow<Pair<AccountId, Boolean>?>(null)
+    private val inFlightLock = Mutex()
+    private var inFlight: Pair<AccountId, Deferred<Unit>>? = null
 
     override val serverSearchEnabled: Flow<Boolean?> =
         combine(activeAccountProvider.state, answer) { state, tagged ->
@@ -55,6 +66,14 @@ class SearchCapabilityRepositoryImpl(
 
     override suspend fun refresh() {
         val account = activeAccountProvider.currentAccountId() ?: return
+        val running = inFlightLock.withLock {
+            inFlight?.takeIf { (forAccount, job) -> forAccount == account && job.isActive }?.second
+                ?: scope.async { probe(account) }.also { inFlight = account to it }
+        }
+        running.await()
+    }
+
+    private suspend fun probe(account: AccountId) {
         val cached = cache.loadSearchEnabled()
         if (cached != null) publish(account, cached)
         when (val probed = safeApiCall { searchApi.isSearchEnabled() }) {

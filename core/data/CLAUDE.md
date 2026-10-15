@@ -283,9 +283,10 @@ drivers have; no FTS5 on Android's framework SQLite), external-content over a na
   backfill then empties the index once (`SearchIndexMaintenance.resetIndex`: triggers dropped, wipe,
   `'rebuild'`, triggers recreated) and refills it. Without the bump, old rows keep the old shape.
 - Two operations run with the sync triggers dropped, in one transaction: the reset, and
-  `AccountDataPurger`'s fast path for an account that holds most of the index (2k+ rows and more
-  than every other account combined), which deletes without per-row tokenizing and rebuilds what
-  remains. `SYNC_TRIGGERS` is compared with the exported schema by `SearchIndexMaintenanceTest`.
+  `SearchIndexMaintenance.purgeAccountMessages`'s fast path for an account that holds most of the
+  index (2k+ rows and more than every other account combined), which deletes without per-row
+  tokenizing and rebuilds what remains. Both `AccountDataPurger` and delete-all go through it.
+  `SYNC_TRIGGERS` is compared with the exported schema by `SearchIndexMaintenanceTest`.
 - A prune of 1k+ messages merges the index afterwards, inside the prefetch window.
 - `SearchIndexBenchmark` (androidInstrumentedTest, off unless `searchBench=true`) times the
   budgets in TRUNCATE and WAL; see its KDoc to run it.

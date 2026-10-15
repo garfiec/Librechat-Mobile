@@ -158,7 +158,14 @@ val dataModule = module {
     single { LocalSearchActivity() }
     single<SearchIndexWindow> { PrefetchGateSearchIndexWindow(get()) }
     single { MessageScanEngine(dao = get(), matchDispatcher = get(KoinQualifiers.Default)) }
-    singleOf(::SearchCapabilityRepositoryImpl) bind SearchCapabilityRepository::class
+    single<SearchCapabilityRepository> {
+        SearchCapabilityRepositoryImpl(
+            searchApi = get(),
+            cache = get(),
+            activeAccountProvider = get(),
+            scope = get<CoroutineScope>(KoinQualifiers.ApplicationScope),
+        )
+    }
     single<MessageSearchRepository> {
         MessageSearchRepositoryImpl(
             searchDao = get(),

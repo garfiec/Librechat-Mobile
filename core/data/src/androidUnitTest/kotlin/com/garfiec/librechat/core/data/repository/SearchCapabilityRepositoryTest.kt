@@ -11,6 +11,9 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
@@ -24,7 +27,8 @@ class SearchCapabilityRepositoryTest {
     private val api = mockk<SearchApi>()
     private val cache = mockk<ConfigCacheDataStore>(relaxed = true)
     private val accounts = InMemoryActiveAccountProvider(AccountState.Resolved(accountA))
-    private val repository = SearchCapabilityRepositoryImpl(api, cache, accounts)
+    private val probeScope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
+    private val repository = SearchCapabilityRepositoryImpl(api, cache, accounts, probeScope)
 
     @Test
     fun `unknown until probed`() = runTest {
@@ -109,5 +113,23 @@ class SearchCapabilityRepositoryTest {
 
         assertThat(repository.serverSearchEnabled.first()).isNull()
         coVerify(exactly = 0) { cache.saveSearchEnabled(any()) }
+    }
+
+    @Test
+    fun `a cancelled caller leaves the probe running, and a second caller shares it`() = runTest {
+        val gate = CompletableDeferred<Boolean>()
+        coEvery { cache.loadSearchEnabled() } returns null
+        coEvery { api.isSearchEnabled() } coAnswers { gate.await() }
+        val first = launch { repository.refresh() }
+        testScheduler.runCurrent()
+        first.cancel()
+        val second = launch { repository.refresh() }
+        testScheduler.runCurrent()
+
+        gate.complete(true)
+        second.join()
+
+        assertThat(repository.serverSearchEnabled.first()).isTrue()
+        coVerify(exactly = 1) { api.isSearchEnabled() }
     }
 }

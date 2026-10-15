@@ -28,7 +28,8 @@ class MessagesApi constructor(
      * no cursor. [pageSize] applies twice: at most that many hits, kept only if they fall in that
      * many of the most recently updated matching conversations (archived ones included). The web
      * client sends none, so the server's default of 25 applies there; v0.8.8 caps a larger one at
-     * `MEILI_SEARCH_LIMIT` (1000), and a server that doesn't read it answers 25. Each hit is the
+     * `MEILI_SEARCH_LIMIT` (1000). A server before v0.8.8-rc2 doesn't pass it to Meilisearch, so it
+     * answers Meilisearch's own default of at most 20 hits whatever was asked. Each hit is the
      * stored message overlaid with the search hit, plus its conversation's `title` and `model`; its
      * `text` is the server's flatten of `content` with steer parts included.
      */
@@ -68,7 +69,10 @@ class MessagesApi constructor(
          */
         const val SEARCH_PAGE_SIZE: Int = 1000
 
-        /** What a server that doesn't read `pageSize` answers with at most. */
-        const val SERVER_DEFAULT_PAGE_SIZE: Int = 25
+        /**
+         * What a server that doesn't pass `pageSize` to Meilisearch (before v0.8.8-rc2) answers with
+         * at most: Meilisearch's default `limit`, not the route's default page of 25 conversations.
+         */
+        const val SERVER_DEFAULT_PAGE_SIZE: Int = 20
     }
 }
