@@ -1,0 +1,4 @@
+.state/
+assets/
+profile.*.toml
+!profile.example.toml

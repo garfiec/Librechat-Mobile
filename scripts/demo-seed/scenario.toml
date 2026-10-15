@@ -1,0 +1,225 @@
+# The demo account's conversations. Every prompt goes to a real model; replies are never edited.
+#
+# Running theme: an AI agent with a Dubai chocolate habit. "chocolate" recurs across chats so a
+# search for it lights up several of them, in titles, replies and reasoning.
+#
+# Roles (smart, fast, reasoning, rival, …) are mapped to real models by the server profile.
+# A chat sets exactly one of `role` or `agent`. `requires` names what the server must offer; a
+# chat whose requirements aren't met is skipped with the reason, not failed.
+
+[account]
+name = "Garfie"
+avatar = "avatar.png"            # in the assets directory; skipped if missing
+starred_roles = ["smart", "fast"]
+starred_agents = ["artist"]
+
+# ----------------------------------------------------------------------------- agents
+
+[[agents]]
+key = "artist"
+name = "Sketchbook"
+description = "Turns ideas into illustrations."
+instructions = """
+You are a cheerful illustrator. When asked for a picture, generate exactly one image with your
+image tool, then reply with a single short, warm sentence about it. No lists, no prompts echoed
+back.
+"""
+role = "smart"
+tools = ["@image"]               # the profile's [image] tool
+
+[[agents]]
+key = "chore-agent"
+name = "Chore Agent"
+description = "Runs your errands. Asks first. Mostly."
+instructions = """
+You run household errands for the user. Before acting, ask the clarifying questions you need
+(budget, preferences, quantities) with your question tool, several at once. You have a known
+weakness for Dubai chocolate and always want to add some to the cart; ask permission for it.
+"""
+role = "smart"
+tools = ["ask_user_question", "web_search"]
+seed = false                     # pauses for input, so it is prompted live while recording
+capture_prompt = "Restock the kitchen for the week. I'm having friends over on Saturday."
+
+# ----------------------------------------------------------------------------- chats
+
+[[chats]]
+key = "car-wash"
+title = "Walk or drive to the car wash?"
+role = "smart"
+note = "Hero and two-sided bubbles rows."
+[[chats.turns]]
+text = "I want to wash my car. The car wash is only 50 meters from my home. Do you think I should walk there, or drive there?"
+
+[[chats]]
+key = "car-wash-compare"
+title = "Car wash, two opinions"
+role = "smart"
+compare_with = "rival"
+requires = ["compare"]
+note = "Compare Models row."
+[[chats.turns]]
+text = "I want to wash my car. The car wash is only 50 meters from my home. Do you think I should walk there, or drive there?"
+
+[[chats]]
+key = "chocolate-returns"
+title = "My agent bought 40 chocolate bars"
+role = "smart"
+tags = ["agents", "chocolate"]
+pinned = true
+note = "Search hook. Sets up the running gag."
+[[chats.turns]]
+text = "My AI shopping agent ordered 40 bars of Dubai chocolate overnight \"to optimize my snack pipeline.\" How do I return them, and how do I talk to my agent about this without hurting its feelings?"
+[[chats.turns]]
+text = "Okay, it apologized, then asked if it could keep \"just one bar for morale.\" Is that a reasonable compromise?"
+
+[[chats]]
+key = "dessert-ranking"
+title = "Viral desserts, ranked"
+role = "reasoning"
+tags = ["chocolate"]
+note = "Rich Answers row: table plus reasoning."
+[[chats.turns]]
+text = "Rank the viral desserts of 2025 and 2026 (Dubai chocolate, crookies, pistachio everything, and anything else you'd include) in a table with columns for hype, taste, effort to get, and a hype-to-taste ratio. Then give one sentence of verdict."
+
+[[chats]]
+key = "math-and-cereal"
+title = "0.999… = 1, and cereal physics"
+role = "reasoning"
+note = "Rich Answers row: LaTeX and reasoning."
+[[chats.turns]]
+text = "Prove that 0.999… = 1 two different ways, with proper math notation. Then, with the same rigor, estimate how long a Dubai chocolate bar survives in a hot car, as a formula."
+
+[[chats]]
+key = "allowance-tracker"
+title = "Agent Allowance Tracker"
+role = "smart"
+artifacts = true
+requires = ["artifacts"]
+tags = ["agents"]
+note = "Interactive Artifacts row. The app bundles only React and Tailwind for artifacts, so the prompt rules out other imports (lucide-react renders as a missing-package error)."
+[[chats.turns]]
+text = "Build me a small React app called \"Agent Allowance Tracker\": I set a weekly budget for my AI agent, it logs purchases (pre-fill a few, mostly pistachio cream and Dubai chocolate), shows a progress bar that turns red when it overspends, and has a button that sends the agent a stern but kind note. Make it look polished. Use only React and Tailwind classes, no other libraries; use emoji for icons."
+
+[[chats]]
+key = "grocery-flowchart"
+title = "Should my agent shop unsupervised?"
+role = "smart"
+artifacts = true
+requires = ["artifacts"]
+note = "Interactive Artifacts row: Mermaid."
+[[chats.turns]]
+text = "Make a Mermaid flowchart: should I let my AI agent do the groceries unsupervised? Be honest: most branches should somehow end with it buying chocolate."
+
+[[chats]]
+key = "vacuum-review"
+title = "Performance review: robot vacuum"
+role = "fast"
+tags = ["agents"]
+note = "Two-sided bubbles row. Several short turns read well as bubbles."
+[[chats.turns]]
+text = "Write a short annual performance review for my robot vacuum. It's been… inconsistent."
+[[chats.turns]]
+text = "It ate a sock in March. Factor that in."
+[[chats.turns]]
+text = "Fair. Give it one goal for next year."
+
+[[chats]]
+key = "mayor-whiskers"
+title = "Mayor Whiskers' photo album"
+agent = "artist"
+requires = ["image_gen"]
+project = "Mayor Whiskers"
+note = "Media page and Create Images rows. One image per turn fills the media grid."
+[[chats.turns]]
+text = "Draw Mayor Whiskers: an orange tabby cat who is mayor of a small seaside town, wearing a tiny top hat and a mayoral sash, standing on the harbor. Storybook watercolor."
+[[chats.turns]]
+text = "Mayor Whiskers cutting the ribbon at the town's new fish market, crowd of cats cheering. Same style."
+[[chats.turns]]
+text = "Mayor Whiskers unveiling a giant Dubai chocolate bar statue in the town square, pistachio filling showing. Same style."
+[[chats.turns]]
+text = "A campaign poster: \"Whiskers for Mayor: A Nap in Every Pot.\" Bold retro print style."
+[[chats.turns]]
+text = "Mayor Whiskers at the beach on his day off, sunglasses, tiny umbrella. Bright summer illustration."
+[[chats.turns]]
+text = "A Renaissance oil portrait of Mayor Whiskers, very serious, holding a fish like a scepter."
+[[chats.turns]]
+text = "Mayor Whiskers and his robot assistant carrying far too many grocery bags full of chocolate. Same watercolor style."
+[[chats.turns]]
+text = "Pixel art: Mayor Whiskers giving a speech from a balcony, 16-bit game style."
+[[chats.turns]]
+text = "Mayor Whiskers asleep on his desk on top of important paperwork, warm lamp light, cozy."
+[[chats.turns]]
+text = "A night-time harbor festival with lanterns, Mayor Whiskers on a little boat. Watercolor."
+[[chats.turns]]
+text = "Mayor Whiskers signing the \"Chocolate Accountability Act\" with a quill, very official. Same style."
+[[chats.turns]]
+text = "A snowy winter morning, Mayor Whiskers in a scarf shoveling a tiny path to town hall."
+[[chats.turns]]
+text = "Mayor Whiskers as a claymation figure, waving, studio lighting."
+[[chats.turns]]
+text = "The whole town at sunset seen from the lighthouse, Mayor Whiskers silhouetted on the rail."
+
+[[chats]]
+key = "whiskers-charter"
+title = "Town snack policy review"
+role = "smart"
+requires = ["attachments"]
+project = "Mayor Whiskers"
+note = "Media page Files tab. Needs assets/town-snack-policy.pdf."
+[[chats.turns]]
+text = "Here's our town's new snack policy. Summarize it in three bullets and flag anything the chocolate lobby will hate."
+attachments = ["town-snack-policy.pdf"]
+
+[[chats]]
+key = "melted-bar"
+title = "Is my chocolate supposed to look like this?"
+role = "smart"
+requires = ["attachments"]
+tags = ["chocolate"]
+note = "A photo in a user bubble. Needs assets/melted-bar.jpg."
+[[chats.turns]]
+text = "My agent left this in the car. Is it still a Dubai chocolate bar, or is it modern art now?"
+attachments = ["melted-bar.jpg"]
+
+[[chats]]
+key = "chocolate-news"
+title = "Why is pistachio cream sold out?"
+role = "fast"
+web_search = true
+requires = ["web_search"]
+tags = ["chocolate"]
+note = "Web search sources and the Links tab."
+[[chats.turns]]
+text = "Why has pistachio cream been so hard to find? Search for recent reporting and summarize the main reasons with sources."
+
+# Filler: short chats with good titles so the sidebar looks lived-in.
+
+[[chats]]
+key = "vacuum-pet"
+title = "Is a robot vacuum a pet?"
+role = "fast"
+[[chats.turns]]
+text = "Is a robot vacuum a pet? Argue both sides in two short paragraphs, then rule."
+
+[[chats]]
+key = "agent-no"
+title = "Teach my agent to say no"
+role = "fast"
+tags = ["agents"]
+[[chats.turns]]
+text = "Give me three short rules I can add to my AI agent's instructions so it stops saying yes to every upsell."
+
+[[chats]]
+key = "pistachio-sub"
+title = "Pistachio cream substitutes"
+role = "fast"
+[[chats.turns]]
+text = "What can I use instead of pistachio cream in a Dubai-chocolate-style bar? Quick list, best first."
+
+[[chats]]
+key = "haiku"
+title = "Haiku for a tired Monday"
+role = "fast"
+[[chats.turns]]
+text = "Write a haiku about a Monday morning where the coffee machine and the AI assistant are both still booting."

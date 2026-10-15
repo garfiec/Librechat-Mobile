@@ -1,0 +1,30 @@
+# Maps the scenario's roles to one server's endpoints and models. Copy this file, then fill in
+# names from that server: GET /api/endpoints lists endpoints, GET /api/models their models.
+# Copies are gitignored (profile.*.toml other than this example).
+#
+# `params` are sent at the top level of the chat body, keyed as that provider expects
+# (Anthropic: thinking, thinkingBudget; OpenAI: reasoning_effort; Google: thinkingBudget).
+# `endpoint_type` is only needed when /api/endpoints doesn't report one for a custom endpoint.
+
+[roles.smart]
+endpoint = "anthropic"
+model = "claude-sonnet-4-6"
+
+[roles.fast]
+endpoint = "openAI"
+model = "gpt-5.4-mini"
+
+[roles.reasoning]
+endpoint = "anthropic"
+model = "claude-sonnet-4-6"
+params = { thinking = true, thinkingBudget = 4000 }
+
+# The second model in a comparison.
+[roles.rival]
+endpoint = "openAI"
+model = "gpt-5.4"
+
+# The image tool the artist agent uses: image_gen_oai, gemini_image_gen, dalle, flux or
+# stable-diffusion. It must report authenticated: true in GET /api/agents/tools.
+[image]
+tool = "image_gen_oai"
