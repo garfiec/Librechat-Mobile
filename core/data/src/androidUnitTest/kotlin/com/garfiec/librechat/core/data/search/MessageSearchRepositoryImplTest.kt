@@ -59,6 +59,12 @@ class MessageSearchRepositoryImplTest : AccountIsolationTestBase() {
     private val serverEnabled = MutableStateFlow<Boolean?>(true)
     private val online = MutableStateFlow(true)
     private val requests = AtomicInteger()
+    private val pageSizes = CopyOnWriteArrayList<String?>()
+    private val refreshes = AtomicInteger()
+    private var backendVersion: String? = null
+
+    /** What a capability re-probe answers; null keeps the current value. */
+    private var probeAnswer: Boolean? = null
 
     /** What the mock server answers; replace per test. */
     private var respondWith: suspend () -> Pair<HttpStatusCode, String> = { HttpStatusCode.OK to remoteBody() }
@@ -67,6 +73,7 @@ class MessageSearchRepositoryImplTest : AccountIsolationTestBase() {
         val client = HttpClient(
             MockEngine {
                 requests.incrementAndGet()
+                pageSizes += it.url.parameters["pageSize"]
                 val (status, body) = respondWith()
                 respond(body, status, headersOf(HttpHeaders.ContentType, "application/json"))
             },
@@ -81,7 +88,10 @@ class MessageSearchRepositoryImplTest : AccountIsolationTestBase() {
             messagesApi = MessagesApi(client),
             capability = object : SearchCapabilityRepository {
                 override val serverSearchEnabled = serverEnabled
-                override suspend fun refresh() = Unit
+                override suspend fun refresh() {
+                    refreshes.incrementAndGet()
+                    probeAnswer?.let { serverEnabled.value = it }
+                }
             },
             connectivity = object : ConnectivityObserver {
                 override val isConnected = online
@@ -92,6 +102,7 @@ class MessageSearchRepositoryImplTest : AccountIsolationTestBase() {
                 PreferenceDataStoreFactory.create(scope = storeScope) { File(tmp.root, "s.preferences_pb") },
             ),
             snippetDispatcher = Dispatchers.Default,
+            backendVersion = { backendVersion },
         )
     }
 
@@ -166,6 +177,73 @@ class MessageSearchRepositoryImplTest : AccountIsolationTestBase() {
         respondWith = { HttpStatusCode.OK to remoteBody("remote-1") }
         val (_, partial) = collect("quokka remote", 2)
         assertThat(partial.remoteCapped).isFalse()
+    }
+
+    @Test
+    fun exactlyTheDefaultPageIsNotCappedOnAServerThatHonoursThePageSize() = runBlocking<Unit> {
+        backendVersion = "0.8.8"
+        seed("local-1", accountA, "local quokka")
+        respondWith = { HttpStatusCode.OK to remoteBody(*Array(MessagesApi.SERVER_DEFAULT_PAGE_SIZE) { "remote-$it" }) }
+
+        val (_, second) = collect("quokka", 2)
+
+        assertThat(second.remoteCapped).isFalse()
+    }
+
+    @Test
+    fun theServerIsAskedForTheCallersPageSize() = runBlocking<Unit> {
+        seed("local-1", accountA, "local quokka")
+        respondWith = { HttpStatusCode.OK to remoteBody(*Array(5) { "remote-$it" }) }
+
+        val (_, small) = withTimeout(10_000) { repository.search("quokka", remotePageSize = 5).take(2).toList() }
+        assertThat(pageSizes).containsExactly("5")
+        assertThat(small.remoteCapped).isTrue()
+
+        collect("quokka zoo", 2)
+        assertThat(pageSizes.last()).isEqualTo(MessagesApi.SEARCH_PAGE_SIZE.toString())
+    }
+
+    @Test
+    fun aLargerCachedAnswerServesASmallerPageButNotTheOtherWayRound() = runBlocking<Unit> {
+        seed("local-1", accountA, "local quokka")
+
+        withTimeout(10_000) { repository.search("quokka", remotePageSize = 5).take(2).toList() }
+        collect("quokka", 2)
+        // The drawer's five never stand in for the Search screen's full page.
+        assertThat(requests.get()).isEqualTo(2)
+
+        withTimeout(10_000) { repository.search("quokka", remotePageSize = 5).take(2).toList() }
+        assertThat(requests.get()).isEqualTo(2)
+    }
+
+    @Test
+    fun anOfflineColdStartReadsAsOfflineAndSearchesTheServerOnceBack() = runBlocking<Unit> {
+        serverEnabled.value = null
+        online.value = false
+        probeAnswer = true
+        seed("local-1", accountA, "local quokka")
+        launch {
+            delay(1_000)
+            online.value = true
+        }
+
+        val (offline, searching, done) = collect("quokka", 3)
+
+        assertThat(offline.remoteSkipped).isEqualTo(RemoteSkipReason.Offline)
+        assertThat(refreshes.get()).isEqualTo(1)
+        assertThat(searching.remoteStatus).isEqualTo(RemoteSearchStatus.Searching)
+        assertThat(done.hits.map { it.messageId }).containsExactly("local-1", "remote-1").inOrder()
+    }
+
+    @Test
+    fun offlineWinsOverAServerKnownToBeOff() = runBlocking<Unit> {
+        serverEnabled.value = false
+        online.value = false
+        seed("local-1", accountA, "local quokka")
+
+        val first = collectWithin("quokka", millis = 800).first()
+
+        assertThat(first.remoteSkipped).isEqualTo(RemoteSkipReason.Offline)
     }
 
     @Test
@@ -352,6 +430,21 @@ class MessageSearchRepositoryImplTest : AccountIsolationTestBase() {
         assertThat(result.hits.single().findText).isEqualTo("error 404")
         assertThat(result.remoteSkipped).isEqualTo(RemoteSkipReason.Regex)
         assertThat(requests.get()).isEqualTo(0)
+    }
+
+    @Test
+    fun anOldestFirstRegexScanReturnsTheOldestMatches() = runBlocking<Unit> {
+        db.conversationDao().upsert(conversation("c", accountA))
+        db.messageDao().upsertAllIndexed(
+            (1..5).map { message("m$it", conversationId = "c", accountId = accountA, text = "code $it").copy(createdAt = it.toLong()) },
+        )
+
+        val result = withTimeout(10_000) {
+            repository.search("code [0-9]", limit = 2, options = SearchOptions(regex = true, sort = SearchSort.Oldest)).take(1).toList()
+        }.single()
+
+        assertThat(result.hits.map { it.messageId }).containsExactly("m1", "m2").inOrder()
+        assertThat(result.scan?.resumeFrom?.ascending).isTrue()
     }
 
     @Test

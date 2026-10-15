@@ -346,7 +346,7 @@ class SearchViewModel(
         return scanFrom.flatMapLatest { cursor ->
             val earlier = latest.takeIf { cursor != null }
             sources.messages.search(text, LIMIT, cursor, chosen).map { page ->
-                (earlier?.extendedBy(page, chosen.sort) ?: page).also { latest = it }
+                (earlier?.extendedBy(page) ?: page).also { latest = it }
             }
         }
     }
@@ -681,15 +681,14 @@ class SearchViewModel(
 
         /**
          * This scan result with [page], its "Scan more" continuation, added: local hits in scan
-         * order (older pages after newer ones, or before them for an oldest-first sort), then the
+         * order (the scan walks in the sort's direction, so a later page follows), then the
          * server's, each listed once, and the scanned counts summed.
          */
-        fun MessageSearchResult.extendedBy(page: MessageSearchResult, sort: SearchSort): MessageSearchResult {
+        fun MessageSearchResult.extendedBy(page: MessageSearchResult): MessageSearchResult {
             if (page.accountId != accountId || page.query != query) return page
             val (earlierLocal, earlierRemote) = hits.partition { it.source == HitSource.Local }
             val (pageLocal, pageRemote) = page.hits.partition { it.source == HitSource.Local }
-            val local = (if (sort == SearchSort.Oldest) pageLocal + earlierLocal else earlierLocal + pageLocal)
-                .distinctBy { it.messageId }
+            val local = (earlierLocal + pageLocal).distinctBy { it.messageId }
             val localIds = local.mapTo(HashSet()) { it.messageId }
             val remote = (earlierRemote + pageRemote).distinctBy { it.messageId }.filter { it.messageId !in localIds }
             val earlierScanned = scan?.scanned ?: 0

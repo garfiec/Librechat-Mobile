@@ -4,6 +4,7 @@ import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.currentAccountId
+import com.garfiec.librechat.core.common.result.FailureKind
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.safeApiCall
 import com.garfiec.librechat.core.data.datastore.ConfigCacheDataStore
@@ -18,11 +19,15 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 interface SearchCapabilityRepository {
     /**
      * True when the server's message search is enabled and healthy, false when it isn't (or the
-     * probe failed with nothing cached), null until it is known for the active account.
+     * server failed the probe with nothing cached), null until it is known for the active account.
+     * A probe that couldn't reach the server leaves it unknown.
      */
     val serverSearchEnabled: Flow<Boolean?>
 
-    /** Re-probes the server; the session task calls this on login, cold start and switch. */
+    /**
+     * Re-probes the server; the session task calls this on login, cold start and switch, and a
+     * search calls it when the connection returns with the answer still unknown.
+     */
     suspend fun refresh()
 }
 
@@ -58,9 +63,13 @@ class SearchCapabilityRepositoryImpl(
                 cache.saveSearchEnabled(probed.data)
                 publish(account, probed.data)
             }
-            else -> if (cached == null) publish(account, false)
+            is Result.Error -> if (cached == null && !probed.isUnreachable()) publish(account, false)
+            Result.Loading -> Unit
         }
     }
+
+    /** Offline or timed out: the server said nothing, so its search isn't known to be off. */
+    private fun Result.Error.isUnreachable() = kind == FailureKind.Network || kind == FailureKind.Timeout
 
     private fun publish(account: AccountId, enabled: Boolean) {
         if (activeAccountProvider.currentAccountId() == account) answer.value = account to enabled

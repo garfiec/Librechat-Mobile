@@ -148,6 +148,21 @@ interface MessageSearchDao {
         limit: Int,
     ): List<MessageSearchRow>
 
+    /** [scanPage] oldest first: the page starts strictly above (createdAt, rowid). */
+    @Query(
+        "SELECT rowid AS rowId, messageId, conversationId, createdAt, isCreatedByUser, model, endpoint, searchText, " +
+            "visibleLength " +
+            "FROM message_search WHERE accountId = :accountId " +
+            "AND (createdAt > :afterCreatedAt OR (createdAt = :afterCreatedAt AND rowid > :afterRowId)) " +
+            "ORDER BY createdAt ASC, rowid ASC LIMIT :limit",
+    )
+    suspend fun scanPageOldest(
+        accountId: String,
+        afterCreatedAt: Long,
+        afterRowId: Long,
+        limit: Int,
+    ): List<MessageSearchRow>
+
     @Query("SELECT COUNT(*) FROM message_search WHERE accountId = :accountId")
     suspend fun countForAccount(accountId: String): Int
 

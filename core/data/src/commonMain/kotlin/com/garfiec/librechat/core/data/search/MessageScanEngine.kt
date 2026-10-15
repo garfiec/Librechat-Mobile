@@ -22,10 +22,14 @@ fun interface TextMatcher {
     }
 }
 
-/** Where a scan stopped: the next page starts strictly below this (createdAt, rowid). */
-data class ScanCursor(val beforeCreatedAt: Long, val beforeRowId: Long) {
+/**
+ * Where a scan stopped: the next page starts strictly past this (createdAt, rowid), below it for a
+ * newest-first scan and above it for an [ascending] one.
+ */
+data class ScanCursor(val createdAt: Long, val rowId: Long, val ascending: Boolean = false) {
     companion object {
         val START = ScanCursor(Long.MAX_VALUE, Long.MAX_VALUE)
+        val START_OLDEST = ScanCursor(Long.MIN_VALUE, Long.MIN_VALUE, ascending = true)
     }
 }
 
@@ -45,8 +49,8 @@ data class ScanHit(val row: MessageSearchRow, val firstMatch: IntRange)
 data class ScanResult(val hits: List<ScanHit>, val scanned: Int, val next: ScanCursor?)
 
 /**
- * Searches an account's indexed messages newest first, a keyset page at a time, for matches the
- * FTS index can't find (regex, unsegmented scripts).
+ * Searches an account's indexed messages a keyset page at a time, newest first or, from an
+ * ascending cursor, oldest first, for matches the FTS index can't find (regex, unsegmented scripts).
  *
  * Bounded by [ScanBudget]: it stops at the match cap or the deadline and hands back a cursor, so
  * the caller shows partial results with "Scan more" rather than a spinner with no end. The budget
@@ -61,8 +65,9 @@ class MessageScanEngine(
 ) {
 
     /**
-     * [admit] skips rows a filter excludes before their text is matched. [notBefore] ends the scan
-     * at the first row older than it: rows arrive newest first, so nothing after one can qualify.
+     * [admit] skips rows a filter excludes before their text is matched. [notBefore] is a date
+     * floor: newest first it ends the scan at the first row older than it, and oldest first the
+     * scan starts there.
      */
     suspend fun scan(
         accountId: String,
@@ -77,9 +82,17 @@ class MessageScanEngine(
         val started = timeSource.markNow()
         val hits = ArrayList<ScanHit>()
         var scanned = 0
-        var cursor = from
+        var cursor = if (from.ascending && notBefore != null && from.createdAt < notBefore) {
+            ScanCursor(notBefore, Long.MIN_VALUE, ascending = true)
+        } else {
+            from
+        }
         while (true) {
-            val page = dao.scanPage(accountId, cursor.beforeCreatedAt, cursor.beforeRowId, PAGE_SIZE)
+            val page = if (cursor.ascending) {
+                dao.scanPageOldest(accountId, cursor.createdAt, cursor.rowId, PAGE_SIZE)
+            } else {
+                dao.scanPage(accountId, cursor.createdAt, cursor.rowId, PAGE_SIZE)
+            }
             if (page.isEmpty()) return ScanResult(hits, scanned, next = null)
             val stoppedAt = withContext(matchDispatcher) {
                 for ((index, row) in page.withIndex()) {
@@ -101,11 +114,11 @@ class MessageScanEngine(
             if (stoppedAt >= 0) {
                 val last = page[stoppedAt]
                 val exhausted = stoppedAt == page.lastIndex && page.size < PAGE_SIZE
-                return ScanResult(hits, scanned, next = if (exhausted) null else ScanCursor(last.createdAt, last.rowId))
+                return ScanResult(hits, scanned, next = if (exhausted) null else ScanCursor(last.createdAt, last.rowId, cursor.ascending))
             }
             if (page.size < PAGE_SIZE) return ScanResult(hits, scanned, next = null)
             val last = page.last()
-            cursor = ScanCursor(last.createdAt, last.rowId)
+            cursor = ScanCursor(last.createdAt, last.rowId, cursor.ascending)
         }
     }
 

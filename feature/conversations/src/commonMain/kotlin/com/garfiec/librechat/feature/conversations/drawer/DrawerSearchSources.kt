@@ -56,7 +56,7 @@ class DrawerSearchSources(
                 if (FtsQuery.plan(query) == FtsQueryPlan.Empty) {
                     flowOf(null)
                 } else {
-                    messages.search(query, limit = MESSAGE_LIMIT)
+                    messages.search(query, limit = MESSAGE_LIMIT, remotePageSize = MESSAGE_LIMIT)
                 }
             }
             .combine(accounts.state) { result, _ ->
@@ -71,7 +71,7 @@ class DrawerSearchSources(
     private fun MessageSearchResult.toDrawerMessageSearch() = DrawerMessageSearch(
         preview = hits.take(DrawerMessageSearch.PREVIEW_COUNT),
         totalCount = hits.size,
-        countCapped = hits.size >= MESSAGE_LIMIT,
+        countCapped = hits.size >= MESSAGE_LIMIT || remoteCapped,
         searched = true,
         searchingServer = remoteStatus == RemoteSearchStatus.Searching,
         note = searchNote(remoteStatus, remoteSkipped),
@@ -81,7 +81,7 @@ class DrawerSearchSources(
         /** Matches the title filter's debounce, so both sections settle together. */
         const val DEBOUNCE_MS = 300L
 
-        /** The drawer shows a preview; this only bounds the count it reports. */
+        /** The drawer shows a preview; this only bounds the count it reports, locally and from the server. */
         const val MESSAGE_LIMIT = 50
     }
 }

@@ -72,6 +72,7 @@ class SearchViewModelTest {
             limit: Int,
             scanFrom: ScanCursor?,
             options: SearchOptions,
+            remotePageSize: Int,
         ): Flow<MessageSearchResult> {
             searchedWith += options
             return live ?: flowOf(scanPage?.invoke(scanFrom) ?: nextResult(query))
@@ -548,7 +549,7 @@ class SearchViewModelTest {
 
     @Test
     fun `scan more adds the next page to what the scan already found`() = runTest(dispatcher) {
-        val cursor = ScanCursor(beforeCreatedAt = 5L, beforeRowId = 9L)
+        val cursor = ScanCursor(createdAt = 5L, rowId = 9L)
         scanPage = { from ->
             if (from == null) {
                 MessageSearchResult(

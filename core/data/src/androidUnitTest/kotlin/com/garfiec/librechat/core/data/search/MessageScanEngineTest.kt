@@ -69,6 +69,29 @@ class MessageScanEngineTest : AccountIsolationTestBase() {
     }
 
     @Test
+    fun anOldestFirstScanFindsTheOldestMatchesAndResumesForwards() = runTest {
+        seed(250) { "hit $it" }
+        val budget = ScanBudget(maxMatches = 200)
+
+        val first = engine.scan(accountA, TextMatcher.literal("hit"), from = ScanCursor.START_OLDEST, budget = budget)
+        val second = engine.scan(accountA, TextMatcher.literal("hit"), from = first.next!!, budget = budget)
+
+        assertThat(first.hits.map { it.row.createdAt }).isEqualTo((1L..200L).toList())
+        assertThat(second.hits.map { it.row.createdAt }).isEqualTo((201L..250L).toList())
+        assertThat(second.next).isNull()
+    }
+
+    @Test
+    fun anOldestFirstScanStartsAtTheDateFloor() = runTest {
+        seed(10) { "hit $it" }
+
+        val result = engine.scan(accountA, TextMatcher.literal("hit"), from = ScanCursor.START_OLDEST, notBefore = 8L)
+
+        assertThat(result.hits.map { it.row.createdAt }).containsExactly(8L, 9L, 10L).inOrder()
+        assertThat(result.scanned).isEqualTo(3)
+    }
+
+    @Test
     fun stopsAtTheDeadlineBetweenRows() = runTest {
         seed(300) { "row $it" }
         var calls = 0

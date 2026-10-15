@@ -43,6 +43,7 @@ class DrawerSearchSourcesTest {
     /** Results the fake repository emits per query; a SharedFlow so a test controls timing. */
     private val results = MutableSharedFlow<MessageSearchResult>(replay = 1)
     private val searched = mutableListOf<String>()
+    private val pageSizes = mutableListOf<Int>()
 
     private val messages = object : MessageSearchRepository {
         override fun search(
@@ -50,8 +51,10 @@ class DrawerSearchSourcesTest {
             limit: Int,
             scanFrom: ScanCursor?,
             options: SearchOptions,
+            remotePageSize: Int,
         ): Flow<MessageSearchResult> {
             searched += query
+            pageSizes += remotePageSize
             return results
         }
     }
@@ -95,10 +98,23 @@ class DrawerSearchSourcesTest {
 
         val latest = seen.last()
         assertThat(searched).containsExactly("pelican")
+        // The drawer shows a preview, so the server isn't asked for its whole page.
+        assertThat(pageSizes).containsExactly(DrawerSearchSources.MESSAGE_LIMIT)
         assertThat(latest.preview).hasSize(DrawerMessageSearch.PREVIEW_COUNT)
         assertThat(latest.totalCount).isEqualTo(8)
         assertThat(latest.searched).isTrue()
         assertThat(latest.note).isNull()
+    }
+
+    @Test
+    fun `a capped server answer marks the count as a lower bound`() = runTest {
+        val seen = mutableListOf<DrawerMessageSearch>()
+        backgroundScope.launch { sources.messageSearch(flowOf("pelican"), accounts).collect { seen += it } }
+        results.emit(result(accountA, 8, RemoteSearchStatus.Done).copy(remoteCapped = true))
+        advanceTimeBy(DrawerSearchSources.DEBOUNCE_MS + 1)
+        runCurrent()
+
+        assertThat(seen.last().countCapped).isTrue()
     }
 
     @Test

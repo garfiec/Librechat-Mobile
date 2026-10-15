@@ -3,6 +3,7 @@ package com.garfiec.librechat.core.data.repository
 import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
+import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.data.datastore.ConfigCacheDataStore
 import com.garfiec.librechat.core.network.api.SearchApi
 import com.google.common.truth.Truth.assertThat
@@ -52,13 +53,35 @@ class SearchCapabilityRepositoryTest {
     }
 
     @Test
-    fun `a failed probe with nothing cached reads as disabled`() = runTest {
+    fun `an unreachable server with nothing cached stays unknown`() = runTest {
         coEvery { cache.loadSearchEnabled() } returns null
         coEvery { api.isSearchEnabled() } throws IOException("offline")
 
         repository.refresh()
 
+        assertThat(repository.serverSearchEnabled.first()).isNull()
+    }
+
+    @Test
+    fun `a server that fails the probe with nothing cached reads as disabled`() = runTest {
+        coEvery { cache.loadSearchEnabled() } returns null
+        coEvery { api.isSearchEnabled() } throws ApiException(statusCode = 500, message = "boom")
+
+        repository.refresh()
+
         assertThat(repository.serverSearchEnabled.first()).isFalse()
+    }
+
+    @Test
+    fun `a probe once the connection is back replaces the unknown answer`() = runTest {
+        coEvery { cache.loadSearchEnabled() } returns null
+        coEvery { api.isSearchEnabled() } throws IOException("offline")
+        repository.refresh()
+
+        coEvery { api.isSearchEnabled() } returns true
+        repository.refresh()
+
+        assertThat(repository.serverSearchEnabled.first()).isTrue()
     }
 
     @Test

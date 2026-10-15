@@ -258,6 +258,27 @@ class MessageSearchIndexTest : AccountIsolationTestBase() {
         assertThat(plan).doesNotContain("TEMP B-TREE")
     }
 
+    @Test
+    fun oldestFirstScanPageIsIndexOrderedWithoutASort() {
+        val plan = explain(
+            "SELECT rowid, messageId FROM message_search WHERE accountId = 'a' " +
+                "AND (createdAt > 5 OR (createdAt = 5 AND rowid > 9)) ORDER BY createdAt ASC, rowid ASC LIMIT 200",
+        )
+        assertThat(plan).contains("index_message_search_accountId_createdAt")
+        assertThat(plan).doesNotContain("TEMP B-TREE")
+    }
+
+    @Test
+    fun oldestFirstSearchWalksTheAccountIndexWithoutASort() {
+        val plan = explain(
+            "SELECT rowid AS rowId, messageId FROM message_search WHERE accountId = 'a' " +
+                "AND +rowid IN (SELECT rowid FROM messages_fts WHERE messages_fts MATCH '\"x\"') " +
+                "ORDER BY createdAt ASC LIMIT 20",
+        )
+        assertThat(plan).contains("index_message_search_accountId_createdAt")
+        assertThat(plan).doesNotContain("TEMP B-TREE")
+    }
+
     // ---- advanced filters ----
 
     @Test

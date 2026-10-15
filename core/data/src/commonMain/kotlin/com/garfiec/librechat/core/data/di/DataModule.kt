@@ -171,6 +171,7 @@ val dataModule = module {
             activity = get(),
             indexState = get(),
             snippetDispatcher = get(KoinQualifiers.Default),
+            backendVersion = get<ConfigRepository>().detectedBackendVersion::value,
         )
     }
 
