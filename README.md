@@ -9,28 +9,30 @@ A third-party native mobile client for [LibreChat](https://www.librechat.ai/) (A
 ## Why use this instead of the web app?
 
 - **Smoother and faster** — a real native app instead of a website in a wrapper, so scrolling, typing, and watching responses stream in all feel snappier.
-- **Feels like a mobile app, not a shrunk-down website** — familiar gestures like swipe to switch accounts and swipe back, comfortable tap targets, and a layout that adapts to tablets and foldables.
+- **Feels like a mobile app, not a shrunk-down website** — familiar gestures like swipe to switch accounts and swipe back, menus you can press, drag and release in one motion, comfortable tap targets, and a layout that adapts to tablets and foldables — including the iPhone Duo.
+- **Make it yours** — switch between Material and Liquid Glass styles on Android or iPhone, pick any accent color and watch the whole app recolor around it, or let it match your wallpaper.
 - **Plays nicely with your phone** — share text, images, and files into the app from anywhere *(Android)*, pin your favorite models or generated content to your home screen, open chat links straight into the right screen, and save or share images through your phone's normal menus.
-- **Works without a connection** — your chat list and any conversations you've opened are saved on your phone, so you can keep reading with spotty or no signal.
+- **Works without a connection** — your chat list and any conversations you've opened are saved on your phone, so you can keep reading with spotty or no signal. Turn on background prefetch and recent chats are ready offline before you even open them.
 - **Multiple accounts, one app** — sign in to different accounts on different LibreChat servers and switch between them instantly, no re-entering passwords.
-- **Dictation stays on your phone** — voice typing runs on-device instead of through a server.
+- **Dictation without a round trip** — voice typing uses your phone's own speech recognizer, on-device where the phone supports it, instead of uploading audio to your server.
 
 ## Features
 
+- **Make It Yours** — Two complete looks: Google's Material design or Apple-style Liquid Glass, on Android and iOS alike. Pick any accent color and the whole app recolors to match — choose a preset or dial in your own — or let Material You pull colors from your wallpaper on Android 12+. Light, dark, or follow the system, and choose how chats look (thread or two-sided, bubbles, avatars) with a live preview.
 - **Multi-Account & Multi-Server** — Sign in to multiple accounts across different LibreChat servers and switch between them instantly, no re-login. Swipe the account chip to switch; storage is fully scoped per account.
 - **Pin Artifacts to Home Screen** — Turn any generated artifact (HTML, React, SVG, Mermaid, Markdown) into a home-screen launcher icon that opens straight into a full-screen viewer — works on cold start, while logged out, and even after the source chat is deleted. *(Android)*
 - **Quick Actions** — Your most-used models become home-screen shortcuts (Android) and long-press quick actions (iOS) that deep-link into a new chat with that model preselected.
 - **Rich Media Viewer** — Full-screen, Google-Photos-style viewer with pinch-to-zoom and swipe between images across a branch or grid, shared by chat and files.
 - **Native Upload, Share & Save** — Attach from the device or reuse existing server files without re-uploading, save images to your gallery, and share out through the system share sheet with original format preserved.
-- **Themes** — Pick any accent color and the whole app regenerates a matching Material 3 palette — choose from presets or dial in a custom color (HSV or hex). System/light/dark modes, plus Material You wallpaper-based colors on Android 12+.
 - **Chat** — Real-time streaming (SSE), message branching & sibling navigation, stop/regenerate/continue, markdown with syntax highlighting, LaTeX math rendering, code blocks with copy, image display, file attachments, tool call progress cards
+- **Answer Your Agents** — When an agent stops to ask you something or wants your OK before running a tool, answer right from the composer, one question at a time.
 - **Inline Artifacts** — Render Mermaid, SVG, HTML, React, and Markdown artifacts directly in chat messages at full message width with content-fit height. Per-type toggle in Settings → Chat → Artifacts.
-- **Model Selection** — Searchable bottom sheet grouped by endpoint, model comparison mode
+- **Model Selection** — Searchable bottom sheet grouped by endpoint, star your favorites to keep them on top, and compare two models side by side
 - **Agents** — Marketplace with search and categories, MCP server configuration
 - **Conversations** — Paginated list with date grouping, tags, search, rename, archive, delete, share, fork, duplicate, export/import
 - **Voice** — On-device live dictation (Android & iOS) with cloud fallback, plus text-to-speech playback
 - **Mobile & Tablet** — Single adaptive UI: single-pane on phones, dual-pane layout (600dp+) with a persistent sidebar on tablets and foldables, with native predictive-back gestures
-- **Settings** — In-app language switching, account management, data controls
+- **Settings** — In-app language switching across 10 languages, account management, data controls
 - **Accessibility** — Semantic headings, content descriptions, 48dp touch targets, live regions
 
 ## Screenshots
@@ -44,7 +46,7 @@ A third-party native mobile client for [LibreChat](https://www.librechat.ai/) (A
 | **Mermaid Diagrams** — Interactive flowcharts and diagrams rendered in-chat | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/04-mermaid.png" width="280"> | <img src="fastlane/metadata/android/en-US/images/tenInchScreenshots/04-mermaid.png" width="380"> |
 | **LaTeX Math** — Beautifully typeset equations and formulas | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/05-latex.png" width="280"> | <img src="fastlane/metadata/android/en-US/images/tenInchScreenshots/05-latex.png" width="380"> |
 | **Code Blocks** — Syntax-highlighted code with language badge and copy button | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/03-code.png" width="280"> | <img src="fastlane/metadata/android/en-US/images/tenInchScreenshots/03-code.png" width="380"> |
-| **Tables** — Clean, scrollable data tables | <img src="docs/screenshots/table-phone.png" width="280"> | <img src="docs/screenshots/table-tablet.png" width="380"> |
+| **Tables** — Tables fit the screen and wrap their text; only wide ones scroll sideways | <img src="docs/screenshots/table-phone.png" width="280"> | <img src="docs/screenshots/table-tablet.png" width="380"> |
 | **Extended Thinking** — See the model's reasoning process | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/06-thinking.png" width="280"> | <img src="docs/screenshots/thinking-tablet.png" width="380"> |
 | **Clarifying Questions** — When an agent pauses to ask, answer one question at a time in a panel that replaces the composer | <img src="docs/screenshots/ask-user-question-phone.png" width="280"> | <img src="docs/screenshots/ask-user-question-tablet.png" width="380"> |
 | **Chat Media** — Browse all media shared in the current chat in one place | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/07-chat-media.png" width="280"> | <img src="fastlane/metadata/android/en-US/images/tenInchScreenshots/06-chat-media.png" width="380"> |
@@ -120,6 +122,7 @@ Without this setting, the server's violation system may accumulate ban points ag
 ### Notes
 
 - **Registration** — The app respects your server's registration settings. If registration is disabled server-side, only the login form is shown.
+- **Access gateways** — If your server sits behind Cloudflare Access, Authelia, Authentik or oauth2-proxy, add the headers your gateway expects under **Advanced** on the server URL screen, or later in **Settings → Account → Server connection**.
 - **Self-signed TLS certificates** — Both platforms enforce certificate requirements stricter than browsers, and Android additionally does not trust user-installed CAs by default. See [FAQ.md](FAQ.md#can-i-use-a-self-signed-tls-certificate) for details and workarounds.
 
 ## Requirements
