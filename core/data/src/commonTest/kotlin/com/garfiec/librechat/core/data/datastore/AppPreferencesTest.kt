@@ -46,7 +46,13 @@ class AppPreferencesTest {
                 DistributionChannel.PLAY_STORE to true,
                 DistributionChannel.APP_STORE to true,
             ),
+            "prefetch_enabled" to everyChannel(true),
+            "prefetch_attachments" to everyChannel(false),
+            "prefetch_on_metered" to everyChannel(true),
+            "prefetch_depth" to everyChannel(50),
         )
         assertEquals(expected, actual)
     }
+
+    private fun everyChannel(value: Any?) = DistributionChannel.entries.associateWith { value }
 }

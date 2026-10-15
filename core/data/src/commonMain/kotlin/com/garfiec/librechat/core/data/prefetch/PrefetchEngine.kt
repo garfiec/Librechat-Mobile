@@ -6,6 +6,8 @@ import com.garfiec.librechat.core.common.lifecycle.ForegroundSignal
 import com.garfiec.librechat.core.common.network.PrefetchMarker
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.datastore.AppPreferences
+import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.db.dao.ConversationDao
 import com.garfiec.librechat.core.data.db.dao.MessageDao
@@ -68,6 +70,7 @@ class PrefetchEngine(
     private val openConversationRegistry: OpenConversationRegistry,
     private val attachmentWarmer: AttachmentWarmer,
     private val settingsDataStore: SettingsDataStore,
+    private val preferenceStore: PreferenceStore,
     private val serverUrlProvider: ServerUrlProvider,
     private val foregroundSignal: ForegroundSignal,
     private val ioDispatcher: CoroutineDispatcher,
@@ -114,7 +117,7 @@ class PrefetchEngine(
             // deadlocks — silently, since a closed gate is indistinguishable from a busy user.
             withContext(PrefetchMarker) {
                 // Read once: a depth re-read mid-pass would select rows the list refresh never fetched.
-                val depth = settingsDataStore.prefetchDepth.first()
+                val depth = preferenceStore.observe(AppPreferences.PrefetchDepthSetting).first()
                 val pass = Pass(accountId)
 
                 if (!pass.warmConversationList(depth)) return@withContext
@@ -404,7 +407,7 @@ class PrefetchEngine(
          */
         private suspend fun warmAttachments(messages: List<Message>) {
             if (!attachmentWarmer.isSupported) return
-            if (!settingsDataStore.prefetchAttachmentsEnabled.first()) return
+            if (!preferenceStore.observe(AppPreferences.PrefetchAttachments).first()) return
 
             val baseUrl = serverUrlProvider.getBaseUrl()
             if (baseUrl.isBlank()) return

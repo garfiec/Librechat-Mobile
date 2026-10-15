@@ -78,7 +78,7 @@
     <string name="prefetch_enabled">预加载对话</string>
     <string name="prefetch_enabled_desc">提前加载最近和已固定的对话，以便即时打开。在应用空闲时运行，充电时也会定期运行。</string>
     <string name="prefetch_on_metered">使用移动数据</string>
-    <string name="prefetch_on_metered_desc">允许在按流量计费的网络上预加载。默认关闭，以避免意外的流量消耗。</string>
+    <string name="prefetch_on_metered_desc">允许在按流量计费的网络上预加载。</string>
     <string name="prefetch_depth">数量</string>
     <string name="prefetch_depth_value">%1$d 个对话</string>
     <string name="prefetch_depth_desc">要缓存的最近对话数量。已固定的对话无论多旧都会包含在内。</string>

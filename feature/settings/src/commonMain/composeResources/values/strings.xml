@@ -78,7 +78,7 @@
     <string name="prefetch_enabled">Prefetch conversations</string>
     <string name="prefetch_enabled_desc">Load recent and pinned conversations ahead of time so they open instantly. Runs while the app is idle, and periodically while charging.</string>
     <string name="prefetch_on_metered">Use mobile data</string>
-    <string name="prefetch_on_metered_desc">Allow prefetching on metered connections. Off by default to avoid unexpected data usage.</string>
+    <string name="prefetch_on_metered_desc">Allow prefetching on metered connections.</string>
     <string name="prefetch_depth">Depth</string>
     <string name="prefetch_depth_value">%1$d conversations</string>
     <string name="prefetch_depth_desc">How many recent conversations to keep cached. Pinned conversations are always included, however old.</string>

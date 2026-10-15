@@ -6,6 +6,8 @@ import com.garfiec.librechat.core.common.identity.Session
 import com.garfiec.librechat.core.common.identity.SessionManager
 import com.garfiec.librechat.core.common.lifecycle.ForegroundSignal
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.datastore.AppPreferences
+import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.db.dao.ConversationDao
 import com.garfiec.librechat.core.data.db.dao.MessageDao
@@ -58,6 +60,7 @@ class PrefetchControllerTest {
         val watermarkDao = mockk<PrefetchWatermarkDao>(relaxed = true)
         val conversationDao = mockk<ConversationDao>(relaxed = true)
         val settingsDataStore = mockk<SettingsDataStore>(relaxed = true)
+        val preferenceStore = mockk<PreferenceStore>(relaxed = true)
         val attachmentWarmer = mockk<AttachmentWarmer>(relaxed = true)
         coEvery { watermarkDao.allForAccount(any()) } returns emptyList()
         coEvery { conversationDao.recentForPrefetch(any(), any()) } returns emptyList()
@@ -66,8 +69,8 @@ class PrefetchControllerTest {
         coEvery { configRepository.fetchEndpoints() } returns Result.Success(emptyMap())
         coEvery { configRepository.fetchModels() } returns Result.Success(emptyMap())
         coEvery { agentRepository.getAgents(any()) } returns Result.Success(emptyList())
-        every { settingsDataStore.prefetchAttachmentsEnabled } returns flowOf(false)
-        every { settingsDataStore.prefetchDepth } returns flowOf(PrefetchDepth.DEFAULT)
+        every { preferenceStore.observe(AppPreferences.PrefetchAttachments) } returns flowOf(false)
+        every { preferenceStore.observe(AppPreferences.PrefetchDepthSetting) } returns flowOf(PrefetchDepth.DEFAULT)
         // See PrefetchEngineTest: a relaxed mock answers 0L, which against virtual time reads as a
         // list refresh that just happened and skips the stage these tests count calls on.
         coEvery { settingsDataStore.prefetchListRefreshedAt(any()) } returns null
@@ -95,6 +98,7 @@ class PrefetchControllerTest {
                 openConversationRegistry = OpenConversationRegistry(),
                 attachmentWarmer = attachmentWarmer,
                 settingsDataStore = settingsDataStore,
+                preferenceStore = preferenceStore,
                 serverUrlProvider = object : ServerUrlProvider {
                     override fun getBaseUrl(): String = "https://chat.example.com"
                 },

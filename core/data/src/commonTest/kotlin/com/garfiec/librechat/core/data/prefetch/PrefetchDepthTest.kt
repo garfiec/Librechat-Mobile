@@ -11,9 +11,14 @@ import kotlin.test.assertTrue
 class PrefetchDepthTest {
 
     @Test
-    fun `the default is what the feature shipped with`() {
-        assertEquals(20, PrefetchDepth.DEFAULT)
+    fun `the default is a slider position`() {
         assertTrue(PrefetchDepth.DEFAULT in PrefetchDepth.RANGE)
+        assertEquals(PrefetchDepth.DEFAULT, PrefetchDepth.snap(PrefetchDepth.DEFAULT))
+    }
+
+    @Test
+    fun `the default needs no list pages beyond the minimum`() {
+        assertEquals(PrefetchPolicy.MIN_LIST_PAGES, PrefetchPolicy().listPagesFor(PrefetchDepth.DEFAULT))
     }
 
     @Test

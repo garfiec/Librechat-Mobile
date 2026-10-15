@@ -3,7 +3,8 @@ package com.garfiec.librechat.core.data.prefetch
 import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
-import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.data.datastore.AppPreferences
+import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CoroutineScope
@@ -33,9 +34,9 @@ class PrefetchScheduleCoordinatorTest {
     private val enabled = MutableStateFlow(true)
     private val onMetered = MutableStateFlow(false)
 
-    private val settingsDataStore = mockk<SettingsDataStore>(relaxed = true).also {
-        every { it.prefetchEnabled } returns enabled
-        every { it.prefetchOnMeteredEnabled } returns onMetered
+    private val preferenceStore = mockk<PreferenceStore>(relaxed = true).also {
+        every { it.observe(AppPreferences.PrefetchEnabled) } returns enabled
+        every { it.observe(AppPreferences.PrefetchOnMetered) } returns onMetered
     }
 
     private class RecordingScheduler(override val isSupported: Boolean = true) : PrefetchScheduler {
@@ -64,7 +65,7 @@ class PrefetchScheduleCoordinatorTest {
         val scheduler = RecordingScheduler(isSupported)
         val scope = CoroutineScope(StandardTestDispatcher(testScheduler))
         PrefetchScheduleCoordinator(
-            settingsDataStore = settingsDataStore,
+            preferenceStore = preferenceStore,
             activeAccountProvider = provider,
             scheduler = scheduler,
             appScope = scope,

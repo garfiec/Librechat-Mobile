@@ -2,6 +2,7 @@ package com.garfiec.librechat.core.data.datastore
 
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import com.garfiec.librechat.core.common.ChannelPolicy
 
 /**
@@ -39,3 +40,10 @@ fun <V : Boolean?> boolPreference(name: String, default: (ChannelPolicy) -> V): 
         },
         encode = { it },
     )
+
+/** An int preference. [decode] may clamp a stored value, or return null to treat it as unchosen. */
+fun intPreference(
+    name: String,
+    default: (ChannelPolicy) -> Int,
+    decode: (Int) -> Int? = { it },
+): PreferenceSpec<Int, Int> = PreferenceSpec(key = intPreferencesKey(name), default = default, decode = decode, encode = { it })

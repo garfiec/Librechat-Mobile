@@ -6,6 +6,8 @@ import com.garfiec.librechat.core.common.identity.SessionManager
 import com.garfiec.librechat.core.common.lifecycle.BackgroundWorkSupport
 import com.garfiec.librechat.core.common.lifecycle.DeferredWorkWindow
 import com.garfiec.librechat.core.common.lifecycle.ForegroundSignal
+import com.garfiec.librechat.core.data.datastore.AppPreferences
+import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -48,6 +50,7 @@ class PrefetchBackgroundRunnerTest {
     private val controller = mockk<PrefetchController>(relaxed = true)
     private val engine = mockk<PrefetchEngine>()
     private val settingsDataStore = mockk<SettingsDataStore>(relaxed = true)
+    private val preferenceStore = mockk<PreferenceStore>(relaxed = true)
 
     private val window = DeferredWorkWindow(
         foregroundSignal = ForegroundSignal(),
@@ -58,7 +61,7 @@ class PrefetchBackgroundRunnerTest {
         every { controller.passInProgress } returns passInProgress
         // A relaxed mock hands back an Object for this, which blows up on the Int read.
         every { controller.completedPasses } returns completedPasses
-        every { settingsDataStore.prefetchEnabled } returns enabled
+        every { preferenceStore.observe(AppPreferences.PrefetchEnabled) } returns enabled
         every { engine.runState } returns
             MutableStateFlow(PrefetchAccountRunState(account.value, PrefetchRunState.Idle))
 
@@ -74,6 +77,7 @@ class PrefetchBackgroundRunnerTest {
             engine = engine,
             deferredWorkWindow = window,
             settingsDataStore = settingsDataStore,
+            preferenceStore = preferenceStore,
             nowMillis = { currentTimeMillis() },
             // Must read the same clock the timeouts do: on the default monotonic source the budget
             // runs on wall time while every wait runs on virtual time, so no budget assertion holds.

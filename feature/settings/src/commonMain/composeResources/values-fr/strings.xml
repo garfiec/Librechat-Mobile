@@ -78,7 +78,7 @@
     <string name="prefetch_enabled">Précharger les conversations</string>
     <string name="prefetch_enabled_desc">Charger à l'avance les conversations récentes et épinglées pour qu'elles s'ouvrent instantanément. S'exécute lorsque l'application est inactive, et périodiquement pendant la recharge.</string>
     <string name="prefetch_on_metered">Utiliser les données mobiles</string>
-    <string name="prefetch_on_metered_desc">Autoriser le préchargement sur les connexions limitées. Désactivé par défaut pour éviter une consommation de données inattendue.</string>
+    <string name="prefetch_on_metered_desc">Autoriser le préchargement sur les connexions limitées.</string>
     <string name="prefetch_depth">Profondeur</string>
     <string name="prefetch_depth_value">%1$d conversations</string>
     <string name="prefetch_depth_desc">Nombre de conversations récentes à garder en cache. Les conversations épinglées sont toujours incluses, quelle que soit leur ancienneté.</string>

@@ -7,8 +7,8 @@ object PrefetchDepth {
 
     const val MAX = 200
 
-    /** Prefetch shipped warming this many; kept as the default so an upgrade changes no behaviour. */
-    const val DEFAULT = 20
+    /** Fits inside the [PrefetchPolicy.MIN_LIST_PAGES] list refresh, so it costs no extra list requests. */
+    const val DEFAULT = 50
 
     const val STEP = 10
 

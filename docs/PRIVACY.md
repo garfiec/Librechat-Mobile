@@ -94,9 +94,10 @@ request the app makes goes to the server address you typed at setup. That server
 - **Technical data inherent to any connection**: your IP address, and a browser-style
   `User-Agent` string. The app presents itself as a Chrome browser because the stock LibreChat
   server rejects and bans non-browser clients; it does not include your real device model.
-- **Optional background refresh**: if you turn on background prefetch (off by default), the app
-  periodically asks your server for recent conversations, and optionally their attachments, so they
-  are available offline. It can be limited to unmetered networks.
+- **Background refresh**: background prefetch is on by default. The app periodically asks your
+  server for your recent conversations so they open instantly and are available offline, and
+  optionally their attachments (off by default). You can turn it off, or limit it to unmetered
+  networks, in Settings.
 
 What the server does with all of this is up to its operator. If you do not know who operates your
 server or how they handle data, ask them before using the app.
@@ -263,7 +264,7 @@ only as long as needed to investigate the issue, and no longer than 90 days, and
 | Permission | Why | When it is used |
 |---|---|---|
 | Network / Internet | Talking to your server and the destinations in section 6 | Always available; no prompt |
-| Network state | To show the offline banner and honour the "unmetered only" prefetch setting | Always available; no prompt |
+| Network state | To show the offline banner and honour the "Use mobile data" prefetch setting | Always available; no prompt |
 | Microphone (Android `RECORD_AUDIO`, iOS Microphone) | Voice input | Only when you tap the microphone; you can deny it and type instead |
 | Speech recognition (iOS) | On-device or Apple speech-to-text | Only when you use voice input |
 | Camera | Taking a photo to attach | Only when you choose "Camera" in the attachment menu |

@@ -3,6 +3,9 @@ package com.garfiec.librechat.core.data.datastore
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import com.garfiec.librechat.core.common.ChannelPolicy
 import com.garfiec.librechat.core.common.DistributionChannel
 import com.garfiec.librechat.core.common.datetime.ClockFormat
@@ -12,6 +15,7 @@ import com.garfiec.librechat.core.common.datetime.TimestampStyle
 import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
+import com.garfiec.librechat.core.data.prefetch.PrefetchDepth
 import com.garfiec.librechat.core.model.ModelRef
 import com.garfiec.librechat.core.model.usage.ContextDetailPreset
 import com.garfiec.librechat.core.model.usage.ModelTokenomics
@@ -200,6 +204,44 @@ class DataStoreRoundTripTest {
 
         store.set(AppPreferences.SiteIcons, false)
         assertThat(store.observe(AppPreferences.SiteIcons).first()).isFalse()
+    }
+
+    @Test
+    fun prefetch_untouchedInstallReadsTheDefaults() = runTest(testDispatcher) {
+        val ds = createDataStore("settings-prefetch-defaults")
+        // An upgrade from a build where prefetch was opt-in: some other setting stored, none of these.
+        ds.edit { it[AppPreferences.SiteIcons.key] = true }
+        val store = PreferenceStore(ds, ChannelPolicy(DistributionChannel.OPEN_SOURCE))
+
+        assertThat(store.observe(AppPreferences.PrefetchEnabled).first()).isTrue()
+        assertThat(store.observe(AppPreferences.PrefetchOnMetered).first()).isTrue()
+        assertThat(store.observe(AppPreferences.PrefetchAttachments).first()).isFalse()
+        assertThat(store.observe(AppPreferences.PrefetchDepthSetting).first()).isEqualTo(50)
+    }
+
+    @Test
+    fun prefetch_anExplicitChoiceFromTheOptInBuildSurvives() = runTest(testDispatcher) {
+        val ds = createDataStore("settings-prefetch-explicit")
+        // Written by the opt-in build's own keys, which the registry entries kept.
+        ds.edit {
+            it[booleanPreferencesKey("prefetch_enabled")] = false
+            it[booleanPreferencesKey("prefetch_on_metered")] = false
+            it[intPreferencesKey("prefetch_depth")] = 20
+        }
+        val store = PreferenceStore(ds, ChannelPolicy(DistributionChannel.PLAY_STORE))
+
+        assertThat(store.observe(AppPreferences.PrefetchEnabled).first()).isFalse()
+        assertThat(store.observe(AppPreferences.PrefetchOnMetered).first()).isFalse()
+        assertThat(store.observe(AppPreferences.PrefetchDepthSetting).first()).isEqualTo(20)
+    }
+
+    @Test
+    fun prefetch_anOutOfRangeDepthIsClampedNotReset() = runTest(testDispatcher) {
+        val ds = createDataStore("settings-prefetch-depth")
+        ds.edit { it[AppPreferences.PrefetchDepthSetting.key] = PrefetchDepth.MAX + 500 }
+        val store = PreferenceStore(ds, ChannelPolicy(DistributionChannel.APP_STORE))
+
+        assertThat(store.observe(AppPreferences.PrefetchDepthSetting).first()).isEqualTo(PrefetchDepth.MAX)
     }
 
     @Test

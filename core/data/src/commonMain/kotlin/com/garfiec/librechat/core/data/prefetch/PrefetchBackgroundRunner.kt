@@ -2,6 +2,8 @@ package com.garfiec.librechat.core.data.prefetch
 
 import com.garfiec.librechat.core.common.identity.SessionManager
 import com.garfiec.librechat.core.common.lifecycle.DeferredWorkWindow
+import com.garfiec.librechat.core.data.datastore.AppPreferences
+import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.logging.Diag
 import kotlinx.coroutines.NonCancellable
@@ -65,6 +67,7 @@ class PrefetchBackgroundRunner(
     private val engine: PrefetchEngine,
     private val deferredWorkWindow: DeferredWorkWindow,
     private val settingsDataStore: SettingsDataStore,
+    private val preferenceStore: PreferenceStore,
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
     private val timeSource: TimeSource = TimeSource.Monotonic,
 ) {
@@ -88,7 +91,7 @@ class PrefetchBackgroundRunner(
     private var recordedAccountId: String? = null
 
     private suspend fun runPass(budget: Duration): PrefetchRunOutcome {
-        if (!settingsDataStore.prefetchEnabled.first()) return PrefetchRunOutcome.DISABLED
+        if (!preferenceStore.observe(AppPreferences.PrefetchEnabled).first()) return PrefetchRunOutcome.DISABLED
 
         // One deadline for the whole call, armed before any waiting: not one per attempt (the retry
         // below would re-arm the full budget), and covering the handshake, which can spend

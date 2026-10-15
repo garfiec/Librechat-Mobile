@@ -318,13 +318,13 @@ val dataModule = module {
         )
     }
 
-    // --- Background prefetch (opt-in, off by default) ---
+    // --- Background prefetch ---
 
     singleOf(::PrefetchPolicy)
     single {
         PrefetchGate(
             deferredWorkWindow = get(),
-            settingsDataStore = get(),
+            preferenceStore = get(),
             networkConditionObserver = get(),
             connectivityObserver = get(),
             powerStateObserver = get(),
@@ -344,6 +344,7 @@ val dataModule = module {
             openConversationRegistry = get(),
             attachmentWarmer = get(),
             settingsDataStore = get(),
+            preferenceStore = get(),
             serverUrlProvider = get(),
             foregroundSignal = get(),
             ioDispatcher = get(KoinQualifiers.IO),
@@ -374,7 +375,7 @@ val dataModule = module {
     // binding nobody resolves would never register or cancel anything.
     single(createdAtStart = true) {
         PrefetchScheduleCoordinator(
-            settingsDataStore = get(),
+            preferenceStore = get(),
             activeAccountProvider = get(),
             scheduler = get(),
             appScope = get<CoroutineScope>(KoinQualifiers.ApplicationScope),
@@ -387,6 +388,7 @@ val dataModule = module {
             engine = get(),
             deferredWorkWindow = get(),
             settingsDataStore = get(),
+            preferenceStore = get(),
         )
     }
     single {
@@ -400,6 +402,7 @@ val dataModule = module {
             openConversationRegistry = get(),
             activeAccountProvider = get(),
             settingsDataStore = get(),
+            preferenceStore = get(),
             scheduler = get(),
         )
     }

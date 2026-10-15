@@ -5,7 +5,8 @@ import com.garfiec.librechat.core.common.network.ConnectivityObserver
 import com.garfiec.librechat.core.common.network.NetworkConditionObserver
 import com.garfiec.librechat.core.common.network.RequestActivityTracker
 import com.garfiec.librechat.core.common.power.PowerStateObserver
-import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.data.datastore.AppPreferences
+import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -50,7 +51,7 @@ data class PrefetchConditions(
  */
 class PrefetchGate(
     private val deferredWorkWindow: DeferredWorkWindow,
-    private val settingsDataStore: SettingsDataStore,
+    private val preferenceStore: PreferenceStore,
     private val networkConditionObserver: NetworkConditionObserver,
     private val connectivityObserver: ConnectivityObserver,
     private val powerStateObserver: PowerStateObserver,
@@ -67,7 +68,7 @@ class PrefetchGate(
      */
     private val network: Flow<NetworkState> = combine(
         networkConditionObserver.isUnmetered,
-        settingsDataStore.prefetchOnMeteredEnabled,
+        preferenceStore.observe(AppPreferences.PrefetchOnMetered),
         connectivityObserver.isConnected,
     ) { unmetered, allowMetered, connected ->
         NetworkState(allowed = unmetered || allowMetered, connected = connected)
@@ -75,7 +76,7 @@ class PrefetchGate(
 
     fun conditions(): Flow<PrefetchConditions> = combine(
         deferredWorkWindow.isOpen,
-        settingsDataStore.prefetchEnabled,
+        preferenceStore.observe(AppPreferences.PrefetchEnabled),
         network,
         powerStateObserver.isPowerConstrained.map { !it },
         // No debounce and no quiet-period timer: the rule is "not while a request is in flight", not

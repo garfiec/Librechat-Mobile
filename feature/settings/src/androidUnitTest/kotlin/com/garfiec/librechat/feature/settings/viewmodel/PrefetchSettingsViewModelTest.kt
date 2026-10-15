@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.settings.viewmodel
 
-import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.data.datastore.AppPreferences
+import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.prefetch.AttachmentWarmer
 import com.garfiec.librechat.core.data.prefetch.PrefetchDepth
 import com.google.common.truth.Truth.assertThat
@@ -23,7 +24,7 @@ import org.junit.Test
 class PrefetchSettingsViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
-    private val settingsDataStore = mockk<SettingsDataStore>(relaxed = true)
+    private val preferenceStore = mockk<PreferenceStore>(relaxed = true)
     private val enabled = MutableStateFlow(false)
 
     private fun warmer(supported: Boolean) = object : AttachmentWarmer {
@@ -34,10 +35,14 @@ class PrefetchSettingsViewModelTest {
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        every { settingsDataStore.prefetchEnabled } returns enabled
-        every { settingsDataStore.prefetchAttachmentsEnabled } returns MutableStateFlow(false)
-        every { settingsDataStore.prefetchOnMeteredEnabled } returns MutableStateFlow(false)
-        every { settingsDataStore.prefetchDepth } returns MutableStateFlow(PrefetchDepth.DEFAULT)
+        every { preferenceStore.observe(AppPreferences.PrefetchEnabled) } returns enabled
+        every { preferenceStore.observe(AppPreferences.PrefetchAttachments) } returns MutableStateFlow(false)
+        every { preferenceStore.observe(AppPreferences.PrefetchOnMetered) } returns MutableStateFlow(false)
+        every { preferenceStore.observe(AppPreferences.PrefetchDepthSetting) } returns MutableStateFlow(PrefetchDepth.DEFAULT)
+        every { preferenceStore.initial(AppPreferences.PrefetchEnabled) } returns true
+        every { preferenceStore.initial(AppPreferences.PrefetchAttachments) } returns false
+        every { preferenceStore.initial(AppPreferences.PrefetchOnMetered) } returns true
+        every { preferenceStore.initial(AppPreferences.PrefetchDepthSetting) } returns PrefetchDepth.DEFAULT
     }
 
     @After
@@ -46,8 +51,17 @@ class PrefetchSettingsViewModelTest {
     }
 
     @Test
+    fun `before the store answers the toggles show the defaults`() {
+        val viewModel = PrefetchSettingsViewModel(preferenceStore, warmer(supported = true))
+
+        assertThat(viewModel.uiState.value.enabled).isTrue()
+        assertThat(viewModel.uiState.value.onMeteredEnabled).isTrue()
+        assertThat(viewModel.uiState.value.attachmentsEnabled).isFalse()
+    }
+
+    @Test
     fun `uiState follows the store and reports attachment support`() = runTest {
-        val viewModel = PrefetchSettingsViewModel(settingsDataStore, warmer(supported = true))
+        val viewModel = PrefetchSettingsViewModel(preferenceStore, warmer(supported = true))
         advanceUntilIdle()
         assertThat(viewModel.uiState.value.enabled).isFalse()
         assertThat(viewModel.uiState.value.attachmentsSupported).isTrue()
@@ -59,7 +73,7 @@ class PrefetchSettingsViewModelTest {
 
     @Test
     fun `setters write the store`() = runTest {
-        val viewModel = PrefetchSettingsViewModel(settingsDataStore, warmer(supported = false))
+        val viewModel = PrefetchSettingsViewModel(preferenceStore, warmer(supported = false))
 
         viewModel.setEnabled(true)
         viewModel.setAttachmentsEnabled(true)
@@ -67,9 +81,19 @@ class PrefetchSettingsViewModelTest {
         viewModel.setDepth(PrefetchDepth.DEFAULT + 1)
         advanceUntilIdle()
 
-        coVerify { settingsDataStore.setPrefetchEnabled(true) }
-        coVerify { settingsDataStore.setPrefetchAttachmentsEnabled(true) }
-        coVerify { settingsDataStore.setPrefetchOnMeteredEnabled(true) }
-        coVerify { settingsDataStore.setPrefetchDepth(PrefetchDepth.DEFAULT + 1) }
+        coVerify { preferenceStore.set(AppPreferences.PrefetchEnabled, true) }
+        coVerify { preferenceStore.set(AppPreferences.PrefetchAttachments, true) }
+        coVerify { preferenceStore.set(AppPreferences.PrefetchOnMetered, true) }
+        coVerify { preferenceStore.set(AppPreferences.PrefetchDepthSetting, PrefetchDepth.DEFAULT + 1) }
+    }
+
+    @Test
+    fun `an out of range depth is clamped before it is stored`() = runTest {
+        val viewModel = PrefetchSettingsViewModel(preferenceStore, warmer(supported = false))
+
+        viewModel.setDepth(PrefetchDepth.MAX + 1)
+        advanceUntilIdle()
+
+        coVerify { preferenceStore.set(AppPreferences.PrefetchDepthSetting, PrefetchDepth.MAX) }
     }
 }

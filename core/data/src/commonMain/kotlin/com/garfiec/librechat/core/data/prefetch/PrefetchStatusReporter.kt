@@ -5,6 +5,8 @@ import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.common.identity.flatMapAccountOrEmpty
+import com.garfiec.librechat.core.data.datastore.AppPreferences
+import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.db.dao.ConversationDao
 import com.garfiec.librechat.core.data.db.dao.MessageDao
@@ -95,6 +97,7 @@ class PrefetchStatusReporter(
     private val openConversationRegistry: OpenConversationRegistry,
     private val activeAccountProvider: ActiveAccountProvider,
     private val settingsDataStore: SettingsDataStore,
+    private val preferenceStore: PreferenceStore,
     private val scheduler: PrefetchScheduler,
 ) {
 
@@ -138,7 +141,7 @@ class PrefetchStatusReporter(
         activeAccountProvider.flatMapAccountOrEmpty(PrefetchStatus.Empty) { accountId ->
             // Depth parameterises the recent query rather than filtering its result, so a change has
             // to re-subscribe — hence flatMapLatest rather than another argument to the combine.
-            settingsDataStore.prefetchDepth.distinctUntilChanged().flatMapLatest { depth ->
+            preferenceStore.observe(AppPreferences.PrefetchDepthSetting).flatMapLatest { depth ->
                 combine(
                     conversationDao.observeRecentForPrefetch(accountId.value, depth),
                     conversationDao.observePinnedForPrefetch(accountId.value),

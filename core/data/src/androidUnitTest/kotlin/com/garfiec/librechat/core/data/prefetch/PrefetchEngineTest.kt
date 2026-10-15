@@ -6,6 +6,8 @@ import com.garfiec.librechat.core.common.lifecycle.ForegroundSignal
 import com.garfiec.librechat.core.common.network.isPrefetch
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.datastore.AppPreferences
+import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.db.dao.ConversationDao
 import com.garfiec.librechat.core.data.db.dao.MessageDao
@@ -58,6 +60,7 @@ class PrefetchEngineTest {
     private val agentRepository = mockk<AgentRepository>(relaxed = true)
     private val openConversationRegistry = OpenConversationRegistry()
     private val settingsDataStore = mockk<SettingsDataStore>(relaxed = true)
+    private val preferenceStore = mockk<PreferenceStore>(relaxed = true)
     private val attachmentWarmer = mockk<AttachmentWarmer>(relaxed = true)
     private val serverUrlProvider = object : ServerUrlProvider {
         override fun getBaseUrl(): String = "https://chat.example.com"
@@ -77,8 +80,8 @@ class PrefetchEngineTest {
         coEvery { watermarkDao.allForAccount(any()) } returns emptyList()
         coEvery { conversationDao.pinnedForPrefetch(any()) } returns emptyList()
         coEvery { conversationDao.conversationIdsOlderThan(any(), any()) } returns emptyList()
-        every { settingsDataStore.prefetchAttachmentsEnabled } returns flowOf(false)
-        every { settingsDataStore.prefetchDepth } returns flowOf(PrefetchDepth.DEFAULT)
+        every { preferenceStore.observe(AppPreferences.PrefetchAttachments) } returns flowOf(false)
+        every { preferenceStore.observe(AppPreferences.PrefetchDepthSetting) } returns flowOf(PrefetchDepth.DEFAULT)
         every { attachmentWarmer.isSupported } returns false
         // Explicitly "never refreshed". A relaxed mock answers 0L here, not null, and against
         // runTest's clock — which starts at 0 — that reads as "refreshed this instant" and silently
@@ -98,6 +101,7 @@ class PrefetchEngineTest {
         openConversationRegistry = openConversationRegistry,
         attachmentWarmer = attachmentWarmer,
         settingsDataStore = settingsDataStore,
+        preferenceStore = preferenceStore,
         serverUrlProvider = serverUrlProvider,
         foregroundSignal = foregroundSignal,
         ioDispatcher = UnconfinedTestDispatcher(testScheduler),
@@ -261,6 +265,7 @@ class PrefetchEngineTest {
             openConversationRegistry = openConversationRegistry,
             attachmentWarmer = attachmentWarmer,
             settingsDataStore = settingsDataStore,
+            preferenceStore = preferenceStore,
             serverUrlProvider = serverUrlProvider,
         foregroundSignal = foregroundSignal,
             ioDispatcher = UnconfinedTestDispatcher(testScheduler),
@@ -462,17 +467,17 @@ class PrefetchEngineTest {
 
     @Test
     fun `the configured depth bounds the conversations selected`() = runTest {
-        every { settingsDataStore.prefetchDepth } returns flowOf(50)
+        every { preferenceStore.observe(AppPreferences.PrefetchDepthSetting) } returns flowOf(70)
         coEvery { conversationDao.recentForPrefetch(any(), any()) } returns emptyList()
 
         engine().run(account)
 
-        coVerify { conversationDao.recentForPrefetch(account.value, 50) }
+        coVerify { conversationDao.recentForPrefetch(account.value, 70) }
     }
 
     @Test
     fun `a deeper setting pages the conversation list further`() = runTest {
-        every { settingsDataStore.prefetchDepth } returns flowOf(PrefetchDepth.MAX)
+        every { preferenceStore.observe(AppPreferences.PrefetchDepthSetting) } returns flowOf(PrefetchDepth.MAX)
         coEvery { conversationDao.recentForPrefetch(any(), any()) } returns emptyList()
         coEvery { conversationRepository.loadNextPage(any(), any(), any(), any(), any(), any()) } returns
             Result.Success("next-cursor")
@@ -486,7 +491,7 @@ class PrefetchEngineTest {
 
     @Test
     fun `paging stops when the server runs out of conversations`() = runTest {
-        every { settingsDataStore.prefetchDepth } returns flowOf(PrefetchDepth.MAX)
+        every { preferenceStore.observe(AppPreferences.PrefetchDepthSetting) } returns flowOf(PrefetchDepth.MAX)
         coEvery { conversationDao.recentForPrefetch(any(), any()) } returns emptyList()
 
         engine().run(account)

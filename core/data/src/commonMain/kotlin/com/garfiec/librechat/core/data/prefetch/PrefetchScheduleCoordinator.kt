@@ -2,7 +2,8 @@ package com.garfiec.librechat.core.data.prefetch
 
 import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
-import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.data.datastore.AppPreferences
+import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.logging.Diag
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.combine
@@ -26,7 +27,7 @@ import kotlinx.coroutines.launch
  *   invisible to the user who thinks they have signed out of the app.
  */
 class PrefetchScheduleCoordinator(
-    settingsDataStore: SettingsDataStore,
+    preferenceStore: PreferenceStore,
     activeAccountProvider: ActiveAccountProvider,
     private val scheduler: PrefetchScheduler,
     appScope: CoroutineScope,
@@ -53,8 +54,8 @@ class PrefetchScheduleCoordinator(
         if (scheduler.isSupported) {
             appScope.launch {
                 combine(
-                    settingsDataStore.prefetchEnabled,
-                    settingsDataStore.prefetchOnMeteredEnabled,
+                    preferenceStore.observe(AppPreferences.PrefetchEnabled),
+                    preferenceStore.observe(AppPreferences.PrefetchOnMetered),
                     signedIn,
                 ) { enabled, allowMetered, signedIn ->
                     ScheduleInputs(enabled, allowMetered, signedIn)

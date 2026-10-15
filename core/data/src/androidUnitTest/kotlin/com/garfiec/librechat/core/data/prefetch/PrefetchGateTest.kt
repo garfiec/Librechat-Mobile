@@ -7,7 +7,8 @@ import com.garfiec.librechat.core.common.network.ConnectivityObserver
 import com.garfiec.librechat.core.common.network.NetworkConditionObserver
 import com.garfiec.librechat.core.common.network.RequestActivityTracker
 import com.garfiec.librechat.core.common.power.PowerStateObserver
-import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.data.datastore.AppPreferences
+import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.google.common.truth.Truth.assertThat
 import io.mockk.every
 import io.mockk.mockk
@@ -37,9 +38,9 @@ class PrefetchGateTest {
     private val tracker = RequestActivityTracker()
 
     private fun gate(): PrefetchGate {
-        val settings = mockk<SettingsDataStore>()
-        every { settings.prefetchEnabled } returns enabled
-        every { settings.prefetchOnMeteredEnabled } returns allowMetered
+        val preferences = mockk<PreferenceStore>()
+        every { preferences.observe(AppPreferences.PrefetchEnabled) } returns enabled
+        every { preferences.observe(AppPreferences.PrefetchOnMetered) } returns allowMetered
 
         val network = object : NetworkConditionObserver {
             override val isUnmetered: Flow<Boolean> = unmetered
@@ -62,7 +63,7 @@ class PrefetchGateTest {
 
         return PrefetchGate(
             deferredWorkWindow = window,
-            settingsDataStore = settings,
+            preferenceStore = preferences,
             networkConditionObserver = network,
             connectivityObserver = connectivity,
             powerStateObserver = power,

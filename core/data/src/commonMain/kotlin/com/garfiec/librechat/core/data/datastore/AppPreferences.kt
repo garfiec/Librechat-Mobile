@@ -1,5 +1,7 @@
 package com.garfiec.librechat.core.data.datastore
 
+import com.garfiec.librechat.core.data.prefetch.PrefetchDepth
+
 /**
  * Registry of device-wide preferences read through [PreferenceStore]. A new preference is one entry
  * here plus its line in [all], which the registry test checks for duplicate keys and prints as a
@@ -19,5 +21,26 @@ object AppPreferences {
         default = perChannel<Boolean?>(openSource = null, playStore = true, appStore = true),
     )
 
-    val all: List<PreferenceSpec<*, *>> = listOf(SiteIcons)
+    /**
+     * Whether recent and pinned conversations are fetched ahead of time, so they open instantly and
+     * read offline. Device-wide, not per account, like the rest of the prefetch settings: they are
+     * about the device's bandwidth and battery.
+     */
+    val PrefetchEnabled = boolPreference("prefetch_enabled", default = always(true))
+
+    /** Nested under [PrefetchEnabled]. Off by default: images are far heavier than the text they accompany. */
+    val PrefetchAttachments = boolPreference("prefetch_attachments", default = always(false))
+
+    /** Lets [PrefetchEnabled] run on metered connections. On by default because text alone is light. */
+    val PrefetchOnMetered = boolPreference("prefetch_on_metered", default = always(true))
+
+    /** How many recent conversations [PrefetchEnabled] keeps warm. Clamped on read: it is each pass's request count. */
+    val PrefetchDepthSetting = intPreference(
+        "prefetch_depth",
+        default = always(PrefetchDepth.DEFAULT),
+        decode = { it.coerceIn(PrefetchDepth.RANGE) },
+    )
+
+    val all: List<PreferenceSpec<*, *>> =
+        listOf(SiteIcons, PrefetchEnabled, PrefetchAttachments, PrefetchOnMetered, PrefetchDepthSetting)
 }

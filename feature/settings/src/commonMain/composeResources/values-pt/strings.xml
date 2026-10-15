@@ -78,7 +78,7 @@
     <string name="prefetch_enabled">Pré-carregar conversas</string>
     <string name="prefetch_enabled_desc">Carrega conversas recentes e fixadas com antecedência para que abram instantaneamente. Executa enquanto o app está ocioso e periodicamente durante o carregamento da bateria.</string>
     <string name="prefetch_on_metered">Usar dados móveis</string>
-    <string name="prefetch_on_metered_desc">Permitir pré-carregamento em conexões limitadas. Desativado por padrão para evitar uso inesperado de dados.</string>
+    <string name="prefetch_on_metered_desc">Permitir pré-carregamento em conexões limitadas.</string>
     <string name="prefetch_depth">Profundidade</string>
     <string name="prefetch_depth_value">%1$d conversas</string>
     <string name="prefetch_depth_desc">Quantas conversas recentes manter em cache. Conversas fixadas são sempre incluídas, por mais antigas que sejam.</string>

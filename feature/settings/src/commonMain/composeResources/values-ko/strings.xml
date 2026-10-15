@@ -78,7 +78,7 @@
     <string name="prefetch_enabled">대화 미리 불러오기</string>
     <string name="prefetch_enabled_desc">최근 대화와 고정된 대화를 미리 불러와 바로 열리게 합니다. 앱이 유휴 상태일 때, 그리고 충전 중에 주기적으로 실행됩니다.</string>
     <string name="prefetch_on_metered">모바일 데이터 사용</string>
-    <string name="prefetch_on_metered_desc">데이터 요금이 부과되는 연결에서도 미리 불러오기를 허용합니다. 예상치 못한 데이터 사용을 막기 위해 기본값은 꺼짐입니다.</string>
+    <string name="prefetch_on_metered_desc">데이터 요금이 부과되는 연결에서도 미리 불러오기를 허용합니다.</string>
     <string name="prefetch_depth">범위</string>
     <string name="prefetch_depth_value">대화 %1$d개</string>
     <string name="prefetch_depth_desc">캐시에 보관할 최근 대화 수입니다. 고정된 대화는 오래되었더라도 항상 포함됩니다.</string>

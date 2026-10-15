@@ -78,7 +78,7 @@
     <string name="prefetch_enabled">تحميل المحادثات مسبقًا</string>
     <string name="prefetch_enabled_desc">تحميل المحادثات الحديثة والمثبتة مسبقًا لتُفتح فورًا. يعمل عندما يكون التطبيق خاملًا، ودوريًا أثناء الشحن.</string>
     <string name="prefetch_on_metered">استخدام بيانات الجوال</string>
-    <string name="prefetch_on_metered_desc">السماح بالتحميل المسبق عبر الاتصالات محدودة البيانات. معطّل افتراضيًا لتجنّب استهلاك بيانات غير متوقع.</string>
+    <string name="prefetch_on_metered_desc">السماح بالتحميل المسبق عبر الاتصالات محدودة البيانات.</string>
     <string name="prefetch_depth">العمق</string>
     <string name="prefetch_depth_value">%1$d محادثة</string>
     <string name="prefetch_depth_desc">عدد المحادثات الحديثة المراد الاحتفاظ بها في ذاكرة التخزين المؤقت. تُضمَّن المحادثات المثبتة دائمًا مهما كانت قديمة.</string>

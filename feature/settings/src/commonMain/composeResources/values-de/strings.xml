@@ -78,7 +78,7 @@
     <string name="prefetch_enabled">Unterhaltungen vorab laden</string>
     <string name="prefetch_enabled_desc">Aktuelle und angeheftete Unterhaltungen vorab laden, damit sie sofort geöffnet werden. Läuft, während die App inaktiv ist, und regelmäßig beim Laden des Akkus.</string>
     <string name="prefetch_on_metered">Mobile Daten verwenden</string>
-    <string name="prefetch_on_metered_desc">Vorabladen über getaktete Verbindungen erlauben. Standardmäßig aus, um unerwarteten Datenverbrauch zu vermeiden.</string>
+    <string name="prefetch_on_metered_desc">Vorabladen über getaktete Verbindungen erlauben.</string>
     <string name="prefetch_depth">Umfang</string>
     <string name="prefetch_depth_value">%1$d Unterhaltungen</string>
     <string name="prefetch_depth_desc">Wie viele aktuelle Unterhaltungen zwischengespeichert bleiben. Angeheftete Unterhaltungen sind immer enthalten, egal wie alt.</string>

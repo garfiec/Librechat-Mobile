@@ -78,7 +78,7 @@
     <string name="prefetch_enabled">Предзагрузка бесед</string>
     <string name="prefetch_enabled_desc">Заранее загружать последние и закреплённые беседы, чтобы они открывались мгновенно. Работает, пока приложение не занято, и периодически во время зарядки.</string>
     <string name="prefetch_on_metered">Использовать мобильный интернет</string>
-    <string name="prefetch_on_metered_desc">Разрешить предзагрузку через лимитные подключения. По умолчанию выключено, чтобы избежать неожиданного расхода трафика.</string>
+    <string name="prefetch_on_metered_desc">Разрешить предзагрузку через лимитные подключения.</string>
     <string name="prefetch_depth">Глубина</string>
     <string name="prefetch_depth_value">Бесед: %1$d</string>
     <string name="prefetch_depth_desc">Сколько последних бесед хранить в кэше. Закреплённые беседы включаются всегда, независимо от давности.</string>

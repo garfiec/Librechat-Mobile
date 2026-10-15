@@ -78,7 +78,7 @@
     <string name="prefetch_enabled">会話を事前に読み込む</string>
     <string name="prefetch_enabled_desc">最近の会話とピン留めした会話を事前に読み込み、すぐに開けるようにします。アプリのアイドル中と、充電中に定期的に実行されます。</string>
     <string name="prefetch_on_metered">モバイルデータを使用</string>
-    <string name="prefetch_on_metered_desc">従量制の接続でも事前読み込みを許可します。予期しないデータ使用を避けるため、デフォルトはオフです。</string>
+    <string name="prefetch_on_metered_desc">従量制の接続でも事前読み込みを許可します。</string>
     <string name="prefetch_depth">件数</string>
     <string name="prefetch_depth_value">%1$d 件の会話</string>
     <string name="prefetch_depth_desc">キャッシュしておく最近の会話の数。ピン留めした会話は古くても常に含まれます。</string>
