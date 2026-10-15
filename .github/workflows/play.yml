@@ -123,6 +123,10 @@ jobs:
             exit 1
           fi
           echo "Bundle is com.garfiec.librechat.play, signed with the release key."
+          # Warn only: symbols are a crash-report nicety, and a missing NDK drops them silently.
+          if ! unzip -l "$aab" | grep -a 'BUNDLE-METADATA/com.android.tools.build.debugsymbols/' > /dev/null; then
+            echo "::warning title=No native debug symbols::the bundle carries none; Play will ask for a symbols file. Check the runner has an NDK AGP can use."
+          fi
 
       - name: Upload to Google Play
         # Pinned to a commit SHA, like every action in a secret-bearing job.
@@ -132,6 +136,6 @@ jobs:
           packageName: com.garfiec.librechat.play
           releaseFiles: app/build/outputs/bundle/playRelease/app-play-release.aab
           releaseName: ${{ inputs.tag }}
-          track: ${{ inputs.track }}
+          tracks: ${{ inputs.track }}
           status: ${{ inputs.status }}
           mappingFile: app/build/outputs/mapping/playRelease/mapping.txt

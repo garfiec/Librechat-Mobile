@@ -26,6 +26,11 @@ android {
             dimension = "channel"
             applicationIdSuffix = ".play"
             manifestPlaceholders["distributionChannel"] = "play"
+            // Packs the symbol tables of the bundled AndroidX native libraries into the AAB so
+            // Play can symbolicate native crashes. Bundle metadata only; the foss APK is unaffected.
+            // Extraction needs an NDK AGP can find, like stripping (see `packaging` below); without
+            // one the bundle silently carries no symbols, and play.yml's verify step warns.
+            ndk { debugSymbolLevel = "SYMBOL_TABLE" }
         }
     }
 

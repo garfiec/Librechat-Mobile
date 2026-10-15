@@ -33,7 +33,8 @@ File: `.github/workflows/play.yml`
   `playRelease` variant is disabled without that flag — signed with the same `SIGNING_*` release
   key as the open-source APK.
 - Fails unless the bundle is `com.garfiec.librechat.play` and carries the release certificate,
-  then uploads it and the R8 mapping with `r0adkll/upload-google-play` (SHA-pinned).
+  then uploads it and the R8 mapping with `r0adkll/upload-google-play` (SHA-pinned). Native debug
+  symbols ride inside the bundle (`play` flavor `debugSymbolLevel`), not as a separate upload.
 - Extra secret: `PLAY_SERVICE_ACCOUNT_JSON`. Setup runbook: `docs/RELEASING.md` "Distribution
   channels".
 

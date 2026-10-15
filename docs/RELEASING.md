@@ -382,7 +382,10 @@ flavor's package changes.
   between Play tracks by promoting it in Play Console, not by re-uploading. It builds
   `:app:bundlePlayRelease -PbuildPlay` (the `playRelease` variant does not exist without the
   flag), checks the bundle is `com.garfiec.librechat.play` signed with the release key, and
-  uploads it with the R8 mapping.
+  uploads it with the R8 mapping. Native debug symbols for the bundled AndroidX `.so` libraries
+  travel inside the bundle (`debugSymbolLevel` on the `play` flavor), so there is no separate
+  symbols upload. Extracting them needs an NDK that AGP can find; without one the bundle carries
+  no symbols and the workflow's verify step warns.
   One-time setup:
   1. Create the app in Play Console (Home → Create app) with package name
      `com.garfiec.librechat.play`. The form asks for the package and binds the app to it at
@@ -399,11 +402,11 @@ flavor's package changes.
      Google the private key that the README fingerprint, F-Droid's `AllowedAPKSigningKeys` and
      every Obtainium install trust, so the open-source channel would no longer be signed only by
      us. The package, not the key, keeps the channels apart, so nothing needs Play to sign with our
-     key. Because the app now exists before any upload, the workflow's first run may be able to
-     make that first upload itself. That is unverified: if the run fails on the API call, upload
-     one bundle by hand to internal testing (build it locally with the release key and
-     `-PbuildPlay`, then check it is `com.garfiec.librechat.play` signed with the release key, as
-     the workflow's verify step does) and rerun.
+     key. Because the app exists before any upload, the workflow's first run makes that first
+     upload itself (v2026.10.4 went up this way, as an internal draft). If the API ever refuses a
+     first upload, upload one bundle by hand to internal testing (build it locally with the
+     release key and `-PbuildPlay`, then check it is `com.garfiec.librechat.play` signed with the
+     release key, as the workflow's verify step does) and rerun.
   3. In a Google Cloud project, enable the Google Play Android Developer API and create a service
      account (no Cloud roles) with a JSON key. In Play Console → Users and permissions, invite its
      email with app permissions on `com.garfiec.librechat.play` only: release to testing tracks,
