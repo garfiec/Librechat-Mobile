@@ -31,6 +31,8 @@ A third-party native mobile client for [LibreChat](https://www.librechat.ai/) (A
 - **Inline Artifacts** — Render Mermaid, SVG, HTML, React, and Markdown artifacts directly in chat messages at full message width with content-fit height. Per-type toggle in Settings → Chat → Artifacts.
 - **Model Selection** — Searchable bottom sheet grouped by endpoint, star your favorites to keep them on top, and compare two models side by side
 - **Agents** — Marketplace with search and categories, MCP server configuration
+- **Projects & Scheduled Chats** — Group related chats into projects, and have an agent run a prompt on a schedule, filing each conversation into a project for you.
+- **Skills** — Create, import, and edit skills: reusable instructions and files your agents can draw on.
 - **Conversations** — Paginated list with date grouping, tags, search, rename, archive, delete, share, fork, duplicate, export/import
 - **Voice** — On-device live dictation (Android & iOS) with cloud fallback, plus text-to-speech playback
 - **Mobile & Tablet** — Single adaptive UI: single-pane on phones, dual-pane layout (600dp+) with a persistent sidebar on tablets and foldables, with native predictive-back gestures
