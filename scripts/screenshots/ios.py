@@ -4,6 +4,7 @@
     scripts/screenshots/ios.py "iPhone 17 Pro" statusbar on|off
     scripts/screenshots/ios.py "iPhone 17 Pro" shot out.png [--raw raw.png] [--scale 0.5]
     scripts/screenshots/ios.py "iPad Pro 13-inch (M5)" record out.gif --seconds 8
+    scripts/screenshots/ios.py "iPhone 17 Pro" login --env-file scripts/demo-seed/.state/local.env
 
 The device is a booted simulator's name; its device type picks the frame (frame.py). The status
 bar override is Apple's 9:41 with full battery, Wi-Fi and signal and no carrier name, which is
@@ -12,6 +13,12 @@ also what the App Store marketing guidelines ask for.
 Screenshots use --mask=alpha so the screen's corners and camera cutout are transparent and the
 frame shows through. Video can't carry that mask (simctl renders it black), so recordings take
 the mask from a screenshot taken just before and apply it to every frame.
+
+`login` signs the installed app in through Maestro (maestro/ios-login.yaml), with the server and
+credentials read from the demo seeder's env file (DEMO_SEED_SERVER, DEMO_SEED_EMAIL,
+DEMO_SEED_PASSWORD). The password never reaches the output. The simulator reaches the host's
+server at localhost, so a server written for the Android emulator (10.0.2.2) is rewritten. The
+flow starts from the server screen: run it on a fresh install or after signing out.
 """
 
 from __future__ import annotations
@@ -124,6 +131,30 @@ def record(udid: str, device_type: str, out: Path, seconds: int, width: int, fps
     print(f"{out}: {width}x{height}, {out.stat().st_size / 1e6:.1f} MB")
 
 
+def login(udid: str, env_file: Path):
+    maestro = shutil.which("maestro") or str(Path.home() / ".maestro/bin/maestro")
+    if not Path(maestro).exists():
+        raise SystemExit("Maestro is needed to sign in (https://maestro.mobile.dev)")
+    env = {}
+    for line in env_file.read_text().splitlines():
+        line = line.strip().removeprefix("export ").strip()
+        if line and not line.startswith("#") and "=" in line:
+            key, value = line.split("=", 1)
+            env[key.strip()] = value.strip().strip("'\"")
+    missing = [k for k in ("DEMO_SEED_SERVER", "DEMO_SEED_EMAIL", "DEMO_SEED_PASSWORD") if k not in env]
+    if missing:
+        raise SystemExit(f"{env_file} has no {', '.join(missing)}")
+    server = env["DEMO_SEED_SERVER"].replace("10.0.2.2", "localhost")
+    password = env["DEMO_SEED_PASSWORD"]
+    flow = Path(__file__).resolve().parent / "maestro/ios-login.yaml"
+    run = subprocess.run([maestro, "--device", udid, "test", "-e", f"SERVER={server}",
+                          "-e", f"EMAIL={env['DEMO_SEED_EMAIL']}", "-e", f"PASSWORD={password}",
+                          str(flow)], capture_output=True, text=True)
+    print((run.stdout + run.stderr).replace(password, "<password>")[-3000:])
+    if run.returncode:
+        raise SystemExit("sign-in failed; the output above says at which step")
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     p.add_argument("device", help="name of a booted simulator, e.g. 'iPhone 17 Pro'")
@@ -138,6 +169,7 @@ def main() -> int:
     r.add_argument("--seconds", type=int, default=8)
     r.add_argument("--width", type=int, default=560)
     r.add_argument("--fps", type=int, default=15)
+    sub.add_parser("login").add_argument("--env-file", type=Path, required=True)
     args = p.parse_args()
 
     udid, device_type = booted(args.device)
@@ -147,6 +179,8 @@ def main() -> int:
         shot(udid, device_type, args.out, args.raw, args.scale)
     elif args.cmd == "record":
         record(udid, device_type, args.out, args.seconds, args.width, args.fps)
+    elif args.cmd == "login":
+        login(udid, args.env_file)
     return 0
 
 

@@ -7,7 +7,15 @@ listing, captured from the Android emulator and the iOS Simulator. Pair it with
 - `frame.py`: puts a device frame around a raw screenshot. `--self-test` checks the frames.
 - `android.py`: demo mode, fold/unfold, dark mode, framed shots and recordings on the Pixel 10
   Pro Fold emulator.
-- `ios.py`: status bar override, framed shots and recordings on a booted simulator.
+- `ios.py`: status bar override, framed shots and recordings on a booted simulator, and `login`,
+  which signs the app in to the demo account through Maestro (`maestro/ios-login.yaml`).
+- `sheet.py`: a contact sheet of a capture batch, with sampled frames from each GIF, for review.
+- `check-readme.py`: every README image exists, and nothing in `docs/screenshots/` is orphaned.
+- `play.py`: the Google Play listing images. `set out/` puts every store screenshot named in
+  `play-set.toml` on a captioned 1080x1920 (phone) or 1920x1080 (tablet) canvas, since Play
+  rejects a bare framed Fold shot, and adds the feature graphic in use. `feature` draws the
+  wordmark alternative. `pair` joins two framed shots side by side for the hero. Upload the
+  results by hand in Play Console.
 
 Needs Pillow, ffmpeg and (for iOS frames) poppler's `pdftocairo`.
 
@@ -34,6 +42,9 @@ scripts/screenshots/android.py demo off
 
 scripts/screenshots/ios.py "iPhone 17 Pro" statusbar on   # 9:41, full battery and signal
 scripts/screenshots/ios.py "iPhone 17 Pro" shot out/iphone.png
+
+scripts/screenshots/play.py pair out/material.png out/glass.png out/hero.png   # the hero
+scripts/screenshots/play.py set out/play/      # Play images from the store screenshots
 ```
 
 Where the files go is in `fastlane/README.md`: store screenshots are replaced in place under

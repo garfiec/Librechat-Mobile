@@ -1,0 +1,36 @@
+# Sign the iOS app in to the demo account: `scripts/screenshots/ios.py <device> login --env-file …`.
+# Server, email and password come in as -e variables, so nothing secret lives here.
+# Starts from the server screen, so run it on a fresh install or after signing out.
+appId: com.garfiec.librechat.ios
+---
+- launchApp:
+    stopApp: true
+- tapOn:
+    id: "server_url_field"
+- eraseText
+- inputText: ${SERVER}
+- tapOn:
+    id: "server_url_connect"
+# An http:// server asks for confirmation first.
+- tapOn:
+    id: "server_url_http_confirm"
+    optional: true
+- tapOn:
+    text: "Already have an account\\? Sign in"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "login_email"
+    timeout: 15000
+- tapOn:
+    id: "login_email"
+- inputText: ${EMAIL}
+- tapOn:
+    id: "login_password"
+- inputText: ${PASSWORD}
+- tapOn:
+    id: "login_submit"
+- extendedWaitUntil:
+    notVisible:
+      id: "login_submit"
+    timeout: 30000
