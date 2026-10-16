@@ -22,6 +22,7 @@ import com.garfiec.librechat.core.model.response.UploadRoute
 import com.garfiec.librechat.core.model.response.isProviderCapable
 import com.garfiec.librechat.core.model.response.isProviderUnknown
 import com.garfiec.librechat.core.model.response.isTextExtractable
+import com.garfiec.librechat.core.model.response.resolveEndpointFileConfig
 import com.garfiec.librechat.core.model.response.resolveUploadRoute
 import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.model.usage.ContextUsageTotals
@@ -303,26 +304,25 @@ data class ChatUiState(
     val pendingNavigationConversationId: String? get() = conversation.pendingNavigationConversationId
 
     /**
-     * Whether the chat attach controls (Camera / Photos / Files) should be offered for
-     * the current endpoint. Mirrors web's AttachFileChat gate:
-     *  - The agents endpoint always allows attaching (file tools are gated per-agent
-     *    inside the menu on web; mobile keeps the controls visible).
-     *  - Other endpoints allow it unless the server marks the endpoint's file config
-     *    `disabled` (or the global default disabled).
+     * The endpoint whose file config governs an upload: a saved agent's provider, else the
+     * selected endpoint. Mirrors web's AttachFileChat `fileConfigEndpoint`; the server validates
+     * an agent upload under the same provider (`resolveUploadEndpoint`) — from v0.8.8-rc3 only,
+     * so below it ([FeatureGatesState.providerScopedUploadsSupported]) an agent resolves as `agents`.
+     */
+    val fileConfigEndpoint: String?
+        get() = routingAgentProvider?.takeIf { gates.providerScopedUploadsSupported } ?: selectedEndpoint
+
+    /**
+     * Whether the chat attach controls (Camera / Photos / Files) should be offered. Mirrors web's
+     * AttachFileChat gate: hidden when the config resolved for [fileConfigEndpoint] is disabled.
      *
      * Fails OPEN: a null/absent config (older backend, fetch not landed, or fetch failed)
      * leaves attaching enabled to preserve current behavior.
      */
     val fileUploadEnabled: Boolean
         get() {
-            if (selectedEndpoint == EndpointConstants.AGENTS) return true
             val config = fileUploadConfig ?: return true
-            // Per-endpoint override wins; fall back to the global default `disabled`.
-            val endpointDisabled = config.endpoints[selectedEndpoint]?.disabled
-            return when {
-                endpointDisabled != null -> !endpointDisabled
-                else -> !config.disabled
-            }
+            return !config.resolveEndpointFileConfig(fileConfigEndpoint).disabled
         }
 
     /**

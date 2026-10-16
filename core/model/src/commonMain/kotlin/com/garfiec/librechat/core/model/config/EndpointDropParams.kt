@@ -47,12 +47,15 @@ object EndpointDropParams {
         }
     }
 
-    /** Mirrors upstream `normalizeEndpointName` (`packages/data-provider/src/utils.ts`). */
-    private fun normalizeEndpointName(name: String): String =
-        if (name.lowercase() == "ollama") "ollama" else name
-
     // `isString` rather than `contentOrNull`: the latter renders a bare literal, so a stray `1`
     // would arrive as the parameter name "1".
     private fun JsonArray.toStringList(): List<String> =
         mapNotNull { element -> (element as? JsonPrimitive)?.takeIf { it.isString }?.content }
 }
+
+/**
+ * Mirrors upstream `normalizeEndpointName` (`packages/data-provider/src/utils.ts`). Shared by every
+ * endpoint-keyed lookup in this module so the one `normalize-endpoint-name` mirror covers them all.
+ */
+internal fun normalizeEndpointName(name: String): String =
+    if (name.lowercase() == "ollama") "ollama" else name

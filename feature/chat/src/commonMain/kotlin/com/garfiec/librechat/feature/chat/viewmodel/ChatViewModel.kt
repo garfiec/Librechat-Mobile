@@ -784,6 +784,13 @@ class ChatViewModel(
                     minVersion = "0.8.8",
                     landedDate = "2026-09-29",
                 )
+                // resolveUploadEndpoint (ec15075dc, landed 2026-09-09 03:28 UTC): PRESENT only, dated
+                // the day AFTER landing. See VERSION_GATES.md.
+                val providerScopedUploads = BackendVersion.supportsFeature(
+                    detected = detected,
+                    minVersion = "0.8.8-rc3",
+                    landedDate = "2026-09-10",
+                )
                 _uiState.update {
                     it.copy(
                         selection = it.selection.copy(thinkingDisplayUpdatesSupported = thinkingDisplayUpdates),
@@ -791,6 +798,7 @@ class ChatViewModel(
                             steeringSupported = supported,
                             subagentThreadsSupported = subagentThreads,
                             serverQueueSupported = serverQueue,
+                            providerScopedUploadsSupported = providerScopedUploads,
                             backendVersion = detected?.version,
                         ),
                     )

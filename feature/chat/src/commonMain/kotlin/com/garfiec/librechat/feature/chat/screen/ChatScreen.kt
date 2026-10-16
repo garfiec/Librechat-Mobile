@@ -185,12 +185,12 @@ fun ChatScreen(
     // routing-to-text unreachable, with no file even pickable to route.
     val filePickerMimeTypes = remember(
         uiState.fileUploadConfig,
-        uiState.selectedEndpoint,
+        uiState.fileConfigEndpoint,
         uiState.isFileContextAvailable,
         uiState.gates.backendVersion,
     ) {
         uiState.fileUploadConfig?.pickerMimeTypes(
-            endpoint = uiState.selectedEndpoint,
+            endpoint = uiState.fileConfigEndpoint,
             includeTextRoute = uiState.isFileContextAvailable,
             serverVersion = uiState.gates.backendVersion,
         ).orEmpty()

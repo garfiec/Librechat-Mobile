@@ -135,7 +135,7 @@ class FileAttachmentDelegate(
                 // re-encode downsample to fit it and (b) backstop-reject anything still over it.
                 // Non-positive limits (0 = disabled endpoint, gated elsewhere) mean "no check".
                 val sizeLimit = state.fileUploadConfig
-                    ?.effectiveFileSizeLimit(state.selectedEndpoint)
+                    ?.effectiveFileSizeLimit(state.fileConfigEndpoint)
                     ?.takeIf { it > 0 }
 
                 // Re-encode images to PNG (server media-type workaround), downsampling to fit the

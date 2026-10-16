@@ -60,6 +60,13 @@ private val DOCUMENT_SUPPORTED_PROVIDERS: Set<String> = setOf(
 )
 
 /**
+ * data-provider `isDocumentSupportedProvider`, as the v0.8.8 file-config resolution runs it
+ * (case-insensitive). Routing uses the version-gated [isDocumentSupported] instead.
+ */
+internal fun isDocumentSupportedProvider(name: String): Boolean =
+    DOCUMENT_SUPPORTED_PROVIDERS.any { it.equals(name, ignoreCase = true) }
+
+/**
  * MIME types Bedrock accepts as native document blocks — the keys of upstream's
  * `bedrockDocumentFormats` (`packages/data-provider/src/file-config.ts`). The values there are
  * Converse API `format` strings the client never needs.
@@ -313,9 +320,7 @@ private fun isDocumentSupported(name: String?, serverVersion: String? = null): B
     val provider = name ?: return false
     val caseInsensitive = serverVersion != null &&
         BackendVersion.isCompatibleOrNewer(serverVersion, CASE_INSENSITIVE_PROVIDER_MIN_VERSION)
-    if (!caseInsensitive) return provider in DOCUMENT_SUPPORTED_PROVIDERS
-    val normalized = provider.lowercase()
-    return DOCUMENT_SUPPORTED_PROVIDERS.any { it.lowercase() == normalized }
+    return if (caseInsensitive) isDocumentSupportedProvider(provider) else provider in DOCUMENT_SUPPORTED_PROVIDERS
 }
 
 /**

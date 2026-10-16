@@ -106,6 +106,16 @@ data class FeatureGatesState(
      */
     val serverQueueSupported: Boolean = false,
     /**
+     * Whether the server validates a saved agent's upload under the agent's provider rather than
+     * `agents` (`resolveUploadEndpoint`, v0.8.8-rc3, #15763). Read by
+     * [ChatUiState.fileConfigEndpoint].
+     *
+     * **Fail-open to `agents`**: only PRESENT turns it on. Resolving under the provider on a server
+     * that still validates under `agents` refuses uploads the server would accept; the reverse
+     * only lets through a file the server then rejects.
+     */
+    val providerScopedUploadsSupported: Boolean = false,
+    /**
      * The conversation whose trace `/availability` confirmed readable (v0.8.8-rc3).
      *
      * Held as the id rather than a Boolean so the entry point cannot survive a conversation

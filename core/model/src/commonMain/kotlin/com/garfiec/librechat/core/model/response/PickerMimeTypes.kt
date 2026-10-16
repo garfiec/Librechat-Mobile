@@ -110,14 +110,11 @@ private val MOBILE_EXTRA_MIME_TYPES: List<String> = listOf(
 private val KNOWN_MIME_TYPES: List<String> = UPSTREAM_MIME_TYPES + MOBILE_EXTRA_MIME_TYPES
 
 /**
- * Resolves the `supportedMimeTypes` allowlist in effect for [endpoint], mirroring the
- * per-endpoint-then-`"default"` fallback used by [effectiveFileSizeLimit].
+ * Resolves the `supportedMimeTypes` allowlist in effect for [endpoint] via
+ * [resolveEndpointFileConfig]; empty means the server's built-in list.
  */
-fun FileUploadConfig.effectiveSupportedMimeTypes(endpoint: String?): List<String> {
-    val endpointTypes = endpoint?.let { endpoints[it]?.supportedMimeTypes }?.takeIf { it.isNotEmpty() }
-    val defaultTypes = endpoints[DEFAULT_ENDPOINT_KEY]?.supportedMimeTypes?.takeIf { it.isNotEmpty() }
-    return endpointTypes ?: defaultTypes ?: supportedMimeTypes
-}
+fun FileUploadConfig.effectiveSupportedMimeTypes(endpoint: String?): List<String> =
+    resolveEndpointFileConfig(endpoint).supportedMimeTypes
 
 /**
  * Translates the server's `supportedMimeTypes` regex allowlist into concrete MIME types a

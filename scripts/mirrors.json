@@ -1331,6 +1331,62 @@
       },
       "why": "Messages saved before reasoning had its own content part keep it in `text` as a `:::thinking ... :::` block. The web client splits the first such block off as reasoning; search does the same, so the block is indexed as reasoning (the in-reasoning badge, answers only) and the preview shows the answer without it.",
       "failure_mode": "Upstream changes the marker or the split (all blocks, a different delimiter), and search keeps indexing the old shape: the reasoning badge and answers-only quietly disagree with what the web shows, and nothing fails."
+    },
+    {
+      "id": "file-config-mb-to-bytes",
+      "upstream": {
+        "file": "packages/data-provider/src/file-config.ts",
+        "symbol": "mergeFileConfig",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/response/FileUploadConfig.kt",
+        "symbol": "*Bytes accessors"
+      },
+      "why": "GET /api/files/config serves librechat.yaml's fileConfig unconverted, so size limits arrive in MB. Which fields are MB (fileSizeLimit, totalSizeLimit, serverFileSizeLimit; not fileLimit) and that a disabled endpoint's limits read as 0 are decided by mergeFileConfig, never served. Mobile enforces only the per-file limit (fileSizeLimit capped by serverFileSizeLimit).",
+      "failure_mode": "A unit or field change upstream leaves the client comparing bytes to MB: every attachment is refused before upload ('larger than the server limit of 10 B'), or an oversized one is sent and the server answers an opaque 500. The response still decodes."
+    },
+    {
+      "id": "file-config-endpoint-resolution",
+      "upstream": {
+        "file": "packages/data-provider/src/file-config.ts",
+        "symbol": "getEndpointFileConfig",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/response/FileUploadConfig.kt",
+        "symbol": "resolveEndpointFileConfig / STANDARD_ENDPOINTS"
+      },
+      "why": "Which endpoints.<name> entry governs an upload (size limit, MIME allowlist, disabled) is decided by getEndpointFileConfig: a custom endpoint falls back own -> custom -> agents, a standard one own -> default. Mobile ports that order by endpoint name, with upstream's standardEndpoints set copied as STANDARD_ENDPOINTS. The web client and the server both resolve a saved agent under its provider, which ChatUiState.fileConfigEndpoint mirrors.",
+      "failure_mode": "Upstream reorders the fallback or changes the standard set, and the client reads a different entry than the server: a file the web accepts is refused or unpickable, one the server rejects is sent, or the attach controls show for a disabled endpoint. Nothing fails to decode."
+    },
+    {
+      "id": "file-config-merge-with-default",
+      "upstream": {
+        "file": "packages/data-provider/src/file-config.ts",
+        "symbol": "mergeWithDefault",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/response/FileUploadConfig.kt",
+        "symbol": "mergeWithDefault"
+      },
+      "why": "How a matched entry fills the fields it leaves unset: disabled, fileSizeLimit and supportedMimeTypes from default, except a document-capable provider's MIME list, which is the built-in full list. Lives outside getEndpointFileConfig, so that entry's watch does not see it change.",
+      "failure_mode": "Upstream changes which fields inherit, and an endpoint with a partial entry reads a different limit, allowlist or disabled flag than the server. Nothing fails to decode."
+    },
+    {
+      "id": "file-config-base-sized-endpoints",
+      "upstream": {
+        "file": "packages/data-provider/src/file-config.ts",
+        "symbol": "fileConfig",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/response/FileUploadConfig.kt",
+        "symbol": "BASE_ENTRY_ENDPOINTS"
+      },
+      "why": "agents, assistants, azureAssistants and anthropic carry built-in entries in the base fileConfig (512 MB, full MIME list, enabled), so mergeFileConfig always holds an entry for them and no unset field reads the admin's default. The base config is never served; mobile copies which endpoints have one.",
+      "failure_mode": "Upstream adds or drops a base entry and the client resolves that endpoint through the admin's default when the server does not (or the reverse): uploads the web accepts are refused, or oversized ones are sent. Nothing fails to decode."
     }
   ]
 }
