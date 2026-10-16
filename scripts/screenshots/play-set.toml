@@ -1,0 +1,91 @@
+# The Google Play listing images, in listing order: `scripts/screenshots/play.py set <out-dir>`.
+#
+# Each is a store screenshot from fastlane/ on a branded canvas under a caption. Captions are
+# marketing copy for people who've never seen the app: the benefit, not the feature's name.
+# Play shows them small, so keep the title to one short line and the subtitle under ten words.
+
+images = "fastlane/metadata/android/en-US/images"
+
+# The feature graphic in use, copied as it is. `play.py feature` draws the wordmark alternative
+# kept at design/feature-graphic-wordmark.png; drop this line to use that instead.
+feature_graphic = "featureGraphic.png"
+
+[[phone]]
+image = "phoneScreenshots/01-hero.png"
+title = "Two looks, one app"
+subtitle = "Material or Liquid Glass, your pick"
+
+[[phone]]
+image = "phoneScreenshots/02-search.png"
+title = "Find anything you've asked"
+subtitle = "Search every chat, even offline"
+
+[[phone]]
+image = "phoneScreenshots/03-media.png"
+title = "Every image in one place"
+subtitle = "Pictures, files and links from each chat"
+
+[[phone]]
+image = "phoneScreenshots/04-images.png"
+title = "Create images as you chat"
+subtitle = "Ask for a picture and it appears"
+
+[[phone]]
+image = "phoneScreenshots/05-bubbles.png"
+title = "Make it yours"
+subtitle = "Any color, light or dark, bubbles or threads"
+
+[[phone]]
+image = "phoneScreenshots/06-compare.png"
+title = "Compare models"
+subtitle = "One question, two answers"
+
+[[phone]]
+image = "phoneScreenshots/07-agent.png"
+title = "Agents that check with you"
+subtitle = "Answer their questions right in the chat"
+
+[[phone]]
+image = "phoneScreenshots/08-home-screen.png"
+title = "From chat to home screen"
+subtitle = "Pin the apps it builds, open them in a tap"
+
+[[tablet]]
+image = "tenInchScreenshots/01-hero.png"
+title = "Two looks, one app"
+subtitle = "Material or Liquid Glass, your pick"
+
+[[tablet]]
+image = "tenInchScreenshots/02-looks.png"
+title = "Make it yours"
+subtitle = "Any color, light or dark"
+
+[[tablet]]
+image = "tenInchScreenshots/03-search.png"
+title = "Find anything you've asked"
+subtitle = "Search every chat, even offline"
+
+[[tablet]]
+image = "tenInchScreenshots/04-media.png"
+title = "Every image in one place"
+subtitle = "Pictures, files and links from each chat"
+
+[[tablet]]
+image = "tenInchScreenshots/05-images.png"
+title = "Create images as you chat"
+subtitle = "Ask for a picture and it appears"
+
+[[tablet]]
+image = "tenInchScreenshots/06-layout.png"
+title = "Chat your way"
+subtitle = "Bubbles, threads and avatars, with a live preview"
+
+[[tablet]]
+image = "tenInchScreenshots/07-compare.png"
+title = "Compare models side by side"
+subtitle = "One question, two answers"
+
+[[tablet]]
+image = "tenInchScreenshots/08-agent.png"
+title = "Let agents do the legwork"
+subtitle = "They ask, you answer, it gets done"

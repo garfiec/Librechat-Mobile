@@ -37,8 +37,15 @@ has left, which is the number worth watching.
   launcher icon is generated from, see `design/README.md`. Regenerate, do not edit. The
   master must stay RGBA: the crop is derived from its measured alpha bounding box, so a
   flattened source reads as fully opaque and silently crops to the whole image.
+- `images/featureGraphic.png` — the 1024x500 banner at the top of the listing, and the same
+  image Google Play shows (uploaded there by hand). The alternative, a plain wordmark banner
+  drawn by `scripts/screenshots/play.py feature`, is kept at `design/feature-graphic-wordmark.png`;
+  see `design/README.md`.
 - `images/phoneScreenshots/` and `images/tenInchScreenshots/` — sorted by filename, hence the
-  numeric prefixes. PNG only.
+  numeric prefixes. PNG only. Captured with `scripts/screenshots/` (see its README). The
+  Google Play screenshots are built from these by `scripts/screenshots/play.py set`, which
+  puts each on a captioned canvas Play's image rules accept; the captions are in
+  `scripts/screenshots/play-set.toml`.
 
 Everything here is read from the **tagged commit**, not from `develop`, so a refreshed
 screenshot or a corrected sentence only reaches the listing if it lands before the release is

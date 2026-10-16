@@ -36,3 +36,14 @@ Two decisions in the script that look wrong but are not, and should not be "simp
 `iosApp/iosApp/Assets.xcassets/AppIcon.appiconset` is **not** generated from this file and is
 deliberately different — it needs Icon Composer's template and its own padding. Do not try to
 bring the two platforms into pixel agreement.
+
+## Feature graphics
+
+Two 1024x500 store banners. The one in use on Google Play and F-Droid is
+`fastlane/metadata/android/en-US/images/featureGraphic.png`: the mark and "Switchboard for
+LibreChat" beside a tilted phone showing a chat. `feature-graphic-wordmark.png` here is the
+alternative, the mark and "A native app for your LibreChat server" with no device, which is what
+Play's guidance for feature graphics prefers. `scripts/screenshots/play.py feature` redraws it.
+
+To switch, swap the two files and upload the new one in Play Console; the Play listing doesn't
+read the repo.
