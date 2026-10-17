@@ -19,10 +19,12 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
+import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import io.ktor.http.takeFrom
@@ -148,7 +150,7 @@ object LibreChatHttpClient {
                     } catch (_: Exception) {
                         ""
                     }
-                    val extracted = extractErrorMessage(json, bodyText, statusCode)
+                    val extracted = extractDisplayError(json, response, bodyText, statusCode)
                     val isBanned = isLibreChatBan(statusCode, extracted)
 
                     Diag.w(
@@ -193,6 +195,13 @@ object LibreChatHttpClient {
         }
     }
 
+    /**
+     * What a request's error says when its 401 could not be cleared by a refresh. English, like the
+     * status fallbacks in [extractErrorMessage] — this module has no resources — and app-authored,
+     * so `looksLikeUserMessage` is not consulted.
+     */
+    const val SESSION_RENEWAL_FAILED_MESSAGE = "Your session couldn't be renewed. Sign in again to continue."
+
     // Standard Chrome on Android UA string — ua-parser-js will detect "Chrome" as browser name
     const val BROWSER_USER_AGENT =
         "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
@@ -236,6 +245,27 @@ object LibreChatHttpClient {
      * silent here — nothing fails to decode, the app just stops recognising a ban.
      */
     private val BAN_MESSAGE_MARKERS = listOf("banned", "account")
+
+    /**
+     * [extractErrorMessage], except for a 401 the auth plugin could not clear with a refresh: that one
+     * is about the session, and the server's wording (`jwt expired`) describes the token rather than
+     * anything the user can act on. The plugin sets [SessionRenewalFailedKey] on the call it hands
+     * back (this validator is Ktor's default-installed one, so the outermost sender and the last to
+     * see it); a 401 on an auth route never carries it.
+     */
+    private fun extractDisplayError(
+        json: Json,
+        response: HttpResponse,
+        body: String,
+        statusCode: Int,
+    ): ExtractedError {
+        val renewalFailed = response.call.request.attributes.getOrNull(SessionRenewalFailedKey) == true
+        return if (statusCode == HttpStatusCode.Unauthorized.value && renewalFailed) {
+            ExtractedError(SESSION_RENEWAL_FAILED_MESSAGE, serverAuthored = false)
+        } else {
+            extractErrorMessage(json, body, statusCode)
+        }
+    }
 
     private fun extractErrorMessage(json: Json, body: String, statusCode: Int): ExtractedError {
         if (body.isNotBlank()) {

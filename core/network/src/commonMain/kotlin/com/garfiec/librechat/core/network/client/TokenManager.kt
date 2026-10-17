@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.network.client
 
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Outcome of a token refresh, so a caller can tell a **hard** failure (the session is genuinely gone
@@ -159,4 +160,23 @@ interface TokenManager {
      * the logout navigation.
      */
     val sessionExpiredFlow: SharedFlow<SessionEndReason>
+
+    /**
+     * Whether the active session can still renew itself — see [SessionHealth]. Defaulted to always
+     * healthy so an implementation that never refreshes (fakes, the SDK) says nothing rather than
+     * being forced into a stub; the token store overrides it.
+     */
+    val sessionHealth: StateFlow<SessionHealth> get() = AlwaysHealthy
+
+    /**
+     * End [accountId]'s session at the user's request so they can sign in again: drop its token slot
+     * and bump its epoch, keeping the roster entry and every cached row (re-auth restores the account
+     * without data loss, exactly as a hard expiry does). Emits nothing — the caller owns the routing
+     * and already knows why — and latches the one-shot expiry report, so the requests still in flight
+     * on the dropped bearer cannot announce a "session expired" over a sign-out the user chose.
+     *
+     * Null is the bare (pre-account-resolution / legacy) slot. Defaulted to a no-op for the same reason
+     * as [sessionHealth].
+     */
+    suspend fun endSessionForReauth(accountId: String?) = Unit
 }

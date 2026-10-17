@@ -158,6 +158,8 @@ class AuthInterceptorPlugin private constructor(
                         // Hard failure: the session is gone. Route the (snapshot's) account to re-auth.
                         Logger.w("Auth") { "Token refresh failed - session expired" }
                         plugin.tokenManager.emitSessionExpired(snapshot?.accountId)
+                        // On the CALL's attributes, not the request builder's — see [SessionRenewalFailedKey].
+                        originalCall.attributes.put(SessionRenewalFailedKey, true)
                         originalCall
                     }
                     BearerResult.Transient -> {
@@ -165,6 +167,7 @@ class AuthInterceptorPlugin private constructor(
                         // emit session-expired — fail just this request and keep the user signed in so
                         // a later request (or relaunch) recovers instead of a spurious logout.
                         Logger.w("Auth") { "Token refresh transient failure - keeping session" }
+                        originalCall.attributes.put(SessionRenewalFailedKey, true)
                         originalCall
                     }
                 }

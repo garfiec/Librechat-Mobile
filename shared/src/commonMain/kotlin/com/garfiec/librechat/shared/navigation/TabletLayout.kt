@@ -61,6 +61,7 @@ fun TabletLayout(
 ) {
     // Banner state only -- drawer state is collected inside DrawerContent itself
     val banner by navHostViewModel.banner.collectAsStateWithLifecycle()
+    val sessionRenewalBlocked by navHostViewModel.sessionRenewalBlocked.collectAsStateWithLifecycle()
     val isLoggedIn by navHostViewModel.isLoggedIn.collectAsStateWithLifecycle()
     // The sidebar is an authenticated surface, same rule as PhoneLayout's drawer gestures: a
     // logged-out deep link (artifact viewer atop the auth base) is not in the auth flow either.
@@ -262,6 +263,8 @@ fun TabletLayout(
                     showBanner = true,
                     banner = banner,
                     onDismissBanner = navHostViewModel::dismissBanner,
+                    sessionRenewalBlocked = sessionRenewalBlocked,
+                    onSignInAgain = navHostViewModel::signInAgain,
                     onToggleDrawer = {
                         navHostViewModel.toggleTabletSidebar()
                     },
@@ -299,6 +302,8 @@ fun TabletLayout(
             showBanner = false,
             banner = banner,
             onDismissBanner = navHostViewModel::dismissBanner,
+            sessionRenewalBlocked = false,
+            onSignInAgain = {},
             onToggleDrawer = {},
             modifier = modifier.fillMaxSize(),
         )
@@ -311,11 +316,17 @@ private fun MainContent(
     showBanner: Boolean,
     banner: Banner?,
     onDismissBanner: (String) -> Unit,
+    sessionRenewalBlocked: Boolean,
+    onSignInAgain: () -> Unit,
     onToggleDrawer: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
         if (showBanner) {
+            SessionRenewalBlockedBanner(
+                visible = sessionRenewalBlocked,
+                onSignInAgain = onSignInAgain,
+            )
             BannerDisplay(
                 banner = banner,
                 onDismiss = onDismissBanner,

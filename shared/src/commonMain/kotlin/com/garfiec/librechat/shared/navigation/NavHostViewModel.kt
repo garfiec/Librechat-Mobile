@@ -29,6 +29,7 @@ import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 import com.garfiec.librechat.core.network.client.AccountReadyGate
 import com.garfiec.librechat.core.network.client.ServerUrlProvider
 import com.garfiec.librechat.core.network.client.SessionEndReason
+import com.garfiec.librechat.core.network.client.SessionHealth
 import com.garfiec.librechat.core.network.client.TokenManager
 import com.garfiec.librechat.feature.conversations.drawer.AccountUiModel
 import kotlinx.coroutines.CancellationException
@@ -125,6 +126,39 @@ class NavHostViewModel(
      *  [SessionEndReason.EXPIRED] and [SessionEndReason.BANNED] — see [SessionEndReason]. */
     private val _sessionExpiredNotice = MutableStateFlow<SessionExpiredNotice?>(null)
     val sessionExpiredNotice: StateFlow<SessionExpiredNotice?> = _sessionExpiredNotice.asStateFlow()
+
+    /**
+     * True while the ACTIVE account's session is kept but cannot renew — its refresh is being refused
+     * by something that is not LibreChat (see [SessionHealth]). Every request is 401ing meanwhile, so
+     * the shell shows a banner with the one action that helps: [signInAgain]. Scoped to the active
+     * account the way the expiry signal is: a straggler block on a switched-away account must not
+     * banner the live one, and a switch clears it by itself.
+     */
+    val sessionRenewalBlocked: StateFlow<Boolean> =
+        combine(tokenManager.sessionHealth, activeAccountProvider.state) { health, account ->
+            val blocked = health as? SessionHealth.RenewalBlocked ?: return@combine false
+            val activeId = (account as? AccountState.Resolved)?.id?.value
+            blocked.accountId == null || blocked.accountId == activeId
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    /**
+     * The user's answer to [sessionRenewalBlocked]: end the active session and go to sign-in. Not
+     * the hard-expiry path — no failover and no "signed out" dialog, because the user asked for THIS
+     * account and chose this. The roster entry and cached data stay, so signing back in restores
+     * everything, as it does after an expiry. Under [sessionDecision] so a concurrent expiry report
+     * cannot fail over from underneath it.
+     */
+    fun signInAgain() {
+        viewModelScope.launch {
+            sessionDecision.withLock {
+                tokenManager.endSessionForReauth(activeAccountId())
+                sessionRevision.update { it + 1 }
+                // Lowered before the route event goes out, as in [onSessionEnded].
+                _isLoggedIn.value = false
+                _sessionRoute.trySend(SessionRoute.SignIn)
+            }
+        }
+    }
 
     // Re-reads which roster accounts still hold a session. The roster does not change on a hard
     // expiry (the entry stays, only its token slot empties), so the account list has to be told.

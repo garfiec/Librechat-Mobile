@@ -69,6 +69,19 @@ chained status — so a server-rooted `/login` Location is classified terminal i
 absolute portal URL is a gateway's and is not. The 5xx ladder deliberately keeps its older,
 undamped shape.
 
+**A kept session that cannot renew is reported, not just kept.** The unattributed-403 arm also
+publishes `TokenManager.sessionHealth = SessionHealth.RenewalBlocked(accountId)`; the nav shell shows
+a banner for the active account with one action, **Sign in again** → `endSessionForReauth`, which
+drops the slot and bumps its epoch like a hard expiry (roster entry and Room rows stay), latches the
+one-shot expiry report so in-flight 401s can't announce an expiry over a chosen sign-out, and emits
+nothing — the ViewModel routes. The block clears on the next successful commit, a sign-in, a teardown
+or a hard expiry, and deliberately **not** when the 60 s stand-down lapses: that means "we'll POST
+again", not "the server answers". The first field report was a stored base URL carrying the web UI's
+`/login?redirect_to=…` (see `cleanServerUrl` in `core/network/CLAUDE.md`), refused identically for
+ever; the stand-down's "never indefinite" only holds for a block that lifts. The banner is the safety
+net for a genuine blocker; it does not fix the URL (that is `cleanServerUrl`, at entry and at every
+join), and in that incident "sign in again" would have bought fifteen minutes.
+
 Interactive sign-in (`setTokens`) **stages** the pair under the bare keys and drops the active binding;
 `onAccountResolved` re-homes it into the account's keyed slot. This makes a re-login while another
 account is active unable to corrupt/leak into that account's slot.

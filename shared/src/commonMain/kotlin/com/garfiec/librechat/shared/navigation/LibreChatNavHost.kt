@@ -453,6 +453,7 @@ fun PhoneLayout(
     val scope = rememberCoroutineScope()
     val isLoggedIn by navHostViewModel.isLoggedIn.collectAsStateWithLifecycle()
     val banner by navHostViewModel.banner.collectAsStateWithLifecycle()
+    val sessionRenewalBlocked by navHostViewModel.sessionRenewalBlocked.collectAsStateWithLifecycle()
 
     val glass = rememberGlassStyle()
     val drawerBackdrop = rememberGlassBackdrop()
@@ -584,6 +585,10 @@ fun PhoneLayout(
                 .glassBackdropSource(drawerBackdrop?.takeIf { drawerShowing }),
         ) {
             if (!navigator.isInAuthFlow) {
+                SessionRenewalBlockedBanner(
+                    visible = sessionRenewalBlocked,
+                    onSignInAgain = navHostViewModel::signInAgain,
+                )
                 BannerDisplay(
                     banner = banner,
                     onDismiss = navHostViewModel::dismissBanner,

@@ -12,6 +12,7 @@ import com.garfiec.librechat.core.network.client.ImageCookieCredentials
 import com.garfiec.librechat.core.network.client.PinnedServerBaseUrlKey
 import com.garfiec.librechat.core.network.client.RefreshResult
 import com.garfiec.librechat.core.network.client.SessionEndReason
+import com.garfiec.librechat.core.network.client.SessionHealth
 import com.garfiec.librechat.core.network.client.TokenManager
 import com.garfiec.librechat.core.network.client.expiresAtEpochMillisOrNull
 import io.ktor.client.HttpClient
@@ -26,8 +27,11 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -178,6 +182,15 @@ abstract class CommonTokenDataStore(
 
     private val _sessionExpired = MutableSharedFlow<SessionEndReason>(extraBufferCapacity = 1)
     override val sessionExpiredFlow: SharedFlow<SessionEndReason> = _sessionExpired.asSharedFlow()
+
+    /**
+     * See [SessionHealth]. Written from [recordIntermediaryBlock] (under the flight lock) and cleared
+     * wherever a slot's stand-down marker is cleared, plus on a hard expiry. A plain state flow, not
+     * guarded by either lock: a lost update costs a banner that lingers until the next refresh
+     * outcome, never a wrong teardown.
+     */
+    private val _sessionHealth = MutableStateFlow<SessionHealth>(SessionHealth.Healthy)
+    override val sessionHealth: StateFlow<SessionHealth> = _sessionHealth.asStateFlow()
 
     @Volatile
     private var sessionExpiryReported = false
@@ -482,6 +495,13 @@ abstract class CommonTokenDataStore(
     }
 
     /**
+     * Joined onto the **cleaned** base, never the raw stored string: a stored web-UI URL
+     * (`https://host/login?redirect_to=…`) would 4xx the refresh for ever, and an unattributed 4xx
+     * keeps the session. See `core/network/CLAUDE.md`.
+     */
+    private fun refreshUrl(pinnedBaseUrl: String): String = "${cleanServerUrl(pinnedBaseUrl)}$REFRESH_PATH"
+
+    /**
      * Copy-on-write so the hot-path read above needs no lock. A lost update under a race just costs a
      * redundant renewal attempt, never a wrong suppression.
      */
@@ -494,13 +514,6 @@ abstract class CommonTokenDataStore(
 
     /**
      * Retire [slot]'s rejected-token marker.
-    /**
-     * Joined onto the **cleaned** base, never the raw stored string: a stored web-UI URL
-     * (`https://host/login?redirect_to=…`) would 4xx the refresh for ever, and an unattributed 4xx
-     * keeps the session. See `core/network/CLAUDE.md`.
-     */
-    private fun refreshUrl(pinnedBaseUrl: String): String = "${cleanServerUrl(pinnedBaseUrl)}$REFRESH_PATH"
-
      *
      * Called from the flight lock on a success, from [stateMutex] on a teardown — where the marker's
      * token has just been deleted, so leaving it behind retains a dead credential in memory for the
@@ -515,6 +528,13 @@ abstract class CommonTokenDataStore(
      */
     private fun clearRejectedRefresh(slot: String) {
         rejectedRefreshes = rejectedRefreshes - slot
+        clearRenewalBlocked(slot)
+    }
+
+    /** Back to [SessionHealth.Healthy] if the current block is [slot]'s; another slot's stays. */
+    private fun clearRenewalBlocked(slot: String) {
+        val blocked = _sessionHealth.value as? SessionHealth.RenewalBlocked ?: return
+        if (slotKey(blocked.accountId) == slot) _sessionHealth.value = SessionHealth.Healthy
     }
 
     /**
@@ -559,6 +579,8 @@ abstract class CommonTokenDataStore(
                     INTERMEDIARY_BLOCK_COOLDOWN_MS,
             )
             )
+        // Published so the shell can offer an exit from a kept session that cannot renew — see [SessionHealth].
+        _sessionHealth.value = SessionHealth.RenewalBlocked(accountId = slot.ifEmpty { null })
     }
 
     /**
@@ -1001,12 +1023,6 @@ abstract class CommonTokenDataStore(
             ) { "Auth rejected during token refresh" }
             RefreshAttempt.AuthRejectedTerminal
         } else {
-            // Describe the response, because status alone cannot say who minted it, and the body is
-            // not stored anywhere else. A field report with only `status=403` could not be attributed
-            // to a proxy, a WAF or a rewritten LibreChat body (and so could not be fixed). LibreChat's
-            // own 403 is `text/html` and 21 bytes; a block page is kilobytes of HTML with a `Server`
-            // or `CF-Ray` header. Nothing here is a credential: the request's cookie is never read
-            // back, and the snippet is the response body of a request that was refused.
             Diag.w(
                 "Auth",
                 origin = LogOrigin.NETWORK,
@@ -1017,12 +1033,14 @@ abstract class CommonTokenDataStore(
         }
     }
 
-    /** Low-cardinality facts about an unattributed 403, for the diagnostics export. */
+    /**
+     * Low-cardinality facts about an unattributed 403, for the diagnostics export: status alone
+     * cannot say who minted it. LibreChat's own 403 is `text/html` and 21 bytes; a block page is
+     * kilobytes of HTML with a `Server` or `CF-Ray` header. Nothing here may be a credential: the
+     * request's cookie is never read back, and the snippet is the body of a refused request's response.
+     */
     private fun describeForbidden(httpResponse: HttpResponse, body: String): Map<String, String> = buildMap {
-        // The path the POST actually went to. The first field report of this arm turned out to be a
-        // stored base URL carrying the web UI's `/login?redirect_to=…`, which only the request line
-        // in the server's own access log revealed; the refresh path is a constant, so anything else
-        // here is the stored base URL leaking into it.
+        // The refresh path is a constant, so anything else here is the stored base URL leaking into it.
         val requestUrl = httpResponse.call.request.url
         put("requestPath", requestUrl.encodedPath.take(FORBIDDEN_SNIPPET_MAX))
         requestUrl.encodedQuery.takeIf { it.isNotEmpty() }?.let { put("requestQuery", it.take(FORBIDDEN_HEADER_MAX)) }
@@ -1141,10 +1159,32 @@ abstract class CommonTokenDataStore(
      */
     private suspend fun invalidateRefresh(accountKey: String?, epochAtStart: Int) = stateMutex.withLock {
         if (epochOf(accountKey) != epochAtStart) return@withLock
+        dropSlotLocked(accountKey)
+        clearRenewalBlocked(slotKey(accountKey))
+    }
+
+    /** Empty [accountKey]'s token slot and bump its epoch. Caller holds [stateMutex]. */
+    private fun dropSlotLocked(accountKey: String?) {
         bumpEpoch(accountKey)
         removeValue(accessKey(accountKey))
         removeValue(refreshKey(accountKey))
         if (accountKey == activeAccountKey) cachedAccessToken = null
+    }
+
+    override suspend fun endSessionForReauth(accountId: String?) {
+        stateMutex.withLock {
+            dropSlotLocked(accountId)
+            // Also clears the health banner this sign-out was chosen from.
+            clearRejectedRefresh(slotKey(accountId))
+            // Latch the one-shot expiry report (see [TokenManager.endSessionForReauth]); [setTokens]
+            // re-arms it. Active binding only — a straggler on another account keeps its own report.
+            if (accountId == activeAccountKey) sessionExpiryReported = true
+        }
+        Diag.i(
+            "Auth",
+            origin = LogOrigin.CLIENT,
+            attrs = mapOf("event" to "session_ended_for_reauth"),
+        ) { "User chose to sign in again after a blocked renewal" }
     }
 
     private suspend fun flightFor(accountKey: String?): Mutex = flightMutex.withLock {
@@ -1243,8 +1283,10 @@ abstract class CommonTokenDataStore(
         data object AuthRejectedTerminal : RefreshAttempt
 
         /**
-         * A 403 that is not attributable to LibreChat — a proxy bouncer, a WAF, an IP ban.
-         * Terminal → Transient: it is no evidence about the session, so it must never drop the slot.
+         * A 403 that is not attributable to LibreChat — a proxy bouncer, a WAF, an IP ban, a wrong
+         * path in front of the route. Terminal → Transient: it is no evidence about the session, so it
+         * must never drop the slot. It does publish [SessionHealth.RenewalBlocked], because a kept
+         * session that cannot renew is useless until the user is offered a way out.
          */
         data object ForbiddenByIntermediary : RefreshAttempt
 
@@ -1319,8 +1361,12 @@ abstract class CommonTokenDataStore(
          * The price, stated plainly because it is the one place the provenance design's two halves
          * interact: while this is in force the gate is in front of *every* caller, so a credential
          * that is genuinely dead is not recognised as dead — and the user not routed to re-auth —
-         * until it lapses. That is a delay of at most this long, never indefinite, and
-         * `a recorded block delays but does not prevent recognising a dead credential` pins it.
+         * until it lapses. For a block that *lifts* that is a delay of at most this long, and
+         * `a recorded block delays but does not prevent recognising a dead credential` pins it. For
+         * a block that persists it is indefinite: every lapse buys one more refused POST and another
+         * stand-down, with the session kept throughout. That is why the block is also published as
+         * [SessionHealth.RenewalBlocked]: the shell offers the exit this cooldown cannot provide on
+         * its own. See `core/data/CLAUDE.md`.
          */
         private const val INTERMEDIARY_BLOCK_COOLDOWN_MS = 60_000L
 

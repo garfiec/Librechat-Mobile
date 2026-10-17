@@ -19,4 +19,6 @@
     <string name="session_banned_title">アカウントが制限されています</string>
     <string name="session_banned_message">リクエストが多すぎる、またはポリシー違反などの理由で、サーバーがこのアカウントを一時的に制限しました。制限が解除されるまで、メッセージの送信、エージェントの利用、ファイルのアップロードはできず、サインアウトされる場合があります。解除されない場合は、サーバー管理者にお問い合わせください。</string>
     <string name="session_banned_message_named">リクエストが多すぎる、またはポリシー違反などの理由で、サーバーが %1$s を一時的に制限しました。制限が解除されるまで、メッセージの送信、エージェントの利用、ファイルのアップロードはできず、サインアウトされる場合があります。解除されない場合は、サーバー管理者にお問い合わせください。</string>
+    <string name="session_renewal_blocked_message">セッションを更新できませんでした。サーバーが更新リクエストを拒否しました。</string>
+    <string name="session_renewal_sign_in_again">再度サインイン</string>
 </resources>

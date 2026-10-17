@@ -19,4 +19,6 @@
     <string name="session_banned_title">Conta restrita</string>
     <string name="session_banned_message">Seu servidor restringiu esta conta temporariamente, por exemplo após muitas solicitações ou uma violação de política. Até a restrição ser suspensa, você não pode enviar mensagens, usar agentes nem enviar arquivos, e sua sessão pode ser encerrada. Se isso não acontecer, fale com o administrador do servidor.</string>
     <string name="session_banned_message_named">Seu servidor restringiu %1$s temporariamente, por exemplo após muitas solicitações ou uma violação de política. Até a restrição ser suspensa, você não pode enviar mensagens, usar agentes nem enviar arquivos, e sua sessão pode ser encerrada. Se isso não acontecer, fale com o administrador do servidor.</string>
+    <string name="session_renewal_blocked_message">Não foi possível renovar a sessão: o servidor recusou o pedido de atualização.</string>
+    <string name="session_renewal_sign_in_again">Entrar novamente</string>
 </resources>

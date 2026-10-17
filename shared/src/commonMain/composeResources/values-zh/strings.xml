@@ -19,4 +19,6 @@
     <string name="session_banned_title">账户受限</string>
     <string name="session_banned_message">服务器已暂时限制此账户，例如因请求过多或违反政策。在限制解除前，你无法发送消息、使用智能体或上传文件，并且可能会被退出登录。如果限制一直未解除，请联系服务器管理员。</string>
     <string name="session_banned_message_named">服务器已暂时限制 %1$s，例如因请求过多或违反政策。在限制解除前，你无法发送消息、使用智能体或上传文件，并且可能会被退出登录。如果限制一直未解除，请联系服务器管理员。</string>
+    <string name="session_renewal_blocked_message">无法续期会话：服务器拒绝了刷新请求。</string>
+    <string name="session_renewal_sign_in_again">重新登录</string>
 </resources>

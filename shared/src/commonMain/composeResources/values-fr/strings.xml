@@ -19,4 +19,6 @@
     <string name="session_banned_title">Compte restreint</string>
     <string name="session_banned_message">Votre serveur a temporairement restreint ce compte, par exemple après trop de requêtes ou une violation de ses règles. Tant que la restriction n’est pas levée, vous ne pouvez ni envoyer de messages, ni utiliser d’agents, ni envoyer de fichiers, et vous risquez d’être déconnecté. Si elle persiste, contactez l’administrateur du serveur.</string>
     <string name="session_banned_message_named">Votre serveur a temporairement restreint %1$s, par exemple après trop de requêtes ou une violation de ses règles. Tant que la restriction n’est pas levée, vous ne pouvez ni envoyer de messages, ni utiliser d’agents, ni envoyer de fichiers, et vous risquez d’être déconnecté. Si elle persiste, contactez l’administrateur du serveur.</string>
+    <string name="session_renewal_blocked_message">Impossible de renouveler votre session : le serveur a refusé la demande d’actualisation.</string>
+    <string name="session_renewal_sign_in_again">Se reconnecter</string>
 </resources>
