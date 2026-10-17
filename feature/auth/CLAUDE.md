@@ -91,10 +91,23 @@
   the fragment and query go, so does one trailing LibreChat web route (`/login`, `/register`,
   `/c/<id>`, `/share/<id>`, `/forgot-password`, `/reset-password`, `/verify`), and the cleaned address
   is written back into the field. Any other path is kept — a subpath deployment is a different server.
-  Both Connect and the http-warning Confirm go through it. Without this a pasted
-  `https://host/login?redirect_to=…` validates (the API calls resolve against the origin) and then
-  lives in the identity hash and the roster for good; the same function is what every hand-built URL
-  joins onto, so a URL stored before this existed still works — see `core/network/CLAUDE.md`.
+  Both Connect and the http-warning Confirm go through it. Whatever is stored lives in the identity
+  hash and the roster for good, so junk has to go before then; the same function names the root every
+  request resolves under, so a URL stored before this existed still works — see
+  `core/network/CLAUDE.md`.
+- **Connect finds the server before storing anything** (`ConfigRepository.resolveServer`): it probes
+  the cleaned address, and when that has a path, the bare origin second — but only when the path
+  *answered* and wasn't LibreChat (a 4xx, or a body that isn't the config, such as the web app's
+  HTML). An unreachable host, a timeout, TLS, an access gateway or a 5xx stops there: same host,
+  same outcome, and the user needs that error rather than a second wait. Whichever answered is stored
+  (`setServerUrl` then `publishStartupConfig`, or `beginAdd` + `attachPendingConfig` in add mode) and
+  written back into the field, so a subpath deployment stays as typed and a junk page path is
+  dropped silently. Probes run under a `PendingRequestIdentity` per candidate, so a failure stores
+  nothing — the previous URL stays as it was.
+- **When the origin wins, the gateway headers move with it**, before `beginAdd` mints the identity
+  that reads them: the serverId that keys them hashes the stored URL. The entry under the typed
+  address is cleared only if this attempt wrote it; one stored earlier may belong to another
+  account's server.
 - `openidAutoRedirect` from server config triggers automatic redirect instead of showing login form
 - LDAP mode: show "Username" field instead of "Email" (check server config)
 

@@ -8,19 +8,30 @@ Ktor HttpClient, API service classes, SSE streaming client, auth interceptor. Al
 - **AuthInterceptorPlugin** (`client/AuthInterceptor.kt`): Custom Ktor plugin that injects `Authorization: Bearer` on outgoing requests and retries on 401 after refreshing tokens. Skips auth endpoints (`auth/login`, `auth/register`, `auth/refresh`, etc.).
 - **TokenManager interface** (`client/TokenManager.kt`): `getAccessToken()`, `setTokens()`, `refreshAccessToken()` (single-flighted, epoch-guarded), `clearTokens()`, `sessionExpiredFlow`, plus the account-keyed `getAccessTokenFor()` / `selectAccount()` / `removeAccount()` / `refreshAccessTokenFor()`. Implemented in `:core:data`.
 - **ServerUrlProvider interface** (`client/ServerUrlProvider.kt`): Resolves the user-configured base URL. Implemented in `:core:data`.
-  **Every URL built by hand joins onto `cleanServerUrl(baseUrl)`** (`:core:common`) — the refresh
-  pin, `ImageUrlResolver`, the legacy image-gen output, file and share URLs, the iOS SSE transport.
-  The stored string can carry a pasted web-UI page: `https://host/login?redirect_to=…` passes
-  onboarding because Ktor's request merge (`DefaultRequest`, `SwitchBarrierPlugin.applyBaseUrl`)
-  drops a base query and a one-segment base path for `url { path("api/…") }`, so `/api/config`
-  resolves and every API call works, while appending to the raw string sent the refresh to
-  `/login?redirect_to=…/api/auth/refresh` — a 403 nobody could attribute, and a session that could
-  never renew. The cleaner strips the query, the fragment and one recognised web route and keeps any
-  other path (`AvatarUrlResolverTest` pins that a subpath deployment keeps its prefix in joins; note
-  the Ktor merge drops a one-segment subpath for the API calls, so such a deployment does not work
-  today either way). The raw string is still what `deriveServerId` hashes and what
-  `ServerHeadersPlugin` keys gateway headers on, so pass it through unchanged wherever identity is
-  derived (`pinnedBaseUrl`).
+  **One rule for every URL: the cleaned base path is the deployment root, and every request path is
+  appended to it.** `https://host/librechat` + `api/config` (or `/api/auth/refresh`) is
+  `https://host/librechat/api/…`; a host-root base lands where it always did.
+  - Ktor requests resolve through `resolveAgainstDeploymentRoot` (`client/DeploymentRoot.kt`), called
+    by `SwitchBarrierPlugin` (main + streaming clients, against the snapshot's base) and by
+    `ServerUrlReadyPlugin` (the refresh client, and the main client when no `SwitchGate` is wired).
+    Never install both on one client. **No `defaultRequest` carries a URL**: Ktor's own merge follows
+    RFC 3986, so a base without a trailing slash loses its last segment and an absolute child path
+    replaces the base path — every API call on a subpath deployment went to the host root.
+  - Every URL built by hand joins onto `cleanServerUrl(baseUrl)` (`:core:common`) — the refresh pin,
+    `ImageUrlResolver`, the legacy image-gen output, file, share and SSO URLs, the iOS SSE transport —
+    which is the same root the resolver uses. `isSecuredImagePath` matches against
+    `deploymentRootSegments`, also the same root.
+  - The cleaner exists because the stored string can carry a pasted web-UI page
+    (`https://host/login?redirect_to=…`): appended to raw, the refresh went to
+    `/login?redirect_to=…/api/auth/refresh` — a 403 nobody could attribute, and a session that could
+    never renew. It strips the query, the fragment and one recognised web route, and keeps any other
+    path (`AvatarUrlResolverTest` pins that a subpath deployment keeps its prefix).
+  - The raw string is still what `deriveServerId` hashes, what `RequestIdentity.baseUrl` and
+    `PinnedServerBaseUrlKey` carry, and what `ServerHeadersPlugin` keys gateway headers on, so pass it
+    through unchanged wherever identity is derived (`pinnedBaseUrl`).
+  - A stored base with an unrecognised junk segment (`https://host/chat` on a host-root deployment)
+    used to work by accident of the last-segment drop and now 404s; re-entering the address on the
+    server screen repairs it (its origin fallback, `feature/auth/CLAUDE.md`).
 - **API services** (`api/`): One class per domain -- `AuthApi`, `ConversationsApi`, `MessagesApi`, `ChatStreamApi`, `FilesApi`, `AgentsApi`, `PresetsApi`, `PromptsApi`, `TagsApi`, `ShareApi`, `ConfigApi`, `EndpointsApi`, `BalanceApi`, `UserApi`. Each takes `HttpClient` as a constructor parameter, wired via Koin.
 - **SSE client** (`sse/`): `SseClient`, `SseEvent`, `SseEventParser`, `SseConnectionManager`.
 - **DTO mappers** (`mapper/`): Convert network DTOs to domain models from `:core:model`.
