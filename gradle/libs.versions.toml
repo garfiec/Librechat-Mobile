@@ -3,7 +3,7 @@
 agp = "9.2.1"
 kotlin = "2.4.10"
 ksp = "2.3.11"
-compose-bom = "2026.06.00"
+compose-bom = "2026.09.00"
 compose-multiplatform = "1.12.1"
 # Simulated Liquid Glass (backdrop blur/refraction). Wrapped by :core:ui glass/, never imported elsewhere.
 kyant-backdrop = "2.0.1"
