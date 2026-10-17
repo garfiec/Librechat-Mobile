@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
+import com.garfiec.librechat.core.common.identity.cleanServerUrl
 import com.garfiec.librechat.feature.auth.oauth.REFRESH_TOKEN_COOKIE
 import com.garfiec.librechat.feature.auth.oauth.SSO_ANDROID_USER_AGENT
 import com.garfiec.librechat.feature.auth.oauth.SsoNavigationDecision
@@ -169,7 +170,7 @@ actual fun SsoWebView(
                 val cookies = CookieManager.getInstance()
                 cookies.setAcceptCookie(true)
                 cookies.setAcceptThirdPartyCookies(this, true)
-                val startUrl = "${serverUrl.trimEnd('/')}/oauth/$provider"
+                val startUrl = "${cleanServerUrl(serverUrl)}/oauth/$provider"
                 // The load is issued from inside the clear's callback, because removeAllCookies is
                 // asynchronous and that ordering is the only thing keeping a stale token from being
                 // read back before the round-trip has even reached the provider.

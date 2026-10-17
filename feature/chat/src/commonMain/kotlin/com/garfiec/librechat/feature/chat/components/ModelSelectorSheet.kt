@@ -52,6 +52,7 @@ import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.endpoint.KeyState
+import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
@@ -638,9 +639,7 @@ private fun LazyItemScope.AgentListItem(
     verticalPadding: Dp = ListItemVerticalPadding,
 ) {
     val agentName = agent.name ?: agent.id
-    val resolvedAvatarUrl = agent.avatarUrl?.let { url ->
-        if (url.startsWith("http")) url else "$serverUrl$url"
-    }
+    val resolvedAvatarUrl = resolveAvatarUrl(agent.avatarUrl, serverUrl)
 
     Row(
         modifier = Modifier

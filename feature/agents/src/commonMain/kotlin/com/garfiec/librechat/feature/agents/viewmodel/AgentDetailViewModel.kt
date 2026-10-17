@@ -8,6 +8,7 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.model.Agent
+import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 import com.garfiec.librechat.feature.agents.AgentContactDisplayData
 import com.garfiec.librechat.feature.agents.AgentDetailDisplayData
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -166,13 +167,7 @@ class AgentDetailViewModel(
         (exception as? ApiException)?.statusCode == HTTP_FORBIDDEN
 
     private fun Agent.toDetailDisplayData(): AgentDetailDisplayData {
-        val resolvedUrl = avatarUrl?.let { url ->
-            if (url.startsWith("http")) {
-                url
-            } else {
-                "${serverDataStore.getBaseUrl()}$url"
-            }
-        }
+        val resolvedUrl = resolveAvatarUrl(avatarUrl, serverDataStore.getBaseUrl())
         return AgentDetailDisplayData(
             id = id,
             name = name ?: "Unnamed Agent",

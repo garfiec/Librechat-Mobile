@@ -7,6 +7,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.UIKitView
+import com.garfiec.librechat.core.common.identity.cleanServerUrl
 import com.garfiec.librechat.feature.auth.oauth.REFRESH_TOKEN_COOKIE
 import com.garfiec.librechat.feature.auth.oauth.SsoNavigationDecision
 import com.garfiec.librechat.feature.auth.oauth.SsoNavigationGate
@@ -224,7 +225,7 @@ actual fun SsoWebView(
             }
             val webView = WKWebView(frame = cValue { }, configuration = config)
             webView.navigationDelegate = delegate
-            val startUrl = "${serverUrl.trimEnd('/')}/oauth/$provider"
+            val startUrl = "${cleanServerUrl(serverUrl)}/oauth/$provider"
             val url = NSURL.URLWithString(startUrl)
             if (url != null) {
                 webView.loadRequest(NSURLRequest(uRL = url))

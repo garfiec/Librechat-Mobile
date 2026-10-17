@@ -1,5 +1,7 @@
 package com.garfiec.librechat.feature.auth.oauth
 
+import com.garfiec.librechat.core.common.identity.cleanServerUrl
+
 enum class SsoNavigationDecision { ALLOW, STOP }
 
 /**
@@ -17,7 +19,7 @@ enum class SsoNavigationDecision { ALLOW, STOP }
  */
 class SsoNavigationGate(serverUrl: String, provider: String) {
 
-    private val callbackPrefix = "${serverUrl.trimEnd('/')}/oauth/$provider/callback"
+    private val callbackPrefix = "${cleanServerUrl(serverUrl)}/oauth/$provider/callback"
 
     private var callbackSeen = false
 
@@ -37,7 +39,7 @@ class SsoNavigationGate(serverUrl: String, provider: String) {
         // a server mounted under a sub-path.
         //
         // Case-insensitively, because the two sides come from different places: the stored server
-        // URL keeps whatever case the user typed (it is only trimmed and given a scheme), while
+        // URL keeps whatever case the user typed (it is only cleaned and given a scheme), while
         // the WebView reports a canonicalised URL with scheme and host lower-cased. A server
         // entered as `https://Chat.Example.com` would otherwise never match its own callback, the
         // gate would never arm, and the post-callback page would load after all.

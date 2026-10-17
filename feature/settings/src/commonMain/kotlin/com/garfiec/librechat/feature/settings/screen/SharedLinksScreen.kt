@@ -41,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.garfiec.librechat.core.common.identity.cleanServerUrl
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
@@ -290,7 +291,7 @@ private fun SharedLinkItem(
     modifier: Modifier = Modifier,
 ) {
     val shareUrl = buildString {
-        append(serverUrl.trimEnd('/'))
+        append(cleanServerUrl(serverUrl))
         append("/share/")
         append(link.shareId)
     }

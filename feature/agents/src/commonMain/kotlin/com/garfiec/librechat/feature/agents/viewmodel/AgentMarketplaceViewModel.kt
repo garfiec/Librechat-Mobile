@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.model.Agent
+import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
@@ -57,13 +58,7 @@ class AgentMarketplaceViewModel(
     }
 
     private fun Agent.toCardDisplayData(): AgentCardDisplayData {
-        val resolvedUrl = avatarUrl?.let { url ->
-            if (url.startsWith("http")) {
-                url
-            } else {
-                "${serverDataStore.getBaseUrl()}$url"
-            }
-        }
+        val resolvedUrl = resolveAvatarUrl(avatarUrl, serverDataStore.getBaseUrl())
         return AgentCardDisplayData(
             id = id,
             name = name ?: "Unnamed Agent",

@@ -91,6 +91,15 @@ class SsoNavigationGateTest {
             .isEqualTo(SsoNavigationDecision.STOP)
     }
 
+    /** A stored pasted web-UI address: the WebView started at its clean root, so the callback is there. */
+    @Test
+    fun `arms on the clean callback for a stored web-ui address`() {
+        val gate = gate(serverUrl = "https://chat.example.com/login?redirect_to=%2Fc%2Fnew")
+        gate.decide("https://chat.example.com/oauth/google/callback?code=abc")
+        assertThat(gate.decide("https://chat.example.com/"))
+            .isEqualTo(SsoNavigationDecision.STOP)
+    }
+
     @Test
     fun `arms when the WebView lower-cases a host the user typed in mixed case`() {
         val gate = gate(serverUrl = "https://Chat.Example.com")
