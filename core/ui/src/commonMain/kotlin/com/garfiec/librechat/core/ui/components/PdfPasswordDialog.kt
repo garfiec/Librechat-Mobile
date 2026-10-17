@@ -141,6 +141,7 @@ fun PdfPasswordDialog(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
+                        .excludeFromAutofill()
                         .focusRequester(focusRequester)
                         .testTag("pdf_password_field"),
                 )

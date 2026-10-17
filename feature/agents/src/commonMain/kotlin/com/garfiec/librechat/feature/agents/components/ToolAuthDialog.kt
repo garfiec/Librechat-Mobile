@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
+import com.garfiec.librechat.core.ui.components.excludeFromAutofill
 import com.garfiec.librechat.feature.agents.resources.*
 import com.garfiec.librechat.feature.agents.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -64,7 +65,7 @@ fun ToolAuthDialog(
                     label = { Text(fieldLabel) },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().excludeFromAutofill(),
                 )
             }
         },

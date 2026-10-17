@@ -22,10 +22,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentType
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -112,7 +115,8 @@ fun LoginScreen(
                     value = uiState.email,
                     onValueChange = viewModel::onEmailChanged,
                     label = { Text(stringResource(Res.string.email_label)) },
-                    modifier = Modifier.fillMaxWidth().testTag("login_email"),
+                    modifier = Modifier.fillMaxWidth().testTag("login_email")
+                        .semantics { contentType = ContentType.Username + ContentType.EmailAddress },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Email,
@@ -129,7 +133,7 @@ fun LoginScreen(
                     label = { Text(stringResource(Res.string.password_label)) },
                     modifier = Modifier.fillMaxWidth().testTag("login_password"),
                     singleLine = true,
-                    visualTransformation = passwordMaskTransformation(),
+                    visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Password,
                         autoCorrectEnabled = false,

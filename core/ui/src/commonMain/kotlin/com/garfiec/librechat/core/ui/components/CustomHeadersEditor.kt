@@ -306,7 +306,7 @@ private fun HeaderValueField(
         value = value,
         onValueChange = { onValueChange(index, it) },
         label = { Text(stringResource(Res.string.server_headers_value)) },
-        modifier = modifier.testTag("server_header_value_$index"),
+        modifier = modifier.testTag("server_header_value_$index").excludeFromAutofill(),
         singleLine = true,
         enabled = enabled,
         isError = rejection == CustomHeaderRowError.InvalidValue,

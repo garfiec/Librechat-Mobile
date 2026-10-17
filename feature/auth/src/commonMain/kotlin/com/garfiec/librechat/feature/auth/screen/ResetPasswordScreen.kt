@@ -19,9 +19,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.autofill.ContentType
+import androidx.compose.ui.semantics.contentType
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
@@ -121,9 +124,9 @@ fun ResetPasswordScreen(
                     value = uiState.password,
                     onValueChange = viewModel::onPasswordChanged,
                     label = { Text(stringResource(Res.string.new_password_label)) },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().semantics { contentType = ContentType.NewPassword },
                     singleLine = true,
-                    visualTransformation = passwordMaskTransformation(),
+                    visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Password,
                         autoCorrectEnabled = false,
@@ -137,9 +140,9 @@ fun ResetPasswordScreen(
                     value = uiState.confirmPassword,
                     onValueChange = viewModel::onConfirmPasswordChanged,
                     label = { Text(stringResource(Res.string.confirm_new_password_label)) },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().semantics { contentType = ContentType.NewPassword },
                     singleLine = true,
-                    visualTransformation = passwordMaskTransformation(),
+                    visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Password,
                         autoCorrectEnabled = false,

@@ -20,6 +20,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.excludeFromAutofill
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.resources.provider_keys_field_api_key_for_endpoint
 import com.garfiec.librechat.feature.settings.resources.provider_keys_field_api_key_label
@@ -315,6 +316,6 @@ private fun SecretField(
         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
             keyboardType = KeyboardType.Password,
         ),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().excludeFromAutofill(),
     )
 }

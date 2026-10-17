@@ -46,6 +46,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveCheckbox
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.AdaptiveSegmentedChoice
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
+import com.garfiec.librechat.core.ui.components.excludeFromAutofill
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -275,7 +276,7 @@ internal fun McpServerDialog(
                                     } else {
                                         null
                                     },
-                                    modifier = Modifier.fillMaxWidth().bringIntoViewRequester(apiKeyFieldRequester),
+                                    modifier = Modifier.fillMaxWidth().bringIntoViewRequester(apiKeyFieldRequester).excludeFromAutofill(),
                                 )
                             }
                         }
@@ -310,7 +311,7 @@ internal fun McpServerDialog(
                             } else {
                                 null
                             },
-                            modifier = Modifier.fillMaxWidth().bringIntoViewRequester(secretFieldRequester),
+                            modifier = Modifier.fillMaxWidth().bringIntoViewRequester(secretFieldRequester).excludeFromAutofill(),
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         AdaptiveOutlinedTextField(
