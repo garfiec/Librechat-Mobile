@@ -991,13 +991,43 @@ abstract class CommonTokenDataStore(
             ) { "Auth rejected during token refresh" }
             RefreshAttempt.AuthRejectedTerminal
         } else {
+            // Describe the response, because status alone cannot say who minted it, and the body is
+            // not stored anywhere else. A field report with only `status=403` could not be attributed
+            // to a proxy, a WAF or a rewritten LibreChat body (and so could not be fixed). LibreChat's
+            // own 403 is `text/html` and 21 bytes; a block page is kilobytes of HTML with a `Server`
+            // or `CF-Ray` header. Nothing here is a credential: the request's cookie is never read
+            // back, and the snippet is the response body of a request that was refused.
             Diag.w(
                 "Auth",
                 origin = LogOrigin.NETWORK,
-                attrs = mapOf("event" to "refresh_forbidden_unattributed", "status" to "403"),
+                attrs = mapOf("event" to "refresh_forbidden_unattributed", "status" to "403") +
+                    describeForbidden(httpResponse, body),
             ) { "A 403 not attributable to LibreChat blocked the refresh; keeping the session" }
             RefreshAttempt.ForbiddenByIntermediary
         }
+    }
+
+    /** Low-cardinality facts about an unattributed 403, for the diagnostics export. */
+    private fun describeForbidden(httpResponse: HttpResponse, body: String): Map<String, String> = buildMap {
+        // The path the POST actually went to. The first field report of this arm turned out to be a
+        // stored base URL carrying the web UI's `/login?redirect_to=…`, which only the request line
+        // in the server's own access log revealed; the refresh path is a constant, so anything else
+        // here is the stored base URL leaking into it.
+        val requestUrl = httpResponse.call.request.url
+        put("requestPath", requestUrl.encodedPath.take(FORBIDDEN_SNIPPET_MAX))
+        requestUrl.encodedQuery.takeIf { it.isNotEmpty() }?.let { put("requestQuery", it.take(FORBIDDEN_HEADER_MAX)) }
+        put("bodyLength", body.length.toString())
+        httpResponse.headers[HttpHeaders.ContentType]?.let { put("contentType", it.take(FORBIDDEN_HEADER_MAX)) }
+        httpResponse.headers[HttpHeaders.Server]?.let { put("server", it.take(FORBIDDEN_HEADER_MAX)) }
+        httpResponse.headers[HttpHeaders.Via]?.let { put("via", it.take(FORBIDDEN_HEADER_MAX)) }
+        // Cloudflare stamps both on every response it answers itself; their presence is the fact.
+        if (httpResponse.headers.contains("CF-Ray")) put("cfRay", "present")
+        if (httpResponse.headers.contains("cf-mitigated")) put("cfMitigated", "present")
+        val snippet = body
+            .replace(Regex("<[^>]*>"), " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+        if (snippet.isNotEmpty()) put("bodySnippet", snippet.take(FORBIDDEN_SNIPPET_MAX))
     }
 
     /**
@@ -1296,6 +1326,10 @@ abstract class CommonTokenDataStore(
             "Invalid OpenID refresh token",
             "No session found",
         )
+
+        /** Caps on what [describeForbidden] copies out of an unattributed 403 into the log. */
+        private const val FORBIDDEN_HEADER_MAX = 40
+        private const val FORBIDDEN_SNIPPET_MAX = 160
 
         /** Total refresh attempts (initial + retries) before a persistent failure is classified. */
         private const val MAX_REFRESH_ATTEMPTS = 3
