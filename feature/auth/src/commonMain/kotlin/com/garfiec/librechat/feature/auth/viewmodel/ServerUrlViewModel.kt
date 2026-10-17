@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.identity.cleanServerUrl
+import com.garfiec.librechat.core.common.identity.serverOrigin
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
@@ -12,6 +13,8 @@ import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.HeaderWriteFailure
 import com.garfiec.librechat.core.data.repository.HeaderWriteResult
 import com.garfiec.librechat.core.data.repository.ServerRepository
+import com.garfiec.librechat.core.data.repository.ServerResolution
+import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.network.client.CustomHeaderRules
 import com.garfiec.librechat.core.network.client.HeaderRejection
 import com.garfiec.librechat.core.ui.components.CustomHeaderRow
@@ -54,16 +57,20 @@ data class ServerUrlUiState(
 )
 
 /**
- * Validates a server URL and selects it for the sign-in flow. Two modes:
+ * Validates a server URL and selects it for the sign-in flow.
+ *
+ * The address is found before anything is stored: [ConfigRepository.resolveServer] probes the cleaned
+ * address, and when that path answers but isn't LibreChat, the bare origin — so a pasted page under a
+ * host-root deployment (`https://host/some/page`) still connects, while a deployment served under a
+ * path (`https://host/librechat`) is kept as typed. Whichever answered is what gets stored and shown
+ * in the field. Two modes for the commit:
  *
  * - **Normal** (`addAccount = false`): the pre-login screen. Sets the process-global server URL and
- *   validates + caches the config through the live pipeline.
+ *   publishes + caches the config.
  * - **Add-account** (`addAccount = true`): reached from the account switcher while another account
  *   is live. Must never touch the live account's state: the URL goes into a pending add session
- *   ([AccountSwitcher.beginAdd]) instead of the global store, and validation runs under the pending
- *   identity without publishing to the live server's config state/cache
- *   ([ConfigRepository.probeServerUrl]). The validated config rides on the pending session for the
- *   add-mode login screen.
+ *   ([AccountSwitcher.beginAdd]) instead of the global store, and the config rides on that session
+ *   for the add-mode login screen instead of being published.
  */
 class ServerUrlViewModel(
     private val serverDataStore: ServerDataStore,
@@ -271,7 +278,8 @@ class ServerUrlViewModel(
             // a different account. There is nothing to clear in add mode: the editor never
             // represented anything stored.
             val wouldClearWithoutHavingLoaded = addAccount && typed.isEmpty()
-            if (headersEdited && !wouldClearWithoutHavingLoaded) {
+            val wroteTyped = headersEdited && !wouldClearWithoutHavingLoaded
+            if (wroteTyped) {
                 val written = serverRepository.setHeaders(url, typed)
                 if (written is HeaderWriteResult.Refused) {
                     _uiState.value = _uiState.value.copy(
@@ -285,54 +293,69 @@ class ServerUrlViewModel(
                 _uiState.value = _uiState.value.copy(headersLoadFailed = false)
             }
 
-            val result = if (addAccount) validatePendingServer(url) else validateLiveServer(url)
+            val probeHeaders = if (wroteTyped) typed else serverRepository.headersForServer(url).orEmpty()
+            resolveAndCommit(url, probeHeaders, wroteTyped)
+        }
+    }
 
-            when (result) {
-                is Result.Success -> {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        isValidated = true,
-                    )
+    private suspend fun resolveAndCommit(url: String, probeHeaders: Map<String, String>, wroteTyped: Boolean) {
+        val candidates = listOf(url, serverOrigin(url)).distinct()
+        when (val resolution = configRepository.resolveServer(candidates, probeHeaders)) {
+            is ServerResolution.Failed -> {
+                // Nothing was stored for this attempt. An add session left over from an earlier,
+                // abandoned attempt is dropped so no staged state outlives it.
+                if (addAccount) accountSwitcher.cancelAdd()
+                showError(resolution.error)
+            }
+            is ServerResolution.Resolved -> {
+                val winner = resolution.url
+                // The headers were filed under what was typed; the server the app will contact is the
+                // origin, and the serverId that keys them hashes that URL. Re-keyed before anything
+                // reads them under the winner — beginAdd's pending identity among them.
+                if (winner != url && probeHeaders.isNotEmpty()) {
+                    val moved = serverRepository.setHeaders(winner, probeHeaders)
+                    if (moved is HeaderWriteResult.Refused) {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            showAdvanced = true,
+                            headersSaveFailure = moved.reason,
+                        )
+                        return
+                    }
+                    // Only an entry this attempt wrote; one the user stored earlier under that address
+                    // may belong to another account's server. Best-effort: a stale row is inert.
+                    if (wroteTyped) serverRepository.setHeaders(url, emptyMap())
                 }
-                is Result.Error -> {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = result.message ?: "Could not connect to server",
-                    )
+                if (addAccount) {
+                    commitPendingServer(winner, resolution.config)?.let {
+                        showError(it)
+                        return
+                    }
+                } else {
+                    serverDataStore.setServerUrl(winner)
+                    configRepository.publishStartupConfig(resolution.config)
                 }
-                is Result.Loading -> { /* no-op */ }
+                _uiState.value = _uiState.value.copy(url = winner, isLoading = false, isValidated = true)
             }
         }
     }
 
-    private suspend fun validateLiveServer(url: String): Result<*> {
-        // Set the URL first so API calls use it
-        serverDataStore.setServerUrl(url)
-        val result = configRepository.validateServerUrl(url)
-        if (result is Result.Error) {
-            serverDataStore.setServerUrl("")
-        }
-        return result
+    private fun showError(error: Result.Error) {
+        _uiState.value = _uiState.value.copy(
+            isLoading = false,
+            error = error.message ?: "Could not connect to server",
+        )
     }
 
-    private suspend fun validatePendingServer(url: String): Result<*> {
+    /** Starts the add session on [url] with its config attached; the error when it can't. */
+    private suspend fun commitPendingServer(url: String, config: StartupConfig): Result.Error? {
         // beginAdd requires a resolved active account; the switcher only offers "add" while one is
         // live, but a logout/expiry racing the tap must surface as an error, not a crash.
         val begun = suspendRunCatching { accountSwitcher.beginAdd(url) }
         if (begun.isFailure) {
-            return Result.Error(
-                begun.exceptionOrNull(),
-                "Could not start adding an account. Try again.",
-            )
+            return Result.Error(begun.exceptionOrNull(), "Could not start adding an account. Try again.")
         }
-        val result = accountSwitcher.withPendingIdentity { configRepository.probeServerUrl() }
-        when (result) {
-            is Result.Success -> accountSwitcher.attachPendingConfig(result.data)
-            // Drop the pending session so an abandoned attempt leaves no staged state; a retry
-            // begins a fresh one.
-            is Result.Error -> accountSwitcher.cancelAdd()
-            is Result.Loading -> Unit
-        }
-        return result
+        accountSwitcher.attachPendingConfig(config)
+        return null
     }
 }

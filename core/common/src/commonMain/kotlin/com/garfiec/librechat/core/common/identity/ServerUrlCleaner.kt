@@ -42,6 +42,20 @@ fun cleanServerUrl(raw: String): String {
     return prefix + authority + path
 }
 
+/**
+ * [url] reduced to its scheme and authority — `https://host:8443/librechat?x` → `https://host:8443`.
+ * The fallback the server screen tries when the typed path doesn't answer as LibreChat. Byte-preserving
+ * like [cleanServerUrl], and equal to [cleanServerUrl]`(url)` when the cleaned URL has no path.
+ */
+fun serverOrigin(url: String): String {
+    val trimmed = url.trim()
+    val schemeSep = trimmed.indexOf("://")
+    val prefix = if (schemeSep >= 0) trimmed.substring(0, schemeSep + SCHEME_SEPARATOR_LENGTH) else ""
+    val rest = trimmed.substring(prefix.length)
+    val authorityEnd = rest.indexOfAny(charArrayOf('/', '?', '#')).let { if (it < 0) rest.length else it }
+    return prefix + rest.substring(0, authorityEnd)
+}
+
 /** Drops one trailing web-UI route from [path] (no trailing slash), or returns it unchanged. */
 private fun stripWebRoute(path: String): String {
     WEB_ROUTES_EXACT.firstOrNull { path.endsWith(it) }?.let { return path.removeSuffix(it) }

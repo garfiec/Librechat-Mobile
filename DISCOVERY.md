@@ -142,7 +142,7 @@ POST /api/prompts/groups/:id/use  → record prompt-group usage for analytics (v
 
 **v0.8.5 notes**
 - `GET /api/config` response payload is now split into a pre-auth and post-auth variant.
-  Pre-auth fields (what `validateServerUrl` / `fetchStartupConfig` rely on) are unchanged
+  Pre-auth fields (what `resolveServer` / `fetchStartupConfig` rely on) are unchanged
   from v0.8.4; post-auth adds fields driven by the logged-in user (not consumed by mobile).
 - `GET /api/config` removed `instanceProjectId`. Mobile previously used it as an OR fallback
   in `ConfigRepositoryImpl.isValidLibreChatConfig`; cleanup landed in v0.8.5 sync.
@@ -253,7 +253,7 @@ GET    /api/files/download-url/:userId/:file_id → { url, filename, type, metad
 
 ### /api/config v0.8.6 behavior (verified non-breaking)
 - Pre-auth (no `req.user`) response is now sanitized to a minimal pre-login payload; `?context=share`
-  merges a public-share payload. Mobile onboarding (`ConfigRepositoryImpl.validateServerUrl`) only
+  merges a public-share payload. Mobile onboarding (`ConfigRepositoryImpl.resolveServer`) only
   checks `serverDomain.isNotBlank()` (not stripped) and re-fetches the full config post-auth, so this
   is safe. New top-level keys: `rum`, `cloudFront`, `buildInfo`; new `interface` keys: `skills`,
   `buildInfo`, `autoSubmitFromUrl`, `retentionMode`. Mobile now PARSES these (C1) but gates no UI yet.

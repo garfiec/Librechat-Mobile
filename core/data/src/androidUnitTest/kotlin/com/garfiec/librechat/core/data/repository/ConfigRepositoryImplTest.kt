@@ -13,24 +13,30 @@ import com.garfiec.librechat.core.logging.LogEnvelope
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.network.api.ConfigApi
+import com.garfiec.librechat.core.network.client.PendingRequestIdentity
 import com.google.common.truth.Truth.assertThat
+import io.ktor.client.call.NoTransformationFoundException
+import io.ktor.client.statement.HttpResponse
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import java.io.IOException
 import java.net.ConnectException
 import java.security.cert.CertificateException
 import javax.net.ssl.SSLHandshakeException
 
 /**
- * The probe/reload seams added for multi-account (issue #179): validation for a server being ADDED
- * must not leak into the live server's config state or cache, and a switch must reseed the
- * in-memory state from the incoming server's cache.
+ * The server-check and reload seams. Resolving a server must not leak into the live server's config
+ * state or cache (it runs for a server being ADDED while another is live, and before the URL is
+ * stored at all), it must try the origin only when the typed path answered and wasn't LibreChat, and
+ * a switch must reseed the in-memory state from the incoming server's cache.
  */
 class ConfigRepositoryImplTest {
 
@@ -45,14 +51,28 @@ class ConfigRepositoryImplTest {
 
     private val validConfig = StartupConfig(serverDomain = "https://b.example.com")
 
+    private suspend fun ConfigRepositoryImpl.resolve(
+        vararg candidates: String,
+        headers: Map<String, String> = emptyMap(),
+    ): ServerResolution = resolveServer(candidates.toList(), headers)
+
+    private fun ServerResolution.error(): Result.Error = (this as ServerResolution.Failed).error
+
+    /** What Ktor throws when `text/html` comes back where the config JSON was expected. */
+    private fun webPage() =
+        NoTransformationFoundException(mockk<HttpResponse>(relaxed = true), String::class, StartupConfig::class)
+
+    /** The base URL the request was issued under, as the SwitchBarrier would read it. */
+    private suspend fun probedBase(): String = currentCoroutineContext()[PendingRequestIdentity]!!.identity().baseUrl
+
     @Test
-    fun `probeServerUrl validates without publishing in-memory state or writing the cache`() = runTest {
+    fun `resolving validates without publishing in-memory state or writing the cache`() = runTest {
         coEvery { configApi.getStartupConfig() } returns validConfig
         val repo = repository()
 
-        val result = repo.probeServerUrl()
+        val result = repo.resolve("https://b.example.com")
 
-        assertThat(result).isInstanceOf(Result.Success::class.java)
+        assertThat(result).isEqualTo(ServerResolution.Resolved("https://b.example.com", validConfig))
         // The live session's config must be untouched: an add-mode probe runs while another
         // account is active, and the cache key would derive from the LIVE url (poisoning it).
         assertThat(repo.startupConfig.value).isNull()
@@ -63,9 +83,9 @@ class ConfigRepositoryImplTest {
     fun `a cancelled probe propagates instead of reporting an unreachable server`() = runTest {
         coEvery { configApi.getStartupConfig() } coAnswers { awaitCancellation() }
         val repo = repository()
-        var result: Result<StartupConfig>? = null
+        var result: ServerResolution? = null
 
-        val job = launch { result = repo.probeServerUrl() }
+        val job = launch { result = repo.resolve("https://b.example.com", "https://example.com") }
         runCurrent()
         job.cancel()
         job.join()
@@ -74,24 +94,32 @@ class ConfigRepositoryImplTest {
     }
 
     @Test
-    fun `probeServerUrl rejects a non-LibreChat response`() = runTest {
+    fun `a non-LibreChat response is rejected`() = runTest {
         coEvery { configApi.getStartupConfig() } returns StartupConfig(serverDomain = "")
         val repo = repository()
 
-        val result = repo.probeServerUrl()
+        val result = repo.resolve("https://b.example.com")
 
-        assertThat(result).isInstanceOf(Result.Error::class.java)
-        assertThat((result as Result.Error).message).contains("LibreChat")
+        assertThat(result.error().message).contains("LibreChat")
+    }
+
+    /** A web page answering 200 at the path: Ktor has no transformation for text/html into the config. */
+    @Test
+    fun `a web page where the config should be is not LibreChat, not an unreachable server`() = runTest {
+        coEvery { configApi.getStartupConfig() } throws webPage()
+        val repo = repository()
+
+        val result = repo.resolve("https://b.example.com")
+
+        assertThat(result.error().message).contains("LibreChat")
     }
 
     @Test
-    fun `validateServerUrl still publishes and caches`() = runTest {
-        coEvery { configApi.getStartupConfig() } returns validConfig
+    fun `publishStartupConfig publishes and caches`() = runTest {
         val repo = repository()
 
-        val result = repo.validateServerUrl("https://b.example.com")
+        repo.publishStartupConfig(validConfig)
 
-        assertThat(result).isInstanceOf(Result.Success::class.java)
         assertThat(repo.startupConfig.value).isEqualTo(validConfig)
         coVerify(exactly = 1) { configCache.saveStartupConfig(validConfig) }
     }
@@ -100,7 +128,7 @@ class ConfigRepositoryImplTest {
     fun `reloadForActiveServer replaces in-memory state from the cache without network`() = runTest {
         coEvery { configApi.getStartupConfig() } returns validConfig
         val repo = repository()
-        repo.validateServerUrl("https://a.example.com") // in-memory now holds the outgoing server
+        repo.publishStartupConfig(validConfig) // in-memory now holds the outgoing server
 
         val incoming = StartupConfig(serverDomain = "https://b.example.com", version = "9.9.9")
         val incomingEndpoints = mapOf("openAI" to EndpointConfig())
@@ -136,7 +164,7 @@ class ConfigRepositoryImplTest {
     fun `reloadForActiveServer empties state when the incoming server has no cache`() = runTest {
         coEvery { configApi.getStartupConfig() } returns validConfig
         val repo = repository()
-        repo.validateServerUrl("https://a.example.com")
+        repo.publishStartupConfig(validConfig)
 
         coEvery { configCache.loadStartupConfig() } returns null
         coEvery { configCache.loadEndpointConfigs() } returns null
@@ -158,9 +186,8 @@ class ConfigRepositoryImplTest {
         coEvery { configApi.getStartupConfig() } throws AccessGatewayException()
         val repo = repository()
 
-        val result = repo.validateServerUrl("https://b.example.com")
+        val error = repo.resolve("https://b.example.com").error()
 
-        val error = result as Result.Error
         assertThat(error.kind).isEqualTo(FailureKind.AccessGateway)
         assertThat(error.message).doesNotContain("Could not reach the server")
         // Not the shared post-login wording: it points at Settings, which needs the sign-in the
@@ -193,11 +220,13 @@ class ConfigRepositoryImplTest {
         coEvery { configApi.getStartupConfig() } throws ConnectException("Failed to connect")
         val repo = repository()
 
-        val logged = captureProbeLogs { repo.probeServerUrl() }
+        val logged = captureProbeLogs { repo.resolve("https://b.example.com") }
 
         val (severity, entry) = logged.single()
         assertThat(severity).isEqualTo(Severity.Warn)
-        assertThat(entry.attrs).containsExactly("path", "/api/config", "reason", "unreachable")
+        assertThat(entry.attrs).containsExactly(
+            "path", "/api/config", "reason", "unreachable", "candidate", "typed", "fell_back", "false",
+        )
         assertThat(entry.origin).isEqualTo("network")
     }
 
@@ -209,13 +238,13 @@ class ConfigRepositoryImplTest {
             }
         val repo = repository()
 
-        lateinit var result: Result<*>
-        val logged = captureProbeLogs { result = repo.probeServerUrl() }
+        lateinit var result: ServerResolution
+        val logged = captureProbeLogs { result = repo.resolve("https://b.example.com") }
 
-        val error = result as Result.Error
+        val error = result.error()
         assertThat(error.kind).isEqualTo(FailureKind.Tls)
         assertThat(error.message).contains("certificate")
-        assertThat(logged.single().second.attrs).containsExactly("path", "/api/config", "reason", "tls")
+        assertThat(logged.single().second.attrs).containsEntry("reason", "tls")
     }
 
     /** LibreChat's default port serves plain HTTP; https:// against it is a URL fix, not a certificate one. */
@@ -225,11 +254,11 @@ class ConfigRepositoryImplTest {
             SSLHandshakeException("SSL handshake aborted: Failure in SSL library, usually a protocol error WRONG_VERSION_NUMBER")
         val repo = repository()
 
-        lateinit var result: Result<*>
-        val logged = captureProbeLogs { result = repo.probeServerUrl() }
+        lateinit var result: ServerResolution
+        val logged = captureProbeLogs { result = repo.resolve("https://b.example.com") }
 
-        assertThat((result as Result.Error).kind).isNotEqualTo(FailureKind.Tls)
-        assertThat(logged.single().second.attrs).containsExactly("path", "/api/config", "reason", "unreachable")
+        assertThat(result.error().kind).isNotEqualTo(FailureKind.Tls)
+        assertThat(logged.single().second.attrs).containsEntry("reason", "unreachable")
     }
 
     @Test
@@ -237,10 +266,11 @@ class ConfigRepositoryImplTest {
         coEvery { configApi.getStartupConfig() } throws ApiException(502, "Bad gateway")
         val repo = repository()
 
-        val logged = captureProbeLogs { repo.validateServerUrl("https://b.example.com") }
+        val logged = captureProbeLogs { repo.resolve("https://b.example.com") }
 
         val (_, entry) = logged.single()
-        assertThat(entry.attrs).containsExactly("path", "/api/config", "reason", "http_status", "status", "502")
+        assertThat(entry.attrs).containsEntry("reason", "http_status")
+        assertThat(entry.attrs).containsEntry("status", "502")
         assertThat(entry.origin).isEqualTo("server")
     }
 
@@ -249,8 +279,146 @@ class ConfigRepositoryImplTest {
         coEvery { configApi.getStartupConfig() } returns validConfig
         val repo = repository()
 
-        val logged = captureProbeLogs { repo.probeServerUrl() }
+        val logged = captureProbeLogs { repo.resolve("https://b.example.com") }
 
         assertThat(logged).isEmpty()
+    }
+
+    // --- Which candidate wins -------------------------------------------------------------------
+
+    private val typed = "https://example.com/some/page"
+    private val origin = "https://example.com"
+
+    /** Answers per candidate, recording the order they were tried in. */
+    private fun answering(vararg byBase: Pair<String, () -> StartupConfig>): MutableList<String> {
+        val tried = mutableListOf<String>()
+        val answers = byBase.toMap()
+        coEvery { configApi.getStartupConfig() } coAnswers {
+            val base = probedBase()
+            tried += base
+            answers.getValue(base)()
+        }
+        return tried
+    }
+
+    @Test
+    fun `each candidate is probed under its own pending identity, carrying the headers`() = runTest {
+        val seen = mutableListOf<Pair<String, Map<String, String>>>()
+        coEvery { configApi.getStartupConfig() } coAnswers {
+            val identity = currentCoroutineContext()[PendingRequestIdentity]!!.identity()
+            seen += identity.baseUrl to identity.customHeaders
+            if (identity.baseUrl == typed) throw ApiException(404, "Not Found") else validConfig
+        }
+        val repo = repository()
+
+        repo.resolve(typed, origin, headers = mapOf("CF-Access-Client-Id" to "id"))
+
+        assertThat(seen).containsExactly(
+            typed to mapOf("CF-Access-Client-Id" to "id"),
+            origin to mapOf("CF-Access-Client-Id" to "id"),
+        ).inOrder()
+    }
+
+    @Test
+    fun `a typed path that serves LibreChat wins without trying the origin`() = runTest {
+        val tried = answering(typed to { validConfig }, origin to { error("must not be tried") })
+        val repo = repository()
+
+        val result = repo.resolve(typed, origin)
+
+        assertThat(result).isEqualTo(ServerResolution.Resolved(typed, validConfig))
+        assertThat(tried).containsExactly(typed)
+    }
+
+    @Test
+    fun `a typed path that 404s falls back to the origin`() = runTest {
+        val tried = answering(typed to { throw ApiException(404, "Not Found") }, origin to { validConfig })
+        val repo = repository()
+
+        val result = repo.resolve(typed, origin)
+
+        assertThat(result).isEqualTo(ServerResolution.Resolved(origin, validConfig))
+        assertThat(tried).containsExactly(typed, origin).inOrder()
+    }
+
+    @Test
+    fun `a typed path serving a web page falls back to the origin`() = runTest {
+        answering(
+            typed to { throw webPage() },
+            origin to { validConfig },
+        )
+        val repo = repository()
+
+        assertThat(repo.resolve(typed, origin)).isEqualTo(ServerResolution.Resolved(origin, validConfig))
+    }
+
+    /** Same host, same outcome: a second wait would only bury the error. */
+    @Test
+    fun `an unreachable host is not retried at the origin`() = runTest {
+        val tried = answering(typed to { throw IOException("Connection refused") }, origin to { validConfig })
+        val repo = repository()
+
+        val result = repo.resolve(typed, origin)
+
+        assertThat(result.error().message).contains("Could not reach")
+        assertThat(tried).containsExactly(typed)
+    }
+
+    @Test
+    fun `a gateway at the typed path is not retried at the origin`() = runTest {
+        val tried = answering(typed to { throw AccessGatewayException() }, origin to { validConfig })
+        val repo = repository()
+
+        val result = repo.resolve(typed, origin)
+
+        assertThat(result.error().kind).isEqualTo(FailureKind.AccessGateway)
+        assertThat(tried).containsExactly(typed)
+    }
+
+    /** Something is serving that path; it's broken, not absent. */
+    @Test
+    fun `a server error at the typed path is not retried at the origin`() = runTest {
+        val tried = answering(typed to { throw ApiException(502, "Bad gateway") }, origin to { validConfig })
+        val repo = repository()
+
+        repo.resolve(typed, origin)
+
+        assertThat(tried).containsExactly(typed)
+    }
+
+    @Test
+    fun `when both miss, the typed address's error is reported`() = runTest {
+        answering(
+            typed to { throw ApiException(404, "Not Found") },
+            origin to { throw IOException("Connection reset") },
+        )
+        val repo = repository()
+
+        val logged = captureProbeLogs { assertThat(repo.resolve(typed, origin).error().message).contains("LibreChat") }
+
+        assertThat(logged.map { it.first to it.second.attrs["candidate"] }).containsExactly(
+            Severity.Info to "typed",
+            Severity.Warn to "origin",
+        ).inOrder()
+        assertThat(logged.first().second.attrs).containsEntry("fell_back", "true")
+    }
+
+    @Test
+    fun `when the origin is behind a gateway the path hid, that is the error reported`() = runTest {
+        answering(typed to { throw ApiException(404, "Not Found") }, origin to { throw AccessGatewayException() })
+        val repo = repository()
+
+        assertThat(repo.resolve(typed, origin).error().kind).isEqualTo(FailureKind.AccessGateway)
+    }
+
+    @Test
+    fun `resolving never publishes or caches, even when the origin wins`() = runTest {
+        answering(typed to { throw ApiException(404, "Not Found") }, origin to { validConfig })
+        val repo = repository()
+
+        repo.resolve(typed, origin)
+
+        assertThat(repo.startupConfig.value).isNull()
+        coVerify(exactly = 0) { configCache.saveStartupConfig(any()) }
     }
 }

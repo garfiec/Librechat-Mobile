@@ -1,13 +1,13 @@
 package com.garfiec.librechat
 
 import com.garfiec.librechat.core.common.identity.deriveServerId
-import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.db.dao.ServerDao
 import com.garfiec.librechat.core.data.db.entity.ServerEntity
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ServerRepositoryImpl
+import com.garfiec.librechat.core.data.repository.ServerResolution
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.ui.components.CustomHeaderRow
 import com.garfiec.librechat.feature.auth.viewmodel.ServerUrlViewModel
@@ -65,12 +65,8 @@ class ServerHeaderEditorContractTest {
         Dispatchers.setMain(testDispatcher)
         every { serverDataStore.currentUrlFlow } returns currentUrl
         coEvery { serverDataStore.awaitBaseUrl() } returns liveUrl
-        coEvery { configRepository.probeServerUrl() } returns
-            Result.Success(StartupConfig(serverDomain = liveUrl))
-        coEvery { configRepository.validateServerUrl(any()) } returns
-            Result.Success(StartupConfig(serverDomain = liveUrl))
-        coEvery { accountSwitcher.withPendingIdentity(any<suspend () -> Result<StartupConfig>>()) } coAnswers {
-            firstArg<suspend () -> Result<StartupConfig>>().invoke()
+        coEvery { configRepository.resolveServer(any(), any()) } coAnswers {
+            ServerResolution.Resolved(firstArg<List<String>>().first(), StartupConfig(serverDomain = liveUrl))
         }
     }
 

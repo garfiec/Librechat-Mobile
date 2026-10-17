@@ -18,6 +18,7 @@ import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.model.response.Category
 import com.garfiec.librechat.core.network.api.ConfigApi
+import com.garfiec.librechat.core.network.client.PendingRequestIdentity
 import io.ktor.client.plugins.HttpRequestTimeoutException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -92,49 +93,88 @@ class ConfigRepositoryImpl(
         ) { "server config snapshot" }
     }
 
-    override suspend fun validateServerUrl(url: String): Result<StartupConfig> =
-        fetchAndValidateConfig { config ->
-            _startupConfig.value = config
-            configCache.saveStartupConfig(config)
-            logConfigSnapshot(config)
-        }
+    override suspend fun publishStartupConfig(config: StartupConfig) {
+        _startupConfig.value = config
+        configCache.saveStartupConfig(config)
+        logConfigSnapshot(config)
+    }
 
-    override suspend fun probeServerUrl(): Result<StartupConfig> =
-        // Validation only — publishing/caching would attribute the probed server's config to the
-        // live one (see the interface KDoc); the add flow carries the result on its pending session.
-        fetchAndValidateConfig { }
+    override suspend fun resolveServer(
+        candidates: List<String>,
+        headers: Map<String, String>,
+    ): ServerResolution {
+        var typedFailure: ProbeFailure? = null
+        candidates.forEachIndexed { index, candidate ->
+            val outcome = withContext(PendingRequestIdentity(candidate, headers = { headers }, bearer = { null })) {
+                fetchCandidateConfig()
+            }
+            val failure = when (outcome) {
+                is ProbeOutcome.Valid -> {
+                    if (index > 0) {
+                        Diag.i("ServerProbe", attrs = mapOf("candidate" to candidateLabel(index))) {
+                            "server found at the origin of the entered address"
+                        }
+                    }
+                    return ServerResolution.Resolved(candidate, outcome.config)
+                }
+                is ProbeFailure -> outcome
+            }
+            val tryNext = index < candidates.lastIndex && failure.tryAnotherPath
+            probeFailed(failure, candidateLabel(index), fellBack = tryNext)
+            val typed = typedFailure ?: failure.also { typedFailure = it }
+            if (!tryNext) return ServerResolution.Failed(pickError(typed, failure))
+        }
+        return ServerResolution.Failed(Result.Error(message = "Please enter a server URL"))
+    }
+
+    /**
+     * The typed address's error, unless a later candidate failed with something the user can act on
+     * that the typed one hid: a gateway or a certificate at the origin is the real problem when the
+     * path merely 404'd.
+     */
+    private fun pickError(typed: ProbeFailure, last: ProbeFailure): Result.Error =
+        if (last !== typed && last.error.kind in ACTIONABLE_KINDS) last.error else typed.error
+
+    private fun candidateLabel(index: Int): String = if (index == 0) "typed" else "origin"
+
+    private sealed interface ProbeOutcome {
+        data class Valid(val config: StartupConfig) : ProbeOutcome
+    }
+
+    /**
+     * Why a candidate failed. [tryAnotherPath] is true when the host answered and only this path
+     * isn't LibreChat — the one case where the origin can still be the server.
+     */
+    private class ProbeFailure(
+        val reason: String,
+        val error: Result.Error,
+        val tryAnotherPath: Boolean = false,
+    ) : ProbeOutcome
 
     @Suppress("TooGenericExceptionCaught") // last resort after the typed catches above
-    private suspend fun fetchAndValidateConfig(
-        onValid: suspend (StartupConfig) -> Unit,
-    ): Result<StartupConfig> {
+    private suspend fun fetchCandidateConfig(): ProbeOutcome {
         return try {
             // Maps its own failures instead of going through safeApiCall, so it takes
             // safeApiCall's dispatcher hop explicitly (#326).
             val config = withContext(dispatcher) { configApi.getStartupConfig() }
-            if (!isValidLibreChatConfig(config)) {
-                probeFailed("not_librechat", Result.Error(message = "This doesn't appear to be a LibreChat server"))
-            } else {
-                onValid(config)
-                Result.Success(config)
-            }
+            if (!isValidLibreChatConfig(config)) notLibreChat(null) else ProbeOutcome.Valid(config)
         } catch (e: SerializationException) {
-            probeFailed("not_librechat", Result.Error(e, "This doesn't appear to be a LibreChat server"))
+            notLibreChat(e)
         } catch (e: ApiException) {
             val message = when (e.statusCode) {
-                404 -> "This doesn't appear to be a LibreChat server"
+                404 -> NOT_LIBRECHAT_MESSAGE
                 in 500..599 -> "Server error. Please try again later."
                 else -> e.message ?: "Could not connect to server"
             }
-            probeFailed("http_status", Result.Error(e, message))
+            ProbeFailure("http_status", Result.Error(e, message), tryAnotherPath = e.statusCode in 400..499)
         } catch (e: HttpRequestTimeoutException) {
-            probeFailed("timeout", Result.Error(e, "Connection timed out. Check the URL and try again."))
+            ProbeFailure("timeout", Result.Error(e, "Connection timed out. Check the URL and try again."))
         } catch (e: AccessGatewayException) {
             // Must stay above the blanket catch, which would call a reachable-and-answering gateway a
-            // connection problem. Worded here rather than via FailureKind.message(): both callers are
+            // connection problem. Worded here rather than via FailureKind.message(): the caller is
             // the pre-login server screen, and the shared wording points at Settings — which needs
             // the sign-in the gateway is blocking.
-            probeFailed(
+            ProbeFailure(
                 "access_gateway",
                 Result.Error(
                     exception = e,
@@ -146,8 +186,8 @@ class ConfigRepositoryImpl(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            if (e.failureKind() == FailureKind.Tls) {
-                probeFailed(
+            when (e.failureKind()) {
+                FailureKind.Tls -> ProbeFailure(
                     "tls",
                     Result.Error(
                         exception = e,
@@ -157,29 +197,42 @@ class ConfigRepositoryImpl(
                         kind = FailureKind.Tls,
                     ),
                 )
-            } else {
-                probeFailed("unreachable", Result.Error(e, "Could not reach the server. Check the URL and your connection."))
+                // A body that isn't JSON at all — a web page answering 200 at this path (Ktor finds no
+                // transformation for text/html) — is a host that answered, not one that didn't.
+                FailureKind.MalformedResponse -> notLibreChat(e)
+                else -> ProbeFailure(
+                    "unreachable",
+                    Result.Error(e, "Could not reach the server. Check the URL and your connection."),
+                )
             }
         }
     }
 
+    private fun notLibreChat(cause: Throwable?): ProbeFailure =
+        ProbeFailure("not_librechat", Result.Error(cause, NOT_LIBRECHAT_MESSAGE), tryAnotherPath = true)
+
     /**
-     * Records why the server check failed: this path maps its own failures instead of going through
+     * Records why a candidate failed: this path maps its own failures instead of going through
      * safeApiCall, so nothing else logs them. Never log the host — the log is exported before sign-in.
+     * A miss the search moves past is informational; the one that ends it is the warning.
      */
-    private fun probeFailed(reason: String, error: Result.Error): Result.Error {
-        val status = (error.exception as? ApiException)?.statusCode
-        Diag.w(
-            "ServerProbe",
-            origin = if (status != null || reason == "not_librechat") LogOrigin.SERVER else LogOrigin.NETWORK,
-            throwable = error.exception,
-            attrs = buildMap {
-                put("path", "/api/config")
-                put("reason", reason)
-                status?.let { put("status", it.toString()) }
-            },
-        ) { "server check failed" }
-        return error
+    private fun probeFailed(failure: ProbeFailure, candidate: String, fellBack: Boolean) {
+        val status = (failure.error.exception as? ApiException)?.statusCode
+        val attrs = buildMap {
+            put("path", "/api/config")
+            put("reason", failure.reason)
+            put("candidate", candidate)
+            put("fell_back", fellBack.toString())
+            status?.let { put("status", it.toString()) }
+        }
+        val origin = if (status != null || failure.reason == "not_librechat") LogOrigin.SERVER else LogOrigin.NETWORK
+        if (fellBack) {
+            Diag.i("ServerProbe", origin = origin, attrs = attrs) { "server check missed, trying the origin" }
+        } else {
+            Diag.w("ServerProbe", origin = origin, throwable = failure.error.exception, attrs = attrs) {
+                "server check failed"
+            }
+        }
     }
 
     /**
@@ -417,5 +470,10 @@ class ConfigRepositoryImpl(
         publishDetectedBackend(null)
         loggedConfigSignature = null
         configCache.clear()
+    }
+
+    private companion object {
+        const val NOT_LIBRECHAT_MESSAGE = "This doesn't appear to be a LibreChat server"
+        val ACTIONABLE_KINDS = setOf(FailureKind.AccessGateway, FailureKind.Tls)
     }
 }

@@ -42,7 +42,7 @@ class PendingAddSession internal constructor(
     private val _startupConfig = MutableStateFlow<StartupConfig?>(null)
 
     /** The pending server's validated startup config, probed under the pending identity and never
-     *  written to the live server's config state/cache ([ConfigRepository.probeServerUrl]) — the
+     *  written to the live server's config state/cache ([ConfigRepository.resolveServer]) — the
      *  add-mode login screen reads its feature flags (registration, social logins) from here. */
     val startupConfig: StateFlow<StartupConfig?> = _startupConfig.asStateFlow()
 

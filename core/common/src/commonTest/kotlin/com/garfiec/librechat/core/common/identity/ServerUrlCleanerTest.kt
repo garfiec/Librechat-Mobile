@@ -78,4 +78,19 @@ class ServerUrlCleanerTest {
         assertEquals("", cleanServerUrl(""))
         assertEquals("", cleanServerUrl("   "))
     }
+
+    @Test
+    fun originKeepsSchemeAndAuthorityOnly() {
+        assertEquals("https://h.example", serverOrigin("https://h.example/librechat"))
+        assertEquals("https://h.example:8443", serverOrigin("https://h.example:8443/a/b?x=1#f"))
+        assertEquals("https://Chat.Example.com", serverOrigin("https://Chat.Example.com"))
+        assertEquals("http://192.168.1.5:3080", serverOrigin("http://192.168.1.5:3080/"))
+        assertEquals("h.example", serverOrigin("h.example/librechat"))
+    }
+
+    @Test
+    fun originOfAPathlessCleanUrlIsTheSameUrl() {
+        val clean = cleanServerUrl("https://h.example/login?redirect_to=%2F")
+        assertEquals(clean, serverOrigin(clean))
+    }
 }
