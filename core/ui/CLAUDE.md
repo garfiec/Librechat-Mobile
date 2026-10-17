@@ -30,6 +30,12 @@ Material 3 theme and shared Compose components used across all feature modules. 
 - `BannerDisplay` - The server banner. The server sends at most one and only ever types it
   `banner`, so there is a single visual treatment; a `persistable` banner hides the dismiss control.
 
+### Autofill helpers
+- `Modifier.excludeFromAutofill()` (`components/ExcludeFromAutofill.kt`): for masked fields holding a
+  secret that isn't the login (API keys, tokens, PDF passwords). Android only.
+- `KeyboardOptions.withIosTextContentType()` (`components/IosTextContentType.kt`): iOS
+  `textContentType` roles (`.username`, `.newPassword`, `.oneTimeCode`); a no-op on Android.
+
 ### Keyboard dismissal (`components/ClearFocusOnTap.kt`)
 `Modifier.clearFocusOnTap()` clears focus — dismissing the keyboard — on a tap nothing else handled.
 iOS has no Back key, so without it a focused field's keyboard cannot be dismissed at all. Applies on

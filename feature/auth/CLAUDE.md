@@ -2,7 +2,7 @@
 
 ## Screens
 - **ServerUrlScreen** -- first-run server URL entry with validation and QR scan option
-- **LoginScreen** -- email/password + social OAuth buttons + LDAP username mode
+- **LoginScreen** -- email/password + social OAuth buttons
 - **RegisterScreen** -- name, username, email, password, confirm password
 - **ForgotPasswordScreen** -- email entry for password reset link
 - **TwoFactorScreen** -- 6-digit OTP input with backup code fallback
@@ -88,7 +88,9 @@
 ## Key Implementation Notes
 - If server URL is already stored, skip ServerUrl screen on launch
 - `openidAutoRedirect` from server config triggers automatic redirect instead of showing login form
-- LDAP mode: show "Username" field instead of "Email" (check server config)
+- No LDAP username mode: the login field is always an email field and `LdapConfig.username` is
+  unused. An LDAP server that signs in by username still works (the field accepts any text), but
+  the label and keyboard say "Email".
 
 ### Terms Screen
 - `TermsScreen` + `TermsViewModel` — displays server terms, "I Accept" button
@@ -102,3 +104,25 @@
 - `strings.xml` created for all 8 modules (app, core/ui, feature/auth, chat, conversations, settings, agents, files)
 - Contains key toolbar titles, button labels, section headers — NOT exhaustive extraction
 - Full string extraction is a future pass
+
+## Password managers
+- **Android** fills and saves through the autofill framework. Login email carries
+  `Username + EmailAddress`; Register and Reset password mark `NewUsername`/`NewPassword`; the
+  password fields are recognised from `PasswordVisualTransformation`. Compose ends the autofill
+  session (and the provider may offer to save) when the fields leave the screen. Register calls
+  `LocalAutofillManager.commit()` itself, because it returns to Login, whose fields keep the
+  session open.
+- **iOS** takes its roles from `KeyboardOptions.withIosTextContentType()` (`:core:ui`): `.username`
+  on the email fields, `.newPassword` on Register/Reset, `.oneTimeCode` on the 2FA input.
+- Fields holding other secrets (API keys, gateway tokens, PDF passwords) use
+  `Modifier.excludeFromAutofill()` so a password manager doesn't offer or save the login there.
+- Limits, all outside the app's control:
+  - Saved logins are keyed by the app's package or bundle, not by the server, so a password saved
+    in a browser for the server is not suggested automatically, and the same email on two servers
+    collides.
+  - On a tested Pixel, Google's autofill service returned no save info for the login form, so
+    Google Password Manager never offered to save. Other providers (LastPass) did. Cause unknown.
+  - iOS shows no save prompt and no matching suggestions without associated domains, which a
+    client for arbitrary servers can't declare. Picking a login from the keyboard's key icon works.
+- Credential Manager's `createCredential()` is deliberately not used on sign-in: it reaches only
+  Credential Manager providers, so it would send a LastPass user's login to Google.

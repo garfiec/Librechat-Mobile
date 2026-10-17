@@ -33,6 +33,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.IosTextContentType
+import com.garfiec.librechat.core.ui.components.withIosTextContentType
 import com.garfiec.librechat.feature.auth.diagnostics.DiagnosticLogLink
 import com.garfiec.librechat.feature.auth.resources.*
 import com.garfiec.librechat.feature.auth.resources.Res
@@ -112,7 +114,7 @@ fun RegisterScreen(
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,
                 autoCorrectEnabled = false,
-            ),
+            ).withIosTextContentType(IosTextContentType.Username),
             enabled = !uiState.isLoading,
         )
 
@@ -128,7 +130,7 @@ fun RegisterScreen(
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Password,
                 autoCorrectEnabled = false,
-            ),
+            ).withIosTextContentType(IosTextContentType.NewPassword),
             enabled = !uiState.isLoading,
         )
 
@@ -144,7 +146,7 @@ fun RegisterScreen(
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Password,
                 autoCorrectEnabled = false,
-            ),
+            ).withIosTextContentType(IosTextContentType.NewPassword),
             enabled = !uiState.isLoading,
         )
 

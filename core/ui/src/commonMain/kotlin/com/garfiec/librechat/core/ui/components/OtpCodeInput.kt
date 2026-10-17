@@ -150,7 +150,7 @@ private val DIGIT_BOX_SHAPE = RoundedCornerShape(8.dp)
 private val OTP_KEYBOARD_OPTIONS = KeyboardOptions(
     keyboardType = KeyboardType.Number,
     imeAction = ImeAction.Done,
-)
+).withIosTextContentType(IosTextContentType.OneTimeCode)
 
 private val HIDDEN_TEXT_STYLE = TextStyle(color = Color.Transparent)
 
