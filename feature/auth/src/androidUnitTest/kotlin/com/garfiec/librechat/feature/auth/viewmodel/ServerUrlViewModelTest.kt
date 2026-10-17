@@ -494,4 +494,44 @@ class ServerUrlViewModelTest {
         // Expanded, so the warning isn't hidden behind a collapsed section.
         assertThat(viewModel.uiState.value.showAdvanced).isTrue()
     }
+
+    /**
+     * The web UI's login redirect, pasted from a browser. Stored as typed it would validate —
+     * `/api/config` resolves against the origin — and every hand-built URL would then carry
+     * `/login?redirect_to=…` in front of its path. The deployment address is what gets stored and
+     * shown.
+     */
+    @Test
+    fun `a pasted web login URL is stored as the deployment address`() = runTest(testDispatcher) {
+        coEvery { configRepository.validateServerUrl(pendingUrl) } returns Result.Success(config)
+        val viewModel = createViewModel(addAccount = false)
+        advanceUntilIdle()
+
+        viewModel.onUrlChanged("$pendingUrl/login?redirect_to=%2Fc%2Fnew")
+        viewModel.validateAndConnect()
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { serverDataStore.setServerUrl(pendingUrl) }
+        coVerify(exactly = 1) { configRepository.validateServerUrl(pendingUrl) }
+        assertThat(viewModel.uiState.value.url).isEqualTo(pendingUrl)
+        assertThat(viewModel.uiState.value.isValidated).isTrue()
+    }
+
+    /** The http warning's confirm path goes through the same cleaning as the main path. */
+    @Test
+    fun `confirming an http URL cleans it the same way`() = runTest(testDispatcher) {
+        val httpUrl = "http://10.0.0.5:3080"
+        coEvery { configRepository.validateServerUrl(httpUrl) } returns Result.Success(config)
+        val viewModel = createViewModel(addAccount = false)
+        advanceUntilIdle()
+
+        viewModel.onUrlChanged("$httpUrl/c/new")
+        viewModel.validateAndConnect()
+        assertThat(viewModel.uiState.value.showHttpWarning).isTrue()
+        viewModel.confirmHttpConnection()
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { serverDataStore.setServerUrl(httpUrl) }
+        assertThat(viewModel.uiState.value.url).isEqualTo(httpUrl)
+    }
 }

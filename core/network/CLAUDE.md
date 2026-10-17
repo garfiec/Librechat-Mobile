@@ -8,6 +8,19 @@ Ktor HttpClient, API service classes, SSE streaming client, auth interceptor. Al
 - **AuthInterceptorPlugin** (`client/AuthInterceptor.kt`): Custom Ktor plugin that injects `Authorization: Bearer` on outgoing requests and retries on 401 after refreshing tokens. Skips auth endpoints (`auth/login`, `auth/register`, `auth/refresh`, etc.).
 - **TokenManager interface** (`client/TokenManager.kt`): `getAccessToken()`, `setTokens()`, `refreshAccessToken()` (single-flighted, epoch-guarded), `clearTokens()`, `sessionExpiredFlow`, plus the account-keyed `getAccessTokenFor()` / `selectAccount()` / `removeAccount()` / `refreshAccessTokenFor()`. Implemented in `:core:data`.
 - **ServerUrlProvider interface** (`client/ServerUrlProvider.kt`): Resolves the user-configured base URL. Implemented in `:core:data`.
+  **Every URL built by hand joins onto `cleanServerUrl(baseUrl)`** (`:core:common`) — the refresh
+  pin, `ImageUrlResolver`, the legacy image-gen output, file and share URLs, the iOS SSE transport.
+  The stored string can carry a pasted web-UI page: `https://host/login?redirect_to=…` passes
+  onboarding because Ktor's request merge (`DefaultRequest`, `SwitchBarrierPlugin.applyBaseUrl`)
+  drops a base query and a one-segment base path for `url { path("api/…") }`, so `/api/config`
+  resolves and every API call works, while appending to the raw string sent the refresh to
+  `/login?redirect_to=…/api/auth/refresh` — a 403 nobody could attribute, and a session that could
+  never renew. The cleaner strips the query, the fragment and one recognised web route and keeps any
+  other path (`AvatarUrlResolverTest` pins that a subpath deployment keeps its prefix in joins; note
+  the Ktor merge drops a one-segment subpath for the API calls, so such a deployment does not work
+  today either way). The raw string is still what `deriveServerId` hashes and what
+  `ServerHeadersPlugin` keys gateway headers on, so pass it through unchanged wherever identity is
+  derived (`pinnedBaseUrl`).
 - **API services** (`api/`): One class per domain -- `AuthApi`, `ConversationsApi`, `MessagesApi`, `ChatStreamApi`, `FilesApi`, `AgentsApi`, `PresetsApi`, `PromptsApi`, `TagsApi`, `ShareApi`, `ConfigApi`, `EndpointsApi`, `BalanceApi`, `UserApi`. Each takes `HttpClient` as a constructor parameter, wired via Koin.
 - **SSE client** (`sse/`): `SseClient`, `SseEvent`, `SseEventParser`, `SseConnectionManager`.
 - **DTO mappers** (`mapper/`): Convert network DTOs to domain models from `:core:model`.

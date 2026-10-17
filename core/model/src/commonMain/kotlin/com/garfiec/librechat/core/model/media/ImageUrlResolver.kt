@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.model.media
 
+import com.garfiec.librechat.core.common.identity.cleanServerUrl
 import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.FileReference
 import com.garfiec.librechat.core.model.content.MessageContentPart
@@ -51,16 +52,15 @@ fun resolveAttachmentUrl(attachment: Attachment?, baseUrl: String): String? {
  * so a bare relative path joins with `/`. A social-login avatar arrives as an absolute URL on the
  * provider's host and is returned untouched.
  *
- * The trailing slash is trimmed rather than assumed away: the roster stores the base URL as the
- * user typed it at onboarding, so a server entered as `https://host/` would otherwise build
- * `https://host//images/…` — which loads, but under a different cache key than every other image
- * surface derives for the same bytes.
+ * The base is cleaned like every other surface here, so a server entered as `https://host/` builds
+ * `https://host/images/…` — the same cache key every other image surface derives for the same
+ * bytes, not `https://host//images/…`.
  */
 fun resolveAvatarUrl(avatar: String?, baseUrl: String): String? =
     resolveImageUrl(
         filepath = avatar?.takeIf { it.isNotBlank() },
         fileId = null,
-        baseUrl = baseUrl.trimEnd('/'),
+        baseUrl = baseUrl,
         includeBareSlash = true,
         relativePathPrefix = "/",
     )
@@ -78,6 +78,9 @@ private fun resolveImageUrl(
     includeBareSlash: Boolean,
     relativePathPrefix: String = "/api/files/",
 ): String? {
+    // Byte-identical for a clean base: these URLs are cache keys shared with the prefetcher.
+    @Suppress("NAME_SHADOWING")
+    val baseUrl = cleanServerUrl(baseUrl)
     if (filepath != null) {
         return when {
             filepath.startsWith("http") -> filepath

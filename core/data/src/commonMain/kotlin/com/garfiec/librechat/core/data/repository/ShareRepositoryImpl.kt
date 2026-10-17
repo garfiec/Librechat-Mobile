@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.data.repository
 
 import com.garfiec.librechat.core.common.BackendVersion
+import com.garfiec.librechat.core.common.identity.cleanServerUrl
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.safeApiCall
 import com.garfiec.librechat.core.model.SharedLink
@@ -36,8 +37,7 @@ class ShareRepositoryImpl(
             val sharedLink = shareApi.createShareLink(conversationId)
             val shareId = sharedLink.shareId
                 ?: throw IllegalStateException("Server returned no shareId")
-            val baseUrl = serverUrlProvider.getBaseUrl().trimEnd('/')
-            "$baseUrl/share/$shareId"
+            "${cleanServerUrl(serverUrlProvider.getBaseUrl())}/share/$shareId"
         }
     }
 

@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.network.sse
 
 import co.touchlab.kermit.Logger
+import com.garfiec.librechat.core.common.identity.cleanServerUrl
 import com.garfiec.librechat.core.common.result.AccessGatewayException
 import com.garfiec.librechat.core.network.client.AccessGatewaySignal
 import com.garfiec.librechat.core.network.client.BearerResult
@@ -153,13 +154,13 @@ actual class SseHttpTransport(
         bearerToken: String?,
         customHeaders: Map<String, String>,
     ): Flow<ByteArray> = callbackFlow {
-        // Normalize base URL + stream path so there's exactly one slash between
-        // them. The base URL comes from the snapshot captured before this connection
-        // (already awaited past cold-start warm-up in SwitchGate.captureSnapshot), so
-        // a switch can't repoint it under a live stream. SseClient passes the stream
-        // path without a leading slash, matching how ChatRepositoryImpl builds it
-        // ("api/agents/chat/stream/$streamId").
-        val baseUrl = snapshotBaseUrl.trimEnd('/')
+        // This URL is built by hand, so it joins onto the cleaned base like every other hand-built
+        // join (Android's Ktor merge resolves the same GET itself). The base URL comes from the
+        // snapshot captured before this connection (already awaited past cold-start warm-up in
+        // SwitchGate.captureSnapshot), so a switch can't repoint it under a live stream.
+        // SseClient passes the stream path without a leading slash, matching how
+        // ChatRepositoryImpl builds it ("api/agents/chat/stream/$streamId").
+        val baseUrl = cleanServerUrl(snapshotBaseUrl)
         val normalizedPath = streamPath.trimStart('/')
         val queryString = if (resume) "?resume=true" else ""
         val fullUrl = "$baseUrl/$normalizedPath$queryString"

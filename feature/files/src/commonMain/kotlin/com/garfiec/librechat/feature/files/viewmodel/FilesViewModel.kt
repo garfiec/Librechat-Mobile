@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
+import com.garfiec.librechat.core.common.identity.cleanServerUrl
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.getOrNull
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
@@ -675,7 +676,7 @@ class FilesViewModel(
     }
 
     private fun FileObject.buildFileUrl(): String {
-        val baseUrl = serverDataStore.getBaseUrl().trimEnd('/')
+        val baseUrl = cleanServerUrl(serverDataStore.getBaseUrl())
         val url = if (filepath.startsWith("http://") || filepath.startsWith("https://")) {
             filepath
         } else if (filepath.isNotBlank()) {

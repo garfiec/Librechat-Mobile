@@ -2,6 +2,7 @@ package com.garfiec.librechat.core.data.datastore
 
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.extensions.trimTrailingSlash
+import com.garfiec.librechat.core.common.identity.cleanServerUrl
 import com.garfiec.librechat.core.common.result.AccessGatewayException
 import com.garfiec.librechat.core.logging.Diag
 import com.garfiec.librechat.core.logging.LogOrigin
@@ -405,10 +406,12 @@ abstract class CommonTokenDataStore(
         // URL-pinned: post to an absolute URL so a concurrent server switch can't redirect this
         // account's refresh token to another server. [pinnedBaseUrl] carries the *server* half of that
         // pin to ServerHeadersPlugin — the request URL alone can't serve as the key, because it is the
-        // refresh endpoint, not the deployment root, and would derive a different serverId.
+        // refresh endpoint, not the deployment root, and would derive a different serverId. It stays
+        // the raw stored string for that reason, while the POST goes to the cleaned base: see
+        // [refreshUrl].
         return performRefresh(
             accountKey = accountId,
-            absoluteRefreshUrl = pinned?.let { "$it$REFRESH_PATH" },
+            absoluteRefreshUrl = pinned?.let(::refreshUrl),
             pinnedBaseUrl = pinned,
             usedAccessToken = usedAccessToken,
         )
@@ -445,7 +448,7 @@ abstract class CommonTokenDataStore(
         val pinned = baseUrl.trimTrailingSlash().takeIf { it.isNotEmpty() }
         val result = performRefresh(
             accountKey = accountKey,
-            absoluteRefreshUrl = pinned?.let { "$it$REFRESH_PATH" },
+            absoluteRefreshUrl = pinned?.let(::refreshUrl),
             pinnedBaseUrl = pinned,
             usedAccessToken = currentAccessToken,
             bestEffort = true,
@@ -491,6 +494,13 @@ abstract class CommonTokenDataStore(
 
     /**
      * Retire [slot]'s rejected-token marker.
+    /**
+     * Joined onto the **cleaned** base, never the raw stored string: a stored web-UI URL
+     * (`https://host/login?redirect_to=…`) would 4xx the refresh for ever, and an unattributed 4xx
+     * keeps the session. See `core/network/CLAUDE.md`.
+     */
+    private fun refreshUrl(pinnedBaseUrl: String): String = "${cleanServerUrl(pinnedBaseUrl)}$REFRESH_PATH"
+
      *
      * Called from the flight lock on a success, from [stateMutex] on a teardown — where the marker's
      * token has just been deleted, so leaving it behind retains a dead credential in memory for the

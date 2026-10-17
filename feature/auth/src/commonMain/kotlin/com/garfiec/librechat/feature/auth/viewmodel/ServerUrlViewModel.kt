@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.auth.viewmodel
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.garfiec.librechat.core.common.identity.cleanServerUrl
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
@@ -187,7 +188,7 @@ class ServerUrlViewModel(
     }
 
     fun validateAndConnect() {
-        val url = _uiState.value.url.trim().trimEnd('/')
+        val url = cleanServerUrl(_uiState.value.url)
         if (url.isBlank()) {
             _uiState.value = _uiState.value.copy(error = "Please enter a server URL")
             return
@@ -208,12 +209,14 @@ class ServerUrlViewModel(
             url
         }
 
+        // Show the address that is actually being stored, so a stripped page path is not a surprise.
+        _uiState.value = _uiState.value.copy(url = normalizedUrl)
         doValidateAndConnect(normalizedUrl)
     }
 
     fun confirmHttpConnection() {
-        _uiState.value = _uiState.value.copy(showHttpWarning = false)
-        val url = _uiState.value.url.trim().trimEnd('/')
+        val url = cleanServerUrl(_uiState.value.url)
+        _uiState.value = _uiState.value.copy(showHttpWarning = false, url = url)
         doValidateAndConnect(url)
     }
 

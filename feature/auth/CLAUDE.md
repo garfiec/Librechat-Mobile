@@ -87,6 +87,14 @@
 
 ## Key Implementation Notes
 - If server URL is already stored, skip ServerUrl screen on launch
+- **The URL field accepts a pasted web-UI address and cleans it** (`cleanServerUrl`, `:core:common`):
+  the fragment and query go, so does one trailing LibreChat web route (`/login`, `/register`,
+  `/c/<id>`, `/share/<id>`, `/forgot-password`, `/reset-password`, `/verify`), and the cleaned address
+  is written back into the field. Any other path is kept — a subpath deployment is a different server.
+  Both Connect and the http-warning Confirm go through it. Without this a pasted
+  `https://host/login?redirect_to=…` validates (the API calls resolve against the origin) and then
+  lives in the identity hash and the roster for good; the same function is what every hand-built URL
+  joins onto, so a URL stored before this existed still works — see `core/network/CLAUDE.md`.
 - `openidAutoRedirect` from server config triggers automatic redirect instead of showing login form
 - LDAP mode: show "Username" field instead of "Email" (check server config)
 

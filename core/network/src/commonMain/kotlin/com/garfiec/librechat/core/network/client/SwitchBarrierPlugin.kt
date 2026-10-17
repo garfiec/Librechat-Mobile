@@ -89,8 +89,9 @@ class SwitchBarrierPlugin private constructor(
             if (requestUrl.encodedFragment.isNotEmpty()) {
                 resultUrl.encodedFragment = requestUrl.encodedFragment
             }
-            // Preserve the request's own query (e.g. the SSE `?resume=true`). LibreChat base URLs are
-            // host-root with no query of their own, so there is nothing to merge from the base side.
+            // Preserve the request's own query (e.g. the SSE `?resume=true`) and DROP the base's: a
+            // stored base can carry one (a pasted web-UI URL). This merge and the hand-built joins onto
+            // `cleanServerUrl(base)` must keep agreeing — see core/network/CLAUDE.md.
             resultUrl.encodedParameters = requestUrl.encodedParameters
             requestUrl.takeFrom(resultUrl)
         }

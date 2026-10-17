@@ -5,6 +5,7 @@ package com.garfiec.librechat.feature.chat.components
 
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.ToolConstants
+import com.garfiec.librechat.core.common.identity.cleanServerUrl
 import com.garfiec.librechat.core.model.AskUserQuestionOption
 import com.garfiec.librechat.core.model.AskUserQuestionRequest
 import com.garfiec.librechat.core.model.Attachment
@@ -347,21 +348,22 @@ internal fun parseImageGenResult(
             imageUrl = outputObj["url"]?.jsonPrimitive?.contentOrNull
                 ?: outputObj["image_url"]?.jsonPrimitive?.contentOrNull
                 ?: outputObj["result"]?.jsonPrimitive?.contentOrNull
+            val base = cleanServerUrl(baseUrl)
             if (imageUrl == null) {
                 val filepath = outputObj["filepath"]?.jsonPrimitive?.contentOrNull
                 if (filepath != null) {
                     imageUrl = when {
                         filepath.startsWith("http") -> filepath
-                        filepath.startsWith("/images/") && baseUrl.isNotBlank() -> "$baseUrl$filepath"
-                        baseUrl.isNotBlank() -> "$baseUrl/images/$filepath"
+                        filepath.startsWith("/images/") && base.isNotBlank() -> "$base$filepath"
+                        base.isNotBlank() -> "$base/images/$filepath"
                         else -> filepath
                     }
                 }
             }
             if (imageUrl == null) {
                 val fileId = outputObj["file_id"]?.jsonPrimitive?.contentOrNull
-                if (fileId != null && baseUrl.isNotBlank()) {
-                    imageUrl = "$baseUrl/api/files/$fileId"
+                if (fileId != null && base.isNotBlank()) {
+                    imageUrl = "$base/api/files/$fileId"
                 }
             }
         } catch (e: Exception) {
