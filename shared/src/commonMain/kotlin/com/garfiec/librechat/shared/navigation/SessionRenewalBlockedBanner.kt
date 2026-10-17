@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Warning
@@ -53,6 +54,9 @@ internal fun SessionRenewalBlockedBanner(
     ) {
         Card(
             modifier = Modifier
+                // It is the topmost thing in the shell, above the screen's own app bar, so it has to
+                // clear the status bar itself or the clock and icons draw over it.
+                .statusBarsPadding()
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 4.dp)
                 .semantics { liveRegion = LiveRegionMode.Polite },
