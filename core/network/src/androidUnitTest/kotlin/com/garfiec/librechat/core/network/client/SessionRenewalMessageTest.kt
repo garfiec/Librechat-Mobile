@@ -28,9 +28,10 @@ import org.junit.Test
  *
  * The server's body is `{"message":"jwt expired"}`, which passes the "looks like a sentence" screen
  * and would reach the chat's error banner verbatim while the session is kept but unable to renew.
- * The auth plugin tags the request it gave up on; the validator — a separate plugin, installed
- * separately, reading the same attributes instance — replaces the wording. Asserted through the real
- * factory so it pins that the two actually meet on one request.
+ * The auth plugin tags the call it gave up on; the validator — a separate plugin, installed
+ * separately — reads the call's attributes (not the request builder's, which are a different
+ * instance) and replaces the wording. Asserted through the real factory so it pins that the two
+ * actually meet on one call.
  */
 class SessionRenewalMessageTest {
 
