@@ -79,6 +79,19 @@ class ServerUrlCleanerTest {
         assertEquals("", cleanServerUrl("   "))
     }
 
+    /** Every page a browser can sit on, so a pasted one is never taken for a deployment path. */
+    @Test
+    fun theWebClientsOtherRoutesAreStripped() {
+        listOf(
+            "/login/2fa", "/search", "/c", "/prompts", "/prompts/new", "/prompts/p1", "/skills", "/skills/new",
+            "/skills/s1", "/projects", "/projects/p1", "/agents", "/agents/promoted", "/oauth/success",
+            "/oauth/error",
+        ).forEach { route ->
+            assertEquals("https://h.example", cleanServerUrl("https://h.example$route"), route)
+            assertEquals("https://h.example/librechat", cleanServerUrl("https://h.example/librechat$route"), route)
+        }
+    }
+
     @Test
     fun originKeepsSchemeAndAuthorityOnly() {
         assertEquals("https://h.example", serverOrigin("https://h.example/librechat"))

@@ -16,9 +16,8 @@ package com.garfiec.librechat.core.common.identity
  * Strip:
  *
  * - the fragment and the query, unconditionally — no LibreChat deployment is addressed by one;
- * - one trailing LibreChat web route (`/login`, `/register`, `/c/<id>`, `/share/<id>`,
- *   `/forgot-password`, `/reset-password`, `/verify`), case-sensitive, with or without a trailing
- *   slash;
+ * - one trailing LibreChat web route (`/login`, `/c/<id>`, `/share/<id>`, `/search`, `/agents`, … —
+ *   the web client's route table), case-sensitive, with or without a trailing slash;
  * - trailing slashes.
  *
  * Anything else in the path is kept. A deployment under a subpath (`https://host/librechat`) is a
@@ -70,6 +69,14 @@ private fun stripWebRoute(path: String): String {
 
 private const val SCHEME_SEPARATOR_LENGTH = 3
 
-private val WEB_ROUTES_EXACT = listOf("/login", "/register", "/forgot-password", "/reset-password", "/verify")
+// The web client's routes, from upstream `client/src/routes/index.tsx`. A one-segment page path
+// stored before requests resolved under the base path worked by accident (the merge dropped it), so
+// every route a browser can sit on belongs here. The dashboard's `d/*` is left out: it has no fixed
+// depth, and stripping an open-ended prefix could eat a real deployment path.
+private val WEB_ROUTES_EXACT = listOf(
+    "/login/2fa", "/login", "/register", "/forgot-password", "/reset-password", "/verify",
+    "/oauth/success", "/oauth/error", "/search", "/c", "/prompts/new", "/prompts", "/skills/new",
+    "/skills", "/projects", "/agents",
+)
 
-private val WEB_ROUTES_WITH_ID = listOf("/c/", "/share/")
+private val WEB_ROUTES_WITH_ID = listOf("/c/", "/share/", "/prompts/", "/skills/", "/projects/", "/agents/")

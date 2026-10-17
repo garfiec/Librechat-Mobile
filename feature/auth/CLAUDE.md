@@ -88,9 +88,9 @@
 ## Key Implementation Notes
 - If server URL is already stored, skip ServerUrl screen on launch
 - **The URL field accepts a pasted web-UI address and cleans it** (`cleanServerUrl`, `:core:common`):
-  the fragment and query go, so does one trailing LibreChat web route (`/login`, `/register`,
-  `/c/<id>`, `/share/<id>`, `/forgot-password`, `/reset-password`, `/verify`), and the cleaned address
-  is written back into the field. Any other path is kept — a subpath deployment is a different server.
+  the fragment and query go, so does one trailing LibreChat web route (`/login`, `/c/<id>`,
+  `/share/<id>`, `/search`, `/agents`, … — the web client's route table, registered in
+  `scripts/mirrors.json`), and the cleaned address is written back into the field. Any other path is kept — a subpath deployment is a different server.
   Both Connect and the http-warning Confirm go through it. Whatever is stored lives in the identity
   hash and the roster for good, so junk has to go before then; the same function names the root every
   request resolves under, so a URL stored before this existed still works — see

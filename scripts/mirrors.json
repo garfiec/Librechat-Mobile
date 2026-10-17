@@ -1387,6 +1387,19 @@
       },
       "why": "agents, assistants, azureAssistants and anthropic carry built-in entries in the base fileConfig (512 MB, full MIME list, enabled), so mergeFileConfig always holds an entry for them and no unset field reads the admin's default. The base config is never served; mobile copies which endpoints have one.",
       "failure_mode": "Upstream adds or drops a base entry and the client resolves that endpoint through the admin's default when the server does not (or the reverse): uploads the web accepts are refused, or oversized ones are sent. Nothing fails to decode."
+    },
+    {
+      "id": "web-client-routes",
+      "upstream": {
+        "file": "client/src/routes/index.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/common/src/commonMain/kotlin/com/garfiec/librechat/core/common/identity/ServerUrlCleaner.kt",
+        "symbol": "WEB_ROUTES_EXACT, WEB_ROUTES_WITH_ID"
+      },
+      "why": "The web client's page routes, stripped off a server URL pasted from a browser so it names the deployment root. Every request resolves under the cleaned base path, so this list decides where a stored URL's API calls go.",
+      "failure_mode": "A new web route is pasted as a server address and kept as a deployment path: the entry probe falls back to the origin, but a URL stored that way earlier sends every request under the page path and gets 404s. Nothing fails to decode."
     }
   ]
 }
