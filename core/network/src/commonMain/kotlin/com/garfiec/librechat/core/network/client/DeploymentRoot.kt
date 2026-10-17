@@ -44,7 +44,7 @@ internal fun resolveAgainstDeploymentRoot(requestUrl: URLBuilder, baseUrl: Strin
     if (requestUrl.port != DEFAULT_PORT) {
         resultUrl.port = requestUrl.port
     }
-    val rootSegments = resultUrl.encodedPathSegments.filter { it.isNotEmpty() }
+    val rootSegments = deploymentRootSegments(cleanBase)
     val requestSegments = requestUrl.encodedPathSegments
     val childSegments = if (requestSegments.firstOrNull() == "") requestSegments.drop(1) else requestSegments
     resultUrl.encodedPathSegments = listOf("") + rootSegments + childSegments
