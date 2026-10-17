@@ -394,7 +394,7 @@ abstract class CommonTokenDataStore(
     }
 
     override suspend fun refreshAccessToken(usedAccessToken: String?): RefreshResult =
-        // The live active account, against the live base URL (the refresh client's defaultRequest).
+        // The live active account, against the live base URL (the refresh client's ServerUrlReadyPlugin).
         performRefresh(
             accountKey = activeAccountKey,
             absoluteRefreshUrl = null,

@@ -187,7 +187,7 @@ actual class SseHttpTransport(
             return@callbackFlow
         }
         val port = (url.port?.intValue ?: DEFAULT_HTTPS_PORT).toUShort()
-        val requestPath = buildRequestPath(url)
+        val requestPath = requestTarget(fullUrl)
 
         val endpoint = nw_endpoint_create_host(host, port.toString())
         // Default TLS+TCP parameters for NWConnection must come from a C shim.
@@ -376,11 +376,15 @@ actual class SseHttpTransport(
         }
     }
 
-    private fun buildRequestPath(url: NSURL): String {
-        val path = url.path ?: "/"
-        val query = url.query
-        val effectivePath = if (path.isEmpty()) "/" else path
-        return if (query.isNullOrEmpty()) effectivePath else "$effectivePath?$query"
+    /**
+     * The request-target, cut from the URL string as built rather than read back off `NSURL`, whose
+     * `path` percent-decodes: a deployment root with an escaped segment (`/my%20chat`) would
+     * otherwise go out as a raw space and break the request line. Keeps the query.
+     */
+    private fun requestTarget(fullUrl: String): String {
+        val afterScheme = fullUrl.substringAfter("://")
+        val pathStart = afterScheme.indexOf('/')
+        return if (pathStart < 0) "/" else afterScheme.substring(pathStart)
     }
 
     private fun buildHttpRequest(

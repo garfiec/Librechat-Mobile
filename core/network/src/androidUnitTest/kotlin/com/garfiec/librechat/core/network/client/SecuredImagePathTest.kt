@@ -35,6 +35,14 @@ class SecuredImagePathTest {
         assertThat(matches("https://chat.example.com/other/images/x.png", base)).isFalse()
     }
 
+    /** A stored pasted web-UI address: its page path is not the deployment's base path. */
+    @Test
+    fun `matches against the deployment root of a pasted web-ui address`() {
+        assertThat(matches("https://chat.example.com/images/u/x.png", "https://chat.example.com/login?redirect_to=%2F")).isTrue()
+        assertThat(matches("https://chat.example.com/librechat/images/u/x.png", "https://chat.example.com/librechat/c/new"))
+            .isTrue()
+    }
+
     /** `/api/files/images` is the multipart upload POST on the files router, a bearer route. */
     @Test
     fun `does not match the files upload route`() {

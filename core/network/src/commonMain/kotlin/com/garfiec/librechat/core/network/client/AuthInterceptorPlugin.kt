@@ -65,7 +65,7 @@ class AuthInterceptorPlugin private constructor(
             fun isSkipPath(url: URLBuilder): Boolean = isAuthSkipPath(url)
 
             // Attach token to outgoing requests. Runs at State, which is after
-            // the SwitchBarrier/defaultRequest phases have applied the base URL —
+            // the SwitchBarrier/ServerUrlReady phase has applied the base URL —
             // so for the common relative-path call `context.url.host` is already
             // the base host, and for an absolute cross-host URL (e.g. a presigned
             // CDN download) it is that foreign host.

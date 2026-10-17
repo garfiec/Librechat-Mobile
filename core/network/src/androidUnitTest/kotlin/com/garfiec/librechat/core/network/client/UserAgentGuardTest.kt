@@ -37,10 +37,6 @@ import org.junit.Test
  */
 class UserAgentGuardTest {
 
-    private class FakeServerUrlProvider(private val baseUrl: String) : ServerUrlProvider {
-        override fun getBaseUrl(): String = baseUrl
-    }
-
     /** Handlers run unconfined so `runTest` cannot fast-forward past the request timeout. */
     private fun engineFactory(handler: MockRequestHandler) =
         object : HttpClientEngineFactory<MockEngineConfig> {
@@ -61,7 +57,7 @@ class UserAgentGuardTest {
             respond("OK", HttpStatusCode.OK)
         }
         val client = HttpClient(engine) {
-            defaultRequest { applyBrowserDefaults(FakeServerUrlProvider("https://chat.example.com")) }
+            defaultRequest { applyBrowserDefaults() }
         }
 
         client.get("/api/agents")

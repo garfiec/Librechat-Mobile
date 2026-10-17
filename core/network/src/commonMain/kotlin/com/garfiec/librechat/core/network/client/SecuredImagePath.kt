@@ -1,7 +1,6 @@
 package com.garfiec.librechat.core.network.client
 
 import io.ktor.http.URLBuilder
-import io.ktor.http.Url
 
 /** The single path segment LibreChat mounts its local image store under, directly off the base path. */
 private const val IMAGES_SEGMENT = "images"
@@ -24,7 +23,8 @@ private const val IMAGES_SEGMENT = "images"
  * the endpoint's own verdict", it also suppresses [SwitchBarrierPlugin]'s proactive renewal, and its
  * matcher is a whole-path-suffix match for `auth/login`-shaped strings rather than a prefix.
  *
- * Matched against [baseUrl]'s **base path**, not as a bare `/images/` prefix: upstream mounts the
+ * Matched against [baseUrl]'s **deployment root** ([deploymentRootSegments], so a pasted web-UI
+ * page path is not mistaken for one), not as a bare `/images/` prefix: upstream mounts the
  * store at `${basePath}/images`, so a deployment served under `https://host/librechat` answers images
  * at `https://host/librechat/images/…` and a naive prefix match would miss every one of them. The
  * mirror case matters just as much — `https://host/images/…` on a base-path deployment is *not* the
@@ -34,14 +34,8 @@ private const val IMAGES_SEGMENT = "images"
  */
 internal fun isSecuredImagePath(url: URLBuilder, baseUrl: String?): Boolean {
     val requestSegments = url.encodedPathSegments.filter { it.isNotEmpty() }
-    val baseSegments = basePathSegments(baseUrl)
+    val baseSegments = deploymentRootSegments(baseUrl)
     if (requestSegments.size <= baseSegments.size) return false
     if (baseSegments.indices.any { requestSegments[it] != baseSegments[it] }) return false
     return requestSegments[baseSegments.size] == IMAGES_SEGMENT
-}
-
-private fun basePathSegments(baseUrl: String?): List<String> {
-    if (baseUrl.isNullOrEmpty()) return emptyList()
-    val path = runCatching { Url(baseUrl).encodedPath }.getOrNull() ?: return emptyList()
-    return path.split('/').filter { it.isNotEmpty() }
 }

@@ -1,12 +1,13 @@
 package com.garfiec.librechat.core.data.datastore
 
+import com.garfiec.librechat.core.network.client.ServerUrlProvider
+import com.garfiec.librechat.core.network.client.ServerUrlReadyPlugin
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.MockEngineConfig
 import io.ktor.client.engine.mock.MockRequestHandler
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
-import io.ktor.client.request.url
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.headersOf
@@ -111,11 +112,16 @@ internal fun unconfinedMockEngine(handler: MockRequestHandler): MockEngine = Moc
     },
 )
 
+/** Resolves its URL the way the production refresh client does, through [ServerUrlReadyPlugin]. */
 internal fun refreshClientOf(engine: MockEngine, baseUrl: String = TEST_SERVER): Lazy<HttpClient> = lazy {
     HttpClient(engine) {
         install(ContentNegotiation) { json() }
+        install(ServerUrlReadyPlugin) {
+            serverUrlProvider = object : ServerUrlProvider {
+                override fun getBaseUrl(): String = baseUrl
+            }
+        }
         defaultRequest {
-            url(baseUrl)
             contentType(ContentType.Application.Json)
         }
     }

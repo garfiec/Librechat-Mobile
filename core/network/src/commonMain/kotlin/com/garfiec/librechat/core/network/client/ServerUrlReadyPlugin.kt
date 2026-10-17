@@ -7,15 +7,18 @@ import io.ktor.util.AttributeKey
 import io.ktor.util.pipeline.PipelinePhase
 
 /**
- * Awaits the account/server cold-start readiness before each request is built.
+ * Awaits the account/server cold-start readiness before each request is built, then resolves the
+ * request URL against the base URL ([resolveAgainstDeploymentRoot]).
  *
  * [ServerDataStore] resolves the persisted base URL asynchronously off the Main thread, so
- * during a narrow cold-start window [ServerUrlProvider.getBaseUrl] (which the non-suspend
- * `defaultRequest` block reads) can transiently return an empty string. Rather than relying on
- * every individual caller to remember to await, this plugin resolves the readiness at the
- * network layer: it runs in a phase inserted *before* [HttpRequestPipeline.Before] — where
- * Ktor's `DefaultRequest` applies the URL — so by the time `defaultRequest` reads
- * `getBaseUrl()` the warm-up has completed. After warm-up it is a no-op suspension point.
+ * during a narrow cold-start window [ServerUrlProvider.getBaseUrl] can transiently return an empty
+ * string. Rather than relying on every individual caller to remember to await, this plugin resolves
+ * the readiness at the network layer, in a phase inserted *before* [HttpRequestPipeline.Before], and
+ * only then reads the base. After warm-up the await is a no-op suspension point.
+ *
+ * Installed on the clients that have no [SwitchBarrierPlugin] (the refresh client, and the main
+ * client when no [SwitchGate] is wired); the barrier resolves through the same function, so a request
+ * lands on the same URL whichever plugin built it.
  *
  * When an [AccountReadyGate] is configured it is awaited **first**: the roster seed reconciles the
  * token mirror to the durable active pointer and drives the server URL from the active entry, so
@@ -47,6 +50,10 @@ class ServerUrlReadyPlugin private constructor(
             scope.requestPipeline.intercept(AwaitServerUrlPhase) {
                 plugin.accountReadyGate?.awaitReady()
                 plugin.serverUrlProvider.awaitBaseUrl()
+                val baseUrl = plugin.serverUrlProvider.getBaseUrl()
+                if (baseUrl.isNotEmpty()) {
+                    resolveAgainstDeploymentRoot(context.url, baseUrl)
+                }
             }
         }
     }

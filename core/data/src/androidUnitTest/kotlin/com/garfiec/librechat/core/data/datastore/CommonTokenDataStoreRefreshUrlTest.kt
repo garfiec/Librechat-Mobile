@@ -31,6 +31,8 @@ class CommonTokenDataStoreRefreshUrlTest {
         const val ACCOUNT = "acctA"
         const val WEB_LOGIN_BASE = "https://chat.example.com/login?redirect_to=%2Fc%2Fnew"
         const val EXPECTED_REFRESH = "https://chat.example.com/api/auth/refresh"
+        const val SUBPATH_BASE = "https://example.com/librechat"
+        const val SUBPATH_REFRESH = "https://example.com/librechat/api/auth/refresh"
     }
 
     private fun jwt(secondsFromNow: Long): String {
@@ -50,8 +52,8 @@ class CommonTokenDataStoreRefreshUrlTest {
         respond(refreshResponseBody(jwt(900)), HttpStatusCode.OK, jsonResponseHeaders)
     }
 
-    private fun seeded(engine: MockEngine, access: String): FakeTokenStore = FakeTokenStore(
-        refreshClientOf(engine),
+    private fun seeded(engine: MockEngine, access: String, liveBase: String = TEST_SERVER): FakeTokenStore = FakeTokenStore(
+        refreshClientOf(engine, liveBase),
         seed = mapOf(
             ACTIVE_ACCOUNT_KEY to ACCOUNT,
             accessKeyOf(ACCOUNT) to access,
@@ -94,6 +96,27 @@ class CommonTokenDataStoreRefreshUrlTest {
         store.refreshAccessTokenFor(ACCOUNT, WEB_LOGIN_BASE)
 
         assertThat(seen.pinnedBase).isEqualTo(WEB_LOGIN_BASE)
+    }
+
+    /** A deployment served under a path: the refresh goes under it, pinned or not. */
+    @Test
+    fun `a pinned refresh against a subpath deployment stays under the subpath`() = runTest(UnconfinedTestDispatcher()) {
+        val seen = Seen()
+        val store = seeded(recordingEngine(seen), access = jwt(900))
+
+        store.refreshAccessTokenFor(ACCOUNT, SUBPATH_BASE)
+
+        assertThat(seen.url).isEqualTo(SUBPATH_REFRESH)
+    }
+
+    @Test
+    fun `an unpinned refresh against a subpath deployment stays under the subpath`() = runTest(UnconfinedTestDispatcher()) {
+        val seen = Seen()
+        val store = seeded(recordingEngine(seen), access = jwt(900), liveBase = SUBPATH_BASE)
+
+        store.refreshAccessToken(usedAccessToken = null)
+
+        assertThat(seen.url).isEqualTo(SUBPATH_REFRESH)
     }
 
     /** The control: a clean base resolves to the same URL it always did. */

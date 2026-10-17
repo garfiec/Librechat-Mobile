@@ -27,7 +27,6 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
-import io.ktor.http.takeFrom
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
@@ -190,7 +189,7 @@ object LibreChatHttpClient {
         }
 
         defaultRequest {
-            applyBrowserDefaults(serverUrlProvider)
+            applyBrowserDefaults()
             contentType(ContentType.Application.Json)
         }
     }
@@ -328,15 +327,15 @@ private val RETRY_SAFE_METHODS = setOf(HttpMethod.Get, HttpMethod.Head, HttpMeth
 private fun HttpMethod.isRetrySafe(): Boolean = this in RETRY_SAFE_METHODS
 
 /**
- * Applies the base URL and the browser [User-Agent][LibreChatHttpClient.BROWSER_USER_AGENT] that
- * the stock LibreChat server's `ua-parser-js` middleware requires — a single audited definition
- * point shared by the main and streaming clients so the browser-UA invariant lives in one place.
- * The refresh client deliberately omits this (its `/auth/refresh` route is UA-ungated).
+ * Applies the browser [User-Agent][LibreChatHttpClient.BROWSER_USER_AGENT] that the stock LibreChat
+ * server's `ua-parser-js` middleware requires — a single audited definition point shared by the main
+ * and streaming clients so the browser-UA invariant lives in one place. The refresh client
+ * deliberately omits this (its `/auth/refresh` route is UA-ungated).
+ *
+ * No URL here: [SwitchBarrierPlugin] or [ServerUrlReadyPlugin] resolves every relative request
+ * against the deployment root before this runs, and `DefaultRequest`'s own merge would apply
+ * different rules to a subpath base.
  */
-internal fun DefaultRequestBuilder.applyBrowserDefaults(serverUrlProvider: ServerUrlProvider) {
-    val baseUrl = serverUrlProvider.getBaseUrl()
-    if (baseUrl.isNotEmpty()) {
-        url.takeFrom(baseUrl)
-    }
+internal fun DefaultRequestBuilder.applyBrowserDefaults() {
     headers.append(HttpHeaders.UserAgent, LibreChatHttpClient.BROWSER_USER_AGENT)
 }

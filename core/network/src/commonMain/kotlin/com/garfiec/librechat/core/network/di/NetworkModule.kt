@@ -57,7 +57,6 @@ import io.ktor.client.plugins.defaultRequest
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
-import io.ktor.http.takeFrom
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import org.koin.core.module.Module
@@ -137,7 +136,7 @@ val networkModule = module {
                 socketTimeoutMillis = Long.MAX_VALUE
             }
             defaultRequest {
-                applyBrowserDefaults(serverUrlProvider)
+                applyBrowserDefaults()
             }
         }
     }
@@ -159,8 +158,8 @@ val networkModule = module {
             // classifies as Retryable — it never routes to re-auth and never recovers, it just
             // silently stops working.
             //
-            // ServerUrlReadyPlugin could not host this: it intercepts before HttpRequestPipeline.Before,
-            // where `context.url.host` is still empty and no host-scoping is possible.
+            // Not folded into ServerUrlReadyPlugin, which now does set the host: the host-scoped,
+            // per-server header lookup belongs to ServerHeadersPlugin on all three clients.
             install(ServerHeadersPlugin) {
                 this.serverHeadersProvider = serverHeadersProvider
                 this.serverUrlProvider = serverUrlProvider
@@ -173,10 +172,6 @@ val networkModule = module {
                 connectTimeoutMillis = 10_000
             }
             defaultRequest {
-                val baseUrl = serverUrlProvider.getBaseUrl()
-                if (baseUrl.isNotEmpty()) {
-                    url.takeFrom(baseUrl)
-                }
                 contentType(ContentType.Application.Json)
             }
         }
