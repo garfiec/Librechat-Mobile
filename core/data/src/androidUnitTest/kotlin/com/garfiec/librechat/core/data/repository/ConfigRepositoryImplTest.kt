@@ -177,6 +177,48 @@ class ConfigRepositoryImplTest {
         assertThat(repo.availableModels.value).isEmpty()
     }
 
+    @Test
+    fun `fetchModels drops an agents key and duplicate models before publishing and caching`() = runTest {
+        coEvery { configApi.getModels() } returns mapOf(
+            "agents" to listOf("agent_1", "agent_2"),
+            "openAI" to listOf("gpt-4o", "gpt-4o", "o3"),
+        )
+        coEvery { configCache.loadAvailableModels() } returns null
+        val repo = repository()
+
+        val result = repo.fetchModels()
+
+        val expected = mapOf("openAI" to listOf("gpt-4o", "o3"))
+        assertThat((result as Result.Success).data).isEqualTo(expected)
+        assertThat(repo.availableModels.value).isEqualTo(expected)
+        coVerify { configCache.saveAvailableModels(expected) }
+    }
+
+    @Test
+    fun `fetchModels normalizes a cached map served while the network is down`() = runTest {
+        // A cache written by an older build still carries the agents key.
+        coEvery { configCache.loadAvailableModels() } returns mapOf("agents" to listOf("agent_1"), "openAI" to listOf("o3"))
+        coEvery { configApi.getModels() } throws IOException("offline")
+        val repo = repository()
+
+        val result = repo.fetchModels()
+
+        assertThat((result as Result.Success).data).isEqualTo(mapOf("openAI" to listOf("o3")))
+        assertThat(repo.availableModels.value).isEqualTo(mapOf("openAI" to listOf("o3")))
+    }
+
+    @Test
+    fun `reloadForActiveServer normalizes the cached models`() = runTest {
+        coEvery { configCache.loadStartupConfig() } returns null
+        coEvery { configCache.loadEndpointConfigs() } returns null
+        coEvery { configCache.loadAvailableModels() } returns mapOf("agents" to listOf("agent_1"))
+        val repo = repository()
+
+        repo.reloadForActiveServer()
+
+        assertThat(repo.availableModels.value).isEmpty()
+    }
+
     /**
      * The config probe is where a gateway-blocked server is met first, before login. The kind matters
      * as much as the wording — it is what a UI layer would localize or branch on.

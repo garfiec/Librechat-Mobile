@@ -4,6 +4,7 @@ import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.BackendBuildClass
 import com.garfiec.librechat.core.common.BackendVersion
 import com.garfiec.librechat.core.common.DetectedBackend
+import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.common.generated.BackendCommitMap
 import com.garfiec.librechat.core.common.result.AccessGatewayException
 import com.garfiec.librechat.core.common.result.ApiException
@@ -248,7 +249,7 @@ class ConfigRepositoryImpl(
     override suspend fun reloadForActiveServer() {
         _startupConfig.value = configCache.loadStartupConfig()
         _endpointConfigs.value = configCache.loadEndpointConfigs().orEmpty()
-        _availableModels.value = configCache.loadAvailableModels().orEmpty()
+        _availableModels.value = configCache.loadAvailableModels().orEmpty().normalizedModels()
         // Version re-detects from the reloaded config on the next checkBackendVersion pass.
         publishDetectedBackend(null)
         loggedConfigSignature = null
@@ -308,12 +309,12 @@ class ConfigRepositoryImpl(
     override suspend fun fetchModels(): Result<Map<String, List<String>>> {
         if (_availableModels.value.isEmpty()) {
             configCache.loadAvailableModels()?.let { cached ->
-                _availableModels.value = cached
+                _availableModels.value = cached.normalizedModels()
             }
         }
 
         val result = safeApiCall {
-            val models = configApi.getModels()
+            val models = configApi.getModels().normalizedModels()
             _availableModels.value = models
             configCache.saveAvailableModels(models)
             models
@@ -328,6 +329,13 @@ class ConfigRepositoryImpl(
         }
         return result
     }
+
+    /**
+     * Agents come from `/api/agents`: an `agents` key or a repeated model here duplicates a model
+     * selector LazyColumn key, which crashes (#541).
+     */
+    private fun Map<String, List<String>>.normalizedModels(): Map<String, List<String>> =
+        filterKeys { it != EndpointConstants.AGENTS }.mapValues { (_, models) -> models.distinct() }
 
     /**
      * Checks the backend version against the supported version. See [detectVersion] for how the
