@@ -24,9 +24,8 @@ import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 
-// The docked pause panels at the widths and font scales where their compact header runs out of
-// room. State is hoisted here the way PendingActionDelegate hoists it, so interactive mode pages,
-// picks and collapses.
+// State is hoisted the way PendingActionDelegate hoists it, so interactive mode pages, picks and
+// collapses.
 
 @PreviewNarrowScreens
 @Composable
@@ -99,7 +98,7 @@ private fun ToolPanelHost(action: PendingAction) {
 
 private fun options(vararg labels: String) = labels.map { AskUserQuestionOption(label = it, value = it) }
 
-/** The field report's batch: a short question that a four-dot pager still squeezed. */
+/** A short first question beside a four-dot pager, which still squeezes it. */
 private val askBatch = PendingAction(
     actionId = "preview-ask",
     payload = PendingActionPayload(

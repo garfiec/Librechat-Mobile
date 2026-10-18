@@ -143,8 +143,7 @@ internal fun PausePanelPager(
 /**
  * The compact layout's header: the item's [title] beside the [pager] and the collapse [toggle], or,
  * when [titleNeedsStacking] says the width left beside them is too little, the title and toggle on
- * one row with the pager centred beneath. The pager is wide enough (two arrows and a dot per item)
- * to squeeze a title to a few words a line on a narrow phone or at a large font scale.
+ * one row with the pager centred beneath.
  *
  * [titleNeedsStacking] receives the inline title width in px. It must not depend on [collapsed], so
  * collapsing never flips the arrangement. A collapsed header drops the pager, which is inert while
