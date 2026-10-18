@@ -36,7 +36,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -221,21 +223,33 @@ private fun CompactToolLayout(
                 .padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 8.dp)
                 .animateContentSize(),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                ToolNameTitle(name = active.name, collapsed = state.collapsed, modifier = Modifier.weight(1f))
-                if (state.isBatch) {
-                    PausePanelPager(
-                        index = state.activeIndex,
-                        count = state.calls.size,
-                        done = state.calls.map { state.isDecided(it.toolCallId) },
-                        enabled = !state.collapsed,
-                        onSelect = actions.onSelect,
-                        previousLabel = stringResource(Res.string.cd_previous_tool_call),
-                        nextLabel = stringResource(Res.string.cd_next_tool_call),
-                    )
-                }
-                CollapseToggle(collapsed = state.collapsed, onCollapsedChange = actions.onCollapsedChange)
-            }
+            val name = active.name.ifBlank { stringResource(Res.string.tool_approval_title) }
+            val titleStyle = MaterialTheme.typography.titleSmall
+            val textMeasurer = rememberTextMeasurer()
+            val iconWidthPx = with(LocalDensity.current) { TOOL_NAME_ICON_WIDTH.roundToPx() }
+            PausePanelCompactHeader(
+                collapsed = state.collapsed,
+                titleNeedsStacking = { width ->
+                    textMeasurer.pausePanelTitleNeedsStacking(name, titleStyle, width - iconWidthPx)
+                },
+                title = { ToolNameTitle(name = name, collapsed = state.collapsed) },
+                pager = if (state.isBatch) {
+                    {
+                        PausePanelPager(
+                            index = state.activeIndex,
+                            count = state.calls.size,
+                            done = state.calls.map { state.isDecided(it.toolCallId) },
+                            enabled = !state.collapsed,
+                            onSelect = actions.onSelect,
+                            previousLabel = stringResource(Res.string.cd_previous_tool_call),
+                            nextLabel = stringResource(Res.string.cd_next_tool_call),
+                        )
+                    }
+                } else {
+                    null
+                },
+                toggle = { CollapseToggle(collapsed = state.collapsed, onCollapsedChange = actions.onCollapsedChange) },
+            )
 
             if (state.collapsed) return@Column
 
@@ -412,8 +426,8 @@ private fun WideToolLayout(
 @Composable
 private fun ToolNameTitle(name: String, collapsed: Boolean, modifier: Modifier = Modifier) {
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
-        Icon(Icons.Default.Shield, contentDescription = null, modifier = Modifier.size(20.dp))
-        Spacer(modifier = Modifier.width(8.dp))
+        Icon(Icons.Default.Shield, contentDescription = null, modifier = Modifier.size(TOOL_NAME_ICON_SIZE))
+        Spacer(modifier = Modifier.width(TOOL_NAME_ICON_GAP))
         Text(
             text = name.ifBlank { stringResource(Res.string.tool_approval_title) },
             style = MaterialTheme.typography.titleSmall,
@@ -656,4 +670,7 @@ private fun String.decisionLabel(): StringResource = when (this) {
 /** Narrower than the default padding so all four decisions fit one row at phone width. */
 private val DECISION_BUTTON_PADDING = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
 private const val BODY_HEIGHT_FRACTION = 0.3f
+private val TOOL_NAME_ICON_SIZE = 20.dp
+private val TOOL_NAME_ICON_GAP = 8.dp
+private val TOOL_NAME_ICON_WIDTH = TOOL_NAME_ICON_SIZE + TOOL_NAME_ICON_GAP
 private val FALLBACK_BODY_MAX_HEIGHT = 240.dp

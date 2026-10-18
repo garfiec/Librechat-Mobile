@@ -60,6 +60,7 @@ import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -72,7 +73,10 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.feature.chat.resources.*
@@ -135,6 +139,62 @@ internal fun PausePanelPager(
         }
     }
 }
+
+/**
+ * The compact layout's header: the item's [title] beside the [pager] and the collapse [toggle], or,
+ * when [titleNeedsStacking] says the width left beside them is too little, the title and toggle on
+ * one row with the pager centred beneath. The pager is wide enough (two arrows and a dot per item)
+ * to squeeze a title to a few words a line on a narrow phone or at a large font scale.
+ *
+ * [titleNeedsStacking] receives the inline title width in px. It must not depend on [collapsed], so
+ * collapsing never flips the arrangement. A collapsed stacked header drops the pager row, which is
+ * inert while collapsed anyway.
+ */
+@Composable
+internal fun PausePanelCompactHeader(
+    collapsed: Boolean,
+    titleNeedsStacking: (inlineWidthPx: Int) -> Boolean,
+    title: @Composable () -> Unit,
+    pager: (@Composable () -> Unit)?,
+    toggle: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SubcomposeLayout(modifier = modifier) { constraints ->
+        val loose = constraints.copy(minWidth = 0, minHeight = 0)
+        val width = constraints.maxWidth
+        val togglePlaceable = subcompose(PausePanelHeaderSlot.Toggle, toggle).single().measure(loose)
+        val pagerPlaceable = pager?.let { subcompose(PausePanelHeaderSlot.Pager, it).single().measure(loose) }
+        val inlineTitleWidth = width - togglePlaceable.width - (pagerPlaceable?.width ?: 0)
+        val stacked = pagerPlaceable != null && (inlineTitleWidth <= 0 || titleNeedsStacking(inlineTitleWidth))
+
+        val titleWidth = if (stacked) width - togglePlaceable.width else inlineTitleWidth
+        val titlePlaceable = subcompose(PausePanelHeaderSlot.Title, title).single()
+            .measure(loose.copy(minWidth = titleWidth.coerceAtLeast(0), maxWidth = titleWidth.coerceAtLeast(0)))
+        val rowHeight = maxOf(titlePlaceable.height, togglePlaceable.height, pagerPlaceable?.height ?: 0)
+        val pagerRow = pagerPlaceable?.takeIf { stacked && !collapsed }
+        val height = rowHeight + (pagerRow?.height ?: 0)
+
+        layout(width, height) {
+            fun centredInRow(h: Int) = (rowHeight - h) / 2
+            titlePlaceable.placeRelative(0, centredInRow(titlePlaceable.height))
+            if (!stacked && pagerPlaceable != null) {
+                pagerPlaceable.placeRelative(titleWidth, centredInRow(pagerPlaceable.height))
+            }
+            togglePlaceable.placeRelative(width - togglePlaceable.width, centredInRow(togglePlaceable.height))
+            pagerRow?.placeRelative((width - pagerRow.width) / 2, rowHeight)
+        }
+    }
+}
+
+private enum class PausePanelHeaderSlot { Title, Pager, Toggle }
+
+/**
+ * Whether [text] in [style] wraps past [PAUSE_PANEL_INLINE_TITLE_MAX_LINES] at [widthPx]: the usual
+ * [PausePanelCompactHeader] test, so the title stays beside the pager only while it reads as a title.
+ */
+internal fun TextMeasurer.pausePanelTitleNeedsStacking(text: String, style: TextStyle, widthPx: Int): Boolean =
+    measure(text = text, style = style, constraints = Constraints(maxWidth = widthPx)).lineCount >
+        PAUSE_PANEL_INLINE_TITLE_MAX_LINES
 
 @Composable
 private fun PausePanelPageDots(
@@ -604,6 +664,8 @@ private val MAX_TAB_LABEL_WIDTH = 140.dp
 internal const val PAUSE_PANEL_PAGE_DOTS_TAG = "pause_panel_page_dots"
 internal const val PAUSE_PANEL_SWIPE_AREA_TAG = "pause_panel_swipe_area"
 internal const val PAUSE_PANEL_TABS_TAG = "pause_panel_tabs"
+
+private const val PAUSE_PANEL_INLINE_TITLE_MAX_LINES = 2
 
 /** Past this many items the dots would crowd the title out, so the pager reads `n of N` instead. */
 private const val MAX_PAGE_DOTS = 10

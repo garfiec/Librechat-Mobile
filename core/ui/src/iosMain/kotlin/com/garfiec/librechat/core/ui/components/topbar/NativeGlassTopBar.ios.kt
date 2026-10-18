@@ -30,6 +30,7 @@ import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGSizeMake
 import platform.Foundation.NSClassFromString
 import platform.UIKit.NSDirectionalRectEdgeTrailing
+import platform.UIKit.NSLineBreakByTruncatingTail
 import platform.UIKit.UIAction
 import platform.UIKit.UIAlertAction
 import platform.UIKit.UIAlertActionStyleCancel
@@ -247,6 +248,8 @@ private class NativeBarContainer(
     private fun titleButton(text: String, chevron: Boolean): UIButton {
         val configuration = UIButtonConfiguration.plainButtonConfiguration().apply {
             title = text
+            // A configuration title wraps by default, and the bar clips the extra lines.
+            titleLineBreakMode = NSLineBreakByTruncatingTail
             baseForegroundColor = UIColor.labelColor
             if (chevron) {
                 image = UIImage.systemImageNamed("chevron.down")
