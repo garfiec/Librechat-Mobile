@@ -35,6 +35,9 @@ kotlin {
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
         }
+        commonTest.dependencies {
+            implementation(libs.coroutines.test)
+        }
         named("androidUnitTest").dependencies {
             implementation(libs.koin.test)
             implementation(libs.ktor.client.mock)
