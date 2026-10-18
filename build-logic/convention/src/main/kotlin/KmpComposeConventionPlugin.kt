@@ -54,6 +54,10 @@ class KmpComposeConventionPlugin : Plugin<Project> {
                     implementation(compose.components.uiToolingPreview)
                 }
             }
+
+            // What Android Studio renders @Preview functions with; debug only, never shipped.
+            @Suppress("DEPRECATION")
+            dependencies.add("debugImplementation", compose.uiTooling)
         }
     }
 }

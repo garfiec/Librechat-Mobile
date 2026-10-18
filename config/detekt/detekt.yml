@@ -134,6 +134,7 @@ style:
     allowedNames: "(_|ignored|expected|serialVersionUID)"
     ignoreAnnotated:
       - "Preview"
+      - "PreviewNarrowScreens"
   UnusedPrivateProperty:
     active: true
     allowedNames: "(_|ignored|expected|serialVersionUID)"
