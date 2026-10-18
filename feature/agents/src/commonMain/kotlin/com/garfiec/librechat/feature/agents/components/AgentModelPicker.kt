@@ -166,7 +166,7 @@ private fun ModelPickerSheet(
                         .heightIn(min = 0.dp),
                 ) {
                     groupedModels.forEach { (endpoint, models) ->
-                        item(key = "header_$endpoint", contentType = "header") {
+                        item(key = "hdr:ep:$endpoint", contentType = "header") {
                             Text(
                                 text = endpoint,
                                 style = MaterialTheme.typography.labelSmall,
@@ -177,7 +177,7 @@ private fun ModelPickerSheet(
                             )
                             AdaptiveDivider()
                         }
-                        items(models, key = { "${it.endpoint}/${it.id}" }, contentType = { "model" }) { model ->
+                        items(models, key = { "model:${it.endpoint}::${it.id}" }, contentType = { "model" }) { model ->
                             val isSelected = model.id == selectedModel
                             Text(
                                 text = model.name,

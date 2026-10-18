@@ -113,7 +113,7 @@ class AgentMarketplaceViewModel(
                 category = state.selectedCategory,
             )) {
                 is Result.Success -> {
-                    val displayAgents = result.data.agents.map { it.toCardDisplayData() }
+                    val displayAgents = result.data.agents.map { it.toCardDisplayData() }.distinctBy { it.id }
                     _uiState.value = _uiState.value.copy(
                         agents = displayAgents,
                         filteredAgents = displayAgents,
@@ -149,7 +149,10 @@ class AgentMarketplaceViewModel(
             )) {
                 is Result.Success -> {
                     val currentAgents = _uiState.value.agents
-                    val newAgents = currentAgents + result.data.agents.map { it.toCardDisplayData() }
+                    // The grid keys cards by id: a page boundary that shifts under the cursor
+                    // would otherwise repeat an agent and crash the grid.
+                    val newAgents = (currentAgents + result.data.agents.map { it.toCardDisplayData() })
+                        .distinctBy { it.id }
                     _uiState.value = _uiState.value.copy(
                         agents = newAgents,
                         filteredAgents = newAgents,
@@ -180,7 +183,7 @@ class AgentMarketplaceViewModel(
                 category = state.selectedCategory,
             )) {
                 is Result.Success -> {
-                    val displayAgents = result.data.agents.map { it.toCardDisplayData() }
+                    val displayAgents = result.data.agents.map { it.toCardDisplayData() }.distinctBy { it.id }
                     _uiState.value = _uiState.value.copy(
                         agents = displayAgents,
                         filteredAgents = displayAgents,
@@ -238,7 +241,7 @@ class AgentMarketplaceViewModel(
             when (val result = agentRepository.getAgentCategories()) {
                 is Result.Success -> {
                     _uiState.value = _uiState.value.copy(
-                        categories = result.data.map { it.value },
+                        categories = result.data.map { it.value }.distinct(),
                     )
                 }
                 is Result.Error -> { /* categories are non-critical */ }

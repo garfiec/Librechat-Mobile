@@ -78,7 +78,7 @@ internal fun McpToolsSheet(
                 ) {
                     toolsByServer.forEach { (serverName, serverTools) ->
                         if (serverFilter == null && toolsByServer.size > 1) {
-                            item(key = "header_$serverName") {
+                            item(key = "hdr:$serverName") {
                                 Text(
                                     text = serverName,
                                     style = MaterialTheme.typography.titleSmall,
@@ -92,7 +92,7 @@ internal fun McpToolsSheet(
 
                         items(
                             items = serverTools,
-                            key = { "${it.serverName}_${it.name}" },
+                            key = { "tool:${it.serverName}::${it.name}" },
                             contentType = { "mcp_tool" },
                         ) { tool ->
                             ToolDetailItem(tool = tool)
@@ -100,7 +100,7 @@ internal fun McpToolsSheet(
                         }
 
                         if (serverFilter == null && toolsByServer.size > 1) {
-                            item(key = "divider_$serverName") {
+                            item(key = "div:$serverName") {
                                 AdaptiveDivider(modifier = Modifier.padding(vertical = 4.dp))
                             }
                         }

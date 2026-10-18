@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -79,7 +79,11 @@ fun PresetPicker(
                 LazyColumn(
                     modifier = Modifier.weight(1f, fill = false),
                 ) {
-                    items(presets, key = { it.presetId ?: it.title }, contentType = { "preset" }) { preset ->
+                    itemsIndexed(
+                        presets,
+                        key = { index, preset -> preset.presetId?.let { "id:$it" } ?: "idx:$index" },
+                        contentType = { _, _ -> "preset" },
+                    ) { _, preset ->
                         PresetItem(
                             preset = preset,
                             onClick = { onPresetSelect(preset) },

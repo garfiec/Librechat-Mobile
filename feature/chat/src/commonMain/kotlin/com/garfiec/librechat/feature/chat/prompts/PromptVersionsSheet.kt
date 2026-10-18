@@ -72,7 +72,7 @@ fun PromptVersionsSheet(
                 )
             } else {
                 LazyColumn {
-                    itemsIndexed(prompts, key = { _, prompt -> prompt.id ?: "" }) { index, prompt ->
+                    itemsIndexed(prompts, key = { index, prompt -> prompt.id?.let { "id:$it" } ?: "idx:$index" }) { index, prompt ->
                         PromptVersionItem(
                             prompt = prompt,
                             versionNumber = prompts.size - index,

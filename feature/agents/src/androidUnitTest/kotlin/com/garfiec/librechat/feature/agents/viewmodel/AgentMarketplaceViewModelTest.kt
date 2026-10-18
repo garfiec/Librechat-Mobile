@@ -151,6 +151,53 @@ class AgentMarketplaceViewModelTest {
     }
 
     @Test
+    fun `first page drops repeated agents`() = runTest {
+        // The grid keys cards by id, so a repeat would crash it (#541).
+        coEvery {
+            agentRepository.getAgentsPaginated(page = 1, limit = any(), search = any(), category = any())
+        } returns Result.Success(PaginatedAgents(agents = testAgents + testAgents[0], hasMore = false, total = 3))
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.agents.map { it.id })
+            .containsExactly("agent-1", "agent-2", "agent-3").inOrder()
+    }
+
+    @Test
+    fun `refresh drops repeated agents`() = runTest {
+        coEvery {
+            agentRepository.getAgentsPaginated(page = 1, limit = any(), search = any(), category = any())
+        } returns Result.Success(PaginatedAgents(agents = testAgents, hasMore = true, total = 10)) andThen
+            Result.Success(PaginatedAgents(agents = testAgents + testAgents[1], hasMore = true, total = 10))
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.refresh()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.agents.map { it.id })
+            .containsExactly("agent-1", "agent-2", "agent-3").inOrder()
+    }
+
+    @Test
+    fun `loadMore drops an agent repeated across the page boundary`() = runTest {
+        coEvery {
+            agentRepository.getAgentsPaginated(page = 2, limit = any(), search = any(), category = any())
+        } returns Result.Success(
+            PaginatedAgents(agents = listOf(testAgents[2], Agent(id = "agent-4")), hasMore = false, total = 4),
+        )
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.loadMore()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.agents.map { it.id })
+            .containsExactly("agent-1", "agent-2", "agent-3", "agent-4").inOrder()
+    }
+
+    @Test
     fun `loadMore is no-op when hasMore is false`() = runTest {
         coEvery {
             agentRepository.getAgentsPaginated(page = 1, limit = any(), search = any(), category = any())
