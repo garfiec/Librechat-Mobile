@@ -147,8 +147,8 @@ internal fun PausePanelPager(
  * to squeeze a title to a few words a line on a narrow phone or at a large font scale.
  *
  * [titleNeedsStacking] receives the inline title width in px. It must not depend on [collapsed], so
- * collapsing never flips the arrangement. A collapsed stacked header drops the pager row, which is
- * inert while collapsed anyway.
+ * collapsing never flips the arrangement. A collapsed header drops the pager, which is inert while
+ * collapsed anyway, and gives its width to the title.
  */
 @Composable
 internal fun PausePanelCompactHeader(
@@ -163,25 +163,28 @@ internal fun PausePanelCompactHeader(
         val loose = constraints.copy(minWidth = 0, minHeight = 0)
         val width = constraints.maxWidth
         val togglePlaceable = subcompose(PausePanelHeaderSlot.Toggle, toggle).single().measure(loose)
-        val pagerPlaceable = pager?.let { subcompose(PausePanelHeaderSlot.Pager, it).single().measure(loose) }
+        val pagerPlaceable = pager?.takeIf { !collapsed }
+            ?.let { subcompose(PausePanelHeaderSlot.Pager, it).single().measure(loose) }
         val inlineTitleWidth = width - togglePlaceable.width - (pagerPlaceable?.width ?: 0)
         val stacked = pagerPlaceable != null && (inlineTitleWidth <= 0 || titleNeedsStacking(inlineTitleWidth))
+        val inlinePager = pagerPlaceable?.takeIf { !stacked }
+        val pagerRow = pagerPlaceable?.takeIf { stacked }
 
-        val titleWidth = if (stacked) width - togglePlaceable.width else inlineTitleWidth
+        val titleWidth = (width - togglePlaceable.width - (inlinePager?.width ?: 0)).coerceAtLeast(0)
         val titlePlaceable = subcompose(PausePanelHeaderSlot.Title, title).single()
-            .measure(loose.copy(minWidth = titleWidth.coerceAtLeast(0), maxWidth = titleWidth.coerceAtLeast(0)))
-        val rowHeight = maxOf(titlePlaceable.height, togglePlaceable.height, pagerPlaceable?.height ?: 0)
-        val pagerRow = pagerPlaceable?.takeIf { stacked && !collapsed }
-        val height = rowHeight + (pagerRow?.height ?: 0)
+            .measure(loose.copy(minWidth = titleWidth, maxWidth = titleWidth))
+        val rowHeight = maxOf(titlePlaceable.height, togglePlaceable.height, inlinePager?.height ?: 0)
+        // The title's bottom padding and the pager's touch-target slack would otherwise stack
+        // into one wide gap; the pull lands the pager in the padding, clear of the toggle.
+        val pagerRowTop = rowHeight - STACKED_PAGER_PULL.roundToPx()
+        val height = pagerRow?.let { pagerRowTop + it.height } ?: rowHeight
 
         layout(width, height) {
             fun centredInRow(h: Int) = (rowHeight - h) / 2
             titlePlaceable.placeRelative(0, centredInRow(titlePlaceable.height))
-            if (!stacked && pagerPlaceable != null) {
-                pagerPlaceable.placeRelative(titleWidth, centredInRow(pagerPlaceable.height))
-            }
+            inlinePager?.placeRelative(titleWidth, centredInRow(inlinePager.height))
             togglePlaceable.placeRelative(width - togglePlaceable.width, centredInRow(togglePlaceable.height))
-            pagerRow?.placeRelative((width - pagerRow.width) / 2, rowHeight)
+            pagerRow?.placeRelative((width - pagerRow.width) / 2, pagerRowTop)
         }
     }
 }
@@ -666,6 +669,7 @@ internal const val PAUSE_PANEL_SWIPE_AREA_TAG = "pause_panel_swipe_area"
 internal const val PAUSE_PANEL_TABS_TAG = "pause_panel_tabs"
 
 private const val PAUSE_PANEL_INLINE_TITLE_MAX_LINES = 2
+private val STACKED_PAGER_PULL = 12.dp
 
 /** Past this many items the dots would crowd the title out, so the pager reads `n of N` instead. */
 private const val MAX_PAGE_DOTS = 10

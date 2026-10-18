@@ -10,7 +10,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -151,7 +150,7 @@ class ToolApprovalPanelInstrumentedTest {
         setPanel(batch("search_web", "read_file"), width = COMPACT)
 
         composeRule.onNodeWithText("Approve").assertDoesNotExist()
-        composeRule.onNodeWithContentDescription("Next tool call").assertIsNotEnabled()
+        composeRule.onNodeWithContentDescription("Next tool call").assertDoesNotExist()
 
         composeRule.onNodeWithText("search_web").performClick()
         composeRule.waitForIdle()
