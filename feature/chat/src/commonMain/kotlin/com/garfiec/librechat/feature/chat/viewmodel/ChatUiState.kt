@@ -612,9 +612,10 @@ data class ChatUiState(
      * cold-start initialization.
      *
      * Conditions:
-     * - [availableModels] is non-empty (server's endpoint/model list has arrived).
-     * - The currently-selected endpoint isn't a known-denied one. Specifically: if
-     *   [selectedEndpoint] == "agents", [agentsEnabled] must be true.
+     * - Agents endpoint: [agentsEnabled], and the server config has arrived. An `agents` entry in
+     *   [endpointConfigs] counts as that signal because an agents-only server lists no models at
+     *   all (#541).
+     * - Any other endpoint: [availableModels] is non-empty (the server's model list has arrived).
      *
      * Not included: [selectedModel] != null. The agents endpoint auto-selects a
      * default agent when none is set (see ModelSelectionDelegate.loadAgents) and
@@ -622,8 +623,11 @@ data class ChatUiState(
      * orthogonal to the cold-start race we're guarding against.
      */
     val isSendReady: Boolean
-        get() = availableModels.isNotEmpty() &&
-            (selectedEndpoint != EndpointConstants.AGENTS || agentsEnabled)
+        get() = if (selectedEndpoint == EndpointConstants.AGENTS) {
+            agentsEnabled && (availableModels.isNotEmpty() || EndpointConstants.AGENTS in endpointConfigs)
+        } else {
+            availableModels.isNotEmpty()
+        }
 }
 
 /** Where the composer's send routes while a reply is generating. See [ChatUiState.duringRunSendTarget]. */

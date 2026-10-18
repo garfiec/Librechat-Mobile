@@ -450,7 +450,6 @@ class ChatViewModelUploadRoutingTest {
             // answer null and route immediately, as unknown.
             assertThat(captured.isCaptured).isFalse()
 
-            availableModels.value = mapOf(EndpointConstants.AGENTS to listOf(AGENT_ID))
             vm.onModelSelected(EndpointConstants.AGENTS, AGENT_ID)
             runCurrent()
 

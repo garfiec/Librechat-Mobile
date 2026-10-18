@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
 import com.garfiec.librechat.core.common.EndpointConstants
+import com.garfiec.librechat.core.model.EndpointConfig
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
@@ -62,10 +63,7 @@ class ChatUiStateSendReadyTest {
         val state = ChatUiState(
             selection = ModelSelectionState(
                 selectedEndpoint = EndpointConstants.AGENTS,
-                availableModels = mapOf(
-                    EndpointConstants.AGENTS to listOf("someAgentId"),
-                    anthropic to listOf(haiku),
-                ),
+                availableModels = mapOf(anthropic to listOf(haiku)),
             ),
             gates = FeatureGatesState(agentsEnabled = true),
         )
@@ -73,13 +71,63 @@ class ChatUiStateSendReadyTest {
     }
 
     @Test
+    fun `ready on an agents-only server that lists no models`() {
+        // A stock server with only the agents endpoint enabled returns an empty /api/models.
+        // The endpoint config is the readiness signal there (#541).
+        val state = ChatUiState(
+            selection = ModelSelectionState(
+                selectedEndpoint = EndpointConstants.AGENTS,
+                availableModels = emptyMap(),
+                endpointConfigs = mapOf(EndpointConstants.AGENTS to EndpointConfig()),
+            ),
+            gates = FeatureGatesState(agentsEnabled = true),
+        )
+        assertThat(state.isSendReady).isTrue()
+    }
+
+    @Test
+    fun `not ready on the agents endpoint before any config arrives`() {
+        val state = ChatUiState(
+            selection = ModelSelectionState(selectedEndpoint = EndpointConstants.AGENTS),
+            gates = FeatureGatesState(agentsEnabled = true),
+        )
+        assertThat(state.isSendReady).isFalse()
+    }
+
+    @Test
+    fun `not ready on the agents endpoint when the config does not offer agents`() {
+        // A config without an `agents` entry means the endpoint is disabled; sending would fail.
+        val state = ChatUiState(
+            selection = ModelSelectionState(
+                selectedEndpoint = EndpointConstants.AGENTS,
+                endpointConfigs = mapOf(anthropic to EndpointConfig()),
+            ),
+            gates = FeatureGatesState(agentsEnabled = true),
+        )
+        assertThat(state.isSendReady).isFalse()
+    }
+
+    @Test
+    fun `endpoint configs alone do not make a non-agents endpoint ready`() {
+        val state = ChatUiState(
+            selection = ModelSelectionState(
+                selectedEndpoint = anthropic,
+                selectedModel = haiku,
+                endpointConfigs = mapOf(anthropic to EndpointConfig()),
+            ),
+            gates = FeatureGatesState(agentsEnabled = true),
+        )
+        assertThat(state.isSendReady).isFalse()
+    }
+
+    @Test
     fun `not ready when only agents endpoint is offered by server but AGENTS USE denied`() {
-        // Edge: server exposes only the agents endpoint in availableModels, role denies.
+        // Edge: server exposes only the agents endpoint, role denies.
         // No viable send path — stays not-ready. runWhenSendReady will time out and toast.
         val state = ChatUiState(
             selection = ModelSelectionState(
                 selectedEndpoint = EndpointConstants.AGENTS,
-                availableModels = mapOf(EndpointConstants.AGENTS to listOf("someAgentId")),
+                endpointConfigs = mapOf(EndpointConstants.AGENTS to EndpointConfig()),
             ),
             gates = FeatureGatesState(agentsEnabled = false),
         )
@@ -96,7 +144,7 @@ class ChatUiStateSendReadyTest {
                 selectedEndpoint = anthropic,
                 selectedModel = null,
                 availableModels = mapOf(
-                    EndpointConstants.AGENTS to listOf("someAgentId"),
+                    "openAI" to listOf("gpt-4o"),
                     anthropic to emptyList(),
                 ),
             ),
