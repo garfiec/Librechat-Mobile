@@ -49,7 +49,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -282,25 +281,13 @@ private fun CompactAskLayout(
                 .padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 8.dp)
                 .animateContentSize(),
         ) {
-            val titleStyle = MaterialTheme.typography.titleSmall
-            val textMeasurer = rememberTextMeasurer()
             PausePanelCompactHeader(
+                title = active.question,
                 collapsed = state.collapsed,
-                titleNeedsStacking = { width ->
-                    textMeasurer.pausePanelTitleNeedsStacking(active.question, titleStyle, width)
-                },
-                title = {
-                    Text(
-                        text = active.question,
-                        style = titleStyle,
-                        maxLines = if (state.collapsed) 1 else Int.MAX_VALUE,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier
-                            .heightIn(max = bodyMaxHeight * HEADER_TO_BODY_HEIGHT_RATIO)
-                            .verticalScroll(questionScroll)
-                            .padding(vertical = 12.dp),
-                    )
-                },
+                expandedTitleMaxLines = Int.MAX_VALUE,
+                titleModifier = Modifier
+                    .heightIn(max = bodyMaxHeight * HEADER_TO_BODY_HEIGHT_RATIO)
+                    .verticalScroll(questionScroll),
                 pager = if (state.questions.size > 1) {
                     {
                         PausePanelPager(

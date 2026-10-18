@@ -36,9 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -223,16 +221,11 @@ private fun CompactToolLayout(
                 .padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 8.dp)
                 .animateContentSize(),
         ) {
-            val name = active.name.ifBlank { stringResource(Res.string.tool_approval_title) }
-            val titleStyle = MaterialTheme.typography.titleSmall
-            val textMeasurer = rememberTextMeasurer()
-            val iconWidthPx = with(LocalDensity.current) { TOOL_NAME_ICON_WIDTH.roundToPx() }
             PausePanelCompactHeader(
+                title = active.name.ifBlank { stringResource(Res.string.tool_approval_title) },
                 collapsed = state.collapsed,
-                titleNeedsStacking = { width ->
-                    textMeasurer.pausePanelTitleNeedsStacking(name, titleStyle, width - iconWidthPx)
-                },
-                title = { ToolNameTitle(name = name, collapsed = state.collapsed) },
+                expandedTitleMaxLines = TOOL_NAME_MAX_LINES,
+                leadingIcon = { ToolNameIcon(modifier = Modifier.padding(end = TOOL_NAME_ICON_GAP)) },
                 pager = if (state.isBatch) {
                     {
                         PausePanelPager(
@@ -426,16 +419,21 @@ private fun WideToolLayout(
 @Composable
 private fun ToolNameTitle(name: String, collapsed: Boolean, modifier: Modifier = Modifier) {
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
-        Icon(Icons.Default.Shield, contentDescription = null, modifier = Modifier.size(TOOL_NAME_ICON_SIZE))
+        ToolNameIcon()
         Spacer(modifier = Modifier.width(TOOL_NAME_ICON_GAP))
         Text(
             text = name.ifBlank { stringResource(Res.string.tool_approval_title) },
             style = MaterialTheme.typography.titleSmall,
-            maxLines = if (collapsed) 1 else 2,
+            maxLines = if (collapsed) 1 else TOOL_NAME_MAX_LINES,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(vertical = 12.dp),
         )
     }
+}
+
+@Composable
+private fun ToolNameIcon(modifier: Modifier = Modifier) {
+    Icon(Icons.Default.Shield, contentDescription = null, modifier = modifier.size(TOOL_NAME_ICON_SIZE))
 }
 
 /**
@@ -672,5 +670,5 @@ private val DECISION_BUTTON_PADDING = PaddingValues(horizontal = 16.dp, vertical
 private const val BODY_HEIGHT_FRACTION = 0.3f
 private val TOOL_NAME_ICON_SIZE = 20.dp
 private val TOOL_NAME_ICON_GAP = 8.dp
-private val TOOL_NAME_ICON_WIDTH = TOOL_NAME_ICON_SIZE + TOOL_NAME_ICON_GAP
+private const val TOOL_NAME_MAX_LINES = 2
 private val FALLBACK_BODY_MAX_HEIGHT = 240.dp
