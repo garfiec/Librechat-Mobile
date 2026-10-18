@@ -12,6 +12,9 @@ import androidx.compose.foundation.gestures.animateToWithDecay
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.snapTo
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
@@ -27,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -36,6 +40,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -64,6 +69,7 @@ import com.garfiec.librechat.feature.chat.components.ChatOptionsSheetController
 import com.garfiec.librechat.feature.chat.components.ChatToolsSheetContent
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -100,6 +106,9 @@ internal class ChatPullUpSheetState(
     val backdrop: GlassBackdrop?,
     private val height: MutableIntState,
     private val gesture: PullUpGesture,
+    /** Shared by the three [anchoredDraggable]s, so [isDragged] covers a finger on any of them. */
+    val interactionSource: MutableInteractionSource,
+    private val isDragged: State<Boolean>,
 ) {
     var heightPx: Int
         get() = height.intValue
@@ -116,8 +125,66 @@ internal class ChatPullUpSheetState(
     /** Derived so readers recompose only on the open<->closed transition, not per drag frame. */
     val visible: Boolean by derivedStateOf { heightPx > 0 && isOpen }
 
-    suspend fun hide() {
+    /** Wrap every targeted animation this state starts in [ownAnimation], or the heal snaps it short. */
+    private var ownAnimations by mutableIntStateOf(0)
+
+    private suspend fun ownAnimation(block: suspend () -> Unit) {
+        ownAnimations++
+        try {
+            block()
+        } finally {
+            ownAnimations--
+        }
+    }
+
+    suspend fun hide() = ownAnimation {
         anchored.animateTo(PullUpAnchor.Hidden)
+    }
+
+    /**
+     * True when Compose reports an animation running that nothing is running (#542).
+     *
+     * `updateAnchors` (from the surface's onSizeChanged) can't snap while a drag or fling holds the
+     * lock, so it records `dragTarget` instead, and only a *targeted* anchoredDrag (animateTo/snapTo)
+     * clears that — or the next resize, by snapping to the stale target. The finger drag and the
+     * modifier's fling are untargeted, so a resize landing under either leaves `isAnimationRunning`
+     * true until then. Every [anchoredDraggable] here starts a drag on each pointer-down meanwhile
+     * (startDragImmediately) and consumes it, killing every tap beneath, and the pinned `targetValue`
+     * is what that next resize snaps to, which can close an open sheet.
+     * `ChatPullUpSheetStaleTargetTest` fails once Compose stops doing this.
+     *
+     * Not stale while a finger is down or one of this state's own animations is in flight: those
+     * either clear it themselves or are what the flag is for.
+     */
+    val hasStaleAnimationFlag: Boolean
+        get() = anchored.isAnimationRunning && !isDragged.value && ownAnimations == 0
+
+    /**
+     * Clears a stale flag once the sheet has stopped moving, with a snap to the anchor it rests on: no
+     * visible movement, and the targeted drag's cleanup clears it.
+     *
+     * The flag usually turns up mid-fling, and one unchanged frame doesn't mean it stopped: the
+     * resize restarts the fling (anchoredDrag is restartable on anchors), and an animation's first
+     * frame doesn't move. Snapping then cuts the fling short, to whichever anchor is nearer. So it
+     * waits for the sheet to rest on an anchor, where a fling always ends, or failing that to sit
+     * still for [SETTLE_FRAMES].
+     */
+    suspend fun clearStaleAnimationFlag() {
+        var last = anchored.offset
+        var stillFrames = 0
+        while (true) {
+            withFrameNanos { }
+            val now = anchored.offset
+            stillFrames = if (now == last) stillFrames + 1 else 0
+            last = now
+            if (now.isNaN()) return
+            val onAnchor = anchored.anchors.closestAnchor(now)?.let { anchored.anchors.positionOf(it) == now } == true
+            if ((onAnchor && stillFrames > 0) || stillFrames >= SETTLE_FRAMES) break
+        }
+        // snapTo shares the finger drag's priority and would cancel one that started this frame.
+        if (!hasStaleAnimationFlag) return
+        val restingOn = anchored.anchors.closestAnchor(last) ?: return
+        anchored.snapTo(restingOn)
     }
 
     // Velocity-aware settle, only once the sheet is already partly open (so a fling that merely
@@ -134,7 +201,7 @@ internal class ChatPullUpSheetState(
             o < h * 0.6f -> PullUpAnchor.Revealed
             else -> PullUpAnchor.Hidden
         }
-        anchored.animateToWithDecay(target, velocity)
+        ownAnimation { anchored.animateToWithDecay(target, velocity) }
         return true
     }
 
@@ -239,8 +306,14 @@ internal class ChatPullUpSheetState(
     val landingModifier: Modifier = Modifier.anchoredDraggable(
         state = anchored,
         orientation = Orientation.Vertical,
+        interactionSource = interactionSource,
         flingBehavior = flingBehavior,
     )
+
+    private companion object {
+        /** About 100 ms at 120 Hz: longer than any pause a running animation takes. */
+        const val SETTLE_FRAMES = 12
+    }
 }
 
 @Composable
@@ -255,8 +328,17 @@ internal fun rememberChatPullUpSheetState(): ChatPullUpSheetState {
         animationSpec = tween(),
     )
     val backdrop = rememberGlassBackdrop()
+    val interactionSource = remember { MutableInteractionSource() }
+    val isDragged = interactionSource.collectIsDraggedAsState()
     val state = remember(anchored, flingBehavior, minFlingVelocityPx, backdrop) {
-        ChatPullUpSheetState(anchored, flingBehavior, minFlingVelocityPx, backdrop, height, gesture)
+        ChatPullUpSheetState(
+            anchored, flingBehavior, minFlingVelocityPx, backdrop, height, gesture, interactionSource, isDragged,
+        )
+    }
+    LaunchedEffect(state) {
+        snapshotFlow { state.hasStaleAnimationFlag }.collectLatest { stale ->
+            if (stale) state.clearStaleAnimationFlag()
+        }
     }
     // Dismiss the IME the moment the sheet starts to reveal (the screens' Scaffolds use imePadding()).
     val keyboardController by rememberUpdatedState(LocalSoftwareKeyboardController.current)
@@ -324,6 +406,7 @@ internal fun BoxScope.ChatPullUpSheetOverlay(
                 .anchoredDraggable(
                     state = state.anchored,
                     orientation = Orientation.Vertical,
+                    interactionSource = state.interactionSource,
                     flingBehavior = state.flingBehavior,
                 )
                 .pointerInput(state) {
@@ -377,6 +460,7 @@ internal fun BoxScope.ChatPullUpSheetOverlay(
             .anchoredDraggable(
                 state = state.anchored,
                 orientation = Orientation.Vertical,
+                interactionSource = state.interactionSource,
                 flingBehavior = state.flingBehavior,
             )
             // Lets a drag over the scrolling content move the surface. See sheetConnection.

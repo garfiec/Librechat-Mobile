@@ -90,7 +90,7 @@ class ChatPullUpSheetStaleTargetTest {
 
     @Test
     fun aTargetedSnapClearsTheStaleFlagWithoutMovingTheSheet() = runTest {
-        // What Back → hide() did on device (a targeted animateTo); a no-op snap is the same path.
+        // Back → hide() is a targeted animateTo; a no-op snap takes the same cleanup path.
         val state = AnchoredDraggableState(PullUpAnchor.Hidden, anchors(1000f))
         val lift = CompletableDeferred<Unit>()
         val drag = launch {
