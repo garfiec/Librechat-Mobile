@@ -720,4 +720,5 @@
     <string name="section_search">Suche</string>
     <string name="advanced_search">Erweiterte Suche</string>
     <string name="advanced_search_desc">Für Power-User. Fügt dem Suchbildschirm Groß-/Kleinschreibung, ganze Wörter, reguläre Ausdrücke sowie Filter für Rolle, Modell und Datum hinzu.</string>
+    <string name="server_user_ca_notice">Vertrauenswürdig über eine auf diesem Gerät installierte Zertifizierungsstelle</string>
 </resources>

@@ -724,4 +724,5 @@
     <string name="section_search">Поиск</string>
     <string name="advanced_search">Расширенный поиск</string>
     <string name="advanced_search_desc">Для опытных пользователей. Добавляет на экран поиска учёт регистра, поиск целых слов, регулярные выражения и фильтры по роли, модели и дате.</string>
+    <string name="server_user_ca_notice">Доверие через центр сертификации, установленный на этом устройстве</string>
 </resources>

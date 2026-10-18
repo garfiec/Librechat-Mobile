@@ -720,4 +720,5 @@
     <string name="section_search">Pesquisa</string>
     <string name="advanced_search">Pesquisa avançada</string>
     <string name="advanced_search_desc">Para usuários avançados. Adiciona diferenciar maiúsculas, palavra inteira, regex e filtros de função, modelo e data à tela de pesquisa.</string>
+    <string name="server_user_ca_notice">Confiável por meio de uma autoridade certificadora instalada neste dispositivo</string>
 </resources>

@@ -13,6 +13,17 @@
         acknowledge this risk before proceeding.
 
         HTTPS is always preferred and no warning is shown for HTTPS URLs.
+
+        User-installed CAs are trusted alongside the system's, so a self-hosted server
+        behind a private CA works once its CA is installed on the device. The cost is
+        that any CA the user or device management installs can also vouch for a server.
+        CertificateTrustListener (core/network) records when one did, and sign-in and
+        Settings → General say so.
     -->
-    <base-config cleartextTrafficPermitted="true" />
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
 </network-security-config>

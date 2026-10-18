@@ -107,6 +107,17 @@ fun LoginScreen(
                 modifier = Modifier.semantics { heading() },
             )
 
+            if (uiState.trustedViaUserCa) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = stringResource(Res.string.user_ca_notice),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.testTag("login_user_ca_notice"),
+                )
+            }
+
             Spacer(modifier = Modifier.height(32.dp))
 
             // The email/password form is hidden when the server disables email login

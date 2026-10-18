@@ -83,4 +83,5 @@
     <string name="diagnostic_log_export">Экспортировать диагностические журналы</string>
     <string name="diagnostic_log_exported">Журнал экспортирован. Приложите его к сообщению о проблеме.</string>
     <string name="diagnostic_log_failed">Не удалось экспортировать журнал.</string>
+    <string name="user_ca_notice">Сертификат этого сервера считается доверенным благодаря центру сертификации, установленному на этом устройстве, а не встроенному в Android. Продолжайте, только если его установили вы или ваша организация.</string>
 </resources>

@@ -718,4 +718,5 @@
     <string name="section_search">검색</string>
     <string name="advanced_search">고급 검색</string>
     <string name="advanced_search_desc">고급 사용자용. 검색 화면에 대소문자 구분, 단어 단위, 정규식과 역할·모델·날짜 필터를 추가합니다.</string>
+    <string name="server_user_ca_notice">이 기기에 설치된 인증 기관을 통해 신뢰됨</string>
 </resources>

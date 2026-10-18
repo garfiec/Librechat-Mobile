@@ -70,7 +70,7 @@ class PersistentLogWriter internal constructor(
                 tag = tag,
                 msg = redactor.redact(message),
                 attrs = redactor.redactAttrs(merged),
-                thread = threadName(),
+                thread = thread(),
                 origin = LogOrigin.CLIENT.wire,
             )
             sink.appendBlocking(json.encodeToString(record))
@@ -87,7 +87,7 @@ class PersistentLogWriter internal constructor(
             tag = tag,
             msg = redactor.redact(decoded.msg),
             attrs = redactor.redactAttrs(attrs),
-            thread = threadName(),
+            thread = thread(),
             origin = decoded.origin,
         )
         return json.encodeToString(record)
@@ -103,6 +103,9 @@ class PersistentLogWriter internal constructor(
         return if (full.length <= maxChars) full else full.take(maxChars) + "…(truncated)"
     }
 
+    /** OkHttp names its threads after the request URL, so the name gets the same redaction as the message. */
+    private fun thread(): String = redactor.redact(threadName())
+
     private fun fallbackLine(level: String, tag: String): String =
         json.encodeToString(
             LogRecord(
@@ -110,7 +113,7 @@ class PersistentLogWriter internal constructor(
                 level = level,
                 tag = tag,
                 msg = "<unencodable log record>",
-                thread = threadName(),
+                thread = thread(),
             ),
         )
 }

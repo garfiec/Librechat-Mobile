@@ -720,4 +720,5 @@
     <string name="section_search">Búsqueda</string>
     <string name="advanced_search">Búsqueda avanzada</string>
     <string name="advanced_search_desc">Para usuarios avanzados. Añade distinguir mayúsculas, palabra completa, expresiones regulares y filtros de rol, modelo y fecha a la pantalla de búsqueda.</string>
+    <string name="server_user_ca_notice">De confianza mediante una autoridad de certificación instalada en este dispositivo</string>
 </resources>

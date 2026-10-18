@@ -720,4 +720,5 @@
     <string name="section_search">Recherche</string>
     <string name="advanced_search">Recherche avancée</string>
     <string name="advanced_search_desc">Pour les utilisateurs avancés. Ajoute la casse, le mot entier, les expressions régulières et des filtres de rôle, de modèle et de date à l'écran de recherche.</string>
+    <string name="server_user_ca_notice">Approuvé par une autorité de certification installée sur cet appareil</string>
 </resources>

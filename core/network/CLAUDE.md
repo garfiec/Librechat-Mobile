@@ -269,6 +269,14 @@ deployment's mount at all. A null or pending account attaches nothing.
   as unreachable. iOS never classifies it: Darwin reports an untyped `DarwinHttpRequestException`,
   and the iOS SSE transport maps `nw_error_domain_tls` to a plain `Exception`, which `SseClient`
   retries like any other failure.
+- **User-installed CAs are trusted on Android** (`app/src/main/res/xml/network_security_config.xml`),
+  so a server behind a private CA works once its CA is on the device. `CertificateTrustListener`
+  (an OkHttp `EventListener` on every client, via `CertificateTrustOkHttp`) checks the trust anchor
+  of each new TLS connection with `X509TrustManagerExtensions.isUserAddedCertificate` and records
+  it in `CertificateTrustRegistry`, keyed by host and port. Sign-in and Settings → General → About
+  show a notice when the active server's anchor is user-installed. It is informational: nothing is
+  blocked, and a change of anchor between connections isn't flagged (that belongs with #36). iOS
+  records nothing.
 
 ## Rules
 

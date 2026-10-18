@@ -83,4 +83,5 @@
     <string name="diagnostic_log_export">診断ログをエクスポート</string>
     <string name="diagnostic_log_exported">ログをエクスポートしました。問題を報告する際に添付してください。</string>
     <string name="diagnostic_log_failed">ログをエクスポートできませんでした。</string>
+    <string name="user_ca_notice">このサーバーの証明書は、Android に組み込まれた認証局ではなく、このデバイスにインストールされた認証局によって信頼されています。ご自身または組織がインストールした場合にのみ続行してください。</string>
 </resources>

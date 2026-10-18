@@ -718,4 +718,5 @@
     <string name="section_search">検索</string>
     <string name="advanced_search">高度な検索</string>
     <string name="advanced_search_desc">上級ユーザー向け。検索画面に大文字と小文字の区別、単語単位、正規表現、およびロール・モデル・日付のフィルターを追加します。</string>
+    <string name="server_user_ca_notice">このデバイスにインストールされた認証局によって信頼されています</string>
 </resources>

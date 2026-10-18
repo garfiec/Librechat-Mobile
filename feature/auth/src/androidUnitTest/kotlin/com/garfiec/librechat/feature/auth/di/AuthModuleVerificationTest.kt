@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ServerRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.logging.DiagnosticLogRepository
+import com.garfiec.librechat.core.network.client.CertificateTrustRegistry
 import org.junit.Test
 import org.koin.test.verify.verify
 
@@ -24,6 +25,7 @@ class AuthModuleVerificationTest {
                 ServerRepository::class,
                 AuthRepository::class,
                 ConfigRepository::class,
+                CertificateTrustRegistry::class,
                 UserRepository::class,
                 SsoRiskDataStore::class,
                 AccountSwitcher::class,

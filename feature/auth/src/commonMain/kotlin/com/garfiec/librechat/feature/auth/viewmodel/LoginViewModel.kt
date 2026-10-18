@@ -6,16 +6,23 @@ import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.suspendRunCatching
+import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SsoRiskDataStore
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.model.LoginOutcome
+import com.garfiec.librechat.core.network.client.CertificateAuthority
+import com.garfiec.librechat.core.network.client.CertificateTrustRegistry
 import com.garfiec.librechat.feature.auth.diagnostics.offersDiagnosticLog
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 @Immutable
@@ -38,6 +45,7 @@ data class LoginUiState(
     /** Set while the in-app-browser warning is up; carries the provider the user picked. */
     val pendingSsoProvider: String? = null,
     val ssoProvider: String? = null,
+    val trustedViaUserCa: Boolean = false,
 )
 
 class LoginViewModel(
@@ -45,6 +53,8 @@ class LoginViewModel(
     private val configRepository: ConfigRepository,
     private val accountSwitcher: AccountSwitcher,
     private val ssoRiskDataStore: SsoRiskDataStore,
+    serverDataStore: ServerDataStore,
+    certificateTrust: CertificateTrustRegistry,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
@@ -66,6 +76,18 @@ class LoginViewModel(
                         emailLoginEnabled = config.emailLoginEnabled,
                     )
                 }
+            }
+        }
+        observeCertificateTrust(serverDataStore, certificateTrust)
+    }
+
+    /** The server screen's probe has just connected, so this is known by the time the screen shows. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun observeCertificateTrust(serverDataStore: ServerDataStore, certificateTrust: CertificateTrustRegistry) {
+        val serverUrl = accountSwitcher.pendingAdd?.serverUrl?.let(::flowOf) ?: serverDataStore.currentUrlFlow
+        viewModelScope.launch {
+            serverUrl.flatMapLatest(certificateTrust::observe).collect { authority ->
+                _uiState.update { it.copy(trustedViaUserCa = authority == CertificateAuthority.UserInstalled) }
             }
         }
     }

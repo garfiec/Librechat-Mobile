@@ -37,6 +37,7 @@ import com.garfiec.librechat.core.network.api.TagsApi
 import com.garfiec.librechat.core.network.api.TracesApi
 import com.garfiec.librechat.core.network.api.UserApi
 import com.garfiec.librechat.core.network.client.AuthInterceptorPlugin
+import com.garfiec.librechat.core.network.client.CertificateTrustRegistry
 import com.garfiec.librechat.core.network.client.GatewayDetectionPlugin
 import com.garfiec.librechat.core.network.client.ImageCookieCredentials
 import com.garfiec.librechat.core.network.client.LibreChatHttpClient
@@ -81,6 +82,8 @@ val networkModule = module {
     includes(networkPlatformModule)
 
     single { librechatJson }
+
+    single { CertificateTrustRegistry() }
 
     // The switch barrier: one gate shared by both HTTP clients and (on iOS) the SSE transport, so a
     // single account switch flips URL + token key + identity atomically for all transports at once.

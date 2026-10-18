@@ -83,4 +83,5 @@
     <string name="diagnostic_log_export">Exportar logs de diagnóstico</string>
     <string name="diagnostic_log_exported">Log exportado. Anexe-o ao relatar o problema.</string>
     <string name="diagnostic_log_failed">Não foi possível exportar o log.</string>
+    <string name="user_ca_notice">O certificado deste servidor é confiável por meio de uma autoridade certificadora instalada neste dispositivo, e não de uma integrada ao Android. Continue apenas se você ou sua organização a instalou.</string>
 </resources>

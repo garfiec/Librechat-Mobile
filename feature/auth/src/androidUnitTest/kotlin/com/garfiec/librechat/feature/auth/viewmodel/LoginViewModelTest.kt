@@ -2,13 +2,17 @@ package com.garfiec.librechat.feature.auth.viewmodel
 
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SsoRiskDataStore
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
+import com.garfiec.librechat.core.data.repository.PendingAddSession
 import com.garfiec.librechat.core.model.LoginOutcome
 import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.config.StartupConfig
+import com.garfiec.librechat.core.network.client.CertificateAuthority
+import com.garfiec.librechat.core.network.client.CertificateTrustRegistry
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -38,6 +42,10 @@ class LoginViewModelTest {
     private val configRepository = mockk<ConfigRepository>(relaxed = true)
     private val accountSwitcher = mockk<AccountSwitcher>(relaxed = true)
     private val ssoRiskDataStore = mockk<SsoRiskDataStore>(relaxed = true)
+    private val serverDataStore = mockk<ServerDataStore>(relaxed = true) {
+        every { currentUrlFlow } returns MutableStateFlow("https://chat.example.com")
+    }
+    private val certificateTrust = CertificateTrustRegistry()
 
     private val configFlow = MutableStateFlow<StartupConfig?>(null)
 
@@ -62,7 +70,36 @@ class LoginViewModelTest {
         configRepository = configRepository,
         accountSwitcher = accountSwitcher,
         ssoRiskDataStore = ssoRiskDataStore,
+        serverDataStore = serverDataStore,
+        certificateTrust = certificateTrust,
     )
+
+    @Test
+    fun `a server trusted through a user-installed CA is noted`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.trustedViaUserCa).isFalse()
+
+        certificateTrust.record("chat.example.com", 443, CertificateAuthority.UserInstalled)
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.trustedViaUserCa).isTrue()
+    }
+
+    @Test
+    fun `the add-account flow reads trust for the pending server, not the live one`() = runTest {
+        val pending = mockk<PendingAddSession>(relaxed = true)
+        every { pending.serverUrl } returns "https://pending.example.com:8443"
+        every { pending.startupConfig } returns MutableStateFlow(null)
+        every { accountSwitcher.pendingAdd } returns pending
+        viewModel = createViewModel()
+        certificateTrust.record("chat.example.com", 443, CertificateAuthority.UserInstalled)
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.trustedViaUserCa).isFalse()
+
+        certificateTrust.record("pending.example.com", 8443, CertificateAuthority.UserInstalled)
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.trustedViaUserCa).isTrue()
+    }
 
     @Test
     fun `initial state has empty fields`() = runTest {

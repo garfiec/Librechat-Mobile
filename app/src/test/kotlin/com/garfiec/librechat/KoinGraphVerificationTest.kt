@@ -101,6 +101,7 @@ import com.garfiec.librechat.core.network.api.TagsApi
 import com.garfiec.librechat.core.network.api.TracesApi
 import com.garfiec.librechat.core.network.api.UserApi
 import com.garfiec.librechat.core.network.client.AccountReadyGate
+import com.garfiec.librechat.core.network.client.CertificateTrustRegistry
 import com.garfiec.librechat.core.network.client.ServerUrlProvider
 import com.garfiec.librechat.core.network.client.SwitchGate
 import com.garfiec.librechat.core.network.client.TokenManager
@@ -162,6 +163,7 @@ class KoinGraphVerificationTest {
             ServerUrlProvider::class,
             AccountReadyGate::class,
             SwitchGate::class,
+            CertificateTrustRegistry::class,
             SseClient::class,
             AgentToolsApi::class,
             AgentsApi::class,

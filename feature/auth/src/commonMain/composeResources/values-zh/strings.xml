@@ -83,4 +83,5 @@
     <string name="diagnostic_log_export">导出诊断日志</string>
     <string name="diagnostic_log_exported">日志已导出。报告问题时请附上它。</string>
     <string name="diagnostic_log_failed">无法导出日志。</string>
+    <string name="user_ca_notice">此服务器的证书通过安装在此设备上的证书颁发机构获得信任，而非 Android 内置的证书颁发机构。仅当它是由您或您的组织安装时才继续。</string>
 </resources>

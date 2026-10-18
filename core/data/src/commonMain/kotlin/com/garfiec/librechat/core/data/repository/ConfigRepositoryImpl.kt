@@ -192,8 +192,8 @@ class ConfigRepositoryImpl(
                     Result.Error(
                         exception = e,
                         message = "This server's security certificate was rejected: it isn't trusted by this " +
-                            "device, has expired, or was issued for a different address. Self-signed and " +
-                            "private certificates aren't supported yet.",
+                            "device, has expired, or was issued for a different address. If the server uses a " +
+                            "private certificate authority, install that authority's certificate on this device.",
                         kind = FailureKind.Tls,
                     ),
                 )

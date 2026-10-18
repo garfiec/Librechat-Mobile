@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -224,6 +225,7 @@ fun GeneralSettingsContent(
                     row(key = "about_info") {
                         AboutInfo(
                             serverUrl = uiState.serverUrl,
+                            serverTrustedViaUserCa = uiState.serverTrustedViaUserCa,
                             appVersion = uiState.appVersion,
                             gitSha = uiState.gitSha,
                             serverVersion = uiState.serverVersion,
@@ -332,6 +334,7 @@ private fun SwitchSettingRow(
 @Composable
 private fun AboutInfo(
     serverUrl: String,
+    serverTrustedViaUserCa: Boolean,
     appVersion: String,
     gitSha: String,
     serverVersion: String?,
@@ -390,6 +393,15 @@ private fun AboutInfo(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false),
+                )
+            }
+            if (serverTrustedViaUserCa) {
+                Text(
+                    text = stringResource(Res.string.server_user_ca_notice),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                 )
             }
             // Resolved LibreChat server version. Always shown — "Unknown" when it can't be

@@ -726,4 +726,5 @@
         <item quantity="one">%1$d server</item>
         <item quantity="other">%1$d servers</item>
     </plurals>
+    <string name="server_user_ca_notice">Trusted via a certificate authority installed on this device</string>
 </resources>

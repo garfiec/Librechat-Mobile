@@ -718,4 +718,5 @@
     <string name="section_search">搜索</string>
     <string name="advanced_search">高级搜索</string>
     <string name="advanced_search_desc">面向高级用户。在搜索界面中添加区分大小写、全字匹配、正则表达式，以及角色、模型和日期筛选。</string>
+    <string name="server_user_ca_notice">通过此设备上安装的证书颁发机构获得信任</string>
 </resources>

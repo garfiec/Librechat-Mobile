@@ -728,4 +728,5 @@
     <string name="section_search">البحث</string>
     <string name="advanced_search">البحث المتقدم</string>
     <string name="advanced_search_desc">للمستخدمين المتقدمين. يضيف مطابقة حالة الأحرف والكلمة الكاملة والتعبيرات النمطية، وعوامل تصفية الدور والنموذج والتاريخ إلى شاشة البحث.</string>
+    <string name="server_user_ca_notice">موثوق عبر جهة إصدار شهادات مثبّتة على هذا الجهاز</string>
 </resources>

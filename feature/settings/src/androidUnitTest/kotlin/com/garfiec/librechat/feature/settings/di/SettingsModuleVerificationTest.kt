@@ -30,6 +30,7 @@ import com.garfiec.librechat.core.data.update.AppInstallSource
 import com.garfiec.librechat.core.data.update.AppUpdateRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.logging.DiagnosticLogRepository
+import com.garfiec.librechat.core.network.client.CertificateTrustRegistry
 import com.garfiec.librechat.feature.settings.util.ContentReader
 import com.garfiec.librechat.feature.settings.util.PlatformCacheCleaner
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.SpeechSettingsFactory
@@ -48,6 +49,7 @@ class SettingsModuleVerificationTest {
                 UserRepository::class,
                 AuthRepository::class,
                 ConfigRepository::class,
+                CertificateTrustRegistry::class,
                 ConversationRepository::class,
                 FavoritesRepository::class,
                 McpRepository::class,
