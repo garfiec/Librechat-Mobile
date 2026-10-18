@@ -11,6 +11,7 @@ import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.config.BalanceConfig
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.ui.media.PreparedImage
+import com.garfiec.librechat.feature.settings.model.AutoRefillInfo
 import com.garfiec.librechat.feature.settings.util.ContentReader
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -231,7 +232,7 @@ class AccountSettingsViewModelTest {
 
     @Test
     fun `balance is fetched once the config turns it on`() = runTest {
-        coEvery { balanceRepository.getBalance() } returns Result.Success(Balance(tokenCredits = 1234))
+        coEvery { balanceRepository.getBalance() } returns Result.Success(Balance(tokenCredits = 1234.567))
         val viewModel = createViewModel()
         advanceUntilIdle()
 
@@ -239,8 +240,26 @@ class AccountSettingsViewModelTest {
         advanceUntilIdle()
 
         assertThat(viewModel.uiState.value.balanceEnabled).isTrue()
-        assertThat(viewModel.uiState.value.tokenCredits).isEqualTo(1234)
+        assertThat(viewModel.uiState.value.balance)
+            .isEqualTo(BalanceUiState.Loaded(tokenCredits = 1234.567, autoRefill = AutoRefillInfo.Off))
         coVerify(exactly = 1) { balanceRepository.getBalance() }
+    }
+
+    @Test
+    fun `a failed balance load shows an error instead of a zero, and retry recovers`() = runTest {
+        coEvery { balanceRepository.getBalance() } returns Result.Error(RuntimeException("boom"), "boom")
+        val viewModel = createViewModel()
+        startupConfig.value = StartupConfig(balance = BalanceConfig(enabled = true))
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.balance).isEqualTo(BalanceUiState.Error)
+
+        coEvery { balanceRepository.getBalance() } returns Result.Success(Balance(tokenCredits = 5.0))
+        viewModel.retryBalance()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.balance)
+            .isEqualTo(BalanceUiState.Loaded(tokenCredits = 5.0, autoRefill = AutoRefillInfo.Off))
     }
 
     @Test

@@ -238,7 +238,40 @@
 
     <!-- Balance -->
     <string name="token_credits">Crédits de jetons</string>
-    <string name="available_balance">Solde disponible</string>
+    <string name="balance_credit_conversion">1 000 crédits = 0,001 $ US</string>
+    <string name="balance_load_error">Impossible de charger le solde</string>
+    <string name="auto_refill_title">Recharge automatique</string>
+    <string name="auto_refill_off">Désactivée</string>
+    <string name="auto_refill_unavailable">Détails indisponibles</string>
+    <string name="auto_refill_last">Dernière recharge</string>
+    <string name="auto_refill_amount">Montant de la recharge</string>
+    <string name="auto_refill_interval">Intervalle</string>
+    <string name="auto_refill_next">Prochaine recharge</string>
+    <string name="auto_refill_next_info">La recharge n'a lieu qu'après cette date, et seulement si un message ferait passer votre solde sous zéro.</string>
+    <plurals name="auto_refill_every_seconds">
+        <item quantity="one">Toutes les %1$s seconde</item>
+        <item quantity="other">Toutes les %1$s secondes</item>
+    </plurals>
+    <plurals name="auto_refill_every_minutes">
+        <item quantity="one">Toutes les %1$s minute</item>
+        <item quantity="other">Toutes les %1$s minutes</item>
+    </plurals>
+    <plurals name="auto_refill_every_hours">
+        <item quantity="one">Toutes les %1$s heure</item>
+        <item quantity="other">Toutes les %1$s heures</item>
+    </plurals>
+    <plurals name="auto_refill_every_days">
+        <item quantity="one">Tous les %1$s jour</item>
+        <item quantity="other">Tous les %1$s jours</item>
+    </plurals>
+    <plurals name="auto_refill_every_weeks">
+        <item quantity="one">Toutes les %1$s semaine</item>
+        <item quantity="other">Toutes les %1$s semaines</item>
+    </plurals>
+    <plurals name="auto_refill_every_months">
+        <item quantity="one">Tous les %1$s mois</item>
+        <item quantity="other">Tous les %1$s mois</item>
+    </plurals>
     <string name="cd_token_balance">Solde de jetons : %1$s crédits</string>
     <string name="chat_group_display">Affichage</string>
     <string name="chat_group_behavior">Comportement</string>

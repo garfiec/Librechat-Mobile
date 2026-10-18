@@ -247,7 +247,40 @@
 
     <!-- Balance -->
     <string name="token_credits">Token Credits</string>
-    <string name="available_balance">Available balance</string>
+    <string name="balance_credit_conversion">1,000 credits = $0.001</string>
+    <string name="balance_load_error">Couldn't load balance</string>
+    <string name="auto_refill_title">Auto-refill</string>
+    <string name="auto_refill_off">Off</string>
+    <string name="auto_refill_unavailable">Details unavailable</string>
+    <string name="auto_refill_last">Last refill</string>
+    <string name="auto_refill_amount">Refill amount</string>
+    <string name="auto_refill_interval">Interval</string>
+    <string name="auto_refill_next">Next refill</string>
+    <string name="auto_refill_next_info">A refill happens only after this time, and only when a message would take your balance below zero.</string>
+    <plurals name="auto_refill_every_seconds">
+        <item quantity="one">Every %1$s second</item>
+        <item quantity="other">Every %1$s seconds</item>
+    </plurals>
+    <plurals name="auto_refill_every_minutes">
+        <item quantity="one">Every %1$s minute</item>
+        <item quantity="other">Every %1$s minutes</item>
+    </plurals>
+    <plurals name="auto_refill_every_hours">
+        <item quantity="one">Every %1$s hour</item>
+        <item quantity="other">Every %1$s hours</item>
+    </plurals>
+    <plurals name="auto_refill_every_days">
+        <item quantity="one">Every %1$s day</item>
+        <item quantity="other">Every %1$s days</item>
+    </plurals>
+    <plurals name="auto_refill_every_weeks">
+        <item quantity="one">Every %1$s week</item>
+        <item quantity="other">Every %1$s weeks</item>
+    </plurals>
+    <plurals name="auto_refill_every_months">
+        <item quantity="one">Every %1$s month</item>
+        <item quantity="other">Every %1$s months</item>
+    </plurals>
     <string name="cd_token_balance">Token balance: %1$s credits</string>
 
     <!-- Chat settings -->

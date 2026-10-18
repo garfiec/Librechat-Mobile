@@ -218,12 +218,7 @@ fun AccountSettingsContent(
                     AdaptiveSectionHeader(stringResource(Res.string.section_balance))
                 }
                 adaptiveSection {
-                    row(key = "balance_section") {
-                        BalanceSection(
-                            tokenCredits = uiState.tokenCredits,
-                            isLoading = uiState.isBalanceLoading,
-                        )
-                    }
+                    balanceRows(uiState.balance, onRetry = viewModel::retryBalance)
                 }
             }
 

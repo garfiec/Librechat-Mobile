@@ -238,7 +238,34 @@
 
     <!-- Balance -->
     <string name="token_credits">トークンクレジット</string>
-    <string name="available_balance">利用可能な残高</string>
+    <string name="balance_credit_conversion">1,000 クレジット = 0.001 米ドル</string>
+    <string name="balance_load_error">残高を読み込めませんでした</string>
+    <string name="auto_refill_title">自動補充</string>
+    <string name="auto_refill_off">オフ</string>
+    <string name="auto_refill_unavailable">詳細を取得できません</string>
+    <string name="auto_refill_last">前回の補充</string>
+    <string name="auto_refill_amount">補充額</string>
+    <string name="auto_refill_interval">間隔</string>
+    <string name="auto_refill_next">次回の補充</string>
+    <string name="auto_refill_next_info">補充はこの時刻以降、メッセージによって残高がゼロを下回る場合にのみ行われます。</string>
+    <plurals name="auto_refill_every_seconds">
+        <item quantity="other">%1$s秒ごと</item>
+    </plurals>
+    <plurals name="auto_refill_every_minutes">
+        <item quantity="other">%1$s分ごと</item>
+    </plurals>
+    <plurals name="auto_refill_every_hours">
+        <item quantity="other">%1$s時間ごと</item>
+    </plurals>
+    <plurals name="auto_refill_every_days">
+        <item quantity="other">%1$s日ごと</item>
+    </plurals>
+    <plurals name="auto_refill_every_weeks">
+        <item quantity="other">%1$s週間ごと</item>
+    </plurals>
+    <plurals name="auto_refill_every_months">
+        <item quantity="other">%1$sか月ごと</item>
+    </plurals>
     <string name="cd_token_balance">トークン残高: %1$s クレジット</string>
     <string name="chat_group_display">表示</string>
     <string name="chat_group_behavior">動作</string>

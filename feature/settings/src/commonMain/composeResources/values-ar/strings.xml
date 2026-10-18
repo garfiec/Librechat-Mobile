@@ -238,7 +238,64 @@
 
     <!-- Balance -->
     <string name="token_credits">أرصدة الرموز</string>
-    <string name="available_balance">الرصيد المتاح</string>
+    <string name="balance_credit_conversion">1,000 رصيد = 0.001 دولار أمريكي</string>
+    <string name="balance_load_error">تعذّر تحميل الرصيد</string>
+    <string name="auto_refill_title">إعادة التعبئة التلقائية</string>
+    <string name="auto_refill_off">متوقفة</string>
+    <string name="auto_refill_unavailable">التفاصيل غير متاحة</string>
+    <string name="auto_refill_last">آخر إعادة تعبئة</string>
+    <string name="auto_refill_amount">مبلغ إعادة التعبئة</string>
+    <string name="auto_refill_interval">الفاصل الزمني</string>
+    <string name="auto_refill_next">إعادة التعبئة التالية</string>
+    <string name="auto_refill_next_info">لا تتم إعادة التعبئة إلا بعد هذا الوقت، وفقط عندما تؤدي رسالة إلى نزول رصيدك تحت الصفر.</string>
+    <plurals name="auto_refill_every_seconds">
+        <item quantity="zero">كل %1$s ثانية</item>
+        <item quantity="one">كل %1$s ثانية</item>
+        <item quantity="two">كل %1$s ثانية</item>
+        <item quantity="few">كل %1$s ثانية</item>
+        <item quantity="many">كل %1$s ثانية</item>
+        <item quantity="other">كل %1$s ثانية</item>
+    </plurals>
+    <plurals name="auto_refill_every_minutes">
+        <item quantity="zero">كل %1$s دقيقة</item>
+        <item quantity="one">كل %1$s دقيقة</item>
+        <item quantity="two">كل %1$s دقيقة</item>
+        <item quantity="few">كل %1$s دقيقة</item>
+        <item quantity="many">كل %1$s دقيقة</item>
+        <item quantity="other">كل %1$s دقيقة</item>
+    </plurals>
+    <plurals name="auto_refill_every_hours">
+        <item quantity="zero">كل %1$s ساعة</item>
+        <item quantity="one">كل %1$s ساعة</item>
+        <item quantity="two">كل %1$s ساعة</item>
+        <item quantity="few">كل %1$s ساعة</item>
+        <item quantity="many">كل %1$s ساعة</item>
+        <item quantity="other">كل %1$s ساعة</item>
+    </plurals>
+    <plurals name="auto_refill_every_days">
+        <item quantity="zero">كل %1$s يوم</item>
+        <item quantity="one">كل %1$s يوم</item>
+        <item quantity="two">كل %1$s يوم</item>
+        <item quantity="few">كل %1$s يوم</item>
+        <item quantity="many">كل %1$s يوم</item>
+        <item quantity="other">كل %1$s يوم</item>
+    </plurals>
+    <plurals name="auto_refill_every_weeks">
+        <item quantity="zero">كل %1$s أسبوع</item>
+        <item quantity="one">كل %1$s أسبوع</item>
+        <item quantity="two">كل %1$s أسبوع</item>
+        <item quantity="few">كل %1$s أسبوع</item>
+        <item quantity="many">كل %1$s أسبوع</item>
+        <item quantity="other">كل %1$s أسبوع</item>
+    </plurals>
+    <plurals name="auto_refill_every_months">
+        <item quantity="zero">كل %1$s شهر</item>
+        <item quantity="one">كل %1$s شهر</item>
+        <item quantity="two">كل %1$s شهر</item>
+        <item quantity="few">كل %1$s شهر</item>
+        <item quantity="many">كل %1$s شهر</item>
+        <item quantity="other">كل %1$s شهر</item>
+    </plurals>
     <string name="cd_token_balance">رصيد الرموز: %1$s رصيد</string>
     <string name="chat_group_display">العرض</string>
     <string name="chat_group_behavior">السلوك</string>

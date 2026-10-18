@@ -11,6 +11,7 @@ import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 import com.garfiec.librechat.core.ui.media.AvatarImagePreparer
+import com.garfiec.librechat.feature.settings.model.AutoRefillInfo
 import com.garfiec.librechat.feature.settings.model.UserDisplayData
 import com.garfiec.librechat.feature.settings.util.ContentReader
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.AccountDelegate
@@ -53,8 +54,7 @@ data class AccountSettingsUiState(
      * showing a zero it never sent.
      */
     val balanceEnabled: Boolean = false,
-    val tokenCredits: Long = 0,
-    val isBalanceLoading: Boolean = false,
+    val balance: BalanceUiState = BalanceUiState.Loading,
     // Avatar
     val showAvatarDialog: Boolean = false,
     val isAvatarUploading: Boolean = false,
@@ -81,6 +81,17 @@ data class AccountSettingsUiState(
     val showEnableTwoFactorOtpDialog: Boolean = false,
     val showBackupCodesOtpDialog: Boolean = false,
 )
+
+/** The Balance section. Shown only while [AccountSettingsUiState.balanceEnabled]. */
+@Immutable
+sealed interface BalanceUiState {
+    data object Loading : BalanceUiState
+
+    data class Loaded(val tokenCredits: Double, val autoRefill: AutoRefillInfo) : BalanceUiState
+
+    /** The request failed. A server with no balance record for the user answers 404, which is `Loaded(0)`. */
+    data object Error : BalanceUiState
+}
 
 /** Backs the Account tab: profile, avatar, balance, two-factor, sign out and account deletion. */
 @Suppress("LongParameterList", "TooManyFunctions") // one-line forwarders to the two delegates
@@ -138,6 +149,7 @@ class AccountSettingsViewModel(
 
     // Profile & avatar
     fun retry() = accountDelegate.retry()
+    fun retryBalance() = accountDelegate.loadBalance()
     fun showAvatarDialog() = accountDelegate.showAvatarDialog()
     fun dismissAvatarDialog() = accountDelegate.dismissAvatarDialog()
     fun uploadAvatar(uri: Any) = accountDelegate.uploadAvatar(uri)

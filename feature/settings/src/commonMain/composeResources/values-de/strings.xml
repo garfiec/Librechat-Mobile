@@ -238,7 +238,40 @@
 
     <!-- Balance -->
     <string name="token_credits">Token-Guthaben</string>
-    <string name="available_balance">Verfügbares Guthaben</string>
+    <string name="balance_credit_conversion">1.000 Credits = 0,001 $</string>
+    <string name="balance_load_error">Guthaben konnte nicht geladen werden</string>
+    <string name="auto_refill_title">Automatisches Aufladen</string>
+    <string name="auto_refill_off">Aus</string>
+    <string name="auto_refill_unavailable">Details nicht verfügbar</string>
+    <string name="auto_refill_last">Letzte Aufladung</string>
+    <string name="auto_refill_amount">Aufladebetrag</string>
+    <string name="auto_refill_interval">Intervall</string>
+    <string name="auto_refill_next">Nächste Aufladung</string>
+    <string name="auto_refill_next_info">Aufgeladen wird erst nach diesem Zeitpunkt und nur, wenn eine Nachricht dein Guthaben unter null bringen würde.</string>
+    <plurals name="auto_refill_every_seconds">
+        <item quantity="one">Jede %1$s Sekunde</item>
+        <item quantity="other">Alle %1$s Sekunden</item>
+    </plurals>
+    <plurals name="auto_refill_every_minutes">
+        <item quantity="one">Jede %1$s Minute</item>
+        <item quantity="other">Alle %1$s Minuten</item>
+    </plurals>
+    <plurals name="auto_refill_every_hours">
+        <item quantity="one">Jede %1$s Stunde</item>
+        <item quantity="other">Alle %1$s Stunden</item>
+    </plurals>
+    <plurals name="auto_refill_every_days">
+        <item quantity="one">Jeden %1$s Tag</item>
+        <item quantity="other">Alle %1$s Tage</item>
+    </plurals>
+    <plurals name="auto_refill_every_weeks">
+        <item quantity="one">Jede %1$s Woche</item>
+        <item quantity="other">Alle %1$s Wochen</item>
+    </plurals>
+    <plurals name="auto_refill_every_months">
+        <item quantity="one">Jeden %1$s Monat</item>
+        <item quantity="other">Alle %1$s Monate</item>
+    </plurals>
     <string name="cd_token_balance">Token-Guthaben: %1$s Credits</string>
     <string name="chat_group_display">Anzeige</string>
     <string name="chat_group_behavior">Verhalten</string>

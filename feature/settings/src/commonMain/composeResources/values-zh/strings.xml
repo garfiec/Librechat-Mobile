@@ -238,7 +238,34 @@
 
     <!-- Balance -->
     <string name="token_credits">Token 额度</string>
-    <string name="available_balance">可用余额</string>
+    <string name="balance_credit_conversion">1,000 额度 = 0.001 美元</string>
+    <string name="balance_load_error">无法加载余额</string>
+    <string name="auto_refill_title">自动充值</string>
+    <string name="auto_refill_off">关闭</string>
+    <string name="auto_refill_unavailable">详情不可用</string>
+    <string name="auto_refill_last">上次充值</string>
+    <string name="auto_refill_amount">充值金额</string>
+    <string name="auto_refill_interval">间隔</string>
+    <string name="auto_refill_next">下次充值</string>
+    <string name="auto_refill_next_info">只有在此时间之后，且发送消息会使余额低于零时，才会充值。</string>
+    <plurals name="auto_refill_every_seconds">
+        <item quantity="other">每 %1$s 秒</item>
+    </plurals>
+    <plurals name="auto_refill_every_minutes">
+        <item quantity="other">每 %1$s 分钟</item>
+    </plurals>
+    <plurals name="auto_refill_every_hours">
+        <item quantity="other">每 %1$s 小时</item>
+    </plurals>
+    <plurals name="auto_refill_every_days">
+        <item quantity="other">每 %1$s 天</item>
+    </plurals>
+    <plurals name="auto_refill_every_weeks">
+        <item quantity="other">每 %1$s 周</item>
+    </plurals>
+    <plurals name="auto_refill_every_months">
+        <item quantity="other">每 %1$s 个月</item>
+    </plurals>
     <string name="cd_token_balance">Token 余额：%1$s 额度</string>
     <string name="chat_group_display">显示</string>
     <string name="chat_group_behavior">行为</string>

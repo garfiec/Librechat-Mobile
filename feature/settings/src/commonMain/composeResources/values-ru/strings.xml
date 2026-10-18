@@ -238,7 +238,52 @@
 
     <!-- Balance -->
     <string name="token_credits">Токен-кредиты</string>
-    <string name="available_balance">Доступный баланс</string>
+    <string name="balance_credit_conversion">1000 кредитов = 0,001 $</string>
+    <string name="balance_load_error">Не удалось загрузить баланс</string>
+    <string name="auto_refill_title">Автопополнение</string>
+    <string name="auto_refill_off">Выкл.</string>
+    <string name="auto_refill_unavailable">Сведения недоступны</string>
+    <string name="auto_refill_last">Последнее пополнение</string>
+    <string name="auto_refill_amount">Сумма пополнения</string>
+    <string name="auto_refill_interval">Интервал</string>
+    <string name="auto_refill_next">Следующее пополнение</string>
+    <string name="auto_refill_next_info">Пополнение происходит только после этого времени и только если сообщение опустит баланс ниже нуля.</string>
+    <plurals name="auto_refill_every_seconds">
+        <item quantity="one">Каждую %1$s секунду</item>
+        <item quantity="few">Каждые %1$s секунды</item>
+        <item quantity="many">Каждые %1$s секунд</item>
+        <item quantity="other">Каждые %1$s секунды</item>
+    </plurals>
+    <plurals name="auto_refill_every_minutes">
+        <item quantity="one">Каждую %1$s минуту</item>
+        <item quantity="few">Каждые %1$s минуты</item>
+        <item quantity="many">Каждые %1$s минут</item>
+        <item quantity="other">Каждые %1$s минуты</item>
+    </plurals>
+    <plurals name="auto_refill_every_hours">
+        <item quantity="one">Каждый %1$s час</item>
+        <item quantity="few">Каждые %1$s часа</item>
+        <item quantity="many">Каждые %1$s часов</item>
+        <item quantity="other">Каждые %1$s часа</item>
+    </plurals>
+    <plurals name="auto_refill_every_days">
+        <item quantity="one">Каждый %1$s день</item>
+        <item quantity="few">Каждые %1$s дня</item>
+        <item quantity="many">Каждые %1$s дней</item>
+        <item quantity="other">Каждые %1$s дня</item>
+    </plurals>
+    <plurals name="auto_refill_every_weeks">
+        <item quantity="one">Каждую %1$s неделю</item>
+        <item quantity="few">Каждые %1$s недели</item>
+        <item quantity="many">Каждые %1$s недель</item>
+        <item quantity="other">Каждые %1$s недели</item>
+    </plurals>
+    <plurals name="auto_refill_every_months">
+        <item quantity="one">Каждый %1$s месяц</item>
+        <item quantity="few">Каждые %1$s месяца</item>
+        <item quantity="many">Каждые %1$s месяцев</item>
+        <item quantity="other">Каждые %1$s месяца</item>
+    </plurals>
     <string name="cd_token_balance">Баланс токенов: %1$s кредитов</string>
     <string name="chat_group_display">Отображение</string>
     <string name="chat_group_behavior">Поведение</string>

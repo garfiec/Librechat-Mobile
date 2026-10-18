@@ -6,8 +6,10 @@ import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.repository.BalanceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.ui.media.AvatarImagePreparer
+import com.garfiec.librechat.feature.settings.model.autoRefillInfo
 import com.garfiec.librechat.feature.settings.util.ContentReader
 import com.garfiec.librechat.feature.settings.viewmodel.AccountSettingsUiState
+import com.garfiec.librechat.feature.settings.viewmodel.BalanceUiState
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
 import com.garfiec.librechat.feature.settings.viewmodel.isHttpStatus
 import com.garfiec.librechat.feature.settings.viewmodel.toDisplayData
@@ -33,6 +35,7 @@ class AccountDelegate(
     // In-flight profile-load job. Cancelled before each retry so a hung 90s request
     // doesn't continue racing the fresh one.
     private var loadUserJob: Job? = null
+    private var loadBalanceJob: Job? = null
 
     fun loadUser() {
         loadUserJob?.cancel()
@@ -69,15 +72,17 @@ class AccountDelegate(
     }
 
     fun loadBalance() {
-        stateHandle.scope.launch {
-            stateHandle.update { copy(isBalanceLoading = true) }
+        loadBalanceJob?.cancel()
+        loadBalanceJob = stateHandle.scope.launch {
+            stateHandle.update { copy(balance = BalanceUiState.Loading) }
             when (val result = balanceRepository.getBalance()) {
                 is Result.Success -> {
-                    stateHandle.update { copy(tokenCredits = result.data.tokenCredits, isBalanceLoading = false) }
+                    val loaded = BalanceUiState.Loaded(result.data.tokenCredits, result.data.autoRefillInfo())
+                    stateHandle.update { copy(balance = loaded) }
                 }
                 is Result.Error -> {
-                    Logger.d(result.exception) { "Failed to load balance: ${result.message}" }
-                    stateHandle.update { copy(isBalanceLoading = false) }
+                    Logger.w(result.exception) { "Failed to load balance: ${result.message}" }
+                    stateHandle.update { copy(balance = BalanceUiState.Error) }
                 }
                 is Result.Loading -> { /* no-op */ }
             }

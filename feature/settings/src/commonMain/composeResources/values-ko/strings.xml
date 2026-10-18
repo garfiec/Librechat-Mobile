@@ -238,7 +238,34 @@
 
     <!-- Balance -->
     <string name="token_credits">토큰 크레딧</string>
-    <string name="available_balance">사용 가능 잔액</string>
+    <string name="balance_credit_conversion">1,000 크레딧 = 0.001달러</string>
+    <string name="balance_load_error">잔액을 불러올 수 없음</string>
+    <string name="auto_refill_title">자동 충전</string>
+    <string name="auto_refill_off">끔</string>
+    <string name="auto_refill_unavailable">세부 정보 없음</string>
+    <string name="auto_refill_last">마지막 충전</string>
+    <string name="auto_refill_amount">충전 금액</string>
+    <string name="auto_refill_interval">간격</string>
+    <string name="auto_refill_next">다음 충전</string>
+    <string name="auto_refill_next_info">충전은 이 시간 이후, 메시지로 인해 잔액이 0 미만이 될 때만 이루어집니다.</string>
+    <plurals name="auto_refill_every_seconds">
+        <item quantity="other">%1$s초마다</item>
+    </plurals>
+    <plurals name="auto_refill_every_minutes">
+        <item quantity="other">%1$s분마다</item>
+    </plurals>
+    <plurals name="auto_refill_every_hours">
+        <item quantity="other">%1$s시간마다</item>
+    </plurals>
+    <plurals name="auto_refill_every_days">
+        <item quantity="other">%1$s일마다</item>
+    </plurals>
+    <plurals name="auto_refill_every_weeks">
+        <item quantity="other">%1$s주마다</item>
+    </plurals>
+    <plurals name="auto_refill_every_months">
+        <item quantity="other">%1$s개월마다</item>
+    </plurals>
     <string name="cd_token_balance">토큰 잔액: %1$s 크레딧</string>
     <string name="chat_group_display">표시</string>
     <string name="chat_group_behavior">동작</string>

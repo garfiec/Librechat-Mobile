@@ -1400,6 +1400,34 @@
       },
       "why": "The web client's page routes, stripped off a server URL pasted from a browser so it names the deployment root. Every request resolves under the cleaned base path, so this list decides where a stored URL's API calls go.",
       "failure_mode": "A new web route is pasted as a server address and kept as a deployment path: the entry probe falls back to the origin, but a URL stored that way earlier sends every request under the page path and gets 404s. Nothing fails to decode."
+    },
+    {
+      "id": "refill-interval-units",
+      "upstream": {
+        "file": "packages/data-provider/src/balance.ts",
+        "symbol": "REFILL_INTERVAL_UNITS",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/model/AutoRefillInfo.kt",
+        "symbol": "RefillIntervalUnit"
+      },
+      "why": "The auto-refill interval units the Balance section knows how to label and add to the last refill date. A unit outside the list hides the auto-refill details.",
+      "failure_mode": "Upstream adds a unit and every user on it sees \"Details unavailable\" where web shows the schedule. Nothing fails to decode."
+    },
+    {
+      "id": "refill-eligibility-date",
+      "upstream": {
+        "file": "packages/data-provider/src/balance.ts",
+        "symbol": "getRefillEligibilityDate",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/model/AutoRefillInfo.kt",
+        "symbol": "refillEligibility"
+      },
+      "why": "How the \"Next refill\" date is computed from lastRefill plus the interval. Known divergence, kept on purpose: month-end clamps where JS Date rolls over.",
+      "failure_mode": "Upstream changes the rule and the Balance section shows a next-refill date that differs from web's. A wrong date renders exactly like a right one."
     }
   ]
 }

@@ -238,7 +238,40 @@
 
     <!-- Balance -->
     <string name="token_credits">Créditos de token</string>
-    <string name="available_balance">Saldo disponível</string>
+    <string name="balance_credit_conversion">1.000 créditos = US$ 0,001</string>
+    <string name="balance_load_error">Não foi possível carregar o saldo</string>
+    <string name="auto_refill_title">Recarga automática</string>
+    <string name="auto_refill_off">Desativada</string>
+    <string name="auto_refill_unavailable">Detalhes indisponíveis</string>
+    <string name="auto_refill_last">Última recarga</string>
+    <string name="auto_refill_amount">Valor da recarga</string>
+    <string name="auto_refill_interval">Intervalo</string>
+    <string name="auto_refill_next">Próxima recarga</string>
+    <string name="auto_refill_next_info">A recarga só acontece depois deste horário e apenas se uma mensagem deixar seu saldo abaixo de zero.</string>
+    <plurals name="auto_refill_every_seconds">
+        <item quantity="one">A cada %1$s segundo</item>
+        <item quantity="other">A cada %1$s segundos</item>
+    </plurals>
+    <plurals name="auto_refill_every_minutes">
+        <item quantity="one">A cada %1$s minuto</item>
+        <item quantity="other">A cada %1$s minutos</item>
+    </plurals>
+    <plurals name="auto_refill_every_hours">
+        <item quantity="one">A cada %1$s hora</item>
+        <item quantity="other">A cada %1$s horas</item>
+    </plurals>
+    <plurals name="auto_refill_every_days">
+        <item quantity="one">A cada %1$s dia</item>
+        <item quantity="other">A cada %1$s dias</item>
+    </plurals>
+    <plurals name="auto_refill_every_weeks">
+        <item quantity="one">A cada %1$s semana</item>
+        <item quantity="other">A cada %1$s semanas</item>
+    </plurals>
+    <plurals name="auto_refill_every_months">
+        <item quantity="one">A cada %1$s mês</item>
+        <item quantity="other">A cada %1$s meses</item>
+    </plurals>
     <string name="cd_token_balance">Saldo de tokens: %1$s créditos</string>
     <string name="chat_group_display">Exibição</string>
     <string name="chat_group_behavior">Comportamento</string>
