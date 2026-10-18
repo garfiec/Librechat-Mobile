@@ -940,9 +940,9 @@ class ModelSelectionDelegate(
  * usable" — shared by [ModelSelectionDelegate] (seeding/validation) and the model
  * selector UI so they can't drift apart.
  *
- * Never yields an `agents` entry: agents come from the agents list, and an `agents` model group
- * would collide with the selector's own agents group (#541). The repository already drops the key;
- * this keeps every consumer safe from a map that did not come through it.
+ * Never yields an `agents` entry or a model listed twice: agents come from the agents list, and
+ * either would put two rows under one key in the selector's LazyColumn (#541). The repository
+ * already normalizes; this keeps every consumer safe from a map that did not come through it.
  */
 internal fun filterModelsByEndpoint(
     rawModels: Map<String, List<String>>,
@@ -952,7 +952,7 @@ internal fun filterModelsByEndpoint(
         endpoint != EndpointConstants.AGENTS &&
             models.isNotEmpty() &&
             (endpointConfigs.isEmpty() || endpoint in endpointConfigs)
-    }
+    }.mapValues { (_, models) -> models.distinct() }
 
 // --- Display data mapping extensions ---
 

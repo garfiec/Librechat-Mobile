@@ -76,8 +76,14 @@ import org.jetbrains.compose.resources.stringResource
 private val IconSize = 20.dp
 private const val FUZZY_MATCH_THRESHOLD = 55
 
-/** Sentinel group key for the optional "Starred" section's expand/collapse state. */
+/** Sentinel endpoint name the optional "Starred" section's header passes to [EndpointGroupHeader]. */
 private const val STARRED_GROUP_KEY = "__starred__"
+
+// Keys are namespaced by row kind and join endpoint/model with `::`: names come from the server, and
+// Compose throws on a duplicate LazyColumn key (#541).
+private const val MY_AGENTS_EXPAND_KEY = "agents:mine"
+private const val STARRED_EXPAND_KEY = "starred"
+private fun endpointExpandKey(endpoint: String) = "ep:$endpoint"
 
 /** Row vertical padding for grouped list items vs. the denser starred-at-top section. */
 private val ListItemVerticalPadding = 12.dp
@@ -223,6 +229,7 @@ fun ModelSelectorSheetContent(
     // Filter agents by search query (fuzzy matching), sorted by score when searching.
     // When not searching, pinned agents (v0.8.5+) sort to the top of the list.
     val filteredAgents = remember(agents, searchQuery, favoriteAgentIds) {
+        val agents = agents.distinctBy { it.id }
         val base = if (!isSearching) {
             agents
         } else if (searchQuery.length <= 2) {
@@ -325,8 +332,8 @@ fun ModelSelectorSheetContent(
                 // flat, always-shown list closed off with a divider. OFF never reaches here.
                 val starredItemsVisible = when (starredDisplay) {
                     StarredModelsDisplay.GROUPED -> {
-                        val expanded = expandedGroups[STARRED_GROUP_KEY] == true
-                        item(key = "header_starred") {
+                        val expanded = expandedGroups[STARRED_EXPAND_KEY] == true
+                        item(key = "hdr:starred") {
                             EndpointGroupHeader(
                                 endpointName = STARRED_GROUP_KEY,
                                 displayLabel = stringResource(Res.string.starred_group),
@@ -334,7 +341,7 @@ fun ModelSelectorSheetContent(
                                 isExpanded = expanded,
                                 iconUrl = null,
                                 leadingIcon = Icons.Default.Star,
-                                onToggle = { expandedGroups[STARRED_GROUP_KEY] = !expanded },
+                                onToggle = { expandedGroups[STARRED_EXPAND_KEY] = !expanded },
                                 dragSelection = dragSelection,
                             )
                         }
@@ -351,7 +358,7 @@ fun ModelSelectorSheetContent(
                     } else {
                         ListItemVerticalPadding
                     }
-                    items(starredAgents, key = { "starred_agent_${it.id}" }, contentType = { "agent" }) { agent ->
+                    items(starredAgents, key = { "starred:agent:${it.id}" }, contentType = { "agent" }) { agent ->
                         AgentListItem(
                             agent = agent,
                             isSelected = selectedEndpoint == EndpointConstants.AGENTS && agent.id == selectedModel,
@@ -365,7 +372,7 @@ fun ModelSelectorSheetContent(
                     }
                     items(
                         starredModels,
-                        key = { (endpoint, model) -> "starred_model_$endpoint::$model" },
+                        key = { (endpoint, model) -> "starred:model:$endpoint::$model" },
                         contentType = { "model" },
                     ) { (endpoint, model) ->
                         ModelListItem(
@@ -380,7 +387,7 @@ fun ModelSelectorSheetContent(
                     }
                 }
                 if (starredDisplay == StarredModelsDisplay.TOP) {
-                    item(key = "starred_divider") {
+                    item(key = "div:starred") {
                         AdaptiveDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
                     }
                 }
@@ -388,20 +395,20 @@ fun ModelSelectorSheetContent(
 
             // "My Agents" group (shown first, like the web frontend)
             if (filteredAgents.isNotEmpty()) {
-                val agentsExpanded = isSearching || expandedGroups[EndpointConstants.AGENTS] == true
-                item(key = "header_agents") {
+                val agentsExpanded = isSearching || expandedGroups[MY_AGENTS_EXPAND_KEY] == true
+                item(key = "hdr:agents") {
                     EndpointGroupHeader(
                         endpointName = EndpointConstants.AGENTS,
                         displayLabel = "My Agents",
                         modelCount = filteredAgents.size,
                         isExpanded = agentsExpanded,
                         iconUrl = null,
-                        onToggle = { if (!isSearching) expandedGroups[EndpointConstants.AGENTS] = !agentsExpanded },
+                        onToggle = { if (!isSearching) expandedGroups[MY_AGENTS_EXPAND_KEY] = !agentsExpanded },
                         dragSelection = dragSelection,
                     )
                 }
                 if (agentsExpanded) {
-                    items(filteredAgents, key = { "agents_${it.id}" }, contentType = { "agent" }) { agent ->
+                    items(filteredAgents, key = { "agent:${it.id}" }, contentType = { "agent" }) { agent ->
                         AgentListItem(
                             agent = agent,
                             isSelected = selectedEndpoint == EndpointConstants.AGENTS && agent.id == selectedModel,
@@ -438,27 +445,27 @@ fun ModelSelectorSheetContent(
                     val displayLabel = config?.modelDisplayLabel ?: endpointName
                     // Auto-expand while searching so matches in collapsed groups are visible;
                     // otherwise use manual toggle state.
-                    val isExpanded = isSearching || expandedGroups[endpointName] == true
+                    val isExpanded = isSearching || expandedGroups[endpointExpandKey(endpointName)] == true
                     // Endpoints with userProvide=true and Unset/Expired key render disabled
                     // with a "Set API Key" CTA. Loading and absent states fail-open.
                     val keyState = endpointKeyStates[endpointName]
                     val needsKey = keyState is KeyState.Unset || keyState is KeyState.Expired
                     val effectiveExpanded = isExpanded && !needsKey
-                    item(key = "header_$endpointName") {
+                    item(key = "hdr:ep:$endpointName") {
                         EndpointGroupHeader(
                             endpointName = endpointName,
                             displayLabel = displayLabel,
                             modelCount = filteredModels.size,
                             isExpanded = effectiveExpanded,
                             iconUrl = config?.iconURL,
-                            onToggle = { if (!isSearching) expandedGroups[endpointName] = !isExpanded },
+                            onToggle = { if (!isSearching) expandedGroups[endpointExpandKey(endpointName)] = !isExpanded },
                             needsKey = needsKey,
                             onSetApiKey = { onSetApiKey(endpointName) },
                             dragSelection = dragSelection,
                         )
                     }
                     if (effectiveExpanded) {
-                        items(filteredModels, key = { "${endpointName}_$it" }, contentType = { "model" }) { model ->
+                        items(filteredModels, key = { "model:$endpointName::$it" }, contentType = { "model" }) { model ->
                             ModelListItem(
                                 model = model,
                                 isSelected = endpointName == selectedEndpoint && model == selectedModel,
