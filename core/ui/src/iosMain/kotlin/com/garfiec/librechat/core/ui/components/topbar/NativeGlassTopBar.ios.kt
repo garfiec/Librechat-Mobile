@@ -62,10 +62,15 @@ import platform.UIKit.UIViewController
 import platform.UIKit.accessibilityLabel
 import platform.UIKit.labelColor
 import platform.UIKit.systemRedColor
+import platform.darwin.dispatch_async
+import platform.darwin.dispatch_get_main_queue
 import kotlin.math.abs
 
 /** Until the bar reports its own height (it can differ by device and iOS release). */
 private const val INITIAL_BAR_HEIGHT = 52f
+
+/** Differs from every real height, so the next layout pass reports whatever it measures. */
+private const val UNREPORTED_HEIGHT = -1.0
 
 /** ObjC superclass of CMP's `InteropWrappingView`, the view that owns an interop view's touches. */
 private const val INTEROP_WRAPPER_CLASS = "CMPInteropWrappingView"
@@ -170,7 +175,17 @@ private class NativeBarContainer(
         val fitted = bar.sizeThatFits(CGSizeMake(width, 1000.0)).useContents { height }
         if (fitted > 0 && abs(fitted - reportedHeight) > 0.5) {
             reportedHeight = fitted
-            onHeight(fitted.toFloat())
+            // Not inline: this runs inside UIKit's layout pass, and writing Compose state here can
+            // start a Compose layout while nodes are being detached (#533). The next main-queue turn
+            // is outside both passes.
+            dispatch_async(dispatch_get_main_queue()) {
+                if (window != null) {
+                    onHeight(fitted.toFloat())
+                } else if (reportedHeight == fitted) {
+                    // Dropped: forget it so the next layout pass after reattaching reports again.
+                    reportedHeight = UNREPORTED_HEIGHT
+                }
+            }
         }
     }
 
