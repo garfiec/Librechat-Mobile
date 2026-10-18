@@ -17,6 +17,9 @@ File: `.github/workflows/appstore.yml`
   `method: app-store-connect`, `destination: upload` uploads during export (no altool/fastlane).
 - Passes `IOS_BUILD_NUMBER_SUFFIX` (run_number×100 + run_attempt) so the "Stamp Version"
   build phase emits a per-upload-unique `CFBundleVersion` (`YYYYMMPP.N`).
+- Uploads the archive's `dSYMs/` as the `dSYMs-<tag>-<run>-<attempt>` artifact (90 days), before the
+  App Store upload, for symbolicating a field crash report; after that, App Store Connect's copy is
+  the only one.
 - Secrets (in the `release` environment): `ASC_API_KEY_P8_BASE64`, `ASC_API_KEY_ID`,
   `ASC_API_ISSUER_ID`, `APPLE_TEAM_ID`. Setup runbook: `docs/RELEASING.md`.
 

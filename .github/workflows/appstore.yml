@@ -133,6 +133,18 @@ jobs:
           fi
           echo "Archive declares the App Store channel."
 
+      # Before the upload, so a missing dSYM fails the run while nothing has reached App Store Connect.
+      # Named per attempt so a re-run of a failed upload doesn't collide with the first attempt's
+      # artifact. After 90 days, App Store Connect's copy (TestFlight → build → Build Metadata) is the
+      # only one.
+      - name: Keep the dSYMs
+        uses: actions/upload-artifact@v7
+        with:
+          name: dSYMs-${{ inputs.tag }}-${{ github.run_number }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/iosApp.xcarchive/dSYMs/
+          if-no-files-found: error
+          retention-days: 90
+
       # destination=upload pushes the build to App Store Connect during export — no
       # deprecated altool, no Transporter, no fastlane. manageAppVersionAndBuildNumber=false
       # keeps the deterministically stamped version/build (Apple would otherwise auto-bump).
