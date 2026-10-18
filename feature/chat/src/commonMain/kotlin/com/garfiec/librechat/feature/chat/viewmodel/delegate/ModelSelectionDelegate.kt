@@ -347,9 +347,11 @@ class ModelSelectionDelegate(
         )
         handle.update { selection = selection.copy(availableModels = filtered) }
 
-        // Don't validate against an empty models list — models haven't
-        // loaded yet. When they arrive this method will be called again.
-        if (filtered.isEmpty()) return
+        // Don't validate before the server's config or models have loaded. When they arrive this
+        // method will be called again. Configs alone are enough: an agents-only server lists no
+        // models, and a conversation there on a vanished endpoint must still fall back.
+        val endpointConfigs = configRepository.endpointConfigs.value
+        if (filtered.isEmpty() && endpointConfigs.isEmpty()) return
 
         // New chats: the seeder is the single authority for the selection.
         // It re-resolves on every input change (availableModels/endpointConfigs
@@ -360,46 +362,32 @@ class ModelSelectionDelegate(
         // conversation model has been loaded.
         if (!conversationModelLoaded) return
 
-        // Validate current selection. The previous version exempted the
-        // agents endpoint from the `currentModel in modelsForEndpoint` check,
-        // which let a stale selectedModel (a real model name carried over
-        // from a non-agent endpoint) be re-used as an agent_id by the
-        // sendMessage path — the server then rejects the chat because no
-        // such agent exists. Treat agents like any other endpoint: validate
-        // that selectedModel is actually one of the loaded agent IDs.
-        // When modelsForEndpoint is absent (still loading), skip the check
-        // rather than clobber the selection.
+        // Validate current selection. An agents selection is not checked against the agents list:
+        // it is one capped page (`/api/agents` defaults to 100), so an agent missing from it may
+        // still exist, and replacing it would reopen the chat on a different agent.
         //
-        // Any other endpoint keeps the conversation's model while the endpoint itself exists, as
+        // Every endpoint, agents included, keeps the conversation's model while the endpoint itself exists, as
         // the web client does (`useNavigateToConvo` rebuilds a conversation only when its endpoint
         // is missing from the config). The model list is not a whitelist: a fetched list can leave
         // out a model the chat ran on (a dated id like `grok-4-0709`), and replacing it would open the
         // chat on an unrelated model. Only a vanished endpoint falls back.
         val currentEndpoint = handle.state.selectedEndpoint
         val currentModel = handle.state.selectedModel
-        val modelsForEndpoint = filtered[currentEndpoint]
-        val endpointConfigs = configRepository.endpointConfigs.value
         val endpointGone = currentEndpoint != null && endpointConfigs.isNotEmpty() && currentEndpoint !in endpointConfigs
-        val selectionValid = currentModel != null && if (currentEndpoint == EndpointConstants.AGENTS) {
-            modelsForEndpoint == null || currentModel in modelsForEndpoint
-        } else {
-            !endpointGone
-        }
+        val selectionValid = currentModel != null && !endpointGone
 
         if (selectionValid) return
 
         // --- Corrective fallback (existing conversations only) ---
-        // The loaded conversation's model vanished server-side. Prefer the
-        // last-used model (same agents-endpoint guard as the validation above —
+        // The loaded conversation's endpoint vanished server-side. Prefer the
+        // last-used model (an agents last-used must be in the loaded agents list —
         // a stale lastUsedModel that isn't an agent_id must not be restored as
         // the agents-endpoint selection), then fall back to the first model.
         val lastEndpoint = cachedLastUsedEndpoint
         val lastModel = cachedLastUsedModel
         if (lastEndpoint != null && lastModel != null) {
             val lastUsedRestorable = if (lastEndpoint == EndpointConstants.AGENTS) {
-                // Agents never appear in `filtered` (/api/models has no "agents" key), so the
-                // old `filtered[lastEndpoint]` check always failed and a valid agents last-used
-                // was silently skipped to a config model. Validate the agent id against the
+                // Agents never appear in `filtered`, so validate the agent id against the
                 // authoritative agents list instead (mirroring selectability()). Hold — don't
                 // fall through to a config-model guess — until that list has loaded; loadAgents
                 // re-runs refilterModels on success to un-stick this.
@@ -951,15 +939,19 @@ class ModelSelectionDelegate(
  * endpoints with empty model lists. Single source of truth for "which models are
  * usable" — shared by [ModelSelectionDelegate] (seeding/validation) and the model
  * selector UI so they can't drift apart.
+ *
+ * Never yields an `agents` entry: agents come from the agents list, and an `agents` model group
+ * would collide with the selector's own agents group (#541). The repository already drops the key;
+ * this keeps every consumer safe from a map that did not come through it.
  */
 internal fun filterModelsByEndpoint(
     rawModels: Map<String, List<String>>,
     endpointConfigs: Map<String, EndpointConfig>,
 ): Map<String, List<String>> =
-    if (endpointConfigs.isEmpty()) {
-        rawModels.filterValues { it.isNotEmpty() }
-    } else {
-        rawModels.filterKeys { it in endpointConfigs }.filterValues { it.isNotEmpty() }
+    rawModels.filter { (endpoint, models) ->
+        endpoint != EndpointConstants.AGENTS &&
+            models.isNotEmpty() &&
+            (endpointConfigs.isEmpty() || endpoint in endpointConfigs)
     }
 
 // --- Display data mapping extensions ---

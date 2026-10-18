@@ -224,9 +224,7 @@ class ModelSelectionDelegateTest {
     }
 
     @Test
-    fun refilterStaleNonAgentModelOnAgentsEndpointIsCorrected() = runTest {
-        // A real model name carried into the AGENTS endpoint must be treated invalid
-        // (it would be sent as a bogus agent_id and the server would reject the chat).
+    fun refilterKeepsAnAgentsSelectionMissingFromTheAgentsList() = runTest {
         val scope = TestScope(StandardTestDispatcher(testScheduler))
         val handle = newHandle(
             scope,
@@ -234,23 +232,116 @@ class ModelSelectionDelegateTest {
         )
         val delegate = newDelegate(handle)
         delegate.conversationModelLoaded = true
-        availableModels.value = linkedMapOf(
-            EndpointConstants.AGENTS to listOf("agent_abc"),
-            "openAI" to listOf("gpt-4o"),
-        )
+        delegate.agentsLoaded.value = true
+        handle.update { copy(selection = selection.copy(agents = listOf(Agent(id = "agent_abc")))) }
+        availableModels.value = mapOf("openAI" to listOf("gpt-4o"))
 
         delegate.refilterModels(isNewConversation = false)
         advanceUntilIdle()
 
-        // Corrected away from the stale ("agents", "gpt-4o") pair to a real entry.
-        assertThat(handle.state.selectedModel).isNotEqualTo("gpt-4o")
-        val pair = handle.state.selectedEndpoint to handle.state.selectedModel
-        assertThat(handle.state.availableModels[pair.first]).contains(pair.second)
+        // Kept: the agents list is one capped page, so absence from it does not prove the id
+        // is stale, and refilter must not swap the chat onto another model.
+        assertThat(handle.state.selectedEndpoint).isEqualTo(EndpointConstants.AGENTS)
+        assertThat(handle.state.selectedModel).isEqualTo("gpt-4o")
+    }
+
+    @Test
+    fun refilterKeepsALoadedAgentWithNoAgentsKeyInModels() = runTest {
+        // /api/models never lists agents; the agents list alone validates the selection.
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val handle = newHandle(
+            scope,
+            uiState(conversationId = "c1", selectedEndpoint = EndpointConstants.AGENTS, selectedModel = "agent_abc"),
+        )
+        val delegate = newDelegate(handle)
+        delegate.conversationModelLoaded = true
+        delegate.agentsLoaded.value = true
+        handle.update { copy(selection = selection.copy(agents = listOf(Agent(id = "agent_abc")))) }
+        availableModels.value = mapOf("openAI" to listOf("gpt-4o"))
+
+        delegate.refilterModels(isNewConversation = false)
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedEndpoint).isEqualTo(EndpointConstants.AGENTS)
+        assertThat(handle.state.selectedModel).isEqualTo("agent_abc")
+    }
+
+    @Test
+    fun filterModelsByEndpointNeverYieldsAnAgentsGroup() {
+        val raw = mapOf(
+            EndpointConstants.AGENTS to listOf("agent_1"),
+            "openAI" to listOf("gpt-4o"),
+            "google" to emptyList(),
+        )
+
+        assertThat(filterModelsByEndpoint(raw, emptyMap())).containsExactly("openAI", listOf("gpt-4o"))
+        assertThat(
+            filterModelsByEndpoint(
+                raw,
+                mapOf(EndpointConstants.AGENTS to EndpointConfig(), "openAI" to EndpointConfig()),
+            ),
+        ).containsExactly("openAI", listOf("gpt-4o"))
+    }
+
+    @Test
+    fun refilterOnAnAgentsOnlyServerCorrectsAVanishedEndpoint() = runTest {
+        // An agents-only server lists no models, so filtered is empty. The endpoint configs alone
+        // must still let refilter move a chat off an endpoint the server no longer offers.
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val handle = newHandle(
+            scope,
+            uiState(
+                conversationId = "c1",
+                selectedEndpoint = "openAI",
+                selectedModel = "gpt-4o",
+                agents = listOf(Agent(id = "agent_1")),
+            ),
+        )
+        val delegate = newDelegate(handle)
+        delegate.conversationModelLoaded = true
+        delegate.agentsLoaded.value = true
+        delegate.cachedLastUsedEndpoint = EndpointConstants.AGENTS
+        delegate.cachedLastUsedModel = "agent_1"
+        availableModels.value = emptyMap()
+        endpointConfigs.value = mapOf(EndpointConstants.AGENTS to EndpointConfig())
+
+        delegate.refilterModels(isNewConversation = false)
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedEndpoint).isEqualTo(EndpointConstants.AGENTS)
+        assertThat(handle.state.selectedModel).isEqualTo("agent_1")
+    }
+
+    @Test
+    fun refilterMovesAnAgentsChatOffADisabledAgentsEndpoint() = runTest {
+        // The agents selection skips the agents-list check, not the endpoint check: with no
+        // `agents` entry in the config it falls back like any other vanished endpoint.
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val handle = newHandle(
+            scope,
+            uiState(
+                conversationId = "c1",
+                selectedEndpoint = EndpointConstants.AGENTS,
+                selectedModel = "agent_1",
+                agents = listOf(Agent(id = "agent_1")),
+            ),
+        )
+        val delegate = newDelegate(handle)
+        delegate.conversationModelLoaded = true
+        delegate.agentsLoaded.value = true
+        availableModels.value = mapOf("openAI" to listOf("gpt-4o"))
+        endpointConfigs.value = mapOf("openAI" to EndpointConfig())
+
+        delegate.refilterModels(isNewConversation = false)
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedEndpoint).isEqualTo("openAI")
+        assertThat(handle.state.selectedModel).isEqualTo("gpt-4o")
     }
 
     @Test
     fun refilterAgentsModelsNotLoadedSkipsValidationNoClobber() = runTest {
-        // modelsForEndpoint == null (agents list absent from availableModels) → don't clobber.
+        // The agents list hasn't loaded → don't clobber.
         val scope = TestScope(StandardTestDispatcher(testScheduler))
         val handle = newHandle(
             scope,
