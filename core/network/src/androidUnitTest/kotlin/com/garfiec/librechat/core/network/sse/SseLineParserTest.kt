@@ -1,8 +1,14 @@
 package com.garfiec.librechat.core.network.sse
 
 import app.cash.turbine.test
+import co.touchlab.kermit.LogWriter
+import co.touchlab.kermit.Logger
+import co.touchlab.kermit.Severity
 import com.google.common.truth.Truth.assertThat
+import io.ktor.utils.io.ByteChannel
 import io.ktor.utils.io.ByteReadChannel
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
@@ -131,6 +137,30 @@ class SseLineParserTest {
         val input = "data: [DONE]"
         parser.parse(channel(input)).test {
             awaitComplete()
+        }
+    }
+
+    @Test
+    fun `cancelling the collector does not log a parse error`() = runTest {
+        val logged = mutableListOf<Severity>()
+        val previousWriters = Logger.config.logWriterList
+        Logger.setLogWriters(
+            object : LogWriter() {
+                override fun log(severity: Severity, message: String, tag: String, throwable: Throwable?) {
+                    logged += severity
+                }
+            },
+        )
+        try {
+            val open = ByteChannel()
+            val job = launch(start = CoroutineStart.UNDISPATCHED) { parser.parse(open).collect {} }
+            job.cancel()
+            job.join()
+
+            assertThat(job.isCancelled).isTrue()
+            assertThat(logged).doesNotContain(Severity.Error)
+        } finally {
+            Logger.setLogWriters(previousWriters)
         }
     }
 }

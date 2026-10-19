@@ -5,6 +5,7 @@ import com.garfiec.librechat.core.logging.Diag
 import com.garfiec.librechat.core.logging.LogOrigin
 import io.ktor.utils.io.ByteReadChannel
 import io.ktor.utils.io.readUTF8Line
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -70,6 +71,9 @@ class SseLineParser(
             }
         } catch (e: SseStreamException) {
             Logger.e("SSE", e) { "SSE parse error" }
+            throw e
+        } catch (e: CancellationException) {
+            // The collector going away (a hand-off, backgrounding) is not a parse failure.
             throw e
         } catch (e: Exception) {
             Logger.e("SSE", e) { "SSE parse error" }
