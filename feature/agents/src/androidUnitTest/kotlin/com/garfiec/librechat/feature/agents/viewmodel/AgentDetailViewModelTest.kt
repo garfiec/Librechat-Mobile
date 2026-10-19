@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.model.Agent
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -103,7 +104,7 @@ class AgentDetailViewModelTest {
      */
     @Test
     fun `canEdit is false when the list said this agent is not editable`() = runTest(testDispatcher) {
-        coEvery { agentRepository.getAgentForEditing("agent-1") } returns Result.Success(agent)
+        coEvery { agentRepository.getAgent("agent-1") } returns Result.Success(agent)
         coEvery { agentRepository.listedEditVerdict("agent-1") } returns false
 
         val viewModel = createViewModel()
@@ -111,6 +112,19 @@ class AgentDetailViewModelTest {
 
         assertThat(viewModel.uiState.value.agent).isNotNull()
         assertThat(viewModel.uiState.value.canEdit).isFalse()
+        // The probe could only 403.
+        coVerify(exactly = 0) { agentRepository.getAgentForEditing(any()) }
+    }
+
+    @Test
+    fun `the agent's own editable verdict outranks a stale list denial`() = runTest(testDispatcher) {
+        coEvery { agentRepository.getAgent("agent-1") } returns Result.Success(agent.copy(isEditable = true))
+        coEvery { agentRepository.listedEditVerdict("agent-1") } returns false
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.canEdit).isTrue()
     }
 
     /**

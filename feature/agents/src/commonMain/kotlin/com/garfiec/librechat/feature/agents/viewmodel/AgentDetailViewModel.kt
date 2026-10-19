@@ -76,8 +76,16 @@ class AgentDetailViewModel(
             // stay optimistic rather than hiding Edit from an owner during a flaky
             // request — the editor re-checks permission on entry. Fall back to the
             // standard view-only endpoint for the displayed data.
-            val expanded = agentRepository.getAgentForEditing(agentId)
-            val canEdit = expanded !is Result.Error || !expanded.isPermissionDenied()
+            // When the agent list already said this user can't edit it, the probe could only 403.
+            val listedVerdict = agentRepository.listedEditVerdict(agentId)
+            val expanded = if (listedVerdict == false) {
+                null
+            } else {
+                agentRepository.getAgentForEditing(agentId)
+            }
+            // A skipped probe leaves the verdict to `serverSaysEditable` below, which is false
+            // unless the agent's own copy says otherwise.
+            val canEdit = expanded == null || expanded !is Result.Error || !expanded.isPermissionDenied()
             val result = when (expanded) {
                 is Result.Success -> expanded
                 else -> agentRepository.getAgent(agentId)
@@ -93,7 +101,7 @@ class AgentDetailViewModel(
                     // field; the agent's own copy still wins where it exists, because `getAgent`
                     // can serve a list-projection row from the cache.
                     val serverSaysEditable =
-                        result.data.isEditable ?: agentRepository.listedEditVerdict(agentId)
+                        result.data.isEditable ?: listedVerdict
                     _uiState.value = _uiState.value.copy(
                         agent = result.data.toDetailDisplayData(),
                         canEdit = canEdit && serverSaysEditable != false,
