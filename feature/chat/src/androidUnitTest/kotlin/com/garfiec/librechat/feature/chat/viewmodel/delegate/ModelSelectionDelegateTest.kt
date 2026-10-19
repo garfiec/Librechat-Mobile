@@ -10,6 +10,11 @@ import com.garfiec.librechat.core.data.repository.McpRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.EndpointConfig
+import com.garfiec.librechat.core.model.Preset
+import com.garfiec.librechat.core.model.config.InterfaceConfig
+import com.garfiec.librechat.core.model.config.ModelSpec
+import com.garfiec.librechat.core.model.config.ModelSpecs
+import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
@@ -26,7 +31,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -60,10 +69,12 @@ class ModelSelectionDelegateTest {
     private val lastUsedModel = MutableStateFlow<String?>(null)
     private val availableModels = MutableStateFlow<Map<String, List<String>>>(emptyMap())
     private val endpointConfigs = MutableStateFlow<Map<String, EndpointConfig>>(emptyMap())
+    private val startupConfig = MutableStateFlow<StartupConfig?>(null)
 
     private val configRepository = mockk<ConfigRepository>(relaxed = true).also {
         every { it.availableModels } returns availableModels
         every { it.endpointConfigs } returns endpointConfigs
+        every { it.startupConfig } returns startupConfig
     }
     private val agentRevision = MutableStateFlow(0L)
     private val agentRepository = mockk<AgentRepository>(relaxed = true).also {
@@ -124,6 +135,18 @@ class ModelSelectionDelegateTest {
         initialEndpoint = initialEndpoint,
         initialModel = initialModel,
     )
+
+    private fun specConfig(
+        vararg specs: ModelSpec,
+        prioritize: Boolean? = true,
+        modelSelect: Boolean = true,
+    ) = StartupConfig(
+        modelSpecs = ModelSpecs(list = specs.toList(), prioritize = prioritize),
+        interfaceConfig = InterfaceConfig(modelSelect = modelSelect),
+    )
+
+    private fun agentSpec(agentId: String, isDefault: Boolean = false, softDefault: Boolean = false) =
+        ModelSpec(name = agentId, preset = Preset(agentId = agentId), isDefault = isDefault, softDefault = softDefault)
 
     private fun allowAgents() {
         coEvery { permissionGate.awaitRole() } returns UserRolePermissions(name = "user")
@@ -1398,5 +1421,286 @@ class ModelSelectionDelegateTest {
 
         assertThat(resolved.await()).isNull()
         coVerify(exactly = 0) { agentRepository.getAgentProvider(any()) }
+    }
+
+    // ── Group G: server model specs (#538) ─────────────────────────────────
+
+    /** A landing with a valid raw last-used, which the spec must beat. */
+    private fun rawLastUsed() {
+        lastUsedEndpoint.value = "openAI"
+        lastUsedModel.value = "gpt-4o"
+        availableModels.value = mapOf("openAI" to listOf("gpt-4o", "gpt-4.1"))
+    }
+
+    private fun agentsReturn(vararg ids: String) {
+        allowAgents()
+        coEvery { agentRepository.getAgents() } returns Result.Success(ids.map { Agent(id = it) })
+    }
+
+    @Test
+    fun seedPrioritizedSpecAgentBeatsLastUsedAndHoldsThroughAgentLoad() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val handle = newHandle(scope)
+        val delegate = newDelegate(handle)
+        rawLastUsed()
+        startupConfig.value = specConfig(agentSpec("agent_spec", isDefault = true))
+        agentsReturn("agent_other", "agent_spec")
+
+        delegate.seedInitialSelection(isNewConversation = true)
+        advanceUntilIdle()
+        assertThat(handle.state.selectedEndpoint).isEqualTo(EndpointConstants.AGENTS)
+        assertThat(handle.state.selectedModel).isEqualTo("agent_spec")
+
+        // An unrelated emission while the agents are still loading must not hand the landing to the
+        // (valid) last-used.
+        availableModels.value = mapOf("openAI" to listOf("gpt-4o", "gpt-4.1", "gpt-5"))
+        advanceUntilIdle()
+        assertThat(handle.state.selectedModel).isEqualTo("agent_spec")
+
+        delegate.loadAgents(isNewConversation = true)
+        advanceUntilIdle()
+        assertThat(handle.state.selectedEndpoint).isEqualTo(EndpointConstants.AGENTS)
+        assertThat(handle.state.selectedModel).isEqualTo("agent_spec")
+        coVerify(exactly = 0) { settingsDataStore.setLastUsedModel(any(), any()) }
+    }
+
+    @Test
+    fun seedPrioritizedSpecAgentNeverFlickersToLastUsedInTheEmptyListWindow() = runTest {
+        // loadAgents flips agentsLoaded before it publishes the list. Under this dispatcher the two
+        // writes land before the seeder runs, so the window is driven by hand, as in
+        // seedTier0AgentSurvivesTransientEmptyAgentsListEmission.
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val handle = newHandle(scope)
+        val delegate = newDelegate(handle)
+        rawLastUsed()
+        startupConfig.value = specConfig(agentSpec("agent_spec", isDefault = true))
+        agentsReturn("agent_spec")
+        val history = mutableListOf<Pair<String?, String?>>()
+        scope.launch {
+            handle.stateFlow.map { it.selectedEndpoint to it.selectedModel }.distinctUntilChanged().toList(history)
+        }
+
+        delegate.seedInitialSelection(isNewConversation = true)
+        delegate.loadAgents(isNewConversation = true)
+        advanceUntilIdle()
+        handle.update { copy(selection = selection.copy(agents = emptyList())) }
+        advanceUntilIdle()
+        handle.update { copy(selection = selection.copy(agents = listOf(Agent(id = "agent_spec")))) }
+        advanceUntilIdle()
+
+        assertThat(history).doesNotContain("openAI" to "gpt-4o")
+        assertThat(handle.state.selectedModel).isEqualTo("agent_spec")
+    }
+
+    @Test
+    fun seedSpecWithoutPrioritizeLeavesLastUsed() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val handle = newHandle(scope)
+        val delegate = newDelegate(handle)
+        rawLastUsed()
+        startupConfig.value = specConfig(agentSpec("agent_spec", isDefault = true), prioritize = false)
+
+        delegate.seedInitialSelection(isNewConversation = true)
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedEndpoint).isEqualTo("openAI")
+        assertThat(handle.state.selectedModel).isEqualTo("gpt-4o")
+    }
+
+    @Test
+    fun seedSpecWithModelSelectOffAppliesFirstSpec() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val handle = newHandle(scope)
+        val delegate = newDelegate(handle)
+        rawLastUsed()
+        startupConfig.value = specConfig(
+            ModelSpec(name = "fast", preset = Preset(endpoint = "openAI", model = "gpt-4.1")),
+            agentSpec("agent_spec"),
+            prioritize = null,
+            modelSelect = false,
+        )
+
+        delegate.seedInitialSelection(isNewConversation = true)
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedEndpoint).isEqualTo("openAI")
+        assertThat(handle.state.selectedModel).isEqualTo("gpt-4.1")
+    }
+
+    @Test
+    fun seedSpecHoldsWhenLastUsedChangesInAnotherConversation() = runTest {
+        // A pick inside some other conversation rewrites last-used; the landing stays on the spec.
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val handle = newHandle(scope)
+        val delegate = newDelegate(handle)
+        rawLastUsed()
+        startupConfig.value = specConfig(agentSpec("agent_spec", isDefault = true))
+        agentsReturn("agent_spec")
+
+        delegate.seedInitialSelection(isNewConversation = true)
+        delegate.loadAgents(isNewConversation = true)
+        advanceUntilIdle()
+        lastUsedModel.value = "gpt-4.1"
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedModel).isEqualTo("agent_spec")
+    }
+
+    @Test
+    fun seedLandingPickYieldsSpecUntilTheChatIsHandedOff() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val handle = newHandle(scope)
+        val delegate = newDelegate(handle)
+        rawLastUsed()
+        startupConfig.value = specConfig(agentSpec("agent_spec", isDefault = true))
+        agentsReturn("agent_spec")
+
+        delegate.seedInitialSelection(isNewConversation = true)
+        delegate.loadAgents(isNewConversation = true)
+        advanceUntilIdle()
+
+        // The user picks a model on the landing (the DataStore write echoes back as last-used).
+        delegate.onModelSelected("openAI", "gpt-4.1")
+        lastUsedModel.value = "gpt-4.1"
+        advanceUntilIdle()
+        assertThat(handle.state.selectedEndpoint).isEqualTo("openAI")
+        assertThat(handle.state.selectedModel).isEqualTo("gpt-4.1")
+
+        // The chat starts (Created sets the id), then the landing is reset for the next new chat.
+        handle.update { copy(conversation = conversation.copy(conversationId = "c1")) }
+        advanceUntilIdle()
+        delegate.rearmModelSpecDefault()
+        handle.update { copy(conversation = conversation.copy(conversationId = null)) }
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedEndpoint).isEqualTo(EndpointConstants.AGENTS)
+        assertThat(handle.state.selectedModel).isEqualTo("agent_spec")
+    }
+
+    @Test
+    fun seedSpecAgentMissingFromLoadedListFallsBackToLastUsed() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val handle = newHandle(scope)
+        val delegate = newDelegate(handle)
+        rawLastUsed()
+        startupConfig.value = specConfig(agentSpec("agent_gone", isDefault = true))
+        agentsReturn("agent_other")
+
+        delegate.seedInitialSelection(isNewConversation = true)
+        delegate.loadAgents(isNewConversation = true)
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedEndpoint).isEqualTo("openAI")
+        assertThat(handle.state.selectedModel).isEqualTo("gpt-4o")
+    }
+
+    @Test
+    fun seedSpecAgentWithAgentsDeniedFallsToConfigModel() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val handle = newHandle(scope)
+        val delegate = newDelegate(handle)
+        availableModels.value = mapOf("openAI" to listOf("gpt-4o"))
+        startupConfig.value = specConfig(agentSpec("agent_spec", isDefault = true))
+        denyAgents()
+
+        delegate.seedInitialSelection(isNewConversation = true)
+        delegate.loadAgents(isNewConversation = true)
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedEndpoint).isEqualTo("openAI")
+        assertThat(handle.state.selectedModel).isEqualTo("gpt-4o")
+    }
+
+    @Test
+    fun seedTier0OverrideBeatsSpecIncludingAfterAgentsLoad() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val handle = newHandle(scope)
+        val delegate = newDelegate(handle, initialAgentId = "agent_X")
+        rawLastUsed()
+        startupConfig.value = specConfig(agentSpec("agent_spec", isDefault = true))
+        agentsReturn("agent_spec", "agent_X")
+
+        delegate.seedInitialSelection(isNewConversation = true)
+        advanceUntilIdle()
+        assertThat(handle.state.selectedModel).isEqualTo("agent_X")
+
+        delegate.loadAgents(isNewConversation = true)
+        advanceUntilIdle()
+        assertThat(handle.state.selectedEndpoint).isEqualTo(EndpointConstants.AGENTS)
+        assertThat(handle.state.selectedModel).isEqualTo("agent_X")
+    }
+
+    @Test
+    fun seedNullConfigDoesNotBlockAndALateConfigSwitchesToSpec() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val handle = newHandle(scope)
+        val delegate = newDelegate(handle)
+        rawLastUsed()
+        agentsReturn("agent_spec")
+
+        delegate.seedInitialSelection(isNewConversation = true)
+        delegate.loadAgents(isNewConversation = true)
+        advanceUntilIdle()
+        assertThat(handle.state.selectedModel).isEqualTo("gpt-4o")
+
+        startupConfig.value = specConfig(agentSpec("agent_spec", isDefault = true))
+        advanceUntilIdle()
+        assertThat(handle.state.selectedEndpoint).isEqualTo(EndpointConstants.AGENTS)
+        assertThat(handle.state.selectedModel).isEqualTo("agent_spec")
+    }
+
+    @Test
+    fun seedSoftSpecAppliesWithoutLastUsed() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val handle = newHandle(scope)
+        val delegate = newDelegate(handle)
+        availableModels.value = mapOf("openAI" to listOf("gpt-4o"))
+        startupConfig.value = specConfig(agentSpec("agent_soft", softDefault = true), prioritize = false)
+        agentsReturn("agent_first", "agent_soft")
+
+        delegate.seedInitialSelection(isNewConversation = true)
+        delegate.loadAgents(isNewConversation = true)
+        advanceUntilIdle()
+
+        // Not the first agent (Tier 2): the soft spec sits above it.
+        assertThat(handle.state.selectedEndpoint).isEqualTo(EndpointConstants.AGENTS)
+        assertThat(handle.state.selectedModel).isEqualTo("agent_soft")
+    }
+
+    @Test
+    fun seedSoftSpecYieldsToValidLastUsed() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val handle = newHandle(scope)
+        val delegate = newDelegate(handle)
+        rawLastUsed()
+        // prioritize does not upgrade a soft default.
+        startupConfig.value = specConfig(agentSpec("agent_soft", softDefault = true), prioritize = true)
+        agentsReturn("agent_soft")
+
+        delegate.seedInitialSelection(isNewConversation = true)
+        delegate.loadAgents(isNewConversation = true)
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedEndpoint).isEqualTo("openAI")
+        assertThat(handle.state.selectedModel).isEqualTo("gpt-4o")
+    }
+
+    @Test
+    fun seedSoftSpecAppliesOverStaleAgentLastUsed() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val handle = newHandle(scope)
+        val delegate = newDelegate(handle)
+        lastUsedEndpoint.value = EndpointConstants.AGENTS
+        lastUsedModel.value = "agent_gone"
+        availableModels.value = mapOf("openAI" to listOf("gpt-4o"))
+        startupConfig.value = specConfig(agentSpec("agent_soft", softDefault = true), prioritize = false)
+        agentsReturn("agent_first", "agent_soft")
+
+        delegate.seedInitialSelection(isNewConversation = true)
+        delegate.loadAgents(isNewConversation = true)
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedEndpoint).isEqualTo(EndpointConstants.AGENTS)
+        assertThat(handle.state.selectedModel).isEqualTo("agent_soft")
     }
 }

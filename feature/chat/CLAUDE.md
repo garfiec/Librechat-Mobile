@@ -87,6 +87,35 @@ Two consequences worth knowing before touching that block:
 - When a new conversation starts from the landing page, `pendingNavigationConversationId` triggers navigation to `Chat(id)` at `StreamEvent.Created`, keeping `NewChat` in the back stack. The landing VM is reset (`onPendingNavigationHandled`) and the new Chat(id) VM resumes the active stream — so the Chat(id) VM (with `isNewConversation = false`) is the one that handles the first stream's Final. New-chat-only work there (title generation) is gated on `isHandedOffNewChat`, derived from consuming `NewChatSelectionHandoff`
 - `navigateToChat()` replaces the current chat entry on the `NavBackStack` when switching between chats so back returns to `NewChat`
 
+## New-chat model seeding
+`ModelSelectionDelegate.seedInitialSelection` is the only thing that picks a new chat's model. In order:
+1. Tier 0: an explicit agent or model from the start-chat route (one-shot).
+2. Tier 0b: the server's **prioritized** model spec.
+3. Tier 1: last-used.
+4. Tier 1b: a **soft-default** spec.
+5. Tier 2: the first agent.
+6. Tier 3: the first config model.
+
+Which spec applies, and whether it is prioritized, is `util/SpecSeed.kt`, a port of web's
+`getDefaultModelSpec` plus `useNewConvo`'s apply gate (registered in `scripts/mirrors.json`).
+- **Prioritized** (`modelSpecs.prioritize`, which the server's schema defaults to true, or
+  `interface.modelSelect` off): every new chat opens on the spec, as on web. It is a standing tier,
+  not a one-shot: it beats last-used on every seeder emission until a pick on this landing or a
+  Tier-0 override yields it. `ChatViewModel.onPendingNavigationHandled` re-arms it, so the next new
+  chat is back on the spec. A spec agent the loaded list doesn't contain (deleted, not shared, no
+  agents at all, agents denied) falls through to the ordinary tiers.
+- **Soft default**: applies only when last-used can't, so a user's own selection wins.
+
+**Known mobile gap: the user's preferred model is ignored under prioritize.** Last-used is still
+saved on every pick, but under a prioritized spec it never seeds a new chat. A pick lasts for the
+chat it was made in. That is web parity, and deliberate for now. A setting to prefer the user's own
+model over the server's spec is a possible follow-up. It would be a mobile addition (web has none),
+so it belongs in Settings, not in the resolver.
+
+Only the preset's (endpoint, model) or `agent_id` is applied. Nothing else from the preset is
+applied, and no `spec` name is sent with the request, so a `modelSpecs.enforce` server may still
+reject a send.
+
 ## Message Tree
 - Messages stored flat, linked by `parentMessageId` (root = `NO_PARENT` UUID)
 - `MessageNode.kt` builds the tree via `buildActiveMessagePath(messages, activeBranches, streamingLeafId)`

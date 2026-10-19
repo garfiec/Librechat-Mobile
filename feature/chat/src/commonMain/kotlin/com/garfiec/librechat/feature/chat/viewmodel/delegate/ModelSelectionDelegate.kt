@@ -19,6 +19,8 @@ import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
+import com.garfiec.librechat.feature.chat.util.SpecSeed
+import com.garfiec.librechat.feature.chat.util.resolveDefaultModelSpec
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionHandle
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
@@ -197,6 +199,26 @@ class ModelSelectionDelegate(
      * confirmed present in a non-empty list.
      */
     private var holdAgentForPopulate = false
+
+    /** Whether this delegate seeds a new-chat landing; set by [seedInitialSelection]. */
+    private var seedsNewChat = false
+
+    /**
+     * True once something on this landing has displaced the server's prioritized model spec: a
+     * pick in the model selector, or a Tier-0 start-chat override. Cleared by
+     * [rearmModelSpecDefault] when the landing hands its chat off, so the next new chat opens on
+     * the spec again.
+     */
+    private var specYielded = false
+
+    /**
+     * Whether the last successful [loadAgents] returned any agents. Set before [agentsLoaded]
+     * flips, so a seeder emission that sees `(agentsLoaded=true, agents=[])` can tell the
+     * transient window before the list is published (true) from an account with no agents, a
+     * denial or a failed load (false). Only a spec agent consults it; the Tier-0 override keeps
+     * its own [holdAgentForPopulate].
+     */
+    private var agentsFetchedNonEmpty = false
 
     /**
      * Providers already resolved this session, keyed by agent id — including agents whose fetch
@@ -451,27 +473,33 @@ class ModelSelectionDelegate(
      * atomically — replacing the three coroutines that used to race to seed the
      * selection. Precedence, with WAIT-on-unresolved so a lower tier never wins
      * while a higher-precedence input is still loading:
+     *   0. an explicit agent or model from the start-chat navigation (one-shot)
+     *   0b. the server's prioritized model spec (`modelSpecs.prioritize`, or `interface.modelSelect`
+     *       off), until something on this landing displaces it — see [applyModelSpecDefault]
      *   1. last-used (endpoint + model), if present and valid
+     *   1b. the server's soft-default model spec
      *   2. first agent, when the active endpoint is agents
      *   3. first available config model
      */
     fun seedInitialSelection(isNewConversation: Boolean) {
+        seedsNewChat = isNewConversation
         handle.scope.launch {
             combine(
-                settingsDataStore.lastUsedEndpoint,
-                settingsDataStore.lastUsedModel,
+                combine(settingsDataStore.lastUsedEndpoint, settingsDataStore.lastUsedModel) { e, m -> e to m },
                 configRepository.availableModels,
                 configRepository.endpointConfigs,
                 agentsInput(),
-            ) { lastEndpoint, lastModel, rawModels, endpointCfgs, agents ->
+                configRepository.startupConfig.map(::resolveDefaultModelSpec).distinctUntilChanged(),
+            ) { lastUsed, rawModels, endpointCfgs, agents, specSeed ->
                 SeedInputs(
-                    lastEndpoint = lastEndpoint,
-                    lastModel = lastModel,
+                    lastEndpoint = lastUsed.first,
+                    lastModel = lastUsed.second,
                     rawModels = rawModels,
                     endpointConfigs = endpointCfgs,
                     agents = agents.agents,
                     agentsLoaded = agents.loaded,
                     conversationId = agents.conversationId,
+                    specSeed = specSeed,
                 )
             }.collect { input ->
                 // Keep the cached last-used fresh for refilterModels' existing-
@@ -518,8 +546,12 @@ class ModelSelectionDelegate(
      * (`lastUsed != lastAppliedLastUsed`) does NOT fire on the next emission (e.g. when the agents
      * list finishes loading) and clobber the override back to a last-used value. A genuinely NEW
      * last-used picked later still differs from this pinned value, so the re-sync still follows it.
+     *
+     * Also yields the prioritized model spec ([specYielded]); otherwise the next emission would
+     * apply the spec over the agent or model the user just chose.
      */
     private fun applyPendingOverride(lastUsed: Pair<String, String>?): Boolean {
+        if (pendingAgentOverride != null || pendingModelOverride != null) specYielded = true
         pendingAgentOverride?.let { agentId ->
             pendingAgentOverride = null
             lastAppliedLastUsed = lastUsed
@@ -555,6 +587,9 @@ class ModelSelectionDelegate(
         // Tier 0: an explicit agent or concrete model passed from the start-chat navigation wins
         // over everything (last-used / first-agent / first-model). One-shot — see [applyPendingOverride].
         if (applyPendingOverride(lastUsed)) return
+
+        // Tier 0b: the server's prioritized model spec, ahead of last-used.
+        if (applyModelSpecDefault(input, filtered, lastUsed)) return
 
         val lastUsedSelectability = lastUsed?.let {
             selectability(it.first, it.second, filtered, input.endpointConfigs, input.agents, input.agentsLoaded)
@@ -645,6 +680,9 @@ class ModelSelectionDelegate(
             }
         }
 
+        // Tier 1b: the server's soft-default model spec, which yields to a usable last-used.
+        if (applySoftModelSpec(input, filtered)) return
+
         // Tier 2: first agent, when the active endpoint is agents.
         if (state.selectedEndpoint == EndpointConstants.AGENTS) {
             if (!input.agentsLoaded) return // WAIT for the agent list
@@ -660,6 +698,67 @@ class ModelSelectionDelegate(
         if (filtered.isEmpty()) return // WAIT for models
         val firstEntry = filtered.entries.firstOrNull() ?: return
         applySelection(firstEntry.key, firstEntry.value.firstOrNull(), reason = "tier3-firstModel")
+    }
+
+    /**
+     * Tier 0b: opens the landing on the server's prioritized model spec, as web opens every new
+     * chat on it under `modelSpecs.prioritize` (or with `interface.modelSelect` off). Returns true
+     * when it applied, so [applySeed] stops.
+     *
+     * Standing rather than one-shot: it beats last-used on every emission until [specYielded], so a
+     * model picked inside some other conversation (which rewrites last-used) doesn't move the
+     * landing off the spec. The user's stored last-used is therefore ignored for new chats here: a
+     * pick lasts for the chat it was made in (web parity; see feature/chat/CLAUDE.md).
+     *
+     * Never persists last-used, and pins [lastAppliedLastUsed] so yielding later doesn't fire a
+     * spurious re-sync. A spec agent missing from the loaded list (deleted, not shared, or an
+     * account with no agents at all) falls through to the normal tiers, and so does a null config:
+     * a failed fetch with nothing cached must not strand the landing. The spec takes over once the
+     * config arrives.
+     */
+    private fun applyModelSpecDefault(
+        input: SeedInputs,
+        filtered: Map<String, List<String>>,
+        lastUsed: Pair<String, String>?,
+    ): Boolean {
+        val seed = input.specSeed?.takeIf { it.prioritized } ?: return false
+        if (specYielded) return false
+        if (specSelectability(seed, filtered, input) == Selectability.INVALID) return false
+        lastAppliedLastUsed = lastUsed
+        applySelection(seed.endpoint, seed.model, reason = "tier0b-prioritizedSpec")
+        return true
+    }
+
+    /**
+     * Tier 1b: a soft-default model spec, reached only when last-used can't apply. Returns true
+     * when [applySeed] should stop — the spec applied, or it is waiting on the agent list.
+     */
+    private fun applySoftModelSpec(input: SeedInputs, filtered: Map<String, List<String>>): Boolean {
+        val seed = input.specSeed?.takeUnless { it.prioritized } ?: return false
+        return when (specSelectability(seed, filtered, input)) {
+            Selectability.VALID -> {
+                applySelection(seed.endpoint, seed.model, reason = "tier1b-softSpec")
+                true
+            }
+            Selectability.PENDING -> true
+            Selectability.INVALID -> false
+        }
+    }
+
+    /**
+     * [selectability] for a spec's selection, except that an empty-but-loaded agent list decides
+     * the agent rather than holding it: PENDING only while a fetch that found agents has yet to
+     * publish them, INVALID when there are none to find.
+     */
+    private fun specSelectability(
+        seed: SpecSeed,
+        filtered: Map<String, List<String>>,
+        input: SeedInputs,
+    ): Selectability {
+        if (seed.endpoint == EndpointConstants.AGENTS && input.agentsLoaded && input.agents.isEmpty()) {
+            return if (agentsFetchedNonEmpty) Selectability.PENDING else Selectability.INVALID
+        }
+        return selectability(seed.endpoint, seed.model, filtered, input.endpointConfigs, input.agents, input.agentsLoaded)
     }
 
     private fun applySelection(endpoint: String, model: String?, reason: String) {
@@ -698,6 +797,8 @@ class ModelSelectionDelegate(
      * cold load rendering a chimera of spec chip and agent entity — needs a persisted selection
      * that is a bare SPEC NAME carrying no endpoint or model; this client persists
      * `lastUsedEndpoint` and `lastUsedModel` as a pair and models no spec-name selection at all.
+     * Model specs are resolved for seeding (Tier 0b / 1b), but only as the (endpoint, model) their
+     * preset names. No spec name is ever selected or persisted, so that premise still holds.
      *
      * Do not "port" either fix on a later sync without first re-checking those two premises.
      */
@@ -746,6 +847,7 @@ class ModelSelectionDelegate(
         val agents: List<Agent>,
         val agentsLoaded: Boolean,
         val conversationId: String?,
+        val specSeed: SpecSeed?,
     )
 
     private data class AgentsInput(
@@ -755,6 +857,8 @@ class ModelSelectionDelegate(
     )
 
     fun onModelSelected(endpoint: String, model: String) {
+        // A pick on the new-chat landing displaces the server's prioritized spec for this chat.
+        if (seedsNewChat && handle.state.conversationId == null) specYielded = true
         handle.update {
             selection = selection.copy(
                 selectedEndpoint = endpoint,
@@ -767,6 +871,15 @@ class ModelSelectionDelegate(
         handle.scope.launch {
             settingsDataStore.setLastUsedModel(endpoint, model)
         }
+    }
+
+    /**
+     * Re-arms the server's prioritized model spec after the landing hands its chat off, so the
+     * next new chat opens on the spec again whatever was picked for the last one. The handoff's
+     * state reset flips `conversationId` back to null, which re-runs the seeder.
+     */
+    fun rearmModelSpecDefault() {
+        specYielded = false
     }
 
     /**
@@ -798,6 +911,7 @@ class ModelSelectionDelegate(
                     // seeder emission carrying the agents already sees the flag —
                     // otherwise tier 2 could fall through to a config model in the
                     // one-emission window before the flag flips.
+                    agentsFetchedNonEmpty = result.data.isNotEmpty()
                     agentsLoaded.value = true
                     handle.update {
                         selection = selection.copy(agents = result.data)

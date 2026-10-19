@@ -1184,6 +1184,33 @@
       "failure_mode": "Upstream changes what it scans for, and a normalized PDF that the tests call clean is still refused at send time with \"PDF is password-protected or encrypted\" -- or upstream drops the scan and the stripping becomes an unneeded rewrite."
     },
     {
+      "id": "default-model-spec",
+      "upstream": {
+        "file": "client/src/utils/endpoints.ts",
+        "symbol": "getDefaultModelSpec",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/SpecSeed.kt",
+        "symbol": "resolveDefaultModelSpec"
+      },
+      "why": "Which model spec a new chat opens on: a `default` spec, else a `softDefault` one (which yields to the user's prior selection unless `interface.modelSelect` is off), else the first spec when `prioritize` is on or the selector is off. ModelSelectionDelegate seeds the landing from it ahead of (prioritized) or just behind (soft) the user's last-used model.",
+      "failure_mode": "Upstream changes the precedence and new chats on mobile open on a different agent or model than on web for the same server -- typically a raw model without the admin's agent, prompt and tools -- with nothing failing."
+    },
+    {
+      "id": "default-model-spec-apply-gate",
+      "upstream": {
+        "file": "client/src/hooks/useNewConvo.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/SpecSeed.kt",
+        "symbol": "resolveDefaultModelSpec (prioritized flag)"
+      },
+      "why": "`shouldApplyModelSpec` decides whether getDefaultModelSpec's answer is used at all: only under `prioritize === true` or `interface.modelSelect` off, or for a soft default when the new chat carries no selection. The resolver folds that gate in. Watched as a file because the gate is a nested const the block extractor cannot isolate.",
+      "failure_mode": "Upstream loosens or tightens when a spec overrides the user's selection, and mobile keeps applying the old rule -- forcing a spec web no longer forces, or leaving a raw model where web now opens the spec."
+    },
+    {
       "id": "context-gauge-estimate",
       "upstream": {
         "file": "client/src/utils/tokens.ts",

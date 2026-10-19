@@ -1261,6 +1261,8 @@ class ChatViewModel(
         conversationLoadDelegate.stopObserving()
         // The conversation changes here: nothing learned about the previous one's previews applies.
         attachmentPreviewDelegate.reset()
+        // The landing now stands for the next new chat, which opens on the server's spec again.
+        modelDelegate.rearmModelSpecDefault()
         _uiState.update { current ->
             ChatUiState(
                 selection = ModelSelectionState(
