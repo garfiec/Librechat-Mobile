@@ -77,12 +77,14 @@ fun StreamingToolCallCard(
         // A batched ask reads its questions from `questions[]` and its answers from the output's
         // `{"answers": {…}}` map; neither is visible to the single-question parse below.
         val batch = remember(toolCall.input) { parseAskUserQuestionBatch(toolCall.input) }
+        val failed = toolCall.inputValidationError
         if (batch.isNotEmpty()) {
-            val answers = remember(toolCall.output) { parseAskUserAnswers(toolCall.output) }
+            val answers = remember(toolCall.output, failed) { askUserAnswersOrEmpty(toolCall.output, failed) }
             AskUserQuestionBatchRecordCard(
                 questions = batch,
                 answers = answers,
                 modifier = modifier,
+                failed = failed,
             )
             return
         }
@@ -91,6 +93,7 @@ fun StreamingToolCallCard(
             question = question,
             answer = toolCall.output.orEmpty(),
             modifier = modifier,
+            failed = failed,
         )
         return
     }

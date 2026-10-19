@@ -97,3 +97,10 @@ internal fun parseAskUserAnswers(output: String?): Map<String, String> {
         id to answer
     }.toMap()
 }
+
+/**
+ * [parseAskUserAnswers], except for a call the server rejected at schema validation: its output is
+ * the validation error text (`Error: …`), never an answers map, so there is nothing to parse.
+ */
+internal fun askUserAnswersOrEmpty(output: String?, failed: Boolean): Map<String, String> =
+    if (failed) emptyMap() else parseAskUserAnswers(output)

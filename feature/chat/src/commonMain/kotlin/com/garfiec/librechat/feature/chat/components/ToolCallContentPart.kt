@@ -124,13 +124,14 @@ internal fun ToolCallDispatcher(
             parseAskUserQuestionBatch(toolCall?.args)
                 .ifEmpty { parseAskUserQuestionBatch(toolCall?.function?.arguments) }
         }
+        val failed = toolCall?.inputValidationError == true
         if (batch.isNotEmpty()) {
-            val answers = remember(output) { parseAskUserAnswers(output) }
+            val answers = remember(output, failed) { askUserAnswersOrEmpty(output, failed) }
             AskUserQuestionBatchRecordCard(
                 questions = batch,
                 answers = answers,
                 modifier = modifier,
-                failed = toolCall?.inputValidationError == true,
+                failed = failed,
             )
             return
         }
@@ -141,7 +142,7 @@ internal fun ToolCallDispatcher(
             question = question,
             answer = output.orEmpty(),
             modifier = modifier,
-            failed = toolCall?.inputValidationError == true,
+            failed = failed,
         )
         return
     }

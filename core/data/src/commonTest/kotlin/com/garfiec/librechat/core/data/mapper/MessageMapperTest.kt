@@ -2,6 +2,7 @@ package com.garfiec.librechat.core.data.mapper
 
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.content.AgentToolCall
 import com.garfiec.librechat.core.model.content.MessageContentPart
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -57,5 +58,23 @@ class MessageMapperTest {
         assertEquals(0, parts?.get(0)?.groupId)
         assertEquals("agent_a____1", parts?.get(1)?.agentId)
         assertEquals(1, parts?.get(1)?.groupId)
+    }
+
+    @Test
+    fun contentParts_toolCallInputValidationError_roundTripsThroughEntity() {
+        val message = Message(
+            messageId = "m1",
+            conversationId = "c1",
+            content = listOf(
+                MessageContentPart(
+                    type = ContentType.TOOL_CALL,
+                    toolCall = AgentToolCall(id = "call_1", name = "ask_user_question", inputValidationError = true),
+                ),
+            ),
+        )
+
+        val restored = message.toEntity().toModel()
+
+        assertEquals(true, restored.content?.single()?.toolCall?.inputValidationError)
     }
 }

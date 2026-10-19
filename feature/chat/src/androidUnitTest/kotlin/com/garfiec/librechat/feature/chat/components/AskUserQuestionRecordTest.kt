@@ -266,6 +266,15 @@ class AskUserQuestionRecordTest {
         assertThat(parseAskUserAnswers("""{"answers":{"topic":7}}""")).isEmpty()
     }
 
+    @Test
+    fun `a call rejected at validation has no answers, whatever its output holds`() {
+        val answers = """{"answers":{"topic":"kt"}}"""
+
+        assertThat(askUserAnswersOrEmpty("Error: Array must contain at most 4 element(s)", failed = true)).isEmpty()
+        assertThat(askUserAnswersOrEmpty(answers, failed = true)).isEmpty()
+        assertThat(askUserAnswersOrEmpty(answers, failed = false)).containsExactly("topic", "kt")
+    }
+
     /**
      * Each answer reads back against its OWN question. Sharing one question's options across the
      * batch would relabel an answer as a choice the user never made.

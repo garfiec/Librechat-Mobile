@@ -200,4 +200,6 @@ data class ActiveToolCall(
      * "not known", never "instant".
      */
     val durationMs: Long? = null,
+    /** The server rejected the call's arguments against the tool's schema, so it never ran. */
+    val inputValidationError: Boolean = false,
 )

@@ -196,6 +196,7 @@ class LiveReplyDelegate(
                     input = tc.args?.toString(),
                     isComplete = !tc.output.isNullOrBlank(),
                     output = tc.output,
+                    inputValidationError = tc.inputValidationError == true,
                 )
             }
         // A boot flag survives only on a call the snapshot still shows running: the snapshot
@@ -254,7 +255,12 @@ internal fun MessagesState.withoutSandboxStarting(toolCallId: String): MessagesS
 
 /** Shared with the comparison panes, which keep their own copies of the same list. */
 internal fun ActiveToolCall.completedBy(event: StreamEvent.ToolCallComplete) =
-    copy(isComplete = true, output = event.output, input = event.input ?: input)
+    copy(
+        isComplete = true,
+        output = event.output,
+        input = event.input ?: input,
+        inputValidationError = event.inputValidationError,
+    )
 
 internal fun ActiveToolCall.closedBy(event: StreamEvent.ToolCallClosed) =
     copy(isComplete = true, closedStatus = event.status, durationMs = event.durationMs ?: durationMs)

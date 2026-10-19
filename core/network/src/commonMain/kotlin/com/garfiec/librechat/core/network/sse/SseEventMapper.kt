@@ -15,6 +15,7 @@ import com.garfiec.librechat.core.model.content.MessageContentPart
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
@@ -296,7 +297,9 @@ class SseEventMapper(private val json: Json) {
         // with a null output, completed with its output merged in) in order — so
         // it is the authoritative snapshot. runSteps would only duplicate it.
         val snapshot = resumeState["aggregatedContent"]?.jsonArray?.let { aggregatedContent ->
-            val contentParts = aggregatedContent.mapNotNull { element ->
+            // The array is sparse, indexed by step: a step that reserved its index but has no
+            // content yet serializes as null. Nothing here reads parts by position.
+            val contentParts = aggregatedContent.filterNot { it is JsonNull }.mapNotNull { element ->
                 try {
                     json.decodeFromJsonElement(
                         MessageContentPart.serializer(),
@@ -647,6 +650,7 @@ class SseEventMapper(private val json: Json) {
             // The run step announced the call before its args streamed, so this is the first
             // whole copy. A JSON null or a missing key keeps the start's input.
             input = toolCall["args"]?.toStringValue(),
+            inputValidationError = (toolCall["inputValidationError"] as? JsonPrimitive)?.booleanOrNull == true,
             agentId = agentId,
             groupId = groupId,
         )

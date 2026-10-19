@@ -30,6 +30,12 @@ sealed interface StreamEvent {
          * them, which keeps whatever [ToolCallStart.input] held.
          */
         val input: String? = null,
+        /**
+         * The server rejected the call's arguments against the tool's schema
+         * (`result.tool_call.inputValidationError`), so the tool never ran and [output] is the
+         * validation error text, not a result.
+         */
+        val inputValidationError: Boolean = false,
         val attachments: List<Attachment>? = null,
         val agentId: String? = null,
         val groupId: Int? = null,

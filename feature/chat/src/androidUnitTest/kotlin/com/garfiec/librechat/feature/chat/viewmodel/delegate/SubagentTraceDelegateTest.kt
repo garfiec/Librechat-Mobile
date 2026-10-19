@@ -132,6 +132,31 @@ class SubagentTraceDelegateTest {
         assertThat(part?.type).isEqualTo(ContentType.TOOL_CALL)
         assertThat(part?.toolCall?.name).isEqualTo("search")
         assertThat(part?.toolCall?.output).isEqualTo("results")
+        assertThat(part?.toolCall?.inputValidationError).isNull()
+    }
+
+    @Test
+    fun `a nested call rejected at schema validation is stamped as such`() {
+        val (delegate, flow) = fixture()
+        delegate.onUpdate(
+            StreamEvent.SubagentUpdate(
+                phase = "run_step",
+                parentToolCallId = "call_1",
+                subagentRunId = "run_1",
+                inner = StreamEvent.ToolCallStart(toolCallId = "c9", toolName = "ask_user_question", input = ""),
+            ),
+        )
+        delegate.onUpdate(
+            StreamEvent.SubagentUpdate(
+                phase = "run_step_completed",
+                parentToolCallId = "call_1",
+                subagentRunId = "run_1",
+                inner = StreamEvent.ToolCallComplete(toolCallId = "c9", output = "Error: …", inputValidationError = true),
+            ),
+        )
+
+        val part = flow.value.subagentProgress["call_1"]?.parts?.single()
+        assertThat(part?.toolCall?.inputValidationError).isTrue()
     }
 
     /**

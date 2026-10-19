@@ -153,7 +153,8 @@ class SubagentTraceDelegate(
                     ),
                 ),
             )
-            is StreamEvent.ToolCallComplete -> completeToolCall(parts, inner.toolCallId, inner.output)
+            is StreamEvent.ToolCallComplete ->
+                completeToolCall(parts, inner.toolCallId, inner.output, inner.inputValidationError)
             is StreamEvent.ToolCallClosed -> closeToolCall(parts, inner.toolCallId, inner.status)
             else -> parts // start/stop/error/run_step_delta carry no foldable content
         }
@@ -183,13 +184,20 @@ class SubagentTraceDelegate(
         parts: List<MessageContentPart>,
         toolCallId: String,
         output: String,
+        inputValidationError: Boolean,
     ): List<MessageContentPart> {
         val index = parts.indexOfLast {
             it.type == ContentType.TOOL_CALL && it.toolCall?.id == toolCallId
         }
         if (index < 0) return parts
         val part = parts[index]
-        val updated = part.copy(toolCall = part.toolCall?.copy(output = output))
+        val updated = part.copy(
+            toolCall = part.toolCall?.copy(
+                output = output,
+                // The wire contract is `true` or absent, never `false`.
+                inputValidationError = true.takeIf { inputValidationError },
+            ),
+        )
         return parts.toMutableList().also { it[index] = updated }
     }
 

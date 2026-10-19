@@ -100,6 +100,19 @@ class SseEventMapperTest {
         val tc = result as StreamEvent.ToolCallComplete
         assertThat(tc.toolCallId).isEqualTo("call_1")
         assertThat(tc.output).isEqualTo("Results here")
+        assertThat(tc.inputValidationError).isFalse()
+    }
+
+    @Test
+    fun `a completion the server rejected at schema validation carries the flag`() {
+        val event = SseEvent(
+            event = "",
+            data = """{"event":"on_run_step_completed","data":{"result":{"id":"step_1","tool_call":{"id":"call_1","name":"ask_user_question","output":"Error: Array must contain at most 4 element(s)\n Please fix your mistakes.","inputValidationError":true}}}}""",
+        )
+
+        val tc = mapper.map(event) as StreamEvent.ToolCallComplete
+
+        assertThat(tc.inputValidationError).isTrue()
     }
 
     // --- on_steer_applied quotes (v0.8.8-rc2) ---
@@ -397,6 +410,18 @@ class SseEventMapperTest {
         val result = mapper.map(event) as StreamEvent.Sync
         assertThat(result.aggregatedContent).hasSize(1)
         assertThat(result.aggregatedContent[0].text).isEqualTo("Previously streamed text")
+    }
+
+    @Test
+    fun `a sync frame drops the null slots of its sparse aggregatedContent`() {
+        val event = SseEvent(
+            event = "",
+            data = """{"sync":true,"resumeState":{"aggregatedContent":[{"type":"text","text":"a"},null,{"type":"text","text":"b"}]}}""",
+        )
+
+        val result = mapper.map(event) as StreamEvent.Sync
+
+        assertThat(result.aggregatedContent.map { it.text }).containsExactly("a", "b").inOrder()
     }
 
     /**
