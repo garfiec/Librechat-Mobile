@@ -38,12 +38,9 @@
     <!-- Empty states -->
     <string name="no_files">ファイルがありません</string>
     <string name="upload_to_get_started">ファイルをアップロードして始めましょう</string>
-    <string name="no_filter_files">%1$s はありません</string>
-    <string name="no_filter_files_found">%1$s のファイルが見つかりません</string>
     <string name="could_not_load_files">ファイルを読み込めませんでした</string>
 
     <!-- Delete dialogs -->
-    <string name="delete_count_files">%1$d 件のファイル%2$sを削除しますか？</string>
     <string name="action_cannot_be_undone">この操作は取り消せません。</string>
     <string name="delete_file_question">ファイルを削除しますか？</string>
     <string name="delete_file_message">「%1$s」を削除しますか？この操作は取り消せません。</string>
@@ -66,4 +63,25 @@
     <string name="uploading">アップロード中…</string>
     <string name="failed_to_download_pdf">PDFのダウンロードに失敗しました</string>
     <string name="failed_to_render_pdf">PDFの表示に失敗しました</string>
+    <string name="filter_all">すべて</string>
+    <string name="filter_images">画像</string>
+    <string name="filter_documents">ドキュメント</string>
+    <string name="filter_audio">音声</string>
+    <string name="filter_video">動画</string>
+    <string name="no_filter_images">画像はありません</string>
+    <string name="no_filter_documents">ドキュメントはありません</string>
+    <string name="no_filter_audio">音声はありません</string>
+    <string name="no_filter_video">動画はありません</string>
+    <string name="no_filter_files_hint">この種類のファイルは見つかりません</string>
+    <string name="sort_name">名前</string>
+    <string name="sort_date">日付</string>
+    <string name="sort_size">サイズ</string>
+    <string name="sort_type">種類</string>
+    <string name="cd_back">戻る</string>
+    <string name="failed_to_download_file">ファイルをダウンロードできませんでした</string>
+    <string name="content_truncated">内容を省略しました（ファイルが大きすぎます）</string>
+    <string name="pdf_preview_unavailable_ios">iOS では PDF のプレビューはまだ利用できません</string>
+    <plurals name="delete_count_files">
+        <item quantity="other">%1$d 件のファイルを削除しますか？</item>
+    </plurals>
 </resources>

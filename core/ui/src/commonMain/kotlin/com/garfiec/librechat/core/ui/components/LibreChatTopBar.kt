@@ -11,6 +11,10 @@ import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.components.topbar.BarTitleAlignment
 import com.garfiec.librechat.core.ui.components.topbar.MaterialBarStyle
+import com.garfiec.librechat.core.ui.resources.Res
+import com.garfiec.librechat.core.ui.resources.topbar_back
+import com.garfiec.librechat.core.ui.resources.topbar_menu
+import org.jetbrains.compose.resources.stringResource
 
 /** A centred-title top bar with a back or menu button, in the current interface style. */
 @Composable
@@ -22,8 +26,8 @@ fun LibreChatTopBar(
     actions: List<BarAction> = emptyList(),
 ) {
     val navigation = when {
-        onNavigateBack != null -> BarNavigation(BarIcons.Back, "Back", onNavigateBack)
-        onMenuClick != null -> BarNavigation(BarIcons.Menu, "Menu", onMenuClick)
+        onNavigateBack != null -> BarNavigation(BarIcons.Back, stringResource(Res.string.topbar_back), onNavigateBack)
+        onMenuClick != null -> BarNavigation(BarIcons.Menu, stringResource(Res.string.topbar_menu), onMenuClick)
         else -> null
     }
     AdaptiveTopBar(

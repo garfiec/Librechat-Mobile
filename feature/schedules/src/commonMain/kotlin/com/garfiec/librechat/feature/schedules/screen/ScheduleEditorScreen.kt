@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -71,6 +72,13 @@ import com.garfiec.librechat.feature.schedules.resources.schedule_repeats
 import com.garfiec.librechat.feature.schedules.resources.schedule_save
 import com.garfiec.librechat.feature.schedules.resources.schedule_time
 import com.garfiec.librechat.feature.schedules.resources.schedule_timezone
+import com.garfiec.librechat.feature.schedules.resources.schedule_weekday_fri
+import com.garfiec.librechat.feature.schedules.resources.schedule_weekday_mon
+import com.garfiec.librechat.feature.schedules.resources.schedule_weekday_sat
+import com.garfiec.librechat.feature.schedules.resources.schedule_weekday_sun
+import com.garfiec.librechat.feature.schedules.resources.schedule_weekday_thu
+import com.garfiec.librechat.feature.schedules.resources.schedule_weekday_tue
+import com.garfiec.librechat.feature.schedules.resources.schedule_weekday_wed
 import com.garfiec.librechat.feature.schedules.viewmodel.ScheduleDraft
 import com.garfiec.librechat.feature.schedules.viewmodel.ScheduleEditorUiState
 import com.garfiec.librechat.feature.schedules.viewmodel.ScheduleEditorViewModel
@@ -119,7 +127,8 @@ fun ScheduleEditorScreen(
     }
 
     AdaptiveScaffold(
-        modifier = modifier,
+        // The form ends where the keyboard begins, so a focused field low on it scrolls into view.
+        modifier = modifier.imePadding(),
         topBar = {
             AdaptiveTopBar(
                 spec = AdaptiveTopBarSpec(
@@ -137,6 +146,7 @@ fun ScheduleEditorScreen(
                         BarAction.Text(
                             id = "save",
                             label = stringResource(Res.string.schedule_save),
+                            compactIcon = BarIcons.Confirm,
                             enabled = uiState.canSave,
                             onClick = viewModel::save,
                         ),
@@ -280,29 +290,20 @@ private fun EditorBody(
         }
         if (draft.frequency == ScheduleFrequency.WEEKLY) {
             Text(stringResource(Res.string.schedule_days), style = MaterialTheme.typography.labelLarge)
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                WEEKDAY_LABELS.forEachIndexed { index, label ->
-                    AdaptiveFilterChip(
-                        selected = index in draft.daysOfWeek,
-                        onClick = {
-                            onChange {
-                                val next = if (index in it.daysOfWeek) {
-                                    it.daysOfWeek - index
-                                } else {
-                                    it.daysOfWeek + index
-                                }
-                                it.copy(daysOfWeek = next)
-                            }
-                        },
-                        label = { Text(label) },
-                        enabled = enabled,
-                    )
-                }
-            }
+            WeekdayChips(
+                selected = draft.daysOfWeek,
+                enabled = enabled,
+                onToggle = { index ->
+                    onChange {
+                        val next = if (index in it.daysOfWeek) {
+                            it.daysOfWeek - index
+                        } else {
+                            it.daysOfWeek + index
+                        }
+                        it.copy(daysOfWeek = next)
+                    }
+                },
+            )
         }
     }
 
@@ -387,5 +388,38 @@ private fun LabelledPicker(
     }
 }
 
+/** One chip per weekday; [selected] and [onToggle] use cron's day numbers. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun WeekdayChips(
+    selected: Set<Int>,
+    enabled: Boolean,
+    onToggle: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        WEEKDAY_LABELS.forEachIndexed { index, label ->
+            AdaptiveFilterChip(
+                selected = index in selected,
+                onClick = { onToggle(index) },
+                label = { Text(stringResource(label)) },
+                enabled = enabled,
+            )
+        }
+    }
+}
+
 /** Sunday-first, matching cron's own day numbering (0 = Sunday). */
-private val WEEKDAY_LABELS = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+private val WEEKDAY_LABELS = listOf(
+    Res.string.schedule_weekday_sun,
+    Res.string.schedule_weekday_mon,
+    Res.string.schedule_weekday_tue,
+    Res.string.schedule_weekday_wed,
+    Res.string.schedule_weekday_thu,
+    Res.string.schedule_weekday_fri,
+    Res.string.schedule_weekday_sat,
+)

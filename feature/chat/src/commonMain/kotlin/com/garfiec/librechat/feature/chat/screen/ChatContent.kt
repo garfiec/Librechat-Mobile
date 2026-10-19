@@ -100,6 +100,7 @@ internal fun ColumnScope.ChatContent(
             ) {
                 MessagesUnavailable(
                     onRetry = viewModel::refreshMessages,
+                    bottomContentPadding = bottomContentPadding,
                     modifier = topInsetModifier,
                 )
             } else if (comparisonState.isEnabled) {

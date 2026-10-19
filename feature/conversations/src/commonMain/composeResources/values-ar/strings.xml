@@ -79,7 +79,6 @@
     <string name="add_new_tag">إضافة وسم جديد</string>
 
     <!-- Tag filter bar -->
-    <string name="tags_active_count">%1$d وسم%2$s نشط</string>
 
     <!-- Export format picker -->
     <string name="export_format">صيغة التصدير</string>
@@ -212,4 +211,17 @@
     <string name="search_group_conversation">حسب المحادثة</string>
     <string name="search_group_none">قائمة واحدة</string>
     <string name="search_server_unavailable">البحث في الخادم غير متاح حاليًا</string>
+    <string name="endpoint_label_assistants">المساعدون</string>
+    <string name="endpoint_label_azure_assistants">مساعدو Azure</string>
+    <string name="endpoint_label_agents">الوكلاء</string>
+    <string name="endpoint_label_custom">مخصص</string>
+    <string name="endpoint_label_chat">محادثة</string>
+    <plurals name="tags_active_count">
+        <item quantity="zero">%1$d وسم نشط</item>
+        <item quantity="one">وسم واحد نشط</item>
+        <item quantity="two">وسمان نشطان</item>
+        <item quantity="few">%1$d وسوم نشطة</item>
+        <item quantity="many">%1$d وسمًا نشطًا</item>
+        <item quantity="other">%1$d وسم نشط</item>
+    </plurals>
 </resources>

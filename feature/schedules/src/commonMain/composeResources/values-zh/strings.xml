@@ -66,4 +66,11 @@
     <string name="schedule_disabled_project">已暂停：用于归入运行记录的项目已被删除。</string>
     <string name="schedule_disabled_project_required">已暂停：此服务器现在要求指定项目，而此定时任务没有项目。</string>
     <string name="schedule_disabled_unknown">已被服务器暂停。</string>
+    <string name="schedule_weekday_sun">周日</string>
+    <string name="schedule_weekday_mon">周一</string>
+    <string name="schedule_weekday_tue">周二</string>
+    <string name="schedule_weekday_wed">周三</string>
+    <string name="schedule_weekday_thu">周四</string>
+    <string name="schedule_weekday_fri">周五</string>
+    <string name="schedule_weekday_sat">周六</string>
 </resources>

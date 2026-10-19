@@ -8,9 +8,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.DrawerDefaults
+import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
@@ -35,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
@@ -60,7 +66,9 @@ import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.BannerDisplay
 import com.garfiec.librechat.core.ui.components.topbar.CoversNativeBars
 import com.garfiec.librechat.core.ui.datetime.ProvideDateTimeFormat
+import com.garfiec.librechat.core.ui.glass.GlassBackdrop
 import com.garfiec.librechat.core.ui.glass.GlassSheetHost
+import com.garfiec.librechat.core.ui.glass.GlassStyle
 import com.garfiec.librechat.core.ui.glass.glassBackdropSource
 import com.garfiec.librechat.core.ui.glass.rememberGlassBackdrop
 import com.garfiec.librechat.core.ui.glass.rememberGlassStyle
@@ -120,16 +128,10 @@ import org.koin.compose.viewmodel.koinViewModel
 private const val HYGIENE_UNRECORDED = "__unrecorded__"
 
 /**
- * Width at which the sidebar stops overlaying the content and pushes it aside instead. Must match the
- * `WindowWidthSizeClass.Medium` branch in the app module's LibreChatNavHost, or the platforms diverge.
- */
-private val TabletMinWidth = 600.dp
-
-/**
  * Shared root composable for LibreChat navigation.
  *
- * With no [content], picks [TabletLayout] or [PhoneLayout] from the available width (iOS). Android
- * passes [content] to add deep links and share intents, and branches on its own WindowSizeClass.
+ * With no [content], picks [TabletLayout] or [PhoneLayout] from the window (iOS). Android passes
+ * [content] to add deep links and share intents, and makes the same [usesSidebarLayout] choice there.
  */
 @Composable
 fun LibreChatNavHost(
@@ -333,10 +335,11 @@ fun LibreChatNavHost(
                         // resizes in place, so both layouts share one movable NavDisplay; see
                         // rememberMovableNavDisplay.
                         val navDisplay = rememberMovableNavDisplay(navigator)
-                        val windowWidth = with(LocalDensity.current) {
-                            LocalWindowInfo.current.containerSize.width.toDp()
+                        val window = LocalWindowInfo.current.containerSize
+                        val usesSidebar = with(LocalDensity.current) {
+                            usesSidebarLayout(window.width.toDp(), window.height.toDp())
                         }
-                        if (windowWidth >= TabletMinWidth) {
+                        if (usesSidebar) {
                             TabletLayout(navigator = navigator, navDisplay = navDisplay)
                         } else {
                             PhoneLayout(navigator = navigator, navDisplay = navDisplay)
@@ -372,7 +375,7 @@ fun LibreChatNavHost(
 /** Reports an unannounced sign-out and the account the app moved to when there was one, or a ban,
  *  which doesn't move the user. */
 @Composable
-private fun SessionExpiredDialog(notice: SessionExpiredNotice, onDismiss: () -> Unit) {
+internal fun SessionExpiredDialog(notice: SessionExpiredNotice, onDismiss: () -> Unit) {
     val accountLabel = notice.accountLabel
     AdaptiveAlertDialog(
         onDismissRequest = onDismiss,
@@ -408,7 +411,7 @@ private fun SessionExpiredDialog(notice: SessionExpiredNotice, onDismiss: () -> 
 }
 
 @Composable
-private fun VersionMismatchDialog(
+internal fun VersionMismatchDialog(
     supportedVersion: String,
     backendVersion: String,
     onDismiss: () -> Unit,
@@ -441,7 +444,7 @@ private fun VersionMismatchDialog(
     )
 }
 
-/** Phone layout with a modal drawer sidebar: the below-600dp path on both platforms. */
+/** Phone layout with a modal drawer sidebar: the path on both platforms when [usesSidebarLayout] is false. */
 @Composable
 fun PhoneLayout(
     navigator: Navigator,
@@ -473,13 +476,6 @@ fun PhoneLayout(
     val signedOut = !isLoggedIn || navigator.isInAuthFlow
     LaunchedEffect(signedOut) {
         if (signedOut && !drawerState.isClosed) drawerState.snapTo(DrawerValue.Closed)
-    }
-
-    // Reset sidebar mode to Conversations when the drawer closes
-    LaunchedEffect(drawerState.isClosed) {
-        if (drawerState.isClosed) {
-            navHostViewModel.setSidebarMode(SidebarMode.Conversations)
-        }
     }
 
     ModalNavigationDrawer(
@@ -515,9 +511,6 @@ fun PhoneLayout(
                     onSettingsClick = {
                         scope.launch { drawerState.close() }
                         navigator.navigate(SettingsTabbed)
-                    },
-                    onSettingsCategorySelect = { category ->
-                        navigator.navigate(category.toRoute())
                     },
                     onAgentsClick = {
                         scope.launch { drawerState.close() }
@@ -557,22 +550,15 @@ fun PhoneLayout(
                 )
             }
             if (glass == null) {
-                // The sheet itself ends above the keyboard, as the glass panel does, rather than running
-                // on behind it with only its contents padded.
-                ModalDrawerSheet(drawerState = drawerState, modifier = Modifier.imePadding()) { sidebar() }
+                MaterialDrawerSheet(drawerState = drawerState, content = sidebar)
             } else {
-                // A transparent sheet keeps M3's drawer gestures and predictive back; the panel inside
-                // it is the visible sidebar.
-                ModalDrawerSheet(
+                GlassDrawerSheet(
                     drawerState = drawerState,
-                    modifier = Modifier.onSizeChanged { drawerWidthPx = it.width },
-                    drawerShape = RectangleShape,
-                    drawerContainerColor = Color.Transparent,
-                    drawerTonalElevation = 0.dp,
-                    windowInsets = WindowInsets(0),
-                ) {
-                    GlassSidebarPanel(style = glass, backdrop = drawerBackdrop) { sidebar() }
-                }
+                    glass = glass,
+                    backdrop = drawerBackdrop,
+                    onWidthChange = { drawerWidthPx = it },
+                    content = sidebar,
+                )
             }
         },
     ) {
@@ -606,6 +592,60 @@ fun PhoneLayout(
             drawerState.targetValue == DrawerValue.Open,
     )
 }
+
+/**
+ * The phone drawer's sheet in Material. It ends above the keyboard, as the glass panel does, rather
+ * than running on behind it with only its contents padded.
+ */
+@Composable
+internal fun MaterialDrawerSheet(drawerState: DrawerState, content: @Composable () -> Unit) {
+    ModalDrawerSheet(drawerState = drawerState, modifier = Modifier.leaveScrimStrip().imePadding()) { content() }
+}
+
+/**
+ * The phone drawer's sheet in Liquid Glass: a transparent sheet keeps M3's drawer gestures and
+ * predictive back, and the panel inside it is the visible sidebar.
+ */
+@Composable
+internal fun GlassDrawerSheet(
+    drawerState: DrawerState,
+    glass: GlassStyle,
+    backdrop: GlassBackdrop?,
+    onWidthChange: (Int) -> Unit,
+    content: @Composable () -> Unit,
+) {
+    ModalDrawerSheet(
+        drawerState = drawerState,
+        // A start-edge cutout is padded outside M3's width cap, so the panel isn't narrowed by it; the
+        // padding consumes the inset, so GlassSidebarPanel doesn't pad it again.
+        modifier = Modifier
+            .leaveScrimStrip()
+            .onSizeChanged { onWidthChange(it.width) }
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Start)),
+        drawerShape = RectangleShape,
+        drawerContainerColor = Color.Transparent,
+        drawerTonalElevation = 0.dp,
+        windowInsets = WindowInsets(0),
+    ) {
+        GlassSidebarPanel(style = glass, backdrop = backdrop) { content() }
+    }
+}
+
+/**
+ * Narrows the drawer sheet so at least [ScrimStripWidth] of the screen stays beside it to tap away on,
+ * as Material's modal drawer asks. Only a phone narrower than the drawer plus the strip is affected.
+ */
+private fun Modifier.leaveScrimStrip(): Modifier = layout { measurable, constraints ->
+    val maxWidth = if (constraints.hasBoundedWidth) {
+        (constraints.maxWidth - ScrimStripWidth.roundToPx()).coerceAtLeast(constraints.minWidth)
+    } else {
+        constraints.maxWidth
+    }
+    val placeable = measurable.measure(constraints.copy(maxWidth = maxWidth))
+    layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+}
+
+private val ScrimStripWidth = 56.dp
 
 /** [MainNavDisplay] taking `(onMenuClick, modifier)`, as produced by [rememberMovableNavDisplay]. */
 typealias NavDisplaySlot = @Composable (onMenuClick: () -> Unit, modifier: Modifier) -> Unit

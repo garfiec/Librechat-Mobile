@@ -38,12 +38,9 @@
     <!-- Empty states -->
     <string name="no_files">لا توجد ملفات</string>
     <string name="upload_to_get_started">ارفع ملفات للبدء</string>
-    <string name="no_filter_files">لا توجد %1$s</string>
-    <string name="no_filter_files_found">لم يتم العثور على ملفات %1$s</string>
     <string name="could_not_load_files">تعذّر تحميل الملفات</string>
 
     <!-- Delete dialogs -->
-    <string name="delete_count_files">حذف %1$d ملف%2$s؟</string>
     <string name="action_cannot_be_undone">لا يمكن التراجع عن هذا الإجراء.</string>
     <string name="delete_file_question">حذف الملف؟</string>
     <string name="delete_file_message">حذف "%1$s"؟ لا يمكن التراجع عن هذا الإجراء.</string>
@@ -66,4 +63,30 @@
     <string name="uploading">جارٍ الرفع…</string>
     <string name="failed_to_download_pdf">فشل تنزيل PDF</string>
     <string name="failed_to_render_pdf">فشل عرض PDF</string>
+    <string name="filter_all">الكل</string>
+    <string name="filter_images">الصور</string>
+    <string name="filter_documents">المستندات</string>
+    <string name="filter_audio">الصوت</string>
+    <string name="filter_video">الفيديو</string>
+    <string name="no_filter_images">لا توجد صور</string>
+    <string name="no_filter_documents">لا توجد مستندات</string>
+    <string name="no_filter_audio">لا توجد ملفات صوتية</string>
+    <string name="no_filter_video">لا توجد مقاطع فيديو</string>
+    <string name="no_filter_files_hint">لم يُعثر على ملفات من هذا النوع</string>
+    <string name="sort_name">الاسم</string>
+    <string name="sort_date">التاريخ</string>
+    <string name="sort_size">الحجم</string>
+    <string name="sort_type">النوع</string>
+    <string name="cd_back">رجوع</string>
+    <string name="failed_to_download_file">تعذّر تنزيل الملف</string>
+    <string name="content_truncated">تم اقتطاع المحتوى (الملف كبير جدًا)</string>
+    <string name="pdf_preview_unavailable_ios">معاينة PDF غير متاحة بعد على iOS</string>
+    <plurals name="delete_count_files">
+        <item quantity="zero">حذف %1$d ملف؟</item>
+        <item quantity="one">حذف ملف واحد؟</item>
+        <item quantity="two">حذف ملفين؟</item>
+        <item quantity="few">حذف %1$d ملفات؟</item>
+        <item quantity="many">حذف %1$d ملفًا؟</item>
+        <item quantity="other">حذف %1$d ملف؟</item>
+    </plurals>
 </resources>

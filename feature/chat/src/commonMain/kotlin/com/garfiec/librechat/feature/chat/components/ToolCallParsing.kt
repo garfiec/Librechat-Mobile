@@ -456,7 +456,7 @@ internal fun parseLogContent(toolCall: AgentToolCall?): LogContent {
     if (toolCall == null) return LogContent()
     return try {
         val outputStr = toolCall.output ?: toolCall.function?.output
-        val toolName = toolCall.name ?: toolCall.function?.name ?: "Log Output"
+        val toolName = toolCall.name ?: toolCall.function?.name
 
         if (!outputStr.isNullOrBlank()) {
             try {

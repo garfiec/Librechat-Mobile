@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.filled.Archive
@@ -34,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
@@ -75,7 +78,9 @@ fun ConversationActions(
         sheetState = sheetState,
     ) {
         Column(
-            modifier = Modifier.padding(bottom = 32.dp),
+            modifier = Modifier
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = 32.dp),
         ) {
             Text(
                 text = conversation.title ?: stringResource(Res.string.new_chat),
@@ -83,6 +88,7 @@ fun ConversationActions(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
 
             ActionRow(

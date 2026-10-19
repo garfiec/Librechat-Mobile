@@ -10,6 +10,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -21,6 +22,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -106,11 +109,17 @@ fun AvatarImage(
                 .background(background),
             contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = fallbackText.take(1).uppercase(),
-                style = MaterialTheme.typography.labelSmall,
-                color = foreground,
-            )
+            // The circle is a fixed size, so the initial doesn't follow the font scale: at 2.0x a
+            // CJK glyph would outgrow the 28dp circle and be clipped.
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = 1f)) {
+                Text(
+                    text = fallbackText.take(1).uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = foreground,
+                    maxLines = 1,
+                )
+            }
         }
     }
 }

@@ -5,19 +5,25 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,10 +46,19 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.takeOrElse
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.garfiec.librechat.core.model.ui.GlassCapability
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
@@ -94,7 +109,9 @@ fun AdaptiveTopBar(
             // one, so the fade that keeps the title legible over scrolling content is drawn here.
             Box(Modifier.matchParentSize().background(glassEdgeScrim()))
             if (level == GlassCapability.NATIVE && !LocalInSeparateWindow.current) {
-                NativeGlassTopBar(spec = spec, modifier = Modifier.fillMaxWidth())
+                TitleFirstBar(spec, nativeBarMetrics(spec), Modifier.fillMaxWidth()) {
+                    NativeGlassTopBar(spec = it, modifier = Modifier.fillMaxWidth())
+                }
             } else {
                 SimulatedGlassTopBar(spec = spec, modifier = Modifier.fillMaxWidth())
             }
@@ -103,9 +120,24 @@ fun AdaptiveTopBar(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MaterialTopBar(spec: AdaptiveTopBarSpec, style: MaterialBarStyle, modifier: Modifier = Modifier) {
+    val typography = MaterialTheme.typography
+    val metrics = BarMetrics(
+        // M3's 4dp bar insets and the title's 4dp sides, plus the 48dp navigation button.
+        fixed = (if (spec.navigation != null) 48.dp else 0.dp) + 16.dp,
+        iconAction = 48.dp,
+        textActionPadding = TextActionPadding,
+        textActionMinWidth = TextActionMinWidth,
+        titleStyle = typography.titleLarge,
+        labelStyle = typography.labelLarge,
+    )
+    TitleFirstBar(spec, metrics, modifier) { MaterialTopBarContent(it, style) }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MaterialTopBarContent(spec: AdaptiveTopBarSpec, style: MaterialBarStyle) {
     var renaming by remember { mutableStateOf(false) }
     val title: @Composable () -> Unit = {
         val text = spec.title.text
@@ -113,8 +145,9 @@ private fun MaterialTopBar(spec: AdaptiveTopBarSpec, style: MaterialBarStyle, mo
             val onTitleClick = spec.title.onClick ?: spec.title.rename?.let { { renaming = true } }
             Text(
                 text = text,
-                maxLines = 1,
+                maxLines = spec.title.lines,
                 overflow = TextOverflow.Ellipsis,
+                textAlign = if (spec.title.alignment == BarTitleAlignment.CENTER) TextAlign.Center else null,
                 modifier = if (onTitleClick != null) Modifier.clickable(onClick = onTitleClick) else Modifier,
             )
         }
@@ -134,7 +167,6 @@ private fun MaterialTopBar(spec: AdaptiveTopBarSpec, style: MaterialBarStyle, mo
     if (spec.title.alignment == BarTitleAlignment.CENTER) {
         CenterAlignedTopAppBar(
             title = title,
-            modifier = modifier,
             navigationIcon = navigationIcon,
             actions = actions,
             colors = if (customColor != null) {
@@ -146,7 +178,6 @@ private fun MaterialTopBar(spec: AdaptiveTopBarSpec, style: MaterialBarStyle, mo
     } else {
         TopAppBar(
             title = title,
-            modifier = modifier,
             navigationIcon = navigationIcon,
             actions = actions,
             colors = if (customColor != null) {
@@ -191,7 +222,12 @@ private fun BarActionButton(action: BarAction, colors: BarActionColors) {
 
         is BarAction.Text -> TextButton(onClick = action.onClick, enabled = action.enabled) {
             // Glass labels its text actions in the accent, as iOS does; Material keeps TextButton's own.
-            Text(action.label, color = if (colors.glass && action.enabled) colors.accent else Color.Unspecified)
+            Text(
+                text = action.label,
+                color = if (colors.glass && action.enabled) colors.accent else Color.Unspecified,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
 
         is BarAction.Toggle -> IconButton(onClick = { action.onCheckedChange(!action.checked) }) {
@@ -326,12 +362,30 @@ private fun glassEdgeScrim(): Brush {
 
 @Composable
 internal fun SimulatedGlassTopBar(spec: AdaptiveTopBarSpec, modifier: Modifier = Modifier) {
+    val metrics = BarMetrics(
+        // The row's 16dp sides, the navigation control and its gap, the title's padding, the actions' gap.
+        fixed = 32.dp + (if (spec.navigation != null) ControlSize + 8.dp else 0.dp) + 16.dp + spec.title.glassEndPadding + 8.dp,
+        iconAction = 48.dp,
+        textActionPadding = TextActionPadding,
+        textActionMinWidth = TextActionMinWidth,
+        titleStyle = glassTitleStyle(),
+        labelStyle = MaterialTheme.typography.labelLarge,
+    )
+    TitleFirstBar(spec, metrics, modifier) { SimulatedGlassTopBarContent(it) }
+}
+
+@Composable
+private fun glassTitleStyle() = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+
+@Composable
+private fun SimulatedGlassTopBarContent(spec: AdaptiveTopBarSpec) {
     val style = rememberGlassStyle() ?: return
     val backdrop = LocalGlassBackdrop.current
     var renaming by remember { mutableStateOf(false) }
 
     Row(
-        modifier = modifier
+        modifier = Modifier
+            .fillMaxWidth()
             .consumeUnhandledTouches()
             .statusBarsPadding()
             .padding(horizontal = 16.dp, vertical = 6.dp),
@@ -360,9 +414,10 @@ internal fun SimulatedGlassTopBar(spec: AdaptiveTopBarSpec, modifier: Modifier =
                 val fill = title.alignment == BarTitleAlignment.FILL
                 Text(
                     text = text,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                    maxLines = 1,
+                    style = glassTitleStyle(),
+                    maxLines = title.lines,
                     overflow = TextOverflow.Ellipsis,
+                    textAlign = if (title.alignment == BarTitleAlignment.CENTER) TextAlign.Center else null,
                     modifier = Modifier
                         .then(if (fill) Modifier.fillMaxWidth() else Modifier)
                         .then(
@@ -373,7 +428,17 @@ internal fun SimulatedGlassTopBar(spec: AdaptiveTopBarSpec, modifier: Modifier =
                             },
                         )
                         .then(if (onTitleClick != null) Modifier.clickable(onClick = onTitleClick) else Modifier)
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        .then(
+                            // A title that may wrap keeps the controls' height and spends its padding on the second line.
+                            if (title.lines > 1) {
+                                Modifier
+                                    .padding(start = 16.dp, end = title.glassEndPadding)
+                                    .heightIn(min = ControlSize)
+                                    .wrapContentHeight()
+                            } else {
+                                Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                            },
+                        ),
                 )
             }
         }
@@ -398,6 +463,121 @@ internal fun SimulatedGlassTopBar(spec: AdaptiveTopBarSpec, modifier: Modifier =
         if (renaming) BarRenameDialog(rename = rename, onDismiss = { renaming = false })
     }
 }
+
+/**
+ * The lines the title is drawn on. A fixed title may take [BarTitle.maxLines] before it ellipsizes.
+ * A tappable title (the chat header's chip) stays on one, so it keeps the bar's height and its pill shape.
+ */
+internal val BarTitle.lines: Int
+    get() = if (style == BarTitleStyle.PLAIN && onClick == null && rename == null) maxLines else 1
+
+/**
+ * The glass title's end padding. A pill needs it; a plain leading title that may wrap gives it to
+ * the text, since the gap before the actions already separates them.
+ */
+private val BarTitle.glassEndPadding: Dp
+    get() = if (lines > 1 && alignment != BarTitleAlignment.CENTER) 0.dp else 16.dp
+
+/**
+ * The narrowest a title gets at 1.0x before text actions give up their labels. It grows by the
+ * title font's own scale rather than being given in sp: Android scales large text less than small
+ * text, so a 120sp floor would barely move.
+ */
+private val TitleFloor = 120.dp
+
+// TextButton's own minimum width and horizontal content padding, which both Compose renderers draw.
+private val TextActionMinWidth = ButtonDefaults.MinWidth
+private val TextActionPadding = ButtonDefaults.TextButtonContentPadding.let {
+    it.calculateStartPadding(LayoutDirection.Ltr) + it.calculateEndPadding(LayoutDirection.Ltr)
+}
+
+/** What a renderer spends besides the title, for [TitleFirstBar] to work out how much the title keeps. */
+private data class BarMetrics(
+    /** Insets, the navigation control and the gaps: everything but the actions and the title text. */
+    val fixed: Dp,
+    val iconAction: Dp,
+    val textActionPadding: Dp,
+    val textActionMinWidth: Dp,
+    val titleStyle: TextStyle,
+    val labelStyle: TextStyle,
+    /** False where the bar's text ignores the font scale: the UIKit bar keeps its items at 17pt. */
+    val scalesWithFont: Boolean = true,
+)
+
+private fun nativeBarMetrics(spec: AdaptiveTopBarSpec) = BarMetrics(
+    fixed = 32.dp + (if (spec.navigation != null) ControlSize + 8.dp else 0.dp) + 8.dp,
+    iconAction = ControlSize,
+    textActionPadding = 20.dp,
+    textActionMinWidth = ControlSize,
+    titleStyle = TextStyle(fontSize = 17.sp, fontWeight = FontWeight.SemiBold),
+    labelStyle = TextStyle(fontSize = 17.sp),
+    scalesWithFont = false,
+)
+
+/**
+ * Hands [content] the spec with its text actions drawn as their compact icons when their labels
+ * would squeeze a title that doesn't fit below [TitleFloor]. The title wins: it says which screen
+ * this is, and an icon described by the label still says what the action does.
+ */
+@Composable
+private fun TitleFirstBar(
+    spec: AdaptiveTopBarSpec,
+    metrics: BarMetrics,
+    modifier: Modifier = Modifier,
+    content: @Composable (AdaptiveTopBarSpec) -> Unit,
+) {
+    val measurer = rememberTextMeasurer()
+    val base = LocalDensity.current
+    val density = if (metrics.scalesWithFont) base else Density(base.density, 1f)
+    BoxWithConstraints(modifier) {
+        // Keyed on the strings, not the spec, whose lambdas are new on every recomposition.
+        val labels = spec.actions.map { (it as? BarAction.Text)?.label }
+        val compact = remember(spec.title.text, labels, maxWidth, density, metrics) {
+            labelsSqueezeTitle(spec, metrics, maxWidth, measurer, density)
+        }
+        content(if (compact) spec.withCompactTextActions() else spec)
+    }
+}
+
+private fun labelsSqueezeTitle(
+    spec: AdaptiveTopBarSpec,
+    metrics: BarMetrics,
+    barWidth: Dp,
+    measurer: TextMeasurer,
+    density: Density,
+): Boolean {
+    val title = spec.title.text
+    if (title == null || spec.actions.none { it is BarAction.Text }) return false
+    fun width(text: String, style: TextStyle): Dp = with(density) {
+        measurer.measure(text, style, maxLines = 1, softWrap = false, density = density).size.width.toDp()
+    }
+    val actions = spec.actions.fold(0.dp) { sum, action ->
+        sum + when (action) {
+            is BarAction.Text -> maxOf(metrics.textActionMinWidth, width(action.label, metrics.labelStyle) + metrics.textActionPadding)
+            else -> metrics.iconAction
+        }
+    }
+    val room = barWidth - metrics.fixed - actions
+    val titleSize = metrics.titleStyle.fontSize
+    val fontScale = with(density) { titleSize.toDp() / titleSize.value.dp }
+    return room < TitleFloor * fontScale && room < width(title, metrics.titleStyle)
+}
+
+internal fun AdaptiveTopBarSpec.withCompactTextActions() = copy(
+    actions = actions.map { action ->
+        if (action is BarAction.Text) {
+            BarAction.Icon(
+                id = action.id,
+                icon = action.compactIcon,
+                label = action.label,
+                enabled = action.enabled,
+                onClick = action.onClick,
+            )
+        } else {
+            action
+        }
+    },
+)
 
 /** The text prompt behind [BarRename] on the Compose renderer; the native bar uses a UIAlertController. */
 @Composable

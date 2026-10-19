@@ -183,7 +183,7 @@ fun AttachmentChipsRow(
                     ToolIndicatorChip(
                         label = server.title ?: server.name,
                         icon = Icons.Default.Extension,
-                        semanticDescription = "${server.title ?: server.name} MCP server enabled",
+                        semanticDescription = stringResource(Res.string.cd_mcp_server_enabled, server.title ?: server.name),
                     )
                 }
             }

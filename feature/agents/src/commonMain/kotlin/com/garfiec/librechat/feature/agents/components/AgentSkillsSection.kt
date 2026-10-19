@@ -155,7 +155,7 @@ fun AgentSkillsSection(
  * the id in the agent's allowlist (matching upstream `SkillSelectDialog`).
  */
 @Composable
-private fun SkillSelectDialog(
+internal fun SkillSelectDialog(
     availableSkills: List<SkillSummary>,
     selectedSkillIds: Set<String>,
     onToggle: (skillId: String) -> Unit,

@@ -306,5 +306,20 @@
     <string name="builtin_file_context_desc">将附加的完整文件放入智能体的上下文。</string>
     <string name="builtin_ask_user">询问用户</string>
     <string name="builtin_ask_user_desc">暂停运行，向你提出澄清问题。</string>
-    <string name="agent_contact_title">联系方式</string>
+    <string name="agent_category_hr">人力资源</string>
+    <string name="agent_category_rd">研发</string>
+    <string name="agent_category_finance">财务</string>
+    <string name="agent_category_it">IT</string>
+    <string name="agent_category_sales">销售</string>
+    <string name="agent_category_aftersales">售后</string>
+    <string name="agent_category_idea">创意</string>
+    <string name="agent_category_travel">旅行</string>
+    <string name="agent_category_learning">学习</string>
+    <string name="agent_category_writing">写作</string>
+    <string name="agent_category_shopping">购物</string>
+    <string name="agent_category_code">代码</string>
+    <string name="agent_category_misc">其他</string>
+    <string name="agent_category_roleplay">角色扮演</string>
+    <string name="visibility_team">团队</string>
+    <string name="agent_contact_line">联系人：%1$s</string>
 </resources>

@@ -233,7 +233,7 @@ fun PromptsLibraryScreen(
                                 onClick = {
                                     viewModel.onSortOrderChanged(PromptSortOrder.RECENT)
                                 },
-                                label = { Text(stringResource(Res.string.prompt_sort_label, uiState.sortOrder.label)) },
+                                label = { Text(stringResource(Res.string.prompt_sort_label, stringResource(uiState.sortOrder.label))) },
                                 trailingIcon = {
                                     Icon(
                                         Icons.Default.Close,
@@ -252,26 +252,14 @@ fun PromptsLibraryScreen(
                     LoadingIndicator(modifier = Modifier.fillMaxSize())
                 } else if (uiState.error != null && displayGroups.isEmpty()) {
                     ErrorBanner(
-                        message = uiState.error ?: "Failed to load prompts",
+                        message = uiState.error ?: stringResource(Res.string.prompts_load_failed),
                         onRetry = {
                             viewModel.dismissError()
                             viewModel.loadGroups()
                         },
                     )
                 } else if (displayGroups.isEmpty()) {
-                    EmptyState(
-                        title = if (uiState.selectedCategory != null) {
-                            "No prompts in this category"
-                        } else {
-                            "No prompts yet"
-                        },
-                        description = if (uiState.selectedCategory != null) {
-                            "Try a different category or clear the filter"
-                        } else {
-                            "Tap + to create one"
-                        },
-                        icon = Icons.Default.Add,
-                    )
+                    PromptsEmptyState(isCategoryFiltered = uiState.selectedCategory != null)
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
@@ -396,4 +384,22 @@ private fun PromptGroupItem(
             }
         }
     }
+}
+
+@Composable
+internal fun PromptsEmptyState(isCategoryFiltered: Boolean, modifier: Modifier = Modifier) {
+    EmptyState(
+        title = if (isCategoryFiltered) {
+            stringResource(Res.string.prompts_empty_category)
+        } else {
+            stringResource(Res.string.prompts_empty)
+        },
+        description = if (isCategoryFiltered) {
+            stringResource(Res.string.prompts_empty_category_hint)
+        } else {
+            stringResource(Res.string.prompts_empty_hint)
+        },
+        icon = Icons.Default.Add,
+        modifier = modifier,
+    )
 }

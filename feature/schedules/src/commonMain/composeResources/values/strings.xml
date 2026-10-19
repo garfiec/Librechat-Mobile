@@ -66,4 +66,11 @@
     <string name="schedule_disabled_project">Paused: the project it filed runs under was deleted.</string>
     <string name="schedule_disabled_project_required">Paused: this server now requires a project, and this schedule has none.</string>
     <string name="schedule_disabled_unknown">Paused by the server.</string>
+    <string name="schedule_weekday_sun">Sun</string>
+    <string name="schedule_weekday_mon">Mon</string>
+    <string name="schedule_weekday_tue">Tue</string>
+    <string name="schedule_weekday_wed">Wed</string>
+    <string name="schedule_weekday_thu">Thu</string>
+    <string name="schedule_weekday_fri">Fri</string>
+    <string name="schedule_weekday_sat">Sat</string>
 </resources>

@@ -1,13 +1,16 @@
 package com.garfiec.librechat.feature.settings.screen
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
@@ -151,19 +154,24 @@ private fun ResultBanner(
         color = container,
         contentColor = content,
     ) {
-        Row(
+        // The action drops under the message rather than squeeze it narrower than MinMessageWidth.
+        FlowRow(
             modifier = Modifier.padding(start = 12.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.End,
+            itemVerticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(20.dp))
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(vertical = 8.dp),
-            )
+            Row(
+                modifier = Modifier.weight(1f).widthIn(min = MinMessageWidth),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(vertical = 8.dp),
+                )
+            }
             if (action != null) {
                 TextButton(onClick = onAction) {
                     Text(text = action, color = content)
@@ -172,6 +180,8 @@ private fun ResultBanner(
         }
     }
 }
+
+private val MinMessageWidth = 144.dp
 
 @Composable
 internal fun UpdateAutoCheckToggle(

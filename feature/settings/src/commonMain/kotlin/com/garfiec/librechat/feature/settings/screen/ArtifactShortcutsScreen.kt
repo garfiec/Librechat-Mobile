@@ -22,18 +22,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.data.repository.ArtifactShortcutRepository
 import com.garfiec.librechat.core.model.ArtifactShortcut
-import com.garfiec.librechat.core.model.artifactTypeLabel
 import com.garfiec.librechat.core.model.displayGlyph
 import com.garfiec.librechat.core.model.displayLabel
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.EmptyState
+import com.garfiec.librechat.core.ui.components.artifactTypeLabel
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
@@ -108,7 +108,7 @@ fun ArtifactShortcutsScreen(
 }
 
 @Composable
-private fun ArtifactShortcutRow(
+internal fun ArtifactShortcutRow(
     shortcut: ArtifactShortcut,
     onDelete: () -> Unit,
 ) {
@@ -121,9 +121,10 @@ private fun ArtifactShortcutRow(
             modifier = Modifier.size(40.dp),
             contentAlignment = Alignment.Center,
         ) {
+            // Sized in dp, as the box is: at a large font scale a 22sp glyph outgrows its 40dp box.
             Text(
                 text = shortcut.displayGlyph,
-                fontSize = 22.sp,
+                fontSize = with(LocalDensity.current) { GlyphSize.toSp() },
             )
         }
         Column(modifier = Modifier.weight(1f)) {
@@ -139,6 +140,7 @@ private fun ArtifactShortcutRow(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
         IconButton(onClick = onDelete) {
@@ -150,3 +152,5 @@ private fun ArtifactShortcutRow(
         }
     }
 }
+
+private val GlyphSize = 22.dp

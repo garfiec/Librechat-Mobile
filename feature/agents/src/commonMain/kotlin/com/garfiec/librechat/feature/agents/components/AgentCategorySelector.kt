@@ -17,34 +17,44 @@ import com.garfiec.librechat.core.model.AgentCategory
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.feature.agents.resources.*
 import com.garfiec.librechat.feature.agents.resources.Res
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * Maps category values to human-readable English labels.
- * The server returns localization keys like "com_ui_idea" in the label field.
- * Since we don't have a localization system, we provide English labels inline.
+ * The built-in categories, by value. The server labels these with a web localization key
+ * ("com_agents_category_hr"), which names a string this app carries rather than text to show.
  */
-private val CATEGORY_DISPLAY_LABELS = mapOf(
-    "idea" to "Ideas",
-    "travel" to "Travel",
-    "teach_or_explain" to "Learning",
-    "write" to "Writing",
-    "shop" to "Shopping",
-    "code" to "Code",
-    "misc" to "Misc.",
-    "roleplay" to "Roleplay",
-    "finance" to "Finance",
-    "general" to "General",
+private val CATEGORY_LABELS: Map<String, StringResource> = mapOf(
+    "general" to Res.string.general,
+    "hr" to Res.string.agent_category_hr,
+    "rd" to Res.string.agent_category_rd,
+    "finance" to Res.string.agent_category_finance,
+    "it" to Res.string.agent_category_it,
+    "sales" to Res.string.agent_category_sales,
+    "aftersales" to Res.string.agent_category_aftersales,
+    "idea" to Res.string.agent_category_idea,
+    "travel" to Res.string.agent_category_travel,
+    "teach_or_explain" to Res.string.agent_category_learning,
+    "write" to Res.string.agent_category_writing,
+    "shop" to Res.string.agent_category_shopping,
+    "code" to Res.string.agent_category_code,
+    "misc" to Res.string.agent_category_misc,
+    "roleplay" to Res.string.agent_category_roleplay,
 )
 
-private fun AgentCategory.displayLabel(): String {
-    // If the label starts with "com_", it's a localization key -- look up the friendly name
+/** A category's own label when an admin wrote one, else the translated built-in, else its value. */
+@Composable
+internal fun AgentCategory.displayLabel(): String {
     val rawLabel = label
     if (rawLabel != null && !rawLabel.startsWith("com_")) {
         return rawLabel
     }
-    return CATEGORY_DISPLAY_LABELS[value] ?: value.replaceFirstChar { it.uppercase() }
+    return categoryValueLabel(value)
 }
+
+@Composable
+private fun categoryValueLabel(value: String): String =
+    CATEGORY_LABELS[value]?.let { stringResource(it) } ?: value.replaceFirstChar { it.uppercase() }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,8 +72,8 @@ fun AgentCategorySelector(
     }
 
     val displayValue = editorCategories.find { it.value == selectedCategory }?.displayLabel()
-        ?: CATEGORY_DISPLAY_LABELS[selectedCategory]
-        ?: selectedCategory.ifEmpty { stringResource(Res.string.general) }
+        ?: selectedCategory.takeIf { it.isNotEmpty() }?.let { categoryValueLabel(it) }
+        ?: stringResource(Res.string.general)
 
     ExposedDropdownMenuBox(
         expanded = expanded,

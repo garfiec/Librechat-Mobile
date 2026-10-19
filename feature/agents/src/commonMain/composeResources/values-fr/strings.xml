@@ -306,5 +306,20 @@
     <string name="builtin_file_context_desc">Place les fichiers joints en entier dans le contexte de l'agent.</string>
     <string name="builtin_ask_user">Demander à l'utilisateur</string>
     <string name="builtin_ask_user_desc">Met l'exécution en pause pour vous poser une question de clarification.</string>
-    <string name="agent_contact_title">Contact</string>
+    <string name="agent_category_hr">Ressources humaines</string>
+    <string name="agent_category_rd">Recherche et développement</string>
+    <string name="agent_category_finance">Finance</string>
+    <string name="agent_category_it">Informatique</string>
+    <string name="agent_category_sales">Ventes</string>
+    <string name="agent_category_aftersales">Service après-vente</string>
+    <string name="agent_category_idea">Idées</string>
+    <string name="agent_category_travel">Voyages</string>
+    <string name="agent_category_learning">Apprentissage</string>
+    <string name="agent_category_writing">Rédaction</string>
+    <string name="agent_category_shopping">Achats</string>
+    <string name="agent_category_code">Code</string>
+    <string name="agent_category_misc">Divers</string>
+    <string name="agent_category_roleplay">Jeu de rôle</string>
+    <string name="visibility_team">Équipe</string>
+    <string name="agent_contact_line">Contact : %1$s</string>
 </resources>

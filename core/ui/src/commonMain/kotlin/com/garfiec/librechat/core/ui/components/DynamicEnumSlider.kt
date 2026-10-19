@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
@@ -12,6 +13,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.resources.Res
+import com.garfiec.librechat.core.ui.resources.param_slider_cd
+import com.garfiec.librechat.core.ui.resources.param_unset
+import org.jetbrains.compose.resources.stringResource
 import kotlin.math.roundToInt
 
 /**
@@ -41,8 +47,14 @@ fun DynamicEnumSlider(
 
     // A value outside the options has no position; the thumb rests at the first one.
     val index = options.indexOf(selectedValue).let { if (it < 0) 0 else it }
-    val displayLabel = enumSliderLabel(selectedValue, options, optionLabels, removedValues)
-    val sliderCd = "$label slider, value $displayLabel"
+    val displayLabel = enumSliderLabel(
+        selectedValue,
+        options,
+        optionLabels,
+        removedValues,
+        unsetLabel = stringResource(Res.string.param_unset),
+    )
+    val sliderCd = stringResource(Res.string.param_slider_cd, label, displayLabel)
 
     Column(
         modifier = modifier
@@ -54,14 +66,19 @@ fun DynamicEnumSlider(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            // The label wraps rather than the value: measured first, it would take the row and leave the
+            // value a sliver to break in.
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f, fill = false),
             )
             Text(
                 text = displayLabel,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary,
+                softWrap = false,
+                modifier = Modifier.padding(start = 8.dp),
             )
         }
         if (description != null) {
@@ -98,9 +115,10 @@ internal fun enumSliderLabel(
     options: List<String>,
     optionLabels: Map<String, String>?,
     removedValues: Set<String>,
+    unsetLabel: String,
 ): String {
     val sentAsItself = selectedValue.isNotEmpty() && selectedValue !in options && selectedValue !in removedValues
     val shown = if (sentAsItself || selectedValue in options) selectedValue else options.firstOrNull().orEmpty()
     // The empty option is "not set"; named as DynamicDropdown names it, so the two controls agree.
-    return optionLabels?.get(shown) ?: shown.ifEmpty { "Unset" }
+    return optionLabels?.get(shown) ?: shown.ifEmpty { unsetLabel }
 }

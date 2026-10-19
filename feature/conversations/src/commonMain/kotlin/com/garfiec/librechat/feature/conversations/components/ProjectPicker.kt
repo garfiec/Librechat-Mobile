@@ -80,7 +80,9 @@ fun ProjectPicker(
                 onClick = { onSelect(null); onDismiss() },
             )
 
-            LazyColumn(modifier = Modifier.heightIn(max = 280.dp)) {
+            // Weighted, so the rows above and the create field below are measured first: with the
+            // keyboard up the list gives up its height instead of pushing the field off the sheet.
+            LazyColumn(modifier = Modifier.weight(1f, fill = false).heightIn(max = 280.dp)) {
                 items(projects, key = { it.id }) { project ->
                     ProjectRow(
                         label = project.name,
@@ -125,7 +127,7 @@ fun ProjectPicker(
 }
 
 @Composable
-private fun ProjectRow(
+internal fun ProjectRow(
     label: String,
     selected: Boolean,
     onClick: () -> Unit,
@@ -142,6 +144,7 @@ private fun ProjectRow(
             text = label,
             style = MaterialTheme.typography.bodyLarge,
             color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
         )
         if (selected) {
             Icon(

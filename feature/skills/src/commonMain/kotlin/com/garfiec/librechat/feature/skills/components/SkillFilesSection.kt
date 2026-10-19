@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.common.extensions.formatByteSize
 import com.garfiec.librechat.core.model.SkillFile
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
@@ -113,7 +114,7 @@ private fun SkillFileRow(
                 )
                 val meta = listOfNotNull(
                     file.mimeType?.takeIf { it.isNotBlank() },
-                    file.bytes.takeIf { it > 0 }?.let { "$it B" },
+                    file.bytes.takeIf { it > 0 }?.let(::formatByteSize),
                 ).joinToString(" • ")
                 if (meta.isNotBlank()) {
                     Text(

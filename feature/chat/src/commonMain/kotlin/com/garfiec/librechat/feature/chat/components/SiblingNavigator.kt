@@ -29,9 +29,10 @@ fun SiblingNavigator(
 ) {
     if (siblingCount <= 1) return
 
+    val position = stringResource(Res.string.sibling_position, siblingIndex + 1, siblingCount)
     Row(
         modifier = modifier.semantics {
-            stateDescription = "Response ${siblingIndex + 1} of $siblingCount"
+            stateDescription = position
         },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(0.dp),

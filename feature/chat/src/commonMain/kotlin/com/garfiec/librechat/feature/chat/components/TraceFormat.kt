@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.runtime.Composable
+import com.garfiec.librechat.core.common.extensions.formatLocalizedNumber
 import com.garfiec.librechat.core.model.trace.TraceRecordKind
 import com.garfiec.librechat.core.model.trace.TraceStatus
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -23,9 +24,13 @@ import kotlin.time.Instant
 internal fun parseTraceInstant(value: String): Long? =
     runCatching { Instant.parse(value).toEpochMilliseconds() }.getOrNull()
 
-internal fun formatTraceDuration(millis: Long): String = when {
-    millis < MILLIS_PER_SECOND -> "$millis ms"
-    millis < MILLIS_PER_MINUTE -> "${oneDecimal(millis / MILLIS_PER_SECOND.toDouble())} s"
+/** [localeTag] supplies the decimal separator, as `ResolvedDateTimeFormat.localeTag` carries it. */
+internal fun formatTraceDuration(millis: Long, localeTag: String): String = when {
+    millis < MILLIS_PER_SECOND -> "${formatLocalizedNumber(millis.toDouble(), localeTag)} ms"
+    millis < MILLIS_PER_MINUTE -> {
+        val seconds = millis / MILLIS_PER_SECOND.toDouble()
+        "${formatLocalizedNumber(seconds, localeTag, maxFractionDigits = 1, minFractionDigits = 1)} s"
+    }
     else -> {
         val totalSeconds = millis / MILLIS_PER_SECOND
         "${totalSeconds / SECONDS_PER_MINUTE}m ${totalSeconds % SECONDS_PER_MINUTE}s"
@@ -44,11 +49,8 @@ internal fun formatTraceCost(value: Double): String {
     return "$sign$$whole.$fraction"
 }
 
-internal fun formatTraceCount(value: Long): String {
-    val digits = value.toString()
-    if (digits.length <= GROUP_SIZE) return digits
-    return digits.reversed().chunked(GROUP_SIZE).joinToString(",").reversed()
-}
+/** [value] grouped the way [localeTag] groups digits. */
+internal fun formatTraceCount(value: Long, localeTag: String): String = formatLocalizedNumber(value.toDouble(), localeTag)
 
 /**
  * A one-word label for a record's kind. An unrecognized kind shows its raw wire value rather than
@@ -74,15 +76,8 @@ internal fun traceStatusLabel(status: String): String = when (status) {
     else -> status
 }
 
-private fun oneDecimal(value: Double): String {
-    val tenths = (value * TENTHS).roundToLong()
-    return "${tenths / TENTHS}.${tenths % TENTHS}"
-}
-
 private const val MILLIS_PER_SECOND = 1_000L
 private const val MILLIS_PER_MINUTE = 60_000L
 private const val SECONDS_PER_MINUTE = 60L
 private const val COST_SCALE = 10_000L
 private const val COST_DECIMALS = 4
-private const val GROUP_SIZE = 3
-private const val TENTHS = 10L

@@ -26,8 +26,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
-import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -78,7 +76,7 @@ class MainActivity : ComponentActivity() {
     private var deepLinkUri by mutableStateOf<Uri?>(null)
 
     @Suppress("LongMethod") // debt: 101 lines
-    @OptIn(ExperimentalMaterial3WindowSizeClassApi::class, ExperimentalComposeUiApi::class)
+    @OptIn(ExperimentalComposeUiApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -110,7 +108,6 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            val windowSizeClass = calculateWindowSizeClass(this)
             val isConnected by connectivityObserver.isConnected.collectAsStateWithLifecycle(initialValue = true)
             // Hold off drawing themed content until the persisted theme has resolved, so a
             // dark-mode user on a light-system device never sees a one-frame flash of the wrong
@@ -187,7 +184,6 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                             LibreChatNavHost(
-                                windowSizeClass = windowSizeClass,
                                 deepLinkUri = deepLinkUri,
                                 onDeepLinkConsume = { deepLinkUri = null },
                                 appLocaleTag = appLocale,

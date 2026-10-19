@@ -306,5 +306,20 @@
     <string name="builtin_file_context_desc">첨부한 파일 전체를 에이전트 컨텍스트에 넣습니다.</string>
     <string name="builtin_ask_user">사용자에게 질문</string>
     <string name="builtin_ask_user_desc">실행을 일시정지하고 명확히 하기 위한 질문을 합니다.</string>
-    <string name="agent_contact_title">연락처</string>
+    <string name="agent_category_hr">인사</string>
+    <string name="agent_category_rd">연구 개발</string>
+    <string name="agent_category_finance">재무</string>
+    <string name="agent_category_it">IT</string>
+    <string name="agent_category_sales">영업</string>
+    <string name="agent_category_aftersales">애프터서비스</string>
+    <string name="agent_category_idea">아이디어</string>
+    <string name="agent_category_travel">여행</string>
+    <string name="agent_category_learning">학습</string>
+    <string name="agent_category_writing">글쓰기</string>
+    <string name="agent_category_shopping">쇼핑</string>
+    <string name="agent_category_code">코드</string>
+    <string name="agent_category_misc">기타</string>
+    <string name="agent_category_roleplay">롤플레이</string>
+    <string name="visibility_team">팀</string>
+    <string name="agent_contact_line">연락처: %1$s</string>
 </resources>

@@ -118,7 +118,7 @@ internal fun ChatScreenDialogs(
 }
 
 @Composable
-private fun ChatRenameDialog(
+internal fun ChatRenameDialog(
     currentTitle: String,
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,

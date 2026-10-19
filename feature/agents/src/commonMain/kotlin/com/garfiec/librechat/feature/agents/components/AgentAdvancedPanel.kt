@@ -69,6 +69,7 @@ fun AgentAdvancedPanel(
             Text(
                 text = stringResource(Res.string.advanced_settings),
                 style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.weight(1f),
             )
             Icon(
                 imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,

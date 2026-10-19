@@ -306,5 +306,20 @@
     <string name="builtin_file_context_desc">添付ファイル全体をエージェントのコンテキストに含めます。</string>
     <string name="builtin_ask_user">ユーザーに質問</string>
     <string name="builtin_ask_user_desc">実行を一時停止して、確認のための質問をします。</string>
-    <string name="agent_contact_title">連絡先</string>
+    <string name="agent_category_hr">人事</string>
+    <string name="agent_category_rd">研究開発</string>
+    <string name="agent_category_finance">財務</string>
+    <string name="agent_category_it">IT</string>
+    <string name="agent_category_sales">営業</string>
+    <string name="agent_category_aftersales">アフターサービス</string>
+    <string name="agent_category_idea">アイデア</string>
+    <string name="agent_category_travel">旅行</string>
+    <string name="agent_category_learning">学習</string>
+    <string name="agent_category_writing">文章作成</string>
+    <string name="agent_category_shopping">ショッピング</string>
+    <string name="agent_category_code">コード</string>
+    <string name="agent_category_misc">その他</string>
+    <string name="agent_category_roleplay">ロールプレイ</string>
+    <string name="visibility_team">チーム</string>
+    <string name="agent_contact_line">連絡先：%1$s</string>
 </resources>

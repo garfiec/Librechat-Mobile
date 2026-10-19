@@ -79,7 +79,6 @@
     <string name="add_new_tag">Añadir nueva etiqueta</string>
 
     <!-- Tag filter bar -->
-    <string name="tags_active_count">%1$d etiqueta%2$s activa</string>
 
     <!-- Export format picker -->
     <string name="export_format">Formato de exportación</string>
@@ -212,4 +211,13 @@
     <string name="search_group_conversation">Por chat</string>
     <string name="search_group_none">Lista única</string>
     <string name="search_server_unavailable">La búsqueda en el servidor no está disponible ahora</string>
+    <string name="endpoint_label_assistants">Asistentes</string>
+    <string name="endpoint_label_azure_assistants">Asistentes de Azure</string>
+    <string name="endpoint_label_agents">Agentes</string>
+    <string name="endpoint_label_custom">Personalizado</string>
+    <string name="endpoint_label_chat">Chat</string>
+    <plurals name="tags_active_count">
+        <item quantity="one">%1$d etiqueta activa</item>
+        <item quantity="other">%1$d etiquetas activas</item>
+    </plurals>
 </resources>

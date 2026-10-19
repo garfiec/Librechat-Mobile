@@ -23,6 +23,20 @@ import com.garfiec.librechat.core.ui.platform.formatFileSize
 import com.garfiec.librechat.feature.files.FileDisplayData
 import com.garfiec.librechat.feature.files.FilePreviewDisplayData
 import com.garfiec.librechat.feature.files.platform.FileReader
+import com.garfiec.librechat.feature.files.resources.Res
+import com.garfiec.librechat.feature.files.resources.filter_all
+import com.garfiec.librechat.feature.files.resources.filter_audio
+import com.garfiec.librechat.feature.files.resources.filter_documents
+import com.garfiec.librechat.feature.files.resources.filter_images
+import com.garfiec.librechat.feature.files.resources.filter_video
+import com.garfiec.librechat.feature.files.resources.no_filter_audio
+import com.garfiec.librechat.feature.files.resources.no_filter_documents
+import com.garfiec.librechat.feature.files.resources.no_filter_images
+import com.garfiec.librechat.feature.files.resources.no_filter_video
+import com.garfiec.librechat.feature.files.resources.sort_date
+import com.garfiec.librechat.feature.files.resources.sort_name
+import com.garfiec.librechat.feature.files.resources.sort_size
+import com.garfiec.librechat.feature.files.resources.sort_type
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
@@ -34,24 +48,26 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.StringResource
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-enum class FileTypeFilter(val label: String) {
-    ALL("All"),
-    IMAGES("Images"),
-    DOCUMENTS("Documents"),
-    AUDIO("Audio"),
-    VIDEO("Video"),
+/** [emptyTitle] is null for [ALL], whose empty state is the general "no files" one. */
+enum class FileTypeFilter(val label: StringResource, val emptyTitle: StringResource?) {
+    ALL(Res.string.filter_all, null),
+    IMAGES(Res.string.filter_images, Res.string.no_filter_images),
+    DOCUMENTS(Res.string.filter_documents, Res.string.no_filter_documents),
+    AUDIO(Res.string.filter_audio, Res.string.no_filter_audio),
+    VIDEO(Res.string.filter_video, Res.string.no_filter_video),
 }
 
 // Stored strings are decoupled from the constant names so renaming a constant can't orphan a saved
 // preference (matches StarredModelsDisplay/ContextBarPlacement/etc. in :core:data).
-enum class FileSortField(val label: String) {
-    NAME("Name"),
-    DATE("Date"),
-    SIZE("Size"),
-    TYPE("Type");
+enum class FileSortField(val label: StringResource) {
+    NAME(Res.string.sort_name),
+    DATE(Res.string.sort_date),
+    SIZE(Res.string.sort_size),
+    TYPE(Res.string.sort_type);
 
     companion object {
         fun fromString(value: String?): FileSortField = when (value) {

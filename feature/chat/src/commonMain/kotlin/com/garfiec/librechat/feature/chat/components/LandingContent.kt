@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material3.Icon
@@ -32,6 +34,7 @@ import com.garfiec.librechat.feature.chat.resources.Res
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Clock
 
@@ -42,16 +45,20 @@ fun LandingContent(
     selectedAgentName: String? = null,
     onSelectModel: () -> Unit = {},
 ) {
-    val greeting = remember { getTimeBasedGreeting() }
+    val greeting = stringResource(remember { getTimeBasedGreeting() })
     val selectModelLabel = stringResource(Res.string.cd_select_model)
     val selectableModifier = Modifier
         .clip(RoundedCornerShape(8.dp))
         .clickable(onClickLabel = selectModelLabel, role = Role.Button, onClick = onSelectModel)
         .padding(horizontal = 12.dp, vertical = 8.dp)
 
+    val scroll = rememberScrollState()
     Column(
         modifier = modifier
             .fillMaxSize()
+            // Scrolls only once it overflows (large text with the keyboard up): a scrollable takes every
+            // vertical drag, and on a landing that fits the drag has to reach the pull-up tools sheet.
+            .verticalScroll(scroll, enabled = scroll.canScrollForward || scroll.canScrollBackward)
             .padding(start = 24.dp, end = 24.dp, bottom = 120.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
@@ -119,7 +126,7 @@ fun LandingContent(
  * Returns a time-based greeting with 6 periods matching the web frontend:
  * early morning, morning, afternoon, evening, late night, and weekend variants.
  */
-private fun getTimeBasedGreeting(): String {
+private fun getTimeBasedGreeting(): StringResource {
     val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
     val hour = now.hour
     val dayOfWeek = now.dayOfWeek
@@ -127,19 +134,18 @@ private fun getTimeBasedGreeting(): String {
 
     if (isWeekend) {
         return when {
-            hour < 5 -> "Happy late night"
-            hour < 12 -> "Happy weekend morning"
-            hour < 17 -> "Happy weekend afternoon"
-            else -> "Happy weekend evening"
+            hour < 5 -> Res.string.greeting_late_night
+            hour < 12 -> Res.string.greeting_weekend_morning
+            hour < 17 -> Res.string.greeting_weekend_afternoon
+            else -> Res.string.greeting_weekend_evening
         }
     }
 
     return when {
-        hour < 5 -> "Happy late night"
-        hour < 9 -> "Good early morning"
-        hour < 12 -> "Good morning"
-        hour < 17 -> "Good afternoon"
-        hour < 21 -> "Good evening"
-        else -> "Good evening"
+        hour < 5 -> Res.string.greeting_late_night
+        hour < 9 -> Res.string.greeting_early_morning
+        hour < 12 -> Res.string.greeting_morning
+        hour < 17 -> Res.string.greeting_afternoon
+        else -> Res.string.greeting_evening
     }
 }

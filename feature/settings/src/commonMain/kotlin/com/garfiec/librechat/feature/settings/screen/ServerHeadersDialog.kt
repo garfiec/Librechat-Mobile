@@ -81,6 +81,7 @@ fun ServerHeadersDialog(
 
     AdaptiveAlertDialog(
         onDismissRequest = requestClose,
+        scrollableText = false,
         modifier = modifier.clearFocusOnTap(),
         title = { Text(stringResource(Res.string.section_server_connection)) },
         text = {

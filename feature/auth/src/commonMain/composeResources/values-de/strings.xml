@@ -84,4 +84,5 @@
     <string name="diagnostic_log_exported">Protokoll exportiert. Hänge es an, wenn du das Problem meldest.</string>
     <string name="diagnostic_log_failed">Das Protokoll konnte nicht exportiert werden.</string>
     <string name="user_ca_notice">Das Zertifikat dieses Servers ist über eine auf diesem Gerät installierte Zertifizierungsstelle vertrauenswürdig, nicht über eine in Android integrierte. Fahren Sie nur fort, wenn Sie oder Ihre Organisation sie installiert haben.</string>
+    <string name="continue_with_provider">Weiter mit %1$s</string>
 </resources>

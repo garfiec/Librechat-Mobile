@@ -102,7 +102,7 @@ class AgentMarketplaceViewModelTest {
 
         val state = viewModel.uiState.value
         assertThat(state.categories).hasSize(3)
-        assertThat(state.categories).containsExactly("coding", "writing", "education")
+        assertThat(state.categories.map { it.value }).containsExactly("coding", "writing", "education")
     }
 
     @Test

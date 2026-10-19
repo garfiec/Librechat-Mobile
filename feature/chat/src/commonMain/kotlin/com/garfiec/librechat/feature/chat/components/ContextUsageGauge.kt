@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.chat.components
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -10,8 +11,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Compress
@@ -120,9 +123,10 @@ fun ContextUsageGauge(
  * floating as a padded pill) with the label and bar + percentage trailing. Tapping it dismisses the
  * menu (via [onClick]) and the host opens the breakdown [ContextUsageSheet] — the breakdown can't be
  * opened from inside the open menu popup itself (that would nest modal surfaces), so the menu hands
- * the trigger up to its host (see [ChatFloatingTopBar]). The bar is a fixed width (not weighted): a
- * DropdownMenu measures its content at IntrinsicSize.Max, where a stretchy child would blow the menu
- * out to full screen width.
+ * the trigger up to its host (see [ChatFloatingTopBar]). The bar is capped at a fixed width: a
+ * DropdownMenu measures its content at IntrinsicSize.Max, where an uncapped one would blow the menu
+ * out to full screen width. It takes only what the label and percentage leave, so at a large font
+ * scale, in a menu already at its widest, the bar shrinks rather than the label.
  */
 @Composable
 fun ContextUsageMenuItem(
@@ -140,13 +144,15 @@ fun ContextUsageMenuItem(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text(text = stringResource(Res.string.context_usage_label), modifier = Modifier.weight(1f))
-                LinearProgressIndicator(
-                    progress = { usage.usedFraction },
-                    modifier = Modifier.width(72.dp),
-                    color = pressureColor(percent) ?: MaterialTheme.colorScheme.primary,
-                    drawStopIndicator = {},
-                )
+                Text(text = stringResource(Res.string.context_usage_label))
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+                    LinearProgressIndicator(
+                        progress = { usage.usedFraction },
+                        modifier = Modifier.widthIn(max = GAUGE_BAR_WIDTH).fillMaxWidth(),
+                        color = pressureColor(percent) ?: MaterialTheme.colorScheme.primary,
+                        drawStopIndicator = {},
+                    )
+                }
                 Text(text = percentLabel(percent, details.isEstimate), color = pressureColor(percent) ?: Color.Unspecified)
             }
         },
@@ -162,7 +168,8 @@ fun ContextUsageMenuItem(
  * where a tap can't open a modal sheet (that would nest modal surfaces) but the inline space is
  * available. The header pill fills the row; tapping it toggles the breakdown below. The expanded
  * state is hoisted so the caller can persist it across sheet openings. A due compact suggestion
- * adds a quiet "Compact…" button on the row, which asks for confirmation.
+ * adds a quiet "Compact…" button on a line of its own under the pill, so the bar and chevron keep
+ * their room; it asks for confirmation.
  */
 @Composable
 fun ContextUsageExpandableGauge(
@@ -195,17 +202,22 @@ fun ContextUsageExpandableGauge(
                     isEstimate = details.isEstimate,
                     fillWidth = true,
                 ) {
-                    if (nudge != null) {
-                        TextButton(onClick = { confirmCompact = true }) {
-                            Text(stringResource(Res.string.compact_nudge_short))
-                        }
-                    }
                     Icon(
                         imageVector = Icons.Default.KeyboardArrowDown,
                         contentDescription = null,
                         modifier = Modifier.rotate(chevronRotation),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
+            }
+            if (nudge != null) {
+                TextButton(
+                    onClick = { confirmCompact = true },
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .padding(end = 4.dp),
+                ) {
+                    Text(stringResource(Res.string.compact_nudge_short))
                 }
             }
             AnimatedVisibility(visible = expanded) {
@@ -237,7 +249,8 @@ fun ContextUsageExpandableGauge(
 /**
  * The shared pill visual: "Context" label, a thin progress bar, and the used percentage, tinted
  * amber from 80% and red from 95%. When [fillWidth] is set the bar stretches to fill the row (the
- * rest hug their content); [trailing] appends optional elements after the percentage.
+ * rest hug their content); [trailing] appends optional elements after the percentage. Either way the
+ * bar is measured last, so on a narrow row it is the bar that gives up width, not [trailing].
  */
 @Composable
 private fun ContextGaugePill(
@@ -262,7 +275,13 @@ private fun ContextGaugePill(
         )
         LinearProgressIndicator(
             progress = { usedFraction },
-            modifier = if (fillWidth) Modifier.weight(1f) else Modifier.width(72.dp),
+            modifier = if (fillWidth) {
+                Modifier.weight(1f)
+            } else {
+                Modifier
+                    .weight(1f, fill = false)
+                    .widthIn(min = GAUGE_BAR_MIN_WIDTH, max = GAUGE_BAR_WIDTH)
+            },
             color = tint ?: MaterialTheme.colorScheme.primary,
             // Drop the M3 track stop indicator (the dot at the 100% end) so a low
             // percentage reads as a single thin bar, not "tiny dot … dot".
@@ -295,6 +314,8 @@ internal fun ContextUsageSheet(
             onCompact = onCompact,
             modifier = Modifier
                 .fillMaxWidth()
+                // The Detailed breakdown at a large font is taller than the sheet.
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 32.dp),
         )
@@ -321,6 +342,9 @@ internal fun CompactConfirmDialog(
         dismissButton = { TextButton(onClick = onNotNow) { Text(stringResource(Res.string.compact_confirm_not_now)) } },
     )
 }
+
+private val GAUGE_BAR_WIDTH = 72.dp
+private val GAUGE_BAR_MIN_WIDTH = 24.dp
 
 /** A computed estimate reads as approximate (`~42%`), matching the breakdown's `~used` header. */
 internal fun percentLabel(percent: Int, isEstimate: Boolean): String =

@@ -130,6 +130,7 @@ internal fun ErrorContentPart(
                     stringResource(Res.string.error_details_provider),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
                 Icon(
                     if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,

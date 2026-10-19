@@ -18,8 +18,8 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CornerBasedShape
@@ -203,8 +203,9 @@ private fun MorphingMenu(
     var opensDown by remember { mutableStateOf(true) }
     val effects = rememberMenuDragEffects(drag, opening = open, opensDown = { opensDown })
     val highlightColor = MaterialTheme.colorScheme.onSurface.copy(alpha = DRAG_HIGHLIGHT_ALPHA)
-    // The canvas runs edge to edge, under the keyboard; M3's popup only sees the visible frame.
-    val ime = WindowInsets.ime
+    // The canvas runs edge to edge, under the system bars and the keyboard; M3's popup only sees
+    // the visible frame, so the menu is measured and placed inside these insets.
+    val safe = WindowInsets.safeDrawing
     val rows = remember {
         object : State<(Int) -> Float> {
             override val value: (Int) -> Float = { index ->
@@ -311,17 +312,20 @@ private fun MorphingMenu(
                 },
                 modifier = Modifier.fillMaxSize(),
             ) { measurables, constraints ->
-                val visibleHeight = (constraints.maxHeight - ime.getBottom(this)).coerceAtLeast(0)
-                val placeable = measurables.first().measure(Constraints(maxWidth = constraints.maxWidth, maxHeight = visibleHeight))
+                val left = safe.getLeft(this, layoutDirection)
+                val top = safe.getTop(this)
+                val visibleWidth = (constraints.maxWidth - left - safe.getRight(this, layoutDirection)).coerceAtLeast(0)
+                val visibleHeight = (constraints.maxHeight - top - safe.getBottom(this)).coerceAtLeast(0)
+                val placeable = measurables.first().measure(Constraints(maxWidth = visibleWidth, maxHeight = visibleHeight))
                 val anchorInHost = anchor.translate(-hostOrigin).let {
                     IntRect(it.left.roundToInt(), it.top.roundToInt(), it.right.roundToInt(), it.bottom.roundToInt())
                 }
                 val position = MaterialMenuPositionProvider(offset, density) { _, _ -> }.calculatePosition(
-                    anchorBounds = anchorInHost,
-                    windowSize = IntSize(constraints.maxWidth, visibleHeight),
+                    anchorBounds = anchorInHost.translate(-left, -top),
+                    windowSize = IntSize(visibleWidth, visibleHeight),
                     layoutDirection = layoutDirection,
                     popupContentSize = IntSize(placeable.width, placeable.height),
-                )
+                ) + IntOffset(left, top)
                 panelPosition = position
                 opensDown = position.y >= anchorInHost.top
                 layout(constraints.maxWidth, constraints.maxHeight) { placeable.place(position) }

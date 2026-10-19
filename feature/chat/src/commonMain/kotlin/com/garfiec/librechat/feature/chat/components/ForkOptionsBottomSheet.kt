@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.CallSplit
 import androidx.compose.material.icons.filled.AccountTree
@@ -58,6 +60,7 @@ fun ForkOptionsBottomSheet(
         val dragSelection = rememberListDragSelection()
         Column(
             modifier = Modifier
+                .verticalScroll(rememberScrollState())
                 .listDragSelection(dragSelection, holdOnly = true)
                 .padding(bottom = 32.dp),
         ) {

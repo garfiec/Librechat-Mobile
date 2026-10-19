@@ -238,20 +238,6 @@ class NavHostViewModel(
     val tabletSidebarGestureEnabled: StateFlow<Boolean> = settingsDataStore.tabletSidebarGestureEnabled
         .stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
-    private val _sidebarMode = MutableStateFlow<SidebarMode>(SidebarMode.Conversations)
-    val sidebarMode: StateFlow<SidebarMode> = _sidebarMode.asStateFlow()
-
-    private val _selectedSettingsCategory = MutableStateFlow<SettingsCategory?>(null)
-    val selectedSettingsCategory: StateFlow<SettingsCategory?> = _selectedSettingsCategory.asStateFlow()
-
-    fun setSidebarMode(mode: SidebarMode) {
-        _sidebarMode.value = mode
-    }
-
-    fun selectSettingsCategory(category: SettingsCategory) {
-        _selectedSettingsCategory.value = category
-    }
-
     init {
         @Suppress("TooGenericExceptionCaught") // a failed startup check must not crash the root ViewModel
         viewModelScope.launch {
@@ -305,8 +291,6 @@ class NavHostViewModel(
         // its own independent accountTransitions() subscription.
         viewModelScope.launch {
             activeAccountProvider.accountTransitions().collect { transition ->
-                _sidebarMode.value = SidebarMode.Conversations
-                _selectedSettingsCategory.value = null
                 endpointTokenRepository.clear()
                 // Tool favorites are process-lifetime in-memory state, and refresh() deliberately
                 // keeps the old set on any non-404 error, so without this drop a flaky incoming

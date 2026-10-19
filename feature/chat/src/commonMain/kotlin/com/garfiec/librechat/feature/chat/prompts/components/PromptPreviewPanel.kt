@@ -36,7 +36,7 @@ fun PromptPreviewPanel(
             ),
         ) {
             Text(
-                text = interpolated.ifBlank { "Enter variable values to see preview" },
+                text = interpolated.ifBlank { stringResource(Res.string.prompt_preview_placeholder) },
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (interpolated.isBlank()) {
                     MaterialTheme.colorScheme.onSurfaceVariant

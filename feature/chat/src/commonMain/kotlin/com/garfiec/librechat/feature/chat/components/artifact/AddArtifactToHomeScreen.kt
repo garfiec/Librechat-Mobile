@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -32,9 +32,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.artifactTypeGlyph
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
@@ -117,7 +121,7 @@ fun ProvideAddArtifactToHomeScreen(content: @Composable () -> Unit) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun AddArtifactToHomeScreenDialog(
+internal fun AddArtifactToHomeScreenDialog(
     initialName: String,
     artifactType: String,
     onConfirm: (name: String, emoji: String?) -> Unit,
@@ -141,6 +145,7 @@ private fun AddArtifactToHomeScreenDialog(
     AdaptiveAlertDialog(
         modifier = Modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
+        scrollableText = false,
         title = { Text(stringResource(Res.string.add_to_home_screen_dialog_title)) },
         text = {
             Column(
@@ -200,12 +205,12 @@ private fun AddArtifactToHomeScreenDialog(
                 (choice as? IconChoice.Custom)?.let { custom ->
                     Spacer(Modifier.height(12.dp))
                     AdaptiveOutlinedTextField(
-                        // A single grapheme, so a short fixed width is enough.
+                        // A single grapheme, so a short width is enough, but not narrower than its label.
                         value = custom.emoji,
                         onValueChange = { choice = IconChoice.Custom(firstGrapheme(it)) },
                         singleLine = true,
                         label = { Text(stringResource(Res.string.add_to_home_screen_dialog_emoji_label)) },
-                        modifier = Modifier.width(120.dp),
+                        modifier = Modifier.widthIn(min = 120.dp),
                     )
                 }
             }
@@ -233,7 +238,7 @@ private fun IconPreview(glyph: String, modifier: Modifier = Modifier) {
             .semantics { contentDescription = description },
         contentAlignment = Alignment.Center,
     ) {
-        Text(text = glyph, style = MaterialTheme.typography.headlineMedium, color = Color.White)
+        Text(text = glyph, style = glyphStyle(MaterialTheme.typography.headlineMedium, PREVIEW_GLYPH_SIZE), color = Color.White)
     }
 }
 
@@ -265,9 +270,22 @@ private fun IconChip(
             .then(semanticsModifier),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text = glyph, style = MaterialTheme.typography.titleLarge)
+        Text(text = glyph, style = glyphStyle(MaterialTheme.typography.titleLarge, CHIP_GLYPH_SIZE))
     }
 }
+
+/**
+ * [base] with its size in dp: the glyph is an icon drawn in a fixed circle, so a large font would only
+ * push it past the circle's edge.
+ */
+@Composable
+private fun glyphStyle(base: TextStyle, size: Dp): TextStyle {
+    val fontSize = with(LocalDensity.current) { size.toSp() }
+    return base.copy(fontSize = fontSize, lineHeight = TextUnit.Unspecified)
+}
+
+private val CHIP_GLYPH_SIZE = 22.dp
+private val PREVIEW_GLYPH_SIZE = 24.dp
 
 /**
  * Keeps only the first emoji grapheme cluster so the field holds a single glyph without corrupting the

@@ -24,7 +24,7 @@ class VendoredAssetReferenceTest {
         // inline mermaid block is a separate document from the mermaid artifact.
         put("katex-block", buildKatexHtml("x^2", displayMode = true, textColorCss = "#000"))
         put("katex-inline", buildKatexHtml("x^2", displayMode = false, textColorCss = "#000"))
-        put("mermaid-message", buildMermaidHtml("graph TD; A-->B;", theme = "default"))
+        put("mermaid-message", buildMermaidHtml("graph TD; A-->B;", theme = "default", errorPrefix = "Diagram error:"))
         put("mermaid", MermaidWebContent.buildHtml("graph TD; A-->B;", isDarkTheme = false))
         put("mermaid-dark", MermaidWebContent.buildHtml("graph TD; A-->B;", isDarkTheme = true))
         put("markdown", MarkdownWebContent.buildHtml("# Title\n\n```kotlin\nval x = 1\n```", isDarkTheme = false))

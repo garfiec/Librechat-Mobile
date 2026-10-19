@@ -143,6 +143,7 @@ internal fun <T> RadioSelectionDialog(
 
     AdaptiveAlertDialog(
         onDismissRequest = onDismiss,
+        scrollableText = false,
         modifier = modifier,
         title = { Text(title) },
         text = {
@@ -195,6 +196,7 @@ internal fun ChatHeaderSettingsDialog(
 
     AdaptiveAlertDialog(
         onDismissRequest = onDismiss,
+        scrollableText = false,
         modifier = modifier,
         title = { Text(stringResource(Res.string.chat_header_title)) },
         text = {
@@ -249,6 +251,7 @@ internal fun RenderInlineDialog(
 ) {
     AdaptiveAlertDialog(
         onDismissRequest = onDismiss,
+        scrollableText = false,
         modifier = modifier,
         title = { Text(stringResource(Res.string.artifact_inline_title)) },
         text = {

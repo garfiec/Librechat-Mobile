@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.settings.screen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -20,7 +21,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.data.prefetch.PrefetchDepth
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
@@ -135,7 +135,7 @@ fun PrefetchSettingsSection(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(stringResource(Res.string.prefetch_activity))
+                Text(stringResource(Res.string.prefetch_activity), modifier = Modifier.weight(1f))
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = null,
@@ -167,15 +167,18 @@ private fun DepthSlider(depth: Int, onChange: (Int) -> Unit, enabled: Boolean) {
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(
+        // The count drops below the label when a translation leaves them too little room side by side,
+        // rather than either breaking mid-word.
+        FlowRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+            itemVerticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 text = stringResource(Res.string.prefetch_depth),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
+                modifier = Modifier.padding(end = 12.dp),
             )
             Text(
                 text = stringResource(Res.string.prefetch_depth_value, shown),
@@ -207,20 +210,21 @@ private const val DISABLED_ALPHA = 0.38f
 @Composable
 private fun SummaryRow(label: String, value: String, enabled: Boolean) {
     val alpha = if (enabled) 1f else DISABLED_ALPHA
-    Row(
+    // The value drops below the label when a translation leaves them too little room side by side.
+    FlowRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
+            // Counted when the pair is fitted on one line, so the two never run together.
+            modifier = Modifier.padding(end = 12.dp),
         )
         Text(
             text = value,
             style = MaterialTheme.typography.bodyMedium,
-            textAlign = TextAlign.End,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha),
         )
     }

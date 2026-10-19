@@ -5,10 +5,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import com.garfiec.librechat.core.ui.media.toNSData
+import com.garfiec.librechat.core.ui.resources.Res
+import com.garfiec.librechat.core.ui.resources.saver_share_sheet_failed
+import com.garfiec.librechat.core.ui.resources.saver_write_failed
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.jetbrains.compose.resources.stringResource
 import platform.Foundation.NSFileManager
 import platform.Foundation.NSTemporaryDirectory
 import platform.Foundation.NSURL
@@ -37,6 +41,8 @@ actual fun TextFileSaver(
 ) {
     val currentOnComplete by rememberUpdatedState(onComplete)
     val currentOnReset by rememberUpdatedState(onReset)
+    val shareSheetFailedMessage = stringResource(Res.string.saver_share_sheet_failed)
+    val writeFailedMessage = stringResource(Res.string.saver_write_failed)
     LaunchedEffect(triggerFileName) {
         val fileName = triggerFileName
         val text = content
@@ -44,7 +50,7 @@ actual fun TextFileSaver(
 
         val rootVc = currentTopmostViewController()
         if (rootVc == null) {
-            currentOnComplete(false, "Could not present share sheet")
+            currentOnComplete(false, shareSheetFailedMessage)
             currentOnReset()
             return@LaunchedEffect
         }
@@ -55,7 +61,7 @@ actual fun TextFileSaver(
             text.encodeToByteArray().toNSData().writeToFile(tempPath, atomically = true)
         }
         if (!wrote) {
-            currentOnComplete(false, "Could not write export file")
+            currentOnComplete(false, writeFailedMessage)
             currentOnReset()
             return@LaunchedEffect
         }

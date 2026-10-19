@@ -48,7 +48,7 @@ fun DynamicParameterPanel(
                     val floatValue = currentValue.toFloatOrNull() ?: min
 
                     DynamicSlider(
-                        label = definition.label,
+                        label = definition.localizedLabel(),
                         value = floatValue,
                         onValueChange = { onValueChange(definition.key, it.toString()) },
                         min = min,
@@ -60,7 +60,7 @@ fun DynamicParameterPanel(
 
                 ParameterType.DROPDOWN -> {
                     DynamicDropdown(
-                        label = definition.label,
+                        label = definition.localizedLabel(),
                         selectedValue = currentValue,
                         options = definition.options ?: emptyList(),
                         onValueChange = { onValueChange(definition.key, it) },
@@ -70,19 +70,19 @@ fun DynamicParameterPanel(
 
                 ParameterType.ENUM_SLIDER -> {
                     DynamicEnumSlider(
-                        label = definition.label,
+                        label = definition.localizedLabel(),
                         selectedValue = currentValue,
                         options = definition.options ?: emptyList(),
                         onValueChange = { onValueChange(definition.key, it) },
                         description = definition.localizedDescription(),
-                        optionLabels = definition.optionLabels,
+                        optionLabels = definition.localizedOptionLabels(),
                     )
                 }
 
                 ParameterType.CHECKBOX -> {
                     val checked = currentValue.toBooleanStrictOrNull() ?: false
                     DynamicCheckbox(
-                        label = definition.label,
+                        label = definition.localizedLabel(),
                         checked = checked,
                         onCheckedChange = { onValueChange(definition.key, it.toString()) },
                         description = definition.localizedDescription(),
@@ -91,7 +91,7 @@ fun DynamicParameterPanel(
 
                 ParameterType.TEXT -> {
                     DynamicInput(
-                        label = definition.label,
+                        label = definition.localizedLabel(),
                         value = currentValue,
                         onValueChange = { onValueChange(definition.key, it) },
                         placeholder = definition.default,
@@ -102,7 +102,7 @@ fun DynamicParameterPanel(
                 ParameterType.SWITCH -> {
                     val checked = currentValue.toBooleanStrictOrNull() ?: false
                     DynamicCheckbox(
-                        label = definition.label,
+                        label = definition.localizedLabel(),
                         checked = checked,
                         onCheckedChange = { onValueChange(definition.key, it.toString()) },
                         description = definition.localizedDescription(),
@@ -111,7 +111,7 @@ fun DynamicParameterPanel(
 
                 ParameterType.TEXTAREA -> {
                     DynamicTextarea(
-                        label = definition.label,
+                        label = definition.localizedLabel(),
                         value = currentValue,
                         onValueChange = { onValueChange(definition.key, it) },
                         placeholder = definition.default,
@@ -121,7 +121,7 @@ fun DynamicParameterPanel(
 
                 ParameterType.TAGS -> {
                     DynamicTagsInput(
-                        label = definition.label,
+                        label = definition.localizedLabel(),
                         tags = if (currentValue.isBlank()) {
                             emptyList()
                         } else {
@@ -132,6 +132,7 @@ fun DynamicParameterPanel(
                         },
                         description = definition.localizedDescription(),
                         maxTags = definition.max?.toInt() ?: 4,
+                        placeholder = definition.tagsPlaceholder(),
                     )
                 }
             }

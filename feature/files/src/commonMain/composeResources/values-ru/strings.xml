@@ -38,12 +38,9 @@
     <!-- Empty states -->
     <string name="no_files">Нет файлов</string>
     <string name="upload_to_get_started">Загрузите файлы, чтобы начать</string>
-    <string name="no_filter_files">Нет: %1$s</string>
-    <string name="no_filter_files_found">Файлы «%1$s» не найдены</string>
     <string name="could_not_load_files">Не удалось загрузить файлы</string>
 
     <!-- Delete dialogs -->
-    <string name="delete_count_files">Удалить файлов: %1$d%2$s?</string>
     <string name="action_cannot_be_undone">Это действие нельзя отменить.</string>
     <string name="delete_file_question">Удалить файл?</string>
     <string name="delete_file_message">Удалить "%1$s"? Это действие нельзя отменить.</string>
@@ -66,4 +63,28 @@
     <string name="uploading">Загрузка…</string>
     <string name="failed_to_download_pdf">Не удалось скачать PDF</string>
     <string name="failed_to_render_pdf">Не удалось отобразить PDF</string>
+    <string name="filter_all">Все</string>
+    <string name="filter_images">Изображения</string>
+    <string name="filter_documents">Документы</string>
+    <string name="filter_audio">Аудио</string>
+    <string name="filter_video">Видео</string>
+    <string name="no_filter_images">Нет изображений</string>
+    <string name="no_filter_documents">Нет документов</string>
+    <string name="no_filter_audio">Нет аудио</string>
+    <string name="no_filter_video">Нет видео</string>
+    <string name="no_filter_files_hint">Файлы этого типа не найдены</string>
+    <string name="sort_name">Имя</string>
+    <string name="sort_date">Дата</string>
+    <string name="sort_size">Размер</string>
+    <string name="sort_type">Тип</string>
+    <string name="cd_back">Назад</string>
+    <string name="failed_to_download_file">Не удалось скачать файл</string>
+    <string name="content_truncated">Содержимое обрезано (файл слишком большой)</string>
+    <string name="pdf_preview_unavailable_ios">Предпросмотр PDF пока недоступен на iOS</string>
+    <plurals name="delete_count_files">
+        <item quantity="one">Удалить %1$d файл?</item>
+        <item quantity="few">Удалить %1$d файла?</item>
+        <item quantity="many">Удалить %1$d файлов?</item>
+        <item quantity="other">Удалить %1$d файла?</item>
+    </plurals>
 </resources>

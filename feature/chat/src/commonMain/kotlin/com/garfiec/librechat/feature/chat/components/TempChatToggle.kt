@@ -12,6 +12,11 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
+import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.resources.cd_temporary_chat
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Ghost icon toggle for temporary chat mode.
@@ -24,14 +29,12 @@ fun TempChatToggle(
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val temporaryChatCd = stringResource(Res.string.cd_temporary_chat)
     IconButton(
         onClick = onToggle,
         modifier = modifier.semantics {
-            contentDescription = if (isTemporary) {
-                "Disable temporary chat"
-            } else {
-                "Enable temporary chat"
-            }
+            contentDescription = temporaryChatCd
+            toggleableState = ToggleableState(isTemporary)
             role = Role.Switch
         },
     ) {

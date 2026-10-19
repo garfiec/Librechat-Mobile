@@ -66,4 +66,11 @@
     <string name="schedule_disabled_project">Suspendue : le projet dans lequel elle classait ses exécutions a été supprimé.</string>
     <string name="schedule_disabled_project_required">Suspendue : ce serveur exige désormais un projet, et cette planification n'en a aucun.</string>
     <string name="schedule_disabled_unknown">Suspendue par le serveur.</string>
+    <string name="schedule_weekday_sun">Dim</string>
+    <string name="schedule_weekday_mon">Lun</string>
+    <string name="schedule_weekday_tue">Mar</string>
+    <string name="schedule_weekday_wed">Mer</string>
+    <string name="schedule_weekday_thu">Jeu</string>
+    <string name="schedule_weekday_fri">Ven</string>
+    <string name="schedule_weekday_sat">Sam</string>
 </resources>

@@ -2,10 +2,8 @@ package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -15,6 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
@@ -59,22 +58,19 @@ fun InlineEditInput(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(IntrinsicSize.Min),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        // Sized to their labels and wrapping, not three equal thirds: a third is too narrow for
+        // Save & Submit even at phone width.
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            AdaptiveOutlinedButton(
-                onClick = onCancel,
-                modifier = Modifier.weight(1f).fillMaxHeight(),
-            ) {
+            AdaptiveOutlinedButton(onClick = onCancel) {
                 Text(stringResource(Res.string.cancel), maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
 
             AdaptiveFilledTonalButton(
                 onClick = onSaveOnly,
-                modifier = Modifier.weight(1f).fillMaxHeight(),
                 enabled = text.isNotBlank(),
             ) {
                 Text(stringResource(Res.string.save), maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -82,7 +78,6 @@ fun InlineEditInput(
 
             AdaptiveButton(
                 onClick = onSaveAndSubmit,
-                modifier = Modifier.weight(1f).fillMaxHeight(),
                 enabled = text.isNotBlank(),
             ) {
                 Text(stringResource(Res.string.save_and_submit), maxLines = 1, overflow = TextOverflow.Ellipsis)

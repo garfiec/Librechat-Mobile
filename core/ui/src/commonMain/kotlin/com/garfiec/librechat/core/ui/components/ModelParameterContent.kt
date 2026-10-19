@@ -20,6 +20,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.ParameterDefinition
 import com.garfiec.librechat.core.model.ParameterType
+import com.garfiec.librechat.core.ui.resources.*
+import com.garfiec.librechat.core.ui.resources.Res
+import org.jetbrains.compose.resources.stringResource
 
 @Stable
 data class ModelParameters(
@@ -216,7 +219,7 @@ fun ModelParameterContent(
     ) {
         if (showHeader) {
             Text(
-                text = "Model Parameters",
+                text = stringResource(Res.string.param_sheet_title),
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.semantics { heading() },
             )
@@ -235,26 +238,26 @@ fun ModelParameterContent(
             when (definition.type) {
                 ParameterType.TEXT -> {
                     DynamicInput(
-                        label = definition.label,
+                        label = definition.localizedLabel(),
                         value = currentValue,
                         onValueChange = { newValue ->
                             onParametersChange(parameters.withUpdatedKey(definition.key, newValue))
                         },
-                        placeholder = definition.placeholder
-                            ?: definition.default?.ifEmpty { "Default" }
-                            ?: "Default",
+                        placeholder = definition.localizedPlaceholder()
+                            ?: definition.default?.ifEmpty { null }
+                            ?: stringResource(Res.string.param_default),
                         description = definition.localizedDescription(),
                     )
                 }
 
                 ParameterType.TEXTAREA -> {
                     DynamicTextarea(
-                        label = definition.label,
+                        label = definition.localizedLabel(),
                         value = currentValue,
                         onValueChange = { newValue ->
                             onParametersChange(parameters.withUpdatedKey(definition.key, newValue))
                         },
-                        placeholder = definition.placeholder
+                        placeholder = definition.localizedPlaceholder()
                             ?: definition.default?.ifEmpty { null },
                         description = definition.localizedDescription(),
                     )
@@ -267,7 +270,7 @@ fun ModelParameterContent(
                     val floatValue = currentValue.toFloatOrNull() ?: (definition.default?.toFloatOrNull() ?: min)
 
                     DynamicSlider(
-                        label = definition.label,
+                        label = definition.localizedLabel(),
                         value = floatValue.coerceIn(min, max),
                         onValueChange = { newValue ->
                             onParametersChange(parameters.withUpdatedKey(definition.key, newValue.toString()))
@@ -284,7 +287,7 @@ fun ModelParameterContent(
                         ?: (definition.default?.toBooleanStrictOrNull() ?: false)
 
                     DynamicCheckbox(
-                        label = definition.label,
+                        label = definition.localizedLabel(),
                         checked = checked,
                         onCheckedChange = { newChecked ->
                             onParametersChange(parameters.withUpdatedKey(definition.key, newChecked.toString()))
@@ -301,14 +304,14 @@ fun ModelParameterContent(
                     }
 
                     DynamicDropdown(
-                        label = definition.label,
+                        label = definition.localizedLabel(),
                         selectedValue = displayValue,
                         options = definition.options ?: emptyList(),
                         onValueChange = { newValue ->
                             onParametersChange(parameters.withUpdatedKey(definition.key, newValue))
                         },
                         description = definition.localizedDescription(),
-                        optionLabels = definition.optionLabels,
+                        optionLabels = definition.localizedOptionLabels(),
                     )
                 }
 
@@ -320,14 +323,14 @@ fun ModelParameterContent(
                         currentValue
                     }
                     DynamicEnumSlider(
-                        label = definition.label,
+                        label = definition.localizedLabel(),
                         selectedValue = displayValue,
                         options = opts,
                         onValueChange = { newValue ->
                             onParametersChange(parameters.withUpdatedKey(definition.key, newValue))
                         },
                         description = definition.localizedDescription(),
-                        optionLabels = definition.optionLabels,
+                        optionLabels = definition.localizedOptionLabels(),
                         removedValues = modelRemoved[definition.key].orEmpty(),
                     )
                 }
@@ -340,7 +343,7 @@ fun ModelParameterContent(
                     }
 
                     DynamicTagsInput(
-                        label = definition.label,
+                        label = definition.localizedLabel(),
                         tags = tags,
                         onTagsChange = { newTags ->
                             onParametersChange(
@@ -349,6 +352,7 @@ fun ModelParameterContent(
                         },
                         description = definition.localizedDescription(),
                         maxTags = definition.max?.toInt() ?: 4,
+                        placeholder = definition.tagsPlaceholder(),
                     )
                 }
             }
@@ -360,7 +364,7 @@ fun ModelParameterContent(
                         },
                         modifier = Modifier.align(Alignment.End),
                     ) {
-                        Text("Restore default")
+                        Text(stringResource(Res.string.param_restore_default))
                     }
                 }
             }
@@ -376,7 +380,7 @@ fun ModelParameterContent(
             },
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Reset to Defaults")
+            Text(stringResource(Res.string.param_reset_to_defaults))
         }
 
         // Save As Preset
@@ -385,7 +389,7 @@ fun ModelParameterContent(
                 onClick = onSaveAsPreset,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Save As Preset")
+                Text(stringResource(Res.string.param_save_as_preset))
             }
         }
 

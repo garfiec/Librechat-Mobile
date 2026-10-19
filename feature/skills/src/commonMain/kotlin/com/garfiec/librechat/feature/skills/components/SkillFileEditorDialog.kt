@@ -48,6 +48,15 @@ fun SkillFileEditorDialog(
         title = { Text(editor.relativePath) },
         text = {
             Column {
+                // Shown on open, so above the field, which can take the whole viewport.
+                if (editor.conflict) {
+                    Text(
+                        stringResource(Res.string.skill_file_conflict),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
+                }
                 when {
                     editor.isLoading -> AdaptiveCircularProgressIndicator(modifier = Modifier.size(24.dp))
                     editor.isBinary || editor.content == null -> Text(
@@ -60,14 +69,6 @@ fun SkillFileEditorDialog(
                         readOnly = !editable,
                         textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
                         modifier = Modifier.fillMaxWidth().heightIn(min = 160.dp, max = 420.dp),
-                    )
-                }
-                if (editor.conflict) {
-                    Text(
-                        stringResource(Res.string.skill_file_conflict),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(top = 8.dp),
                     )
                 }
                 editor.error?.let {

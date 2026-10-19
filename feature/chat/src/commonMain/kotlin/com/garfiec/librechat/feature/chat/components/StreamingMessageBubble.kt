@@ -25,6 +25,10 @@ import com.garfiec.librechat.core.ui.components.AvatarImage
 import com.garfiec.librechat.core.ui.components.BubbleShape
 import com.garfiec.librechat.core.ui.components.endpointIconPainter
 import com.garfiec.librechat.core.ui.components.isMonochromeEndpointIcon
+import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.resources.cd_assistant_responding
+import com.garfiec.librechat.feature.chat.resources.cd_generating_response
+import org.jetbrains.compose.resources.stringResource
 
 // Shared BubbleShape is imported from MessageBubble.kt
 
@@ -94,6 +98,7 @@ private fun ThreadStreamingBubble(
     streamingThinking: String,
     modifier: Modifier = Modifier,
 ) {
+    val liveCd = streamingLiveDescription(streamingContent)
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -147,11 +152,7 @@ private fun ThreadStreamingBubble(
                 )
                 .semantics {
                     liveRegion = LiveRegionMode.Polite
-                    contentDescription = if (streamingContent.isNotBlank()) {
-                        "Assistant is responding: $streamingContent"
-                    } else {
-                        "Assistant is generating a response"
-                    }
+                    contentDescription = liveCd
                 },
         ) {
             StreamingThinking(streamingThinking, fontSizeMultiplier, useKatex)
@@ -187,6 +188,7 @@ private fun TwoSidedStreamingBubble(
     streamingThinking: String,
     modifier: Modifier = Modifier,
 ) {
+    val liveCd = streamingLiveDescription(streamingContent)
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -229,11 +231,7 @@ private fun TwoSidedStreamingBubble(
                 )
                 .semantics {
                     liveRegion = LiveRegionMode.Polite
-                    contentDescription = if (streamingContent.isNotBlank()) {
-                        "Assistant is responding: $streamingContent"
-                    } else {
-                        "Assistant is generating a response"
-                    }
+                    contentDescription = liveCd
                 },
         ) {
             Text(
@@ -273,6 +271,14 @@ private fun TwoSidedStreamingBubble(
  * expands it mid-stream keeps it expanded as deltas arrive — but not across settle: the persisted
  * THINK part has its own key and opens collapsed (an accepted limit, see feature/chat CLAUDE.md).
  */
+/** What a screen reader announces as the reply streams in. */
+@Composable
+private fun streamingLiveDescription(streamingContent: String): String = if (streamingContent.isNotBlank()) {
+    stringResource(Res.string.cd_assistant_responding, streamingContent)
+} else {
+    stringResource(Res.string.cd_generating_response)
+}
+
 @Composable
 private fun StreamingThinking(thinking: String, fontSizeMultiplier: Float, useKatex: Boolean) {
     if (thinking.isBlank()) return

@@ -65,6 +65,7 @@ fun AgentSharingSection(
             Text(
                 text = stringResource(Res.string.sharing_and_permissions),
                 style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.weight(1f),
             )
             Icon(
                 imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
@@ -85,7 +86,7 @@ fun AgentSharingSection(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     AdaptiveOutlinedTextField(
-                        value = sharingState.visibility.label,
+                        value = stringResource(sharingState.visibility.label),
                         onValueChange = {},
                         readOnly = true,
                         label = { Text(stringResource(Res.string.label_visibility)) },
@@ -102,7 +103,7 @@ fun AgentSharingSection(
                     ) {
                         AgentVisibility.entries.forEach { visibility ->
                             DropdownMenuItem(
-                                text = { Text(visibility.label) },
+                                text = { Text(stringResource(visibility.label)) },
                                 onClick = {
                                     onSharingChange(sharingState.copy(visibility = visibility))
                                     dropdownExpanded = false

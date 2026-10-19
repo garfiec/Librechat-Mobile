@@ -9,8 +9,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -95,6 +98,7 @@ fun AgentAclSharingSection(
             Text(
                 text = stringResource(Res.string.acl_sharing_title),
                 style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.weight(1f),
             )
             Icon(
                 imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
@@ -281,7 +285,7 @@ private fun PublicToggle(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun GrantAccessDialog(
+internal fun GrantAccessDialog(
     searchQuery: String,
     results: List<Principal>,
     isSearching: Boolean,
@@ -343,18 +347,25 @@ private fun GrantAccessDialog(
                         text = stringResource(Res.string.acl_search_empty),
                         style = MaterialTheme.typography.bodySmall,
                     )
-                } else {
-                    results.forEach { principal ->
-                        AdaptiveAssistChip(
-                            onClick = {
-                                val role = selectedRole ?: return@AdaptiveAssistChip
-                                onGrant(principal, role)
-                            },
-                            label = {
-                                Text(principal.name ?: principal.id ?: "?")
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
+                } else if (results.isNotEmpty()) {
+                    // Bounded, so a long result list scrolls under the search field instead of
+                    // pushing it out of the dialog.
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth().heightIn(max = ResultsMaxHeight),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        items(results) { principal ->
+                            AdaptiveAssistChip(
+                                onClick = {
+                                    val role = selectedRole ?: return@AdaptiveAssistChip
+                                    onGrant(principal, role)
+                                },
+                                label = {
+                                    Text(principal.name ?: principal.id ?: "?")
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
                     }
                 }
             }
@@ -368,3 +379,5 @@ private fun GrantAccessDialog(
         },
     )
 }
+
+private val ResultsMaxHeight = 240.dp

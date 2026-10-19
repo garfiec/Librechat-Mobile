@@ -25,7 +25,6 @@
     <string name="cd_back">戻る</string>
     <string name="cd_change_avatar">アバターを変更</string>
     <string name="cd_choose_image">画像を選択</string>
-    <string name="cd_collapse_tools">ツールを折りたたむ</string>
     <string name="cd_copy_api_key">APIキーをコピー</string>
     <string name="cd_copy_link">リンクをコピー</string>
     <string name="cd_create_api_key">APIキーを作成</string>
@@ -40,7 +39,6 @@
     <string name="memory_redacted_key">非表示の項目</string>
     <string name="memory_redacted_value">このサーバーのコンテンツポリシーにより、保存内容は非表示になっています。削除は引き続き可能です。</string>
     <string name="cd_edit_server">サーバーを編集</string>
-    <string name="cd_expand_tools">ツールを展開</string>
     <string name="cd_loading_profile">プロフィールを読み込み中</string>
     <string name="cd_make_private">非公開にする</string>
     <string name="cd_make_public">公開にする</string>
@@ -510,7 +508,6 @@
     <string name="dialog_title_delete_server">サーバーを削除</string>
     <string name="dialog_delete_server_message">「%1$s」を削除してもよろしいですか？</string>
     <string name="error_failed_to_load_servers">サーバーの読み込みに失敗しました</string>
-    <string name="mcp_tools_count">%1$d 個のツール%2$s</string>
     <string name="no_tools_available">利用可能なツールがありません</string>
     <!-- Fork settings -->
     <string name="fork_mode_direct_path">表示中のメッセージ</string>
@@ -746,4 +743,14 @@
     <string name="advanced_search">高度な検索</string>
     <string name="advanced_search_desc">上級ユーザー向け。検索画面に大文字と小文字の区別、単語単位、正規表現、およびロール・モデル・日付のフィルターを追加します。</string>
     <string name="server_user_ca_notice">このデバイスにインストールされた認証局によって信頼されています</string>
+    <string name="export_coming_soon">エクスポートは近日対応予定です</string>
+    <string name="mcp_tools_all">すべての MCP ツール</string>
+    <string name="mcp_tools_for_server">ツール：%1$s</string>
+    <string name="mcp_tool_server">サーバー：%1$s</string>
+    <string name="mcp_server_unknown">不明</string>
+    <string name="avatar_upload_unavailable_ios">iOS ではアバターのアップロードはまだ利用できません。</string>
+    <string name="dialog_ok">OK</string>
+    <plurals name="mcp_tool_count">
+        <item quantity="other">ツール %1$d 個</item>
+    </plurals>
 </resources>

@@ -25,7 +25,6 @@
     <string name="cd_back">Voltar</string>
     <string name="cd_change_avatar">Alterar avatar</string>
     <string name="cd_choose_image">Escolher imagem</string>
-    <string name="cd_collapse_tools">Recolher ferramentas</string>
     <string name="cd_copy_api_key">Copiar chave de API</string>
     <string name="cd_copy_link">Copiar link</string>
     <string name="cd_create_api_key">Criar chave de API</string>
@@ -40,7 +39,6 @@
     <string name="memory_redacted_key">Entrada oculta</string>
     <string name="memory_redacted_value">A política de conteúdo deste servidor oculta o que está armazenado aqui. Você ainda pode excluí-la.</string>
     <string name="cd_edit_server">Editar servidor</string>
-    <string name="cd_expand_tools">Expandir ferramentas</string>
     <string name="cd_loading_profile">Carregando perfil</string>
     <string name="cd_make_private">Tornar privado</string>
     <string name="cd_make_public">Tornar público</string>
@@ -516,7 +514,6 @@
     <string name="dialog_title_delete_server">Excluir servidor</string>
     <string name="dialog_delete_server_message">Tem certeza de que deseja excluir "%1$s"?</string>
     <string name="error_failed_to_load_servers">Falha ao carregar os servidores</string>
-    <string name="mcp_tools_count">%1$d ferramenta%2$s</string>
     <string name="no_tools_available">Nenhuma ferramenta disponível</string>
     <!-- Fork settings -->
     <string name="fork_mode_direct_path">Mensagens visíveis</string>
@@ -754,4 +751,15 @@
     <string name="advanced_search">Pesquisa avançada</string>
     <string name="advanced_search_desc">Para usuários avançados. Adiciona diferenciar maiúsculas, palavra inteira, regex e filtros de função, modelo e data à tela de pesquisa.</string>
     <string name="server_user_ca_notice">Confiável por meio de uma autoridade certificadora instalada neste dispositivo</string>
+    <string name="export_coming_soon">A exportação chegará em breve</string>
+    <string name="mcp_tools_all">Todas as ferramentas MCP</string>
+    <string name="mcp_tools_for_server">Ferramentas: %1$s</string>
+    <string name="mcp_tool_server">Servidor: %1$s</string>
+    <string name="mcp_server_unknown">Desconhecido</string>
+    <string name="avatar_upload_unavailable_ios">O envio de avatar ainda não está disponível no iOS.</string>
+    <string name="dialog_ok">OK</string>
+    <plurals name="mcp_tool_count">
+        <item quantity="one">%1$d ferramenta</item>
+        <item quantity="other">%1$d ferramentas</item>
+    </plurals>
 </resources>

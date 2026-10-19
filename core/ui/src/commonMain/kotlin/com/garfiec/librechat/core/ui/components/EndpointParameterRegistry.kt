@@ -797,7 +797,6 @@ object EndpointParameterRegistry {
             // Upstream's ReasoningSummary.none wire value is `""`; relabel as Unset.
             options = listOf("", "auto", "concise", "detailed"),
             default = "",
-            optionLabels = mapOf("" to "Unset"),
             description = "How reasoning summary is exposed in the response.",
         ),
         ParameterDefinition(
@@ -807,7 +806,6 @@ object EndpointParameterRegistry {
             // Upstream's Verbosity.none wire value is `""`; relabel as Unset.
             options = listOf("", "low", "medium", "high"),
             default = "",
-            optionLabels = mapOf("" to "Unset"),
             description = "Controls how concise or verbose responses are.",
         ),
         ParameterDefinition(

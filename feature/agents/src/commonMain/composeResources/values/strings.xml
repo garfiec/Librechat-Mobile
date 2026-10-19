@@ -310,5 +310,20 @@
     <string name="builtin_ask_user_desc">Pauses the run to ask you a clarifying question.</string>
 
     <!-- Agent contact (v0.8.8) -->
-    <string name="agent_contact_title">Contact</string>
+    <string name="agent_category_hr">Human Resources</string>
+    <string name="agent_category_rd">Research &amp; Development</string>
+    <string name="agent_category_finance">Finance</string>
+    <string name="agent_category_it">IT</string>
+    <string name="agent_category_sales">Sales</string>
+    <string name="agent_category_aftersales">After Sales</string>
+    <string name="agent_category_idea">Ideas</string>
+    <string name="agent_category_travel">Travel</string>
+    <string name="agent_category_learning">Learning</string>
+    <string name="agent_category_writing">Writing</string>
+    <string name="agent_category_shopping">Shopping</string>
+    <string name="agent_category_code">Code</string>
+    <string name="agent_category_misc">Misc.</string>
+    <string name="agent_category_roleplay">Roleplay</string>
+    <string name="visibility_team">Team</string>
+    <string name="agent_contact_line">Contact: %1$s</string>
 </resources>

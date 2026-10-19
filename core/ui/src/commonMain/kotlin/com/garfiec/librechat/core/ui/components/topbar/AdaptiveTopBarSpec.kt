@@ -40,10 +40,16 @@ sealed interface BarAction {
         val onClick: () -> Unit,
     ) : BarAction
 
+    /**
+     * A labelled button. Where the label would leave the title too little room (a narrow screen, a
+     * large font, a long translation), the bar draws [compactIcon] instead, with the label as its
+     * content description.
+     */
     @Immutable
     data class Text(
         override val id: String,
         override val label: String,
+        val compactIcon: BarIcon,
         val enabled: Boolean = true,
         val onClick: () -> Unit,
     ) : BarAction
@@ -115,6 +121,11 @@ data class BarTitle(
     val alignment: BarTitleAlignment = BarTitleAlignment.LEADING,
     val onClick: (() -> Unit)? = null,
     val rename: BarRename? = null,
+    /**
+     * Lines a plain title may take before it ellipsizes; 1 for a name with no spaces to break at
+     * (a file name). A tappable or chip title always keeps one.
+     */
+    val maxLines: Int = 2,
 )
 
 @Immutable

@@ -66,4 +66,11 @@
     <string name="schedule_disabled_project">متوقفة مؤقتًا: حُذف المشروع الذي كانت تُحفظ فيه التشغيلات.</string>
     <string name="schedule_disabled_project_required">متوقفة مؤقتًا: يتطلب هذا الخادم الآن مشروعًا، ولا مشروع لهذه الجدولة.</string>
     <string name="schedule_disabled_unknown">أوقفها الخادم مؤقتًا.</string>
+    <string name="schedule_weekday_sun">الأحد</string>
+    <string name="schedule_weekday_mon">الاثنين</string>
+    <string name="schedule_weekday_tue">الثلاثاء</string>
+    <string name="schedule_weekday_wed">الأربعاء</string>
+    <string name="schedule_weekday_thu">الخميس</string>
+    <string name="schedule_weekday_fri">الجمعة</string>
+    <string name="schedule_weekday_sat">السبت</string>
 </resources>

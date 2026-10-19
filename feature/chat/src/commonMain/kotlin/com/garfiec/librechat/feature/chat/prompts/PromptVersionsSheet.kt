@@ -3,12 +3,14 @@ package com.garfiec.librechat.feature.chat.prompts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Badge
@@ -92,22 +94,23 @@ fun PromptVersionsSheet(
 }
 
 @Composable
-private fun PromptVersionItem(
+internal fun PromptVersionItem(
     prompt: Prompt,
     versionNumber: Int,
     isProduction: Boolean,
     onSetProduction: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
+    // Set Production drops under the version rather than squeeze it narrower than MinVersionWidth.
+    FlowRow(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onSetProduction)
             .padding(vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.End,
+        itemVerticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        Column(modifier = Modifier.weight(1f).widthIn(min = MinVersionWidth)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = stringResource(Res.string.version_number, versionNumber),
@@ -152,3 +155,5 @@ private fun PromptVersionItem(
         }
     }
 }
+
+private val MinVersionWidth = 160.dp

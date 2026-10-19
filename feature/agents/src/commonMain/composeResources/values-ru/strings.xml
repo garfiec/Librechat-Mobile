@@ -306,5 +306,20 @@
     <string name="builtin_file_context_desc">Помещает прикреплённые файлы целиком в контекст агента.</string>
     <string name="builtin_ask_user">Вопрос пользователю</string>
     <string name="builtin_ask_user_desc">Приостанавливает выполнение, чтобы задать вам уточняющий вопрос.</string>
-    <string name="agent_contact_title">Контакт</string>
+    <string name="agent_category_hr">Кадры</string>
+    <string name="agent_category_rd">Исследования и разработки</string>
+    <string name="agent_category_finance">Финансы</string>
+    <string name="agent_category_it">ИТ</string>
+    <string name="agent_category_sales">Продажи</string>
+    <string name="agent_category_aftersales">Послепродажное обслуживание</string>
+    <string name="agent_category_idea">Идеи</string>
+    <string name="agent_category_travel">Путешествия</string>
+    <string name="agent_category_learning">Обучение</string>
+    <string name="agent_category_writing">Тексты</string>
+    <string name="agent_category_shopping">Покупки</string>
+    <string name="agent_category_code">Код</string>
+    <string name="agent_category_misc">Разное</string>
+    <string name="agent_category_roleplay">Ролевые игры</string>
+    <string name="visibility_team">Команда</string>
+    <string name="agent_contact_line">Контакт: %1$s</string>
 </resources>

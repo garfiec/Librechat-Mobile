@@ -80,6 +80,7 @@ internal fun AccentColorDialog(
     AdaptiveAlertDialog(
         modifier = modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
+        scrollableText = false,
         title = { Text(stringResource(Res.string.accent_color)) },
         text = {
             Column(

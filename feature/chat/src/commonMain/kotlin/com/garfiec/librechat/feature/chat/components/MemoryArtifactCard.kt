@@ -21,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -94,6 +95,7 @@ fun MemoryArtifactCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 // Memory badge
+                val labelLine = with(LocalDensity.current) { MaterialTheme.typography.labelSmall.lineHeight.toDp() }
                 AdaptiveSuggestionChip(
                     onClick = {},
                     label = {
@@ -104,9 +106,13 @@ fun MemoryArtifactCard(
                                 stringResource(Res.string.label_memory)
                             },
                             style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     },
-                    modifier = Modifier.height(24.dp),
+                    // A fixed height, as a clickable chip otherwise grows to its 48dp touch target, but
+                    // one that grows with the label's line so a large font doesn't clip it.
+                    modifier = Modifier.height(maxOf(24.dp, labelLine + 8.dp)).widthInFraction(max = 0.6f),
                     colors = SuggestionChipDefaults.suggestionChipColors(
                         containerColor = if (isError) {
                             MaterialTheme.colorScheme.error.copy(alpha = 0.2f)

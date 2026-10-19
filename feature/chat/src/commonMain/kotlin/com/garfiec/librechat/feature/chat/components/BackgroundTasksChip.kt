@@ -2,6 +2,8 @@ package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,8 +16,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.HourglassTop
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -122,61 +126,74 @@ private fun BackgroundTasksSheet(
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         dragHandle = { LowProfileDragHandle() },
     ) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .heightIn(max = 560.dp)
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 16.dp),
+        BackgroundTasksContent(state = state, onStop = onStop, onStopAll = onStopAll)
+    }
+}
+
+@Composable
+internal fun BackgroundTasksContent(
+    state: BackgroundTasksUiState,
+    onStop: (String) -> Unit,
+    onStopAll: () -> Unit,
+) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(max = 560.dp)
+            .padding(horizontal = 16.dp)
+            .padding(bottom = 16.dp),
+    ) {
+        // Stop all drops under the title when the title would not fit on one line beside it.
+        FlowRow(
+            horizontalArrangement = Arrangement.End,
+            itemVerticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    stringResource(Res.string.background_tasks_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f),
-                )
-                if (state.canStopAll) {
-                    TextButton(onClick = onStopAll) { Text(stringResource(Res.string.background_tasks_stop_all)) }
-                }
+            Text(
+                stringResource(Res.string.background_tasks_title),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f).width(IntrinsicSize.Max),
+            )
+            if (state.canStopAll) {
+                TextButton(onClick = onStopAll) { Text(stringResource(Res.string.background_tasks_stop_all)) }
             }
-            if (state.incomplete) {
+        }
+        if (state.incomplete) {
+            Text(
+                stringResource(Res.string.background_tasks_incomplete),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+        if (state.stopFailed) {
+            Text(
+                stringResource(Res.string.background_tasks_stop_failed),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+        Column(
+            modifier = Modifier.verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            if (state.tasks.isEmpty()) {
                 Text(
-                    stringResource(Res.string.background_tasks_incomplete),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = 4.dp),
+                    stringResource(Res.string.background_tasks_empty),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            if (state.stopFailed) {
-                Text(
-                    stringResource(Res.string.background_tasks_stop_failed),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = 4.dp),
+            state.tasks.forEachIndexed { index, task ->
+                if (index > 0) AdaptiveDivider()
+                BackgroundTaskRow(
+                    task = task,
+                    stopping = task.cancellationRequested || task.taskId in state.stoppingTaskIds ||
+                        (state.stoppingAll && task.isRunning),
+                    canStop = state.canStop(task),
+                    onStop = { onStop(task.taskId) },
                 )
-            }
-            Spacer(Modifier.height(8.dp))
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                if (state.tasks.isEmpty()) {
-                    Text(
-                        stringResource(Res.string.background_tasks_empty),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                state.tasks.forEachIndexed { index, task ->
-                    if (index > 0) AdaptiveDivider()
-                    BackgroundTaskRow(
-                        task = task,
-                        stopping = task.cancellationRequested || task.taskId in state.stoppingTaskIds ||
-                            (state.stoppingAll && task.isRunning),
-                        canStop = state.canStop(task),
-                        onStop = { onStop(task.taskId) },
-                    )
-                }
             }
         }
     }
@@ -219,7 +236,9 @@ private fun BackgroundTaskRow(
             }
         }
         if (canStop) {
-            TextButton(onClick = onStop) { Text(stringResource(Res.string.background_tasks_stop)) }
+            IconButton(onClick = onStop) {
+                Icon(Icons.Default.Stop, contentDescription = stringResource(Res.string.background_tasks_stop))
+            }
         }
     }
 }

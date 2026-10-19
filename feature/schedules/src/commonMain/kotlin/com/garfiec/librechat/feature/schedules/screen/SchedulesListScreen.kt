@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.schedules.screen
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -215,7 +216,7 @@ private fun CenteredMessage(message: String) {
 }
 
 @Composable
-private fun ScheduleCard(
+internal fun ScheduleCard(
     schedule: Schedule,
     canManage: Boolean,
     isBusy: Boolean,
@@ -287,7 +288,7 @@ private fun ScheduleCard(
                 }
             }
             if (canManage) {
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     TextButton(onClick = onRunNow, enabled = !isBusy) {
                         Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.size(4.dp))

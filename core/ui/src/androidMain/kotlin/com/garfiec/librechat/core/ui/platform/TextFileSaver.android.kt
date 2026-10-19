@@ -14,11 +14,18 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.result.suspendRunCatching
+import com.garfiec.librechat.core.ui.resources.Res
+import com.garfiec.librechat.core.ui.resources.saver_data_lost
+import com.garfiec.librechat.core.ui.resources.saver_open_failed
+import com.garfiec.librechat.core.ui.resources.saver_prepare_failed
+import com.garfiec.librechat.core.ui.resources.saver_write_failed
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.jetbrains.compose.resources.stringResource
 import java.io.File
 import java.io.IOException
 
@@ -50,6 +57,11 @@ actual fun TextFileSaver(
     val currentOnReset by rememberUpdatedState(onReset)
     var stagedPath by rememberSaveable { mutableStateOf<String?>(null) }
     val contract = remember(mimeType) { ActivityResultContracts.CreateDocument(mimeType) }
+    // Resolved here so a failure reaches the caller already in the user's language.
+    val dataLostMessage = stringResource(Res.string.saver_data_lost)
+    val prepareFailedMessage = stringResource(Res.string.saver_prepare_failed)
+    val writeFailedMessage = stringResource(Res.string.saver_write_failed)
+    val openFailedMessage = stringResource(Res.string.saver_open_failed)
 
     val launcher = rememberLauncherForActivityResult(contract) { uri ->
         val staged = stagedPath?.let(::File)
@@ -59,9 +71,8 @@ actual fun TextFileSaver(
                 try {
                     when {
                         uri == null -> null
-                        staged == null || !staged.exists() ->
-                            Result.failure(IOException("Export data was lost — please try again"))
-                        else -> copyInto(appContext, staged, uri)
+                        staged == null || !staged.exists() -> Result.failure(SaverFailure(dataLostMessage))
+                        else -> copyInto(appContext, staged, uri, openFailedMessage)
                     }
                 } finally {
                     staged?.delete()
@@ -70,7 +81,11 @@ actual fun TextFileSaver(
             when {
                 written == null -> currentOnComplete(false, null)
                 written.isSuccess -> currentOnComplete(true, null)
-                else -> currentOnComplete(false, written.exceptionOrNull()?.message ?: "Could not write export file")
+                else -> {
+                    val error = written.exceptionOrNull()
+                    Logger.w(error) { "Saving a file failed" }
+                    currentOnComplete(false, (error as? SaverFailure)?.message ?: writeFailedMessage)
+                }
             }
             currentOnReset()
         }
@@ -80,7 +95,7 @@ actual fun TextFileSaver(
         val fileName = triggerFileName ?: return@LaunchedEffect
         val text = content
         if (text == null) {
-            currentOnComplete(false, "Export data was lost — please try again")
+            currentOnComplete(false, dataLostMessage)
             currentOnReset()
             return@LaunchedEffect
         }
@@ -90,7 +105,8 @@ actual fun TextFileSaver(
                 launcher.launch(fileName)
             }
             .onFailure { e ->
-                currentOnComplete(false, e.message ?: "Could not prepare export file")
+                Logger.w(e) { "Staging a file to save failed" }
+                currentOnComplete(false, prepareFailedMessage)
                 currentOnReset()
             }
     }
@@ -105,10 +121,10 @@ private fun stage(context: Context, text: String): File {
 }
 
 @Suppress("TooGenericExceptionCaught") // ContentResolver I/O throws undocumented exceptions; reported, not thrown
-private fun copyInto(context: Context, source: File, target: Uri): Result<Unit> = try {
+private fun copyInto(context: Context, source: File, target: Uri, openFailedMessage: String): Result<Unit> = try {
     val output = context.contentResolver.openOutputStream(target)
     if (output == null) {
-        Result.failure(IOException("Could not open the selected file for writing"))
+        Result.failure(SaverFailure(openFailedMessage))
     } else {
         output.use { out -> source.inputStream().use { it.copyTo(out) } }
         Result.success(Unit)
@@ -116,3 +132,9 @@ private fun copyInto(context: Context, source: File, target: Uri): Result<Unit> 
 } catch (e: Exception) {
     Result.failure(e)
 }
+
+/**
+ * A failure this saver words itself. Anything else the copy throws carries the platform's message,
+ * which is not in the user's language, so the caller is given the generic write failure instead.
+ */
+private class SaverFailure(message: String) : IOException(message)

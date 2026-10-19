@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.ui.components
 
 import com.garfiec.librechat.core.ui.resources.Res
+import com.garfiec.librechat.core.ui.resources.param_desc_thinking
 import com.garfiec.librechat.core.ui.resources.param_thinking_between_tools_description
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -167,7 +168,11 @@ class EndpointParameterRegistryModelAwareTest {
         }
         for (model in listOf("claude-sonnet-5", "claude-sonnet-5-20260101", "claude-sonnet-4-6")) {
             assertTrue(keysOf(anthropic(model)).contains("thinkingBudget"), model)
-            assertNull(anthropic(model).single { it.key == "thinking" }.descriptionRes(), model)
+            assertEquals(
+                Res.string.param_desc_thinking,
+                anthropic(model).single { it.key == "thinking" }.descriptionRes(),
+                model,
+            )
         }
     }
 

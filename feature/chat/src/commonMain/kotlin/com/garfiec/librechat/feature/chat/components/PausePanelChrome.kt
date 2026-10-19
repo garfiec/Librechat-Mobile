@@ -13,6 +13,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -76,6 +77,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.feature.chat.resources.*
@@ -117,6 +119,9 @@ internal fun pausePanelActiveIndex(ids: List<String>, activeId: String?): Int =
  * it isn't, and stretched into a short bar for the one on screen. Dragging along the dots scrubs
  * through the items the way iOS's home-screen page dots do; the arrows step one at a time. Inert
  * while the panel is collapsed.
+ *
+ * Past [MAX_PAGE_DOTS] items, or when the dots and arrows would not fit the width the header
+ * offers, the dots give way to an `n of N` label.
  */
 @Composable
 internal fun PausePanelPager(
@@ -128,13 +133,23 @@ internal fun PausePanelPager(
     previousLabel: String,
     nextLabel: String,
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = { onSelect(index - 1) }, enabled = enabled && index > 0) {
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = previousLabel)
-        }
-        PausePanelPageDots(index = index, count = count, done = done, enabled = enabled, onSelect = onSelect)
-        IconButton(onClick = { onSelect(index + 1) }, enabled = enabled && index < count - 1) {
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = nextLabel)
+    BoxWithConstraints {
+        val asLabel = count > MAX_PAGE_DOTS || PAGE_DOT_SLOT_WIDTH * count + PAGER_ARROW_WIDTH * 2 > maxWidth
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = { onSelect(index - 1) }, enabled = enabled && index > 0) {
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = previousLabel)
+            }
+            PausePanelPageDots(
+                index = index,
+                count = count,
+                done = done,
+                enabled = enabled,
+                asLabel = asLabel,
+                onSelect = onSelect,
+            )
+            IconButton(onClick = { onSelect(index + 1) }, enabled = enabled && index < count - 1) {
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = nextLabel)
+            }
         }
     }
 }
@@ -147,6 +162,9 @@ internal fun PausePanelPager(
  * The header draws the title itself, so the stacking test measures the same text in the same style.
  * A collapsed header drops the pager, which is inert while collapsed anyway, and gives its width to
  * the one-line title. [leadingIcon] sits before the title and is measured as part of it.
+ *
+ * An expanded title also stops at the whole lines that fit [expandedTitleMaxHeight], ending in an
+ * ellipsis rather than a line cut through its glyphs; [onTitleOverflow] says whether it was cut.
  */
 @Composable
 internal fun PausePanelCompactHeader(
@@ -156,10 +174,23 @@ internal fun PausePanelCompactHeader(
     pager: (@Composable () -> Unit)?,
     toggle: @Composable () -> Unit,
     modifier: Modifier = Modifier,
-    titleModifier: Modifier = Modifier,
+    expandedTitleMaxHeight: Dp = Dp.Infinity,
+    onTitleOverflow: (Boolean) -> Unit = {},
     leadingIcon: (@Composable () -> Unit)? = null,
 ) {
     val titleStyle = MaterialTheme.typography.titleSmall
+    val density = LocalDensity.current
+    val titleMaxLines = if (collapsed) {
+        1
+    } else if (expandedTitleMaxHeight == Dp.Infinity) {
+        expandedTitleMaxLines
+    } else {
+        val lineHeight = with(density) {
+            titleStyle.lineHeight.takeIf { it.isSp }?.toPx() ?: titleStyle.fontSize.toPx()
+        }
+        val fitting = with(density) { (expandedTitleMaxHeight - PAUSE_PANEL_TITLE_PADDING * 2).toPx() } / lineHeight
+        minOf(expandedTitleMaxLines, fitting.toInt().coerceAtLeast(1))
+    }
     val textMeasurer = rememberTextMeasurer()
     val shownPager = pager?.takeIf { !collapsed }
     Layout(
@@ -169,9 +200,10 @@ internal fun PausePanelCompactHeader(
                 Text(
                     text = title,
                     style = titleStyle,
-                    maxLines = if (collapsed) 1 else expandedTitleMaxLines,
+                    maxLines = titleMaxLines,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = titleModifier.padding(vertical = PAUSE_PANEL_TITLE_PADDING),
+                    onTextLayout = { if (!collapsed) onTitleOverflow(it.hasVisualOverflow) },
+                    modifier = Modifier.padding(vertical = PAUSE_PANEL_TITLE_PADDING),
                 )
             },
             { if (shownPager != null) shownPager() },
@@ -226,6 +258,7 @@ private fun PausePanelPageDots(
     count: Int,
     done: List<Boolean>,
     enabled: Boolean,
+    asLabel: Boolean,
     onSelect: (Int) -> Unit,
 ) {
     val haptics = LocalHapticFeedback.current
@@ -247,7 +280,7 @@ private fun PausePanelPageDots(
             .testTag(PAUSE_PANEL_PAGE_DOTS_TAG)
             .heightIn(min = 48.dp)
             .clearAndSetSemantics { stateDescription = pageOf }
-            .pointerInput(count, enabled, isRtl, scrubStep) {
+            .pointerInput(count, enabled, asLabel, isRtl, scrubStep) {
                 if (!enabled) return@pointerInput
                 // A tap lands on the dot under the finger: equal slots across the whole row.
                 fun slotAt(x: Float): Int {
@@ -273,7 +306,7 @@ private fun PausePanelPageDots(
                         val change = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
                         if (!change.pressed) {
                             // The `n of N` label has no dots to land on, so a tap there does nothing.
-                            if (!scrubbing && count <= MAX_PAGE_DOTS) show(slotAt(change.position.x))
+                            if (!scrubbing && !asLabel) show(slotAt(change.position.x))
                             break
                         }
                         if (!scrubbing && abs(change.position.x - down.position.x) > viewConfiguration.touchSlop) {
@@ -288,7 +321,7 @@ private fun PausePanelPageDots(
             },
         contentAlignment = Alignment.Center,
     ) {
-        if (count > MAX_PAGE_DOTS) {
+        if (asLabel) {
             Text(
                 text = pageOf,
                 style = MaterialTheme.typography.labelLarge,
@@ -698,6 +731,9 @@ private val PAGE_DOT_SIZE = 6.dp
 private val PAGE_BAR_WIDTH = 16.dp
 private val PAGE_DOT_SLOT_WIDTH = 20.dp
 private val PAGE_DOT_STROKE = 1.5.dp
+
+/** Each arrow's touch target, the IconButton minimum. */
+private val PAGER_ARROW_WIDTH = 48.dp
 
 /** Finger travel per item while scrubbing the dots. */
 private val SCRUB_STEP = 48.dp

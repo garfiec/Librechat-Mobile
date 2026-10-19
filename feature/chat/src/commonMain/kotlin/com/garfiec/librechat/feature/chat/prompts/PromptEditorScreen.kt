@@ -100,23 +100,11 @@ fun PromptEditorScreen(
     AdaptiveScaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
-            AdaptiveTopBar(
-                spec = AdaptiveTopBarSpec(
-                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.cd_back), viewModel::onBackRequested),
-                    title = BarTitle(if (uiState.isNewPrompt) "Create Prompt" else "Edit Prompt"),
-                    actions = if (!uiState.isNewPrompt && uiState.prompts.isNotEmpty()) {
-                        listOf(
-                            BarAction.Icon(
-                                id = "versions",
-                                icon = BarIcons.History,
-                                label = stringResource(Res.string.cd_version_history),
-                                onClick = viewModel::showVersionsSheet,
-                            ),
-                        )
-                    } else {
-                        emptyList()
-                    },
-                ),
+            PromptEditorTopBar(
+                isNewPrompt = uiState.isNewPrompt,
+                showVersions = !uiState.isNewPrompt && uiState.prompts.isNotEmpty(),
+                onBack = viewModel::onBackRequested,
+                onShowVersions = viewModel::showVersionsSheet,
             )
         },
         snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
@@ -166,7 +154,7 @@ fun PromptEditorScreen(
                 label = { Text(stringResource(Res.string.prompt_command_label)) },
                 lineLimits = TextFieldLineLimits.SingleLine,
                 prefix = { Text("/") },
-                placeholder = { Text("my-command") },
+                placeholder = { Text(stringResource(Res.string.prompt_command_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -189,7 +177,7 @@ fun PromptEditorScreen(
                 maxLines = 12,
                 modifier = Modifier.fillMaxWidth(),
                 supportingText = {
-                    Text("Use {{variable_name}} to add variables")
+                    Text(stringResource(Res.string.prompt_variables_hint))
                 },
             )
 
@@ -217,7 +205,7 @@ fun PromptEditorScreen(
                         strokeWidth = 2.dp,
                     )
                 } else {
-                    Text(if (uiState.isNewPrompt) "Create" else "Save")
+                    Text(stringResource(if (uiState.isNewPrompt) Res.string.prompt_editor_create else Res.string.save))
                 }
             }
 
@@ -233,4 +221,33 @@ fun PromptEditorScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
+}
+
+@Composable
+internal fun PromptEditorTopBar(
+    isNewPrompt: Boolean,
+    showVersions: Boolean,
+    onBack: () -> Unit,
+    onShowVersions: () -> Unit,
+) {
+    AdaptiveTopBar(
+        spec = AdaptiveTopBarSpec(
+            navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.cd_back), onBack),
+            title = BarTitle(
+                stringResource(if (isNewPrompt) Res.string.prompt_editor_create_title else Res.string.prompt_editor_edit_title),
+            ),
+            actions = if (showVersions) {
+                listOf(
+                    BarAction.Icon(
+                        id = "versions",
+                        icon = BarIcons.History,
+                        label = stringResource(Res.string.cd_version_history),
+                        onClick = onShowVersions,
+                    ),
+                )
+            } else {
+                emptyList()
+            },
+        ),
+    )
 }

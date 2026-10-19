@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -53,42 +54,65 @@ fun UploadRoutingSheet(
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         modifier = modifier,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                // The picker is `OpenMultipleDocuments`, so the batch is unbounded while
-                // `ModalBottomSheet`'s content slot is a plain Column that Material adds no scroll
-                // to. Without this a six-file pick pushes Attach/Cancel past the sheet's max height
-                // and the only way out is to back out, losing the whole pick.
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Text(
-                text = if (files.size == 1) {
-                    stringResource(Res.string.upload_routing_sheet_title_single)
-                } else {
-                    stringResource(Res.string.upload_routing_sheet_title)
-                },
-                style = MaterialTheme.typography.titleMedium,
+        UploadRoutingContent(
+            files = files,
+            onRouteChange = onRouteChange,
+            onApplyToAll = onApplyToAll,
+            onConfirm = onConfirm,
+            onDismiss = onDismiss,
+        )
+    }
+}
+
+@Composable
+internal fun UploadRoutingContent(
+    files: List<PendingUploadFile>,
+    onRouteChange: (Int, UploadRoute) -> Unit,
+    onApplyToAll: (UploadRoute) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            // The picker is `OpenMultipleDocuments`, so the batch is unbounded while
+            // `ModalBottomSheet`'s content slot is a plain Column that Material adds no scroll
+            // to. Without this a six-file pick pushes Attach/Cancel past the sheet's max height
+            // and the only way out is to back out, losing the whole pick.
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp)
+            .padding(bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Text(
+            text = if (files.size == 1) {
+                stringResource(Res.string.upload_routing_sheet_title_single)
+            } else {
+                stringResource(Res.string.upload_routing_sheet_title)
+            },
+            style = MaterialTheme.typography.titleMedium,
+        )
+
+        files.forEachIndexed { index, staged ->
+            UploadRoutingRow(
+                staged = staged,
+                onRouteChange = { onRouteChange(index, it) },
             )
+        }
 
-            files.forEachIndexed { index, staged ->
-                UploadRoutingRow(
-                    staged = staged,
-                    onRouteChange = { onRouteChange(index, it) },
+        if (files.count { it.choosable } > 1) {
+            // The two choices wrap under the label as a pair, and apart only when even a line of
+            // their own is too narrow.
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                itemVerticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(Res.string.upload_routing_apply_all),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            }
-
-            if (files.count { it.choosable } > 1) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = stringResource(Res.string.upload_routing_apply_all),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 12.dp),
-                    )
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     TextButton(onClick = { onApplyToAll(UploadRoute.PROVIDER) }) {
                         Text(stringResource(Res.string.upload_routing_option_provider))
                     }
@@ -97,17 +121,17 @@ fun UploadRoutingSheet(
                     }
                 }
             }
+        }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-            ) {
-                TextButton(onClick = onDismiss) {
-                    Text(stringResource(Res.string.cancel))
-                }
-                AdaptiveButton(onClick = onConfirm) {
-                    Text(stringResource(Res.string.upload_routing_attach))
-                }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+        ) {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(Res.string.cancel))
+            }
+            AdaptiveButton(onClick = onConfirm) {
+                Text(stringResource(Res.string.upload_routing_attach))
             }
         }
     }

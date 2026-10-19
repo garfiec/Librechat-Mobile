@@ -37,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -134,11 +135,13 @@ fun ApiKeysScreen(
                                 text = stringResource(Res.string.api_keys_not_available),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
                             )
                             Text(
                                 text = stringResource(Res.string.api_keys_not_supported),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
                             )
                         }
                     }
@@ -151,6 +154,7 @@ fun ApiKeysScreen(
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(horizontal = 32.dp),
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Key,
@@ -162,11 +166,13 @@ fun ApiKeysScreen(
                                 text = stringResource(Res.string.no_api_keys),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
                             )
                             Text(
                                 text = stringResource(Res.string.no_api_keys_desc),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
                             )
                         }
                     }
@@ -238,7 +244,7 @@ fun ApiKeysScreen(
 }
 
 @Composable
-private fun ApiKeyCard(
+internal fun ApiKeyCard(
     apiKey: ApiKey,
     isDeleting: Boolean,
     onDeleteClick: () -> Unit,
@@ -282,6 +288,7 @@ private fun ApiKeyCard(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
                 val createdAt = apiKey.createdAt

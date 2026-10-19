@@ -138,8 +138,8 @@ internal fun ContentPartDispatcher(
             AgentHandoffCard(
                 handoff = AgentHandoff(
                     fromAgent = agentUpdate?.agentId,
-                    toAgent = part.agentId?.let { "Agent $it" },
-                    reason = agentUpdate?.runId?.let { "Run: $it" },
+                    toAgent = part.agentId?.let { stringResource(Res.string.agent_handoff_to, it) },
+                    reason = agentUpdate?.runId?.let { stringResource(Res.string.agent_handoff_run, it) },
                 ),
                 modifier = mod,
             )

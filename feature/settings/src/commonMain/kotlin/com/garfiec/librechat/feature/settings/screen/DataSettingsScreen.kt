@@ -140,9 +140,10 @@ fun DataSettingsContent(
         viewModel.consumeArchivedAllCount()
     }
 
+    val exportComingSoon = stringResource(Res.string.export_coming_soon)
     LaunchedEffect(uiState.showExportComingSoon) {
         if (uiState.showExportComingSoon) {
-            snackbarHostState.showSnackbar(message = "Export is coming soon")
+            snackbarHostState.showSnackbar(message = exportComingSoon)
             viewModel.dismissExportComingSoon()
         }
     }
@@ -329,7 +330,7 @@ fun DataSettingsContent(
 }
 
 @Composable
-private fun DataExtraActions(
+internal fun DataExtraActions(
     onSharedLinksClick: () -> Unit,
     onArtifactShortcutsClick: () -> Unit,
     onClearCacheClick: () -> Unit,
@@ -355,7 +356,7 @@ private fun DataExtraActions(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(stringResource(Res.string.shared_links))
+                    Text(stringResource(Res.string.shared_links), modifier = Modifier.weight(1f))
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                         contentDescription = null,
@@ -374,7 +375,7 @@ private fun DataExtraActions(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(stringResource(Res.string.artifact_shortcuts_title))
+                    Text(stringResource(Res.string.artifact_shortcuts_title), modifier = Modifier.weight(1f))
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                         contentDescription = null,

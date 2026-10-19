@@ -38,12 +38,9 @@
     <!-- Empty states -->
     <string name="no_files">Keine Dateien</string>
     <string name="upload_to_get_started">Lade Dateien hoch, um zu beginnen</string>
-    <string name="no_filter_files">Keine %1$s</string>
-    <string name="no_filter_files_found">Keine %1$s-Dateien gefunden</string>
     <string name="could_not_load_files">Dateien konnten nicht geladen werden</string>
 
     <!-- Delete dialogs -->
-    <string name="delete_count_files">%1$d Datei%2$s löschen?</string>
     <string name="action_cannot_be_undone">Diese Aktion kann nicht rückgängig gemacht werden.</string>
     <string name="delete_file_question">Datei löschen?</string>
     <string name="delete_file_message">"%1$s" löschen? Diese Aktion kann nicht rückgängig gemacht werden.</string>
@@ -66,4 +63,26 @@
     <string name="uploading">Wird hochgeladen…</string>
     <string name="failed_to_download_pdf">PDF konnte nicht heruntergeladen werden</string>
     <string name="failed_to_render_pdf">PDF konnte nicht gerendert werden</string>
+    <string name="filter_all">Alle</string>
+    <string name="filter_images">Bilder</string>
+    <string name="filter_documents">Dokumente</string>
+    <string name="filter_audio">Audio</string>
+    <string name="filter_video">Video</string>
+    <string name="no_filter_images">Keine Bilder</string>
+    <string name="no_filter_documents">Keine Dokumente</string>
+    <string name="no_filter_audio">Keine Audiodateien</string>
+    <string name="no_filter_video">Keine Videos</string>
+    <string name="no_filter_files_hint">Keine Dateien dieses Typs gefunden</string>
+    <string name="sort_name">Name</string>
+    <string name="sort_date">Datum</string>
+    <string name="sort_size">Größe</string>
+    <string name="sort_type">Typ</string>
+    <string name="cd_back">Zurück</string>
+    <string name="failed_to_download_file">Datei konnte nicht heruntergeladen werden</string>
+    <string name="content_truncated">Inhalt gekürzt (Datei zu groß)</string>
+    <string name="pdf_preview_unavailable_ios">PDF-Vorschau ist unter iOS noch nicht verfügbar</string>
+    <plurals name="delete_count_files">
+        <item quantity="one">%1$d Datei löschen?</item>
+        <item quantity="other">%1$d Dateien löschen?</item>
+    </plurals>
 </resources>

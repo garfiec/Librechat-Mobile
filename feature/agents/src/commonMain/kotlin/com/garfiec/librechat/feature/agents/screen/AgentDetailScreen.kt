@@ -53,7 +53,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.components.topbar.MaterialBarStyle
 import com.garfiec.librechat.feature.agents.resources.*
 import com.garfiec.librechat.feature.agents.resources.Res
-import com.garfiec.librechat.feature.agents.resources.agent_contact_title
+import com.garfiec.librechat.feature.agents.resources.agent_contact_line
 import com.garfiec.librechat.feature.agents.viewmodel.AgentDetailEvent
 import com.garfiec.librechat.feature.agents.viewmodel.AgentDetailViewModel
 import org.jetbrains.compose.resources.stringResource
@@ -231,7 +231,7 @@ fun AgentDetailScreen(
                         val label = contact.name ?: contact.email.orEmpty()
                         val email = contact.email
                         Text(
-                            text = stringResource(Res.string.agent_contact_title) + ": " + label,
+                            text = stringResource(Res.string.agent_contact_line, label),
                             style = MaterialTheme.typography.bodyMedium,
                             color = if (email != null) {
                                 MaterialTheme.colorScheme.primary

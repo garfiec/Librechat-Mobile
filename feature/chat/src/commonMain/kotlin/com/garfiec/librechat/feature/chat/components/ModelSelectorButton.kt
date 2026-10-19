@@ -35,6 +35,7 @@ fun ModelSelectorButton(
                 style = MaterialTheme.typography.titleSmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
             )
             Spacer(modifier = Modifier.width(4.dp))
             Icon(

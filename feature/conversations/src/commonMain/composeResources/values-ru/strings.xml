@@ -79,7 +79,6 @@
     <string name="add_new_tag">Добавить новый тег</string>
 
     <!-- Tag filter bar -->
-    <string name="tags_active_count">Активных тегов: %1$d%2$s</string>
 
     <!-- Export format picker -->
     <string name="export_format">Формат экспорта</string>
@@ -212,4 +211,15 @@
     <string name="search_group_conversation">По чатам</string>
     <string name="search_group_none">Одним списком</string>
     <string name="search_server_unavailable">Поиск на сервере сейчас недоступен</string>
+    <string name="endpoint_label_assistants">Ассистенты</string>
+    <string name="endpoint_label_azure_assistants">Ассистенты Azure</string>
+    <string name="endpoint_label_agents">Агенты</string>
+    <string name="endpoint_label_custom">Пользовательский</string>
+    <string name="endpoint_label_chat">Чат</string>
+    <plurals name="tags_active_count">
+        <item quantity="one">%1$d активный тег</item>
+        <item quantity="few">%1$d активных тега</item>
+        <item quantity="many">%1$d активных тегов</item>
+        <item quantity="other">%1$d активного тега</item>
+    </plurals>
 </resources>

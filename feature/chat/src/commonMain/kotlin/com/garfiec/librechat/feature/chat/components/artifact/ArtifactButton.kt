@@ -30,10 +30,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.garfiec.librechat.core.model.artifactTypeLabel
+import com.garfiec.librechat.core.ui.components.artifactTypeLabel
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -82,13 +83,17 @@ fun ArtifactButton(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
             if (versionCount > 1) {
                 Spacer(modifier = Modifier.width(8.dp))
+                // As tall as the count's line, so the circle grows with a large font.
+                val badgeStyle = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp)
+                val badgeSize = with(LocalDensity.current) { badgeStyle.lineHeight.toDp() }
                 Box(
                     modifier = Modifier
-                        .size(20.dp)
+                        .size(maxOf(20.dp, badgeSize))
                         .background(
                             color = MaterialTheme.colorScheme.primary,
                             shape = CircleShape,
@@ -97,7 +102,7 @@ fun ArtifactButton(
                 ) {
                     Text(
                         text = "$versionCount",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                        style = badgeStyle,
                         color = MaterialTheme.colorScheme.onPrimary,
                     )
                 }

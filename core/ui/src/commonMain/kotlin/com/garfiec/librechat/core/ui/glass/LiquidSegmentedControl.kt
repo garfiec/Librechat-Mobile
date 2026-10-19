@@ -54,13 +54,16 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
+import androidx.compose.ui.unit.max
 import androidx.compose.ui.zIndex
+import com.garfiec.librechat.core.ui.components.rememberChoiceLabelFit
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberCombinedBackdrop
@@ -90,6 +93,12 @@ import kotlin.math.roundToInt
  * The lens, highlight and inner shadow need the refraction shader, so the blur-only and flat tiers
  * get the motion without them. Motion and effect values follow the LiquidBottomTabs sample in
  * Kyant's backdrop catalog (github.com/Kyant0/AndroidLiquidGlass, Apache-2.0).
+ *
+ * Segments split the width evenly. When a label doesn't fit its segment on one line, it wraps onto a
+ * second if [allowTwoLines], and the control draws [overflow] instead if that's given and the labels
+ * still don't fit; a label that fits neither way is cut short as [labelOverflow] says (one line only,
+ * for a middle ellipsis). The control grows taller with the font, so large scales aren't cut through.
+ * The fit and height are measured on [fitLabels], stable stand-ins for options that change while shown.
  */
 @Composable
 internal fun LiquidSegmentedControl(
@@ -99,6 +108,10 @@ internal fun LiquidSegmentedControl(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     backdrop: GlassBackdrop? = null,
+    allowTwoLines: Boolean = false,
+    overflow: (@Composable () -> Unit)? = null,
+    labelOverflow: TextOverflow = TextOverflow.Ellipsis,
+    fitLabels: List<String> = options,
 ) {
     val style = rememberGlassStyle()
     val refract = style?.refracts == true
@@ -143,223 +156,240 @@ internal fun LiquidSegmentedControl(
     BoxWithConstraints(
         modifier = modifier
             .zIndex(if (swollen) 1f else 0f)
-            .fillMaxWidth()
-            .height(SegmentHeight)
-            .alpha(if (enabled) 1f else GlassDefaults.DISABLED_ALPHA),
+            .fillMaxWidth(),
     ) {
         val segmentWidth = (maxWidth - TrackPadding * 2) / count
-        val segmentPx = with(density) { segmentWidth.toPx() }
-        val padPx = with(density) { TrackPadding.toPx() }
-        val thumbHeight = SegmentHeight - TrackPadding * 2
-        motion.pressedScaleX = (segmentWidth + ThumbOverhangX * 2) / segmentWidth
-        motion.pressedScaleY = (thumbHeight + ThumbOverhangY * 2) / thumbHeight
-        motion.maxShiftPx = with(density) { MaxShift.toPx() }
-        motion.maxGrowPx = with(density) { MaxGrow.toPx() }
-        motion.leanSpanPx = segmentPx
-        val lean = Modifier.graphicsLayer { translationX = motion.leanX }
-        // The glass grows with a drag and keepLabels undoes it for the labels. Read in layout, so a
-        // drag doesn't recompose.
-        val growTrack = Modifier.layout { measurable, constraints ->
-            val grow = motion.growY.roundToInt()
-            val placeable = measurable.measure(
-                constraints.copy(minHeight = constraints.minHeight + 2 * grow, maxHeight = constraints.maxHeight + 2 * grow),
-            )
-            layout(placeable.width, placeable.height - 2 * grow) { placeable.place(0, -grow) }
+        val labelStyle = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
+        val fit = rememberChoiceLabelFit(fitLabels, labelStyle, segmentWidth, allowTwoLines)
+        if (!fit.fits && overflow != null) {
+            overflow()
+            return@BoxWithConstraints
         }
-        val keepLabels = Modifier.layout { measurable, constraints ->
-            val grow = motion.growY.roundToInt()
-            val placeable = measurable.measure(
-                constraints.copy(
-                    minHeight = (constraints.minHeight - 2 * grow).coerceAtLeast(0),
-                    maxHeight = (constraints.maxHeight - 2 * grow).coerceAtLeast(0),
-                ),
-            )
-            layout(placeable.width, placeable.height + 2 * grow) { placeable.place(0, grow) }
-        }
-
-        // Segment position (0 = first segment's start, fractional between) to x and back, mirrored in RTL.
-        fun xAt(position: Float, width: Float): Float {
-            val fromStart = padPx + position * segmentPx
-            return if (rtl) width - fromStart else fromStart
-        }
-        fun positionAt(x: Float, width: Float): Float = ((if (rtl) width - x else x) - padPx) / segmentPx
-
-        // Sized in segments so it fills a tablet strip too; built at the origin and moved to the thumb.
-        val glowBrush = remember(segmentPx) {
-            Brush.radialGradient(
-                0f to Color.White.copy(alpha = GLOW_PEAK),
-                GLOW_SHOULDER to Color.White.copy(alpha = GLOW_PEAK * GLOW_SHOULDER_LEVEL),
-                1f to Color.Transparent,
-                center = Offset.Zero,
-                radius = segmentPx * GLOW_RADIUS_SEGMENTS,
-            )
-        }
-        val touchGlow = Modifier.drawWithContent {
-            val progress = motion.glowProgress
-            if (progress > 0f) {
-                drawRect(Color.White, alpha = GLOW_WASH * progress, blendMode = BlendMode.Plus)
-                val center = Offset(xAt(motion.value + 0.5f, size.width), size.height / 2f)
-                translate(center.x, center.y) {
-                    drawRect(glowBrush, topLeft = -center, size = size, alpha = progress, blendMode = BlendMode.Plus)
-                }
-            }
-            drawContent()
-        }
-
-        // Read latest rather than keyed: a re-layout mid-press (a sidebar dragged beside the strip)
-        // would otherwise restart the gesture and cancel it before the thumb is released.
-        val latestCount by rememberUpdatedState(count)
-        val latestPositionAt by rememberUpdatedState(::positionAt)
-        val gestures = if (enabled) {
-            Modifier.pointerInput(motion) {
-                awaitEachGesture {
-                    val down = awaitFirstDown()
-                    val pressed = (latestPositionAt(down.position.x, size.width.toFloat()) - 0.5f).roundToInt()
-                        .coerceIn(0, latestCount - 1)
-                    motion.touchDown()
-                    // The thumb goes to the pressed segment on touch, as on iOS; selection waits for release.
-                    motion.follow(pressed.toFloat())
-                    var finished = false
-                    try {
-                        var dragging = false
-                        var released = false
-                        while (true) {
-                            val change = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
-                            if (!change.pressed) {
-                                released = true
-                                break
-                            }
-                            if (!dragging && abs(change.position.x - down.position.x) > viewConfiguration.touchSlop) {
-                                dragging = true
-                            }
-                            if (dragging) {
-                                change.consume()
-                                val at = latestPositionAt(change.position.x, size.width.toFloat())
-                                motion.follow(rubberBand(at - 0.5f, latestCount - 1f))
-                                motion.lean(change.position.x - down.position.x)
-                            } else {
-                                // An ancestor (a scrolling list, a sheet's drag) took the gesture: give it up,
-                                // as a clickable does, rather than selecting under the finger on release.
-                                val final = awaitPointerEvent(PointerEventPass.Final)
-                                if (final.changes.any { it.id == down.id && it.isConsumed }) break
-                            }
-                        }
-                        val target = when {
-                            !released -> currentSelected
-                            dragging -> motion.target.roundToInt()
-                            else -> pressed
-                        }.coerceIn(0, latestCount - 1)
-                        // A tap on another segment lingers in the bubble before popping flat.
-                        motion.touchUp(target.toFloat(), latestCount, linger = released && !dragging && target != currentSelected)
-                        finished = true
-                        if (target != currentSelected) currentOnSelect(target)
-                    } finally {
-                        // Cancelled mid-press: never leave the thumb swollen.
-                        if (!finished) motion.touchUp(currentSelected.coerceIn(0, latestCount - 1).toFloat(), latestCount)
-                    }
-                }
-            }
-        } else {
-            Modifier
-        }
-
-        SegmentLabels(
-            options = options,
-            selectedIndex = selectedIndex,
-            segmentWidth = segmentWidth,
-            accent = null,
-            onSelect = onSelect.takeIf { enabled },
-            modifier = lean
-                .then(growTrack)
-                .then(trackSurface)
-                // The glow is a full-bounds rect; unclipped it lights the corners past the round ends.
-                .clip(CircleShape)
-                .then(touchGlow)
-                .then(keepLabels)
-                .selectableGroup(),
-        )
-        SegmentLabels(
-            options = options,
-            selectedIndex = selectedIndex,
-            segmentWidth = segmentWidth,
-            accent = accent,
-            onSelect = null,
+        val controlHeight = max(SegmentHeight, fit.textHeight + (TrackPadding + LabelInsetY) * 2)
+        Box(
             modifier = Modifier
-                .clearAndSetSemantics {}
-                .then(lean)
-                .then(growTrack)
-                .alpha(0f)
-                .layerBackdrop(accentLayer)
-                .then(trackSurface)
-                .clip(CircleShape)
-                .drawBehind { drawRect(thumbColor, alpha = 1f - motion.pressProgress) }
-                .then(touchGlow)
-                .then(keepLabels),
-        )
+                .fillMaxWidth()
+                // A set height, not heightIn: the thumb's press scale is computed from it before layout.
+                .height(controlHeight)
+                .alpha(if (enabled) 1f else GlassDefaults.DISABLED_ALPHA),
+        ) {
+            val segmentPx = with(density) { segmentWidth.toPx() }
+            val padPx = with(density) { TrackPadding.toPx() }
+            val thumbHeight = controlHeight - TrackPadding * 2
+            motion.pressedScaleX = (segmentWidth + ThumbOverhangX * 2) / segmentWidth
+            motion.pressedScaleY = (thumbHeight + ThumbOverhangY * 2) / thumbHeight
+            motion.maxShiftPx = with(density) { MaxShift.toPx() }
+            motion.maxGrowPx = with(density) { MaxGrow.toPx() }
+            motion.leanSpanPx = segmentPx
+            val lean = Modifier.graphicsLayer { translationX = motion.leanX }
+            // The glass grows with a drag and keepLabels undoes it for the labels. Read in layout, so a
+            // drag doesn't recompose.
+            val growTrack = Modifier.layout { measurable, constraints ->
+                val grow = motion.growY.roundToInt()
+                val placeable = measurable.measure(
+                    constraints.copy(minHeight = constraints.minHeight + 2 * grow, maxHeight = constraints.maxHeight + 2 * grow),
+                )
+                layout(placeable.width, placeable.height - 2 * grow) { placeable.place(0, -grow) }
+            }
+            val keepLabels = Modifier.layout { measurable, constraints ->
+                val grow = motion.growY.roundToInt()
+                val placeable = measurable.measure(
+                    constraints.copy(
+                        minHeight = (constraints.minHeight - 2 * grow).coerceAtLeast(0),
+                        maxHeight = (constraints.maxHeight - 2 * grow).coerceAtLeast(0),
+                    ),
+                )
+                layout(placeable.width, placeable.height + 2 * grow) { placeable.place(0, grow) }
+            }
 
-        // No thumb when nothing is selected (a stored value outside the options).
-        if (selectedIndex in options.indices) {
-            Box(
-                modifier = Modifier
-                    .padding(TrackPadding)
-                    .graphicsLayer {
-                        // The thumb is laid out on the first segment, so translate from there.
-                        translationX = xAt(motion.value, 0f) - xAt(0f, 0f) + motion.leanX
+            // Segment position (0 = first segment's start, fractional between) to x and back, mirrored in RTL.
+            fun xAt(position: Float, width: Float): Float {
+                val fromStart = padPx + position * segmentPx
+                return if (rtl) width - fromStart else fromStart
+            }
+            fun positionAt(x: Float, width: Float): Float = ((if (rtl) width - x else x) - padPx) / segmentPx
+
+            // Sized in segments so it fills a tablet strip too; built at the origin and moved to the thumb.
+            val glowBrush = remember(segmentPx) {
+                Brush.radialGradient(
+                    0f to Color.White.copy(alpha = GLOW_PEAK),
+                    GLOW_SHOULDER to Color.White.copy(alpha = GLOW_PEAK * GLOW_SHOULDER_LEVEL),
+                    1f to Color.Transparent,
+                    center = Offset.Zero,
+                    radius = segmentPx * GLOW_RADIUS_SEGMENTS,
+                )
+            }
+            val touchGlow = Modifier.drawWithContent {
+                val progress = motion.glowProgress
+                if (progress > 0f) {
+                    drawRect(Color.White, alpha = GLOW_WASH * progress, blendMode = BlendMode.Plus)
+                    val center = Offset(xAt(motion.value + 0.5f, size.width), size.height / 2f)
+                    translate(center.x, center.y) {
+                        drawRect(glowBrush, topLeft = -center, size = size, alpha = progress, blendMode = BlendMode.Plus)
                     }
-                    .width(segmentWidth)
-                    .fillMaxHeight()
-                    // Swell and stretch resize the thumb rather than scaling its layer: a scaled
-                    // capsule's round ends turn into flattened ovals, a resized one stays a capsule.
-                    .layout { measurable, constraints ->
-                        val width = constraints.maxWidth
-                        val height = constraints.maxHeight
-                        val swollen = measurable.measure(
-                            Constraints.fixed(
-                                (width * motion.scaleX).roundToInt(),
-                                (height * motion.scaleY).roundToInt(),
-                            ),
-                        )
-                        layout(width, height) {
-                            swollen.place((width - swollen.width) / 2, (height - swollen.height) / 2)
+                }
+                drawContent()
+            }
+
+            // Read latest rather than keyed: a re-layout mid-press (a sidebar dragged beside the strip)
+            // would otherwise restart the gesture and cancel it before the thumb is released.
+            val latestCount by rememberUpdatedState(count)
+            val latestPositionAt by rememberUpdatedState(::positionAt)
+            val gestures = if (enabled) {
+                Modifier.pointerInput(motion) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown()
+                        val pressed = (latestPositionAt(down.position.x, size.width.toFloat()) - 0.5f).roundToInt()
+                            .coerceIn(0, latestCount - 1)
+                        motion.touchDown()
+                        // The thumb goes to the pressed segment on touch, as on iOS; selection waits for release.
+                        motion.follow(pressed.toFloat())
+                        var finished = false
+                        try {
+                            var dragging = false
+                            var released = false
+                            while (true) {
+                                val change = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
+                                if (!change.pressed) {
+                                    released = true
+                                    break
+                                }
+                                if (!dragging && abs(change.position.x - down.position.x) > viewConfiguration.touchSlop) {
+                                    dragging = true
+                                }
+                                if (dragging) {
+                                    change.consume()
+                                    val at = latestPositionAt(change.position.x, size.width.toFloat())
+                                    motion.follow(rubberBand(at - 0.5f, latestCount - 1f))
+                                    motion.lean(change.position.x - down.position.x)
+                                } else {
+                                    // An ancestor (a scrolling list, a sheet's drag) took the gesture: give it up,
+                                    // as a clickable does, rather than selecting under the finger on release.
+                                    val final = awaitPointerEvent(PointerEventPass.Final)
+                                    if (final.changes.any { it.id == down.id && it.isConsumed }) break
+                                }
+                            }
+                            val target = when {
+                                !released -> currentSelected
+                                dragging -> motion.target.roundToInt()
+                                else -> pressed
+                            }.coerceIn(0, latestCount - 1)
+                            // A tap on another segment lingers in the bubble before popping flat.
+                            motion.touchUp(target.toFloat(), latestCount, linger = released && !dragging && target != currentSelected)
+                            finished = true
+                            if (target != currentSelected) currentOnSelect(target)
+                        } finally {
+                            // Cancelled mid-press: never leave the thumb swollen.
+                            if (!finished) motion.touchUp(currentSelected.coerceIn(0, latestCount - 1).toFloat(), latestCount)
                         }
                     }
-                    .drawBackdrop(
-                        backdrop = thumbBackdrop,
-                        shape = { CircleShape },
-                        effects = {
-                            val progress = motion.pressProgress
-                            if (refract && progress > 0f) {
-                                lens(
-                                    LensHeight.toPx() * progress,
-                                    LensAmount.toPx() * progress,
-                                    chromaticAberration = true,
-                                )
-                            }
-                        },
-                        highlight = {
-                            val progress = motion.pressProgress
-                            if (refract && progress > 0f) {
-                                tiltedHighlight(if (rtl) -motion.sheenTilt else motion.sheenTilt, progress)
-                            } else {
-                                null
-                            }
-                        },
-                        shadow = {
-                            Shadow.Default.copy(radius = lerp(RestShadow, Shadow.Default.radius, motion.pressProgress))
-                        },
-                        innerShadow = {
-                            val progress = motion.pressProgress
-                            if (refract && progress > 0f) {
-                                InnerShadow(radius = InnerShadowRadius * progress, alpha = progress)
-                            } else {
-                                null
-                            }
-                        },
-                    ),
+                }
+            } else {
+                Modifier
+            }
+
+            SegmentLabels(
+                options = options,
+                selectedIndex = selectedIndex,
+                segmentWidth = segmentWidth,
+                lines = fit.lines,
+                labelOverflow = labelOverflow,
+                accent = null,
+                onSelect = onSelect.takeIf { enabled },
+                modifier = lean
+                    .then(growTrack)
+                    .then(trackSurface)
+                    // The glow is a full-bounds rect; unclipped it lights the corners past the round ends.
+                    .clip(CircleShape)
+                    .then(touchGlow)
+                    .then(keepLabels)
+                    .selectableGroup(),
             )
+            SegmentLabels(
+                options = options,
+                selectedIndex = selectedIndex,
+                segmentWidth = segmentWidth,
+                lines = fit.lines,
+                labelOverflow = labelOverflow,
+                accent = accent,
+                onSelect = null,
+                modifier = Modifier
+                    .clearAndSetSemantics {}
+                    .then(lean)
+                    .then(growTrack)
+                    .alpha(0f)
+                    .layerBackdrop(accentLayer)
+                    .then(trackSurface)
+                    .clip(CircleShape)
+                    .drawBehind { drawRect(thumbColor, alpha = 1f - motion.pressProgress) }
+                    .then(touchGlow)
+                    .then(keepLabels),
+            )
+
+            // No thumb when nothing is selected (a stored value outside the options).
+            if (selectedIndex in options.indices) {
+                Box(
+                    modifier = Modifier
+                        .padding(TrackPadding)
+                        .graphicsLayer {
+                            // The thumb is laid out on the first segment, so translate from there.
+                            translationX = xAt(motion.value, 0f) - xAt(0f, 0f) + motion.leanX
+                        }
+                        .width(segmentWidth)
+                        .fillMaxHeight()
+                        // Swell and stretch resize the thumb rather than scaling its layer: a scaled
+                        // capsule's round ends turn into flattened ovals, a resized one stays a capsule.
+                        .layout { measurable, constraints ->
+                            val width = constraints.maxWidth
+                            val height = constraints.maxHeight
+                            val swollen = measurable.measure(
+                                Constraints.fixed(
+                                    (width * motion.scaleX).roundToInt(),
+                                    (height * motion.scaleY).roundToInt(),
+                                ),
+                            )
+                            layout(width, height) {
+                                swollen.place((width - swollen.width) / 2, (height - swollen.height) / 2)
+                            }
+                        }
+                        .drawBackdrop(
+                            backdrop = thumbBackdrop,
+                            shape = { CircleShape },
+                            effects = {
+                                val progress = motion.pressProgress
+                                if (refract && progress > 0f) {
+                                    lens(
+                                        LensHeight.toPx() * progress,
+                                        LensAmount.toPx() * progress,
+                                        chromaticAberration = true,
+                                    )
+                                }
+                            },
+                            highlight = {
+                                val progress = motion.pressProgress
+                                if (refract && progress > 0f) {
+                                    tiltedHighlight(if (rtl) -motion.sheenTilt else motion.sheenTilt, progress)
+                                } else {
+                                    null
+                                }
+                            },
+                            shadow = {
+                                Shadow.Default.copy(radius = lerp(RestShadow, Shadow.Default.radius, motion.pressProgress))
+                            },
+                            innerShadow = {
+                                val progress = motion.pressProgress
+                                if (refract && progress > 0f) {
+                                    InnerShadow(radius = InnerShadowRadius * progress, alpha = progress)
+                                } else {
+                                    null
+                                }
+                            },
+                        ),
+                )
+            }
+            // Over everything, so a drag that starts on the thumb is still the control's.
+            Box(Modifier.fillMaxSize().then(gestures))
         }
-        // Over everything, so a drag that starts on the thumb is still the control's.
-        Box(Modifier.fillMaxSize().then(gestures))
     }
 }
 
@@ -373,6 +403,8 @@ private fun SegmentLabels(
     options: List<String>,
     selectedIndex: Int,
     segmentWidth: Dp,
+    lines: Int,
+    labelOverflow: TextOverflow,
     accent: Color?,
     onSelect: ((Int) -> Unit)?,
     modifier: Modifier = Modifier,
@@ -406,8 +438,10 @@ private fun SegmentLabels(
                     color = accent ?: Color.Unspecified,
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = if (selected || accent != null) FontWeight.SemiBold else FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                    maxLines = lines,
+                    // A middle ellipsis only lays out on one line.
+                    overflow = if (lines == 1) labelOverflow else TextOverflow.Ellipsis,
                 )
             }
         }
@@ -579,6 +613,9 @@ private class LiquidThumbMotion(private val scope: CoroutineScope, initial: Floa
 
 private val SegmentHeight = 36.dp
 private val TrackPadding = 3.dp
+
+// Above and below a label that sets the control's height.
+private val LabelInsetY = 4.dp
 
 private val ThumbOverhangX = 12.dp
 private val ThumbOverhangY = 18.dp

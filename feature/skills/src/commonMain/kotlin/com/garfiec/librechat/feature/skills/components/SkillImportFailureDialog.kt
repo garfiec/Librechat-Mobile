@@ -44,6 +44,7 @@ internal fun SkillImportFailureDialog(
     }
     AdaptiveAlertDialog(
         onDismissRequest = onDismiss,
+        scrollableText = false,
         title = { Text(stringResource(Res.string.skill_import_failed_title)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {

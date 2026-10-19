@@ -1,14 +1,14 @@
 package com.garfiec.librechat.navigation
 
 import android.net.Uri
-import androidx.compose.material3.windowsizeclass.WindowSizeClass
-import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.feature.chat.ShareIntentConsumer
@@ -18,6 +18,7 @@ import com.garfiec.librechat.shared.navigation.DeepLinkResolution
 import com.garfiec.librechat.shared.navigation.DeepLinks
 import com.garfiec.librechat.shared.navigation.PhoneLayout
 import com.garfiec.librechat.shared.navigation.TabletLayout
+import com.garfiec.librechat.shared.navigation.usesSidebarLayout
 import com.garfiec.librechat.shared.navigation.LibreChatNavHost as SharedLibreChatNavHost
 
 /**
@@ -27,7 +28,6 @@ import com.garfiec.librechat.shared.navigation.LibreChatNavHost as SharedLibreCh
 @Composable
 fun LibreChatNavHost(
     modifier: Modifier = Modifier,
-    windowSizeClass: WindowSizeClass? = null,
     deepLinkUri: Uri? = null,
     onDeepLinkConsume: () -> Unit = {},
     appLocaleTag: String? = null,
@@ -106,11 +106,9 @@ fun LibreChatNavHost(
             ShareIntentConsumer.dispatchTo(target)
         }
 
-        val isTablet = windowSizeClass?.widthSizeClass?.let {
-            it >= WindowWidthSizeClass.Medium
-        } ?: false
-
-        if (isTablet) {
+        val window = LocalWindowInfo.current.containerSize
+        val usesSidebar = with(LocalDensity.current) { usesSidebarLayout(window.width.toDp(), window.height.toDp()) }
+        if (usesSidebar) {
             TabletLayout(
                 navigator = navigator,
                 navHostViewModel = navHostViewModel,

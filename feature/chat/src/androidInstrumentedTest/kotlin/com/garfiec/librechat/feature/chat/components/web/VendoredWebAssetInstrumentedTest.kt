@@ -97,7 +97,7 @@ class VendoredWebAssetInstrumentedTest {
 
     @Test
     fun mermaidRendersADiagramInAChatMessage() {
-        val page = render(buildMermaidHtml("graph TD; A-->B;", theme = "default"))
+        val page = render(buildMermaidHtml("graph TD; A-->B;", theme = "default", errorPrefix = "Diagram error:"))
 
         assertEquals("mermaid should define itself", "\"object\"", page.await("typeof mermaid"))
         assertEquals(

@@ -66,4 +66,11 @@
     <string name="schedule_disabled_project">一時停止中: 実行結果の保存先プロジェクトが削除されました。</string>
     <string name="schedule_disabled_project_required">一時停止中: このサーバーではプロジェクトが必須になりましたが、このスケジュールには設定されていません。</string>
     <string name="schedule_disabled_unknown">サーバーにより一時停止されました。</string>
+    <string name="schedule_weekday_sun">日</string>
+    <string name="schedule_weekday_mon">月</string>
+    <string name="schedule_weekday_tue">火</string>
+    <string name="schedule_weekday_wed">水</string>
+    <string name="schedule_weekday_thu">木</string>
+    <string name="schedule_weekday_fri">金</string>
+    <string name="schedule_weekday_sat">土</string>
 </resources>

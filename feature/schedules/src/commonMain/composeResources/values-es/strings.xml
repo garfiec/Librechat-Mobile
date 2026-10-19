@@ -66,4 +66,11 @@
     <string name="schedule_disabled_project">En pausa: se eliminó el proyecto donde se guardaban sus ejecuciones.</string>
     <string name="schedule_disabled_project_required">En pausa: este servidor ahora requiere un proyecto y esta programación no tiene ninguno.</string>
     <string name="schedule_disabled_unknown">Pausada por el servidor.</string>
+    <string name="schedule_weekday_sun">Dom</string>
+    <string name="schedule_weekday_mon">Lun</string>
+    <string name="schedule_weekday_tue">Mar</string>
+    <string name="schedule_weekday_wed">Mié</string>
+    <string name="schedule_weekday_thu">Jue</string>
+    <string name="schedule_weekday_fri">Vie</string>
+    <string name="schedule_weekday_sat">Sáb</string>
 </resources>

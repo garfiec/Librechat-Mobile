@@ -66,4 +66,11 @@
     <string name="schedule_disabled_project">Приостановлено: проект, в который сохранялись запуски, был удалён.</string>
     <string name="schedule_disabled_project_required">Приостановлено: теперь сервер требует проект, а у этого расписания его нет.</string>
     <string name="schedule_disabled_unknown">Приостановлено сервером.</string>
+    <string name="schedule_weekday_sun">Вс</string>
+    <string name="schedule_weekday_mon">Пн</string>
+    <string name="schedule_weekday_tue">Вт</string>
+    <string name="schedule_weekday_wed">Ср</string>
+    <string name="schedule_weekday_thu">Чт</string>
+    <string name="schedule_weekday_fri">Пт</string>
+    <string name="schedule_weekday_sat">Сб</string>
 </resources>

@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.settings.screen.providerkeys
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
@@ -148,46 +150,71 @@ fun SetProviderKeyDialog(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ProviderKeyActions(
+                canRevoke = (state.currentKeyState is KeyState.Set ||
+                    state.currentKeyState is KeyState.Expired) && !state.isRevoking,
+                isRevoking = state.isRevoking,
+                isSaving = state.isSaving,
+                saveLabel = saveLabel,
+                onRevoke = viewModel::revoke,
+                onCancel = onDismiss,
+                onSave = viewModel::save,
+            )
+        }
+    }
+}
+
+@Composable
+internal fun ProviderKeyActions(
+    canRevoke: Boolean,
+    isRevoking: Boolean,
+    isSaving: Boolean,
+    saveLabel: String,
+    onRevoke: () -> Unit,
+    onCancel: () -> Unit,
+    onSave: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // Cancel and Save drop under Revoke, as a pair at the end, when the three don't fit; the
+    // weighted spacer holds them apart from Revoke on a shared line.
+    FlowRow(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.End,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        AdaptiveOutlinedButton(
+            onClick = onRevoke,
+            enabled = canRevoke,
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = MaterialTheme.colorScheme.error,
+            ),
+        ) {
+            if (isRevoking) {
+                AdaptiveCircularProgressIndicator(
+                    modifier = Modifier.height(18.dp),
+                    strokeWidth = 2.dp,
+                )
+                Spacer(Modifier.width(8.dp))
+            }
+            Text(stringResource(Res.string.provider_keys_revoke))
+        }
+        Spacer(modifier = Modifier.weight(1f).widthIn(min = 8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            AdaptiveOutlinedButton(onClick = onCancel) {
+                Text(stringResource(Res.string.action_cancel))
+            }
+            AdaptiveButton(
+                onClick = onSave,
+                enabled = !isSaving,
             ) {
-                val canRevoke = (state.currentKeyState is KeyState.Set ||
-                    state.currentKeyState is KeyState.Expired) && !state.isRevoking
-                AdaptiveOutlinedButton(
-                    onClick = viewModel::revoke,
-                    enabled = canRevoke,
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error,
-                    ),
-                ) {
-                    if (state.isRevoking) {
-                        AdaptiveCircularProgressIndicator(
-                            modifier = Modifier.height(18.dp),
-                            strokeWidth = 2.dp,
-                        )
-                        Spacer(Modifier.width(8.dp))
-                    }
-                    Text(stringResource(Res.string.provider_keys_revoke))
+                if (isSaving) {
+                    AdaptiveCircularProgressIndicator(
+                        modifier = Modifier.height(18.dp),
+                        strokeWidth = 2.dp,
+                    )
+                    Spacer(Modifier.width(8.dp))
                 }
-                Spacer(modifier = Modifier.width(8.dp))
-                AdaptiveOutlinedButton(onClick = onDismiss) {
-                    Text(stringResource(Res.string.action_cancel))
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                AdaptiveButton(
-                    onClick = viewModel::save,
-                    enabled = !state.isSaving,
-                ) {
-                    if (state.isSaving) {
-                        AdaptiveCircularProgressIndicator(
-                            modifier = Modifier.height(18.dp),
-                            strokeWidth = 2.dp,
-                        )
-                        Spacer(Modifier.width(8.dp))
-                    }
-                    Text(saveLabel)
-                }
+                Text(saveLabel)
             }
         }
     }

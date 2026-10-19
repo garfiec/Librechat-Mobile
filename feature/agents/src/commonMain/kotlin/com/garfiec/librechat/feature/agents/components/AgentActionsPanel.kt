@@ -62,6 +62,7 @@ fun AgentActionsPanel(
             Text(
                 text = stringResource(Res.string.openapi_actions_count, actions.size),
                 style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.weight(1f),
             )
             Icon(
                 imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,

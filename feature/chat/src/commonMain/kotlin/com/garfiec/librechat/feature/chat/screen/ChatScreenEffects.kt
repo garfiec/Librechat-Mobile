@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import com.garfiec.librechat.core.ui.resources.snackbar_dismiss
 import com.garfiec.librechat.feature.chat.components.localizedStreamError
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.jump_branch_switched
@@ -16,6 +17,8 @@ import com.garfiec.librechat.feature.chat.resources.jump_message_not_found
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
 import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.stringResource
+import com.garfiec.librechat.core.ui.resources.Res as CoreUiRes
 
 /**
  * Hosts the chat screen's one-shot side effects so [ChatScreen] reads as layout.
@@ -53,11 +56,12 @@ internal fun ChatScreenEffects(
     }
 
     val errorMessage = uiState.error?.let { localizedStreamError(it) }
+    val dismissLabel = stringResource(CoreUiRes.string.snackbar_dismiss)
     LaunchedEffect(errorMessage) {
         if (errorMessage != null) {
             snackbarHostState.showSnackbar(
                 message = errorMessage,
-                actionLabel = "Dismiss",
+                actionLabel = dismissLabel,
                 duration = SnackbarDuration.Long,
             )
             viewModel.dismissError()

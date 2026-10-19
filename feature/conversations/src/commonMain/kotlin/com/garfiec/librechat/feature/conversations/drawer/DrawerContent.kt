@@ -27,6 +27,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -52,11 +53,13 @@ import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
@@ -102,6 +105,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -170,7 +174,6 @@ import com.garfiec.librechat.feature.conversations.resources.cd_search
 import com.garfiec.librechat.feature.conversations.resources.drawer_running_chats
 import com.garfiec.librechat.feature.conversations.resources.favorites
 import com.garfiec.librechat.feature.conversations.resources.files
-import com.garfiec.librechat.feature.conversations.resources.library
 import com.garfiec.librechat.feature.conversations.resources.new_chat
 import com.garfiec.librechat.feature.conversations.resources.no_conversations_found
 import com.garfiec.librechat.feature.conversations.resources.pinned
@@ -711,30 +714,14 @@ fun DrawerContent(
         // hidden (older server / no permission) the drawer is always the recents list.
         val projectsTabAvailable = uiState.projectsEnabled
         val librarySwitch = rememberLibrarySwitch(selectedTab)
-        if (projectsTabAvailable) {
+        // Hidden while the drawer's search has the keyboard, as the footer links below are: the results
+        // need what room the keyboard leaves.
+        val searchHasKeyboard = searchFocused && keyboardUp
+        if (projectsTabAvailable && !searchHasKeyboard) {
             Spacer(modifier = Modifier.height(8.dp))
-            // Section heading + a compact icon pill that slides between the recents and projects
-            // views (the label names the whole section; the pill toggles what the list shows).
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = stringResource(Res.string.library),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .weight(1f)
-                        .semantics { heading() },
-                )
-                DrawerTabToggle(
-                    switch = librarySwitch,
-                    selectedTab = selectedTab,
-                    onSelect = onSelectTab,
-                )
-            }
+            LibraryHeader(switch = librarySwitch, selectedTab = selectedTab, onSelect = onSelectTab)
+        }
+        if (projectsTabAvailable) {
             // Keep the folder counts fresh whenever the Projects panel comes into view, a drag included.
             val currentOnLoadProjects by rememberUpdatedState(onLoadProjects)
             val projectsInView = librarySwitch.projectsShown
@@ -1035,14 +1022,22 @@ fun DrawerContent(
         // Bottom section: divider + footer links. Hidden while the keyboard is up for the drawer's search:
         // the drawer shrinks above it, and the links would take what room is left from the results. Only
         // for this field: a tablet's sidebar stays open while the chat composer has the keyboard.
-        if (!(searchFocused && keyboardUp)) {
+        if (!searchHasKeyboard) {
             AdaptiveDivider(
                 modifier = Modifier.padding(horizontal = 12.dp),
                 color = MaterialTheme.colorScheme.outlineVariant,
             )
 
             val dragSelection = rememberListDragSelection()
-            Column(modifier = Modifier.listDragSelection(dragSelection)) {
+            val footerScroll = rememberScrollState()
+            // Only once the links overflow do they scroll; until then a vertical drag is drag-select.
+            val footerScrolls = footerScroll.maxValue > 0
+            Column(
+                modifier = Modifier
+                    .atMostHalfTheRoomLeft()
+                    .verticalScroll(footerScroll, enabled = footerScrolls)
+                    .listDragSelection(dragSelection, holdOnly = footerScrolls),
+            ) {
                 if (uiState.agentsEnabled) {
                     DrawerFooterItem(
                         icon = Icons.Default.SmartToy,
@@ -1142,7 +1137,12 @@ private fun NewChatLabel(onClick: () -> Unit) {
     ) {
         Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.width(8.dp))
-        Text(text = stringResource(Res.string.new_chat), style = MaterialTheme.typography.titleSmall)
+        Text(
+            text = stringResource(Res.string.new_chat),
+            style = MaterialTheme.typography.titleSmall,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -1314,13 +1314,16 @@ private fun DrawerProjectsList(
         item(key = "projects_actions") {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp),
+                horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Spacer(modifier = Modifier.weight(1f))
-                TextButton(onClick = onOpenProjectsIndex) {
+                // Weighted, so a long translation is cut short rather than squeezing out the +.
+                TextButton(onClick = onOpenProjectsIndex, modifier = Modifier.weight(1f, fill = false)) {
                     Text(
                         text = stringResource(Res.string.projects_all),
                         style = MaterialTheme.typography.labelMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
                 IconButton(onClick = { showCreateDialog = true }) {
@@ -1764,8 +1767,19 @@ private fun ShowMoreLessRow(
     }
 }
 
+/**
+ * Caps the footer links at half the height the drawer's header and list leave them (the Column
+ * measures them before the weighted list), so a short drawer (a phone on its side) still shows rows
+ * of the list, and the links scroll in their half.
+ */
+private fun Modifier.atMostHalfTheRoomLeft(): Modifier = layout { measurable, constraints ->
+    val maxHeight = if (constraints.hasBoundedHeight) constraints.maxHeight / 2 else constraints.maxHeight
+    val placeable = measurable.measure(constraints.copy(minHeight = 0, maxHeight = maxHeight))
+    layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+}
+
 @Composable
-private fun DrawerFooterItem(
+internal fun DrawerFooterItem(
     icon: ImageVector,
     label: String,
     onClick: () -> Unit,
@@ -1790,6 +1804,8 @@ private fun DrawerFooterItem(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }

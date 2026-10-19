@@ -98,6 +98,7 @@ fun SkillEditorScreen(
                         BarAction.Text(
                             id = "save",
                             label = stringResource(Res.string.skill_save),
+                            compactIcon = BarIcons.Confirm,
                             enabled = uiState.canSave,
                             onClick = viewModel::save,
                         ),

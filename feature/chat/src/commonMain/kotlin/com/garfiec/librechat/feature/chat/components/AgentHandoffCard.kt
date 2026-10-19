@@ -2,6 +2,8 @@ package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -43,6 +45,7 @@ data class AgentHandoff(
  * Card displaying an agent handoff as a timeline:
  * [FromAgent] -> arrow -> [ToAgent] with reason text below.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AgentHandoffCard(
     handoff: AgentHandoff,
@@ -63,11 +66,12 @@ fun AgentHandoffCard(
         shape = RoundedCornerShape(8.dp),
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            // Timeline row: [From] -> [To]
-            Row(
+            // Timeline row: [From] -> [To]. The arrow travels with the "to" label, so when the
+            // pair doesn't fit on one line it moves under the "from" label as a whole.
+            FlowRow(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center,
+                itemVerticalAlignment = Alignment.CenterVertically,
             ) {
                 // From agent
                 AgentLabel(
@@ -75,21 +79,23 @@ fun AgentHandoffCard(
                     modifier = Modifier.weight(1f),
                 )
 
-                // Arrow
-                Icon(
-                    imageVector = Icons.Default.SwapHoriz,
-                    contentDescription = stringResource(Res.string.cd_handed_off_to),
-                    modifier = Modifier
-                        .padding(horizontal = 8.dp)
-                        .size(24.dp),
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                )
-
-                // To agent
-                AgentLabel(
-                    name = handoff.toAgent ?: stringResource(Res.string.agent_next),
+                Row(
                     modifier = Modifier.weight(1f),
-                )
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    // Arrow
+                    Icon(
+                        imageVector = Icons.Default.SwapHoriz,
+                        contentDescription = stringResource(Res.string.cd_handed_off_to),
+                        modifier = Modifier
+                            .padding(horizontal = 8.dp)
+                            .size(24.dp),
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+
+                    // To agent
+                    AgentLabel(name = handoff.toAgent ?: stringResource(Res.string.agent_next))
+                }
             }
 
             // Reason text
@@ -129,7 +135,7 @@ private fun AgentLabel(
                 fontWeight = FontWeight.Medium,
             ),
             color = MaterialTheme.colorScheme.onSecondaryContainer,
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
     }

@@ -3,19 +3,23 @@ package com.garfiec.librechat.feature.conversations.search
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
@@ -60,6 +64,8 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -68,6 +74,7 @@ import com.garfiec.librechat.core.common.datetime.listLabel
 import com.garfiec.librechat.core.data.search.MessageSearchHit
 import com.garfiec.librechat.core.data.search.RegexProblem
 import com.garfiec.librechat.core.data.search.RemoteSearchStatus
+import com.garfiec.librechat.core.data.search.ScanProgress
 import com.garfiec.librechat.core.data.search.SearchSource
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
@@ -123,9 +130,6 @@ import kotlin.time.Instant
 
 private val RowShape = RoundedCornerShape(8.dp)
 
-/** Wide enough for the list and a preview side by side (the precedent `ComparisonPanes` uses). */
-private val TwoPaneMinWidth = 600.dp
-
 /**
  * Full message search: every hit grouped by conversation, title matches, and on a wide layout a
  * preview of the selected hit. With a hardware keyboard, ↑/↓ move the selection and Enter opens it.
@@ -162,10 +166,15 @@ fun SearchScreen(
     val listState = rememberLazyListState()
     BoxWithConstraints(modifier = modifier) {
         // Wide: the text toggles sit beside the field and the filters beside the tabs. Narrow: one
-        // row of toggles, Filters and chips under the tabs, with the rest in a sheet.
+        // row of toggles, Filters and chips under the tabs, with the rest in a sheet. It goes wide at the
+        // two-pane width, so the tabs, sized like the list pane, line up over it; a window too short
+        // for two panes keeps the wide header, which leaves the list more height.
         val wide = maxWidth >= TwoPaneMinWidth
+        val listWidth = listPaneWidth(maxWidth)
         val advanced = state.advancedEnabled
         AdaptiveScaffold(
+            // The footer and the end of the list stay above the keyboard while the query is edited.
+            modifier = Modifier.imePadding(),
             topBar = {
                 // The tabs sit in the bar slot, as in Settings: the scaffold draws it over the body, so the
                 // glass tab's bubble, which swells past the strip, stays above the field instead of under it.
@@ -178,7 +187,7 @@ fun SearchScreen(
                     }
                     if (advanced && wide) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            ScopeTabs(state = state, onScopeChange = viewModel::onScopeChange, modifier = Modifier.width(ListPaneWidth))
+                            ScopeTabs(state = state, onScopeChange = viewModel::onScopeChange, modifier = Modifier.width(listWidth))
                             WideFilterRow(state, actions, modifier = Modifier.weight(1f).padding(horizontal = 12.dp))
                         }
                     } else {
@@ -195,9 +204,8 @@ fun SearchScreen(
                 if (advanced && !wide) {
                     AdvancedSearchRow(state = state, actions = actions, modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp))
                 }
-                BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                    val twoPane = maxWidth >= TwoPaneMinWidth
-                    val list: @Composable (Modifier) -> Unit = { listModifier ->
+                SearchPanes(
+                    list = { twoPane, listModifier ->
                         SearchResultsList(
                             state = state,
                             twoPane = twoPane,
@@ -221,32 +229,55 @@ fun SearchScreen(
                             listState = listState,
                             modifier = listModifier,
                         )
-                    }
-                    if (twoPane) {
+                    },
+                    preview = { previewModifier ->
                         LaunchedEffect(state.groups, state.scope, state.grouping) { viewModel.ensureSelection() }
-                        Row(modifier = Modifier.fillMaxSize()) {
-                            list(Modifier.width(ListPaneWidth).fillMaxHeight())
-                            AdaptiveDivider(modifier = Modifier.width(1.dp).fillMaxHeight())
-                            SearchPreviewPane(
-                                preview = state.preview,
-                                chatPreview = state.chatPreview,
-                                agentNames = state.agentNames,
-                                onStep = viewModel::stepInConversation,
-                                onOpen = open,
-                                onOpenConversation = openConversation,
-                                modifier = Modifier.weight(1f).fillMaxHeight(),
-                            )
-                        }
-                    } else {
-                        list(Modifier.fillMaxSize())
-                    }
-                }
+                        SearchPreviewPane(
+                            preview = state.preview,
+                            chatPreview = state.chatPreview,
+                            agentNames = state.agentNames,
+                            onStep = viewModel::stepInConversation,
+                            onOpen = open,
+                            onOpenConversation = openConversation,
+                            modifier = previewModifier,
+                        )
+                    },
+                )
             }
         }
     }
 }
 
+// The preview gets at least a phone's width, the list grows into what's left up to ListPaneWidth.
+private val ListPaneMinWidth = 320.dp
 private val ListPaneWidth = 420.dp
+private val PreviewMinWidth = 360.dp
+private val TwoPaneMinWidth = ListPaneMinWidth + PreviewMinWidth
+
+// Enough height for the preview's header and footer with a few lines of thread between them.
+private val TwoPaneMinHeight = 320.dp
+
+private fun listPaneWidth(width: Dp): Dp = (width - PreviewMinWidth).coerceIn(ListPaneMinWidth, ListPaneWidth)
+
+/** The results [list] with the [preview] beside it when there's room, or the list alone. */
+@Composable
+internal fun SearchPanes(
+    list: @Composable (twoPane: Boolean, Modifier) -> Unit,
+    preview: @Composable (Modifier) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val twoPane = maxWidth >= TwoPaneMinWidth && maxHeight >= TwoPaneMinHeight
+        val listWidth = listPaneWidth(maxWidth)
+        Row(modifier = Modifier.fillMaxSize()) {
+            list(twoPane, if (twoPane) Modifier.width(listWidth).fillMaxHeight() else Modifier.weight(1f).fillMaxHeight())
+            if (twoPane) {
+                AdaptiveDivider(modifier = Modifier.width(1.dp).fillMaxHeight())
+                preview(Modifier.weight(1f).fillMaxHeight())
+            }
+        }
+    }
+}
 
 /**
  * The screen's header: the query in a filled pill. On iOS (see [searchShowsBackButton]) it sits
@@ -339,7 +370,9 @@ private fun RowScope.SearchField(
                 }
             }
         },
-        placeholder = { Text(stringResource(Res.string.search_placeholder)) },
+        placeholder = {
+            Text(stringResource(Res.string.search_placeholder), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        },
         singleLine = true,
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         shape = CircleShape,
@@ -375,11 +408,19 @@ private fun ScopeTabs(state: SearchUiState, onScopeChange: (SearchScope) -> Unit
         kind = AdaptiveTabRowKind.SECONDARY,
         // Drawn in the bar slot, so the glass strip may sample the backdrop.
         backdrop = LocalGlassBackdrop.current,
+        // Sized for three-digit counts, so typing doesn't flip the row between fixed and scrolling.
+        fitTitles = listOf(
+            stringResource(Res.string.search_scope_all, FIT_COUNT),
+            stringResource(Res.string.search_scope_messages, FIT_COUNT),
+            stringResource(Res.string.search_scope_chats, FIT_COUNT),
+        ),
     )
 }
 
+private const val FIT_COUNT = 999
+
 @Composable
-private fun SearchResultsList(
+internal fun SearchResultsList(
     state: SearchUiState,
     twoPane: Boolean,
     onHitClick: (MessageSearchHit) -> Unit,
@@ -455,27 +496,34 @@ private fun LazyListScope.statusRows(state: SearchUiState, onScanMore: () -> Uni
     }
     val scan = state.scan
     if (scan?.resumeFrom != null) {
-        item(key = "status_scan") {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = stringResource(Res.string.search_scan_partial, state.messageCount, scan.scanned, scan.total),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    text = stringResource(Res.string.search_scan_more),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clip(RowShape).clickable(role = Role.Button, onClick = onScanMore).padding(8.dp),
-                )
-            }
-        }
+        item(key = "status_scan") { ScanMoreRow(state.messageCount, scan, onScanMore) }
     }
 }
+
+@Composable
+internal fun ScanMoreRow(messageCount: Int, scan: ScanProgress, onScanMore: () -> Unit) {
+    // Scan more drops under the note rather than squeeze it narrower than MinScanNoteWidth.
+    FlowRow(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.End,
+        itemVerticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = stringResource(Res.string.search_scan_partial, messageCount, scan.scanned, scan.total),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f).widthIn(min = MinScanNoteWidth),
+        )
+        Text(
+            text = stringResource(Res.string.search_scan_more),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.clip(RowShape).clickable(role = Role.Button, onClick = onScanMore).padding(8.dp),
+        )
+    }
+}
+
+private val MinScanNoteWidth = 160.dp
 
 @Composable
 private fun CenteredHint(text: String) {
@@ -571,8 +619,9 @@ private fun LazyListScope.messageGroups(
 private val HitIndent = 32.dp
 
 /**
- * A conversation in the results: its title (marked when the title matched), how many messages
- * matched, and a line saying why it's listed when no message hit follows.
+ * A conversation in the results: its title (marked when the title matched), and under it a line
+ * with why it's listed when no message hit follows, where it came from, when, and how many
+ * messages matched.
  */
 @Composable
 private fun SearchGroupHeader(
@@ -609,41 +658,51 @@ private fun SearchGroupHeader(
                 title = group.title ?: stringResource(Res.string.search_untitled_conversation),
                 highlights = group.titleHighlights,
             )
+            // Why it's listed, where it came from, when and how many: under the title, which beside
+            // them would be left too little room at a large font.
             val reason = when {
                 group.hits.isNotEmpty() -> null
                 group.serverBodyMatch -> stringResource(Res.string.search_server_body_match)
                 else -> stringResource(Res.string.search_title_match)
             }
-            if (reason != null) {
-                Text(text = reason, style = MaterialTheme.typography.labelSmall, color = variant)
+            // The server's hits carry no date, and its conversation list doesn't always hold the chat:
+            // such a group says where it came from in the date's place, as a server hit row does.
+            val date = groupDate(group.newestAt) ?: if (group.fromServer) stringResource(Res.string.search_time_server) else null
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (reason != null) {
+                    Text(
+                        text = reason,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = variant,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                }
+                if (group.fromServer || date != null) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        if (group.fromServer) {
+                            Icon(
+                                imageVector = Icons.Outlined.Cloud,
+                                contentDescription = stringResource(Res.string.cd_from_server),
+                                tint = variant,
+                                modifier = Modifier.size(14.dp),
+                            )
+                        }
+                        if (date != null) {
+                            Text(text = date, style = MaterialTheme.typography.labelSmall, color = variant, maxLines = 1)
+                        }
+                    }
+                }
+                if (group.hits.isNotEmpty()) {
+                    Text(
+                        text = group.hits.size.toString(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier
+                            .background(MaterialTheme.colorScheme.secondaryContainer, CountShape)
+                            .padding(horizontal = 6.dp, vertical = 1.dp),
+                    )
+                }
             }
-        }
-        if (group.fromServer) {
-            Spacer(modifier = Modifier.width(6.dp))
-            Icon(
-                imageVector = Icons.Outlined.Cloud,
-                contentDescription = stringResource(Res.string.cd_from_server),
-                tint = variant,
-                modifier = Modifier.size(14.dp),
-            )
-        }
-        // The server's hits carry no date, and its conversation list doesn't always hold the chat:
-        // such a group says where it came from in the date's place, as a server hit row does.
-        val date = groupDate(group.newestAt) ?: if (group.fromServer) stringResource(Res.string.search_time_server) else null
-        if (date != null) {
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(text = date, style = MaterialTheme.typography.labelSmall, color = variant, maxLines = 1)
-        }
-        if (group.hits.isNotEmpty()) {
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = group.hits.size.toString(),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier
-                    .background(MaterialTheme.colorScheme.secondaryContainer, CountShape)
-                    .padding(horizontal = 6.dp, vertical = 1.dp),
-            )
         }
     }
 }

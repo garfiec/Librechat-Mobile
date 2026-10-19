@@ -25,7 +25,6 @@
     <string name="cd_back">Retour</string>
     <string name="cd_change_avatar">Changer l'avatar</string>
     <string name="cd_choose_image">Choisir une image</string>
-    <string name="cd_collapse_tools">Réduire les outils</string>
     <string name="cd_copy_api_key">Copier la clé API</string>
     <string name="cd_copy_link">Copier le lien</string>
     <string name="cd_create_api_key">Créer une clé API</string>
@@ -40,7 +39,6 @@
     <string name="memory_redacted_key">Entrée masquée</string>
     <string name="memory_redacted_value">La politique de contenu de ce serveur masque ce qui est stocké ici. Vous pouvez tout de même la supprimer.</string>
     <string name="cd_edit_server">Modifier le serveur</string>
-    <string name="cd_expand_tools">Développer les outils</string>
     <string name="cd_loading_profile">Chargement du profil</string>
     <string name="cd_make_private">Rendre privé</string>
     <string name="cd_make_public">Rendre public</string>
@@ -516,7 +514,6 @@
     <string name="dialog_title_delete_server">Supprimer le serveur</string>
     <string name="dialog_delete_server_message">Voulez-vous vraiment supprimer "%1$s" ?</string>
     <string name="error_failed_to_load_servers">Échec du chargement des serveurs</string>
-    <string name="mcp_tools_count">%1$d outil%2$s</string>
     <string name="no_tools_available">Aucun outil disponible</string>
     <!-- Fork settings -->
     <string name="fork_mode_direct_path">Messages visibles</string>
@@ -754,4 +751,15 @@
     <string name="advanced_search">Recherche avancée</string>
     <string name="advanced_search_desc">Pour les utilisateurs avancés. Ajoute la casse, le mot entier, les expressions régulières et des filtres de rôle, de modèle et de date à l'écran de recherche.</string>
     <string name="server_user_ca_notice">Approuvé par une autorité de certification installée sur cet appareil</string>
+    <string name="export_coming_soon">L’export arrive bientôt</string>
+    <string name="mcp_tools_all">Tous les outils MCP</string>
+    <string name="mcp_tools_for_server">Outils : %1$s</string>
+    <string name="mcp_tool_server">Serveur : %1$s</string>
+    <string name="mcp_server_unknown">Inconnu</string>
+    <string name="avatar_upload_unavailable_ios">L’envoi d’avatar n’est pas encore disponible sur iOS.</string>
+    <string name="dialog_ok">OK</string>
+    <plurals name="mcp_tool_count">
+        <item quantity="one">%1$d outil</item>
+        <item quantity="other">%1$d outils</item>
+    </plurals>
 </resources>

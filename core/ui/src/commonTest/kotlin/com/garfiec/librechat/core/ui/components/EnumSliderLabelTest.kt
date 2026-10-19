@@ -13,7 +13,7 @@ class EnumSliderLabelTest {
     private val options = listOf("", "low", "medium", "high")
 
     private fun label(value: String, removed: Set<String> = emptySet()) =
-        enumSliderLabel(value, options, optionLabels = null, removedValues = removed)
+        enumSliderLabel(value, options, optionLabels = null, removedValues = removed, unsetLabel = "Unset")
 
     @Test
     fun anOfferedValueIsNamedByItsOption() {
@@ -37,7 +37,7 @@ class EnumSliderLabelTest {
     fun optionLabelsStillApply() {
         assertEquals(
             "Off",
-            enumSliderLabel("", options, optionLabels = mapOf("" to "Off"), removedValues = emptySet()),
+            enumSliderLabel("", options, optionLabels = mapOf("" to "Off"), removedValues = emptySet(), unsetLabel = "Unset"),
         )
     }
 }

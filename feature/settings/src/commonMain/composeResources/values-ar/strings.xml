@@ -25,7 +25,6 @@
     <string name="cd_back">رجوع</string>
     <string name="cd_change_avatar">تغيير الصورة الرمزية</string>
     <string name="cd_choose_image">اختيار صورة</string>
-    <string name="cd_collapse_tools">طي الأدوات</string>
     <string name="cd_copy_api_key">نسخ مفتاح API</string>
     <string name="cd_copy_link">نسخ الرابط</string>
     <string name="cd_create_api_key">إنشاء مفتاح API</string>
@@ -40,7 +39,6 @@
     <string name="memory_redacted_key">إدخال مخفي</string>
     <string name="memory_redacted_value">تُخفي سياسة المحتوى في هذا الخادم ما هو مخزّن هنا. لا يزال بإمكانك حذفه.</string>
     <string name="cd_edit_server">تعديل الخادم</string>
-    <string name="cd_expand_tools">توسيع الأدوات</string>
     <string name="cd_loading_profile">جارٍ تحميل الملف الشخصي</string>
     <string name="cd_make_private">جعله خاصًا</string>
     <string name="cd_make_public">جعله عامًا</string>
@@ -540,7 +538,6 @@
     <string name="dialog_title_delete_server">حذف الخادم</string>
     <string name="dialog_delete_server_message">هل أنت متأكد أنك تريد حذف "%1$s"؟</string>
     <string name="error_failed_to_load_servers">فشل تحميل الخوادم</string>
-    <string name="mcp_tools_count">%1$d أداة%2$s</string>
     <string name="no_tools_available">لا توجد أدوات متاحة</string>
     <!-- Fork settings -->
     <string name="fork_mode_direct_path">الرسائل المرئية</string>
@@ -786,4 +783,19 @@
     <string name="advanced_search">البحث المتقدم</string>
     <string name="advanced_search_desc">للمستخدمين المتقدمين. يضيف مطابقة حالة الأحرف والكلمة الكاملة والتعبيرات النمطية، وعوامل تصفية الدور والنموذج والتاريخ إلى شاشة البحث.</string>
     <string name="server_user_ca_notice">موثوق عبر جهة إصدار شهادات مثبّتة على هذا الجهاز</string>
+    <string name="export_coming_soon">التصدير قادم قريبًا</string>
+    <string name="mcp_tools_all">كل أدوات MCP</string>
+    <string name="mcp_tools_for_server">الأدوات: %1$s</string>
+    <string name="mcp_tool_server">الخادم: %1$s</string>
+    <string name="mcp_server_unknown">غير معروف</string>
+    <string name="avatar_upload_unavailable_ios">رفع الصورة الرمزية غير متاح بعد على iOS.</string>
+    <string name="dialog_ok">حسنًا</string>
+    <plurals name="mcp_tool_count">
+        <item quantity="zero">%1$d أداة</item>
+        <item quantity="one">أداة واحدة</item>
+        <item quantity="two">أداتان</item>
+        <item quantity="few">%1$d أدوات</item>
+        <item quantity="many">%1$d أداة</item>
+        <item quantity="other">%1$d أداة</item>
+    </plurals>
 </resources>

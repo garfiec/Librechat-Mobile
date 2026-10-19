@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
@@ -16,6 +17,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.resources.Res
+import com.garfiec.librechat.core.ui.resources.param_slider_cd
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import kotlin.math.pow
 import kotlin.math.roundToInt
@@ -37,7 +42,7 @@ fun DynamicSlider(
     val stepCount = ((max - min) / step).toInt().coerceAtLeast(1) - 1
     val displayValue = roundToDecimals(value, displayDecimals)
 
-    val sliderCd = "$label slider, value $displayValue"
+    val sliderCd = stringResource(Res.string.param_slider_cd, label, displayValue)
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -48,14 +53,19 @@ fun DynamicSlider(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            // The label wraps rather than the value: measured first, it would take the row and leave the
+            // value a sliver to break in.
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f, fill = false),
             )
             Text(
                 text = displayValue,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary,
+                softWrap = false,
+                modifier = Modifier.padding(start = 8.dp),
             )
         }
         if (description != null) {

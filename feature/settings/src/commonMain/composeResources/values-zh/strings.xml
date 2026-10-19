@@ -25,7 +25,6 @@
     <string name="cd_back">返回</string>
     <string name="cd_change_avatar">更换头像</string>
     <string name="cd_choose_image">选择图片</string>
-    <string name="cd_collapse_tools">收起工具</string>
     <string name="cd_copy_api_key">复制 API 密钥</string>
     <string name="cd_copy_link">复制链接</string>
     <string name="cd_create_api_key">创建 API 密钥</string>
@@ -40,7 +39,6 @@
     <string name="memory_redacted_key">已隐藏的条目</string>
     <string name="memory_redacted_value">此服务器的内容策略隐藏了此处存储的内容。你仍可以将其删除。</string>
     <string name="cd_edit_server">编辑服务器</string>
-    <string name="cd_expand_tools">展开工具</string>
     <string name="cd_loading_profile">正在加载个人资料</string>
     <string name="cd_make_private">设为私有</string>
     <string name="cd_make_public">设为公开</string>
@@ -510,7 +508,6 @@
     <string name="dialog_title_delete_server">删除服务器</string>
     <string name="dialog_delete_server_message">确定要删除 "%1$s" 吗？</string>
     <string name="error_failed_to_load_servers">加载服务器失败</string>
-    <string name="mcp_tools_count">%1$d 个工具%2$s</string>
     <string name="no_tools_available">没有可用的工具</string>
     <!-- Fork settings -->
     <string name="fork_mode_direct_path">可见消息</string>
@@ -746,4 +743,14 @@
     <string name="advanced_search">高级搜索</string>
     <string name="advanced_search_desc">面向高级用户。在搜索界面中添加区分大小写、全字匹配、正则表达式，以及角色、模型和日期筛选。</string>
     <string name="server_user_ca_notice">通过此设备上安装的证书颁发机构获得信任</string>
+    <string name="export_coming_soon">导出功能即将推出</string>
+    <string name="mcp_tools_all">所有 MCP 工具</string>
+    <string name="mcp_tools_for_server">工具：%1$s</string>
+    <string name="mcp_tool_server">服务器：%1$s</string>
+    <string name="mcp_server_unknown">未知</string>
+    <string name="avatar_upload_unavailable_ios">iOS 暂不支持上传头像。</string>
+    <string name="dialog_ok">确定</string>
+    <plurals name="mcp_tool_count">
+        <item quantity="other">%1$d 个工具</item>
+    </plurals>
 </resources>

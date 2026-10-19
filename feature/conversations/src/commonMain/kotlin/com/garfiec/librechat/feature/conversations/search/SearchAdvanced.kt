@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
@@ -92,6 +94,7 @@ private const val SHEET_MAX_HEIGHT_FRACTION = 0.82f
 private val ToggleGroupShape = RoundedCornerShape(8.dp)
 private val ToggleCellWidth = 40.dp
 private val ToggleCellHeight = 32.dp
+private val CountBadgeSize = 18.dp
 
 /** What the advanced controls change; one bundle so each layout takes the same callbacks. */
 internal class AdvancedActions(
@@ -171,7 +174,12 @@ internal fun WideFilterRow(state: SearchUiState, actions: AdvancedActions, modif
 internal fun TextToggleGroup(options: SearchOptions, onOptionsChange: ((SearchOptions) -> SearchOptions) -> Unit) {
     val outline = MaterialTheme.colorScheme.outline
     Row(
-        modifier = Modifier.height(ToggleCellHeight).border(1.dp, outline, ToggleGroupShape),
+        // A minimum, so a larger font grows the group; the intrinsic height keeps the cells and the
+        // dividers between them as tall as the tallest cell.
+        modifier = Modifier
+            .heightIn(min = ToggleCellHeight)
+            .height(IntrinsicSize.Min)
+            .border(1.dp, outline, ToggleGroupShape),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         ToggleCell("Aa", stringResource(Res.string.search_match_case), options.matchCase) {
@@ -228,7 +236,11 @@ private fun FiltersButton(label: String, count: Int, onClick: () -> Unit) {
 @Composable
 private fun CountBadge(count: Int) {
     Box(
-        modifier = Modifier.size(18.dp).background(MaterialTheme.colorScheme.primary, CircleShape),
+        // A minimum, so the count grows into a pill at a larger font instead of being clipped.
+        modifier = Modifier
+            .sizeIn(minWidth = CountBadgeSize, minHeight = CountBadgeSize)
+            .background(MaterialTheme.colorScheme.primary, CircleShape)
+            .padding(horizontal = 4.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(count.toString(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimary)
@@ -340,15 +352,24 @@ private fun SearchOptionsDialog(state: SearchUiState, actions: AdvancedActions, 
 }
 
 @Composable
-private fun OptionsHeader(title: String, onReset: () -> Unit, onDone: () -> Unit) {
-    Row(
+internal fun OptionsHeader(title: String, onReset: () -> Unit, onDone: () -> Unit) {
+    // Reset and Done drop under the title, as a pair, when the title would not fit on one line
+    // beside them.
+    FlowRow(
         modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.End,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        itemVerticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-        AdaptiveOutlinedButton(onClick = onReset) { Text(stringResource(Res.string.search_reset)) }
-        Spacer(modifier = Modifier.width(8.dp))
-        AdaptiveButton(onClick = onDone) { Text(stringResource(Res.string.search_done)) }
+        Text(
+            title,
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.weight(1f).width(IntrinsicSize.Max),
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            AdaptiveOutlinedButton(onClick = onReset) { Text(stringResource(Res.string.search_reset)) }
+            AdaptiveButton(onClick = onDone) { Text(stringResource(Res.string.search_done)) }
+        }
     }
 }
 

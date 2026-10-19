@@ -38,12 +38,9 @@
     <!-- Empty states -->
     <string name="no_files">没有文件</string>
     <string name="upload_to_get_started">上传文件以开始</string>
-    <string name="no_filter_files">没有%1$s</string>
-    <string name="no_filter_files_found">未找到%1$s文件</string>
     <string name="could_not_load_files">无法加载文件</string>
 
     <!-- Delete dialogs -->
-    <string name="delete_count_files">删除 %1$d 个文件%2$s？</string>
     <string name="action_cannot_be_undone">此操作无法撤销。</string>
     <string name="delete_file_question">删除文件？</string>
     <string name="delete_file_message">删除 "%1$s"？此操作无法撤销。</string>
@@ -66,4 +63,25 @@
     <string name="uploading">上传中…</string>
     <string name="failed_to_download_pdf">PDF 下载失败</string>
     <string name="failed_to_render_pdf">PDF 渲染失败</string>
+    <string name="filter_all">全部</string>
+    <string name="filter_images">图片</string>
+    <string name="filter_documents">文档</string>
+    <string name="filter_audio">音频</string>
+    <string name="filter_video">视频</string>
+    <string name="no_filter_images">没有图片</string>
+    <string name="no_filter_documents">没有文档</string>
+    <string name="no_filter_audio">没有音频</string>
+    <string name="no_filter_video">没有视频</string>
+    <string name="no_filter_files_hint">未找到此类文件</string>
+    <string name="sort_name">名称</string>
+    <string name="sort_date">日期</string>
+    <string name="sort_size">大小</string>
+    <string name="sort_type">类型</string>
+    <string name="cd_back">返回</string>
+    <string name="failed_to_download_file">无法下载文件</string>
+    <string name="content_truncated">内容已截断（文件过大）</string>
+    <string name="pdf_preview_unavailable_ios">iOS 暂不支持 PDF 预览</string>
+    <plurals name="delete_count_files">
+        <item quantity="other">删除 %1$d 个文件？</item>
+    </plurals>
 </resources>

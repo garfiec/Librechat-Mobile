@@ -5,12 +5,15 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.filled.ViewList
+import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.FilterList
@@ -81,10 +84,15 @@ object BarIcons {
     val Source = BarIcon(Icons.Default.Code, "chevron.left.forwardslash.chevron.right")
     val Rendered = BarIcon(Icons.AutoMirrored.Filled.Notes, "text.alignleft")
 
+    // Compact forms of text actions (see BarAction.Text.compactIcon).
+    val Confirm = BarIcon(Icons.Default.Check, "checkmark")
+    val Attach = BarIcon(Icons.Default.AttachFile, "paperclip")
+    val ClearAll = BarIcon(Icons.Default.DeleteSweep, "xmark.bin")
+
     val all: List<BarIcon> = listOf(
         Back, Menu, Close, More, Search, Visible, Hidden, Media, LoadPreset, SavePreset, Prompts,
         Compare, Trace, ContextUsage, Compact, Share, Edit, Duplicate, Archive, Delete,
         EditFilled, DuplicateFilled, DeleteFilled, ShareFilled, History, Sort, NewFolder, Tools, Import,
-        SelectAll, GridView, ListView, Filter, Source, Rendered,
+        SelectAll, GridView, ListView, Filter, Source, Rendered, Confirm, Attach, ClearAll,
     )
 }

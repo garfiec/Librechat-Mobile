@@ -7,13 +7,17 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -41,8 +45,10 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -272,8 +278,10 @@ private fun CompactAskLayout(
 ) {
     val active = state.active
     val draft = state.activeDraft
-    // Per question, so each one opens scrolled to its first line.
-    val questionScroll = key(active.id) { rememberScrollState() }
+    // A question too long for the header's cap shrinks there to a one-line summary and is shown in
+    // full at the top of the body, so all of it reads in the one scroll region with the options.
+    val titleMaxHeight = bodyMaxHeight * HEADER_TO_BODY_HEIGHT_RATIO
+    var titleCut by remember(active.id, titleMaxHeight) { mutableStateOf(false) }
 
     Box {
         Column(
@@ -284,10 +292,9 @@ private fun CompactAskLayout(
             PausePanelCompactHeader(
                 title = active.question,
                 collapsed = state.collapsed,
-                expandedTitleMaxLines = Int.MAX_VALUE,
-                titleModifier = Modifier
-                    .heightIn(max = bodyMaxHeight * HEADER_TO_BODY_HEIGHT_RATIO)
-                    .verticalScroll(questionScroll),
+                expandedTitleMaxLines = if (titleCut) 1 else Int.MAX_VALUE,
+                expandedTitleMaxHeight = titleMaxHeight,
+                onTitleOverflow = { titleCut = it },
                 pager = if (state.questions.size > 1) {
                     {
                         PausePanelPager(
@@ -309,12 +316,22 @@ private fun CompactAskLayout(
             if (state.collapsed) return@Column
 
             key(active.id) {
+                // Weighted, so it is measured after the header and the answer row and gets only the
+                // height they leave: in a short window the options scroll, the header stays on screen.
                 Column(
                     modifier = Modifier
+                        .weight(1f, fill = false)
                         .padding(end = 12.dp)
                         .heightIn(max = bodyMaxHeight)
                         .verticalScroll(rememberScrollState()),
                 ) {
+                    if (titleCut) {
+                        Text(
+                            text = active.question,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.padding(bottom = 8.dp),
+                        )
+                    }
                     active.description?.takeIf { it.isNotBlank() }?.let { description ->
                         Text(
                             text = description,
@@ -419,7 +436,8 @@ private fun NumberBadge(selected: Boolean, content: @Composable () -> Unit) {
 
 /**
  * The "Something else" row and the one action the compact card offers: Skip while the question
- * is blank, then Next — or Send once every question has an answer.
+ * is blank, then Next — or Send once every question has an answer. The action moves onto a line of
+ * its own, end-aligned, before it would squeeze the field below [FREE_TEXT_MIN_WIDTH].
  */
 @Composable
 private fun CompactFreeTextRow(state: AskPanelState, actions: AskPanelActions) {
@@ -428,78 +446,96 @@ private fun CompactFreeTextRow(state: AskPanelState, actions: AskPanelActions) {
     val answered = state.isAnswered(active.id)
     val proceed = { actions.advanceOrSubmit(state.activeIndex, state.answers) }
 
-    Row(
+    FlowRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(start = 8.dp, top = 8.dp, end = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        NumberBadge(selected = false) {
-            Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .widthIn(min = FREE_TEXT_MIN_WIDTH)
+                .align(Alignment.CenterVertically),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            CompactFreeTextField(state = state, actions = actions, onDone = { if (answered) proceed() })
         }
-        Spacer(modifier = Modifier.width(16.dp))
-        Box(modifier = Modifier.weight(1f)) {
-            val colors = MaterialTheme.colorScheme
-            BasicTextField(
-                value = draft.freeText,
-                onValueChange = { typed ->
-                    actions.onDraftChange(
-                        active.id,
-                        draft.copy(
-                            freeText = typed.take(askFreeTextBudget(active.options, draft.selectedOptions)),
-                            skipped = false,
-                        ),
-                    )
-                },
-                enabled = !state.isResolving,
-                textStyle = MaterialTheme.typography.bodyLarge.copy(color = colors.onSurface),
-                cursorBrush = SolidColor(colors.primary),
-                maxLines = 4,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { if (answered) proceed() }),
-                modifier = Modifier.fillMaxWidth(),
-            )
-            if (draft.freeText.isEmpty()) {
-                Text(
-                    text = stringResource(
-                        when {
-                            draft.skipped -> Res.string.ask_user_question_skipped
-                            active.options.isEmpty() -> Res.string.ask_user_question_answer_hint
-                            else -> Res.string.ask_user_question_other_hint
-                        },
+        Row(modifier = Modifier.align(Alignment.CenterVertically), verticalAlignment = Alignment.CenterVertically) {
+            if (state.isResolving) {
+                AdaptiveCircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            actions.onStop?.let { StopRunButton(onStop = it) }
+            when {
+                !answered -> AdaptiveOutlinedButton(
+                    onClick = {
+                        actions.onDraftChange(active.id, AskAnswerDraft(skipped = true))
+                        actions.advanceOrSubmit(
+                            state.activeIndex,
+                            state.answers + (active.id to ASK_USER_DECLINED_ANSWER),
+                        )
+                    },
+                    enabled = !state.isResolving,
+                ) {
+                    Text(stringResource(Res.string.ask_user_question_skip))
+                }
+                state.allAnswered -> AdaptiveButton(onClick = proceed, enabled = !state.isResolving) {
+                    Text(stringResource(Res.string.ask_user_question_send))
+                }
+                else -> AdaptiveButton(onClick = proceed, enabled = !state.isResolving) {
+                    Text(stringResource(Res.string.ask_user_question_next))
+                }
+            }
+        }
+    }
+}
+
+/** The pencil badge and the free-text field beside it, with its hint while empty. */
+@Composable
+private fun RowScope.CompactFreeTextField(state: AskPanelState, actions: AskPanelActions, onDone: () -> Unit) {
+    val active = state.active
+    val draft = state.activeDraft
+    NumberBadge(selected = false) {
+        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+    }
+    Spacer(modifier = Modifier.width(16.dp))
+    Box(modifier = Modifier.weight(1f)) {
+        val colors = MaterialTheme.colorScheme
+        BasicTextField(
+            value = draft.freeText,
+            onValueChange = { typed ->
+                actions.onDraftChange(
+                    active.id,
+                    draft.copy(
+                        freeText = typed.take(askFreeTextBudget(active.options, draft.selectedOptions)),
+                        skipped = false,
                     ),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = colors.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
-            }
-        }
-        Spacer(modifier = Modifier.width(8.dp))
-        if (state.isResolving) {
-            AdaptiveCircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-            Spacer(modifier = Modifier.width(8.dp))
-        }
-        actions.onStop?.let { StopRunButton(onStop = it) }
-        when {
-            !answered -> AdaptiveOutlinedButton(
-                onClick = {
-                    actions.onDraftChange(active.id, AskAnswerDraft(skipped = true))
-                    actions.advanceOrSubmit(
-                        state.activeIndex,
-                        state.answers + (active.id to ASK_USER_DECLINED_ANSWER),
-                    )
-                },
-                enabled = !state.isResolving,
-            ) {
-                Text(stringResource(Res.string.ask_user_question_skip))
-            }
-            state.allAnswered -> AdaptiveButton(onClick = proceed, enabled = !state.isResolving) {
-                Text(stringResource(Res.string.ask_user_question_send))
-            }
-            else -> AdaptiveButton(onClick = proceed, enabled = !state.isResolving) {
-                Text(stringResource(Res.string.ask_user_question_next))
-            }
+            },
+            enabled = !state.isResolving,
+            textStyle = MaterialTheme.typography.bodyLarge.copy(color = colors.onSurface),
+            cursorBrush = SolidColor(colors.primary),
+            maxLines = 4,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { onDone() }),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        if (draft.freeText.isEmpty()) {
+            Text(
+                text = stringResource(
+                    when {
+                        draft.skipped -> Res.string.ask_user_question_skipped
+                        active.options.isEmpty() -> Res.string.ask_user_question_answer_hint
+                        else -> Res.string.ask_user_question_other_hint
+                    },
+                ),
+                style = MaterialTheme.typography.bodyLarge,
+                color = colors.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
@@ -577,60 +613,88 @@ private fun WideAskLayout(
                     }
                 }
 
-                Row(
+                FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    actions.onStop?.let { StopRunButton(onStop = it) }
-                    TextButton(onClick = actions.skipAll, enabled = !state.isResolving) {
-                        Text(
-                            stringResource(
-                                if (isTabbed) Res.string.ask_user_question_skip_all else Res.string.ask_user_question_skip,
-                            ),
-                        )
-                    }
-                    Spacer(modifier = Modifier.weight(1f))
-                    if (state.isResolving) {
-                        AdaptiveCircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                    }
-                    if (state.activeIndex > 0) {
-                        TextButton(
-                            onClick = { actions.onSelect(state.activeIndex - 1) },
-                            enabled = !state.isResolving,
-                        ) {
-                            Text(stringResource(Res.string.ask_user_question_back))
-                        }
-                    }
-                    if (!state.isLast) {
-                        AdaptiveButton(
-                            onClick = { actions.onSelect(state.activeIndex + 1) },
-                            enabled = !state.isResolving,
-                        ) {
-                            Text(stringResource(Res.string.ask_user_question_next))
-                        }
-                    } else {
-                        AdaptiveButton(
-                            onClick = { actions.submit(state.answers) },
-                            enabled = !state.isResolving && state.allAnswered,
-                        ) {
+                    Row(modifier = Modifier.align(Alignment.CenterVertically), verticalAlignment = Alignment.CenterVertically) {
+                        actions.onStop?.let { StopRunButton(onStop = it) }
+                        TextButton(onClick = actions.skipAll, enabled = !state.isResolving) {
                             Text(
-                                if (isTabbed) {
-                                    stringResource(
-                                        Res.string.ask_user_question_send_progress,
-                                        state.answeredCount,
-                                        questions.size,
-                                    )
-                                } else {
-                                    stringResource(Res.string.ask_user_question_send)
-                                },
+                                stringResource(
+                                    if (isTabbed) Res.string.ask_user_question_skip_all else Res.string.ask_user_question_skip,
+                                ),
                             )
                         }
                     }
+                    // A weighted flow item breaks on its minimum width; IntrinsicSize.Max makes that
+                    // the group's natural width, so it drops to its own line whole rather than squeeze.
+                    WideAskEndActions(
+                        state = state,
+                        actions = actions,
+                        modifier = Modifier
+                            .weight(1f)
+                            .width(IntrinsicSize.Max)
+                            .align(Alignment.CenterVertically),
+                    )
                 }
             }
         }
         if (state.collapsed) ExpandCollapsedOverlay(onExpand = { actions.onCollapsedChange(false) })
+    }
+}
+
+/** The wide row's end: Back, then Next or Send. */
+@Composable
+private fun WideAskEndActions(
+    state: AskPanelState,
+    actions: AskPanelActions,
+    modifier: Modifier = Modifier,
+) {
+    val questions = state.questions
+    val isTabbed = questions.size > 1
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (state.isResolving) {
+            AdaptiveCircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+        }
+        if (state.activeIndex > 0) {
+            TextButton(
+                onClick = { actions.onSelect(state.activeIndex - 1) },
+                enabled = !state.isResolving,
+            ) {
+                Text(stringResource(Res.string.ask_user_question_back))
+            }
+        }
+        if (!state.isLast) {
+            AdaptiveButton(
+                onClick = { actions.onSelect(state.activeIndex + 1) },
+                enabled = !state.isResolving,
+            ) {
+                Text(stringResource(Res.string.ask_user_question_next))
+            }
+        } else {
+            AdaptiveButton(
+                onClick = { actions.submit(state.answers) },
+                enabled = !state.isResolving && state.allAnswered,
+            ) {
+                Text(
+                    if (isTabbed) {
+                        stringResource(
+                            Res.string.ask_user_question_send_progress,
+                            state.answeredCount,
+                            questions.size,
+                        )
+                    } else {
+                        stringResource(Res.string.ask_user_question_send)
+                    },
+                )
+            }
+        }
     }
 }
 
@@ -820,3 +884,6 @@ private const val BODY_HEIGHT_FRACTION = 0.45f
  */
 private const val HEADER_TO_BODY_HEIGHT_RATIO = 0.5f
 private val FALLBACK_BODY_MAX_HEIGHT = 320.dp
+
+/** The narrowest the compact free-text field gets before its action moves to a line of its own. */
+private val FREE_TEXT_MIN_WIDTH = 160.dp

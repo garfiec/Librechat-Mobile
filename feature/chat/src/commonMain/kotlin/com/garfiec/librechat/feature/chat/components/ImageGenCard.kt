@@ -138,6 +138,7 @@ fun ImageGenCard(
                     text = stringResource(if (result.isGenerating) Res.string.generating_image else Res.string.image_generated),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
                 if (result.isGenerating) {
                     Spacer(modifier = Modifier.width(8.dp))
@@ -145,6 +146,8 @@ fun ImageGenCard(
                         text = "${(fauxProgress * 100).toInt()}%",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        softWrap = false,
                     )
                 }
             }

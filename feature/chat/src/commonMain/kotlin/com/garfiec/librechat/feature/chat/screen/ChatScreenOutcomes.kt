@@ -9,9 +9,12 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.feature.chat.components.ForkOptionsBottomSheet
+import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.resources.share_link_copied
 import com.garfiec.librechat.feature.chat.util.rememberClipboardWriter
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * The ViewModel outcomes the chat screen acts on: lifecycle pause/resume, Share, Fork and
@@ -48,11 +51,12 @@ internal fun ChatScreenOutcomes(
     }
 
     val shareLinkUrl by viewModel.shareLinkUrl.collectAsStateWithLifecycle()
+    val shareLinkCopied = stringResource(Res.string.share_link_copied)
     LaunchedEffect(shareLinkUrl) {
         val url = shareLinkUrl ?: return@LaunchedEffect
         clipboard.copy(url, label = "Share Link")
         viewModel.onShareLinkHandled()
-        snackbarHostState.showSnackbar("Share link copied to clipboard")
+        snackbarHostState.showSnackbar(shareLinkCopied)
     }
 
     val forkMessageId = uiState.showForkOptionsForMessageId

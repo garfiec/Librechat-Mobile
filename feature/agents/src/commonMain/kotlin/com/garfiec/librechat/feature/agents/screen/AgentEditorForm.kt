@@ -30,6 +30,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
@@ -150,7 +151,9 @@ internal fun AgentEditorForm(
             label = {
                 Text(stringResource(Res.string.agent_name_label))
             },
-            placeholder = { Text(stringResource(Res.string.agent_name_placeholder)) },
+            placeholder = {
+                Text(stringResource(Res.string.agent_name_placeholder), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            },
             isError = uiState.nameError != null,
             supportingText = uiState.nameError?.let { error ->
                 { Text(error) }
@@ -450,7 +453,9 @@ internal fun AgentEditorForm(
             AdaptiveOutlinedTextField(
                 value = newStarter,
                 onValueChange = { newStarter = it },
-                placeholder = { Text(stringResource(Res.string.add_starter_hint)) },
+                placeholder = {
+                    Text(stringResource(Res.string.add_starter_hint), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                },
                 singleLine = true,
                 modifier = Modifier.weight(1f),
             )

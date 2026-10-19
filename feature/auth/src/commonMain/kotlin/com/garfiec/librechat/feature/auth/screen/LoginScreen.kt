@@ -5,11 +5,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -94,7 +96,9 @@ fun LoginScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .imePadding()
+                // No scaffold here: the screen keeps itself clear of the system bars and the keyboard.
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .then(if (onBack != null) Modifier.padding(top = BackAffordanceClearance) else Modifier)
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -104,6 +108,7 @@ fun LoginScreen(
                 text = stringResource(Res.string.login_title),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground,
+                textAlign = TextAlign.Center,
                 modifier = Modifier.semantics { heading() },
             )
 
@@ -253,12 +258,16 @@ fun LoginScreen(
     }
 }
 
-private fun oAuthProviderLabel(provider: String): String = when (provider.lowercase()) {
-    "google" -> "Continue with Google"
-    "github" -> "Continue with GitHub"
-    "discord" -> "Continue with Discord"
-    "facebook" -> "Continue with Facebook"
-    "apple" -> "Continue with Apple"
-    "openid" -> "Continue with OpenID"
-    else -> "Continue with ${provider.replaceFirstChar { it.uppercase() }}"
+@Composable
+internal fun oAuthProviderLabel(provider: String): String {
+    val name = when (provider.lowercase()) {
+        "google" -> "Google"
+        "github" -> "GitHub"
+        "discord" -> "Discord"
+        "facebook" -> "Facebook"
+        "apple" -> "Apple"
+        "openid" -> "OpenID"
+        else -> provider.replaceFirstChar { it.uppercase() }
+    }
+    return stringResource(Res.string.continue_with_provider, name)
 }

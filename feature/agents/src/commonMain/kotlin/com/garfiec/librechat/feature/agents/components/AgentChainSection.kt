@@ -70,6 +70,7 @@ fun AgentChainSection(
             Text(
                 text = stringResource(Res.string.chain_agents_count, chainAgentIds.size),
                 style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.weight(1f),
             )
             Icon(
                 imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,

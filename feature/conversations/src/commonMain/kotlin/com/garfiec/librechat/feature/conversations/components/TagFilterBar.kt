@@ -30,6 +30,7 @@ import com.garfiec.librechat.core.model.ConversationTag
 import com.garfiec.librechat.core.ui.components.AdaptiveFilterChip
 import com.garfiec.librechat.feature.conversations.resources.*
 import com.garfiec.librechat.feature.conversations.resources.Res
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,7 +65,7 @@ fun TagFilterBar(
 
             if (selectedTags.isNotEmpty() && !expanded) {
                 Text(
-                    text = stringResource(Res.string.tags_active_count, selectedTags.size, if (selectedTags.size > 1) "s" else ""),
+                    text = pluralStringResource(Res.plurals.tags_active_count, selectedTags.size, selectedTags.size),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )

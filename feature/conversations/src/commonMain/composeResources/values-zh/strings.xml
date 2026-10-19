@@ -79,7 +79,6 @@
     <string name="add_new_tag">添加新标签</string>
 
     <!-- Tag filter bar -->
-    <string name="tags_active_count">%1$d 个标签%2$s已启用</string>
 
     <!-- Export format picker -->
     <string name="export_format">导出格式</string>
@@ -212,4 +211,12 @@
     <string name="search_group_conversation">按聊天</string>
     <string name="search_group_none">单一列表</string>
     <string name="search_server_unavailable">服务器搜索暂时不可用</string>
+    <string name="endpoint_label_assistants">助手</string>
+    <string name="endpoint_label_azure_assistants">Azure 助手</string>
+    <string name="endpoint_label_agents">智能体</string>
+    <string name="endpoint_label_custom">自定义</string>
+    <string name="endpoint_label_chat">聊天</string>
+    <plurals name="tags_active_count">
+        <item quantity="other">已启用 %1$d 个标签</item>
+    </plurals>
 </resources>

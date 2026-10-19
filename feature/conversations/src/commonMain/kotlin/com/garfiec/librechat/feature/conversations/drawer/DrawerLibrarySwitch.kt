@@ -10,9 +10,12 @@ import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -44,14 +47,22 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.max
+import androidx.compose.ui.unit.min
 import androidx.compose.ui.zIndex
 import com.garfiec.librechat.core.ui.glass.GlassControlColors
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 import com.garfiec.librechat.feature.conversations.resources.Res
 import com.garfiec.librechat.feature.conversations.resources.chats
+import com.garfiec.librechat.feature.conversations.resources.library
 import com.garfiec.librechat.feature.conversations.resources.projects
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -176,14 +187,50 @@ private const val OUTGOING_FADE = 0.35f
 private const val INCOMING_FADE_START = 0.2f
 
 // Sliding pill toggle: the rounded track, its slightly-tighter moving thumb, and each icon+label
-// cell's fixed size (equal widths so the thumb offset is a whole-cell step).
+// cell's size (equal widths so the thumb offset is a whole-cell step): at least the minimum, wider
+// when a label needs it.
 private val PillTrackShape = RoundedCornerShape(12.dp)
 private val PillThumbShape = RoundedCornerShape(8.dp)
-private val DrawerTabCellWidth = 88.dp
+private val TrackInset = 3.dp
+private val DrawerTabCellMinWidth = 88.dp
 private val DrawerTabCellHeight = 34.dp
+private val CellIconSize = 16.dp
+private val CellIconGap = 6.dp
+private val CellInset = 8.dp
 
 // A release this fast picks the side it's heading to, however far the thumb got.
 private val FlingVelocity = 400.dp
+
+/**
+ * The Library section's heading, with the toggle that slides between the recents and projects views
+ * beside it (the heading names the whole section; the toggle picks what the list shows). The toggle
+ * drops below the heading when a translation leaves them too little room side by side.
+ */
+@Composable
+internal fun LibraryHeader(
+    switch: LibrarySwitch,
+    selectedTab: DrawerTab,
+    onSelect: (DrawerTab) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    BoxWithConstraints(modifier = modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp)) {
+        val lineWidth = maxWidth
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            itemVerticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(Res.string.library),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.semantics { heading() },
+            )
+            DrawerTabToggle(switch = switch, selectedTab = selectedTab, onSelect = onSelect, maxWidth = lineWidth)
+        }
+    }
+}
 
 /**
  * Sliding-pill toggle for the drawer's two list modes: a rounded track holding two equal-width
@@ -197,12 +244,17 @@ internal fun DrawerTabToggle(
     selectedTab: DrawerTab,
     onSelect: (DrawerTab) -> Unit,
     modifier: Modifier = Modifier,
+    maxWidth: Dp = Dp.Infinity,
 ) {
     val glass = isLiquidGlass
     val thumbColor = if (glass) GlassControlColors.segmentThumb else MaterialTheme.colorScheme.secondaryContainer
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val density = LocalDensity.current
-    val cellPx = with(density) { DrawerTabCellWidth.toPx() }
+    val chatsLabel = stringResource(Res.string.chats)
+    val projectsLabel = stringResource(Res.string.projects)
+    // Never wider than the line, where a long label is cut short instead.
+    val cellWidth = min(rememberCellWidth(listOf(chatsLabel, projectsLabel)), (maxWidth - TrackInset * 2) / 2)
+    val cellPx = with(density) { cellWidth.toPx() }
     val flingPx = with(density) { FlingVelocity.toPx() }
     val select = { tab: DrawerTab ->
         switch.settle(tab)
@@ -223,12 +275,12 @@ internal fun DrawerTabToggle(
                     if (tab != selectedTab) onSelect(tab)
                 },
             )
-            .padding(3.dp)
+            .padding(TrackInset)
             .height(DrawerTabCellHeight),
     ) {
         Box(
             modifier = Modifier
-                .width(DrawerTabCellWidth)
+                .width(cellWidth)
                 .fillMaxHeight()
                 // offset {} already mirrors x in RTL; negating it here would flip it twice.
                 .offset { IntOffset((cellPx * switch.progress.value).roundToInt(), 0) }
@@ -240,17 +292,31 @@ internal fun DrawerTabToggle(
         Row {
             DrawerTabToggleCell(
                 icon = Icons.AutoMirrored.Filled.Chat,
-                label = stringResource(Res.string.chats),
+                label = chatsLabel,
+                width = cellWidth,
                 onThumb = 1f - onThumb,
                 onClick = { select(DrawerTab.Chats) },
             )
             DrawerTabToggleCell(
                 icon = Icons.Default.Workspaces,
-                label = stringResource(Res.string.projects),
+                label = projectsLabel,
+                width = cellWidth,
                 onThumb = onThumb,
                 onClick = { select(DrawerTab.Projects) },
             )
         }
+    }
+}
+
+/** The width of a toggle cell: the minimum, or the widest label beside its icon if that's wider. */
+@Composable
+private fun rememberCellWidth(labels: List<String>): Dp {
+    val measurer = rememberTextMeasurer()
+    val style = MaterialTheme.typography.labelMedium
+    val density = LocalDensity.current
+    return remember(labels, style, measurer, density) {
+        val widest = labels.maxOf { measurer.measure(it, style, softWrap = false, maxLines = 1).size.width }
+        max(DrawerTabCellMinWidth, with(density) { widest.toDp() } + CellIconSize + CellIconGap + CellInset * 2)
     }
 }
 
@@ -259,6 +325,7 @@ internal fun DrawerTabToggle(
 private fun DrawerTabToggleCell(
     icon: ImageVector,
     label: String,
+    width: Dp,
     onThumb: Float,
     onClick: () -> Unit,
 ) {
@@ -267,7 +334,7 @@ private fun DrawerTabToggleCell(
     val contentColor = lerp(MaterialTheme.colorScheme.onSurfaceVariant, selectedColor, onThumb)
     Row(
         modifier = Modifier
-            .width(DrawerTabCellWidth)
+            .width(width)
             .fillMaxHeight()
             .clip(PillThumbShape)
             // No ripple: the thumb is the feedback, and a ripple would flash under a drag's start.
@@ -278,15 +345,16 @@ private fun DrawerTabToggleCell(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            modifier = Modifier.size(16.dp),
+            modifier = Modifier.size(CellIconSize),
             tint = contentColor,
         )
-        Spacer(modifier = Modifier.width(6.dp))
+        Spacer(modifier = Modifier.width(CellIconGap))
         Text(
             text = label,
             style = MaterialTheme.typography.labelMedium,
             color = contentColor,
             maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }

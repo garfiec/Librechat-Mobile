@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.common.extensions.formatLocalizedNumber
 import com.garfiec.librechat.core.common.speech.sttEngineSelectsRecognizer
 import com.garfiec.librechat.core.common.speech.sttSupportsLiveRecognition
 import com.garfiec.librechat.core.model.speech.SttEngine
@@ -39,10 +40,10 @@ import com.garfiec.librechat.core.ui.components.AdaptiveFilledTonalButton
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
+import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import org.jetbrains.compose.resources.stringResource
-import kotlin.math.roundToLong
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -268,6 +269,7 @@ internal fun TtsDetailDialog(
 ) {
     var engine by remember { mutableStateOf(selectedEngine) }
     var voice by remember { mutableStateOf(selectedVoice) }
+    val localeTag = LocalDateTimeFormat.current.localeTag
     var rate by remember { mutableFloatStateOf(speechRate) }
     var currentPitch by remember { mutableFloatStateOf(pitch) }
     var currentDeviceVoice by remember { mutableStateOf(deviceVoiceName) }
@@ -390,7 +392,7 @@ internal fun TtsDetailDialog(
 
                     // Speech rate slider
                     Text(
-                        text = stringResource(Res.string.tts_speech_rate, oneDecimal(rate)),
+                        text = stringResource(Res.string.tts_speech_rate, oneDecimal(rate, localeTag)),
                         style = MaterialTheme.typography.labelMedium,
                     )
                     Slider(
@@ -403,7 +405,7 @@ internal fun TtsDetailDialog(
 
                     // Pitch slider
                     Text(
-                        text = stringResource(Res.string.tts_pitch, oneDecimal(currentPitch)),
+                        text = stringResource(Res.string.tts_pitch, oneDecimal(currentPitch, localeTag)),
                         style = MaterialTheme.typography.labelMedium,
                     )
                     Slider(
@@ -426,7 +428,7 @@ internal fun TtsDetailDialog(
                         onExpandedChange = { engineExpanded = it },
                     ) {
                         AdaptiveOutlinedTextField(
-                            value = engine.ifBlank { stringResource(Res.string.stt_default) },
+                            value = ttsOptionLabel(engine),
                             onValueChange = {},
                             readOnly = true,
                             trailingIcon = {
@@ -442,7 +444,7 @@ internal fun TtsDetailDialog(
                         ) {
                             availableEngines.forEach { item ->
                                 DropdownMenuItem(
-                                    text = { Text(item) },
+                                    text = { Text(ttsOptionLabel(item)) },
                                     onClick = {
                                         engine = item
                                         engineExpanded = false
@@ -462,7 +464,7 @@ internal fun TtsDetailDialog(
                         onExpandedChange = { voiceExpanded = it },
                     ) {
                         AdaptiveOutlinedTextField(
-                            value = voice.ifBlank { stringResource(Res.string.stt_default) },
+                            value = ttsOptionLabel(voice),
                             onValueChange = {},
                             readOnly = true,
                             trailingIcon = {
@@ -478,7 +480,7 @@ internal fun TtsDetailDialog(
                         ) {
                             availableVoices.forEach { item ->
                                 DropdownMenuItem(
-                                    text = { Text(item) },
+                                    text = { Text(ttsOptionLabel(item)) },
                                     onClick = {
                                         voice = item
                                         voiceExpanded = false
@@ -568,11 +570,15 @@ internal fun TtsDetailDialog(
 
 /**
  * Compose resources substitutes only `%N$s` / `%N$d`, so a `%.1f` in the string would render as
- * written; the number is formatted here instead.
+ * written; the number is formatted here instead, with [localeTag]'s decimal separator.
  */
-internal fun oneDecimal(value: Float): String {
-    val tenths = (value * TENTHS).roundToLong()
-    return "${tenths / TENTHS}.${tenths % TENTHS}"
-}
+internal fun oneDecimal(value: Float, localeTag: String): String =
+    formatLocalizedNumber(value.toDouble(), localeTag, maxFractionDigits = 1, minFractionDigits = 1)
 
-private const val TENTHS = 10L
+/** The engine and voice lists' "use the default" entry, as it is stored. */
+internal const val TTS_DEFAULT_OPTION = "Default"
+
+/** An engine or voice name, with the stored default entry (or none) shown translated. */
+@Composable
+private fun ttsOptionLabel(option: String): String =
+    if (option.isBlank() || option == TTS_DEFAULT_OPTION) stringResource(Res.string.stt_default) else option

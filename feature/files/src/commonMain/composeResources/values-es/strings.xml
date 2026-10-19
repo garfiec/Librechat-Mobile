@@ -38,12 +38,9 @@
     <!-- Empty states -->
     <string name="no_files">No hay archivos</string>
     <string name="upload_to_get_started">Sube archivos para empezar</string>
-    <string name="no_filter_files">Sin %1$s</string>
-    <string name="no_filter_files_found">No se encontraron archivos de %1$s</string>
     <string name="could_not_load_files">No se pudieron cargar los archivos</string>
 
     <!-- Delete dialogs -->
-    <string name="delete_count_files">¿Eliminar %1$d archivo%2$s?</string>
     <string name="action_cannot_be_undone">Esta acción no se puede deshacer.</string>
     <string name="delete_file_question">¿Eliminar archivo?</string>
     <string name="delete_file_message">¿Eliminar "%1$s"? Esta acción no se puede deshacer.</string>
@@ -66,4 +63,26 @@
     <string name="uploading">Subiendo…</string>
     <string name="failed_to_download_pdf">Error al descargar el PDF</string>
     <string name="failed_to_render_pdf">Error al mostrar el PDF</string>
+    <string name="filter_all">Todos</string>
+    <string name="filter_images">Imágenes</string>
+    <string name="filter_documents">Documentos</string>
+    <string name="filter_audio">Audio</string>
+    <string name="filter_video">Vídeo</string>
+    <string name="no_filter_images">No hay imágenes</string>
+    <string name="no_filter_documents">No hay documentos</string>
+    <string name="no_filter_audio">No hay audio</string>
+    <string name="no_filter_video">No hay vídeos</string>
+    <string name="no_filter_files_hint">No se encontraron archivos de este tipo</string>
+    <string name="sort_name">Nombre</string>
+    <string name="sort_date">Fecha</string>
+    <string name="sort_size">Tamaño</string>
+    <string name="sort_type">Tipo</string>
+    <string name="cd_back">Atrás</string>
+    <string name="failed_to_download_file">No se pudo descargar el archivo</string>
+    <string name="content_truncated">Contenido truncado (archivo demasiado grande)</string>
+    <string name="pdf_preview_unavailable_ios">La vista previa de PDF aún no está disponible en iOS</string>
+    <plurals name="delete_count_files">
+        <item quantity="one">¿Eliminar %1$d archivo?</item>
+        <item quantity="other">¿Eliminar %1$d archivos?</item>
+    </plurals>
 </resources>

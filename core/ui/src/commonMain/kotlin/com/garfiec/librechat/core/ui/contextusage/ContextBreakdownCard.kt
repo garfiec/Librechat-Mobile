@@ -7,6 +7,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,6 +35,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.Hyphens
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.config.CurrencyConfig
 import com.garfiec.librechat.core.model.usage.BreakdownCategory
@@ -123,6 +126,7 @@ fun pressureColor(roundedPercent: Int): Color? = when (contextPressure(roundedPe
  * and Cost. [onCompact] adds the Compact button; null hides it (and the Settings preview passes
  * null).
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ContextBreakdownCard(
     model: ContextBreakdownModel,
@@ -141,12 +145,18 @@ fun ContextBreakdownCard(
     val tint = pressureColor(percent)
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(
+        // The reading drops below the title when both don't fit on one line; squeezed beside it,
+        // it would break mid-number. The rows below keep the value beside a label that wraps instead.
+        FlowRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+            itemVerticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(text = stringResource(Res.string.context_usage_window), style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = stringResource(Res.string.context_usage_window),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(end = VALUE_GAP),
+            )
             val used = (if (model.isEstimate) "~" else "") + formatTokens(view.usedTokens)
             Text(
                 text = if (view.windowTokens > 0) "$used / ${formatTokens(view.windowTokens)} ($percent%)" else used,
@@ -358,25 +368,35 @@ private fun CostRows(cost: CostRows, currency: CurrencyConfig?) {
         else -> Res.string.context_usage_cost_branch
     }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(stringResource(label), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = stringResource(label),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
             Text(
                 text = formatCost(cost.primary, currency, locale),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
+                softWrap = false,
+                modifier = Modifier.padding(start = VALUE_GAP),
             )
         }
         cost.allBranches?.let { total ->
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Row(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = stringResource(Res.string.context_usage_cost_all),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
                 )
                 Text(
                     text = formatCost(total, currency, locale),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    softWrap = false,
+                    modifier = Modifier.padding(start = VALUE_GAP),
                 )
             }
         }
@@ -424,7 +444,14 @@ private fun UsageRow(
                 )
                 null -> Unit
             }
-            Text(text = label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            // Weighted so a wrapping label leaves the chevron its room; hyphenated so a long single
+            // word ("Zwischengespeichert") breaks at a syllable rather than mid-letter.
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium.copy(hyphens = Hyphens.Auto),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f, fill = false),
+            )
             if (expanded != null) {
                 Icon(
                     imageVector = Icons.Default.KeyboardArrowDown,
@@ -434,15 +461,21 @@ private fun UsageRow(
                 )
             }
         }
-        Row(verticalAlignment = Alignment.Bottom) {
+        Row(modifier = Modifier.padding(start = VALUE_GAP), verticalAlignment = Alignment.Bottom) {
             Text(
                 text = formatTokens(tokens),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurface,
+                softWrap = false,
             )
             if (percent != null) {
-                Text(text = " ($percent%)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    text = " ($percent%)",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    softWrap = false,
+                )
             }
         }
     }
@@ -467,3 +500,4 @@ private val BreakdownCategory.label: StringResource
 /** The series slot used for the "filling up" tint (amber in both themes). */
 private const val WARNING_SLOT = 4
 private val INDENT = 24.dp
+private val VALUE_GAP = 8.dp

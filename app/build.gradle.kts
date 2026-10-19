@@ -119,7 +119,6 @@ dependencies {
     implementation(libs.koin.compose)
     implementation(libs.koin.compose.viewmodel)
     implementation(libs.koin.compose.viewmodel.navigation)
-    implementation(libs.compose.material3.wsc)
     implementation(libs.bundles.lifecycle)
     implementation(libs.coil3.compose)
     implementation(libs.coil3.network.ktor)

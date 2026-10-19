@@ -25,7 +25,6 @@
     <string name="cd_back">Atrás</string>
     <string name="cd_change_avatar">Cambiar avatar</string>
     <string name="cd_choose_image">Elegir imagen</string>
-    <string name="cd_collapse_tools">Contraer herramientas</string>
     <string name="cd_copy_api_key">Copiar clave de API</string>
     <string name="cd_copy_link">Copiar enlace</string>
     <string name="cd_create_api_key">Crear clave de API</string>
@@ -40,7 +39,6 @@
     <string name="memory_redacted_key">Entrada oculta</string>
     <string name="memory_redacted_value">La política de contenido de este servidor oculta lo que hay guardado aquí. Aun así, puedes eliminarlo.</string>
     <string name="cd_edit_server">Editar servidor</string>
-    <string name="cd_expand_tools">Expandir herramientas</string>
     <string name="cd_loading_profile">Cargando perfil</string>
     <string name="cd_make_private">Hacer privado</string>
     <string name="cd_make_public">Hacer público</string>
@@ -163,7 +161,7 @@
     <string name="tab_data">Datos</string>
 
     <!-- Theme -->
-    <string name="theme_system">Predeterminado del sistema</string>
+    <string name="theme_system">Sistema</string>
     <string name="theme_light">Claro</string>
     <string name="theme_dark">Oscuro</string>
 
@@ -516,7 +514,6 @@
     <string name="dialog_title_delete_server">Eliminar servidor</string>
     <string name="dialog_delete_server_message">¿Seguro que quieres eliminar "%1$s"?</string>
     <string name="error_failed_to_load_servers">Error al cargar los servidores</string>
-    <string name="mcp_tools_count">%1$d herramienta%2$s</string>
     <string name="no_tools_available">No hay herramientas disponibles</string>
     <!-- Fork settings -->
     <string name="fork_mode_direct_path">Mensajes visibles</string>
@@ -754,4 +751,15 @@
     <string name="advanced_search">Búsqueda avanzada</string>
     <string name="advanced_search_desc">Para usuarios avanzados. Añade distinguir mayúsculas, palabra completa, expresiones regulares y filtros de rol, modelo y fecha a la pantalla de búsqueda.</string>
     <string name="server_user_ca_notice">De confianza mediante una autoridad de certificación instalada en este dispositivo</string>
+    <string name="export_coming_soon">La exportación llegará pronto</string>
+    <string name="mcp_tools_all">Todas las herramientas MCP</string>
+    <string name="mcp_tools_for_server">Herramientas: %1$s</string>
+    <string name="mcp_tool_server">Servidor: %1$s</string>
+    <string name="mcp_server_unknown">Desconocido</string>
+    <string name="avatar_upload_unavailable_ios">La subida de avatares aún no está disponible en iOS.</string>
+    <string name="dialog_ok">Aceptar</string>
+    <plurals name="mcp_tool_count">
+        <item quantity="one">%1$d herramienta</item>
+        <item quantity="other">%1$d herramientas</item>
+    </plurals>
 </resources>

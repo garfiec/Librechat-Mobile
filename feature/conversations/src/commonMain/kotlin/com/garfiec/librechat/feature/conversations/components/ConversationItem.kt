@@ -48,9 +48,7 @@ fun ConversationItem(
         data.updatedAt?.listLabel(format, reference)
     }?.resolve() ?: ""
 
-    val endpointLabel = remember(data.endpoint) {
-        data.endpoint?.toDisplayLabel() ?: "Chat"
-    }
+    val endpointLabel = endpointDisplayLabel(data.endpoint)
 
     Row(
         modifier = modifier
@@ -82,27 +80,37 @@ fun ConversationItem(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = endpointLabel,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-
-                val modelName = data.model
-                if (modelName != null) {
+                // The time is measured first and kept whole; endpoint and model take what it leaves,
+                // in that order, each cut short on one line.
+                Row(
+                    modifier = Modifier.weight(1f, fill = false),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Text(
-                        text = " · ",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                    Text(
-                        text = modelName,
+                        text = endpointLabel,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false),
                     )
+
+                    val modelName = data.model
+                    if (modelName != null) {
+                        Text(
+                            text = " · ",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.outline,
+                            maxLines = 1,
+                        )
+                        Text(
+                            text = modelName,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false),
+                        )
+                    }
                 }
 
                 if (relativeTime.isNotEmpty()) {
@@ -110,11 +118,15 @@ fun ConversationItem(
                         text = " · ",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline,
+                        maxLines = 1,
                     )
                     Text(
                         text = relativeTime,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
@@ -139,15 +151,20 @@ fun ConversationItem(
     }
 }
 
-private fun String.toDisplayLabel(): String = when (EModelEndpoint.fromName(this)) {
-    EModelEndpoint.OPENAI -> "OpenAI"
-    EModelEndpoint.AZURE_OPENAI -> "Azure"
-    EModelEndpoint.GOOGLE -> "Google"
-    EModelEndpoint.ANTHROPIC -> "Anthropic"
-    EModelEndpoint.ASSISTANTS -> "Assistants"
-    EModelEndpoint.AZURE_ASSISTANTS -> "Azure Assistants"
-    EModelEndpoint.AGENTS -> "Agents"
-    EModelEndpoint.CUSTOM -> "Custom"
-    EModelEndpoint.BEDROCK -> "Bedrock"
-    null -> this
+/** Provider brands stay as written; the generic endpoint kinds are translated. */
+@Composable
+private fun endpointDisplayLabel(endpoint: String?): String {
+    if (endpoint == null) return stringResource(Res.string.endpoint_label_chat)
+    return when (EModelEndpoint.fromName(endpoint)) {
+        EModelEndpoint.OPENAI -> "OpenAI"
+        EModelEndpoint.AZURE_OPENAI -> "Azure"
+        EModelEndpoint.GOOGLE -> "Google"
+        EModelEndpoint.ANTHROPIC -> "Anthropic"
+        EModelEndpoint.ASSISTANTS -> stringResource(Res.string.endpoint_label_assistants)
+        EModelEndpoint.AZURE_ASSISTANTS -> stringResource(Res.string.endpoint_label_azure_assistants)
+        EModelEndpoint.AGENTS -> stringResource(Res.string.endpoint_label_agents)
+        EModelEndpoint.CUSTOM -> stringResource(Res.string.endpoint_label_custom)
+        EModelEndpoint.BEDROCK -> "Bedrock"
+        null -> endpoint
+    }
 }

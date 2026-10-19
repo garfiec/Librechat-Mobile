@@ -208,30 +208,32 @@ private fun QueuedMessageRow(
                 Spacer(Modifier.width(6.dp))
             }
 
-            // Attachment-only queued items have no text — show a placeholder so the row isn't blank.
-            val isPlaceholder = item.text.isBlank()
-            Text(
-                text = if (isPlaceholder) stringResource(Res.string.queued_attachment_only) else item.text,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (isPlaceholder) 0.6f else 0.85f),
-                fontSize = 14.sp * fontSizeMultiplier,
+            Column(
                 modifier = Modifier
                     .weight(1f)
                     .padding(vertical = 2.dp),
-            )
-
-            // A row the server refused, or one whose outcome was never revealed, blocks the whole
-            // queue by design — it is held for the user rather than resent. Without a cue the
-            // follow-up queue simply stops draining with nothing on screen to explain why.
-            if (item.needsAttention) {
+            ) {
+                // Attachment-only queued items have no text — show a placeholder so the row isn't blank.
+                val isPlaceholder = item.text.isBlank()
                 Text(
-                    text = stringResource(Res.string.queued_turn_needs_attention),
-                    maxLines = 1,
-                    color = MaterialTheme.colorScheme.error,
-                    fontSize = 12.sp * fontSizeMultiplier,
-                    modifier = Modifier.padding(horizontal = 6.dp),
+                    text = if (isPlaceholder) stringResource(Res.string.queued_attachment_only) else item.text,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (isPlaceholder) 0.6f else 0.85f),
+                    fontSize = 14.sp * fontSizeMultiplier,
                 )
+
+                // A row the server refused, or one whose outcome was never revealed, blocks the whole
+                // queue by design — it is held for the user rather than resent. Without a cue the
+                // follow-up queue simply stops draining with nothing on screen to explain why. On a
+                // line of its own, under the message, so neither squeezes the other.
+                if (item.needsAttention) {
+                    Text(
+                        text = stringResource(Res.string.queued_turn_needs_attention),
+                        color = MaterialTheme.colorScheme.error,
+                        fontSize = 12.sp * fontSizeMultiplier,
+                    )
+                }
             }
 
             IconButton(

@@ -1,6 +1,8 @@
 package com.garfiec.librechat.feature.chat.components
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,6 +12,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.items
@@ -299,7 +302,7 @@ fun ModelSelectorSheetContent(
         AdaptiveOutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            placeholder = { Text("Search models...") },
+            placeholder = { Text(stringResource(Res.string.model_selector_search)) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
@@ -399,7 +402,7 @@ fun ModelSelectorSheetContent(
                 item(key = "hdr:agents") {
                     EndpointGroupHeader(
                         endpointName = EndpointConstants.AGENTS,
-                        displayLabel = "My Agents",
+                        displayLabel = stringResource(Res.string.model_selector_my_agents),
                         modelCount = filteredAgents.size,
                         isExpanded = agentsExpanded,
                         iconUrl = null,
@@ -483,7 +486,7 @@ fun ModelSelectorSheetContent(
 }
 
 @Composable
-private fun EndpointGroupHeader(
+internal fun EndpointGroupHeader(
     endpointName: String,
     displayLabel: String,
     modelCount: Int,
@@ -496,7 +499,8 @@ private fun EndpointGroupHeader(
     /** When set, renders this vector instead of an [EndpointIcon] (used by the Starred group). */
     leadingIcon: ImageVector? = null,
 ) {
-    Row(
+    // Set API Key drops under the label rather than squeeze it narrower than MinGroupLabelWidth.
+    FlowRow(
         modifier = Modifier
             .fillMaxWidth()
             // Drop the clickable modifier entirely when needsKey — Compose's
@@ -513,40 +517,44 @@ private fun EndpointGroupHeader(
                 },
             )
             .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.End,
+        itemVerticalAlignment = Alignment.CenterVertically,
     ) {
         // Disabled icon + label use Material's standard 0.38 disabled alpha. The
         // CTA chip below stays full-opacity so the action remains discoverable.
         val labelAlpha = if (needsKey) 0.38f else 1f
-        if (leadingIcon != null) {
-            Icon(
-                imageVector = leadingIcon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier
-                    .size(IconSize)
-                    .alpha(labelAlpha)
-                    .dragSelectRowIcon(),
-            )
-        } else {
-            EndpointIcon(
-                endpointName = endpointName,
-                iconUrl = iconUrl,
-                size = IconSize,
-                contentDescription = "$endpointName icon",
-                glyphTint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.alpha(labelAlpha).dragSelectRowIcon(),
+        Row(
+            modifier = Modifier.weight(1f).widthIn(min = MinGroupLabelWidth),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (leadingIcon != null) {
+                Icon(
+                    imageVector = leadingIcon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier
+                        .size(IconSize)
+                        .alpha(labelAlpha)
+                        .dragSelectRowIcon(),
+                )
+            } else {
+                EndpointIcon(
+                    endpointName = endpointName,
+                    iconUrl = iconUrl,
+                    size = IconSize,
+                    contentDescription = null,
+                    glyphTint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.alpha(labelAlpha).dragSelectRowIcon(),
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "$displayLabel ($modelCount)",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.alpha(labelAlpha),
             )
         }
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = "$displayLabel ($modelCount)",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier
-                .weight(1f)
-                .alpha(labelAlpha),
-        )
         if (needsKey) {
             SetApiKeyChip(
                 endpointLabel = displayLabel,
@@ -564,6 +572,8 @@ private fun EndpointGroupHeader(
         }
     }
 }
+
+private val MinGroupLabelWidth = 120.dp
 
 /**
  * Mirrors LibreChat web's "Set API Key" pill on greyed endpoint rows. Tapping
@@ -660,7 +670,7 @@ private fun LazyItemScope.AgentListItem(
         if (resolvedAvatarUrl != null) {
             AsyncImage(
                 model = resolvedAvatarUrl,
-                contentDescription = "$agentName avatar",
+                contentDescription = null,
                 modifier = Modifier
                     .size(IconSize)
                     .clip(CircleShape)
@@ -670,7 +680,7 @@ private fun LazyItemScope.AgentListItem(
         } else {
             Icon(
                 imageVector = Icons.Outlined.Create,
-                contentDescription = "$agentName icon",
+                contentDescription = null,
                 modifier = Modifier.size(IconSize).dragSelectRowIcon(),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )

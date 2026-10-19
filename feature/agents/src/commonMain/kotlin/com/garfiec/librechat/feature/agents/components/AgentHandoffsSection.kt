@@ -85,6 +85,7 @@ fun AgentHandoffsSection(
             Text(
                 text = stringResource(Res.string.handoff_edges_count, edges.size),
                 style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.weight(1f),
             )
             Icon(
                 imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
@@ -247,6 +248,7 @@ private fun HandoffEdgeDialog(
     AdaptiveAlertDialog(
         modifier = Modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
+        scrollableText = false,
         title = { Text(stringResource(Res.string.add_handoff_edge)) },
         text = {
             Column(

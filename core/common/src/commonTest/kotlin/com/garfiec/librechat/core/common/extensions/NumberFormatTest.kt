@@ -29,4 +29,10 @@ class NumberFormatTest {
         assertEquals("7", formatLocalizedNumber(7.0, "en-US", maxFractionDigits = 2))
         assertEquals("1,5", formatLocalizedNumber(1.5, "de-DE", maxFractionDigits = 2))
     }
+
+    @Test
+    fun keepsTrailingZerosUpToTheMinimum() {
+        assertEquals("1.0", formatLocalizedNumber(1.0, "en-US", maxFractionDigits = 1, minFractionDigits = 1))
+        assertEquals("0,5", formatLocalizedNumber(0.5, "de-DE", maxFractionDigits = 1, minFractionDigits = 1))
+    }
 }

@@ -10,6 +10,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.feature.auth.resources.Res
 import com.garfiec.librechat.feature.auth.resources.back
@@ -38,3 +39,10 @@ fun BoxScope.BackAffordanceOverlay(onBack: (() -> Unit)?, modifier: Modifier = M
         }
     }
 }
+
+/**
+ * How far below the status bar a screen's content starts when [BackAffordanceOverlay] shows, so
+ * content scrolled to the top never sits under the button: its 4dp inset and 48dp target, plus a
+ * 4dp gap.
+ */
+internal val BackAffordanceClearance: Dp = 56.dp

@@ -320,6 +320,9 @@ fun ChatScreen(
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
+                        // The panels size their caps from the height they are given: only what the
+                        // floating top bar leaves visible. Before onSizeChanged, which measures content.
+                        .padding(top = topContentPadding)
                         .onSizeChanged { inputBarHeightPx = it.height },
                 ) {
                     Column {
@@ -349,7 +352,11 @@ fun ChatScreen(
                                 onCollapsedChange = viewModel::setToolPanelCollapsed,
                                 onCancelAutoAdvance = viewModel::cancelPausePanelAutoAdvance,
                                 onSubmit = viewModel::resolveToolApproval,
-                                modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp),
+                                // Weighted, so the composer below is measured first and the panel
+                                // gets only the height it leaves.
+                                modifier = Modifier
+                                    .weight(1f, fill = false)
+                                    .padding(start = 12.dp, end = 12.dp, top = 8.dp),
                             )
                         }
                         if (askPause != null) {

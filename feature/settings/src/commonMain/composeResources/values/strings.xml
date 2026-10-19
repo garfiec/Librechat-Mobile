@@ -25,7 +25,6 @@
     <string name="cd_back">Back</string>
     <string name="cd_change_avatar">Change avatar</string>
     <string name="cd_choose_image">Choose image</string>
-    <string name="cd_collapse_tools">Collapse tools</string>
     <string name="cd_copy_api_key">Copy API key</string>
     <string name="cd_copy_link">Copy link</string>
     <string name="cd_create_api_key">Create API key</string>
@@ -40,7 +39,6 @@
     <string name="memory_redacted_key">Hidden entry</string>
     <string name="memory_redacted_value">This server's content policy hides what's stored here. You can still delete it.</string>
     <string name="cd_edit_server">Edit server</string>
-    <string name="cd_expand_tools">Expand tools</string>
     <string name="cd_loading_profile">Loading profile</string>
     <string name="cd_make_private">Make private</string>
     <string name="cd_make_public">Make public</string>
@@ -525,7 +523,6 @@
     <string name="dialog_title_delete_server">Delete Server</string>
     <string name="dialog_delete_server_message">Are you sure you want to delete "%1$s"?</string>
     <string name="error_failed_to_load_servers">Failed to load servers</string>
-    <string name="mcp_tools_count">%1$d tool%2$s</string>
     <string name="no_tools_available">No tools available</string>
     <!-- Fork settings -->
     <string name="fork_mode_direct_path">Visible messages</string>
@@ -760,4 +757,15 @@
         <item quantity="other">%1$d servers</item>
     </plurals>
     <string name="server_user_ca_notice">Trusted via a certificate authority installed on this device</string>
+    <string name="export_coming_soon">Export is coming soon</string>
+    <string name="mcp_tools_all">All MCP Tools</string>
+    <string name="mcp_tools_for_server">Tools: %1$s</string>
+    <string name="mcp_tool_server">Server: %1$s</string>
+    <string name="mcp_server_unknown">Unknown</string>
+    <string name="avatar_upload_unavailable_ios">Avatar upload is not yet available on iOS.</string>
+    <string name="dialog_ok">OK</string>
+    <plurals name="mcp_tool_count">
+        <item quantity="one">%1$d tool</item>
+        <item quantity="other">%1$d tools</item>
+    </plurals>
 </resources>

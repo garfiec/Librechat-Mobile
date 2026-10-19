@@ -278,7 +278,7 @@ private fun CompactControls(threshold: Int, onThreshold: (Int) -> Unit) {
  * the chat shows. With the suggestion off, the plain pill at the same reading.
  */
 @Composable
-private fun NudgePreview(threshold: Int) {
+internal fun NudgePreview(threshold: Int) {
     val percent = (if (threshold > 0) threshold else DEFAULT_PREVIEW_THRESHOLD) + PREVIEW_OVERSHOOT
     val suggested = threshold > 0
     val tint = pressureColor(percent)

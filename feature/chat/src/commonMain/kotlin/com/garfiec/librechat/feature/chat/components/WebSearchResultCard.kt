@@ -181,6 +181,7 @@ fun WebSearchSourcesCard(
                 text = label,
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Medium),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f, fill = false),
             )
             Spacer(modifier = Modifier.width(4.dp))
             Icon(
@@ -244,6 +245,7 @@ fun WebSearchSourcesCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.widthInFraction(max = 0.6f),
                         )
                     }
                     if (index < results.lastIndex) {

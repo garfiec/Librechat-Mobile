@@ -16,6 +16,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveTabRow
 import com.garfiec.librechat.core.ui.components.selectedTabIndex
@@ -60,6 +61,8 @@ fun ComparisonTabBar(
             titles = listOf(primaryModelName, secondaryModelName),
             selectedIndex = pagerState.selectedTabIndex(),
             onSelect = { page -> coroutineScope.launch { pagerState.animateScrollToPage(page) } },
+            // Model ids often share a long prefix and differ at the end.
+            titleOverflow = TextOverflow.MiddleEllipsis,
         )
 
         HorizontalPager(

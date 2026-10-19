@@ -8,6 +8,8 @@ import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -117,6 +119,7 @@ internal fun SearchPreviewPane(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun HitPreview(
     preview: SearchPreview,
@@ -146,33 +149,39 @@ private fun HitPreview(
             Turn(hit.snippet, isUser = hit.isCreatedByUser, isHit = true)
         }
         AdaptiveDivider()
-        Row(
+        // Open in chat moves under the stepper when a narrow pane can't fit both on one line.
+        FlowRow(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            itemVerticalAlignment = Alignment.CenterVertically,
         ) {
-            StepButton(onClick = { onStep(-1) }, enabled = preview.index > 0) {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, stringResource(Res.string.cd_previous_match))
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Column {
-                Text(
-                    text = stringResource(Res.string.search_step_match, preview.index + 1, preview.count),
-                    style = MaterialTheme.typography.labelLarge,
-                )
-                if (LocalInputModeManager.current.inputMode == InputMode.Keyboard) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                StepButton(onClick = { onStep(-1) }, enabled = preview.index > 0) {
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, stringResource(Res.string.cd_previous_match))
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Column(modifier = Modifier.weight(1f, fill = false)) {
                     Text(
-                        text = stringResource(Res.string.search_key_hint),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = stringResource(Res.string.search_step_match, preview.index + 1, preview.count),
+                        style = MaterialTheme.typography.labelLarge,
                     )
+                    if (LocalInputModeManager.current.inputMode == InputMode.Keyboard) {
+                        Text(
+                            text = stringResource(Res.string.search_key_hint),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                StepButton(onClick = { onStep(1) }, enabled = preview.index < preview.count - 1) {
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, stringResource(Res.string.cd_next_match))
                 }
             }
-            Spacer(modifier = Modifier.width(8.dp))
-            StepButton(onClick = { onStep(1) }, enabled = preview.index < preview.count - 1) {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, stringResource(Res.string.cd_next_match))
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+                OpenInChatButton(onClick = { onOpen(hit) })
             }
-            Spacer(modifier = Modifier.weight(1f))
-            OpenInChatButton(onClick = { onOpen(hit) })
         }
     }
 }

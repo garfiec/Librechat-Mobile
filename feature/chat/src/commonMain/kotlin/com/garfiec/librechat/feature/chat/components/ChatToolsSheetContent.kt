@@ -4,6 +4,7 @@ import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -41,6 +42,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.common.ToolConstants
@@ -135,49 +138,13 @@ fun ChatToolsSheetContent(
         // endpoint can't accept uploads (mirrors web's AttachFileChat gate). "Server"
         // attaches an already-uploaded file by reference (no re-upload).
         if (gates.fileUploadEnabled) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                AttachmentOptionCard(
-                    icon = Icons.Default.PhotoCamera,
-                    label = stringResource(Res.string.tool_camera),
-                    onClick = {
-                        onTakePhoto()
-                        onDismiss()
-                    },
-                    modifier = Modifier.weight(1f),
-                )
-                AttachmentOptionCard(
-                    icon = Icons.Default.PhotoLibrary,
-                    label = stringResource(Res.string.tool_photos),
-                    onClick = {
-                        onPickPhotos()
-                        onDismiss()
-                    },
-                    modifier = Modifier.weight(1f),
-                )
-                AttachmentOptionCard(
-                    icon = Icons.Default.AttachFile,
-                    label = stringResource(Res.string.tool_files),
-                    onClick = {
-                        onAttachFiles()
-                        onDismiss()
-                    },
-                    modifier = Modifier.weight(1f),
-                )
-                AttachmentOptionCard(
-                    icon = Icons.Default.CloudDownload,
-                    label = stringResource(Res.string.tool_server_files),
-                    onClick = {
-                        onAttachFromServer()
-                        onDismiss()
-                    },
-                    modifier = Modifier.weight(1f),
-                )
-            }
+            AttachmentOptionCards(
+                onTakePhoto = onTakePhoto,
+                onPickPhotos = onPickPhotos,
+                onAttachFiles = onAttachFiles,
+                onAttachFromServer = onAttachFromServer,
+                onDismiss = onDismiss,
+            )
 
             Spacer(modifier = Modifier.height(12.dp))
             AdaptiveDivider(modifier = Modifier.padding(horizontal = 16.dp))
@@ -383,12 +350,10 @@ private fun ToolToggleRow(
             .fillMaxWidth()
             .dragSelectRow(dragSelection, onClick = onToggle)
             .padding(horizontal = 16.dp, vertical = 12.dp)
+            // The platform reads the on/off state out in the user's language.
             .semantics {
-                contentDescription = if (isEnabled) {
-                    "$title enabled"
-                } else {
-                    "$title disabled"
-                }
+                contentDescription = title
+                toggleableState = ToggleableState(isEnabled)
                 role = Role.Switch
             },
         verticalAlignment = Alignment.CenterVertically,
@@ -425,6 +390,51 @@ private fun ToolToggleRow(
         )
     }
 }
+
+/**
+ * Camera, Photos, Files and Server: one row of four, or two rows of two below a 360dp sheet, where a
+ * quarter of the width leaves a translated label (Appareil photo, Kamera) only its first letters.
+ */
+@Composable
+private fun AttachmentOptionCards(
+    onTakePhoto: () -> Unit,
+    onPickPhotos: () -> Unit,
+    onAttachFiles: () -> Unit,
+    onAttachFromServer: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val options = listOf(
+        Triple(Icons.Default.PhotoCamera, Res.string.tool_camera, onTakePhoto),
+        Triple(Icons.Default.PhotoLibrary, Res.string.tool_photos, onPickPhotos),
+        Triple(Icons.Default.AttachFile, Res.string.tool_files, onAttachFiles),
+        Triple(Icons.Default.CloudDownload, Res.string.tool_server_files, onAttachFromServer),
+    )
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val perRow = if (maxWidth < ATTACH_CARDS_ONE_ROW_MIN_WIDTH) 2 else options.size
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            options.chunked(perRow).forEach { row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    row.forEach { (icon, label, action) ->
+                        AttachmentOptionCard(
+                            icon = icon,
+                            label = stringResource(label),
+                            onClick = {
+                                action()
+                                onDismiss()
+                            },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private val ATTACH_CARDS_ONE_ROW_MIN_WIDTH = 360.dp
 
 @Composable
 private fun AttachmentOptionCard(

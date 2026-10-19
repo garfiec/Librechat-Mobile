@@ -16,6 +16,8 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.feature.conversations.resources.*
 import com.garfiec.librechat.feature.conversations.resources.Res
@@ -23,6 +25,10 @@ import org.jetbrains.compose.resources.stringResource
 
 // Hoisted so the shape isn't reallocated on every keystroke recomposition.
 private val SearchBarShape = RoundedCornerShape(28.dp)
+private val SearchBarHeight = 52.dp
+
+// M3 TextField's label-less content padding (TextFieldDefaults: 16dp top and bottom).
+private val FieldVerticalPadding = 32.dp
 
 @Composable
 fun ConversationSearchBar(
@@ -30,6 +36,11 @@ fun ConversationSearchBar(
     onQueryChange: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // The bar's 52dp, grown by however much a larger font grows the line. A height and not a minimum,
+    // because a TextField under a minimum holds itself at 56dp.
+    val textStyle = MaterialTheme.typography.bodyMedium
+    val lineHeight = with(LocalDensity.current) { textStyle.lineHeight.toDp() }
+    val height = maxOf(SearchBarHeight, lineHeight + FieldVerticalPadding)
     TextField(
         value = query,
         onValueChange = onQueryChange,
@@ -56,9 +67,11 @@ fun ConversationSearchBar(
                 text = stringResource(Res.string.search_conversations),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         },
-        textStyle = MaterialTheme.typography.bodyMedium,
+        textStyle = textStyle,
         singleLine = true,
         shape = SearchBarShape,
         colors = TextFieldDefaults.colors(
@@ -73,6 +86,6 @@ fun ConversationSearchBar(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
-            .height(52.dp),
+            .height(height),
     )
 }

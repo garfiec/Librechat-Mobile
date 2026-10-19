@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AvatarImage
 import com.garfiec.librechat.core.ui.components.endpointIconPainter
@@ -63,10 +64,12 @@ internal fun SteerContentPart(
                 Text(
                     // A heading, so TalkBack's next-heading gesture steps between the author changes
                     // in a long response instead of scrubbing through every line.
-                    modifier = Modifier.semantics { heading() },
+                    modifier = Modifier.weight(1f, fill = false).semantics { heading() },
                     text = userName ?: stringResource(Res.string.sender_you),
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                     color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 // Says why a user message is sitting inside the response.

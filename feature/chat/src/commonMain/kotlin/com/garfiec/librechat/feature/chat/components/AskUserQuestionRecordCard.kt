@@ -5,6 +5,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -32,12 +33,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.AskUserQuestionRequest
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
@@ -74,11 +83,8 @@ internal fun AskUserQuestionRecordCard(
     val description = question?.description?.takeIf { it.isNotBlank() }
     val options = question?.options.orEmpty()
 
-    // Expandable only when expanding reveals something the collapsed rows cannot: the agent's
-    // reason for asking, the options it offered, or an answer too long to sit on one line.
-    val hasDetail = description != null || options.isNotEmpty() ||
-        (answered && !display.declined && display.label.length > SINGLE_LINE_ANSWER_CHARS)
     var isExpanded by remember { mutableStateOf(false) }
+    val hasExpandedSection = description != null || options.isNotEmpty()
 
     val headline = when {
         failed -> stringResource(Res.string.ask_user_question_record_failed)
@@ -89,121 +95,156 @@ internal fun AskUserQuestionRecordCard(
     // any. The headline already names what this card is, so nothing stands in for the question:
     // repeating the headline underneath itself reads as a question the agent literally asked.
     val questionText = question?.question?.takeIf { it.isNotBlank() }
+    val answerText = if (answered && !display.declined) answerText(display.label) else null
+    val textMeasurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val questionStyle = MaterialTheme.typography.bodyMedium
+    val answerStyle = MaterialTheme.typography.bodySmall
 
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
         shape = RoundedCornerShape(8.dp),
     ) {
-        Column {
-            val toggleCd = stringResource(
-                if (isExpanded) Res.string.cd_collapse_ask_user_question else Res.string.cd_expand_ask_user_question,
-            )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .then(
-                        if (hasDetail) {
-                            Modifier
-                                .clickable { isExpanded = !isExpanded }
-                                .semantics {
-                                    role = Role.Button
-                                    contentDescription = toggleCd
-                                }
-                        } else {
-                            Modifier
-                        },
-                    )
-                    .padding(12.dp),
-                verticalAlignment = Alignment.Top,
-            ) {
-                Icon(
-                    imageVector = if (failed) Icons.Default.WarningAmber else Icons.Default.HelpOutline,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = if (failed) {
-                        MaterialTheme.colorScheme.error
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            // Whether the collapsed question or answer is cut short, measured with the collapsed
+            // maxLines at the text column's width without a chevron: a line that fits there gets no
+            // chevron and keeps that width, and one that doesn't still doesn't once the chevron narrows it.
+            // Only consulted when there is no section to expand, which always offers the chevron.
+            val truncated = !hasExpandedSection && constraints.hasBoundedWidth && run {
+                val textWidth = with(density) {
+                    constraints.maxWidth - 2 * ROW_PADDING.roundToPx() - ICON_SIZE.roundToPx() - ICON_GAP.roundToPx()
+                }.coerceAtLeast(0)
+                fun overflows(text: AnnotatedString, style: TextStyle, maxLines: Int) = textMeasurer.measure(
+                    text = text,
+                    style = style,
+                    overflow = TextOverflow.Ellipsis,
+                    maxLines = maxLines,
+                    constraints = Constraints(maxWidth = textWidth),
+                ).hasVisualOverflow
+                (questionText != null && overflows(AnnotatedString(questionText), questionStyle, COLLAPSED_QUESTION_LINES)) ||
+                    (answerText != null && overflows(answerText, answerStyle, 1))
+            }
+            // Expandable only when expanding reveals something the collapsed rows cannot: the agent's
+            // reason for asking, the options it offered, or a question or answer the collapsed rows cut.
+            val hasDetail = hasExpandedSection || truncated
+            Column {
+                val toggleCd = stringResource(
+                    if (isExpanded) Res.string.cd_collapse_ask_user_question else Res.string.cd_expand_ask_user_question,
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(
+                            if (hasDetail) {
+                                Modifier
+                                    .clickable { isExpanded = !isExpanded }
+                                    .semantics {
+                                        role = Role.Button
+                                        contentDescription = toggleCd
+                                    }
+                            } else {
+                                Modifier
+                            },
+                        )
+                        .padding(ROW_PADDING),
+                    verticalAlignment = Alignment.Top,
                 ) {
-                    Text(
-                        text = headline,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (failed) {
+                    Icon(
+                        imageVector = if (failed) Icons.Default.WarningAmber else Icons.Default.HelpOutline,
+                        contentDescription = null,
+                        modifier = Modifier.size(ICON_SIZE),
+                        tint = if (failed) {
                             MaterialTheme.colorScheme.error
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant
                         },
                     )
-                    header?.takeIf { it.isNotBlank() }?.let { heading ->
+                    Spacer(modifier = Modifier.width(ICON_GAP))
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
                         Text(
-                            text = heading,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    if (questionText != null) {
-                        Text(
-                            text = questionText,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = if (isExpanded) Int.MAX_VALUE else COLLAPSED_QUESTION_LINES,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    AnswerLine(display = display, answered = answered, failed = failed, isExpanded = isExpanded)
-                }
-                if (hasDetail) {
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Icon(
-                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-
-            AnimatedVisibility(
-                visible = isExpanded && hasDetail,
-                enter = expandVertically(),
-                exit = shrinkVertically(),
-            ) {
-                Column(
-                    modifier = Modifier.padding(start = 38.dp, end = 12.dp, bottom = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    if (description != null) {
-                        AdaptiveDivider()
-                        Text(
-                            text = description,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    if (options.isNotEmpty()) {
-                        Text(
-                            text = stringResource(
-                                if (question?.multiSelect == true) {
-                                    Res.string.ask_user_question_record_options_multi
-                                } else {
-                                    Res.string.ask_user_question_record_options
-                                },
-                            ),
+                            text = headline,
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = if (failed) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
                         )
-                        options.forEach { option ->
-                            OptionRow(
-                                label = option.label.ifBlank { option.value },
-                                picked = option.value in display.selectedValues,
+                        header?.takeIf { it.isNotBlank() }?.let { heading ->
+                            Text(
+                                text = heading,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
+                        }
+                        if (questionText != null) {
+                            Text(
+                                text = questionText,
+                                style = questionStyle,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = if (isExpanded) Int.MAX_VALUE else COLLAPSED_QUESTION_LINES,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        AnswerLine(
+                            display = display,
+                            answerText = answerText,
+                            style = answerStyle,
+                            failed = failed,
+                            isExpanded = isExpanded,
+                        )
+                    }
+                    if (hasDetail) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+
+                AnimatedVisibility(
+                    // A card whose only detail is a cut line just lifts maxLines; it has no section to show.
+                    visible = isExpanded && hasExpandedSection,
+                    enter = expandVertically(),
+                    exit = shrinkVertically(),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(start = 38.dp, end = 12.dp, bottom = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        if (description != null) {
+                            AdaptiveDivider()
+                            Text(
+                                text = description,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        if (options.isNotEmpty()) {
+                            Text(
+                                text = stringResource(
+                                    if (question?.multiSelect == true) {
+                                        Res.string.ask_user_question_record_options_multi
+                                    } else {
+                                        Res.string.ask_user_question_record_options
+                                    },
+                                ),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            options.forEach { option ->
+                                OptionRow(
+                                    label = option.label.ifBlank { option.value },
+                                    picked = option.value in display.selectedValues,
+                                )
+                            }
                         }
                     }
                 }
@@ -246,14 +287,18 @@ internal fun AskUserQuestionBatchRecordCard(
     }
 }
 
-/** The answer, or why there isn't one. Clamped to one line while collapsed. */
+/**
+ * The answer, or why there isn't one. The label and the answer are one text, clamped to one line
+ * while collapsed; an answer that line cuts gives the card a chevron that shows it in full.
+ */
 // Every branch below returns after emitting exactly one thing; the rule cannot see through
 // guard clauses, and giving it a single root would add a layout node per answered question.
 @Suppress("MultipleEmitters")
 @Composable
 private fun AnswerLine(
     display: AskAnswerDisplay,
-    answered: Boolean,
+    answerText: AnnotatedString?,
+    style: TextStyle,
     failed: Boolean,
     isExpanded: Boolean,
 ) {
@@ -265,7 +310,7 @@ private fun AnswerLine(
         )
         return
     }
-    if (!answered || display.declined) {
+    if (answerText == null) {
         Text(
             text = stringResource(
                 if (display.declined) {
@@ -280,20 +325,26 @@ private fun AnswerLine(
         )
         return
     }
-    Row {
-        Text(
-            text = stringResource(Res.string.ask_user_question_record_answer_label),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(
-            text = display.label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = if (isExpanded) Int.MAX_VALUE else 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+    Text(
+        text = answerText,
+        style = style,
+        color = MaterialTheme.colorScheme.onSurface,
+        maxLines = if (isExpanded) Int.MAX_VALUE else 1,
+        overflow = TextOverflow.Ellipsis,
+    )
+}
+
+/** "Answer:" in the label colour, then the answer, as the one text [AnswerLine] draws and the card measures. */
+@Composable
+private fun answerText(answer: String): AnnotatedString {
+    val label = stringResource(Res.string.ask_user_question_record_answer_label)
+    val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+    return remember(label, labelColor, answer) {
+        buildAnnotatedString {
+            withStyle(SpanStyle(color = labelColor)) { append(label) }
+            append(' ')
+            append(answer)
+        }
     }
 }
 
@@ -326,6 +377,7 @@ private fun OptionRow(label: String, picked: Boolean) {
 
 private const val COLLAPSED_QUESTION_LINES = 2
 
-/** Roughly what fits on the answer's single collapsed line; only decides whether a chevron is
- *  offered, so an approximation is enough. */
-private const val SINGLE_LINE_ANSWER_CHARS = 48
+// The header row's fixed parts beside the text column, shared with the truncation measurement.
+private val ROW_PADDING = 12.dp
+private val ICON_SIZE = 18.dp
+private val ICON_GAP = 8.dp

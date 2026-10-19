@@ -42,7 +42,8 @@ internal fun McpToolsSheet(
         tools
     }
 
-    val toolsByServer = filteredTools.groupBy { it.serverName ?: "Unknown" }
+    val unknownServer = stringResource(Res.string.mcp_server_unknown)
+    val toolsByServer = filteredTools.groupBy { it.serverName ?: unknownServer }
 
     AdaptiveModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -56,7 +57,11 @@ internal fun McpToolsSheet(
                 .padding(horizontal = 16.dp),
         ) {
             Text(
-                text = if (serverFilter != null) "Tools: $serverFilter" else "All MCP Tools",
+                text = if (serverFilter != null) {
+                    stringResource(Res.string.mcp_tools_for_server, serverFilter)
+                } else {
+                    stringResource(Res.string.mcp_tools_all)
+                },
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier
                     .padding(bottom = 12.dp)
@@ -140,10 +145,11 @@ private fun ToolDetailItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            if (tool.serverName != null) {
+            val serverName = tool.serverName
+            if (serverName != null) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Server: ${tool.serverName}",
+                    text = stringResource(Res.string.mcp_tool_server, serverName),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 )

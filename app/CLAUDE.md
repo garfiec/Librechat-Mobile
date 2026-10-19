@@ -9,15 +9,15 @@ Single Activity architecture. `MainActivity` is the sole entry point.
 - **Deep link handling** (`librechat://conversation/{conversationId}`)
 - **Share intent routing** (addresses the share to the chat on screen; navigates to NewChat first if
   the user is not on one — see Share Intents below)
-- **Tablet layout branching** based on `WindowSizeClass`
+- **Tablet layout branching** based on the window size (`usesSidebarLayout`, see Layout Modes)
 
 The shared module owns the core navigation: `Navigator`, `NavHostViewModel`, `MainNavDisplay`, `PhoneLayout`, `TabletLayout`, sidebar/drawer composables, and all feature entry providers. See `shared/CLAUDE.md` for details.
 
 ### Layout Modes
 
 - **Phone**: Delegates to shared `PhoneLayout` — `ModalNavigationDrawer` sidebar-first pattern.
-- **Tablet** (600dp+ width): Delegates to shared `TabletLayout` — persistent side panel that pushes the content aside, with swipe gesture and back handling.
-- Android picks the layout here from `WindowSizeClass`; iOS gets the same two layouts from the shared host, which reads the window width against the same 600dp line. Change the breakpoint in both places.
+- **Tablet** (680dp+ wide and 480dp+ tall): Delegates to shared `TabletLayout` — persistent side panel that pushes the content aside, with swipe gesture and back handling. 680dp is the 320dp sidebar plus a 360dp phone-width pane; a phone on its side stays on the drawer.
+- Android picks the layout here and iOS in the shared host, both through `usesSidebarLayout` (in `TabletLayout.kt`) on the window size. Change the breakpoint there, not at a call site.
 - iOS switches layouts in place (rotation, Split View, fold), so both layouts must place the one `rememberMovableNavDisplay` instance — a `MainNavDisplay` that leaves the composition clears every back-stack entry's ViewModels. Keep the layout choice in the host's own composition rather than a subcomposition such as `BoxWithConstraints` — only the single-composition case is covered, by `MovableNavDisplayTest`.
 
 Feature modules provide entries via `EntryProviderScope<NavKey>` extensions (e.g., `authEntries()`, `chatEntries()`). Navigation is driven by `onNavigate: (NavKey) -> Unit` and `onBack: () -> Unit` lambdas — feature modules never receive `NavBackStack` directly.

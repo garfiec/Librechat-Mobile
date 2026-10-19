@@ -45,6 +45,8 @@ import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.Hyphens
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -173,7 +175,7 @@ internal fun appearanceSummary(themeMode: ThemeMode, uiStyle: UiStyle): String {
 
 /** System, Light and Dark as previews of the app in each, in the current style and accent. */
 @Composable
-private fun ThemeSelector(
+internal fun ThemeSelector(
     selected: ThemeMode,
     uiStyle: UiStyle,
     accentColor: Color,
@@ -327,14 +329,16 @@ private fun PreviewOption(
             // a touch, and the tap falls through to the option's own selectable.
             Box(modifier = Modifier.matchParentSize().pointerInput(Unit) {})
         }
-        Row(
-            modifier = Modifier.padding(top = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            AdaptiveRadioButton(selected = selected, onClick = null)
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(text = label, style = MaterialTheme.typography.bodyLarge)
-        }
+        // The radio above the label rather than beside it: a third of a phone's width leaves a label
+        // beside a radio too little room, and it would break mid-word. A word wider than the cell
+        // ("Predeterminado") is hyphenated where the platform can.
+        AdaptiveRadioButton(selected = selected, onClick = null, modifier = Modifier.padding(top = 8.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge.copy(hyphens = Hyphens.Auto),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 4.dp),
+        )
     }
 }
 

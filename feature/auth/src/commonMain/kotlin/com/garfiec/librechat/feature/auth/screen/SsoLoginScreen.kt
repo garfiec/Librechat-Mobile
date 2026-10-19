@@ -3,9 +3,12 @@ package com.garfiec.librechat.feature.auth.screen
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -52,7 +55,12 @@ fun SsoLoginScreen(
             onTokenCapture = viewModel::onTokenCapture,
             onOAuthError = viewModel::onOAuthError,
             onCaptureFail = viewModel::onCaptureFailed,
-            modifier = Modifier.fillMaxSize(),
+            // The provider's page knows nothing of the system bars or the back button, so the view itself
+            // stays clear of both.
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .then(if (onBack != null) Modifier.padding(top = BackAffordanceClearance) else Modifier),
         )
 
         if (uiState.isLoading) {

@@ -79,6 +79,7 @@ fun PdfPasswordDialog(
 
     AdaptiveAlertDialog(
         onDismissRequest = onDismiss,
+        scrollableText = false,
         modifier = Modifier.testTag("pdf_password_dialog").clearFocusOnTap(),
         title = { Text(stringResource(Res.string.pdf_password_title)) },
         text = {

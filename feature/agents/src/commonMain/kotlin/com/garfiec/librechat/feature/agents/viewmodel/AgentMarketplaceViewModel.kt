@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.model.Agent
+import com.garfiec.librechat.core.model.AgentCategory
 import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
@@ -31,7 +32,7 @@ data class AgentMarketplaceUiState(
     val error: String? = null,
     val selectedCategory: String? = null,
     val searchQuery: String = "",
-    val categories: List<String> = emptyList(),
+    val categories: List<AgentCategory> = emptyList(),
     val hasMore: Boolean = true,
     val currentPage: Int = 1,
     // Role-permission gates — default permissive.
@@ -241,7 +242,7 @@ class AgentMarketplaceViewModel(
             when (val result = agentRepository.getAgentCategories()) {
                 is Result.Success -> {
                     _uiState.value = _uiState.value.copy(
-                        categories = result.data.map { it.value }.distinct(),
+                        categories = result.data.distinctBy { it.value },
                     )
                 }
                 is Result.Error -> { /* categories are non-critical */ }

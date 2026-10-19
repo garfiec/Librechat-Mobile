@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Drawer -->
-    <string name="settings">设置</string>
 
     <!-- Content descriptions -->
-    <string name="cd_back_to_conversations">返回对话</string>
 
     <!-- Version mismatch dialog -->
     <string name="version_mismatch_title">后端版本不匹配</string>

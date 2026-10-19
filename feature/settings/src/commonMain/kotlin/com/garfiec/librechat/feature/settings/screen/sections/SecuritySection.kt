@@ -75,6 +75,7 @@ internal fun TwoFactorSetupDialog(
     AdaptiveAlertDialog(
         modifier = Modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
+        scrollableText = false,
         title = { Text(stringResource(Res.string.dialog_title_enable_2fa)) },
         text = {
             Column(

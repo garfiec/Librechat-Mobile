@@ -402,9 +402,9 @@ fun ChatSettingsContent(
                 deviceVoiceName = uiState.ttsDeviceVoiceName,
                 cachingEnabled = uiState.ttsCaching,
                 ttsSource = uiState.ttsSource,
-                availableEngines = listOf("Default", "ElevenLabs", "OpenAI"),
+                availableEngines = listOf(TTS_DEFAULT_OPTION, "ElevenLabs", "OpenAI"),
                 availableVoices = uiState.availableVoices.map { it.name }.ifEmpty {
-                    listOf("Default", "Alloy", "Echo", "Fable", "Onyx", "Nova", "Shimmer")
+                    listOf(TTS_DEFAULT_OPTION, "Alloy", "Echo", "Fable", "Onyx", "Nova", "Shimmer")
                 },
                 availableDeviceVoices = uiState.availableDeviceVoices,
                 isPreviewPlaying = uiState.isTtsPreviewPlaying,
@@ -419,7 +419,7 @@ fun ChatSettingsContent(
 }
 
 @Composable
-private fun SpeechDetailButtons(
+internal fun SpeechDetailButtons(
     onSttDetailClick: () -> Unit,
     onTtsDetailClick: () -> Unit,
 ) {
@@ -439,7 +439,7 @@ private fun SpeechDetailButtons(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(stringResource(Res.string.speech_to_text_settings))
+                    Text(stringResource(Res.string.speech_to_text_settings), modifier = Modifier.weight(1f))
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                         contentDescription = null,
@@ -456,7 +456,7 @@ private fun SpeechDetailButtons(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(stringResource(Res.string.text_to_speech_settings))
+                    Text(stringResource(Res.string.text_to_speech_settings), modifier = Modifier.weight(1f))
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                         contentDescription = null,

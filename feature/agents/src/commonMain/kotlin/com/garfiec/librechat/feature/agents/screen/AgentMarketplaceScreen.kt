@@ -10,10 +10,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
@@ -36,11 +38,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.garfiec.librechat.core.model.AgentCategory
 import com.garfiec.librechat.core.model.EModelEndpoint
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveFilterChip
@@ -54,6 +60,7 @@ import com.garfiec.librechat.core.ui.components.LibreChatTopBar
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
 import com.garfiec.librechat.core.ui.components.endpointIconPainter
 import com.garfiec.librechat.feature.agents.AgentCardDisplayData
+import com.garfiec.librechat.feature.agents.components.displayLabel
 import com.garfiec.librechat.feature.agents.resources.*
 import com.garfiec.librechat.feature.agents.resources.Res
 import com.garfiec.librechat.feature.agents.viewmodel.AgentMarketplaceViewModel
@@ -98,7 +105,8 @@ fun AgentMarketplaceScreen(
     }
 
     AdaptiveScaffold(
-        modifier = modifier,
+        // The search is typed here, so the grid and its empty state end where the keyboard begins.
+        modifier = modifier.imePadding(),
         topBar = {
             LibreChatTopBar(
                 title = stringResource(Res.string.agents),
@@ -156,22 +164,11 @@ fun AgentMarketplaceScreen(
 
                 // Category chips
                 if (uiState.categories.isNotEmpty()) {
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        items(
-                            items = uiState.categories,
-                            key = { it },
-                            contentType = { "category" },
-                        ) { category ->
-                            AdaptiveFilterChip(
-                                selected = uiState.selectedCategory == category,
-                                onClick = { viewModel.onCategorySelected(category) },
-                                label = { Text(category.replaceFirstChar { it.uppercase() }) },
-                            )
-                        }
-                    }
+                    AgentCategoryChips(
+                        categories = uiState.categories,
+                        selectedCategory = uiState.selectedCategory,
+                        onCategorySelect = viewModel::onCategorySelected,
+                    )
                     Spacer(modifier = Modifier.height(8.dp))
                 }
 
@@ -207,49 +204,87 @@ fun AgentMarketplaceScreen(
                             )
                         }
 
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(2),
-                            state = gridState,
-                            contentPadding = PaddingValues(
-                                start = 16.dp,
-                                end = 16.dp,
-                                bottom = 80.dp,
-                            ),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            modifier = Modifier.fillMaxSize(),
-                        ) {
-                            items(
-                                items = uiState.filteredAgents,
-                                key = { it.id },
-                                contentType = { "agent" },
-                            ) { agent ->
-                                AgentCard(
-                                    agent = agent,
-                                    onClick = { onAgentClick(agent.id) },
-                                )
-                            }
-
-                            if (uiState.isLoadingMore) {
-                                item(
-                                    span = { GridItemSpan(maxLineSpan) },
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(16.dp),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        AdaptiveCircularProgressIndicator()
-                                    }
-                                }
-                            }
-                        }
+                        AgentGrid(
+                            agents = uiState.filteredAgents,
+                            isLoadingMore = uiState.isLoadingMore,
+                            gridState = gridState,
+                            onAgentClick = onAgentClick,
+                        )
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+internal fun AgentGrid(
+    agents: List<AgentCardDisplayData>,
+    isLoadingMore: Boolean,
+    gridState: LazyGridState,
+    onAgentClick: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // The card's text scales with the font, so its minimum width does too.
+    val minCardWidth = AgentCardMinWidth * LocalDensity.current.fontScale
+    LazyVerticalGrid(
+        columns = remember(minCardWidth) { UpToTwoColumns(minCardWidth) },
+        state = gridState,
+        contentPadding = PaddingValues(
+            start = 16.dp,
+            end = 16.dp,
+            bottom = 80.dp,
+        ),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = modifier.fillMaxSize(),
+    ) {
+        items(
+            items = agents,
+            key = { it.id },
+            contentType = { "agent" },
+        ) { agent ->
+            AgentCard(
+                agent = agent,
+                onClick = { onAgentClick(agent.id) },
+            )
+        }
+
+        if (isLoadingMore) {
+            item(
+                span = { GridItemSpan(maxLineSpan) },
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    AdaptiveCircularProgressIndicator()
+                }
+            }
+        }
+    }
+}
+
+// Two columns hold on a 320dp phone up to about 1.15x, and on a 360dp one up to 1.3x.
+private val AgentCardMinWidth = 120.dp
+
+/**
+ * Two columns, as wide as they come, or one when two would be narrower than [minColumnWidth]: a
+ * small phone at a large font scale can't fit a card's name and description in half the width.
+ */
+private class UpToTwoColumns(private val minColumnWidth: Dp) : GridCells {
+    override fun Density.calculateCrossAxisCellSizes(availableSize: Int, spacing: Int): List<Int> {
+        val count = if ((availableSize - spacing) / 2 >= minColumnWidth.roundToPx()) 2 else 1
+        // Split as GridCells.Fixed does: the remainder pixels go to the first columns.
+        val usable = availableSize - spacing * (count - 1)
+        return List(count) { usable / count + if (it < usable % count) 1 else 0 }
+    }
+
+    override fun equals(other: Any?): Boolean = other is UpToTwoColumns && other.minColumnWidth == minColumnWidth
+
+    override fun hashCode(): Int = minColumnWidth.hashCode()
 }
 
 @Composable
@@ -310,6 +345,32 @@ private fun AgentCard(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+        }
+    }
+}
+
+@Composable
+internal fun AgentCategoryChips(
+    categories: List<AgentCategory>,
+    selectedCategory: String?,
+    onCategorySelect: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    LazyRow(
+        modifier = modifier,
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        items(
+            items = categories,
+            key = { it.value },
+            contentType = { "category" },
+        ) { category ->
+            AdaptiveFilterChip(
+                selected = selectedCategory == category.value,
+                onClick = { onCategorySelect(category.value) },
+                label = { Text(category.displayLabel()) },
+            )
         }
     }
 }

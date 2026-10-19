@@ -306,5 +306,20 @@
     <string name="builtin_file_context_desc">يضع الملفات المرفقة كاملة في سياق الوكيل.</string>
     <string name="builtin_ask_user">سؤال المستخدم</string>
     <string name="builtin_ask_user_desc">يوقف التشغيل مؤقتًا ليطرح عليك سؤالًا توضيحيًا.</string>
-    <string name="agent_contact_title">جهة الاتصال</string>
+    <string name="agent_category_hr">الموارد البشرية</string>
+    <string name="agent_category_rd">البحث والتطوير</string>
+    <string name="agent_category_finance">المالية</string>
+    <string name="agent_category_it">تقنية المعلومات</string>
+    <string name="agent_category_sales">المبيعات</string>
+    <string name="agent_category_aftersales">خدمة ما بعد البيع</string>
+    <string name="agent_category_idea">أفكار</string>
+    <string name="agent_category_travel">السفر</string>
+    <string name="agent_category_learning">التعلّم</string>
+    <string name="agent_category_writing">الكتابة</string>
+    <string name="agent_category_shopping">التسوق</string>
+    <string name="agent_category_code">البرمجة</string>
+    <string name="agent_category_misc">متفرقات</string>
+    <string name="agent_category_roleplay">لعب الأدوار</string>
+    <string name="visibility_team">الفريق</string>
+    <string name="agent_contact_line">جهة الاتصال: %1$s</string>
 </resources>

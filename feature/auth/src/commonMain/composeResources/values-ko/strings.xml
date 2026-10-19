@@ -84,4 +84,5 @@
     <string name="diagnostic_log_exported">로그를 내보냈습니다. 문제를 신고할 때 첨부하세요.</string>
     <string name="diagnostic_log_failed">로그를 내보내지 못했습니다.</string>
     <string name="user_ca_notice">이 서버의 인증서는 Android에 기본 제공된 인증 기관이 아니라 이 기기에 설치된 인증 기관을 통해 신뢰됩니다. 본인 또는 조직이 설치한 경우에만 계속하세요.</string>
+    <string name="continue_with_provider">%1$s(으)로 계속</string>
 </resources>

@@ -35,9 +35,11 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.max
 import com.garfiec.librechat.core.ui.glass.LiquidSegmentedControl
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 import kotlinx.coroutines.CoroutineScope
@@ -53,7 +55,9 @@ import kotlin.math.roundToInt
  * the drawer's Chats/Projects toggle in Material, the iOS segmented control in Liquid Glass. Tapping
  * a segment selects it; dragging along the track scrubs the thumb, and the release settles on the
  * nearest segment (or the flung one). It fills its width, splitting it evenly between [options].
- * While not [enabled] it ignores taps and drags and dims, as M3 dims a disabled control.
+ * While not [enabled] it ignores taps and drags and dims, as M3 dims a disabled control. A label that
+ * doesn't fit its segment on one line gives way as [fallback] says, measured rather than guessed per
+ * locale; the pill grows taller with the font, so large scales aren't cut through.
  */
 @Composable
 fun AdaptivePillChoice(
@@ -62,11 +66,48 @@ fun AdaptivePillChoice(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    fallback: ChoiceFallback = ChoiceFallback.RADIO_LIST,
 ) {
+    val radioList: @Composable () -> Unit = { ChoiceRadioList(options, selectedIndex, onSelect, enabled) }
+    val allowTwoLines = fallback == ChoiceFallback.TWO_LINES
     if (isLiquidGlass) {
-        LiquidSegmentedControl(options, selectedIndex, onSelect, modifier, enabled)
+        LiquidSegmentedControl(
+            options = options,
+            selectedIndex = selectedIndex,
+            onSelect = onSelect,
+            modifier = modifier,
+            enabled = enabled,
+            allowTwoLines = allowTwoLines,
+            overflow = radioList.takeUnless { allowTwoLines },
+        )
         return
     }
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val cellWidth = (maxWidth - TrackPadding * 2) / options.size.coerceAtLeast(1)
+        val fit = rememberChoiceLabelFit(
+            labels = options,
+            style = MaterialTheme.typography.labelLarge,
+            labelWidth = cellWidth - CellPadding * 2,
+            allowTwoLines = allowTwoLines,
+        )
+        if (fit.fits || allowTwoLines) {
+            MaterialPill(options, selectedIndex, onSelect, enabled, cellWidth, fit)
+        } else {
+            radioList()
+        }
+    }
+}
+
+/** The Material pill, in cells [cellWidth] wide whose labels take [fit]'s lines. */
+@Composable
+private fun MaterialPill(
+    options: List<String>,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
+    enabled: Boolean,
+    cellWidth: Dp,
+    fit: ChoiceLabelFit,
+) {
     val count = options.size.coerceAtLeast(1)
     val scope = rememberCoroutineScope()
     val thumb = remember(scope) { PillThumb(scope, selectedIndex.coerceAtLeast(0)) }
@@ -79,15 +120,15 @@ fun AdaptivePillChoice(
     val density = LocalDensity.current
     val flingPx = with(density) { FlingVelocity.toPx() }
 
-    BoxWithConstraints(
-        modifier = modifier
+    Box(
+        modifier = Modifier
             .fillMaxWidth()
-            .alpha(if (enabled) 1f else DISABLED_ALPHA)
+            .alpha(if (enabled) 1f else DISABLED_CONTENT_ALPHA)
             .background(MaterialTheme.colorScheme.surfaceContainerHighest, TrackShape)
             .padding(TrackPadding)
-            .height(CellHeight),
+            // A set height, not heightIn: the thumb fills it, so it must be known before layout.
+            .height(max(CellHeight, fit.textHeight + CellPadding * 2)),
     ) {
-        val cellWidth = maxWidth / count
         val cellPx = with(density) { cellWidth.toPx() }
         val last = count - 1
         Box(
@@ -121,6 +162,7 @@ fun AdaptivePillChoice(
                         label = label,
                         selected = index == selectedIndex,
                         enabled = enabled,
+                        lines = fit.lines,
                         onThumb = onThumb,
                         onClick = {
                             thumb.settle(index)
@@ -140,6 +182,7 @@ private fun PillSegment(
     label: String,
     selected: Boolean,
     enabled: Boolean,
+    lines: Int,
     onThumb: Float,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -161,7 +204,7 @@ private fun PillSegment(
                 role = Role.RadioButton,
                 onClick = onClick,
             )
-            .padding(horizontal = 8.dp),
+            .padding(horizontal = CellPadding),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -169,7 +212,7 @@ private fun PillSegment(
             style = MaterialTheme.typography.labelLarge,
             color = color,
             textAlign = TextAlign.Center,
-            maxLines = 1,
+            maxLines = lines,
             overflow = TextOverflow.Ellipsis,
         )
     }
@@ -227,8 +270,8 @@ private val ThumbShape = RoundedCornerShape(8.dp)
 private val TrackPadding = 4.dp
 private val CellHeight = 36.dp
 
-// M3's disabled-content alpha.
-private const val DISABLED_ALPHA = 0.38f
+// Between a label and its cell's edges, each side, and above and below a label that sets the height.
+private val CellPadding = 4.dp
 
 // A release this fast picks the segment it's heading to, however far the thumb got.
 private val FlingVelocity = 400.dp

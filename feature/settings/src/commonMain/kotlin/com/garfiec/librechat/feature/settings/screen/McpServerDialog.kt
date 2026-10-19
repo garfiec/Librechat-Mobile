@@ -2,7 +2,6 @@ package com.garfiec.librechat.feature.settings.screen
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -117,6 +116,7 @@ internal fun McpServerDialog(
     AdaptiveAlertDialog(
         modifier = modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
+        scrollableText = false,
         title = {
             Text(stringResource(if (isEditing) Res.string.edit_mcp_server else Res.string.add_mcp_server))
         },
@@ -190,10 +190,7 @@ internal fun McpServerDialog(
                     },
                     selectedIndex = typeOptions.indexOf(selectedType),
                     onSelect = { selectedType = typeOptions[it] },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(IntrinsicSize.Max),
-                    equalHeightSegments = true,
+                    modifier = Modifier.fillMaxWidth(),
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))

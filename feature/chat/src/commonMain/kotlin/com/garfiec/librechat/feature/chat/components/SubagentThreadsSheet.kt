@@ -102,7 +102,7 @@ internal fun SubagentThreadsSheet(
                     text = uiState.openThread?.title?.ifBlank { null }
                         ?: stringResource(Res.string.subagent_threads_title),
                     style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
             }

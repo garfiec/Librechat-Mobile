@@ -1,5 +1,8 @@
 package com.garfiec.librechat.core.ui.components
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.runtime.Composable
@@ -17,6 +20,10 @@ import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 /**
  * In Liquid Glass, a glass panel portalled into the app canvas; outside a host or inside another
  * window it falls back to M3. [shape], the colours and [tonalElevation] apply to M3 only.
+ *
+ * [text] scrolls when it is taller than the room left (in glass, together with [title]). Pass
+ * [scrollableText] false when the slot scrolls itself, with a `verticalScroll` or a lazy list: a
+ * second scroll around it would measure it unbounded.
  */
 @Composable
 fun AdaptiveAlertDialog(
@@ -34,6 +41,7 @@ fun AdaptiveAlertDialog(
     textContentColor: Color = AlertDialogDefaults.textContentColor,
     tonalElevation: Dp = AlertDialogDefaults.TonalElevation,
     properties: DialogProperties = DialogProperties(),
+    scrollableText: Boolean = true,
 ) {
     CoversNativeBars()
     val host = LocalGlassSheetHost.current
@@ -48,6 +56,7 @@ fun AdaptiveAlertDialog(
                 icon = icon,
                 title = title,
                 text = text,
+                scrollableText = scrollableText,
             )
         }
         return
@@ -59,7 +68,13 @@ fun AdaptiveAlertDialog(
         dismissButton = dismissButton?.let { slot -> { InSeparateWindow(slot) } },
         icon = icon?.let { slot -> { InSeparateWindow(slot) } },
         title = title?.let { slot -> { InSeparateWindow(slot) } },
-        text = text?.let { slot -> { InSeparateWindow(slot) } },
+        text = text?.let { slot ->
+            {
+                InSeparateWindow {
+                    if (scrollableText) Column(Modifier.verticalScroll(rememberScrollState())) { slot() } else slot()
+                }
+            }
+        },
         shape = shape,
         containerColor = containerColor,
         iconContentColor = iconContentColor,

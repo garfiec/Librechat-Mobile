@@ -2,7 +2,6 @@ package com.garfiec.librechat.feature.settings.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -18,8 +17,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.common.datetime.ClockFormat
 import com.garfiec.librechat.core.common.datetime.DateFormatStyle
@@ -87,6 +84,7 @@ internal fun DateTimeSettingsDialog(
 
     AdaptiveAlertDialog(
         onDismissRequest = onDismiss,
+        scrollableText = false,
         modifier = modifier,
         title = { Text(stringResource(Res.string.date_time_title)) },
         text = {
@@ -99,20 +97,20 @@ internal fun DateTimeSettingsDialog(
 
                 SectionLabel(stringResource(Res.string.date_time_timestamps))
                 val styles = TimestampStyle.entries
-                FittingChoice(
-                    options = styles,
-                    selected = pending.style,
-                    onSelect = { pending = pending.copy(style = it) },
-                    optionLabel = { timestampStyleLabel(it) },
+                AdaptiveSegmentedChoice(
+                    options = styles.map { timestampStyleLabel(it) },
+                    selectedIndex = styles.indexOf(pending.style),
+                    onSelect = { pending = pending.copy(style = styles[it]) },
+                    modifier = Modifier.fillMaxWidth(),
                 )
 
                 SectionLabel(stringResource(Res.string.date_time_clock))
                 val clocks = ClockFormat.entries
-                FittingChoice(
-                    options = clocks,
-                    selected = pending.clock,
-                    onSelect = { pending = pending.copy(clock = it) },
-                    optionLabel = { clockFormatLabel(it) },
+                AdaptiveSegmentedChoice(
+                    options = clocks.map { clockFormatLabel(it) },
+                    selectedIndex = clocks.indexOf(pending.clock),
+                    onSelect = { pending = pending.copy(clock = clocks[it]) },
+                    modifier = Modifier.fillMaxWidth(),
                 )
                 Text(
                     text = stringResource(
@@ -196,52 +194,6 @@ private fun DateFormatOptions(
         optionDescription = { samples[it] },
     )
 }
-
-/**
- * A segmented row when every label fits its segment on one line, otherwise the same choice stacked
- * as radio rows. Segmented buttons wrap a long label mid-word ("Относите/льное" in ru), so the fit is
- * measured rather than guessed per locale. M3 measures the label against the segment's full inner
- * width and lets the selected check icon overhang it, so the icon is not part of the budget — and
- * selecting an option can't flip the layout.
- */
-@Composable
-private fun <T> FittingChoice(
-    options: List<T>,
-    selected: T,
-    onSelect: (T) -> Unit,
-    optionLabel: @Composable (T) -> String,
-) {
-    val labels = options.map { optionLabel(it) }
-    val measurer = rememberTextMeasurer()
-    val textStyle = MaterialTheme.typography.labelLarge
-    val density = LocalDensity.current
-    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-        val widestLabel = remember(labels, textStyle, density) {
-            labels.maxOf { measurer.measure(it, textStyle, softWrap = false, maxLines = 1).size.width }
-        }
-        val segmentBudget = with(density) { (maxWidth / options.size - SegmentChrome).roundToPx() }
-        if (widestLabel <= segmentBudget) {
-            AdaptiveSegmentedChoice(
-                options = labels,
-                selectedIndex = options.indexOf(selected),
-                onSelect = { onSelect(options[it]) },
-                modifier = Modifier.fillMaxWidth(),
-            )
-        } else {
-            Column {
-                RadioGroup(
-                    options = options,
-                    selected = selected,
-                    onSelect = onSelect,
-                    optionLabel = optionLabel,
-                )
-            }
-        }
-    }
-}
-
-/** A segment's non-text width: 12dp content padding each side plus borders. */
-private val SegmentChrome = 12.dp + 12.dp + 2.dp
 
 @Composable
 private fun SectionLabel(text: String) {

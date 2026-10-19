@@ -279,6 +279,7 @@ private fun RecordList(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SummaryRow(summary: TraceSummary, modifier: Modifier = Modifier) {
+    val localeTag = LocalDateTimeFormat.current.localeTag
     FlowRow(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -295,7 +296,7 @@ private fun SummaryRow(summary: TraceSummary, modifier: Modifier = Modifier) {
             Stat(Res.string.trace_stat_errors, summary.errorCount.toString(), isError = true)
         }
         if (summary.totalTokens > 0) {
-            Stat(Res.string.trace_stat_tokens, formatTraceCount(summary.totalTokens))
+            Stat(Res.string.trace_stat_tokens, formatTraceCount(summary.totalTokens, localeTag))
         }
         // Absent when any generation went unpriced — see TraceSummary.cost.
         summary.cost?.let { Stat(Res.string.trace_stat_cost, formatTraceCost(it)) }
@@ -344,7 +345,7 @@ private fun TurnHeader(turn: TraceTurn, modifier: Modifier = Modifier) {
         )
         val parts = buildList {
             if (summary.runningCount > 0) add(stringResource(Res.string.trace_running))
-            if (summary.totalTokens > 0) add(formatTraceCount(summary.totalTokens))
+            if (summary.totalTokens > 0) add(formatTraceCount(summary.totalTokens, format.localeTag))
             summary.cost?.let { add(formatTraceCost(it)) }
         }
         if (parts.isNotEmpty()) {
@@ -401,6 +402,7 @@ private fun RecordRow(
     modifier: Modifier = Modifier,
 ) {
     val duration = remember(record) { record.durationMillis(::parseTraceInstant) }
+    val localeTag = LocalDateTimeFormat.current.localeTag
     val isError = record.status == TraceStatus.ERROR
     Row(
         modifier = modifier
@@ -434,7 +436,7 @@ private fun RecordRow(
         Text(
             // Null for a record still running: it has a start and no end, and timing it from "now"
             // would present a number that grows on every re-read as though it were measured.
-            text = duration?.let(::formatTraceDuration).orEmpty(),
+            text = duration?.let { formatTraceDuration(it, localeTag) }.orEmpty(),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

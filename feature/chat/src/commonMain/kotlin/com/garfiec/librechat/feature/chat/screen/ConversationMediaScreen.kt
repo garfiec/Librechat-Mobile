@@ -44,6 +44,7 @@ import com.garfiec.librechat.core.common.extensions.formatByteSize
 import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.ui.components.AdaptivePillChoice
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
+import com.garfiec.librechat.core.ui.components.ChoiceFallback
 import com.garfiec.librechat.core.ui.components.EmptyState
 import com.garfiec.librechat.core.ui.components.LibreChatTopBar
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
@@ -136,6 +137,8 @@ fun ConversationMediaScreen(
                     selectedIndex = selectedTab,
                     onSelect = { selectedTab = it },
                     modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp),
+                    // Tabs over the page: a radio list here would push the gallery down.
+                    fallback = ChoiceFallback.TWO_LINES,
                 )
 
                 ScopeToggle(
@@ -177,6 +180,7 @@ private fun ScopeToggle(
         selectedIndex = scopes.indexOf(scope),
         onSelect = { onScopeChange(scopes[it]) },
         modifier = modifier,
+        fallback = ChoiceFallback.TWO_LINES,
     )
 }
 

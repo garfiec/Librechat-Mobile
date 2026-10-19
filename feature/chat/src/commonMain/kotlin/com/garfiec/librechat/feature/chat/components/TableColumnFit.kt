@@ -8,9 +8,14 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.ceil
+import kotlin.math.roundToInt
 
-/** The narrowest a table column is squeezed to (cell padding included) before the table pans instead. */
-internal val TABLE_COLUMN_FLOOR = 120.dp
+/**
+ * The narrowest a table column's text is squeezed to before the table pans instead, in ems of the body
+ * text: 96dp at the default 14sp, so with its padding a column keeps 120dp. In ems, so a larger font
+ * pans the table rather than breaking every other word.
+ */
+internal const val TABLE_COLUMN_FLOOR_EMS = 96f / 14f
 
 /** The widest a column of a panning table grows (cell padding included) before its text wraps. */
 internal val TABLE_COLUMN_PAN_CAP = 320.dp
@@ -106,7 +111,7 @@ internal fun rememberTableColumnWidths(
         }
     }
 
-    return remember(extents, maxWidthPx, density, pan) {
+    return remember(extents, maxWidthPx, density, pan, bodyStyle, cellPaddingH) {
         with(density) {
             val preferred = extents.map { it.first }
             val panCap = TABLE_COLUMN_PAN_CAP.roundToPx()
@@ -118,7 +123,7 @@ internal fun rememberTableColumnWidths(
                     preferred = preferred,
                     minimum = extents.map { it.second },
                     available = maxWidthPx - dividersPx,
-                    floor = TABLE_COLUMN_FLOOR.roundToPx(),
+                    floor = cellPaddingH.roundToPx() * 2 + (bodyStyle.fontSize.toPx() * TABLE_COLUMN_FLOOR_EMS).roundToInt(),
                     panCap = panCap,
                 )
             }

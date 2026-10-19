@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.settings.screen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -332,7 +333,7 @@ private fun SwitchSettingRow(
 }
 
 @Composable
-private fun AboutInfo(
+internal fun AboutInfo(
     serverUrl: String,
     serverTrustedViaUserCa: Boolean,
     appVersion: String,
@@ -346,36 +347,10 @@ private fun AboutInfo(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(
-                    text = stringResource(Res.string.app_version_label),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                Text(
-                    text = appVersion,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            AboutRow(stringResource(Res.string.app_version_label), appVersion)
             if (gitSha.isNotBlank()) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text(
-                        text = stringResource(Res.string.app_build_label),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Text(
-                        text = gitSha,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                AboutRow(stringResource(Res.string.app_build_label), gitSha)
             }
             Spacer(modifier = Modifier.height(8.dp))
             Row(
@@ -430,15 +405,21 @@ private fun AboutInfo(
     }
 }
 
+/**
+ * A label with its value on the trailing edge, or on the line below when a translation leaves them
+ * too little room side by side: a version or a commit is no use cut short.
+ */
 @Composable
 private fun AboutRow(label: String, value: String) {
-    Row(
+    FlowRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
+            // Counted when the pair is fitted on one line, so the two never run together.
+            modifier = Modifier.padding(end = 12.dp),
         )
         Text(
             text = value,
@@ -446,7 +427,6 @@ private fun AboutRow(label: String, value: String) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f, fill = false),
         )
     }
 }

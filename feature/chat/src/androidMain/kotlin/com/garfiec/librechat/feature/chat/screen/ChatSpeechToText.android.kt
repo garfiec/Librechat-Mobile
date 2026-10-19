@@ -14,9 +14,14 @@ import androidx.core.content.ContextCompat
 import com.garfiec.librechat.core.common.speech.mapSttLanguageToLocale
 import com.garfiec.librechat.core.common.speech.sttSupportsLiveRecognition
 import com.garfiec.librechat.core.model.speech.SttEngine
+import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.resources.stt_mic_permission_required
+import com.garfiec.librechat.feature.chat.resources.stt_recognition_unavailable
+import com.garfiec.librechat.feature.chat.resources.stt_speak_now
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Builds the "start recording" action for the chat composer.
@@ -39,6 +44,9 @@ internal actual fun rememberChatStartRecording(
     coroutineScope: CoroutineScope,
 ): () -> Unit {
     val context = LocalContext.current
+    val micPermissionMessage = stringResource(Res.string.stt_mic_permission_required)
+    val speakNowPrompt = stringResource(Res.string.stt_speak_now)
+    val unavailableMessage = stringResource(Res.string.stt_recognition_unavailable)
 
     // Legacy full-screen Intent-overlay recognizer (API 26–30 Browser fallback).
     val speechRecognizerLauncher = rememberLauncherForActivityResult(
@@ -61,7 +69,7 @@ internal actual fun rememberChatStartRecording(
             viewModel.startRecording()
         } else {
             coroutineScope.launch {
-                snackbarHostState.showSnackbar("Microphone permission is required for voice input")
+                snackbarHostState.showSnackbar(micPermissionMessage)
             }
         }
     }
@@ -78,7 +86,7 @@ internal actual fun rememberChatStartRecording(
                     RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                     RecognizerIntent.LANGUAGE_MODEL_FREE_FORM,
                 )
-                putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak now...")
+                putExtra(RecognizerIntent.EXTRA_PROMPT, speakNowPrompt)
                 val languageLocale = mapSttLanguageToLocale(sttLanguage)
                 if (languageLocale != null) {
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE, languageLocale)
@@ -89,7 +97,7 @@ internal actual fun rememberChatStartRecording(
                 speechRecognizerLauncher.launch(intent)
             } catch (_: Exception) {
                 coroutineScope.launch {
-                    snackbarHostState.showSnackbar("Speech recognition is not available on this device")
+                    snackbarHostState.showSnackbar(unavailableMessage)
                 }
             }
         } else {

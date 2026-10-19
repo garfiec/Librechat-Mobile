@@ -38,12 +38,9 @@
     <!-- Empty states -->
     <string name="no_files">Nenhum arquivo</string>
     <string name="upload_to_get_started">Envie arquivos para começar</string>
-    <string name="no_filter_files">Nenhum %1$s</string>
-    <string name="no_filter_files_found">Nenhum arquivo de %1$s encontrado</string>
     <string name="could_not_load_files">Não foi possível carregar os arquivos</string>
 
     <!-- Delete dialogs -->
-    <string name="delete_count_files">Excluir %1$d arquivo%2$s?</string>
     <string name="action_cannot_be_undone">Esta ação não pode ser desfeita.</string>
     <string name="delete_file_question">Excluir arquivo?</string>
     <string name="delete_file_message">Excluir "%1$s"? Esta ação não pode ser desfeita.</string>
@@ -66,4 +63,26 @@
     <string name="uploading">Enviando…</string>
     <string name="failed_to_download_pdf">Falha ao baixar o PDF</string>
     <string name="failed_to_render_pdf">Falha ao renderizar o PDF</string>
+    <string name="filter_all">Todos</string>
+    <string name="filter_images">Imagens</string>
+    <string name="filter_documents">Documentos</string>
+    <string name="filter_audio">Áudio</string>
+    <string name="filter_video">Vídeo</string>
+    <string name="no_filter_images">Nenhuma imagem</string>
+    <string name="no_filter_documents">Nenhum documento</string>
+    <string name="no_filter_audio">Nenhum áudio</string>
+    <string name="no_filter_video">Nenhum vídeo</string>
+    <string name="no_filter_files_hint">Nenhum arquivo deste tipo encontrado</string>
+    <string name="sort_name">Nome</string>
+    <string name="sort_date">Data</string>
+    <string name="sort_size">Tamanho</string>
+    <string name="sort_type">Tipo</string>
+    <string name="cd_back">Voltar</string>
+    <string name="failed_to_download_file">Não foi possível baixar o arquivo</string>
+    <string name="content_truncated">Conteúdo truncado (arquivo muito grande)</string>
+    <string name="pdf_preview_unavailable_ios">A prévia de PDF ainda não está disponível no iOS</string>
+    <plurals name="delete_count_files">
+        <item quantity="one">Excluir %1$d arquivo?</item>
+        <item quantity="other">Excluir %1$d arquivos?</item>
+    </plurals>
 </resources>

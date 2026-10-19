@@ -306,5 +306,20 @@
     <string name="builtin_file_context_desc">Incluye los archivos adjuntos completos en el contexto del agente.</string>
     <string name="builtin_ask_user">Preguntar al usuario</string>
     <string name="builtin_ask_user_desc">Pausa la ejecución para hacerte una pregunta aclaratoria.</string>
-    <string name="agent_contact_title">Contacto</string>
+    <string name="agent_category_hr">Recursos humanos</string>
+    <string name="agent_category_rd">Investigación y desarrollo</string>
+    <string name="agent_category_finance">Finanzas</string>
+    <string name="agent_category_it">TI</string>
+    <string name="agent_category_sales">Ventas</string>
+    <string name="agent_category_aftersales">Posventa</string>
+    <string name="agent_category_idea">Ideas</string>
+    <string name="agent_category_travel">Viajes</string>
+    <string name="agent_category_learning">Aprendizaje</string>
+    <string name="agent_category_writing">Escritura</string>
+    <string name="agent_category_shopping">Compras</string>
+    <string name="agent_category_code">Código</string>
+    <string name="agent_category_misc">Varios</string>
+    <string name="agent_category_roleplay">Juego de rol</string>
+    <string name="visibility_team">Equipo</string>
+    <string name="agent_contact_line">Contacto: %1$s</string>
 </resources>

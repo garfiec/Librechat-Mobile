@@ -41,8 +41,9 @@ import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import org.jetbrains.compose.resources.stringResource
 
+/** [title] is null when the tool named nothing; the card then shows a generic title. */
 data class LogContent(
-    val title: String = "Log Output",
+    val title: String? = null,
     val content: String = "",
 )
 
@@ -54,8 +55,9 @@ fun LogContentCard(
 ) {
     var isExpanded by remember { mutableStateOf(false) }
 
-    val collapseCd = stringResource(Res.string.cd_collapse_log, log.title)
-    val expandCd = stringResource(Res.string.cd_expand_log, log.title)
+    val title = log.title ?: stringResource(Res.string.log_output_title)
+    val collapseCd = stringResource(Res.string.cd_collapse_log, title)
+    val expandCd = stringResource(Res.string.cd_expand_log, title)
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -87,7 +89,7 @@ fun LogContentCard(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = log.title,
+                    text = title,
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),

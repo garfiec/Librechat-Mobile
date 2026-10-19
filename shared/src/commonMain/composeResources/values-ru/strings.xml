@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Drawer -->
-    <string name="settings">Настройки</string>
 
     <!-- Content descriptions -->
-    <string name="cd_back_to_conversations">Назад к беседам</string>
 
     <!-- Version mismatch dialog -->
     <string name="version_mismatch_title">Несоответствие версии бэкенда</string>

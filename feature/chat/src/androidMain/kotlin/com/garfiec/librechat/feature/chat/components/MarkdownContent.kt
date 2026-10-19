@@ -325,8 +325,9 @@ private fun MarkdownTextSegment(
 }
 
 /**
- * Wraps a [MarkdownTable] in a [Box] with a fullscreen expand button overlaid on
- * the top-right corner. Tapping the button opens a [FullscreenTableDialog].
+ * A [MarkdownTable] under a fullscreen expand button, which sits above the table's end rather than
+ * over its corner, where a panning table would scroll its headers beneath it. Tapping the button
+ * opens a [FullscreenTableDialog].
  */
 @Composable
 private fun MarkdownTableWithFullscreen(
@@ -341,21 +342,12 @@ private fun MarkdownTableWithFullscreen(
 ) {
     var showFullscreen by remember { mutableStateOf(false) }
 
-    Box(modifier = modifier) {
-        MarkdownTable(
-            headers = headers,
-            alignments = alignments,
-            rows = rows,
-            fontSizeMultiplier = fontSizeMultiplier,
-            searchQuery = searchQuery,
-            searchFocusedOccurrence = searchFocusedOccurrence,
-            onFocusedMatchPosition = onFocusedMatchPosition,
-        )
-
+    Column(modifier = modifier) {
         IconButton(
             onClick = { showFullscreen = true },
             modifier = Modifier
-                .align(Alignment.TopEnd)
+                .align(Alignment.End)
+                .padding(bottom = 4.dp)
                 .size(32.dp),
             colors = IconButtonDefaults.iconButtonColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.85f),
@@ -368,6 +360,15 @@ private fun MarkdownTableWithFullscreen(
                 modifier = Modifier.size(18.dp),
             )
         }
+        MarkdownTable(
+            headers = headers,
+            alignments = alignments,
+            rows = rows,
+            fontSizeMultiplier = fontSizeMultiplier,
+            searchQuery = searchQuery,
+            searchFocusedOccurrence = searchFocusedOccurrence,
+            onFocusedMatchPosition = onFocusedMatchPosition,
+        )
     }
 
     if (showFullscreen) {

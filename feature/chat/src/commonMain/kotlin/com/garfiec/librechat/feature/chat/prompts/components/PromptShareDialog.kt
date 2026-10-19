@@ -28,11 +28,12 @@ import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.util.rememberClipboardWriter
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
-enum class SharePermission(val label: String) {
-    VIEW_ONLY("View only"),
-    CAN_EDIT("Can edit"),
+enum class SharePermission(val label: StringResource) {
+    VIEW_ONLY(Res.string.prompt_permission_view_only),
+    CAN_EDIT(Res.string.prompt_permission_can_edit),
 }
 
 @Composable
@@ -66,7 +67,7 @@ fun PromptShareDialog(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = if (isShared) "Shared" else "Private",
+                        text = stringResource(if (isShared) Res.string.prompt_shared else Res.string.prompt_private),
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.weight(1f),
                     )
@@ -93,7 +94,7 @@ fun PromptShareDialog(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = perm.label,
+                                text = stringResource(perm.label),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                         }

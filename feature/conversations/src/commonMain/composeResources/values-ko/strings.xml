@@ -79,7 +79,6 @@
     <string name="add_new_tag">새 태그 추가</string>
 
     <!-- Tag filter bar -->
-    <string name="tags_active_count">태그 %1$d개%2$s 활성</string>
 
     <!-- Export format picker -->
     <string name="export_format">내보내기 형식</string>
@@ -212,4 +211,12 @@
     <string name="search_group_conversation">채팅별</string>
     <string name="search_group_none">단일 목록</string>
     <string name="search_server_unavailable">지금은 서버 검색을 사용할 수 없습니다</string>
+    <string name="endpoint_label_assistants">어시스턴트</string>
+    <string name="endpoint_label_azure_assistants">Azure 어시스턴트</string>
+    <string name="endpoint_label_agents">에이전트</string>
+    <string name="endpoint_label_custom">사용자 지정</string>
+    <string name="endpoint_label_chat">채팅</string>
+    <plurals name="tags_active_count">
+        <item quantity="other">태그 %1$d개 활성</item>
+    </plurals>
 </resources>

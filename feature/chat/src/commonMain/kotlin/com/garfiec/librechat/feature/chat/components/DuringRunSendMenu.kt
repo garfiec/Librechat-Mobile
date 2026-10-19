@@ -60,50 +60,74 @@ fun DuringRunSendMenu(
                 modifier = Modifier.size(20.dp),
             )
         }
-        AdaptiveDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            DropdownMenuItem(
-                text = { Text(stringResource(Res.string.during_run_steer)) },
-                leadingIcon = { Icon(Icons.Default.Bolt, contentDescription = null) },
-                onClick = {
-                    expanded = false
-                    onSteerOnce()
-                },
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(Res.string.during_run_queue)) },
-                leadingIcon = {
-                    Icon(Icons.AutoMirrored.Filled.PlaylistAdd, contentDescription = null)
-                },
-                onClick = {
-                    expanded = false
-                    onQueueOnce()
-                },
-            )
-            AdaptiveDivider()
-            // Offers the OPPOSITE of the current default — the switch you would make, not a
-            // restatement of the setting you are already on.
-            val next = if (defaultAction == DuringRunAction.STEER) {
-                DuringRunAction.QUEUE
-            } else {
-                DuringRunAction.STEER
-            }
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        stringResource(
-                            if (next == DuringRunAction.STEER) {
-                                Res.string.during_run_always_steer
-                            } else {
-                                Res.string.during_run_always_queue
-                            },
-                        ),
-                    )
-                },
-                onClick = {
-                    expanded = false
-                    onSetDefault(next)
-                },
-            )
+        DuringRunSendDropdown(
+            expanded = expanded,
+            onDismiss = { expanded = false },
+            defaultAction = defaultAction,
+            onSteerOnce = onSteerOnce,
+            onQueueOnce = onQueueOnce,
+            onSetDefault = onSetDefault,
+        )
+    }
+}
+
+/**
+ * The caret's menu on its own, for a composer too narrow to give the caret room: there the send
+ * button opens it instead, and carries the caret on its face. Anchors to the enclosing Box.
+ */
+@Composable
+fun DuringRunSendDropdown(
+    expanded: Boolean,
+    onDismiss: () -> Unit,
+    defaultAction: DuringRunAction,
+    onSteerOnce: () -> Unit,
+    onQueueOnce: () -> Unit,
+    onSetDefault: (DuringRunAction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    AdaptiveDropdownMenu(expanded = expanded, onDismissRequest = onDismiss, modifier = modifier) {
+        DropdownMenuItem(
+            text = { Text(stringResource(Res.string.during_run_steer)) },
+            leadingIcon = { Icon(Icons.Default.Bolt, contentDescription = null) },
+            onClick = {
+                onDismiss()
+                onSteerOnce()
+            },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(Res.string.during_run_queue)) },
+            leadingIcon = {
+                Icon(Icons.AutoMirrored.Filled.PlaylistAdd, contentDescription = null)
+            },
+            onClick = {
+                onDismiss()
+                onQueueOnce()
+            },
+        )
+        AdaptiveDivider()
+        // Offers the OPPOSITE of the current default — the switch you would make, not a
+        // restatement of the setting you are already on.
+        val next = if (defaultAction == DuringRunAction.STEER) {
+            DuringRunAction.QUEUE
+        } else {
+            DuringRunAction.STEER
         }
+        DropdownMenuItem(
+            text = {
+                Text(
+                    stringResource(
+                        if (next == DuringRunAction.STEER) {
+                            Res.string.during_run_always_steer
+                        } else {
+                            Res.string.during_run_always_queue
+                        },
+                    ),
+                )
+            },
+            onClick = {
+                onDismiss()
+                onSetDefault(next)
+            },
+        )
     }
 }

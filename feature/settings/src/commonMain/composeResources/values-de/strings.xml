@@ -25,7 +25,6 @@
     <string name="cd_back">Zurück</string>
     <string name="cd_change_avatar">Avatar ändern</string>
     <string name="cd_choose_image">Bild auswählen</string>
-    <string name="cd_collapse_tools">Tools einklappen</string>
     <string name="cd_copy_api_key">API-Schlüssel kopieren</string>
     <string name="cd_copy_link">Link kopieren</string>
     <string name="cd_create_api_key">API-Schlüssel erstellen</string>
@@ -40,7 +39,6 @@
     <string name="memory_redacted_key">Verborgener Eintrag</string>
     <string name="memory_redacted_value">Die Inhaltsrichtlinie dieses Servers verbirgt, was hier gespeichert ist. Du kannst den Eintrag trotzdem löschen.</string>
     <string name="cd_edit_server">Server bearbeiten</string>
-    <string name="cd_expand_tools">Tools ausklappen</string>
     <string name="cd_loading_profile">Profil wird geladen</string>
     <string name="cd_make_private">Privat machen</string>
     <string name="cd_make_public">Öffentlich machen</string>
@@ -163,7 +161,7 @@
     <string name="tab_data">Daten</string>
 
     <!-- Theme -->
-    <string name="theme_system">Systemstandard</string>
+    <string name="theme_system">System</string>
     <string name="theme_light">Hell</string>
     <string name="theme_dark">Dunkel</string>
 
@@ -516,7 +514,6 @@
     <string name="dialog_title_delete_server">Server löschen</string>
     <string name="dialog_delete_server_message">Möchtest du "%1$s" wirklich löschen?</string>
     <string name="error_failed_to_load_servers">Server konnten nicht geladen werden</string>
-    <string name="mcp_tools_count">%1$d Tool%2$s</string>
     <string name="no_tools_available">Keine Tools verfügbar</string>
     <!-- Fork settings -->
     <string name="fork_mode_direct_path">Sichtbare Nachrichten</string>
@@ -754,4 +751,15 @@
     <string name="advanced_search">Erweiterte Suche</string>
     <string name="advanced_search_desc">Für Power-User. Fügt dem Suchbildschirm Groß-/Kleinschreibung, ganze Wörter, reguläre Ausdrücke sowie Filter für Rolle, Modell und Datum hinzu.</string>
     <string name="server_user_ca_notice">Vertrauenswürdig über eine auf diesem Gerät installierte Zertifizierungsstelle</string>
+    <string name="export_coming_soon">Export folgt in Kürze</string>
+    <string name="mcp_tools_all">Alle MCP-Tools</string>
+    <string name="mcp_tools_for_server">Tools: %1$s</string>
+    <string name="mcp_tool_server">Server: %1$s</string>
+    <string name="mcp_server_unknown">Unbekannt</string>
+    <string name="avatar_upload_unavailable_ios">Das Hochladen von Avataren ist unter iOS noch nicht verfügbar.</string>
+    <string name="dialog_ok">OK</string>
+    <plurals name="mcp_tool_count">
+        <item quantity="one">%1$d Tool</item>
+        <item quantity="other">%1$d Tools</item>
+    </plurals>
 </resources>

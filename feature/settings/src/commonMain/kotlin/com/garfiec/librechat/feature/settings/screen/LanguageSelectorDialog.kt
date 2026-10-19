@@ -92,6 +92,7 @@ internal fun LanguageSelectorDialog(
 
     AdaptiveAlertDialog(
         onDismissRequest = onDismiss,
+        scrollableText = false,
         modifier = modifier.clearFocusOnTap(),
         title = { Text(stringResource(Res.string.language)) },
         text = {

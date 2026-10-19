@@ -79,7 +79,6 @@
     <string name="add_new_tag">新しいタグを追加</string>
 
     <!-- Tag filter bar -->
-    <string name="tags_active_count">%1$d 個のタグ%2$sが有効</string>
 
     <!-- Export format picker -->
     <string name="export_format">エクスポート形式</string>
@@ -212,4 +211,12 @@
     <string name="search_group_conversation">チャットごと</string>
     <string name="search_group_none">一覧</string>
     <string name="search_server_unavailable">現在サーバー検索は利用できません</string>
+    <string name="endpoint_label_assistants">アシスタント</string>
+    <string name="endpoint_label_azure_assistants">Azure アシスタント</string>
+    <string name="endpoint_label_agents">エージェント</string>
+    <string name="endpoint_label_custom">カスタム</string>
+    <string name="endpoint_label_chat">チャット</string>
+    <plurals name="tags_active_count">
+        <item quantity="other">%1$d 個のタグが有効</item>
+    </plurals>
 </resources>

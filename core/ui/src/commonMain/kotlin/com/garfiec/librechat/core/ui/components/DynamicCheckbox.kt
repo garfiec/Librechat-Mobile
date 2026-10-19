@@ -15,6 +15,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /** Labeled boolean toggle rendered as a Material 3 Switch (not a Checkbox widget). */
@@ -29,8 +31,10 @@ fun DynamicCheckbox(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            // The platform reads the state out in the user's language.
             .semantics {
-                contentDescription = "$label toggle, ${if (checked) "on" else "off"}"
+                contentDescription = label
+                toggleableState = ToggleableState(checked)
             },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,

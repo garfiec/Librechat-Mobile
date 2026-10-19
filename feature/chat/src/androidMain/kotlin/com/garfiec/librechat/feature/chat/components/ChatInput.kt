@@ -199,7 +199,7 @@ fun ChatInput(
         fontSizeMultiplier = fontSizeMultiplier,
         onRemoveFile = onRemoveFile,
         modifier = modifier,
-        leadingButtons = {
+        leadingButtons = { compact ->
             // "+" button to open tools bottom sheet
             val toolsBounce = rememberPressBounce()
             Box(modifier = Modifier.pressBounce(toolsBounce, enabled = !isLiquidGlass)) {
@@ -268,7 +268,7 @@ fun ChatInput(
                 }
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
+            if (!compact) Spacer(modifier = Modifier.width(8.dp))
         },
         textFieldContent = {
             Box(modifier = Modifier.weight(1f)) {
@@ -330,8 +330,8 @@ fun ChatInput(
                 )
             }
         },
-        trailingSpacer = {
-            Spacer(modifier = Modifier.width(8.dp))
+        trailingSpacer = { compact ->
+            if (!compact) Spacer(modifier = Modifier.width(8.dp))
         },
     )
 }

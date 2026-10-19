@@ -222,7 +222,7 @@ private fun GenericStreamingToolCard(
                         Spacer(modifier = Modifier.width(4.dp))
                         Icon(
                             imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                            contentDescription = if (isExpanded) "Collapse" else "Expand",
+                            contentDescription = stringResource(if (isExpanded) Res.string.cd_collapse else Res.string.cd_expand),
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

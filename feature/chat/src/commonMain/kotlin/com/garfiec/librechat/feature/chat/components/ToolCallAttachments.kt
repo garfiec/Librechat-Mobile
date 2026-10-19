@@ -438,6 +438,7 @@ private fun PdfAttachmentCard(title: String, onClick: () -> Unit) {
                     // Opaque theme role rather than copy(alpha=…) per core/ui Compose perf rule 15.
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
             Spacer(modifier = Modifier.width(8.dp))

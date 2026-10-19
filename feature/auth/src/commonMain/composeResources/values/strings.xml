@@ -84,4 +84,5 @@
     <string name="diagnostic_log_exported">Log exported. Attach it when you report the problem.</string>
     <string name="diagnostic_log_failed">Couldn't export the log.</string>
     <string name="user_ca_notice">This server's certificate is trusted through a certificate authority installed on this device, not one built into Android. Continue only if you or your organization installed it.</string>
+    <string name="continue_with_provider">Continue with %1$s</string>
 </resources>

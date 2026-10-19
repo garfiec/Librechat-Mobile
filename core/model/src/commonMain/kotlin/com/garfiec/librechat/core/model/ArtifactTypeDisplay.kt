@@ -20,20 +20,23 @@ fun artifactTypeGlyph(type: String): String = when {
     else -> "💻"
 }
 
+/** The kinds of artifact a type string is labelled as; `:core:ui` `artifactTypeLabel` names them. */
+enum class ArtifactKind { MERMAID, REACT, SVG, MARKDOWN, HTML, PLAIN_TEXT, CODE }
+
 /**
- * Type-string → human label, single-sourced alongside [artifactTypeGlyph] so the two never disagree
+ * Type-string → label kind, single-sourced alongside [artifactTypeGlyph] so the two never disagree
  * (e.g. an office-preview artifact shows the 🌐 glyph and the "HTML Page" label, not "Code"). Same
  * branch order as the glyph ladder and :feature:chat `ArtifactType.from`.
  */
-fun artifactTypeLabel(type: String): String = when {
-    type.contains("mermaid") -> "Mermaid Diagram"
-    type.contains("react") -> "React Component"
-    type.contains("svg") -> "SVG Image"
-    type.contains("markdown") || type == "text/md" -> "Markdown Document"
-    type.contains("html") -> "HTML Page"
-    type.startsWith(OFFICE_PREVIEW_MIME_PREFIX) && type.endsWith(OFFICE_PREVIEW_MIME_SUFFIX) -> "HTML Page"
-    type == "text/plain" -> "Plain Text"
-    else -> "Code"
+fun artifactKind(type: String): ArtifactKind = when {
+    type.contains("mermaid") -> ArtifactKind.MERMAID
+    type.contains("react") -> ArtifactKind.REACT
+    type.contains("svg") -> ArtifactKind.SVG
+    type.contains("markdown") || type == "text/md" -> ArtifactKind.MARKDOWN
+    type.contains("html") -> ArtifactKind.HTML
+    type.startsWith(OFFICE_PREVIEW_MIME_PREFIX) && type.endsWith(OFFICE_PREVIEW_MIME_SUFFIX) -> ArtifactKind.HTML
+    type == "text/plain" -> ArtifactKind.PLAIN_TEXT
+    else -> ArtifactKind.CODE
 }
 
 /** Glyph shown for a pinned shortcut: the user's emoji when set, otherwise the type default. */

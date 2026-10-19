@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.chat.components
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -23,15 +24,22 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.wakeup.WakeupDisplay
@@ -43,6 +51,7 @@ import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import org.jetbrains.compose.resources.stringResource
+import kotlin.math.roundToInt
 
 /**
  * The wake-up this message is, when it should render as a system event rather than a user bubble.
@@ -124,7 +133,7 @@ internal fun SystemEventRow(
         )
         Column(
             modifier = Modifier
-                .fillMaxWidth(if (expanded) 1f else COLLAPSED_WIDTH_FRACTION)
+                .collapsedWidth(collapsed = !expanded)
                 .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
                 .padding(horizontal = 12.dp, vertical = 8.dp),
         ) {
@@ -142,28 +151,13 @@ internal fun SystemEventRow(
                     modifier = Modifier.size(16.dp),
                     tint = headerColor,
                 )
-                // The label is a short fixed phrase and takes the width it needs; only the name
-                // summary, which can list several tools, gives way. It fills what is left, which
-                // is also what puts the chevron at the edge.
-                Text(
-                    wakeupHeaderLabel(display),
-                    style = MaterialTheme.typography.labelLarge,
+                // Fills what is left, which is also what puts the chevron at the edge.
+                WakeupHeaderText(
+                    label = wakeupHeaderLabel(display),
+                    names = wakeupNameSummary(display),
                     color = headerColor,
-                    maxLines = 1,
+                    modifier = Modifier.weight(1f),
                 )
-                val names = wakeupNameSummary(display)
-                if (names.isNotEmpty()) {
-                    Text(
-                        "· $names",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                } else {
-                    Spacer(Modifier.weight(1f))
-                }
                 Icon(
                     if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = null,
@@ -200,6 +194,7 @@ internal fun SystemEventRow(
                     onReadAloud = onReadAloud,
                     isReading = isReading,
                     onFork = onFork,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
                 // A user turn is right-aligned, so its sibling switcher sits at the outer edge.
                 onSiblingNavigation?.takeIf { navigable }?.let { navigate ->
@@ -207,6 +202,35 @@ internal fun SystemEventRow(
                 }
             }
         }
+    }
+}
+
+/**
+ * The header's label and name summary as one text, so the summary gives way first. One line, as long
+ * as the label fits on it; a label that doesn't (German, Japanese on a small phone) wraps to a second
+ * line rather than being cut mid-word.
+ */
+@Composable
+private fun WakeupHeaderText(label: String, names: String, color: Color, modifier: Modifier = Modifier) {
+    val style = MaterialTheme.typography.labelLarge
+    val namesStyle = MaterialTheme.typography.bodySmall.toSpanStyle()
+        .copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+    val measurer = rememberTextMeasurer()
+    BoxWithConstraints(modifier = modifier) {
+        val widthPx = constraints.maxWidth
+        val labelFits = remember(label, style, widthPx, measurer) {
+            !measurer.measure(label, style, maxLines = 1, constraints = Constraints(maxWidth = widthPx)).hasVisualOverflow
+        }
+        Text(
+            buildAnnotatedString {
+                append(label)
+                if (names.isNotEmpty()) withStyle(namesStyle) { append(" · $names") }
+            },
+            style = style,
+            color = color,
+            maxLines = if (labelFits) 1 else 2,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -303,5 +327,22 @@ internal fun wakeupNameSummary(display: WakeupDisplay): String {
     }
 }
 
+/**
+ * The full width while expanded, or narrower than the thread while collapsed, so it reads as an
+ * outlined chip at the user's edge. Below [FULL_WIDTH_BELOW] the chip takes the full width either way:
+ * on a small phone that fraction is what the header needs to read.
+ */
+private fun Modifier.collapsedWidth(collapsed: Boolean): Modifier = layout { measurable, constraints ->
+    val fraction = if (collapsed && constraints.maxWidth >= FULL_WIDTH_BELOW.roundToPx()) COLLAPSED_WIDTH_FRACTION else 1f
+    val placeable = if (constraints.hasBoundedWidth) {
+        val width = (constraints.maxWidth * fraction).roundToInt()
+        measurable.measure(constraints.copy(minWidth = width, maxWidth = width))
+    } else {
+        measurable.measure(constraints)
+    }
+    layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+}
+
 private const val MAX_SUMMARY_NAMES = 3
 private const val COLLAPSED_WIDTH_FRACTION = 0.85f
+private val FULL_WIDTH_BELOW = 320.dp

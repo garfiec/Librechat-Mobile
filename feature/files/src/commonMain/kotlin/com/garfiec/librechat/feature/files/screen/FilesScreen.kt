@@ -95,6 +95,7 @@ import com.garfiec.librechat.feature.files.viewmodel.FileSortOrder
 import com.garfiec.librechat.feature.files.viewmodel.FileTypeFilter
 import com.garfiec.librechat.feature.files.viewmodel.FileViewMode
 import com.garfiec.librechat.feature.files.viewmodel.FilesViewModel
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -221,6 +222,7 @@ fun FilesScreen(
                                 BarAction.Text(
                                     id = "attach",
                                     label = stringResource(Res.string.attach_count, uiState.selectedFileIds.size),
+                                    compactIcon = BarIcons.Attach,
                                     enabled = uiState.selectedFileIds.isNotEmpty(),
                                     onClick = { onConfirmSelection?.invoke(viewModel.confirmSelection()) },
                                 ),
@@ -260,6 +262,7 @@ fun FilesScreen(
                                 BarAction.Text(
                                     id = "done",
                                     label = stringResource(Res.string.done),
+                                    compactIcon = BarIcons.Confirm,
                                     onClick = { viewModel.exitSelectionMode() },
                                 ),
                             ),
@@ -268,7 +271,7 @@ fun FilesScreen(
                 } else {
                     AdaptiveTopBar(
                         spec = AdaptiveTopBarSpec(
-                            navigation = onBack?.let { BarNavigation(BarIcons.Back, "Back", it) },
+                            navigation = onBack?.let { BarNavigation(BarIcons.Back, stringResource(Res.string.cd_back), it) },
                             title = BarTitle(stringResource(Res.string.files)),
                             actions = buildList {
                                 if (uiState.hasFiles) {
@@ -304,7 +307,7 @@ fun FilesScreen(
                                                     val isSelected = field == uiState.sortField
                                                     BarMenuItem(
                                                         id = field.name,
-                                                        label = field.label,
+                                                        label = stringResource(field.label),
                                                         icon = null,
                                                         checked = isSelected,
                                                         subtitle = if (!isSelected) {
@@ -356,20 +359,7 @@ fun FilesScreen(
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     // File type filter tabs
-                    val filters = FileTypeFilter.entries
-                    val selectedIndex = filters.indexOf(uiState.selectedFilter)
-                    ScrollableTabRow(
-                        selectedTabIndex = selectedIndex,
-                        edgePadding = 16.dp,
-                    ) {
-                        filters.forEach { filter ->
-                            Tab(
-                                selected = filter == uiState.selectedFilter,
-                                onClick = { viewModel.setFilter(filter) },
-                                text = { Text(filter.label) },
-                            )
-                        }
-                    }
+                    FileTypeFilterTabs(selected = uiState.selectedFilter, onSelect = viewModel::setFilter)
 
                     when {
                         uiState.isLoading -> {
@@ -390,19 +380,7 @@ fun FilesScreen(
                             )
                         }
                         uiState.displayFiles.isEmpty() && !uiState.isRefreshing -> {
-                            EmptyState(
-                                title = if (uiState.selectedFilter == FileTypeFilter.ALL) {
-                                    stringResource(Res.string.no_files)
-                                } else {
-                                    stringResource(Res.string.no_filter_files, uiState.selectedFilter.label.lowercase())
-                                },
-                                description = if (uiState.selectedFilter == FileTypeFilter.ALL) {
-                                    stringResource(Res.string.upload_to_get_started)
-                                } else {
-                                    stringResource(Res.string.no_filter_files_found, uiState.selectedFilter.label.lowercase())
-                                },
-                                icon = Icons.Default.Folder,
-                            )
+                            FilesEmptyState(uiState.selectedFilter)
                         }
                         else -> {
                             when (uiState.viewMode) {
@@ -440,7 +418,7 @@ fun FilesScreen(
                                 }
                                 FileViewMode.GRID -> {
                                     LazyVerticalGrid(
-                                        columns = GridCells.Adaptive(minSize = 150.dp),
+                                        columns = GridCells.Adaptive(minSize = FileGridCellMinSize),
                                         modifier = Modifier.fillMaxSize(),
                                         contentPadding = PaddingValues(8.dp),
                                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -495,7 +473,7 @@ fun FilesScreen(
         val count = uiState.selectedFileIds.size
         AdaptiveAlertDialog(
             onDismissRequest = { showDeleteConfirmation = false },
-            title = { Text(stringResource(Res.string.delete_count_files, count, if (count > 1) "s" else "")) },
+            title = { Text(deleteFilesTitle(count)) },
             text = {
                 Text(
                     text = stringResource(Res.string.action_cannot_be_undone),
@@ -595,7 +573,46 @@ fun FilesScreen(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+@Composable
+internal fun FileTypeFilterTabs(
+    selected: FileTypeFilter,
+    onSelect: (FileTypeFilter) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val filters = FileTypeFilter.entries
+    ScrollableTabRow(
+        selectedTabIndex = filters.indexOf(selected),
+        edgePadding = 16.dp,
+        modifier = modifier,
+    ) {
+        filters.forEach { filter ->
+            Tab(
+                selected = filter == selected,
+                onClick = { onSelect(filter) },
+                text = { Text(stringResource(filter.label)) },
+            )
+        }
+    }
+}
+
+@Composable
+internal fun FilesEmptyState(filter: FileTypeFilter, modifier: Modifier = Modifier) {
+    val emptyTitle = filter.emptyTitle
+    EmptyState(
+        title = stringResource(emptyTitle ?: Res.string.no_files),
+        description = if (emptyTitle == null) {
+            stringResource(Res.string.upload_to_get_started)
+        } else {
+            stringResource(Res.string.no_filter_files_hint)
+        },
+        icon = Icons.Default.Folder,
+        modifier = modifier,
+    )
+}
+
+@Composable
+internal fun deleteFilesTitle(count: Int): String = pluralStringResource(Res.plurals.delete_count_files, count, count)
+
 @Composable
 private fun FileItem(
     file: FileDisplayData,
@@ -659,9 +676,12 @@ private fun FileItem(
     }
 }
 
+/** The narrowest a grid tile gets: two columns fit a 320dp phone. */
+internal val FileGridCellMinSize = 144.dp
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun FileGridItem(
+internal fun FileGridItem(
     file: FileDisplayData,
     isSelectionMode: Boolean,
     isSelected: Boolean,

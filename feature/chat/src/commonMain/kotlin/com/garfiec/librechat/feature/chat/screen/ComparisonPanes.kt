@@ -14,7 +14,9 @@ import com.garfiec.librechat.feature.chat.components.MessageList
 import com.garfiec.librechat.feature.chat.components.ModelSelectorButton
 import com.garfiec.librechat.feature.chat.components.SecondaryMessageList
 import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.resources.comparison_primary
 import com.garfiec.librechat.feature.chat.resources.select_model
+import com.garfiec.librechat.feature.chat.resources.sender_assistant
 import com.garfiec.librechat.feature.chat.util.buildComparisonDisplayMessages
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
@@ -68,7 +70,7 @@ internal fun ComparisonPanes(
         )
     }
     val secondarySenderName = viewModel.getSecondaryModelDisplayName()
-        ?: comparisonState.secondaryModel ?: "Assistant"
+        ?: comparisonState.secondaryModel ?: stringResource(Res.string.sender_assistant)
     val secondaryEndpoint = comparisonState.secondaryEndpoint ?: EndpointConstants.AGENTS
     // Re-point the secondary bubble avatar at its own agent: the persisted parallel
     // message only carries the primary's endpoint/iconURL. For an agents-endpoint
@@ -230,7 +232,7 @@ internal fun ComparisonPanes(
             )
         } else {
             ComparisonTabBar(
-                primaryModelName = displayModel ?: "Primary",
+                primaryModelName = displayModel ?: stringResource(Res.string.comparison_primary),
                 secondaryModelName = secondaryModelName,
                 primaryContent = primaryMessageList,
                 secondaryContent = secondaryMessageList,

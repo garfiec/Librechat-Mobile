@@ -81,14 +81,19 @@ fun CodeBlock(
         }
     }
 
-    val languageLabel = language?.lowercase() ?: "code"
+    val languageLabel = language?.lowercase()
+    val blockCd = if (languageLabel != null) {
+        stringResource(Res.string.cd_code_block_language, languageLabel)
+    } else {
+        stringResource(Res.string.cd_code_block)
+    }
     Column(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
             .background(MaterialTheme.colorScheme.surfaceContainerHighest)
             .semantics {
-                contentDescription = "$languageLabel code block"
+                contentDescription = blockCd
             },
     ) {
         // Language header with copy button
@@ -101,7 +106,7 @@ fun CodeBlock(
         ) {
             DisableSelection {
                 Text(
-                    text = language?.lowercase() ?: "code",
+                    text = languageLabel ?: stringResource(Res.string.label_code),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

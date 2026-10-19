@@ -94,7 +94,7 @@ fun MessageFiles(
             if (imageUrl != null) {
                 MessageImagePreview(
                     imageUrl = imageUrl,
-                    altText = file.filename ?: "Attached image",
+                    altText = file.filename ?: stringResource(Res.string.cd_attached_image),
                     modifier = if (alignImagesEnd) Modifier.align(Alignment.End) else Modifier,
                 )
                 Spacer(modifier = Modifier.height(8.dp))

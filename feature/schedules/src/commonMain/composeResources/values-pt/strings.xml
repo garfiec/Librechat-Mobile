@@ -66,4 +66,11 @@
     <string name="schedule_disabled_project">Pausado: o projeto em que as execuções eram arquivadas foi excluído.</string>
     <string name="schedule_disabled_project_required">Pausado: este servidor agora exige um projeto, e este agendamento não tem nenhum.</string>
     <string name="schedule_disabled_unknown">Pausado pelo servidor.</string>
+    <string name="schedule_weekday_sun">Dom</string>
+    <string name="schedule_weekday_mon">Seg</string>
+    <string name="schedule_weekday_tue">Ter</string>
+    <string name="schedule_weekday_wed">Qua</string>
+    <string name="schedule_weekday_thu">Qui</string>
+    <string name="schedule_weekday_fri">Sex</string>
+    <string name="schedule_weekday_sat">Sáb</string>
 </resources>

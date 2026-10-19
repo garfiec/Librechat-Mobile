@@ -98,7 +98,9 @@ internal fun DataSettingsSection(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    // Weighted, so a long translation wraps before it crowds out the count and chevron.
                     Row(
+                        modifier = Modifier.weight(1f, fill = false),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
@@ -110,6 +112,7 @@ internal fun DataSettingsSection(
                         Text(stringResource(Res.string.archived_conversations))
                     }
                     Row(
+                        modifier = Modifier.padding(start = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {

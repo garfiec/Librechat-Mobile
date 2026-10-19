@@ -78,6 +78,7 @@ internal fun AuthConfigDialog(
     AdaptiveAlertDialog(
         modifier = Modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
+        scrollableText = false,
         title = { Text(stringResource(Res.string.label_authentication)) },
         text = {
             Column(

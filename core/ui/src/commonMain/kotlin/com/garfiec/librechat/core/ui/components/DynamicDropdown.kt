@@ -18,6 +18,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.resources.Res
+import com.garfiec.librechat.core.ui.resources.param_unset
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /** Labeled dropdown selector using ExposedDropdownMenuBox with read-only text field anchor.
@@ -34,8 +37,9 @@ fun DynamicDropdown(
     optionLabels: Map<String, String>? = null,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val unsetLabel = stringResource(Res.string.param_unset)
     val labelFor: (String) -> String = { option ->
-        optionLabels?.get(option) ?: option.ifEmpty { "Unset" }
+        optionLabels?.get(option) ?: option.ifEmpty { unsetLabel }
     }
 
     Column(modifier = modifier.fillMaxWidth()) {

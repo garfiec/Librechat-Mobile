@@ -8,6 +8,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.feature.agents.components.model.SupportContactState
@@ -41,7 +42,9 @@ fun AgentSupportContactSection(
             onValueChange = {
                 onSupportContactChange(supportContact.copy(name = it))
             },
-            placeholder = { Text(stringResource(Res.string.support_contact_placeholder)) },
+            placeholder = {
+                Text(stringResource(Res.string.support_contact_placeholder), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            },
             isError = nameError != null,
             supportingText = nameError?.let { error -> { Text(error) } },
             singleLine = true,

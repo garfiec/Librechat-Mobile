@@ -52,6 +52,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
@@ -293,6 +294,9 @@ private fun ThreadBubble(
                 },
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
             )
             message.createdAt?.let { ts -> Spacer(Modifier.width(8.dp)); MessageTimestamp(isoTimestamp = ts) }
         }
@@ -451,6 +455,9 @@ private fun TwoSidedBubble(
                     } else {
                         MaterialTheme.colorScheme.onSurface
                     },
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
                 message.createdAt?.let { ts -> Spacer(Modifier.width(6.dp)); MessageTimestamp(isoTimestamp = ts) }
             }
@@ -750,21 +757,12 @@ private fun IosMarkdownTableWithFullscreen(
 ) {
     var showFullscreen by remember { mutableStateOf(false) }
 
-    Box(modifier = modifier) {
-        IosMarkdownTable(
-            headers = headers,
-            alignments = alignments,
-            rows = rows,
-            fontSizeMultiplier = fontSizeMultiplier,
-            searchQuery = searchQuery,
-            searchFocusedOccurrence = searchFocusedOccurrence,
-            onFocusedMatchPosition = onFocusedMatchPosition,
-        )
-
+    Column(modifier = modifier) {
         IconButton(
             onClick = { showFullscreen = true },
             modifier = Modifier
-                .align(Alignment.TopEnd)
+                .align(Alignment.End)
+                .padding(bottom = 4.dp)
                 .size(32.dp),
             colors = IconButtonDefaults.iconButtonColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.85f),
@@ -777,6 +775,15 @@ private fun IosMarkdownTableWithFullscreen(
                 modifier = Modifier.size(18.dp),
             )
         }
+        IosMarkdownTable(
+            headers = headers,
+            alignments = alignments,
+            rows = rows,
+            fontSizeMultiplier = fontSizeMultiplier,
+            searchQuery = searchQuery,
+            searchFocusedOccurrence = searchFocusedOccurrence,
+            onFocusedMatchPosition = onFocusedMatchPosition,
+        )
     }
 
     if (showFullscreen) {

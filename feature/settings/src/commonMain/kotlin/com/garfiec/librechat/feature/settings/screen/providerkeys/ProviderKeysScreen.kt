@@ -122,6 +122,7 @@ fun ProviderKeysScreen(
                             BarAction.Text(
                                 id = "revoke_all",
                                 label = stringResource(Res.string.provider_keys_revoke_all_action),
+                                compactIcon = BarIcons.ClearAll,
                                 onClick = viewModel::showRevokeAllConfirm,
                             ),
                         )

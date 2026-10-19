@@ -42,12 +42,9 @@
     <!-- Empty states -->
     <string name="no_files">No files</string>
     <string name="upload_to_get_started">Upload files to get started</string>
-    <string name="no_filter_files">No %1$s</string>
-    <string name="no_filter_files_found">No %1$s files found</string>
     <string name="could_not_load_files">Could not load files</string>
 
     <!-- Delete dialogs -->
-    <string name="delete_count_files">Delete %1$d file%2$s?</string>
     <string name="action_cannot_be_undone">This action cannot be undone.</string>
     <string name="delete_file_question">Delete file?</string>
     <string name="delete_file_message">Delete "%1$s"? This action cannot be undone.</string>
@@ -70,4 +67,26 @@
     <string name="uploading">Uploading…</string>
     <string name="failed_to_download_pdf">Failed to download PDF</string>
     <string name="failed_to_render_pdf">Failed to render PDF</string>
+    <string name="filter_all">All</string>
+    <string name="filter_images">Images</string>
+    <string name="filter_documents">Documents</string>
+    <string name="filter_audio">Audio</string>
+    <string name="filter_video">Video</string>
+    <string name="no_filter_images">No images</string>
+    <string name="no_filter_documents">No documents</string>
+    <string name="no_filter_audio">No audio</string>
+    <string name="no_filter_video">No videos</string>
+    <string name="no_filter_files_hint">No files of this type found</string>
+    <string name="sort_name">Name</string>
+    <string name="sort_date">Date</string>
+    <string name="sort_size">Size</string>
+    <string name="sort_type">Type</string>
+    <string name="cd_back">Back</string>
+    <string name="failed_to_download_file">Failed to download file</string>
+    <string name="content_truncated">Content truncated (file too large)</string>
+    <string name="pdf_preview_unavailable_ios">PDF preview not yet available on iOS</string>
+    <plurals name="delete_count_files">
+        <item quantity="one">Delete %1$d file?</item>
+        <item quantity="other">Delete %1$d files?</item>
+    </plurals>
 </resources>

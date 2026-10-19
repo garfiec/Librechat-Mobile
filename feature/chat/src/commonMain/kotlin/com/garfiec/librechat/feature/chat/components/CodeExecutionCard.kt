@@ -50,6 +50,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
 import com.garfiec.librechat.core.ui.platform.rememberReduceMotion
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -164,6 +165,7 @@ private fun CodeExecutionHeader(
     onToggle: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
+    val localeTag = LocalDateTimeFormat.current.localeTag
     val title = when (phase) {
         CodeExecutionPhase.STARTING -> stringResource(Res.string.sandbox_starting)
         CodeExecutionPhase.RUNNING -> result.intent ?: stringResource(Res.string.analyzing)
@@ -172,7 +174,7 @@ private fun CodeExecutionHeader(
             result.intent ?: stringResource(Res.string.analyzing_finished)
     }
     val exitLabel = result.exitCode?.let { stringResource(Res.string.exit_code, it) }
-    val subtitle = listOfNotNull(result.language, durationMs?.let(::formatTraceDuration), exitLabel)
+    val subtitle = listOfNotNull(result.language, durationMs?.let { formatTraceDuration(it, localeTag) }, exitLabel)
         .joinToString(" · ")
     val toggleLabel = stringResource(if (expanded) Res.string.cd_collapse_code else Res.string.cd_expand_code)
     val state = stringResource(if (expanded) Res.string.state_expanded else Res.string.state_collapsed)

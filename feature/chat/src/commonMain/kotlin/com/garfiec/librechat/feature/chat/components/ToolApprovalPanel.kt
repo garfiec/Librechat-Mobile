@@ -8,14 +8,18 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -30,10 +34,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
@@ -143,8 +149,8 @@ fun ToolApprovalPanel(
     )
 
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
-        // The composer stays below this panel, so the body gets a smaller share of the screen
-        // than the ask panel's, which stands in for the composer.
+        // The dock measures the composer first, so this is the height it leaves; the body gets a
+        // smaller share of it than the ask panel's, which stands in for the composer.
         val bodyMaxHeight = if (maxHeight == Dp.Infinity) FALLBACK_BODY_MAX_HEIGHT else maxHeight * BODY_HEIGHT_FRACTION
         val isWide = maxWidth >= PAUSE_PANEL_WIDE_MIN_WIDTH
         val cancelAutoAdvance by rememberUpdatedState(onCancelAutoAdvance)
@@ -246,9 +252,17 @@ private fun CompactToolLayout(
 
             if (state.collapsed) return@Column
 
-            Column(modifier = Modifier.padding(end = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Weighted down to the call body, so a card capped short of the composer shrinks the
+            // body, not the header or the action row.
+            Column(
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .padding(end = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 key(active.toolCallId) {
                     ToolCallBody(
+                        modifier = Modifier.weight(1f, fill = false),
                         call = active,
                         showName = false,
                         allowedDecisions = state.allowedFor(active),
@@ -268,13 +282,7 @@ private fun CompactToolLayout(
                 val hasBulk = state.isBulkAllowed(ToolApprovalDecisions.REJECT) ||
                     state.isBulkAllowed(ToolApprovalDecisions.APPROVE)
                 if (canProceed || hasBulk || state.isResolving) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        BulkButtons(state = state, actions = actions)
-                        Spacer(modifier = Modifier.weight(1f))
+                    ToolActionRow(state = state, actions = actions, spacing = 4.dp) {
                         if (state.isResolving) {
                             AdaptiveCircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                         }
@@ -340,10 +348,16 @@ private fun WideToolLayout(
 
             if (state.collapsed) return@Column
 
-            Column(modifier = Modifier.padding(end = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .padding(end = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 // A new pause is a new pager, opening on its own active item.
                 key(state.calls) {
                     PausePanelSwipeArea(
+                        modifier = Modifier.weight(1f, fill = false),
                         index = state.activeIndex,
                         count = state.calls.size,
                         enabled = state.isBatch && !state.isResolving,
@@ -364,13 +378,7 @@ private fun WideToolLayout(
                     }
                 }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    BulkButtons(state = state, actions = actions)
-                    Spacer(modifier = Modifier.weight(1f))
+                ToolActionRow(state = state, actions = actions, spacing = 8.dp) {
                     if (state.isResolving) {
                         AdaptiveCircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                     }
@@ -439,7 +447,8 @@ private fun ToolNameIcon(modifier: Modifier = Modifier) {
 /**
  * One call: its description and arguments (scrolling within [bodyMaxHeight], so a long payload
  * can't push the decisions off screen), then the decisions its policy allows, then the field an
- * Edit or Respond decision needs.
+ * Edit or Respond decision needs. While that field is open the whole body scrolls as one instead,
+ * within a larger share of the height, so the field adds to the panel only up to a cap.
  */
 @Composable
 private fun ToolCallBody(
@@ -456,11 +465,34 @@ private fun ToolCallBody(
     decisionsModifier: Modifier = Modifier,
 ) {
     val arguments = remember(call.arguments) { call.arguments.asDisplayText() }
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    val fieldOpen = draft.decision == ToolApprovalDecisions.EDIT || draft.decision == ToolApprovalDecisions.RESPOND
+    val bodyScroll = rememberScrollState()
+    val detailsScroll = rememberScrollState()
+    // The field opens below the arguments and decisions, so scroll the body down to it. A frame
+    // first, so the field it asks about has been laid out.
+    val fieldRequester = remember { BringIntoViewRequester() }
+    LaunchedEffect(draft.decision) {
+        if (fieldOpen) {
+            withFrameNanos { }
+            fieldRequester.bringIntoView()
+        }
+    }
+    Column(
+        modifier = modifier.then(
+            if (fieldOpen) {
+                Modifier.heightIn(max = bodyMaxHeight * OPEN_FIELD_HEIGHT_RATIO).verticalScroll(bodyScroll)
+            } else {
+                Modifier
+            },
+        ),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
         Column(
-            modifier = Modifier
-                .heightIn(max = bodyMaxHeight)
-                .verticalScroll(rememberScrollState()),
+            modifier = if (fieldOpen) {
+                Modifier
+            } else {
+                Modifier.heightIn(max = bodyMaxHeight).verticalScroll(detailsScroll)
+            },
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             if (showName && call.name.isNotBlank()) {
@@ -513,7 +545,7 @@ private fun ToolCallBody(
                 value = draft.editedArguments,
                 onValueChange = { onDraftChange(draft.copy(editedArguments = it)) },
                 enabled = !isResolving,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().bringIntoViewRequester(fieldRequester),
                 textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
                 label = { Text(stringResource(Res.string.tool_approval_edited_arguments)) },
                 isError = invalid,
@@ -532,7 +564,7 @@ private fun ToolCallBody(
                 value = draft.responseText,
                 onValueChange = { onDraftChange(draft.copy(responseText = it)) },
                 enabled = !isResolving,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().bringIntoViewRequester(fieldRequester),
                 label = { Text(stringResource(Res.string.tool_approval_response_text)) },
                 minLines = 2,
                 maxLines = 4,
@@ -596,9 +628,40 @@ private fun DecisionRow(
     }
 }
 
+/**
+ * The bulk shortcuts at the start, [endActions] at the end. When both don't fit one line the end
+ * group drops whole onto a line of its own rather than squeezing its button.
+ */
 @Composable
-private fun BulkButtons(state: ToolPanelState, actions: ToolPanelActions) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+private fun ToolActionRow(
+    state: ToolPanelState,
+    actions: ToolPanelActions,
+    spacing: Dp,
+    endActions: @Composable RowScope.() -> Unit,
+) {
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(spacing),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        BulkButtons(state = state, actions = actions, modifier = Modifier.align(Alignment.CenterVertically))
+        // A weighted flow item breaks on its minimum width; IntrinsicSize.Max makes that the
+        // group's natural width, and the weight then fills the rest of its line.
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .width(IntrinsicSize.Max)
+                .align(Alignment.CenterVertically),
+            horizontalArrangement = Arrangement.spacedBy(spacing, Alignment.End),
+            verticalAlignment = Alignment.CenterVertically,
+            content = endActions,
+        )
+    }
+}
+
+@Composable
+private fun BulkButtons(state: ToolPanelState, actions: ToolPanelActions, modifier: Modifier = Modifier) {
+    FlowRow(modifier = modifier) {
         if (state.isBulkAllowed(ToolApprovalDecisions.REJECT)) {
             TextButton(onClick = { actions.decideAll(ToolApprovalDecisions.REJECT) }, enabled = !state.isResolving) {
                 Text(stringResource(Res.string.tool_approval_reject_all))
@@ -667,7 +730,11 @@ private fun String.decisionLabel(): StringResource = when (this) {
 
 /** Narrower than the default padding so all four decisions fit one row at phone width. */
 private val DECISION_BUTTON_PADDING = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-private const val BODY_HEIGHT_FRACTION = 0.3f
+private const val BODY_HEIGHT_FRACTION = 0.35f
+
+/** How much more height the body gets while it also holds the decisions and an open field. */
+private const val OPEN_FIELD_HEIGHT_RATIO = 1.6f
+
 private val TOOL_NAME_ICON_SIZE = 20.dp
 private val TOOL_NAME_ICON_GAP = 8.dp
 private const val TOOL_NAME_MAX_LINES = 2

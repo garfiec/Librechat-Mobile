@@ -66,4 +66,11 @@
     <string name="schedule_disabled_project">일시정지됨: 실행 결과를 저장하던 프로젝트가 삭제되었습니다.</string>
     <string name="schedule_disabled_project_required">일시정지됨: 이제 이 서버에는 프로젝트가 필요하지만 이 예약에는 프로젝트가 없습니다.</string>
     <string name="schedule_disabled_unknown">서버에서 일시정지했습니다.</string>
+    <string name="schedule_weekday_sun">일</string>
+    <string name="schedule_weekday_mon">월</string>
+    <string name="schedule_weekday_tue">화</string>
+    <string name="schedule_weekday_wed">수</string>
+    <string name="schedule_weekday_thu">목</string>
+    <string name="schedule_weekday_fri">금</string>
+    <string name="schedule_weekday_sat">토</string>
 </resources>

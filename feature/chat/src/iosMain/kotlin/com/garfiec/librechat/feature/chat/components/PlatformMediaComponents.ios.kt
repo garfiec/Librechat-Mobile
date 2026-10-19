@@ -42,11 +42,15 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.UIKitView
@@ -81,6 +85,9 @@ import platform.UIKit.UIColor
 import platform.UIKit.UIView
 import platform.WebKit.WKNavigation
 import platform.WebKit.WKNavigationDelegateProtocol
+import platform.WebKit.WKScriptMessage
+import platform.WebKit.WKScriptMessageHandlerProtocol
+import platform.WebKit.WKUserContentController
 import platform.WebKit.WKWebView
 import platform.WebKit.WKWebViewConfiguration
 import platform.darwin.NSObject
@@ -320,11 +327,13 @@ private fun KatexWebView(
     val isDarkTheme = (bgComposeColor.red * 0.299 + bgComposeColor.green * 0.587 + bgComposeColor.blue * 0.114) < 0.5
     val textColor = if (isDarkTheme) "#e0e0e0" else "#1a1a1a"
     val bgColor = remember(bgComposeColor) { colorToCssHex(bgComposeColor) }
-    val html = remember(latex, textColor, bgColor) {
-        buildKatexHtml(latex, displayMode = displayMode, textColor = textColor, bgColor = bgColor)
+    // Dynamic Type: the page's font is in CSS px, which the system text size doesn't reach.
+    val fontScale = LocalDensity.current.fontScale
+    val html = remember(latex, textColor, bgColor, fontScale) {
+        buildKatexHtml(latex, displayMode = displayMode, textColor = textColor, bgColor = bgColor, fontScale = fontScale)
     }
 
-    var contentHeight by remember { mutableStateOf(initialHeight) }
+    var contentHeight by remember(fontScale) { mutableStateOf(initialHeight * fontScale) }
 
     val assetBase = rememberWebAssetBaseUrl() ?: return
 
@@ -346,7 +355,11 @@ private fun KatexWebView(
             )
             webView.setBackgroundColor(nativeBg)
             webView.scrollView.setBackgroundColor(nativeBg)
-            webView.scrollView.setScrollEnabled(false)
+            // A display equation wider than the bubble scrolls sideways (see buildKatexHtml). The page
+            // is exactly as tall as the view, so there is nothing to scroll vertically.
+            webView.scrollView.setScrollEnabled(displayMode)
+            webView.scrollView.setBounces(false)
+            webView.scrollView.setShowsVerticalScrollIndicator(false)
             webView.navigationDelegate = object : NSObject(), WKNavigationDelegateProtocol {
                 override fun webView(webView: WKWebView, didFinishNavigation: WKNavigation?) {
                     webView.evaluateJavaScript("document.body.scrollHeight") { result, _ ->
@@ -370,6 +383,8 @@ private fun KatexWebView(
     )
 }
 
+private const val KATEX_FONT_PX = 16
+
 private fun colorToCssHex(color: Color): String {
     val r = (color.red * 255).toInt()
     val g = (color.green * 255).toInt()
@@ -377,7 +392,13 @@ private fun colorToCssHex(color: Color): String {
     return "#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}"
 }
 
-private fun buildKatexHtml(latex: String, displayMode: Boolean, textColor: String, bgColor: String): String {
+private fun buildKatexHtml(
+    latex: String,
+    displayMode: Boolean,
+    textColor: String,
+    bgColor: String,
+    fontScale: Float,
+): String {
     val escapedLatex = latex
         .replace("\\", "\\\\")
         .replace("`", "\\`")
@@ -396,14 +417,15 @@ private fun buildKatexHtml(latex: String, displayMode: Boolean, textColor: Strin
                 body {
                     margin: 0; padding: 0;
                     display: flex;
-                    justify-content: ${if (displayMode) "center" else "flex-start"};
+                    justify-content: flex-start;
                     align-items: center;
                     background: $bgColor;
                     color: $textColor;
-                    overflow: hidden;
+                    overflow-x: ${if (displayMode) "auto" else "hidden"};
+                    overflow-y: hidden;
                     min-height: 100%;
                 }
-                #output { font-size: 16px; }
+                #output { font-size: ${KATEX_FONT_PX * fontScale}px;${if (displayMode) " margin: 0 auto;" else ""} }
                 .katex { color: $textColor; }
                 .error { color: #f44336; font-family: monospace; font-size: 12px; padding: 4px; }
             </style>
@@ -463,8 +485,10 @@ actual fun MermaidDiagram(
                     text = stringResource(Res.string.label_mermaid),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
                 )
-                Spacer(modifier = Modifier.weight(1f))
                 TextButton(onClick = { showCode = !showCode }) {
                     Icon(
                         imageVector = if (showCode) Icons.Default.Image else Icons.Default.Code,
@@ -488,6 +512,10 @@ actual fun MermaidDiagram(
             }
         }
 
+        // As tall as the rendered diagram, up to [MERMAID_MAX_INLINE_HEIGHT]. Kept outside the content and
+        // saved, so a row rebuilt by scrolling back or by the Code toggle keeps its measured height.
+        var diagramHeight by rememberSaveable(code) { mutableFloatStateOf(MERMAID_MAX_INLINE_HEIGHT.value) }
+
         // Content
         AnimatedContent(
             targetState = showCode,
@@ -500,10 +528,14 @@ actual fun MermaidDiagram(
                 MermaidWKWebView(
                     code = code,
                     isDarkTheme = isDarkTheme,
+                    onContentHeight = {
+                        diagramHeight = it.toFloat()
+                            .coerceIn(MERMAID_MIN_INLINE_HEIGHT.value, MERMAID_MAX_INLINE_HEIGHT.value)
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(300.dp)
-                        .padding(8.dp),
+                        .padding(8.dp)
+                        .height(diagramHeight.dp),
                 )
             }
         }
@@ -545,7 +577,9 @@ private fun MermaidWKWebView(
     code: String,
     isDarkTheme: Boolean,
     modifier: Modifier = Modifier,
+    onContentHeight: ((Int) -> Unit)? = null,
 ) {
+    val reportHeight by rememberUpdatedState(onContentHeight)
     val escapedCode = remember(code) {
         code.replace("\\", "\\\\")
             .replace("`", "\\`")
@@ -555,7 +589,8 @@ private fun MermaidWKWebView(
             .replace("\n", "\\n")
     }
     val theme = if (isDarkTheme) "dark" else "default"
-    val html = remember(escapedCode, theme) { buildMermaidHtml(escapedCode, theme) }
+    val errorPrefix = stringResource(Res.string.diagram_error_prefix)
+    val html = remember(escapedCode, theme, errorPrefix) { buildMermaidHtml(escapedCode, theme, errorPrefix) }
 
     val assetBase = rememberWebAssetBaseUrl() ?: return
 
@@ -565,6 +600,20 @@ private fun MermaidWKWebView(
         modifier = modifier,
         factory = {
             val config = WKWebViewConfiguration()
+            // The page posts its rendered height once Mermaid's async render settles, and again on
+            // resize (see buildMermaidHtml); didFinishNavigation fires before the diagram exists.
+            config.userContentController.addScriptMessageHandler(
+                object : NSObject(), WKScriptMessageHandlerProtocol {
+                    override fun userContentController(
+                        userContentController: WKUserContentController,
+                        didReceiveScriptMessage: WKScriptMessage,
+                    ) {
+                        val height = (didReceiveScriptMessage.body as? Number)?.toInt()
+                        if (height != null && height > 0) reportHeight?.invoke(height)
+                    }
+                },
+                name = MERMAID_HEIGHT_HANDLER,
+            )
             val webView = WKWebView(frame = cValue { }, configuration = config)
             webView.setOpaque(false)
             webView.loadVendoredHtml(html, assetBase)
@@ -577,10 +626,17 @@ private fun MermaidWKWebView(
                 loadedHtml = html
             }
         },
+        // Unregistered on release so the handler, and the state it captured, go with the view.
+        onRelease = { webView ->
+            webView.configuration.userContentController.removeScriptMessageHandlerForName(MERMAID_HEIGHT_HANDLER)
+        },
     )
 }
 
-private fun buildMermaidHtml(escapedCode: String, theme: String): String {
+private const val MERMAID_HEIGHT_HANDLER = "mermaidHeight"
+
+private fun buildMermaidHtml(escapedCode: String, theme: String, errorPrefix: String): String {
+    val prefix = jsStringBody(errorPrefix)
     return """
         <!DOCTYPE html>
         <html>
@@ -603,15 +659,22 @@ private fun buildMermaidHtml(escapedCode: String, theme: String): String {
             <script src="mermaid/mermaid.min.js"></script>
             <script>
                 mermaid.initialize({ startOnLoad: false, theme: '$theme', securityLevel: 'strict', flowchart: { useMaxWidth: true } });
+                // Re-reported on resize: a fold or rotation rescales the diagram to the new width.
+                function reportHeight() {
+                    window.webkit.messageHandlers.$MERMAID_HEIGHT_HANDLER.postMessage(Math.ceil(document.body.scrollHeight));
+                }
                 try {
                     var code = "$escapedCode";
                     mermaid.render('rendered', code).then(function(result) {
                         document.getElementById('diagram').innerHTML = result.svg;
                     }).catch(function(err) {
-                        document.getElementById('diagram').innerHTML = '<div class="error">Diagram error: ' + err.message + '</div>';
+                        document.getElementById('diagram').innerHTML = '<div class="error">$prefix ' + err.message + '</div>';
+                    }).then(function() {
+                        reportHeight();
+                        window.addEventListener('resize', reportHeight);
                     });
                 } catch(e) {
-                    document.getElementById('diagram').innerHTML = '<div class="error">Diagram error: ' + e.message + '</div>';
+                    document.getElementById('diagram').innerHTML = '<div class="error">$prefix ' + e.message + '</div>';
                 }
             </script>
         </body>
@@ -633,3 +696,7 @@ private fun formatDurationIos(seconds: Int): String {
     val s = seconds % 60
     return "$m:${s.toString().padStart(2, '0')}"
 }
+
+/** [prefix] as the body of a single-quoted JavaScript string inside an inline script. */
+private fun jsStringBody(prefix: String): String =
+    prefix.replace("\\", "\\\\").replace("'", "\\'").replace("<", "\\u003c")

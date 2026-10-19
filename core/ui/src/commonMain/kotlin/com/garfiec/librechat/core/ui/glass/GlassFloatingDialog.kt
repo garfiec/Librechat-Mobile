@@ -9,7 +9,9 @@ import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,7 +20,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
@@ -34,8 +38,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.garfiec.librechat.core.ui.components.PlatformBackHandler
@@ -47,6 +53,7 @@ import com.garfiec.librechat.core.ui.theme.LocalDarkTheme
  */
 // [modifier] is the caller's, for the panel (as on an M3 dialog); the root is the full-screen scrim.
 @Suppress("ModifierNotUsedAtRoot")
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun GlassFloatingDialog(
     onDismissRequest: () -> Unit,
@@ -57,6 +64,7 @@ internal fun GlassFloatingDialog(
     icon: @Composable (() -> Unit)? = null,
     title: @Composable (() -> Unit)? = null,
     text: @Composable (() -> Unit)? = null,
+    scrollableText: Boolean = true,
 ) {
     val style = rememberGlassStyle() ?: return
     val backdrop = LocalGlassBackdrop.current
@@ -108,36 +116,41 @@ internal fun GlassFloatingDialog(
                             Box(Modifier.align(Alignment.CenterHorizontally).padding(bottom = 16.dp)) { slot() }
                         }
                     }
-                    title?.let { slot ->
-                        CompositionLocalProvider(LocalContentColor provides colors.onSurface) {
-                            ProvideTextStyle(MaterialTheme.typography.headlineSmall) {
-                                Box(
-                                    Modifier
-                                        .align(if (icon == null) Alignment.Start else Alignment.CenterHorizontally)
-                                        .padding(bottom = 16.dp),
-                                ) { slot() }
-                            }
+                    val titleAlignment = if (icon == null) Alignment.Start else Alignment.CenterHorizontally
+                    if (scrollableText) {
+                        // Centred under an icon, the title stays out of the scroll, which is only as
+                        // wide as its content.
+                        if (icon != null) title?.let { DialogTitle(it, titleAlignment) }
+                        // Title and text scroll as one, in what's left once the buttons have their
+                        // row, so a tall title or a long message never pushes them off the panel.
+                        Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
+                            if (icon == null) title?.let { DialogTitle(it, titleAlignment) }
+                            text?.let { DialogText(Modifier.align(Alignment.Start), it) }
                         }
-                    }
-                    text?.let { slot ->
-                        CompositionLocalProvider(LocalContentColor provides colors.onSurfaceVariant) {
-                            ProvideTextStyle(MaterialTheme.typography.bodyMedium) {
-                                // Takes what's left once the buttons have their row, so long content
-                                // scrolls (its own list) instead of pushing them off the panel.
-                                Box(Modifier.weight(1f, fill = false).align(Alignment.Start)) { slot() }
-                            }
-                        }
+                    } else {
+                        title?.let { DialogTitle(it, titleAlignment) }
+                        // The slot scrolls itself (its own list) in what's left.
+                        text?.let { DialogText(Modifier.weight(1f, fill = false).align(Alignment.Start), it) }
                     }
                     Spacer(Modifier.height(24.dp))
-                    Row(
-                        modifier = Modifier.align(Alignment.End),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        CompositionLocalProvider(LocalContentColor provides colors.primary) {
-                            ProvideTextStyle(MaterialTheme.typography.labelLarge) {
-                                dismissButton?.invoke()
-                                confirmButton()
+                    // Wraps rather than squeezing a label to a word a line. As on M3, confirm comes
+                    // first in the flipped direction: side by side it sits at the end, stacked on top.
+                    val direction = LocalLayoutDirection.current
+                    CompositionLocalProvider(LocalLayoutDirection provides direction.flipped()) {
+                        FlowRow(
+                            modifier = Modifier.align(Alignment.End),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            itemVerticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            CompositionLocalProvider(
+                                LocalLayoutDirection provides direction,
+                                LocalContentColor provides colors.primary,
+                            ) {
+                                ProvideTextStyle(MaterialTheme.typography.labelLarge) {
+                                    confirmButton()
+                                    dismissButton?.invoke()
+                                }
                             }
                         }
                     }
@@ -146,6 +159,27 @@ internal fun GlassFloatingDialog(
         }
     }
 }
+
+@Composable
+private fun ColumnScope.DialogTitle(slot: @Composable () -> Unit, alignment: Alignment.Horizontal) {
+    CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
+        ProvideTextStyle(MaterialTheme.typography.headlineSmall) {
+            Box(Modifier.align(alignment).padding(bottom = 16.dp)) { slot() }
+        }
+    }
+}
+
+@Composable
+private fun DialogText(modifier: Modifier = Modifier, slot: @Composable () -> Unit) {
+    CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant) {
+        ProvideTextStyle(MaterialTheme.typography.bodyMedium) {
+            Box(modifier) { slot() }
+        }
+    }
+}
+
+private fun LayoutDirection.flipped(): LayoutDirection =
+    if (this == LayoutDirection.Ltr) LayoutDirection.Rtl else LayoutDirection.Ltr
 
 private const val START_SCALE = 0.9f
 private val DialogShape = RoundedCornerShape(28.dp)

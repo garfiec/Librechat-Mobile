@@ -12,6 +12,7 @@ class LibreChatRuleSetProvider : RuleSetProvider {
             ruleSetId,
             listOf(
                 AccountScopedDaoRule(config),
+                AlertDialogNestedScrollRule(config),
             ),
         )
 }

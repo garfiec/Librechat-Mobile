@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 
 /** Platform-specific audio player from base64-encoded data. */
 @Composable
@@ -40,3 +41,7 @@ expect fun MermaidDiagram(
     code: String,
     modifier: Modifier = Modifier,
 )
+
+/** Bounds on an inline diagram's reported height, shared so both platforms size a diagram alike. */
+internal val MERMAID_MIN_INLINE_HEIGHT = 48.dp
+internal val MERMAID_MAX_INLINE_HEIGHT = 300.dp

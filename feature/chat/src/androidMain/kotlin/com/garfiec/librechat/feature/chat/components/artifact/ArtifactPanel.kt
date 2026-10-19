@@ -31,7 +31,10 @@ import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.data.repository.ArtifactShortcutRepository
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.feature.chat.components.web.rememberWebAssetBaseUrl
+import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.resources.artifact_preview_failed
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -50,6 +53,13 @@ actual fun ArtifactPreviewSurface(
     modifier: Modifier,
 ) {
     val bgColor = MaterialTheme.colorScheme.surface.toArgb()
+    val errorTitle = stringResource(Res.string.artifact_preview_failed)
+    val errorColors = ErrorPageColors(
+        background = MaterialTheme.colorScheme.surface.toArgb(),
+        text = MaterialTheme.colorScheme.onSurface.toArgb(),
+        secondaryText = MaterialTheme.colorScheme.onSurfaceVariant.toArgb(),
+        error = MaterialTheme.colorScheme.error.toArgb(),
+    )
     var isLoading by remember { mutableStateOf(true) }
     val assetBase = rememberWebAssetBaseUrl() ?: return
 
@@ -107,7 +117,7 @@ actual fun ArtifactPreviewSurface(
                             if (request?.isForMainFrame == true) {
                                 view?.loadDataWithBaseURL(
                                     null,
-                                    buildErrorHtml(error?.description?.toString() ?: "Unknown error"),
+                                    buildErrorHtml(errorTitle, error?.description?.toString(), errorColors),
                                     "text/html",
                                     "UTF-8",
                                     null,
@@ -183,16 +193,24 @@ actual fun rememberAddArtifactToHomeScreen(): ((artifact: Artifact, label: Strin
     }
 }
 
-private fun buildErrorHtml(errorMessage: String): String {
-    val safeMessage = ArtifactWebContent.escapeHtml(errorMessage)
+/** The app theme's colours as ARGB, so the error page matches light and dark mode. */
+private class ErrorPageColors(val background: Int, val text: Int, val secondaryText: Int, val error: Int)
+
+private fun cssColor(argb: Int, alphaHex: String = ""): String = "#%06X".format(argb and 0xFFFFFF) + alphaHex
+
+/** [errorMessage] is WebView's own description, shown under the title when there is one. */
+private fun buildErrorHtml(title: String, errorMessage: String?, colors: ErrorPageColors): String {
+    val safeTitle = ArtifactWebContent.escapeHtml(title)
+    val detail = errorMessage?.let {
+        """<br><span style="font-size:13px;color:${cssColor(colors.secondaryText)};">${ArtifactWebContent.escapeHtml(it)}</span>"""
+    }.orEmpty()
     return """
         <!DOCTYPE html>
         <html>
         <head><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-        <body style="margin:0;padding:16px;font-family:sans-serif;background:#FFFBFE;">
-            <div style="padding:16px;background:#B3261E22;border:1px solid #B3261E;border-radius:8px;">
-                <strong>Failed to load preview</strong><br>
-                <span style="font-size:13px;color:#666;">$safeMessage</span>
+        <body style="margin:0;padding:16px;font-family:sans-serif;background:${cssColor(colors.background)};color:${cssColor(colors.text)};">
+            <div style="padding:16px;background:${cssColor(colors.error, "22")};border:1px solid ${cssColor(colors.error)};border-radius:8px;">
+                <strong>$safeTitle</strong>$detail
             </div>
         </body>
         </html>

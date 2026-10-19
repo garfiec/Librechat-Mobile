@@ -60,6 +60,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.viewmodel.McpViewModel
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -255,7 +256,7 @@ fun McpServersScreen(
 }
 
 @Composable
-private fun McpServerListItem(
+internal fun McpServerListItem(
     server: McpServer,
     serverStatus: McpServerStatus?,
     toolCount: Int,
@@ -305,7 +306,7 @@ private fun McpServerListItem(
                     }
                     if (toolCount > 0) {
                         Text(
-                            text = "$toolCount tool${if (toolCount != 1) "s" else ""}",
+                            text = pluralStringResource(Res.plurals.mcp_tool_count, toolCount, toolCount),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

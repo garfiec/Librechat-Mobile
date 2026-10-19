@@ -66,4 +66,11 @@
     <string name="schedule_disabled_project">Pausiert: Das Projekt, in dem die Ausführungen abgelegt wurden, wurde gelöscht.</string>
     <string name="schedule_disabled_project_required">Pausiert: Dieser Server erfordert jetzt ein Projekt, und dieser Zeitplan hat keins.</string>
     <string name="schedule_disabled_unknown">Vom Server pausiert.</string>
+    <string name="schedule_weekday_sun">So</string>
+    <string name="schedule_weekday_mon">Mo</string>
+    <string name="schedule_weekday_tue">Di</string>
+    <string name="schedule_weekday_wed">Mi</string>
+    <string name="schedule_weekday_thu">Do</string>
+    <string name="schedule_weekday_fri">Fr</string>
+    <string name="schedule_weekday_sat">Sa</string>
 </resources>

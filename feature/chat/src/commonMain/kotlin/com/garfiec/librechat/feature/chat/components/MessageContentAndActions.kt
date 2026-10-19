@@ -4,6 +4,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,16 +21,20 @@ import androidx.compose.material.icons.automirrored.filled.CallSplit
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.ThumbDown
 import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.outlined.ThumbDown
 import androidx.compose.material.icons.outlined.ThumbUp
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -39,8 +45,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -48,6 +57,7 @@ import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.FeedbackRating
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.MinimalFeedback
+import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
 import com.garfiec.librechat.core.ui.theme.isSurfaceDark
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -79,6 +89,9 @@ internal val LocalFeedbackEnabled = compositionLocalOf { true }
 /**
  * Shared action buttons row for message bubbles (copy, edit, regenerate, feedback, read aloud, fork).
  * Used by both Android and iOS MessageBubble implementations.
+ *
+ * Takes the width it is given: the actions that don't fit move, from the end, into a "More" menu, so
+ * a narrow thread keeps every action reachable instead of pushing the last ones off the row.
  */
 @Composable
 internal fun ActionButtons(
@@ -92,120 +105,147 @@ internal fun ActionButtons(
     onReadAloud: (() -> Unit)?,
     isReading: Boolean,
     onFork: (() -> Unit)?,
+    modifier: Modifier = Modifier,
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    val idleTint = MaterialTheme.colorScheme.onSurfaceVariant
+    val actions = buildList {
         // Feedback buttons (AI messages only). Tapping the filled thumb clears; either unfilled
         // thumb opens the tag picker, because the route rejects a rating with no tag.
         if (!isUser && onFeedback != null) {
             val isUp = currentFeedback == FeedbackRating.THUMBS_UP
             val isDown = currentFeedback == FeedbackRating.THUMBS_DOWN
             val feedbackEnabled = LocalFeedbackEnabled.current
-            val disabledTint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DISABLED_ALPHA)
+            // The tint is set explicitly, so IconButton's own disabled content colour never
+            // applies — without this the button greys out its ripple but not its icon.
+            val disabledTint = idleTint.copy(alpha = DISABLED_ALPHA)
             // "Thumbs up, disabled" says nothing about why; a disabled control with no reason is
             // the accessibility equivalent of a silent no-op.
             val unavailable = stringResource(Res.string.cd_feedback_unavailable)
-            IconButton(
-                onClick = { if (isUp) onFeedback(null) else onPickFeedbackTag(FeedbackRating.THUMBS_UP) },
-                enabled = feedbackEnabled,
-                modifier = Modifier.size(40.dp),
-            ) {
-                Icon(
-                    imageVector = if (isUp) Icons.Filled.ThumbUp else Icons.Outlined.ThumbUp,
-                    contentDescription = stringResource(Res.string.cd_thumbs_up)
-                        .let { if (feedbackEnabled) it else "$it, $unavailable" },
-                    modifier = Modifier.size(18.dp),
-                    // The tint is set explicitly, so IconButton's own disabled content colour never
-                    // applies — without this the button greys out its ripple but not its icon.
+            val thumbsUp = stringResource(Res.string.cd_thumbs_up)
+            val thumbsDown = stringResource(Res.string.cd_thumbs_down)
+            add(
+                MessageAction(
+                    icon = if (isUp) Icons.Filled.ThumbUp else Icons.Outlined.ThumbUp,
+                    label = if (feedbackEnabled) thumbsUp else "$thumbsUp, $unavailable",
                     tint = when {
                         !feedbackEnabled -> disabledTint
                         isUp -> MaterialTheme.colorScheme.primary
-                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        else -> idleTint
                     },
-                )
-            }
-            IconButton(
-                onClick = { if (isDown) onFeedback(null) else onPickFeedbackTag(FeedbackRating.THUMBS_DOWN) },
-                enabled = feedbackEnabled,
-                modifier = Modifier.size(40.dp),
-            ) {
-                Icon(
-                    imageVector = if (isDown) Icons.Filled.ThumbDown else Icons.Outlined.ThumbDown,
-                    contentDescription = stringResource(Res.string.cd_thumbs_down)
-                        .let { if (feedbackEnabled) it else "$it, $unavailable" },
-                    modifier = Modifier.size(18.dp),
+                    enabled = feedbackEnabled,
+                    onClick = { if (isUp) onFeedback(null) else onPickFeedbackTag(FeedbackRating.THUMBS_UP) },
+                    menuLabel = thumbsUp,
+                ),
+            )
+            add(
+                MessageAction(
+                    icon = if (isDown) Icons.Filled.ThumbDown else Icons.Outlined.ThumbDown,
+                    label = if (feedbackEnabled) thumbsDown else "$thumbsDown, $unavailable",
                     tint = when {
                         !feedbackEnabled -> disabledTint
                         isDown -> MaterialTheme.colorScheme.error
-                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        else -> idleTint
                     },
-                )
-            }
+                    enabled = feedbackEnabled,
+                    onClick = { if (isDown) onFeedback(null) else onPickFeedbackTag(FeedbackRating.THUMBS_DOWN) },
+                    menuLabel = thumbsDown,
+                ),
+            )
         }
-
         if (onCopy != null) {
-            IconButton(onClick = onCopy, modifier = Modifier.size(40.dp)) {
-                Icon(
-                    imageVector = Icons.Default.ContentCopy,
-                    contentDescription = stringResource(Res.string.cd_copy_message),
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            add(MessageAction(Icons.Default.ContentCopy, stringResource(Res.string.cd_copy_message), idleTint, onCopy))
         }
-
         if (onEdit != null) {
-            IconButton(onClick = onEdit, modifier = Modifier.size(40.dp)) {
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = stringResource(Res.string.cd_edit_message),
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            add(MessageAction(Icons.Default.Edit, stringResource(Res.string.cd_edit_message), idleTint, onEdit))
         }
-
         if (!isUser && onRegenerate != null) {
-            IconButton(onClick = onRegenerate, modifier = Modifier.size(40.dp)) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = stringResource(Res.string.cd_regenerate_response),
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            add(MessageAction(Icons.Default.Refresh, stringResource(Res.string.cd_regenerate_response), idleTint, onRegenerate))
         }
-
         if (onReadAloud != null) {
-            IconButton(onClick = onReadAloud, modifier = Modifier.size(40.dp)) {
-                Icon(
-                    imageVector = if (isReading) Icons.Default.Stop else Icons.AutoMirrored.Filled.VolumeUp,
-                    contentDescription = if (isReading) {
-                        stringResource(Res.string.cd_stop_reading)
-                    } else {
-                        stringResource(Res.string.cd_read_aloud)
-                    },
-                    modifier = Modifier.size(18.dp),
-                    tint = if (isReading) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                )
-            }
+            add(
+                MessageAction(
+                    icon = if (isReading) Icons.Default.Stop else Icons.AutoMirrored.Filled.VolumeUp,
+                    label = stringResource(if (isReading) Res.string.cd_stop_reading else Res.string.cd_read_aloud),
+                    tint = if (isReading) MaterialTheme.colorScheme.primary else idleTint,
+                    onClick = onReadAloud,
+                ),
+            )
         }
-
         if (onFork != null) {
-            IconButton(onClick = onFork, modifier = Modifier.size(40.dp)) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.CallSplit,
-                    contentDescription = stringResource(Res.string.cd_fork_conversation),
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            add(MessageAction(Icons.AutoMirrored.Filled.CallSplit, stringResource(Res.string.cd_fork_conversation), idleTint, onFork))
+        }
+    }
+
+    BoxWithConstraints(modifier = modifier) {
+        val slots = if (constraints.hasBoundedWidth) (maxWidth / ACTION_BUTTON_SIZE).toInt() else actions.size
+        val overflows = actions.size > slots
+        // The More button takes a slot of its own.
+        val shown = if (overflows) actions.take((slots - 1).coerceAtLeast(0)) else actions
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            shown.forEach { action ->
+                IconButton(
+                    onClick = action.onClick,
+                    enabled = action.enabled,
+                    modifier = Modifier.size(ACTION_BUTTON_SIZE),
+                ) {
+                    Icon(
+                        imageVector = action.icon,
+                        contentDescription = action.label,
+                        modifier = Modifier.size(18.dp),
+                        tint = action.tint,
+                    )
+                }
+            }
+            if (overflows) ActionOverflowMenu(actions.drop(shown.size))
+        }
+    }
+}
+
+/**
+ * One entry of a message's action row: an icon button, or an item of its "More" menu. [label] is
+ * what TalkBack reads; [menuLabel] is the menu item's visible text, without any spoken-only reason.
+ */
+@Immutable
+private class MessageAction(
+    val icon: ImageVector,
+    val label: String,
+    val tint: Color,
+    val onClick: () -> Unit,
+    val enabled: Boolean = true,
+    val menuLabel: String = label,
+)
+
+@Composable
+private fun ActionOverflowMenu(actions: List<MessageAction>) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { expanded = true }, modifier = Modifier.size(ACTION_BUTTON_SIZE)) {
+            Icon(
+                imageVector = Icons.Default.MoreHoriz,
+                contentDescription = stringResource(Res.string.cd_more_options),
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        AdaptiveDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            actions.forEach { action ->
+                DropdownMenuItem(
+                    text = { Text(action.menuLabel) },
+                    leadingIcon = { Icon(action.icon, contentDescription = null, tint = action.tint) },
+                    enabled = action.enabled,
+                    onClick = {
+                        expanded = false
+                        action.onClick()
+                    },
+                    // TalkBack still hears why a disabled item is unavailable.
+                    modifier = Modifier.semantics { contentDescription = action.label },
                 )
             }
         }
     }
 }
+
+private val ACTION_BUTTON_SIZE = 40.dp
 
 /**
  * Shared message content rendering and action buttons, used by both layout styles on both platforms.
@@ -623,6 +663,7 @@ internal fun MessageContentAndActions(
                         onReadAloud = onReadAloud,
                         isReading = isReading,
                         onFork = onFork,
+                        modifier = Modifier.weight(1f, fill = false),
                     )
                 }
             }

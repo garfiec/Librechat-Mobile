@@ -30,6 +30,7 @@ import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGSizeMake
 import platform.Foundation.NSClassFromString
 import platform.UIKit.NSDirectionalRectEdgeTrailing
+import platform.UIKit.NSFontAttributeName
 import platform.UIKit.NSLineBreakByTruncatingTail
 import platform.UIKit.UIAction
 import platform.UIKit.UIAlertAction
@@ -42,9 +43,14 @@ import platform.UIKit.UIBarButtonItemStyle
 import platform.UIKit.UIButton
 import platform.UIKit.UIButtonConfiguration
 import platform.UIKit.UIColor
+import platform.UIKit.UIContentSizeCategoryLarge
 import platform.UIKit.UIControlEventTouchUpInside
 import platform.UIKit.UIDeferredMenuElement
+import platform.UIKit.UIFont
+import platform.UIKit.UIFontWeightSemibold
 import platform.UIKit.UIImage
+import platform.UIKit.UIImageSymbolConfiguration
+import platform.UIKit.UILargeContentViewerInteraction
 import platform.UIKit.UIMenu
 import platform.UIKit.UIMenuElementAttributesDestructive
 import platform.UIKit.UIMenuElementAttributesDisabled
@@ -60,7 +66,10 @@ import platform.UIKit.UIViewAutoresizingFlexibleHeight
 import platform.UIKit.UIViewAutoresizingFlexibleWidth
 import platform.UIKit.UIViewController
 import platform.UIKit.accessibilityLabel
+import platform.UIKit.addInteraction
 import platform.UIKit.labelColor
+import platform.UIKit.largeContentTitle
+import platform.UIKit.showsLargeContentViewer
 import platform.UIKit.systemRedColor
 import platform.darwin.dispatch_async
 import platform.darwin.dispatch_get_main_queue
@@ -71,6 +80,9 @@ private const val INITIAL_BAR_HEIGHT = 52f
 
 /** Differs from every real height, so the next layout pass reports whatever it measures. */
 private const val UNREPORTED_HEIGHT = -1.0
+
+/** The system navigation title's size, which it keeps at every Dynamic Type setting. */
+private const val TITLE_POINT_SIZE = 17.0
 
 /** ObjC superclass of CMP's `InteropWrappingView`, the view that owns an interop view's touches. */
 private const val INTEROP_WRAPPER_CLASS = "CMPInteropWrappingView"
@@ -261,18 +273,30 @@ private class NativeBarContainer(
     }
 
     private fun titleButton(text: String, chevron: Boolean): UIButton {
+        // Pinned the way the system title is: a button follows Dynamic Type and outgrows the fixed bar,
+        // so the size stays at 17pt and the large content viewer (long press) shows it bigger.
+        val font = UIFont.systemFontOfSize(TITLE_POINT_SIZE, weight = UIFontWeightSemibold)
         val configuration = UIButtonConfiguration.plainButtonConfiguration().apply {
             title = text
             // A configuration title wraps by default, and the bar clips the extra lines.
             titleLineBreakMode = NSLineBreakByTruncatingTail
+            titleTextAttributesTransformer = { attributes ->
+                HashMap<Any?, Any?>(attributes ?: emptyMap<Any?, Any?>()).apply { put(NSFontAttributeName, font) }
+            }
             baseForegroundColor = UIColor.labelColor
             if (chevron) {
                 image = UIImage.systemImageNamed("chevron.down")
+                preferredSymbolConfigurationForImage = UIImageSymbolConfiguration.configurationWithFont(font)
                 imagePlacement = NSDirectionalRectEdgeTrailing
                 imagePadding = 4.0
             }
         }
         val button = UIButton.buttonWithConfiguration(configuration, primaryAction = null)
+        // Caps the trait the configuration reads too, in case it scales the given font itself.
+        button.maximumContentSizeCategory = UIContentSizeCategoryLarge
+        button.showsLargeContentViewer = true
+        button.largeContentTitle = text
+        button.addInteraction(UILargeContentViewerInteraction())
         button.addAction(
             UIAction.actionWithTitle(title = text, image = null, identifier = null) { _ -> onTitleTapped() },
             forControlEvents = UIControlEventTouchUpInside,

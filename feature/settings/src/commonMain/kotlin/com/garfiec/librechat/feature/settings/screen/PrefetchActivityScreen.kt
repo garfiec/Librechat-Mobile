@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.settings.screen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,7 +25,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -229,24 +229,24 @@ private fun PrefetchSectionHeader(text: String) {
 }
 
 @Composable
-private fun DetailRow(label: String, value: String) {
-    Row(
+internal fun DetailRow(label: String, value: String) {
+    // The value drops below the label when a translation leaves them too little room side by side.
+    FlowRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium)
+        // The padding counts when the pair is fitted on one line, so the two never run together.
+        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(end = 12.dp))
         Text(
             text = value,
             style = MaterialTheme.typography.bodyMedium,
-            textAlign = TextAlign.End,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
 
 @Composable
-private fun ConditionRow(row: PrefetchConditionRow) {
+internal fun ConditionRow(row: PrefetchConditionRow) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -258,24 +258,22 @@ private fun ConditionRow(row: PrefetchConditionRow) {
             tint = if (row.met) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
             modifier = Modifier.size(20.dp),
         )
-        Text(
-            text = row.condition.label(),
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.weight(1f),
-        )
-        row.detail()?.let { detail ->
-            Text(
-                text = detail,
-                style = MaterialTheme.typography.bodySmall,
-                textAlign = TextAlign.End,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        // The detail sits under the condition: beside it, a translated detail would leave the label no room.
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = row.condition.label(), style = MaterialTheme.typography.bodyMedium)
+            row.detail()?.let { detail ->
+                Text(
+                    text = detail,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun ConversationRow(row: PrefetchConversationStatus) {
+internal fun ConversationRow(row: PrefetchConversationStatus) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -289,20 +287,22 @@ private fun ConversationRow(row: PrefetchConversationStatus) {
                 modifier = Modifier.size(16.dp),
             )
         }
-        Text(
-            text = row.title,
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-        Text(
-            text = row.warmedAt?.relativeLabel()
-                ?: stringResource(Res.string.prefetch_row_never_warmed),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.Normal,
-        )
+        // When it was warmed sits under the title, which a translated "not cached yet" beside it would starve.
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = row.title,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = row.warmedAt?.relativeLabel()
+                    ?: stringResource(Res.string.prefetch_row_never_warmed),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Normal,
+            )
+        }
     }
 }
 

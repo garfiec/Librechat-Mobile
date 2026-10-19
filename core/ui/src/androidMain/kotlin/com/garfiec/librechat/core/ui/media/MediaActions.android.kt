@@ -21,16 +21,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import co.touchlab.kermit.Logger
 import coil3.SingletonImageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
 import com.garfiec.librechat.core.common.media.detectImageMimeType
 import com.garfiec.librechat.core.common.media.imageExtensionForMimeType
+import com.garfiec.librechat.core.ui.resources.Res
+import com.garfiec.librechat.core.ui.resources.media_image_load_failed
+import com.garfiec.librechat.core.ui.resources.media_image_save_failed
+import com.garfiec.librechat.core.ui.resources.media_image_saved
+import com.garfiec.librechat.core.ui.resources.media_share_file_failed
+import com.garfiec.librechat.core.ui.resources.media_storage_permission_required
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.jetbrains.compose.resources.getString
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
@@ -51,11 +59,7 @@ actual fun rememberSaveImageToGallery(): ((url: String) -> Unit)? {
         if (granted && url != null) {
             scope.launch { saveUrlToGallery(context, url) }
         } else if (!granted) {
-            Toast.makeText(
-                context,
-                "Storage permission is required to save images",
-                Toast.LENGTH_SHORT,
-            ).show()
+            scope.launch { toast(context, getString(Res.string.media_storage_permission_required)) }
         }
     }
 
@@ -148,7 +152,8 @@ actual fun rememberShareFile(): (bytes: ByteArray, filename: String, mime: Strin
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    toast(context, "Failed to share file: ${e.localizedMessage ?: ""}")
+                    Logger.w(e) { "Sharing a file failed" }
+                    toast(context, getString(Res.string.media_share_file_failed))
                 }
             }
         }
@@ -164,15 +169,16 @@ private suspend fun saveUrlToGallery(context: Context, url: String) {
     try {
         val image = loadEncodedImage(context, url)
         if (image == null) {
-            toast(context, "Failed to load image")
+            toast(context, getString(Res.string.media_image_load_failed))
             return
         }
         withContext(Dispatchers.IO) { writeImageToGallery(context, image) }
-        toast(context, "Image saved to gallery")
+        toast(context, getString(Res.string.media_image_saved))
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {
-        toast(context, "Failed to save image: ${e.localizedMessage ?: ""}")
+        Logger.w(e) { "Saving an image failed" }
+        toast(context, getString(Res.string.media_image_save_failed))
     }
 }
 

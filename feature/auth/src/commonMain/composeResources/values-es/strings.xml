@@ -84,4 +84,5 @@
     <string name="diagnostic_log_exported">Registro exportado. Adjúntalo cuando informes del problema.</string>
     <string name="diagnostic_log_failed">No se pudo exportar el registro.</string>
     <string name="user_ca_notice">El certificado de este servidor es de confianza a través de una autoridad de certificación instalada en este dispositivo, no de una integrada en Android. Continúa solo si la instalaste tú o tu organización.</string>
+    <string name="continue_with_provider">Continuar con %1$s</string>
 </resources>

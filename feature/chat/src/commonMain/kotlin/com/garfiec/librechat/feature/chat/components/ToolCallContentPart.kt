@@ -69,8 +69,10 @@ internal fun ToolCallDispatcher(
 ) {
     val toolCall = part.toolCall
     val cardKey = toolCall?.id?.takeIf { it.isNotEmpty() } ?: stateKey
-    val toolName = toolCall?.name ?: toolCall?.function?.name ?: "Tool Call"
-    val toolNameLower = toolName.lowercase()
+    val namedTool = toolCall?.name ?: toolCall?.function?.name
+    // Routing reads the tool's own name; the translated fallback is only ever displayed.
+    val toolNameLower = namedTool.orEmpty().lowercase()
+    val toolName = namedTool ?: stringResource(Res.string.tool_call_fallback)
     val output = toolCall?.output ?: toolCall?.function?.output
 
     // Subagent tool_call → collapsible trace card (v0.8.6). Live progress comes

@@ -35,7 +35,7 @@ A third-party native mobile client for [LibreChat](https://www.librechat.ai/) (A
 - **Skills** — Create, import, and edit skills: reusable instructions and files your agents can draw on.
 - **Conversations** — Paginated list with date grouping, tags, search, rename, archive, delete, share, fork, duplicate, export/import
 - **Voice** — On-device live dictation (Android & iOS) with cloud fallback, plus text-to-speech playback
-- **Mobile & Tablet** — Single adaptive UI: single-pane on phones, dual-pane layout (600dp+) with a persistent sidebar on tablets and foldables, with native predictive-back gestures
+- **Mobile & Tablet** — Single adaptive UI: single-pane on phones, dual-pane layout with a persistent sidebar on tablets and foldables, with native predictive-back gestures
 - **Settings** — In-app language switching across 10 languages, account management, data controls
 - **Accessibility** — Semantic headings, content descriptions, 48dp touch targets, live regions
 

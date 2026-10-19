@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Drawer -->
-    <string name="settings">설정</string>
 
     <!-- Content descriptions -->
-    <string name="cd_back_to_conversations">대화로 돌아가기</string>
 
     <!-- Version mismatch dialog -->
     <string name="version_mismatch_title">백엔드 버전 불일치</string>
