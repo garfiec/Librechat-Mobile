@@ -10,17 +10,16 @@ import com.garfiec.librechat.core.logging.logStartupHeader
 import com.garfiec.librechat.core.logging.startMainThreadWatchdog
 import kotlinx.coroutines.CoroutineExceptionHandler
 import org.koin.core.context.startKoin
-import platform.Foundation.NSLog
 
 /**
  * LogWriter that routes Kermit output through NSLog so it appears in
  * the unified OS log (visible via `log stream` / Console.app / Xcode).
  */
-private class IosNSLogWriter : LogWriter() {
+internal class IosNSLogWriter : LogWriter() {
     override fun log(severity: Severity, message: String, tag: String, throwable: Throwable?) {
         val level = severity.name.first()
-        NSLog("[$level/$tag] $message")
-        throwable?.let { NSLog("[$level/$tag] ${it.stackTraceToString()}") }
+        nsLogVerbatim("[$level/$tag] $message")
+        throwable?.let { nsLogVerbatim("[$level/$tag] ${it.stackTraceToString()}") }
     }
 }
 
