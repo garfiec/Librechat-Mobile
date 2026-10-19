@@ -5,6 +5,7 @@ import androidx.compose.foundation.gestures.AnchoredDraggableDefaults
 import androidx.compose.foundation.gestures.AnchoredDraggableState
 import androidx.compose.foundation.gestures.DraggableAnchors
 import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.ScrollScope
 import androidx.compose.foundation.gestures.TargetedFlingBehavior
 import androidx.compose.foundation.gestures.anchoredDraggable
 import androidx.compose.foundation.gestures.animateTo
@@ -40,7 +41,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -69,7 +69,6 @@ import com.garfiec.librechat.feature.chat.components.ChatOptionsSheetController
 import com.garfiec.librechat.feature.chat.components.ChatToolsSheetContent
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -99,7 +98,8 @@ internal class PullUpGesture {
 @Stable
 internal class ChatPullUpSheetState(
     val anchored: AnchoredDraggableState<PullUpAnchor>,
-    val flingBehavior: TargetedFlingBehavior,
+    /** The settle fling; the three [anchoredDraggable]s get it through [flingBehavior]. */
+    fling: TargetedFlingBehavior,
     /** Fling velocity above which a flick (rather than drag position) decides open/closed. */
     private val minFlingVelocityPx: Float,
     /** The whole screen, recorded for the sheet only while it shows. */
@@ -112,7 +112,7 @@ internal class ChatPullUpSheetState(
 ) {
     var heightPx: Int
         get() = height.intValue
-        set(value) {
+        private set(value) {
             height.intValue = value
         }
 
@@ -144,11 +144,11 @@ internal class ChatPullUpSheetState(
     /**
      * True when Compose reports an animation running that nothing is running (#542).
      *
-     * `updateAnchors` (from the surface's onSizeChanged) can't snap while a drag or fling holds the
-     * lock, so it records `dragTarget` instead, and only a *targeted* anchoredDrag (animateTo/snapTo)
-     * clears that — or the next resize, by snapping to the stale target. The finger drag and the
-     * modifier's fling are untargeted, so a resize landing under either leaves `isAnimationRunning`
-     * true until then. Every [anchoredDraggable] here starts a drag on each pointer-down meanwhile
+     * `updateAnchors` (from [onHeightChanged]) can't snap while a drag or fling holds the lock, so it
+     * records `dragTarget` instead, and only a *targeted* anchoredDrag (animateTo/snapTo) clears that —
+     * or the next resize, by snapping to the stale target. The finger drag and the modifier's fling
+     * are untargeted, so a resize landing under either leaves `isAnimationRunning` true until then.
+     * Every [anchoredDraggable] here starts a drag on each pointer-down meanwhile
      * (startDragImmediately) and consumes it, killing every tap beneath, and the pinned `targetValue`
      * is what that next resize snaps to, which can close an open sheet.
      * `ChatPullUpSheetStaleTargetTest` fails once Compose stops doing this.
@@ -159,32 +159,71 @@ internal class ChatPullUpSheetState(
     val hasStaleAnimationFlag: Boolean
         get() = anchored.isAnimationRunning && !isDragged.value && ownAnimations == 0
 
+    /** Bumped each time a fling runs to completion; [healStaleAnimationFlag] runs on every bump. */
+    var flingsEnded by mutableIntStateOf(0)
+        private set
+
     /**
-     * Clears a stale flag once the sheet has stopped moving, with a snap to the anchor it rests on: no
-     * visible movement, and the targeted drag's cleanup clears it.
-     *
-     * The flag usually turns up mid-fling, and one unchanged frame doesn't mean it stopped: the
-     * resize restarts the fling (anchoredDrag is restartable on anchors), and an animation's first
-     * frame doesn't move. Snapping then cuts the fling short, to whichever anchor is nearer. So it
-     * waits for the sheet to rest on an anchor, where a fling always ends, or failing that to sit
-     * still for [SETTLE_FRAMES].
+     * What the [anchoredDraggable]s fling with. Only a drag or fling can leave the flag stale, and
+     * every drag ends in a fling (on stop and on cancel alike), so the end of a fling is the one
+     * place to look. A resize mid-fling restarts it, cancelling the run in progress, so only the
+     * run that lands is counted.
      */
-    suspend fun clearStaleAnimationFlag() {
-        var last = anchored.offset
-        var stillFrames = 0
-        while (true) {
-            withFrameNanos { }
-            val now = anchored.offset
-            stillFrames = if (now == last) stillFrames + 1 else 0
-            last = now
-            if (now.isNaN()) return
-            val onAnchor = anchored.anchors.closestAnchor(now)?.let { anchored.anchors.positionOf(it) == now } == true
-            if ((onAnchor && stillFrames > 0) || stillFrames >= SETTLE_FRAMES) break
+    val flingBehavior: TargetedFlingBehavior = object : TargetedFlingBehavior {
+        override suspend fun ScrollScope.performFling(
+            initialVelocity: Float,
+            onRemainingDistanceUpdated: (Float) -> Unit,
+        ): Float {
+            val left = with(fling) { performFling(initialVelocity, onRemainingDistanceUpdated) }
+            flingsEnded++
+            return left
         }
-        // snapTo shares the finger drag's priority and would cancel one that started this frame.
+    }
+
+    /**
+     * Clears a stale flag with a snap to the anchor the landed fling rests on: no visible movement,
+     * and the targeted drag's cleanup clears it. Runs after the fling has released the lock. If a
+     * guard holds it off, the next gesture's fling comes back here.
+     */
+    suspend fun healStaleAnimationFlag() {
+        // Re-checked right before snapTo: it shares the finger drag's priority and would cancel one.
         if (!hasStaleAnimationFlag) return
-        val restingOn = anchored.anchors.closestAnchor(last) ?: return
+        val o = anchored.offset
+        if (o.isNaN()) return
+        val restingOn = anchored.anchors.closestAnchor(o) ?: return
         anchored.snapTo(restingOn)
+    }
+
+    /**
+     * The sheet surface measured [newHeight] (its content loading in, or changing).
+     *
+     * A sheet that is mid-way keeps its visible height, so its top edge stays under the finger.
+     * Without that, a resize under a nested-scroll pull (which holds no lock) snaps it fully open or
+     * closed, and one under a drag or fling shifts the top edge by the change. Resting sheets keep
+     * their anchor, and the sheet's own animations re-aim at the new anchors themselves.
+     */
+    fun onHeightChanged(newHeight: Int) {
+        val oldHeight = heightPx
+        if (newHeight == oldHeight) return
+        val oldOffset = anchored.offset
+        heightPx = newHeight
+        if (newHeight <= 0) return
+        // newTarget is load-bearing: the default is the anchor closest to the CURRENT offset, which
+        // is the old height. A sheet that more than doubles while hidden (its content loading after
+        // the first measure) is then nearer Revealed (0) than the new Hidden, and snaps open over the
+        // composer on its own. Keep its state.
+        anchored.updateAnchors(
+            DraggableAnchors {
+                PullUpAnchor.Hidden at newHeight.toFloat()
+                PullUpAnchor.Revealed at 0f
+            },
+            newTarget = anchored.targetValue,
+        )
+        val midway = oldHeight > 0 && !oldOffset.isNaN() && oldOffset > 0f && oldOffset < oldHeight
+        if (midway && ownAnimations == 0) {
+            val keepTopEdge = (oldOffset + (newHeight - oldHeight)).coerceIn(0f, newHeight.toFloat())
+            anchored.dispatchRawDelta(keepTopEdge - anchored.offset)
+        }
     }
 
     // Velocity-aware settle, only once the sheet is already partly open (so a fling that merely
@@ -309,11 +348,6 @@ internal class ChatPullUpSheetState(
         interactionSource = interactionSource,
         flingBehavior = flingBehavior,
     )
-
-    private companion object {
-        /** About 100 ms at 120 Hz: longer than any pause a running animation takes. */
-        const val SETTLE_FRAMES = 12
-    }
 }
 
 @Composable
@@ -336,9 +370,7 @@ internal fun rememberChatPullUpSheetState(): ChatPullUpSheetState {
         )
     }
     LaunchedEffect(state) {
-        snapshotFlow { state.hasStaleAnimationFlag }.collectLatest { stale ->
-            if (stale) state.clearStaleAnimationFlag()
-        }
+        snapshotFlow { state.flingsEnded }.collect { state.healStaleAnimationFlag() }
     }
     // Dismiss the IME the moment the sheet starts to reveal (the screens' Scaffolds use imePadding()).
     val keyboardController by rememberUpdatedState(LocalSoftwareKeyboardController.current)
@@ -434,25 +466,7 @@ internal fun BoxScope.ChatPullUpSheetOverlay(
             // measured height is still 0, so without this the sheet would place at offset 0
             // (fully revealed) and flash the whole menu open on every chat entry.
             .graphicsLayer { alpha = if (state.heightPx > 0) 1f else 0f }
-            .onSizeChanged { size ->
-                if (size.height != state.heightPx) {
-                    state.heightPx = size.height
-                    if (size.height > 0) {
-                        // newTarget is load-bearing: the default is the anchor closest to the
-                        // CURRENT offset, which is the old height. A sheet that more than doubles
-                        // while hidden (its content loading after the first measure) is then nearer
-                        // Revealed (0) than the new Hidden, and snaps open over the composer on its
-                        // own. Keep its state.
-                        state.anchored.updateAnchors(
-                            DraggableAnchors {
-                                PullUpAnchor.Hidden at size.height.toFloat()
-                                PullUpAnchor.Revealed at 0f
-                            },
-                            newTarget = state.anchored.targetValue,
-                        )
-                    }
-                }
-            }
+            .onSizeChanged { size -> state.onHeightChanged(size.height) }
             .offset {
                 val o = state.anchored.offset
                 IntOffset(0, if (o.isNaN()) state.heightPx else o.roundToInt())
