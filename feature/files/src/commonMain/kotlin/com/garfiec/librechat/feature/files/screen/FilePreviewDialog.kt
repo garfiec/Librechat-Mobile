@@ -15,13 +15,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AudioFile
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.PictureAsPdf
-import androidx.compose.material.icons.filled.VideoFile
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -35,7 +30,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -43,10 +37,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.result.suspendRunCatching
+import com.garfiec.librechat.core.model.files.fileKindOf
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
+import com.garfiec.librechat.core.ui.components.FileTypeTile
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
@@ -306,11 +302,9 @@ private fun FileInfoCard(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Icon(
-                    imageVector = fileTypeIconLarge(file.type),
-                    contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = MaterialTheme.colorScheme.primary,
+                FileTypeTile(
+                    kind = remember(file.filename, file.type) { fileKindOf(file.filename, file.type) },
+                    size = 64.dp,
                 )
 
                 Text(
@@ -355,13 +349,4 @@ internal fun InfoRow(
             modifier = Modifier.weight(1f, fill = false),
         )
     }
-}
-
-private fun fileTypeIconLarge(type: String): ImageVector = when {
-    type.startsWith("image/") -> Icons.Default.Image
-    type.startsWith("video/") -> Icons.Default.VideoFile
-    type.startsWith("audio/") -> Icons.Default.AudioFile
-    type == "application/pdf" -> Icons.Default.PictureAsPdf
-    type.startsWith("text/") || type == "application/json" -> Icons.Default.Description
-    else -> Icons.Default.Description
 }

@@ -4,6 +4,8 @@ import com.garfiec.librechat.core.common.identity.cleanServerUrl
 import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.FileReference
 import com.garfiec.librechat.core.model.content.MessageContentPart
+import com.garfiec.librechat.core.model.files.CODE_DOWNLOAD_ROUTE
+import com.garfiec.librechat.core.model.files.codeDownloadUrl
 
 /**
  * Single source of truth for turning a message's image reference into a loadable URL.
@@ -91,6 +93,8 @@ private fun resolveImageUrl(
             // relative-path case below would glue a server origin in front of it; upstream's own
             // `Image.tsx` carries the same guard.
             filepath.startsWith(DATA_URI_PREFIX) -> filepath
+            // Already carries the base path; joined to the cleaned base it would double it.
+            filepath.contains(CODE_DOWNLOAD_ROUTE) && baseUrl.isNotBlank() -> codeDownloadUrl(filepath, baseUrl)
             filepath.startsWith("/images/") && baseUrl.isNotBlank() -> "$baseUrl$filepath"
             includeBareSlash && filepath.startsWith("/") && baseUrl.isNotBlank() -> "$baseUrl$filepath"
             baseUrl.isNotBlank() -> "$baseUrl$relativePathPrefix$filepath"

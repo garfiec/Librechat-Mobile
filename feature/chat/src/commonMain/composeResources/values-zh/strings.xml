@@ -179,8 +179,6 @@
     <string name="trace_error_unsupported">此服务器的追踪服务无法返回追踪记录。</string>
 
     <!-- Office-doc preview attachments (deferred preview, v0.8.6+) -->
-    <string name="office_preview_preparing">正在准备 %1$s 的预览…</string>
-    <string name="office_preview_failed">无法预览 %1$s（%2$s）</string>
     <string name="office_preview_unavailable">%1$s — 预览不可用</string>
 
     <!-- Content descriptions - Tool calls -->
@@ -671,4 +669,32 @@
     <string name="queue_held_after_refusal">服务器拒绝了你的消息。它正在队列中等待，不会自动发送。准备好后请点按“发送排队消息”。</string>
     <string name="jump_message_not_found">该消息已不在此聊天中。</string>
     <string name="jump_branch_switched">已切换到第 %1$d 个回复（共 %2$d 个），即包含此消息的分支。</string>
+    <string name="load_image_from_host">从 %1$s 加载图片</string>
+    <string name="workspace_changes">工作区更改</string>
+    <plurals name="n_files_changed">
+        <item quantity="other">已更改 %1$d 个文件</item>
+    </plurals>
+    <string name="file_created">新建</string>
+    <string name="file_updated">已编辑</string>
+    <string name="show_all_n">显示全部 %1$d 个</string>
+    <string name="cd_download_file">下载 %1$s</string>
+    <string name="preview_preparing">正在准备预览…</string>
+    <string name="preview_failed_download">无法预览 · 下载后查看</string>
+    <plurals name="text_n_lines">
+        <item quantity="other">%1$d 行</item>
+    </plurals>
+    <string name="sandbox_starting">正在启动沙盒环境</string>
+    <string name="analyzing">正在分析</string>
+    <string name="analyzing_finished">完成分析</string>
+    <string name="show_all_lines">显示全部行</string>
+    <string name="cd_copy_output">复制输出</string>
+    <string name="expired">已过期</string>
+    <string name="expired_explainer">代码沙盒中的文件保留 24 小时。此文件已过期，无法再下载。</string>
+    <string name="file_download_failed">无法下载 %1$s</string>
+    <plurals name="files_count_summary">
+        <item quantity="other">%1$d 个文件</item>
+    </plurals>
+    <plurals name="plus_n_more">
+        <item quantity="other">另外 %1$d 个</item>
+    </plurals>
 </resources>

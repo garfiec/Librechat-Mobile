@@ -23,6 +23,13 @@ sealed interface StreamEvent {
     data class ToolCallComplete(
         val toolCallId: String,
         val output: String,
+        /**
+         * The call's arguments as the completion reports them (`result.tool_call.args`). The
+         * announcing run step carries empty args, so this is the first place they are whole; the
+         * web client replaces the whole tool call with this one. Null when the completion omitted
+         * them, which keeps whatever [ToolCallStart.input] held.
+         */
+        val input: String? = null,
         val attachments: List<Attachment>? = null,
         val agentId: String? = null,
         val groupId: Int? = null,
@@ -48,18 +55,42 @@ sealed interface StreamEvent {
         val groupId: Int? = null,
     ) : StreamEvent
 
+    /**
+     * A code-session tool call is waiting on its sandbox to start (`on_sandbox_starting`). Sent
+     * once per such call, between its run step and its completion; carries no state of its own.
+     */
+    data class SandboxStarting(
+        val toolCallId: String,
+        val runId: String? = null,
+    ) : StreamEvent
+
     data class ThinkingDelta(
         val chunk: String,
         val agentId: String? = null,
         val groupId: Int? = null,
     ) : StreamEvent
 
+    /**
+     * A file (or a structured payload) a tool produced. [fileId] and [type] are null on a
+     * code-output download fallback — the record the server sends when it could not store the
+     * file, which has only [filename], [filepath] and [expiresAt] — so nothing may key on them
+     * alone.
+     */
     data class AttachmentCreated(
-        val fileId: String,
+        val fileId: String?,
         val filename: String,
-        val type: String,
+        val type: String?,
         val filepath: String? = null,
         val toolCallId: String? = null,
+        val messageId: String? = null,
+        val conversationId: String? = null,
+        /** The agent whose tool call produced the file. */
+        val agentId: String? = null,
+        /** Epoch millis; only a download fallback sets it (see [Attachment.expiresAt]). */
+        val expiresAt: Long? = null,
+        val bytes: Long? = null,
+        /** Set when a stateful code session created or updated this path. */
+        val workspaceChange: WorkspaceChange? = null,
         val width: Int? = null,
         val height: Int? = null,
         /** Deferred office-doc preview lifecycle (v0.8.6): `pending`/`ready`/`failed`.

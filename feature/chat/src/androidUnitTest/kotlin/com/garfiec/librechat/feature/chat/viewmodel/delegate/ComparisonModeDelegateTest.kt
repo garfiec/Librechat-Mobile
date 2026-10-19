@@ -3,6 +3,8 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.RunStepStatus
+import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
@@ -124,5 +126,22 @@ class ComparisonModeDelegateTest {
         advanceUntilIdle()
 
         assertThat(flow.value.error).isNull()
+    }
+
+    @Test
+    fun `a pane's completion ends its call's sandbox boot`() {
+        // `on_sandbox_starting` carries no agent and reaches the shared live-reply set; the
+        // completion that ends the boot is consumed here, so the flag must come off here too.
+        val (delegate, flow) = delegateWith(
+            ChatUiState(
+                comparisonState = ComparisonState(isEnabled = true),
+                content = MessagesState(sandboxStartingToolCallIds = setOf("call_1", "call_2")),
+            ),
+        )
+
+        delegate.routeEvent(StreamEvent.ToolCallComplete(toolCallId = "call_1", output = "ok"))
+        delegate.routeEvent(StreamEvent.ToolCallClosed(toolCallId = "call_2", status = RunStepStatus.COMPLETED))
+
+        assertThat(flow.value.sandboxStartingToolCallIds).isEmpty()
     }
 }

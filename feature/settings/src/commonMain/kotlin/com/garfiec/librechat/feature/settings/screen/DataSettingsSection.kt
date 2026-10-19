@@ -28,6 +28,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
+import com.garfiec.librechat.core.ui.platform.formatFileSize
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -253,15 +254,5 @@ internal fun DataSettingsSection(
     } // Column
 }
 
-/**
- * Compact human-readable byte size (e.g. `123 KB`, `1.2 MB`) for the export-logs button label.
- * Uses binary (1024) units; one decimal place above KB.
- */
-internal fun formatBytes(bytes: Long): String {
-    if (bytes < 1024) return "$bytes B"
-    val kb = bytes / 1024.0
-    if (kb < 1024) return "${kb.toInt()} KB"
-    val mb = kb / 1024.0
-    val rounded = (mb * 10).toLong() / 10.0
-    return "$rounded MB"
-}
+/** A byte size as the Files screen and the chat's file chips show it (e.g. `1.2 MB`). */
+internal fun formatBytes(bytes: Long): String = formatFileSize(bytes)

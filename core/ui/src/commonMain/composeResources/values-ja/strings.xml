@@ -94,4 +94,24 @@
     <string name="date_group_previous_30_days">過去30日間</string>
     <string name="date_group_unknown">不明</string>
     <string name="snackbar_dismiss">閉じる</string>
+    <string name="file_kind_spreadsheet">スプレッドシート</string>
+    <string name="file_kind_document">ドキュメント</string>
+    <string name="file_kind_pdf">PDF</string>
+    <string name="file_kind_text">テキスト</string>
+    <string name="file_kind_code">コード</string>
+    <string name="file_kind_data">データ</string>
+    <string name="file_kind_image">画像</string>
+    <string name="file_kind_presentation">プレゼンテーション</string>
+    <string name="file_kind_archive">アーカイブ</string>
+    <string name="file_kind_audio">音声</string>
+    <string name="file_kind_video">動画</string>
+    <string name="file_kind_file">ファイル</string>
+    <string name="file_type_and_size">%1$s · %2$s</string>
+    <string name="open_in">他のアプリで開く…</string>
+    <string name="save_to_device">デバイスに保存</string>
+    <string name="share">共有</string>
+    <string name="from_code_sandbox">コードサンドボックスから</string>
+    <string name="cd_file_actions">ファイルの操作</string>
+    <string name="file_saved">ファイルを保存しました</string>
+    <string name="file_save_failed">ファイルを保存できませんでした</string>
 </resources>

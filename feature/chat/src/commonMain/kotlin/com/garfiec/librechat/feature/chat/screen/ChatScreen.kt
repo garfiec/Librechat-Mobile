@@ -53,6 +53,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.isEmptyLanding
 import com.garfiec.librechat.feature.chat.viewmodel.neutralizeStreamingChurn
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -224,12 +225,19 @@ fun ChatScreen(
         mermaidRenderCache = viewModel.mermaidRenderCache,
         parsedMarkdownCache = viewModel.parsedMarkdownCache,
         subagentProgress = uiState.subagentProgress,
+        previewOverrides = uiState.previewOverrides,
         conversationId = uiState.conversationId,
         subagentThreadsSupported = uiState.gates.subagentThreadsSupported,
         mediaPreview = uiState.mediaPreview,
         onOpenMedia = viewModel::openMedia,
         onCloseMedia = viewModel::closeMedia,
         onDownloadAttachment = viewModel::downloadFileBytes,
+        onFileNotice = { message ->
+            coroutineScope.launch {
+                snackbarHostState.currentSnackbarData?.dismiss()
+                snackbarHostState.showSnackbar(message)
+            }
+        },
         promptLibraryRevision = promptLibraryRevision,
         onRefreshPrompts = viewModel::refreshPromptsIfStale,
         siteIcons = prefs.siteIcons,

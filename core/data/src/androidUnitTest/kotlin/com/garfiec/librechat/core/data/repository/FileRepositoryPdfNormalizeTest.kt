@@ -27,7 +27,7 @@ class FileRepositoryPdfNormalizeTest {
 
     private val filesApi = mockk<FilesApi>()
     private val normalizer = mockk<PdfNormalizer>()
-    private val repository = FileRepositoryImpl(filesApi, mockk(), mockk(), normalizer)
+    private val repository = FileRepositoryImpl(filesApi, mockk(), mockk(), normalizer, mockk())
     private val posted = slot<ByteArray>()
 
     init {

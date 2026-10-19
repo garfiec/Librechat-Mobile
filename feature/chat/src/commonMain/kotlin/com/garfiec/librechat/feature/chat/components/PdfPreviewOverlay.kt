@@ -32,6 +32,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.PlatformBackHandler
+import com.garfiec.librechat.core.ui.media.FileAction
+import com.garfiec.librechat.core.ui.media.FileActionsMenu
+import com.garfiec.librechat.core.ui.media.rememberOpenFileIn
+import com.garfiec.librechat.core.ui.media.rememberSaveFile
 import com.garfiec.librechat.core.ui.media.rememberShareFile
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_close
@@ -56,6 +60,8 @@ private sealed interface PdfLoadState {
     /** Bytes downloaded and look like a PDF — handed to the native viewer. */
     class Loaded(val bytes: ByteArray) : PdfLoadState
 }
+
+private const val PDF_MIME = "application/pdf"
 
 /**
  * Full-screen PDF preview rendered at the chat screen root (by [ChatRoot]). Downloads the file's
@@ -93,6 +99,8 @@ internal fun PdfPreviewOverlay(
         }
     }
     val shareFile = rememberShareFile()
+    val openFileIn = rememberOpenFileIn()
+    val saveFile = rememberSaveFile()
 
     // Bytes are shareable whenever the download produced them, even if the native engine later
     // failed to render them or they aren't a PDF — the user can still get the file out to another app.
@@ -123,15 +131,24 @@ internal fun PdfPreviewOverlay(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                IconButton(
-                    onClick = { shareBytes?.let { shareFile(it, filename, "application/pdf") } },
-                    enabled = shareBytes != null,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Share,
-                        contentDescription = stringResource(Res.string.cd_share_pdf),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                if (shareBytes != null) {
+                    FileActionsMenu(
+                        onAction = { action ->
+                            when (action) {
+                                FileAction.OPEN_IN -> openFileIn(shareBytes, filename, PDF_MIME)
+                                FileAction.SAVE -> saveFile(shareBytes, filename, PDF_MIME)
+                                FileAction.SHARE -> shareFile(shareBytes, filename, PDF_MIME)
+                            }
+                        },
                     )
+                } else {
+                    IconButton(onClick = {}, enabled = false) {
+                        Icon(
+                            imageVector = Icons.Default.Share,
+                            contentDescription = stringResource(Res.string.cd_share_pdf),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
 

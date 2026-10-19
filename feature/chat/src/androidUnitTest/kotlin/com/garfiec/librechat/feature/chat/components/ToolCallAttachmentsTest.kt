@@ -258,7 +258,110 @@ class ToolCallAttachmentsTest {
             listOf(Attachment(fileId = "s", filename = "chart.svg", text = "<svg/>", toolCallId = "c")),
             "c",
         )
-        assertThat(result.single()).isInstanceOf(ToolAttachment.File::class.java)
+        val artifact = (result.single() as ToolAttachment.ArtifactContent).artifact
+        assertThat(artifact.type).isEqualTo("image/svg+xml")
+        assertThat(artifact.content).isEqualTo("<svg/>")
+    }
+
+    // ─── pending previews ──────────────────────────────────────────
+
+    @Test
+    fun `a pending file holds the artifact slot even when it already carries text`() {
+        // Upstream checks status before the artifact type: a pending record's text is not final.
+        val result = partitionToolCallAttachments(
+            listOf(Attachment(fileId = "p", filename = "notes.md", text = "# draft", status = "pending", toolCallId = "c")),
+            "c",
+        )
+        assertThat(result.single()).isEqualTo(
+            ToolAttachment.Pending(result.single().attachment, failed = false),
+        )
+    }
+
+    @Test
+    fun `a failed preview stays in the artifact slot`() {
+        val result = partitionToolCallAttachments(
+            listOf(Attachment(fileId = "f", filename = "deck.pptx", status = "failed", toolCallId = "c")),
+            "c",
+        )
+        assertThat((result.single() as ToolAttachment.Pending).failed).isTrue()
+    }
+
+    @Test
+    fun `an image is never a pending row`() {
+        val result = partitionToolCallAttachments(
+            listOf(Attachment(fileId = "i", filename = "plot.png", type = "image/png", status = "pending", toolCallId = "c")),
+            "c",
+        )
+        assertThat(result.single()).isInstanceOf(ToolAttachment.Image::class.java)
+    }
+
+    @Test
+    fun `a pending office document is a row and a ready one is left to its inline card`() {
+        val docx = "application/vnd.librechat.docx-preview"
+        val result = partitionToolCallAttachments(
+            listOf(
+                Attachment(fileId = "pending", filename = "a.docx", type = docx, status = "pending", toolCallId = "c"),
+                Attachment(fileId = "failed", filename = "b.docx", type = docx, status = "failed", toolCallId = "c"),
+                Attachment(fileId = "ready", filename = "c.docx", type = docx, status = "ready", text = "<p/>", toolCallId = "c"),
+            ),
+            "c",
+        )
+        assertThat(result.map { it.attachment.fileId }).containsExactly("pending", "failed").inOrder()
+        assertThat(result.all { it is ToolAttachment.Pending }).isTrue()
+    }
+
+    @Test
+    fun `pending rows and previews share one bucket in salience order`() {
+        val items = listOf(
+            ToolAttachment.Pending(Attachment(fileId = "empty", filename = "empty.log", bytes = 0L), failed = false),
+            ToolAttachment.ArtifactContent(
+                Attachment(fileId = "md", filename = "a.md", text = "# a"),
+                attachmentToArtifact(Attachment(fileId = "md", filename = "a.md", text = "# a"))!!,
+            ),
+            ToolAttachment.Pending(Attachment(fileId = "real", filename = "run.log", bytes = 12L), failed = false),
+        )
+
+        val bucket = bucketToolAttachments(items).single() as ToolAttachmentBucket.Artifacts
+
+        assertThat(bucket.items.map { it.attachment.fileId }).containsExactly("md", "real", "empty").inOrder()
+    }
+
+    @Test
+    fun `a pending row resolves into the same bucket position`() {
+        val pending = Attachment(fileId = "log", filename = "run.log", bytes = 12L, status = "pending")
+        val before = bucketToolAttachments(listOf(classifyToolAttachment(pending)))
+        val after = bucketToolAttachments(
+            listOf(classifyToolAttachment(pending.copy(status = "ready", text = "a\nb"))),
+        )
+
+        assertThat(before.single()).isInstanceOf(ToolAttachmentBucket.Artifacts::class.java)
+        assertThat(after.single()).isInstanceOf(ToolAttachmentBucket.Artifacts::class.java)
+        assertThat(after.single().items.single()).isInstanceOf(ToolAttachment.ArtifactContent::class.java)
+    }
+
+    // ─── plain-text fallback ───────────────────────────────────────
+
+    @Test
+    fun `text with no dedicated viewer opens as plain text`() {
+        val artifact = attachmentToArtifact(Attachment(fileId = "l", filename = "run.log", text = "one\ntwo"))
+        assertThat(artifact?.type).isEqualTo("text/plain")
+        assertThat(artifact?.content).isEqualTo("one\ntwo")
+    }
+
+    @Test
+    fun `a file with no extension but text opens as plain text`() {
+        assertThat(attachmentToArtifact(Attachment(fileId = "m", filename = "Makefile", text = "all:"))?.type)
+            .isEqualTo("text/plain")
+    }
+
+    @Test
+    fun `an office document's or a pdf's extracted text is not a plain-text artifact`() {
+        val docx = Attachment(
+            fileId = "d", filename = "r.docx", type = "application/vnd.librechat.docx-preview", text = "<p/>",
+        )
+        val pdf = Attachment(fileId = "p", filename = "r.pdf", type = "application/pdf", text = "page one")
+        assertThat(attachmentToArtifact(docx)).isNull()
+        assertThat(attachmentToArtifact(pdf)).isNull()
     }
 
     // ─── bucketToolAttachments ─────────────────────────────────────
@@ -373,5 +476,33 @@ class ToolCallAttachmentsTest {
     fun `web search sources stay out of the group list`() {
         val attachments = listOf(Attachment(fileId = "w", type = "web_search", toolCallId = "call_1"))
         assertThat(collectGroupAttachments(attachments, listOf("call_1"))).isEmpty()
+    }
+
+    // ─── file grouping ─────────────────────────────────────────────
+
+    private fun files(count: Int, expiresAt: Long? = null) = (1..count).map {
+        ToolAttachment.File(Attachment(fileId = "f$it", filename = "f$it.bin", expiresAt = expiresAt))
+    }
+
+    @Test
+    fun `up to three downloadable chips stay ungrouped`() {
+        assertThat(shouldGroupFiles(files(FILE_GROUP_THRESHOLD), nowMs = 0)).isFalse()
+        assertThat(shouldGroupFiles(files(FILE_GROUP_THRESHOLD + 1), nowMs = 0)).isTrue()
+    }
+
+    @Test
+    fun `expired chips do not count toward grouping`() {
+        val items = files(2) + files(3, expiresAt = 10).map { ToolAttachment.File(it.attachment.copy(fileId = "x" + it.attachment.fileId)) }
+        assertThat(shouldGroupFiles(items, nowMs = 5)).isTrue()
+        assertThat(shouldGroupFiles(items, nowMs = 10)).isFalse()
+    }
+
+    // ─── expiry ────────────────────────────────────────────────────
+
+    @Test
+    fun `an expired image is a plain file so nothing loads it`() {
+        val image = Attachment(filename = "chart.png", filepath = "/api/files/code/download/s/f", expiresAt = 10)
+        assertThat(classifyToolAttachment(image, nowMs = 5)).isInstanceOf(ToolAttachment.Image::class.java)
+        assertThat(classifyToolAttachment(image, nowMs = 10)).isInstanceOf(ToolAttachment.File::class.java)
     }
 }

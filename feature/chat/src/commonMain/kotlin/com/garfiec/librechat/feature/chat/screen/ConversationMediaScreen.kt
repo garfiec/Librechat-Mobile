@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.garfiec.librechat.core.common.extensions.formatByteSize
+import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.ui.components.AdaptivePillChoice
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.EmptyState
@@ -214,7 +215,7 @@ private fun MediaGrid(
 @Composable
 private fun FilesList(
     files: List<ConversationFile>,
-    downloadBytes: suspend (fileId: String) -> ByteArray?,
+    downloadBytes: suspend (Attachment) -> ByteArray?,
 ) {
     if (files.isEmpty()) {
         EmptyState(
@@ -226,13 +227,13 @@ private fun FilesList(
     val scope = rememberCoroutineScope()
     val shareFile = rememberShareFile()
     LazyColumn(modifier = Modifier.fillMaxSize()) {
-        items(files, key = { it.fileId }) { file ->
+        items(files, key = { it.key }) { file ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable {
                         scope.launch {
-                            val bytes = downloadBytes(file.fileId)
+                            val bytes = downloadBytes(file.attachment)
                             if (bytes != null) shareFile(bytes, file.filename, file.type)
                         }
                     }

@@ -29,4 +29,17 @@ data class Artifact(
      * executed; see [IncompleteArtifact]'s KDoc for why that outranks the inline preferences.
      */
     val isComplete: Boolean = true,
+    /**
+     * The generated file this artifact shows, when it is one rather than a directive in the reply,
+     * so the panel can save and share the original file instead of its rendered text.
+     */
+    val source: ArtifactFileSource? = null,
+)
+
+/** Identifies a generated file well enough to download it again: by id, or by sandbox path. */
+data class ArtifactFileSource(
+    val fileId: String?,
+    val filepath: String?,
+    val filename: String,
+    val mime: String?,
 )

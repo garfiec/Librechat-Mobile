@@ -98,4 +98,24 @@
     <string name="date_group_previous_30_days">Letzte 30 Tage</string>
     <string name="date_group_unknown">Unbekannt</string>
     <string name="snackbar_dismiss">Schließen</string>
+    <string name="file_kind_spreadsheet">Tabelle</string>
+    <string name="file_kind_document">Dokument</string>
+    <string name="file_kind_pdf">PDF</string>
+    <string name="file_kind_text">Text</string>
+    <string name="file_kind_code">Code</string>
+    <string name="file_kind_data">Daten</string>
+    <string name="file_kind_image">Bild</string>
+    <string name="file_kind_presentation">Präsentation</string>
+    <string name="file_kind_archive">Archiv</string>
+    <string name="file_kind_audio">Audio</string>
+    <string name="file_kind_video">Video</string>
+    <string name="file_kind_file">Datei</string>
+    <string name="file_type_and_size">%1$s · %2$s</string>
+    <string name="open_in">Öffnen in…</string>
+    <string name="save_to_device">Auf Gerät speichern</string>
+    <string name="share">Teilen</string>
+    <string name="from_code_sandbox">Aus der Code-Sandbox</string>
+    <string name="cd_file_actions">Dateiaktionen</string>
+    <string name="file_saved">Datei gespeichert</string>
+    <string name="file_save_failed">Datei konnte nicht gespeichert werden</string>
 </resources>

@@ -195,6 +195,7 @@ private fun ChatMessageListPane(
         // Single-stream only: comparison panes fold reasoning into their own buffers.
         streamingThinking = uiState.streamingThinking,
         activeToolCalls = activeToolCalls,
+        sandboxStartingToolCallIds = uiState.sandboxStartingToolCallIds,
         streamingAttachments = uiState.streamingAttachments,
         onSiblingNavigation = viewModel::switchBranch,
         onEditMessage = viewModel::startEditing,

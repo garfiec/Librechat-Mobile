@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import coil3.SingletonImageLoader
 import coil3.compose.LocalPlatformContext
+import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.github.panpf.zoomimage.CoilZoomAsyncImage
 import com.github.panpf.zoomimage.rememberCoilZoomState
@@ -58,6 +59,9 @@ data class MediaItem(
     val url: String,
     val contentDescription: String,
     val filename: String? = null,
+    /** The generated file this image is, when it is one: save and share then use its original
+     *  bytes, downloaded, rather than whatever the image loader decoded. */
+    val attachment: Attachment? = null,
 )
 
 /**

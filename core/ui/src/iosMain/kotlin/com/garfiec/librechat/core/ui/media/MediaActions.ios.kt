@@ -85,13 +85,8 @@ private fun shareUrl(url: String) {
 // pattern (see platform/TextFileSaver.ios.kt and the project iOS cinterop gotchas).
 // The NSData copy and disk write are sized by the file, so they run off the main thread; only the
 // UIKit presentation hops back to main.
-@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 private suspend fun shareFile(bytes: ByteArray, filename: String, mime: String?) {
-    val tempPath = NSTemporaryDirectory() + ensureExtension(sanitizeFilename(filename), mime)
-    val wrote = withContext(Dispatchers.Default) {
-        bytes.toNSData().writeToFile(tempPath, atomically = true)
-    }
-    if (!wrote) return
+    val tempPath = writeTempFile(bytes, filename, mime) ?: return
     withContext(Dispatchers.Main) {
         val viewController = currentTopmostViewController() ?: return@withContext
         val activityVC = UIActivityViewController(
@@ -100,6 +95,16 @@ private suspend fun shareFile(bytes: ByteArray, filename: String, mime: String?)
         )
         presentSheet(activityVC, from = viewController)
     }
+}
+
+/** Writes [bytes] to a temp file named for the file, off the main thread; its path, or null. */
+@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
+internal suspend fun writeTempFile(bytes: ByteArray, filename: String, mime: String?): String? {
+    val tempPath = NSTemporaryDirectory() + ensureExtension(sanitizeFilename(filename), mime)
+    val wrote = withContext(Dispatchers.Default) {
+        bytes.toNSData().writeToFile(tempPath, atomically = true)
+    }
+    return tempPath.takeIf { wrote }
 }
 
 /** Strips path separators so a server-supplied filename can't escape the temp dir. */

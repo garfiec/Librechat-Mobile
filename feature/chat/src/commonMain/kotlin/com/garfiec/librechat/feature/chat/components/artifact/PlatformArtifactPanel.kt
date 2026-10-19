@@ -40,10 +40,14 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
+import com.garfiec.librechat.core.ui.media.FileActionsMenu
 import com.garfiec.librechat.core.ui.theme.isSurfaceDark
 import com.garfiec.librechat.feature.chat.components.CodeBlock
+import com.garfiec.librechat.feature.chat.components.LocalArtifactFileActions
+import com.garfiec.librechat.feature.chat.components.rememberAttachmentFileActions
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.artifact_view_preview
 import com.garfiec.librechat.feature.chat.resources.artifact_view_source
@@ -242,6 +246,7 @@ private fun ArtifactViewerBody(
                 )
             }
             ArtifactActionButtons(
+                fileSource = artifact.source,
                 isPreviewable = isPreviewable,
                 selectedTab = selectedTab,
                 onSelectTab = onSelectTab,
@@ -288,6 +293,7 @@ private fun ArtifactViewerBody(
 
 @Composable
 private fun RowScope.ArtifactActionButtons(
+    fileSource: ArtifactFileSource?,
     isPreviewable: Boolean,
     selectedTab: ArtifactTab,
     onSelectTab: (ArtifactTab) -> Unit,
@@ -319,12 +325,30 @@ private fun RowScope.ArtifactActionButtons(
             )
         }
     }
-    IconButton(onClick = onShare) {
-        Icon(
-            imageVector = Icons.Default.Share,
-            contentDescription = stringResource(Res.string.cd_share_artifact),
+    if (fileSource != null) {
+        // A generated file: Open in, Save and Share act on the original file, not the text shown.
+        val fileActions = LocalArtifactFileActions.current ?: rememberAttachmentFileActions()
+        val attachment = remember(fileSource) {
+            Attachment(
+                fileId = fileSource.fileId,
+                filepath = fileSource.filepath,
+                filename = fileSource.filename,
+                type = fileSource.mime,
+            )
+        }
+        FileActionsMenu(
+            onAction = { action -> fileActions.run(attachment, action) },
+            busy = fileActions.busyAction(attachment) != null,
             tint = tint,
         )
+    } else {
+        IconButton(onClick = onShare) {
+            Icon(
+                imageVector = Icons.Default.Share,
+                contentDescription = stringResource(Res.string.cd_share_artifact),
+                tint = tint,
+            )
+        }
     }
     if (canExpand) {
         IconButton(onClick = onExpand) {

@@ -425,6 +425,7 @@ class SseEventMapper(private val json: Json) {
             // v0.8.8-rc2: a run step reached a terminal state. The rc1 server registered no
             // handler, so this never reached the wire before.
             "on_run_step_closed" -> mapRunStepClosed(data, agentId, groupId)
+            "on_sandbox_starting" -> mapSandboxStarting(data)
             "on_chat_model_end" -> null
             "on_agent_update" -> null
             "on_summarize_start" -> null // Lifecycle only; no useful payload to surface
@@ -643,8 +644,20 @@ class SseEventMapper(private val json: Json) {
         return StreamEvent.ToolCallComplete(
             toolCallId = toolCallId,
             output = output,
+            // The run step announced the call before its args streamed, so this is the first
+            // whole copy. A JSON null or a missing key keeps the start's input.
+            input = toolCall["args"]?.toStringValue(),
             agentId = agentId,
             groupId = groupId,
+        )
+    }
+
+    /** Maps `on_sandbox_starting`: `{tool_call_id, runId}`, emitted per code-session tool call. */
+    private fun mapSandboxStarting(data: JsonObject): StreamEvent? {
+        val toolCallId = (data["tool_call_id"] as? JsonPrimitive)?.contentOrNull ?: return null
+        return StreamEvent.SandboxStarting(
+            toolCallId = toolCallId,
+            runId = (data["runId"] as? JsonPrimitive)?.contentOrNull,
         )
     }
 
@@ -726,9 +739,11 @@ class SseEventMapper(private val json: Json) {
         // Attachment events carry file metadata for tool-generated artifacts
         // (e.g., images from DALL-E / image_edit_oai). The data object has:
         //   file_id, filename, filepath, type, width, height, toolCallId, messageId, etc.
-        val fileId = data["file_id"]?.jsonPrimitive?.contentOrNull ?: ""
+        // A code-output download fallback has no file_id and no type, only filename + filepath +
+        // expiresAt; those stay null rather than "", which would give every fallback the same id.
+        val fileId = data["file_id"]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
         val filename = data["filename"]?.jsonPrimitive?.contentOrNull ?: ""
-        val type = data["type"]?.jsonPrimitive?.contentOrNull ?: ""
+        val type = data["type"]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
         // Four attachment types ride in with no file at all, carrying a structured payload nested
         // under a key equal to the attachment's own type (upstream `TAttachmentMetadata`). All of
         // them are parsed before the file guard below, which would otherwise drop them as "empty".
@@ -759,13 +774,30 @@ class SseEventMapper(private val json: Json) {
         // Raw JSON on purpose — a typed decode would discard the whole attachment. See `UiResources`.
         val uiResources = data["ui_resources"]
         val hasPayload = webSearch != null || fileSearch != null || memory != null || uiResources != null
-        if (fileId.isBlank() && filename.isBlank() && !hasPayload) return null
+        // Lenient on purpose: a record that fails to decode loses only its workspace badge.
+        val workspaceChange = data["workspaceChange"]?.let { element ->
+            try {
+                json.decodeFromJsonElement(com.garfiec.librechat.core.model.WorkspaceChange.serializer(), element)
+            } catch (e: Exception) {
+                Logger.w("SSE", e) { "Failed to parse attachment workspaceChange" }
+                null
+            }
+        }
+        if (fileId == null && filename.isBlank() && !hasPayload) return null
         return StreamEvent.AttachmentCreated(
             fileId = fileId,
             filename = filename,
             type = type,
             filepath = data["filepath"]?.jsonPrimitive?.contentOrNull,
             toolCallId = data["toolCallId"]?.jsonPrimitive?.contentOrNull,
+            // Cast, not `jsonPrimitive`: that throws on an object or array, dropping the whole frame
+            // over one field this client only displays.
+            messageId = (data["messageId"] as? JsonPrimitive)?.contentOrNull,
+            conversationId = (data["conversationId"] as? JsonPrimitive)?.contentOrNull,
+            agentId = (data["agentId"] as? JsonPrimitive)?.contentOrNull,
+            expiresAt = (data["expiresAt"] as? JsonPrimitive)?.longOrNull,
+            bytes = (data["bytes"] as? JsonPrimitive)?.longOrNull,
+            workspaceChange = workspaceChange,
             width = data["width"]?.jsonPrimitive?.intOrNull,
             height = data["height"]?.jsonPrimitive?.intOrNull,
             // Deferred office-doc preview lifecycle (v0.8.6). The same attachment is

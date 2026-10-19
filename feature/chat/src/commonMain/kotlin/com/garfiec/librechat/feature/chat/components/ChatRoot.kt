@@ -11,18 +11,25 @@ import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import com.garfiec.librechat.core.data.datastore.InlineArtifactPrefs
+import com.garfiec.librechat.core.model.Attachment
+import com.garfiec.librechat.core.model.files.isCodeOutput
+import com.garfiec.librechat.core.model.response.FilePreviewResponse
 import com.garfiec.librechat.core.ui.components.topbar.CoversNativeBars
 import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
 import com.garfiec.librechat.core.ui.glass.rememberGlassBackdrop
+import com.garfiec.librechat.core.ui.media.FileAction
+import com.garfiec.librechat.core.ui.media.FileActionsSheet
 import com.garfiec.librechat.core.ui.media.MediaActionBar
 import com.garfiec.librechat.core.ui.media.MediaPreviewState
 import com.garfiec.librechat.core.ui.media.MediaViewerHost
 import com.garfiec.librechat.core.ui.media.rememberSaveImageToGallery
 import com.garfiec.librechat.core.ui.media.rememberShareImage
+import com.garfiec.librechat.core.ui.resources.open_in
 import com.garfiec.librechat.feature.chat.components.artifact.LocalInlineArtifactPrefs
 import com.garfiec.librechat.feature.chat.components.artifact.LocalMermaidRenderCache
 import com.garfiec.librechat.feature.chat.components.artifact.MermaidRenderCache
 import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.resources.attachment_fallback
 import com.garfiec.librechat.feature.chat.resources.cd_close
 import com.garfiec.librechat.feature.chat.resources.cd_image
 import com.garfiec.librechat.feature.chat.resources.cd_save_to_device
@@ -30,6 +37,7 @@ import com.garfiec.librechat.feature.chat.resources.cd_share_image
 import com.garfiec.librechat.feature.chat.viewmodel.SiteIconsState
 import com.garfiec.librechat.feature.chat.viewmodel.SubagentTrace
 import org.jetbrains.compose.resources.stringResource
+import com.garfiec.librechat.core.ui.resources.Res as CoreUiRes
 
 /**
  * Wraps the chat screen content with all chat-scoped CompositionLocals so that
@@ -42,6 +50,8 @@ fun ChatRoot(
     mermaidRenderCache: MermaidRenderCache,
     parsedMarkdownCache: ParsedMarkdownCache,
     subagentProgress: Map<String, SubagentTrace>,
+    /** Deferred-preview results by `file_id`; see [LocalPreviewOverrides]. */
+    previewOverrides: Map<String, FilePreviewResponse>,
     /** The conversation the child-thread viewer reads from. Null on the landing screen. */
     conversationId: String?,
     /**
@@ -54,7 +64,9 @@ fun ChatRoot(
     mediaPreview: MediaPreviewState?,
     onOpenMedia: (url: String) -> Unit,
     onCloseMedia: () -> Unit,
-    onDownloadAttachment: suspend (fileId: String) -> ByteArray?,
+    onDownloadAttachment: suspend (Attachment) -> ByteArray?,
+    /** Backs [LocalFileNotice]: shows a short message on the chat screen's snackbar host. */
+    onFileNotice: (message: String) -> Unit,
     /** Required, not defaulted, so neither platform's `ChatScreen` can quietly drop the wiring. */
     promptLibraryRevision: Long,
     onRefreshPrompts: () -> Unit,
@@ -92,6 +104,11 @@ fun ChatRoot(
 
     // A search-result card raises this; the dialog lives here so several cards raise one prompt.
     // Only a visibility latch: once the user chooses or closes it, `siteIcons` leaves ASK.
+    // Hosted here for the same reason: the chip that opens it can scroll away. Not saveable: an
+    // Attachment has no saver, and a sheet of actions loses nothing by closing on rotation.
+    var fileActionsRequest by remember { mutableStateOf<Attachment?>(null) }
+    val openFileActions = remember { { attachment: Attachment -> fileActionsRequest = attachment } }
+
     var siteIconsPromptRequested by remember { mutableStateOf(false) }
     val requestSiteIconsChoice = remember { { siteIconsPromptRequested = true } }
     val siteIconsLocal = remember(siteIcons) { SiteIcons(siteIcons, requestSiteIconsChoice) }
@@ -106,8 +123,11 @@ fun ChatRoot(
         LocalMermaidRenderCache provides mermaidRenderCache,
         LocalParsedMarkdownCache provides parsedMarkdownCache,
         LocalSubagentProgress provides subagentProgress,
+        LocalPreviewOverrides provides previewOverrides,
         LocalChatMediaViewer provides onOpenMedia,
         LocalAttachmentDownloader provides onDownloadAttachment,
+        LocalFileNotice provides onFileNotice,
+        LocalOpenFileActions provides openFileActions,
         LocalOpenPdf provides openPdf,
         LocalSubagentThreads provides openSubagentThreads,
         // Both halves: a conversation to read children from, and a server that can serve them.
@@ -120,24 +140,40 @@ fun ChatRoot(
         // launcher) live as long as the chat screen, not just while the viewer is open — a
         // save/share in flight survives the user dismissing the viewer mid-operation.
         val saveImage = rememberSaveImageToGallery()
+        val fileActions = rememberAttachmentFileActions()
         val shareImage = rememberShareImage()
         // Resolved once here (not inside the per-item actions slot) so paging doesn't
         // re-resolve string resources on every swipe.
         val saveDescription = stringResource(Res.string.cd_save_to_device)
         val shareDescription = stringResource(Res.string.cd_share_image)
+        val openInDescription = stringResource(CoreUiRes.string.open_in)
         MediaViewerHost(
             preview = mediaPreview,
             onDismiss = onCloseMedia,
             closeContentDescription = stringResource(Res.string.cd_close),
             defaultContentDescription = stringResource(Res.string.cd_image),
             actions = { item ->
-                MediaActionBar(
-                    item = item,
-                    onSave = saveImage,
-                    onShare = shareImage,
-                    saveContentDescription = saveDescription,
-                    shareContentDescription = shareDescription,
-                )
+                val source = item.attachment
+                if (source != null) {
+                    // A generated file: its original bytes, downloaded, never the decoded image.
+                    MediaActionBar(
+                        item = item,
+                        onSave = { fileActions.run(source, FileAction.SAVE) },
+                        onShare = { fileActions.run(source, FileAction.SHARE) },
+                        saveContentDescription = saveDescription,
+                        shareContentDescription = shareDescription,
+                        onOpenIn = { fileActions.run(source, FileAction.OPEN_IN) },
+                        openInContentDescription = openInDescription,
+                    )
+                } else {
+                    MediaActionBar(
+                        item = item,
+                        onSave = saveImage,
+                        onShare = shareImage,
+                        saveContentDescription = saveDescription,
+                        shareContentDescription = shareDescription,
+                    )
+                }
             },
             content = content,
         )
@@ -157,11 +193,25 @@ fun ChatRoot(
             )
         }
 
+        fileActionsRequest?.let { attachment ->
+            // The screen-lifetime actions, not ones scoped to the sheet: the save picker's result
+            // and the open-in hand-off land after the sheet has closed.
+            FileActionsSheet(
+                filename = fileDisplayName(attachment, stringResource(Res.string.attachment_fallback)),
+                type = attachment.type,
+                bytes = attachment.bytes,
+                fromCodeSandbox = attachment.isCodeOutput,
+                busy = fileActions.busyAction(attachment),
+                onAction = { action -> fileActions.run(attachment, action) { fileActionsRequest = null } },
+                onDismiss = { fileActionsRequest = null },
+            )
+        }
+
         pdfRequest?.let { req ->
             PdfPreviewOverlay(
                 fileId = req.fileId,
                 filename = req.filename,
-                onDownload = onDownloadAttachment,
+                onDownload = { fileId -> onDownloadAttachment(Attachment(fileId = fileId, filename = req.filename)) },
                 onDismiss = { pdfRequest = null },
             )
         }

@@ -179,8 +179,6 @@
     <string name="trace_error_unsupported">Le service de traçage de ce serveur ne peut pas renvoyer de traces.</string>
 
     <!-- Office-doc preview attachments (deferred preview, v0.8.6+) -->
-    <string name="office_preview_preparing">Préparation de l'aperçu de %1$s…</string>
-    <string name="office_preview_failed">Impossible d'afficher l'aperçu de %1$s (%2$s)</string>
     <string name="office_preview_unavailable">%1$s — aperçu non disponible</string>
 
     <!-- Content descriptions - Tool calls -->
@@ -677,4 +675,40 @@
     <string name="queue_held_after_refusal">Le serveur a refusé votre message. Il attend dans la file et ne partira pas tout seul. Touchez « Envoyer la file » quand vous êtes prêt.</string>
     <string name="jump_message_not_found">Ce message n'est plus dans ce chat.</string>
     <string name="jump_branch_switched">Passage à la réponse %1$d sur %2$d, la branche qui contient ce message.</string>
+    <string name="load_image_from_host">Charger l’image depuis %1$s</string>
+    <string name="workspace_changes">Modifications de l’espace de travail</string>
+    <plurals name="n_files_changed">
+        <item quantity="one">%1$d fichier modifié</item>
+        <item quantity="many">%1$d de fichiers modifiés</item>
+        <item quantity="other">%1$d fichiers modifiés</item>
+    </plurals>
+    <string name="file_created">Nouveau</string>
+    <string name="file_updated">Modifié</string>
+    <string name="show_all_n">Tout afficher (%1$d)</string>
+    <string name="cd_download_file">Télécharger %1$s</string>
+    <string name="preview_preparing">Préparation de l'aperçu…</string>
+    <string name="preview_failed_download">Aperçu indisponible · téléchargez pour l'afficher</string>
+    <plurals name="text_n_lines">
+        <item quantity="one">%1$d ligne</item>
+        <item quantity="many">%1$d de lignes</item>
+        <item quantity="other">%1$d lignes</item>
+    </plurals>
+    <string name="sandbox_starting">Démarrage de l’environnement sandbox</string>
+    <string name="analyzing">Analyse en cours</string>
+    <string name="analyzing_finished">Analyse terminée</string>
+    <string name="show_all_lines">Afficher toutes les lignes</string>
+    <string name="cd_copy_output">Copier la sortie</string>
+    <string name="expired">Expiré</string>
+    <string name="expired_explainer">Les fichiers du bac à sable de code sont conservés 24 heures. Celui-ci a expiré et ne peut plus être téléchargé.</string>
+    <string name="file_download_failed">Impossible de télécharger %1$s</string>
+    <plurals name="files_count_summary">
+        <item quantity="one">%1$d fichier</item>
+        <item quantity="many">%1$d de fichiers</item>
+        <item quantity="other">%1$d fichiers</item>
+    </plurals>
+    <plurals name="plus_n_more">
+        <item quantity="one">+%1$d autre</item>
+        <item quantity="many">+%1$d autres</item>
+        <item quantity="other">+%1$d autres</item>
+    </plurals>
 </resources>

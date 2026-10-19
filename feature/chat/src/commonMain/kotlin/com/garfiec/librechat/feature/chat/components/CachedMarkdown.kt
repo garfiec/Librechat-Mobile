@@ -1,13 +1,18 @@
 package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import com.mikepenz.markdown.compose.components.MarkdownComponents
 import com.mikepenz.markdown.m3.Markdown
+import com.mikepenz.markdown.model.ImageTransformer
+import com.mikepenz.markdown.model.MarkdownAnnotator
 import com.mikepenz.markdown.model.MarkdownColors
+import com.mikepenz.markdown.model.MarkdownInlineContent
 import com.mikepenz.markdown.model.MarkdownTypography
 import com.mikepenz.markdown.model.State
 import com.mikepenz.markdown.model.markdownInlineContent
@@ -76,6 +81,9 @@ fun CachedMarkdown(
     val inlineContent =
         if (trailingCursor) rememberStreamingCursorInlineContent() else markdownInlineContent()
     val cacheable = !streaming && !trailingCursor
+    // Remembered per media holder: the renderer keys its inline-image layout on the transformer.
+    val media = LocalMarkdownMedia.current
+    val imageTransformer = remember(media) { ChatImageTransformer(media) }
 
     if (cacheable) {
         // Fast path: stable content + a cache hit → render the cached AST with
@@ -83,15 +91,7 @@ fun CachedMarkdown(
         // the 32-bit hash key) keeps a hash collision on the shared cache from
         // rendering a different message's AST.
         cache[key]?.takeIf { it.content == rendered }?.let { cached ->
-            Markdown(
-                state = cached,
-                colors = colors,
-                typography = typography,
-                modifier = modifier,
-                annotator = annotator,
-                inlineContent = inlineContent,
-                components = components,
-            )
+            MarkdownWithImages(cached, colors, typography, annotator, inlineContent, components, imageTransformer, modifier)
             return
         }
     }
@@ -127,13 +127,37 @@ fun CachedMarkdown(
         ?: cache[key]?.takeIf { it.content == rendered }
         ?: liveState
 
-    Markdown(
-        state = effective,
-        colors = colors,
-        typography = typography,
-        modifier = modifier,
-        annotator = annotator,
-        inlineContent = inlineContent,
-        components = components,
-    )
+    MarkdownWithImages(effective, colors, typography, annotator, inlineContent, components, imageTransformer, modifier)
+}
+
+/**
+ * [Markdown] with the reply's images resolved and the parsed source on hand for the inline image
+ * slot, which is given only the link and needs the source to read the alt text. The source is the
+ * one [state] was parsed from: `retainState` can hold a Success a delta behind the current content,
+ * and the slot walks that AST's offsets.
+ */
+@Suppress("LongParameterList")
+@Composable
+private fun MarkdownWithImages(
+    state: State,
+    colors: MarkdownColors,
+    typography: MarkdownTypography,
+    annotator: MarkdownAnnotator,
+    inlineContent: MarkdownInlineContent,
+    components: MarkdownComponents,
+    imageTransformer: ImageTransformer,
+    modifier: Modifier = Modifier,
+) {
+    CompositionLocalProvider(LocalMarkdownSource provides (state as? State.Success)?.content) {
+        Markdown(
+            state = state,
+            colors = colors,
+            typography = typography,
+            modifier = modifier,
+            annotator = annotator,
+            inlineContent = inlineContent,
+            components = components,
+            imageTransformer = imageTransformer,
+        )
+    }
 }

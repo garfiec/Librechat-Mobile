@@ -179,8 +179,6 @@
     <string name="trace_error_unsupported">このサーバーのトレースサービスはトレースを返せません。</string>
 
     <!-- Office-doc preview attachments (deferred preview, v0.8.6+) -->
-    <string name="office_preview_preparing">%1$s のプレビューを準備中…</string>
-    <string name="office_preview_failed">%1$s をプレビューできませんでした（%2$s）</string>
     <string name="office_preview_unavailable">%1$s — プレビューは利用できません</string>
 
     <!-- Content descriptions - Tool calls -->
@@ -671,4 +669,32 @@
     <string name="queue_held_after_refusal">サーバーがメッセージを拒否しました。メッセージはキューで待機しており、自動では送信されません。準備ができたら「キューを送信」をタップしてください。</string>
     <string name="jump_message_not_found">そのメッセージはこのチャットにもうありません。</string>
     <string name="jump_branch_switched">このメッセージを含むブランチ（応答 %1$d / %2$d）に切り替えました。</string>
+    <string name="load_image_from_host">%1$s から画像を読み込む</string>
+    <string name="workspace_changes">ワークスペースの変更</string>
+    <plurals name="n_files_changed">
+        <item quantity="other">%1$d 個のファイルを変更</item>
+    </plurals>
+    <string name="file_created">新規</string>
+    <string name="file_updated">編集済み</string>
+    <string name="show_all_n">%1$d 件をすべて表示</string>
+    <string name="cd_download_file">%1$s をダウンロード</string>
+    <string name="preview_preparing">プレビューを準備中…</string>
+    <string name="preview_failed_download">プレビューを表示できません · ダウンロードして表示</string>
+    <plurals name="text_n_lines">
+        <item quantity="other">%1$d 行</item>
+    </plurals>
+    <string name="sandbox_starting">サンドボックス環境を起動中</string>
+    <string name="analyzing">分析中</string>
+    <string name="analyzing_finished">分析終了</string>
+    <string name="show_all_lines">すべての行を表示</string>
+    <string name="cd_copy_output">出力をコピー</string>
+    <string name="expired">期限切れ</string>
+    <string name="expired_explainer">コードサンドボックスのファイルは24時間保持されます。このファイルは期限切れのため、ダウンロードできません。</string>
+    <string name="file_download_failed">%1$s をダウンロードできませんでした</string>
+    <plurals name="files_count_summary">
+        <item quantity="other">%1$d 個のファイル</item>
+    </plurals>
+    <plurals name="plus_n_more">
+        <item quantity="other">他 %1$d 件</item>
+    </plurals>
 </resources>

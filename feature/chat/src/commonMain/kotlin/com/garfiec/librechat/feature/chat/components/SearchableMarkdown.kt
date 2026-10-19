@@ -140,9 +140,11 @@ internal fun rememberMarkdownSearch(
     }
 }
 
-/** The m3 renderer's own components (it supplies its checkbox), for markdown drawn with no find open. */
+/** The m3 renderer's own components (it supplies its checkbox) and the reply's images, for markdown drawn with no find open. */
 internal val ChatMarkdownComponents: MarkdownComponents = markdownComponents(
     checkbox = { MarkdownCheckBox(it.content, it.node, it.typography.text) },
+    image = MarkdownBlockImageComponent,
+    inlineImage = MarkdownInlineImageComponent,
 )
 
 /** Components that draw paragraphs, headings and text with [search]'s matches marked. */
@@ -160,6 +162,8 @@ internal fun searchMarkdownComponents(search: MarkdownSearch): MarkdownComponent
     setextHeading1 = { model -> MarkedHeading(model, model.typography.h1, search, MarkdownTokenTypes.SETEXT_CONTENT) },
     setextHeading2 = { model -> MarkedHeading(model, model.typography.h2, search, MarkdownTokenTypes.SETEXT_CONTENT) },
     checkbox = { MarkdownCheckBox(it.content, it.node, it.typography.text) },
+    image = MarkdownBlockImageComponent,
+    inlineImage = MarkdownInlineImageComponent,
 )
 
 @Composable

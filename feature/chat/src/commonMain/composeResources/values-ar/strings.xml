@@ -179,8 +179,6 @@
     <string name="trace_error_unsupported">لا يمكن لخدمة التتبّع في هذا الخادم إرجاع التتبّعات.</string>
 
     <!-- Office-doc preview attachments (deferred preview, v0.8.6+) -->
-    <string name="office_preview_preparing">جارٍ تحضير معاينة %1$s…</string>
-    <string name="office_preview_failed">تعذّرت معاينة %1$s (%2$s)</string>
     <string name="office_preview_unavailable">%1$s — المعاينة غير متاحة</string>
 
     <!-- Content descriptions - Tool calls -->
@@ -686,4 +684,52 @@
     <string name="queue_held_after_refusal">رفض الخادم رسالتك. إنها تنتظر في قائمة الانتظار ولن تُرسل تلقائيًا. اضغط «إرسال قائمة الانتظار» عندما تكون مستعدًا.</string>
     <string name="jump_message_not_found">لم تعد هذه الرسالة موجودة في هذه المحادثة.</string>
     <string name="jump_branch_switched">تم التبديل إلى الرد %1$d من %2$d، الفرع الذي يحتوي على هذه الرسالة.</string>
+    <string name="load_image_from_host">تحميل الصورة من %1$s</string>
+    <string name="workspace_changes">تغييرات مساحة العمل</string>
+    <plurals name="n_files_changed">
+        <item quantity="zero">لم يتغير أي ملف</item>
+        <item quantity="one">تغيّر ملف واحد</item>
+        <item quantity="two">تغيّر ملفان</item>
+        <item quantity="few">تغيّرت %1$d ملفات</item>
+        <item quantity="many">تغيّر %1$d ملفًا</item>
+        <item quantity="other">تغيّر %1$d ملف</item>
+    </plurals>
+    <string name="file_created">جديد</string>
+    <string name="file_updated">معدّل</string>
+    <string name="show_all_n">عرض الكل (%1$d)</string>
+    <string name="cd_download_file">تنزيل %1$s</string>
+    <string name="preview_preparing">جارٍ تحضير المعاينة…</string>
+    <string name="preview_failed_download">المعاينة غير متاحة · نزّل الملف لعرضه</string>
+    <plurals name="text_n_lines">
+        <item quantity="zero">لا أسطر</item>
+        <item quantity="one">سطر واحد</item>
+        <item quantity="two">سطران</item>
+        <item quantity="few">%1$d أسطر</item>
+        <item quantity="many">%1$d سطرًا</item>
+        <item quantity="other">%1$d سطر</item>
+    </plurals>
+    <string name="sandbox_starting">جارٍ تشغيل بيئة الحماية</string>
+    <string name="analyzing">جارٍ التحليل</string>
+    <string name="analyzing_finished">اكتمل التحليل</string>
+    <string name="show_all_lines">عرض كل الأسطر</string>
+    <string name="cd_copy_output">نسخ المخرجات</string>
+    <string name="expired">منتهي الصلاحية</string>
+    <string name="expired_explainer">تُحفظ ملفات بيئة تشغيل الشيفرة لمدة 24 ساعة. انتهت صلاحية هذا الملف ولم يعد من الممكن تنزيله.</string>
+    <string name="file_download_failed">تعذّر تنزيل %1$s</string>
+    <plurals name="files_count_summary">
+        <item quantity="zero">%1$d ملف</item>
+        <item quantity="one">ملف واحد</item>
+        <item quantity="two">ملفان</item>
+        <item quantity="few">%1$d ملفات</item>
+        <item quantity="many">%1$d ملفًا</item>
+        <item quantity="other">%1$d ملف</item>
+    </plurals>
+    <plurals name="plus_n_more">
+        <item quantity="zero">+%1$d أخرى</item>
+        <item quantity="one">+%1$d آخر</item>
+        <item quantity="two">+%1$d آخران</item>
+        <item quantity="few">+%1$d أخرى</item>
+        <item quantity="many">+%1$d أخرى</item>
+        <item quantity="other">+%1$d أخرى</item>
+    </plurals>
 </resources>

@@ -22,6 +22,7 @@ import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.util.MessageNode
+import com.garfiec.librechat.feature.chat.util.withPreviews
 import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
 import org.jetbrains.compose.resources.stringResource
 
@@ -38,6 +39,7 @@ fun SecondaryMessageList(
     modifier: Modifier = Modifier,
     justSettledMessageId: String? = null,
     activeToolCalls: List<ActiveToolCall> = emptyList(),
+    sandboxStartingToolCallIds: Set<String> = emptySet(),
     streamingAttachments: List<Attachment> = emptyList(),
     error: String? = null,
     baseUrl: String = "",
@@ -87,6 +89,10 @@ fun SecondaryMessageList(
                     .padding(16.dp),
             )
         } else {
+            val previewOverrides = LocalPreviewOverrides.current
+            val liveAttachments = remember(streamingAttachments, previewOverrides) {
+                streamingAttachments.withPreviews(previewOverrides)
+            }
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 state = listState,
@@ -141,18 +147,21 @@ fun SecondaryMessageList(
                 }
 
                 if (isStreaming) {
+                    val streamingWorkspace = partitionWorkspaceChanges(liveAttachments)
                     item(key = "secondary_streaming_message") {
-                        StreamingMessageBubble(
-                            streamingContent = streamingContent,
-                            senderName = streamingSenderName,
-                            senderIconUrl = null,
-                            fontSizeMultiplier = fontSizeMultiplier,
-                            selectedEndpoint = selectedEndpoint,
-                            chatLayoutStyle = chatLayoutStyle,
-                            showAvatars = showAvatars,
-                            showBubbles = showBubbles,
-                            useKatex = useKatex,
-                        )
+                        ProvideMarkdownMedia(liveAttachments, baseUrl) {
+                            StreamingMessageBubble(
+                                streamingContent = streamingContent,
+                                senderName = streamingSenderName,
+                                senderIconUrl = null,
+                                fontSizeMultiplier = fontSizeMultiplier,
+                                selectedEndpoint = selectedEndpoint,
+                                chatLayoutStyle = chatLayoutStyle,
+                                showAvatars = showAvatars,
+                                showBubbles = showBubbles,
+                                useKatex = useKatex,
+                            )
+                        }
                     }
 
                     if (renderedToolCalls.isNotEmpty()) {
@@ -168,7 +177,19 @@ fun SecondaryMessageList(
                                     vertical = 4.dp,
                                 ),
                                 baseUrl = baseUrl,
-                                streamingAttachments = streamingAttachments,
+                                streamingAttachments = streamingWorkspace.inline,
+                                sandboxStarting = toolCall.id in sandboxStartingToolCallIds,
+                            )
+                        }
+                    }
+
+                    if (streamingWorkspace.changes.isNotEmpty()) {
+                        item(key = "secondary_streaming_workspace_changes", contentType = "workspace_changes") {
+                            WorkspaceChangesSection(
+                                changes = streamingWorkspace.changes,
+                                baseUrl = baseUrl,
+                                stateKey = "secondary_streaming",
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                             )
                         }
                     }

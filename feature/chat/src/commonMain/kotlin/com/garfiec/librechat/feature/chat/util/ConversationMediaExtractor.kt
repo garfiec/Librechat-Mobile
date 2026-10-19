@@ -7,18 +7,25 @@ import com.garfiec.librechat.core.ui.media.MediaItem
 import com.garfiec.librechat.feature.chat.components.artifact.Artifact
 import com.garfiec.librechat.feature.chat.components.artifact.ArtifactSegment
 import com.garfiec.librechat.feature.chat.components.artifact.detectArtifacts
+import com.garfiec.librechat.feature.chat.components.attachmentName
+import com.garfiec.librechat.feature.chat.components.displayFilename
+import com.garfiec.librechat.feature.chat.components.downloadKey
+import com.garfiec.librechat.feature.chat.components.isPseudoAttachment
+import com.garfiec.librechat.feature.chat.components.isSandboxPlaceholder
 import com.garfiec.librechat.feature.chat.components.legacyTextRuns
 import com.garfiec.librechat.feature.chat.components.textFallbackSplitsArtifacts
 
 /**
- * A non-image attachment surfaced in the conversation-media gallery's **Files** tab.
- * [fileId] is required for the on-tap download; [bytes] drives the size label when known.
+ * A non-image attachment surfaced in the conversation-media gallery's **Files** tab. [key] is the
+ * list key and dedupe key: a stored file's id, or a code-output fallback's sandbox path, which has
+ * no id. [attachment] is what the on-tap download routes by; [bytes] drives the size label.
  */
 data class ConversationFile(
-    val fileId: String,
+    val key: String,
     val filename: String,
     val type: String?,
     val bytes: Long?,
+    val attachment: Attachment,
 )
 
 /**
@@ -41,7 +48,9 @@ fun extractConversationMedia(messages: List<Message>, baseUrl: String): List<Med
 
 /**
  * Pulls non-image attachments across [messages] for the **Files** tab: user-attached [Message.files]
- * and generated [Message.attachments] whose MIME type is not in the image family. Deduped by file id.
+ * and generated [Message.attachments] whose MIME type is not in the image family. Generated ones
+ * drop what the chat never shows as a file either: structured pseudo-attachments, the sandbox's
+ * placeholder leaves and office-preview records. Deduped by [ConversationFile.key].
  */
 fun extractConversationFiles(messages: List<Message>): List<ConversationFile> {
     val files = mutableListOf<ConversationFile>()
@@ -49,19 +58,28 @@ fun extractConversationFiles(messages: List<Message>): List<ConversationFile> {
         message.files?.forEach { file -> file.toConversationFile()?.let(files::add) }
         message.attachments?.forEach { attachment -> attachment.toConversationFile()?.let(files::add) }
     }
-    return files.distinctBy { it.fileId }
+    return files.distinctBy { it.key }
 }
 
 private fun FileReference.toConversationFile(): ConversationFile? {
     if (type?.startsWith("image/") == true) return null
     val id = fileId ?: return null
-    return ConversationFile(fileId = id, filename = filename ?: id, type = type, bytes = bytes)
+    return ConversationFile(
+        key = id,
+        filename = filename ?: id,
+        type = type,
+        bytes = bytes,
+        attachment = Attachment(fileId = id, filename = filename, filepath = filepath, type = type, bytes = bytes),
+    )
 }
 
 private fun Attachment.toConversationFile(): ConversationFile? {
     if (type?.startsWith("image/") == true) return null
-    val id = fileId ?: return null
-    return ConversationFile(fileId = id, filename = filename ?: id, type = type, bytes = null)
+    if (isPseudoAttachment(this) || isSandboxPlaceholder(this)) return null
+    // The id first, as [FileReference.toConversationFile] keys, so a file listed in both dedupes.
+    val key = fileId ?: downloadKey(this) ?: return null
+    val name = attachmentName(this)?.let(::displayFilename) ?: key
+    return ConversationFile(key = key, filename = name, type = type, bytes = bytes, attachment = this)
 }
 
 // Matches http(s) URLs, stopping before trailing punctuation that's usually prose, not part of the

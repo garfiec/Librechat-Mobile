@@ -234,16 +234,16 @@ class SubagentHandle(root: ChatStateHandle) : DelegateHandle(root) {
         root.update { SubagentWrites(this).apply(block).applyTo(this) }
 }
 
-// ── OfficePreviewDelegate ─────────────────────────────────────────────────
-class OfficePreviewWrites internal constructor(state: ChatUiState) {
+// ── AttachmentPreviewDelegate ─────────────────────────────────────────────
+class AttachmentPreviewWrites internal constructor(state: ChatUiState) {
     var content: MessagesState = state.content
     var error: String? = state.error
     internal fun applyTo(s: ChatUiState) = s.copy(content = content, error = error)
 }
 
-class OfficePreviewHandle(root: ChatStateHandle) : DelegateHandle(root) {
-    fun update(block: OfficePreviewWrites.() -> Unit) =
-        root.update { OfficePreviewWrites(this).apply(block).applyTo(this) }
+class AttachmentPreviewHandle(root: ChatStateHandle) : DelegateHandle(root) {
+    fun update(block: AttachmentPreviewWrites.() -> Unit) =
+        root.update { AttachmentPreviewWrites(this).apply(block).applyTo(this) }
 }
 
 // ── ContextProjectionDelegate ─────────────────────────────────────────────

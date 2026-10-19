@@ -198,14 +198,14 @@ class ComparisonModeDelegate(
         if (isSecondaryEvent(event.agentId)) {
             handle.update {
                 val updated = comparisonState.secondaryActiveToolCalls.map { tc ->
-                    if (tc.id == event.toolCallId) tc.copy(isComplete = true, closedStatus = event.status) else tc
+                    if (tc.id == event.toolCallId) tc.closedBy(event) else tc
                 }
                 comparisonState = comparisonState.copy(secondaryActiveToolCalls = updated)
             }
         } else {
             handle.update {
                 val updated = comparisonState.primaryActiveToolCalls.map { tc ->
-                    if (tc.id == event.toolCallId) tc.copy(isComplete = true, closedStatus = event.status) else tc
+                    if (tc.id == event.toolCallId) tc.closedBy(event) else tc
                 }
                 comparisonState = comparisonState.copy(primaryActiveToolCalls = updated)
             }
@@ -228,10 +228,20 @@ class ComparisonModeDelegate(
             is StreamEvent.ContentDelta -> { routeTextDelta(event.agentId, event.chunk); true }
             is StreamEvent.ThinkingDelta -> { routeTextDelta(event.agentId, event.chunk); true }
             is StreamEvent.ToolCallStart -> { routeToolCallStart(event); true }
-            is StreamEvent.ToolCallComplete -> { routeToolCallComplete(event); true }
-            is StreamEvent.ToolCallClosed -> { routeToolCallClosed(event); true }
+            is StreamEvent.ToolCallComplete -> { routeToolCallComplete(event); clearSandboxStarting(event.toolCallId); true }
+            is StreamEvent.ToolCallClosed -> { routeToolCallClosed(event); clearSandboxStarting(event.toolCallId); true }
             else -> false
         }
+    }
+
+    /**
+     * `on_sandbox_starting` is not routed here: it carries no agent, and the flag set it feeds is
+     * keyed by tool_call id, which is unique across both panes. But the completion that ends the
+     * boot is consumed here, so this is where the flag comes off.
+     */
+    private fun clearSandboxStarting(toolCallId: String) {
+        if (toolCallId !in handle.state.sandboxStartingToolCallIds) return
+        handle.update { content = content.withoutSandboxStarting(toolCallId) }
     }
 
     private fun routeTextDelta(agentId: String?, chunk: String) {
@@ -278,14 +288,14 @@ class ComparisonModeDelegate(
         if (isSecondaryEvent(event.agentId)) {
             handle.update {
                 val updated = comparisonState.secondaryActiveToolCalls.map { tc ->
-                    if (tc.id == event.toolCallId) tc.copy(isComplete = true, output = event.output) else tc
+                    if (tc.id == event.toolCallId) tc.completedBy(event) else tc
                 }
                 comparisonState = comparisonState.copy(secondaryActiveToolCalls = updated)
             }
         } else {
             handle.update {
                 val updated = comparisonState.primaryActiveToolCalls.map { tc ->
-                    if (tc.id == event.toolCallId) tc.copy(isComplete = true, output = event.output) else tc
+                    if (tc.id == event.toolCallId) tc.completedBy(event) else tc
                 }
                 comparisonState = comparisonState.copy(primaryActiveToolCalls = updated)
             }

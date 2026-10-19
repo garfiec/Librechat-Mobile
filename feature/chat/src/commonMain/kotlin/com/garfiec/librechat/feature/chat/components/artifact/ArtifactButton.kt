@@ -45,6 +45,8 @@ fun ArtifactButton(
     modifier: Modifier = Modifier,
     versionCount: Int = 1,
     onAddToHomeScreen: (() -> Unit)? = null,
+    /** Replaces the type label under the title. */
+    subtitle: String? = null,
 ) {
     Card(
         onClick = onClick,
@@ -76,7 +78,7 @@ fun ArtifactButton(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = artifactTypeLabel(artifact.type),
+                    text = subtitle ?: artifactTypeLabel(artifact.type),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
                     maxLines = 1,
@@ -121,7 +123,7 @@ fun ArtifactButton(
     }
 }
 
-private fun artifactTypeIcon(type: String): ImageVector =
+internal fun artifactTypeIcon(type: String): ImageVector =
     when (ArtifactType.from(type)) {
         ArtifactType.MERMAID -> Icons.Default.AccountTree
         ArtifactType.REACT -> Icons.Default.Widgets

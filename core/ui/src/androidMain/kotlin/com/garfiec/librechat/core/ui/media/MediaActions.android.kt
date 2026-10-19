@@ -133,15 +133,7 @@ actual fun rememberShareFile(): (bytes: ByteArray, filename: String, mime: Strin
         { bytes, filename, mime ->
             scope.launch {
                 try {
-                    val file = withContext(Dispatchers.IO) {
-                        val dir = File(context.cacheDir, "shared_files")
-                        dir.mkdirs()
-                        // Sweep prior shares safely past any in-flight read (mirrors the image path).
-                        sweepStaleFiles(dir, STALE_THRESHOLD_MS)
-                        val f = File(dir, sanitizeFilename(filename))
-                        f.writeBytes(bytes)
-                        f
-                    }
+                    val file = withContext(Dispatchers.IO) { writeSharedFile(context, bytes, filename) }
                     val contentUri = FileProvider.getUriForFile(
                         context,
                         "${context.packageName}.fileprovider",
@@ -164,7 +156,7 @@ actual fun rememberShareFile(): (bytes: ByteArray, filename: String, mime: Strin
 }
 
 /** Strips path separators so a server-supplied filename can't escape the cache dir. */
-private fun sanitizeFilename(filename: String): String =
+internal fun sanitizeFilename(filename: String): String =
     filename.substringAfterLast('/').substringAfterLast('\\').ifBlank { "file" }
 
 @Suppress("TooGenericExceptionCaught") // user action: any failure becomes a toast

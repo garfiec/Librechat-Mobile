@@ -106,4 +106,24 @@
     <string name="date_group_previous_30_days">Предыдущие 30 дней</string>
     <string name="date_group_unknown">Неизвестно</string>
     <string name="snackbar_dismiss">Закрыть</string>
+    <string name="file_kind_spreadsheet">Таблица</string>
+    <string name="file_kind_document">Документ</string>
+    <string name="file_kind_pdf">PDF</string>
+    <string name="file_kind_text">Текст</string>
+    <string name="file_kind_code">Код</string>
+    <string name="file_kind_data">Данные</string>
+    <string name="file_kind_image">Изображение</string>
+    <string name="file_kind_presentation">Презентация</string>
+    <string name="file_kind_archive">Архив</string>
+    <string name="file_kind_audio">Аудио</string>
+    <string name="file_kind_video">Видео</string>
+    <string name="file_kind_file">Файл</string>
+    <string name="file_type_and_size">%1$s · %2$s</string>
+    <string name="open_in">Открыть в…</string>
+    <string name="save_to_device">Сохранить на устройство</string>
+    <string name="share">Поделиться</string>
+    <string name="from_code_sandbox">Из песочницы кода</string>
+    <string name="cd_file_actions">Действия с файлом</string>
+    <string name="file_saved">Файл сохранён</string>
+    <string name="file_save_failed">Не удалось сохранить файл</string>
 </resources>

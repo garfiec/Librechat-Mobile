@@ -179,8 +179,6 @@
     <string name="trace_error_unsupported">Сервис трассировки этого сервера не может возвращать трассировки.</string>
 
     <!-- Office-doc preview attachments (deferred preview, v0.8.6+) -->
-    <string name="office_preview_preparing">Подготовка предпросмотра %1$s…</string>
-    <string name="office_preview_failed">Не удалось показать предпросмотр %1$s (%2$s)</string>
     <string name="office_preview_unavailable">%1$s — предпросмотр недоступен</string>
 
     <!-- Content descriptions - Tool calls -->
@@ -680,4 +678,44 @@
     <string name="queue_held_after_refusal">Сервер отклонил ваше сообщение. Оно ждёт в очереди и не отправится само. Нажмите «Отправить очередь», когда будете готовы.</string>
     <string name="jump_message_not_found">Этого сообщения больше нет в чате.</string>
     <string name="jump_branch_switched">Показан ответ %1$d из %2$d — ветка с этим сообщением.</string>
+    <string name="load_image_from_host">Загрузить изображение с %1$s</string>
+    <string name="workspace_changes">Изменения в рабочей области</string>
+    <plurals name="n_files_changed">
+        <item quantity="one">Изменён %1$d файл</item>
+        <item quantity="few">Изменено %1$d файла</item>
+        <item quantity="many">Изменено %1$d файлов</item>
+        <item quantity="other">Изменено %1$d файла</item>
+    </plurals>
+    <string name="file_created">Новый</string>
+    <string name="file_updated">Изменён</string>
+    <string name="show_all_n">Показать все (%1$d)</string>
+    <string name="cd_download_file">Скачать %1$s</string>
+    <string name="preview_preparing">Подготовка предпросмотра…</string>
+    <string name="preview_failed_download">Предпросмотр недоступен · скачайте, чтобы открыть</string>
+    <plurals name="text_n_lines">
+        <item quantity="one">%1$d строка</item>
+        <item quantity="few">%1$d строки</item>
+        <item quantity="many">%1$d строк</item>
+        <item quantity="other">%1$d строки</item>
+    </plurals>
+    <string name="sandbox_starting">Запуск изолированной среды</string>
+    <string name="analyzing">Анализ</string>
+    <string name="analyzing_finished">Анализ завершен</string>
+    <string name="show_all_lines">Показать все строки</string>
+    <string name="cd_copy_output">Скопировать вывод</string>
+    <string name="expired">Срок истёк</string>
+    <string name="expired_explainer">Файлы из песочницы кода хранятся 24 часа. Срок хранения этого файла истёк, и его больше нельзя скачать.</string>
+    <string name="file_download_failed">Не удалось скачать %1$s</string>
+    <plurals name="files_count_summary">
+        <item quantity="one">%1$d файл</item>
+        <item quantity="few">%1$d файла</item>
+        <item quantity="many">%1$d файлов</item>
+        <item quantity="other">%1$d файла</item>
+    </plurals>
+    <plurals name="plus_n_more">
+        <item quantity="one">и ещё %1$d</item>
+        <item quantity="few">и ещё %1$d</item>
+        <item quantity="many">и ещё %1$d</item>
+        <item quantity="other">и ещё %1$d</item>
+    </plurals>
 </resources>

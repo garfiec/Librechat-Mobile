@@ -86,7 +86,16 @@ data class Attachment(
     val conversationId: String? = null,
     val messageId: String? = null,
     val toolCallId: String? = null,
+    /** Epoch millis after which the code sandbox drops the file. Set only on a code-output
+     *  download fallback (a record with no [fileId] whose [filepath] points at
+     *  `/api/files/code/download/…`); stored records carry `expiredAt`, a different key. */
     val expiresAt: Long? = null,
+    /** The agent whose tool call produced this file. The server stamps it on every code output;
+     *  null on older servers and on uploads. */
+    val agentId: String? = null,
+    /** What a stateful code session did to this path in its workspace. Null unless the run used
+     *  the stateful execution profile and the tool authored the file. */
+    val workspaceChange: WorkspaceChange? = null,
     val width: Int? = null,
     val height: Int? = null,
     /** File size; null means the server did not report it, which is not the same as zero — a
@@ -112,4 +121,17 @@ data class Attachment(
     /** MCP UI resources, present only when [type] == `ui_resources`. Carried, not yet rendered —
      *  see [UiResources]. */
     @SerialName("ui_resources") val uiResources: UiResources? = null,
+)
+
+/**
+ * A stateful code session's change to one workspace path (upstream `WorkspaceChange`,
+ * `packages/data-provider/src/schemas.ts`). [operation] is `created` or `updated` on the wire but
+ * stays a String, and [path] stays optional, because this decodes inside every `GET /messages`:
+ * one record a newer server shapes differently must not fail the whole fetch.
+ */
+@Serializable
+data class WorkspaceChange(
+    val profile: String? = null,
+    val operation: String? = null,
+    val path: String? = null,
 )

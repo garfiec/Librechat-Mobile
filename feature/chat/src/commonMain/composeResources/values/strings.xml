@@ -182,8 +182,6 @@
     <string name="trace_error_unsupported">This server's tracing service cannot return traces.</string>
 
     <!-- Office-doc preview attachments (deferred preview, v0.8.6+) -->
-    <string name="office_preview_preparing">Preparing preview of %1$s…</string>
-    <string name="office_preview_failed">Couldn't preview %1$s (%2$s)</string>
     <string name="office_preview_unavailable">%1$s — preview not available</string>
 
     <!-- Content descriptions - Tool calls -->
@@ -699,4 +697,55 @@
     <string name="queue_held_after_refusal">The server refused your message. It's waiting in the queue and won't send on its own. Tap “Send queued” when you're ready.</string>
     <string name="jump_message_not_found">That message isn't in this chat any more.</string>
     <string name="jump_branch_switched">Switched to response %1$d of %2$d, the branch that contains this message.</string>
+    <!-- A reply's image on a third-party site, not loaded until tapped. %1$s is the site's host, e.g. example.com -->
+    <string name="load_image_from_host">Load image from %1$s</string>
+    <!-- Header of the list of files a code session created or edited during a reply -->
+    <string name="workspace_changes">Workspace changes</string>
+    <!-- Count shown next to "Workspace changes" -->
+    <plurals name="n_files_changed">
+        <item quantity="one">%1$d file changed</item>
+        <item quantity="other">%1$d files changed</item>
+    </plurals>
+    <!-- Tag on a workspace file the code session created this turn -->
+    <string name="file_created">New</string>
+    <!-- Tag on a workspace file the code session changed this turn -->
+    <string name="file_updated">Edited</string>
+    <!-- Opens the full list of workspace changes. %1$d is how many files there are -->
+    <string name="show_all_n">Show all %1$d</string>
+    <!-- Accessibility label of a file's download button. %1$s is the file name -->
+    <string name="cd_download_file">Download %1$s</string>
+    <!-- A generated file's row while its preview renders, and when it never did. -->
+    <string name="preview_preparing">Preparing preview…</string>
+    <string name="preview_failed_download">Preview unavailable · download to view</string>
+    <!-- Line count of a plain-text file, after its type: "Plain Text · 5 lines". -->
+    <plurals name="text_n_lines">
+        <item quantity="one">%1$d line</item>
+        <item quantity="other">%1$d lines</item>
+    </plurals>
+    <!-- Code-execution card status while the server boots the code sandbox -->
+    <string name="sandbox_starting">Starting sandbox environment</string>
+    <!-- Code-execution card status while the code runs -->
+    <string name="analyzing">Analyzing</string>
+    <!-- Code-execution card status once the code has run -->
+    <string name="analyzing_finished">Finished analyzing</string>
+    <!-- Expands a code run's output past its first lines -->
+    <string name="show_all_lines">Show all lines</string>
+    <!-- Accessibility label of the copy button on a code run's output -->
+    <string name="cd_copy_output">Copy output</string>
+    <!-- Second line of a generated file the code sandbox no longer has -->
+    <string name="expired">Expired</string>
+    <!-- Shown when the user taps an expired generated file -->
+    <string name="expired_explainer">Files from the code sandbox are kept for 24 hours. This one has expired and can no longer be downloaded.</string>
+    <!-- Snackbar when a generated file could not be downloaded. %1$s is the file name -->
+    <string name="file_download_failed">Couldn't download %1$s</string>
+    <!-- Title of the row that collapses a reply's generated files. %1$d = how many -->
+    <plurals name="files_count_summary">
+        <item quantity="one">%1$d file</item>
+        <item quantity="other">%1$d files</item>
+    </plurals>
+    <!-- Follows the first file names on a collapsed file row. %1$d = how many more files -->
+    <plurals name="plus_n_more">
+        <item quantity="one">+%1$d more</item>
+        <item quantity="other">+%1$d more</item>
+    </plurals>
 </resources>

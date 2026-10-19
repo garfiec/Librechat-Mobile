@@ -18,6 +18,7 @@ import com.garfiec.librechat.core.model.error.parseUserKeyError
 import com.garfiec.librechat.core.model.response.ChatStatusResponse
 import com.garfiec.librechat.core.network.api.chatRefusalText
 import com.garfiec.librechat.feature.chat.util.applyAbortContract
+import com.garfiec.librechat.feature.chat.util.resolvedResponseMessage
 import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
 import com.garfiec.librechat.feature.chat.viewmodel.StreamingHandle
@@ -438,6 +439,7 @@ class StreamingManagerDelegate(
             is StreamEvent.ToolCallStart,
             is StreamEvent.ToolCallComplete,
             is StreamEvent.ToolCallClosed,
+            is StreamEvent.SandboxStarting,
             is StreamEvent.AttachmentCreated,
             is StreamEvent.SubagentUpdate,
             is StreamEvent.TitleUpdate,
@@ -481,7 +483,7 @@ class StreamingManagerDelegate(
         // Flush the tail of the buffer before it is read below; endStream repeats this
         // idempotently at the end.
         buffer.stopUpdater()
-        liveReply.onStreamEnded()
+        liveReply.onStreamEnded(rawEvent.resolvedResponseMessage()?.attachments.orEmpty())
         // Early abort: the Stop landed before the server's `created` milestone, so NOTHING was
         // persisted — not even the user message. Un-send the turn (remove the optimistic bubble,
         // hand its text back to the composer) instead of finalizing: any bubble kept here would

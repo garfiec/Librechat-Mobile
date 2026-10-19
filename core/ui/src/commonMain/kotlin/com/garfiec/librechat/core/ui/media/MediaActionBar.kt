@@ -2,6 +2,7 @@ package com.garfiec.librechat.core.ui.media
 
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.SaveAlt
 import androidx.compose.material3.Icon
@@ -14,9 +15,11 @@ import androidx.compose.ui.graphics.Color
  * viewer (chat, files) so the button set, icons, white tint, and the save null-guard live in one
  * place instead of being re-declared per surface.
  *
- * [onSave] is null on platforms/surfaces without gallery save (e.g. iOS), in which case the save
- * button is omitted. Content descriptions are passed in (resolved once by the caller, above the
- * pager) so paging between items doesn't re-resolve string resources on every swipe.
+ * [onSave] is null on platforms/surfaces without a save (e.g. iOS for a plain image URL), in which
+ * case the save button is omitted; [onOpenIn] is null unless the item's original file can be handed
+ * to another app (a generated file, whose bytes the caller downloads). Content descriptions are
+ * passed in (resolved once by the caller, above the pager) so paging between items doesn't
+ * re-resolve string resources on every swipe.
  *
  * No `modifier` param: this emits sibling buttons directly into the caller-owned [RowScope], so
  * there is no single root node to apply one to.
@@ -29,7 +32,18 @@ fun RowScope.MediaActionBar(
     onShare: (url: String) -> Unit,
     saveContentDescription: String,
     shareContentDescription: String,
+    onOpenIn: ((url: String) -> Unit)? = null,
+    openInContentDescription: String = "",
 ) {
+    if (onOpenIn != null) {
+        IconButton(onClick = { onOpenIn(item.url) }) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                contentDescription = openInContentDescription,
+                tint = Color.White,
+            )
+        }
+    }
     if (onSave != null) {
         IconButton(onClick = { onSave(item.url) }) {
             Icon(

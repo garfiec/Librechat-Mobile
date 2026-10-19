@@ -107,4 +107,33 @@
     <string name="date_group_previous_7_days">Previous 7 Days</string>
     <string name="date_group_previous_30_days">Previous 30 Days</string>
     <string name="date_group_unknown">Unknown</string>
+    <!-- File type shown under a file's name and named by its colored tile. A code file shows its language instead of "Code". -->
+    <string name="file_kind_spreadsheet">Spreadsheet</string>
+    <string name="file_kind_document">Document</string>
+    <string name="file_kind_pdf">PDF</string>
+    <string name="file_kind_text">Text</string>
+    <string name="file_kind_code">Code</string>
+    <string name="file_kind_data">Data</string>
+    <string name="file_kind_image">Image</string>
+    <string name="file_kind_presentation">Presentation</string>
+    <string name="file_kind_archive">Archive</string>
+    <string name="file_kind_audio">Audio</string>
+    <string name="file_kind_video">Video</string>
+    <string name="file_kind_file">File</string>
+    <!-- A file's second line: its type, then its size ("Spreadsheet · 1.2 KB") -->
+    <string name="file_type_and_size">%1$s · %2$s</string>
+    <!-- Hands a file to another app to open it -->
+    <string name="open_in">Open in…</string>
+    <!-- Saves a file where the user picks on the device -->
+    <string name="save_to_device">Save to device</string>
+    <!-- Shares a file through the system share sheet -->
+    <string name="share">Share</string>
+    <!-- Where a generated file came from, after its type and size -->
+    <string name="from_code_sandbox">From the code sandbox</string>
+    <!-- Accessibility label of the menu holding Open in, Save and Share for a file -->
+    <string name="cd_file_actions">File actions</string>
+    <!-- Confirms a file was saved where the user picked -->
+    <string name="file_saved">File saved</string>
+    <!-- A file could not be saved where the user picked -->
+    <string name="file_save_failed">Couldn't save the file</string>
 </resources>

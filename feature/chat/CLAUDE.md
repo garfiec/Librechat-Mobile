@@ -132,6 +132,14 @@ Two consequences worth knowing before touching that block:
   - `tool_call` -> `StreamingToolCallCard` (expandable, shows args/output), except `ask_user_question`
     (see below)
   - `image_file` / `image_url` -> inline AsyncImage, tap opens `FullscreenImageViewer`
+- Markdown images in reply text (`MarkdownImages.kt`) resolve through `MarkdownMedia.sourceFor`, the
+  one gate before any request. **Deliberate divergence from web:** an image on a third-party host
+  shows a "Load image from <host>" chip and is fetched only after a tap (remembered per server and URL
+  for the process), because fetching it tells that host who is reading the reply. A turn's own files,
+  by name, and anything on the server's origin load at once. Don't "restore parity" by loading them.
+  The server's own host on another scheme or port is named by its whole origin; over `http` from an
+  `https` server it never loads (the bearer is host-scoped), nor does a host the chip can't name
+  exactly as Ktor parses it.
   - `error` -> red-styled error display
 - `CodeBlock` renders fenced code with syntax highlighting, language badge, and copy button (3s checkmark)
 - LaTeX: `LatexBlock` (block math) and `LatexInline` (inline math) via AndroidMath native rendering

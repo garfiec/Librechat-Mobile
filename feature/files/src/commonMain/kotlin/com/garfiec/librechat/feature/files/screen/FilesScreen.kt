@@ -21,20 +21,13 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AudioFile
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.SelectAll
-import androidx.compose.material.icons.filled.VideoFile
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -57,7 +50,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -65,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.garfiec.librechat.core.model.FileObject
+import com.garfiec.librechat.core.model.files.fileKindOf
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveCheckbox
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
@@ -74,6 +67,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.EmptyState
 import com.garfiec.librechat.core.ui.components.ErrorBanner
+import com.garfiec.librechat.core.ui.components.FileTypeTile
 import com.garfiec.librechat.core.ui.components.PdfPasswordDialog
 import com.garfiec.librechat.core.ui.components.PlatformBackHandler
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
@@ -632,12 +626,7 @@ private fun FileItem(
                 Spacer(modifier = Modifier.width(8.dp))
             }
 
-            Icon(
-                imageVector = fileTypeIcon(file.type),
-                contentDescription = null,
-                modifier = Modifier.size(32.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            FileTypeTile(kind = remember(file.filename, file.type) { fileKindOf(file.filename, file.type) }, size = 40.dp)
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -716,11 +705,9 @@ private fun FileGridItem(
                             contentScale = ContentScale.Crop,
                         )
                     } else {
-                        Icon(
-                            imageVector = fileTypeIconLarge(file.type),
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        FileTypeTile(
+                            kind = remember(file.filename, file.type) { fileKindOf(file.filename, file.type) },
+                            size = 56.dp,
                         )
                     }
                 }
@@ -760,21 +747,4 @@ private fun FileGridItem(
             }
         }
     }
-}
-
-private fun fileTypeIcon(type: String): ImageVector = when {
-    type.startsWith("image/") -> Icons.Default.Image
-    type.startsWith("video/") -> Icons.Default.VideoFile
-    type.startsWith("audio/") -> Icons.Default.AudioFile
-    else -> Icons.Default.Description
-}
-
-private fun fileTypeIconLarge(type: String): ImageVector = when {
-    type.startsWith("image/") -> Icons.Default.Image
-    type.startsWith("video/") -> Icons.Default.VideoFile
-    type.startsWith("audio/") -> Icons.Default.AudioFile
-    type == "application/pdf" -> Icons.Default.PictureAsPdf
-    type.startsWith("text/") -> Icons.Default.Description
-    type == "application/json" || type == "application/xml" -> Icons.Default.Code
-    else -> Icons.AutoMirrored.Filled.InsertDriveFile
 }

@@ -179,8 +179,6 @@
     <string name="trace_error_unsupported">O serviço de rastreamento deste servidor não pode retornar rastreamentos.</string>
 
     <!-- Office-doc preview attachments (deferred preview, v0.8.6+) -->
-    <string name="office_preview_preparing">Preparando visualização de %1$s…</string>
-    <string name="office_preview_failed">Não foi possível visualizar %1$s (%2$s)</string>
     <string name="office_preview_unavailable">%1$s — visualização indisponível</string>
 
     <!-- Content descriptions - Tool calls -->
@@ -677,4 +675,40 @@
     <string name="queue_held_after_refusal">O servidor recusou sua mensagem. Ela está aguardando na fila e não será enviada sozinha. Toque em “Enviar fila” quando estiver pronto.</string>
     <string name="jump_message_not_found">Essa mensagem não está mais neste chat.</string>
     <string name="jump_branch_switched">Mudou para a resposta %1$d de %2$d, o ramo que contém esta mensagem.</string>
+    <string name="load_image_from_host">Carregar imagem de %1$s</string>
+    <string name="workspace_changes">Alterações no espaço de trabalho</string>
+    <plurals name="n_files_changed">
+        <item quantity="one">%1$d arquivo alterado</item>
+        <item quantity="many">%1$d de arquivos alterados</item>
+        <item quantity="other">%1$d arquivos alterados</item>
+    </plurals>
+    <string name="file_created">Novo</string>
+    <string name="file_updated">Editado</string>
+    <string name="show_all_n">Mostrar todos os %1$d</string>
+    <string name="cd_download_file">Baixar %1$s</string>
+    <string name="preview_preparing">Preparando a visualização…</string>
+    <string name="preview_failed_download">Visualização indisponível · baixe para ver</string>
+    <plurals name="text_n_lines">
+        <item quantity="one">%1$d linha</item>
+        <item quantity="many">%1$d de linhas</item>
+        <item quantity="other">%1$d linhas</item>
+    </plurals>
+    <string name="sandbox_starting">Iniciando ambiente sandbox</string>
+    <string name="analyzing">Analisando</string>
+    <string name="analyzing_finished">Análise concluída</string>
+    <string name="show_all_lines">Mostrar todas as linhas</string>
+    <string name="cd_copy_output">Copiar saída</string>
+    <string name="expired">Expirado</string>
+    <string name="expired_explainer">Os arquivos do sandbox de código são mantidos por 24 horas. Este expirou e não pode mais ser baixado.</string>
+    <string name="file_download_failed">Não foi possível baixar %1$s</string>
+    <plurals name="files_count_summary">
+        <item quantity="one">%1$d arquivo</item>
+        <item quantity="many">%1$d de arquivos</item>
+        <item quantity="other">%1$d arquivos</item>
+    </plurals>
+    <plurals name="plus_n_more">
+        <item quantity="one">+%1$d outro</item>
+        <item quantity="many">+%1$d outros</item>
+        <item quantity="other">+%1$d outros</item>
+    </plurals>
 </resources>

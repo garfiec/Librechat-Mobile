@@ -63,9 +63,9 @@ data class AgentToolCall(
     val toolExecutionDurationMs: Long? = null,
     /**
      * Stamped when a detached task's final output replaced the dispatch handle in [output]: the
-     * only durable signal that the call ran in the background. Upstream reads it to keep treating
-     * [runStepDurationMs] as dispatch time rather than the task's runtime; this client shows no
-     * durations, so it is carried for that reader only.
+     * only durable signal that the call ran in the background. When set, [runStepDurationMs] is
+     * dispatch time rather than the task's runtime, so the code-execution card omits it (as
+     * upstream does).
      */
     val backgrounded: Boolean? = null,
     /** The settled background task behind this call. See [BackgroundToolTask]. */

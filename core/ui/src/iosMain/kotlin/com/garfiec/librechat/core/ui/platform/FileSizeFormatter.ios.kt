@@ -1,4 +1,4 @@
-package com.garfiec.librechat.feature.files.platform
+package com.garfiec.librechat.core.ui.platform
 
 import platform.Foundation.NSByteCountFormatter
 import platform.Foundation.NSByteCountFormatterCountStyleFile

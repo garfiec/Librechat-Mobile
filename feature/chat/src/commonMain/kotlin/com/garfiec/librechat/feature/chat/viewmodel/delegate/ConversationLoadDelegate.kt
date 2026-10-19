@@ -53,6 +53,11 @@ class ConversationLoadDelegate(
     private val onModelLoadSettled: () -> Unit,
     /** ComparisonModeDelegate.rehydrateFromMessage, for a reopened Compare Models conversation. */
     private val rehydrateComparison: (Message) -> Unit,
+    /**
+     * AttachmentPreviewDelegate.onMessagesSettled: polls the deferred previews the displayed
+     * messages still list as pending. Called on every settled emission; the delegate dedupes.
+     */
+    private val onMessagesSettled: (List<MessageNode>) -> Unit,
 ) {
     private var roomObserverJob: Job? = null
 
@@ -218,6 +223,9 @@ class ConversationLoadDelegate(
                     // and would always look like the server dropped it. A fetch that failed also
                     // settles, and then restores — duplicating text the server did keep is the
                     // recoverable mistake; losing text it did not keep is not.
+                    // A reply that finished while nobody was watching may have left its generated
+                    // files pending; the settled read is the one that names them.
+                    if (settled) onMessagesSettled(displayMessages)
                     pendingUnsavedTurn?.takeIf { settled }?.let { unsent ->
                         pendingUnsavedTurn = null
                         val kept = emission.messages.any {

@@ -293,4 +293,27 @@ class MessageSerializationTest {
         val reDecoded = json.decodeFromString(MessageContentPart.serializer(), encoded)
         assertEquals("Edited body.", reDecoded.text)
     }
+
+    // Synthesized from upstream source, not captured from a live server: a stored code output
+    // (packages/api/src/files/code/process.ts:385), its stateful workspace change
+    // (api/server/controllers/agents/callbacks.js:57-74) and a download fallback
+    // (api/server/services/Files/Code/process.js:343-375), as GET /messages returns them.
+    @Test
+    fun codeOutputAttachmentsDecodeWithAgentWorkspaceChangeAndExpiry() {
+        val raw = """{"messageId":"m1","conversationId":"c1","attachments":[""" +
+            """{"file_id":"f1","filename":"report.md","filepath":"/uploads/u/f1__report.md","type":"text/markdown",""" +
+            """"bytes":10,"toolCallId":"call_1","agentId":"agent_a",""" +
+            """"workspaceChange":{"profile":"stateful","operation":"updated","path":"report.md"}},""" +
+            """{"filename":"big.csv","filepath":"/api/files/code/download/s/i","expiresAt":1760086400000,"agentId":"agent_a"},""" +
+            """{"file_id":"f2","filename":"x.txt","workspaceChange":{"profile":"stateful","operation":"renamed"}}""" +
+            """]}"""
+        val attachments = json.decodeFromString(Message.serializer(), raw).attachments!!
+
+        assertEquals("agent_a", attachments[0].agentId)
+        assertEquals(WorkspaceChange("stateful", "updated", "report.md"), attachments[0].workspaceChange)
+        assertEquals(null, attachments[1].fileId)
+        assertEquals(1_760_086_400_000, attachments[1].expiresAt)
+        // An operation this client does not know and a missing path still decode.
+        assertEquals(WorkspaceChange("stateful", "renamed", null), attachments[2].workspaceChange)
+    }
 }

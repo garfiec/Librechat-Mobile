@@ -56,10 +56,10 @@ import com.garfiec.librechat.core.ui.components.AdaptiveFloatingActionButton
 import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
 import com.garfiec.librechat.core.ui.glass.glassBackdropSource
 import com.garfiec.librechat.core.ui.theme.isSurfaceDark
-import com.garfiec.librechat.feature.chat.components.artifact.ArtifactType
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.util.MessageNode
+import com.garfiec.librechat.feature.chat.util.withPreviews
 import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
 import com.garfiec.librechat.feature.chat.viewmodel.JumpFlash
 import com.garfiec.librechat.feature.chat.viewmodel.SearchFocusRequest
@@ -87,6 +87,8 @@ fun MessageList(
     /** The live reply's reasoning, shown collapsed above its text. See [StreamingMessageBubble]. */
     streamingThinking: String = "",
     activeToolCalls: List<ActiveToolCall> = emptyList(),
+    /** Calls whose sandbox is cold-booting; see `MessagesState.sandboxStartingToolCallIds`. */
+    sandboxStartingToolCallIds: Set<String> = emptySet(),
     streamingAttachments: List<Attachment> = emptyList(),
     onFeedback: (messageId: String, feedback: MinimalFeedback?) -> Unit = { _, _ -> },
     /** `interface.feedback`. Gated here rather than at each caller so every list inherits it. */
@@ -578,6 +580,10 @@ fun MessageList(
             )
         },
     ) {
+        val previewOverrides = LocalPreviewOverrides.current
+        val liveAttachments = remember(streamingAttachments, previewOverrides) {
+            streamingAttachments.withPreviews(previewOverrides)
+        }
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -745,19 +751,24 @@ fun MessageList(
                 // an in-place content update rather than a scroll-resetting remove+add.
                 val streamingSlotKey = displayMessages.lastOrNull()?.message?.messageId
                     ?: "streaming_message"
+                // Workspace changes get their own item; tool cards, office previews and memory
+                // take the rest. The bubble's markdown images resolve against all of them.
+                val streamingWorkspace = partitionWorkspaceChanges(liveAttachments)
                 item(key = streamingSlotKey) {
-                    StreamingMessageBubble(
-                        streamingContent = streamingContent,
-                        senderName = streamingSenderName,
-                        senderIconUrl = null,
-                        fontSizeMultiplier = fontSizeMultiplier,
-                        selectedEndpoint = selectedEndpoint,
-                        chatLayoutStyle = chatLayoutStyle,
-                        showAvatars = showAvatars,
-                        showBubbles = showBubbles,
-                        useKatex = useKatex,
-                        streamingThinking = streamingThinking,
-                    )
+                    ProvideMarkdownMedia(liveAttachments, baseUrl) {
+                        StreamingMessageBubble(
+                            streamingContent = streamingContent,
+                            senderName = streamingSenderName,
+                            senderIconUrl = null,
+                            fontSizeMultiplier = fontSizeMultiplier,
+                            selectedEndpoint = selectedEndpoint,
+                            chatLayoutStyle = chatLayoutStyle,
+                            showAvatars = showAvatars,
+                            showBubbles = showBubbles,
+                            useKatex = useKatex,
+                            streamingThinking = streamingThinking,
+                        )
+                    }
                 }
 
                 if (renderedToolCalls.isNotEmpty()) {
@@ -773,21 +784,37 @@ fun MessageList(
                                 vertical = 4.dp,
                             ),
                             baseUrl = baseUrl,
-                            streamingAttachments = streamingAttachments,
+                            streamingAttachments = streamingWorkspace.inline,
                             showImageDescriptions = showImageDescriptions,
+                            sandboxStarting = toolCall.id in sandboxStartingToolCallIds,
                         )
                     }
                 }
 
-                // Live deferred office-doc previews (v0.8.6): pending→Preparing,
-                // ready→artifact, failed→chip. Folded by file_id in the VM delegate.
-                val officeAttachments = streamingAttachments.filter {
-                    ArtifactType.isOfficePreviewMime(it.type)
+                if (streamingWorkspace.changes.isNotEmpty()) {
+                    item(key = "streaming_workspace_changes", contentType = "workspace_changes") {
+                        WorkspaceChangesSection(
+                            changes = streamingWorkspace.changes,
+                            baseUrl = baseUrl,
+                            stateKey = "streaming",
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                        )
+                    }
                 }
-                if (officeAttachments.isNotEmpty()) {
+
+                // Live office-doc previews (v0.8.6) once ready. Pending and failed ones are rows
+                // under their tool call, or here when no rendered call claims them; see
+                // isInlineOfficePreview.
+                val streamingCallIds = renderedToolCalls.map { it.id }
+                val officeAttachments = streamingWorkspace.inline.filter(::isInlineOfficePreview)
+                if (officeAttachments.isNotEmpty() ||
+                    unclaimedOfficePreviewRows(streamingWorkspace.inline, streamingCallIds).isNotEmpty()
+                ) {
                     item(key = "streaming_office_previews") {
                         OfficePreviewAttachments(
-                            attachments = officeAttachments,
+                            attachments = streamingWorkspace.inline,
+                            renderedToolCallIds = streamingCallIds,
+                            baseUrl = baseUrl,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                             isDarkTheme = isSurfaceDark(),
                         )
@@ -795,8 +822,8 @@ fun MessageList(
                 }
 
                 val orphanMemory = collectUnrenderedMemoryArtifacts(
-                    streamingAttachments,
-                    renderedToolCalls.map { it.id },
+                    streamingWorkspace.inline,
+                    streamingCallIds,
                 )
                 if (orphanMemory.isNotEmpty()) {
                     item(key = "streaming_memory_artifacts") {

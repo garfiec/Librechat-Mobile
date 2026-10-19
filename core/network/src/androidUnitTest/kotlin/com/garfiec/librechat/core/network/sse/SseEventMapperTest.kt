@@ -823,6 +823,139 @@ class SseEventMapperTest {
         assertThat(mapper.map(event)).isNull()
     }
 
+    // --- Code-interpreter outputs and sandbox lifecycle ---
+    //
+    // These fixtures are SYNTHESIZED from the upstream server source at the cited lines, NOT
+    // captured from a live server. Real captures from a server running stateful code sessions are
+    // still owed; replace these once they exist.
+    //   - stored output:   `Object.assign(file, { messageId, toolCallId, agentId })`,
+    //                      packages/api/src/files/code/process.ts:385,529,576
+    //   - workspaceChange: `addStatefulWorkspaceChange`, api/server/controllers/agents/callbacks.js:57-74,
+    //                      shape `WorkspaceChange` in packages/data-provider/src/schemas.ts:1042-1046
+    //   - fallback:        `createDownloadFallback`, api/server/services/Files/Code/process.js:343-375
+    //                      (no file_id, no type; expiresAt = now + 86400000, process.ts:404)
+    //   - sandbox:         `{event:'on_sandbox_starting', data:{tool_call_id, runId}}`,
+    //                      callbacks.js:303-306, packages/data-provider/src/types/runs.ts:52-60
+    //   - completion args: the web client replaces the tool call with `result.tool_call`,
+    //                      client/src/hooks/SSE/useStepHandler.ts:1450-1453
+
+    @Test
+    fun `maps a stored code output with its agent, size, ids and workspace change`() {
+        val event = SseEvent(
+            event = "attachment",
+            data = """{"file_id":"file_abc","filename":"report.md","filepath":"/uploads/u1/file_abc__report.md","type":"text/markdown","bytes":2048,"source":"local","conversationId":"convo_1","messageId":"run_1","toolCallId":"call_1","agentId":"agent_a","workspaceChange":{"profile":"stateful","operation":"created","path":"report.md"}}""",
+        )
+        val att = mapper.map(event) as StreamEvent.AttachmentCreated
+        assertThat(att.fileId).isEqualTo("file_abc")
+        assertThat(att.agentId).isEqualTo("agent_a")
+        assertThat(att.bytes).isEqualTo(2048)
+        assertThat(att.messageId).isEqualTo("run_1")
+        assertThat(att.conversationId).isEqualTo("convo_1")
+        assertThat(att.workspaceChange!!.profile).isEqualTo("stateful")
+        assertThat(att.workspaceChange!!.operation).isEqualTo("created")
+        assertThat(att.workspaceChange!!.path).isEqualTo("report.md")
+        assertThat(att.expiresAt).isNull()
+    }
+
+    @Test
+    fun `maps an updated workspace path`() {
+        val event = SseEvent(
+            event = "attachment",
+            data = """{"file_id":"file_abc","filename":"data.csv","type":"text/csv","toolCallId":"call_2","workspaceChange":{"profile":"stateful","operation":"updated","path":"out/data.csv"}}""",
+        )
+        val change = (mapper.map(event) as StreamEvent.AttachmentCreated).workspaceChange!!
+        assertThat(change.operation).isEqualTo("updated")
+        assertThat(change.path).isEqualTo("out/data.csv")
+    }
+
+    @Test
+    fun `a malformed workspace change drops only the change`() {
+        val event = SseEvent(
+            event = "attachment",
+            data = """{"file_id":"file_abc","filename":"a.txt","type":"text/plain","workspaceChange":"created"}""",
+        )
+        val att = mapper.map(event) as StreamEvent.AttachmentCreated
+        assertThat(att.fileId).isEqualTo("file_abc")
+        assertThat(att.workspaceChange).isNull()
+    }
+
+    @Test
+    fun `maps a download fallback with no file_id, keeping the id null`() {
+        val event = SseEvent(
+            event = "attachment",
+            data = """{"filename":"big.csv","filepath":"/api/files/code/download/sess_1/id_1?execution_profile=stateful","expiresAt":1760086400000,"conversationId":"convo_1","toolCallId":"call_1","messageId":"run_1","agentId":"agent_a"}""",
+        )
+        val att = mapper.map(event) as StreamEvent.AttachmentCreated
+        assertThat(att.fileId).isNull()
+        assertThat(att.type).isNull()
+        assertThat(att.filename).isEqualTo("big.csv")
+        assertThat(att.filepath).isEqualTo("/api/files/code/download/sess_1/id_1?execution_profile=stateful")
+        assertThat(att.expiresAt).isEqualTo(1_760_086_400_000)
+        assertThat(att.agentId).isEqualTo("agent_a")
+    }
+
+    @Test
+    fun `a non-primitive expiry or id drops only that field, not the attachment`() {
+        val event = SseEvent(
+            event = "attachment",
+            data = """{"filename":"big.csv","filepath":"/api/files/code/download/s/f","expiresAt":{"ms":1},"bytes":[1],"messageId":{},"conversationId":[],"agentId":{"id":"a"},"toolCallId":"call_1"}""",
+        )
+        val att = mapper.map(event) as StreamEvent.AttachmentCreated
+        assertThat(att.filename).isEqualTo("big.csv")
+        assertThat(att.toolCallId).isEqualTo("call_1")
+        assertThat(att.expiresAt).isNull()
+        assertThat(att.bytes).isNull()
+        assertThat(att.messageId).isNull()
+        assertThat(att.conversationId).isNull()
+        assertThat(att.agentId).isNull()
+    }
+
+    @Test
+    fun `an object-valued sandbox tool call id drops the event rather than throwing`() {
+        val event = SseEvent(
+            event = "",
+            data = """{"event":"on_sandbox_starting","data":{"tool_call_id":{"id":"call_1"},"runId":["run_1"]}}""",
+        )
+        assertThat(mapper.map(event)).isNull()
+    }
+
+    @Test
+    fun `maps on_sandbox_starting through the LangGraph data path`() {
+        val event = SseEvent(
+            event = "",
+            data = """{"event":"on_sandbox_starting","data":{"tool_call_id":"call_1","runId":"run_1"}}""",
+        )
+        val starting = mapper.map(event) as StreamEvent.SandboxStarting
+        assertThat(starting.toolCallId).isEqualTo("call_1")
+        assertThat(starting.runId).isEqualTo("run_1")
+    }
+
+    @Test
+    fun `drops on_sandbox_starting without a tool call id`() {
+        val event = SseEvent(event = "", data = """{"event":"on_sandbox_starting","data":{"runId":"run_1"}}""")
+        assertThat(mapper.map(event)).isNull()
+    }
+
+    @Test
+    fun `reads the args the completion carries`() {
+        mapper.map(runStep("step_1", "call_1"))
+        val event = SseEvent(
+            event = "",
+            data = """{"event":"on_run_step_completed","data":{"result":{"id":"step_1","index":0,"type":"tool_call","tool_call":{"id":"call_1","name":"execute_code","args":{"lang":"py","code":"print(42)"},"output":"stdout:\n42\n","progress":1,"type":"tool_call"}}}}""",
+        )
+        val complete = mapper.map(event) as StreamEvent.ToolCallComplete
+        assertThat(complete.input).isEqualTo("""{"lang":"py","code":"print(42)"}""")
+    }
+
+    @Test
+    fun `a completion without args leaves the input null`() {
+        val event = SseEvent(
+            event = "",
+            data = """{"event":"on_run_step_completed","data":{"result":{"id":"step_1","tool_call":{"id":"call_1","output":"ok"}}}}""",
+        )
+        assertThat((mapper.map(event) as StreamEvent.ToolCallComplete).input).isNull()
+    }
+
     // --- Legacy Flat Format ---
 
     @Test

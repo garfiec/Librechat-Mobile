@@ -15,13 +15,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.InsertDriveFile
-import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -34,7 +30,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -42,7 +37,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.model.files.fileKindOf
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.FileTypeTile
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_file_search_source
 import com.garfiec.librechat.feature.chat.resources.file_search_pages
@@ -63,20 +60,6 @@ data class FileSearchCitation(
     val pages: List<Int> = emptyList(),
     val fileType: String? = null,
 )
-
-/** Upstream `getFileIcon` (`RetrievalCall.tsx`), on the MIME substrings it actually branches on. */
-private fun fileIconFor(mimeType: String?): ImageVector = when {
-    mimeType == null -> Icons.Default.Description
-    mimeType.contains("spreadsheet") || mimeType.contains("excel") || mimeType.contains("csv") ->
-        Icons.Default.TableChart
-    mimeType.contains("image") -> Icons.Default.Image
-    mimeType.contains("javascript") || mimeType.contains("typescript") ||
-        mimeType.contains("json") || mimeType.contains("xml") || mimeType.contains("html") ->
-        Icons.Default.Code
-    mimeType.contains("pdf") || mimeType.contains("text") || mimeType.contains("word") ->
-        Icons.Default.Description
-    else -> Icons.Default.InsertDriveFile
-}
 
 /**
  * File-search citations, shaped like [WebSearchSourcesCard] and mirroring upstream
@@ -153,6 +136,7 @@ private fun CitationRow(citation: FileSearchCitation, stateKey: String) {
     val hasContent = citation.content.isNotBlank()
     val rowCd = stringResource(Res.string.cd_file_search_source, citation.fileName)
     val relevancePercent = remember(citation.relevance) { (citation.relevance * 100).roundToInt() }
+    val kind = remember(citation.fileName, citation.fileType) { fileKindOf(citation.fileName, citation.fileType) }
 
     Column(
         modifier = Modifier
@@ -165,13 +149,8 @@ private fun CitationRow(citation: FileSearchCitation, stateKey: String) {
             },
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = fileIconFor(citation.fileType),
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(modifier = Modifier.width(10.dp))
+            FileTypeTile(kind = kind, size = 24.dp)
+            Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = citation.fileName,
                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),

@@ -50,6 +50,8 @@ fun StreamingToolCallCard(
     baseUrl: String = "",
     streamingAttachments: List<Attachment> = emptyList(),
     showImageDescriptions: Boolean = true,
+    /** The server reported this call's sandbox is still cold-booting (`on_sandbox_starting`). */
+    sandboxStarting: Boolean = false,
 ) {
     // Image-gen tool calls render as an ImageGenCard placeholder (matching web): a
     // faux-progress spinner while generating, swapping to the real image the moment
@@ -90,6 +92,30 @@ fun StreamingToolCallCard(
             answer = toolCall.output.orEmpty(),
             modifier = modifier,
         )
+        return
+    }
+
+    // Status only while the step runs — the wire carries no args at step start and no progressive
+    // output — then the code and output the completion reports, in the card the reload renders.
+    if (isCodeExecutionToolCall(toolCall.name.lowercase())) {
+        val result = remember(toolCall.name, toolCall.input, toolCall.output) {
+            parseCodeExecution(toolCall.name, toolCall.input, toolCall.output)
+        }
+        val verdict = toolCallVerdict(toolCall.closedStatus, toolCall.isComplete)
+        Column(modifier = modifier.fillMaxWidth()) {
+            CodeExecutionCard(
+                result = result ?: EMPTY_CODE_RESULT,
+                phase = codeExecutionPhase(verdict, sandboxStarting, result),
+                durationMs = toolCall.durationMs,
+                stateKey = toolCall.id,
+            )
+            ToolCallAttachments(
+                attachments = streamingAttachments,
+                toolCallId = toolCall.id,
+                baseUrl = baseUrl,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
         return
     }
 
@@ -236,3 +262,6 @@ private fun GenericStreamingToolCard(
         )
     }
 }
+
+private val EMPTY_CODE_RESULT =
+    CodeExecutionResult(language = null, code = null, output = null, error = null, exitCode = null)

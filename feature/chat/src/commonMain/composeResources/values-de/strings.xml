@@ -179,8 +179,6 @@
     <string name="trace_error_unsupported">Der Tracing-Dienst dieses Servers kann keine Traces liefern.</string>
 
     <!-- Office-doc preview attachments (deferred preview, v0.8.6+) -->
-    <string name="office_preview_preparing">Vorschau von %1$s wird vorbereitet…</string>
-    <string name="office_preview_failed">Vorschau von %1$s nicht möglich (%2$s)</string>
     <string name="office_preview_unavailable">%1$s — Vorschau nicht verfügbar</string>
 
     <!-- Content descriptions - Tool calls -->
@@ -674,4 +672,36 @@
     <string name="queue_held_after_refusal">Der Server hat deine Nachricht abgelehnt. Sie wartet in der Warteschlange und wird nicht von selbst gesendet. Tippe auf „Wartende senden“, wenn du so weit bist.</string>
     <string name="jump_message_not_found">Diese Nachricht ist nicht mehr in diesem Chat.</string>
     <string name="jump_branch_switched">Zu Antwort %1$d von %2$d gewechselt, dem Zweig mit dieser Nachricht.</string>
+    <string name="load_image_from_host">Bild von %1$s laden</string>
+    <string name="workspace_changes">Änderungen im Arbeitsbereich</string>
+    <plurals name="n_files_changed">
+        <item quantity="one">%1$d Datei geändert</item>
+        <item quantity="other">%1$d Dateien geändert</item>
+    </plurals>
+    <string name="file_created">Neu</string>
+    <string name="file_updated">Bearbeitet</string>
+    <string name="show_all_n">Alle %1$d anzeigen</string>
+    <string name="cd_download_file">%1$s herunterladen</string>
+    <string name="preview_preparing">Vorschau wird vorbereitet…</string>
+    <string name="preview_failed_download">Keine Vorschau · zum Ansehen herunterladen</string>
+    <plurals name="text_n_lines">
+        <item quantity="one">%1$d Zeile</item>
+        <item quantity="other">%1$d Zeilen</item>
+    </plurals>
+    <string name="sandbox_starting">Sandbox-Umgebung wird gestartet</string>
+    <string name="analyzing">Analyse läuft</string>
+    <string name="analyzing_finished">Analyse abgeschlossen</string>
+    <string name="show_all_lines">Alle Zeilen anzeigen</string>
+    <string name="cd_copy_output">Ausgabe kopieren</string>
+    <string name="expired">Abgelaufen</string>
+    <string name="expired_explainer">Dateien aus der Code-Sandbox werden 24 Stunden lang aufbewahrt. Diese ist abgelaufen und kann nicht mehr heruntergeladen werden.</string>
+    <string name="file_download_failed">%1$s konnte nicht heruntergeladen werden</string>
+    <plurals name="files_count_summary">
+        <item quantity="one">%1$d Datei</item>
+        <item quantity="other">%1$d Dateien</item>
+    </plurals>
+    <plurals name="plus_n_more">
+        <item quantity="one">+%1$d weitere</item>
+        <item quantity="other">+%1$d weitere</item>
+    </plurals>
 </resources>

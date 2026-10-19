@@ -12,11 +12,13 @@ import androidx.navigation3.runtime.NavKey
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayPrefs
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.feature.chat.components.LocalArtifactFileActions
 import com.garfiec.librechat.feature.chat.components.artifact.Artifact
 import com.garfiec.librechat.feature.chat.components.artifact.ArtifactPanel
 import com.garfiec.librechat.feature.chat.components.artifact.ArtifactViewerHandoff
 import com.garfiec.librechat.feature.chat.components.artifact.LocalOpenArtifact
 import com.garfiec.librechat.feature.chat.components.artifact.ProvideAddArtifactToHomeScreen
+import com.garfiec.librechat.feature.chat.components.rememberAttachmentFileActions
 import com.garfiec.librechat.feature.chat.prompts.PromptEditorScreen
 import com.garfiec.librechat.feature.chat.prompts.PromptsLibraryScreen
 import com.garfiec.librechat.feature.chat.screen.ArtifactFullscreenScreen
@@ -156,11 +158,13 @@ fun EntryProviderScope<NavKey>.chatEntries(
     entry<ArtifactFullscreen> { key ->
         // Provider present so the fullscreen viewer's toolbar can pin the artifact too.
         ProvideAddArtifactToHomeScreen {
-            ArtifactFullscreenScreen(
-                identifier = key.identifier,
-                version = key.version,
-                onBack = onBack,
-            )
+            ProvideAttachmentDownloader {
+                ArtifactFullscreenScreen(
+                    identifier = key.identifier,
+                    version = key.version,
+                    onBack = onBack,
+                )
+            }
         }
     }
     entry<ArtifactShortcutViewer> { key ->
@@ -237,13 +241,20 @@ private fun ProvideOpenArtifact(
             content()
         }
 
-        sheetRequest?.let { req ->
-            ArtifactPanel(
-                artifact = req.artifact,
-                versions = req.versions,
-                onDismiss = { sheetRequest = null },
-                onExpandFullscreen = openFullscreen,
-            )
+        ProvideAttachmentDownloader {
+            // Screen-lifetime, not the sheet's: a save picker's result or a download can land after
+            // the sheet closed, and the sheet itself doesn't survive an Activity recreation.
+            val fileActions = rememberAttachmentFileActions()
+            sheetRequest?.let { req ->
+                CompositionLocalProvider(LocalArtifactFileActions provides fileActions) {
+                    ArtifactPanel(
+                        artifact = req.artifact,
+                        versions = req.versions,
+                        onDismiss = { sheetRequest = null },
+                        onExpandFullscreen = openFullscreen,
+                    )
+                }
+            }
         }
     }
 }

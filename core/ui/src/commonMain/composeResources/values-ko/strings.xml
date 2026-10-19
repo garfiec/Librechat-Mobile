@@ -94,4 +94,24 @@
     <string name="date_group_previous_30_days">지난 30일</string>
     <string name="date_group_unknown">알 수 없음</string>
     <string name="snackbar_dismiss">닫기</string>
+    <string name="file_kind_spreadsheet">스프레드시트</string>
+    <string name="file_kind_document">문서</string>
+    <string name="file_kind_pdf">PDF</string>
+    <string name="file_kind_text">텍스트</string>
+    <string name="file_kind_code">코드</string>
+    <string name="file_kind_data">데이터</string>
+    <string name="file_kind_image">이미지</string>
+    <string name="file_kind_presentation">프레젠테이션</string>
+    <string name="file_kind_archive">압축 파일</string>
+    <string name="file_kind_audio">오디오</string>
+    <string name="file_kind_video">동영상</string>
+    <string name="file_kind_file">파일</string>
+    <string name="file_type_and_size">%1$s · %2$s</string>
+    <string name="open_in">다른 앱에서 열기…</string>
+    <string name="save_to_device">기기에 저장</string>
+    <string name="share">공유</string>
+    <string name="from_code_sandbox">코드 샌드박스에서 생성됨</string>
+    <string name="cd_file_actions">파일 작업</string>
+    <string name="file_saved">파일을 저장했습니다</string>
+    <string name="file_save_failed">파일을 저장하지 못했습니다</string>
 </resources>

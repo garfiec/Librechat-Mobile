@@ -56,6 +56,12 @@ class ChatChromeEquivalenceTest {
     }
 
     @Test
+    fun `sandbox boot flag updates are equivalent`() {
+        val next = streaming.withContent { copy(sandboxStartingToolCallIds = setOf("t1")) }
+        assertTrue(streaming.chromeEquivalentTo(next))
+    }
+
+    @Test
     fun `streaming attachment arrival is equivalent`() {
         val next = streaming.withContent {
             copy(streamingAttachments = listOf(Attachment(messageId = "m1")))
@@ -154,6 +160,7 @@ class ChatChromeEquivalenceTest {
             .withContent {
                 copy(
                     activeToolCalls = listOf(ActiveToolCall(id = "t1", name = "web_search")),
+                    sandboxStartingToolCallIds = setOf("t1"),
                     streamingAttachments = listOf(Attachment(messageId = "m1")),
                     streamingThinking = "Considering",
                 )
@@ -169,6 +176,7 @@ class ChatChromeEquivalenceTest {
         assertTrue(neutral.streamingContent.isEmpty())
         assertTrue(neutral.streamingThinking.isEmpty())
         assertTrue(neutral.activeToolCalls.isEmpty())
+        assertTrue(neutral.sandboxStartingToolCallIds.isEmpty())
         assertTrue(neutral.streamingAttachments.isEmpty())
         assertTrue(neutral.comparisonState.primaryStreamingContent.isEmpty())
         assertTrue(neutral.comparisonState.secondaryStreamingContent.isEmpty())

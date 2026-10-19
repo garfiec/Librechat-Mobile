@@ -209,8 +209,9 @@ class FilesApi constructor(
         }.body()
 
     /**
-     * Fetches raw bytes from an absolute CDN [url] returned by [getDownloadUrl],
-     * bypassing the LibreChat proxy. The URL is presigned, so no auth is needed.
+     * Fetches raw bytes from an absolute [url]: a presigned CDN URL from [getDownloadUrl] (no auth
+     * needed, and none is sent off the server's host), or a code-output download route joined to
+     * the server's origin, which the auth interceptor authenticates by host match.
      */
     suspend fun downloadFromUrl(url: String): ByteArray =
         client.get(url).body()

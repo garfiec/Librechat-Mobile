@@ -9,7 +9,6 @@ import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.model.usage.TokenUsage
 import com.garfiec.librechat.core.model.usage.UsageAmount
-import com.garfiec.librechat.feature.chat.components.artifact.ArtifactType
 import com.garfiec.librechat.feature.chat.util.PendingUsage
 import com.garfiec.librechat.feature.chat.util.fold
 import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
@@ -26,14 +25,17 @@ import com.garfiec.librechat.feature.chat.viewmodel.StreamingHandle
 class LiveReplyDelegate(
     private val handle: StreamingHandle,
     private val subagentTraceDelegate: SubagentTraceDelegate,
-    private val officePreviewDelegate: OfficePreviewDelegate,
+    private val attachmentPreviewDelegate: AttachmentPreviewDelegate,
     private val endpointTokenRepository: EndpointTokenRepository,
 ) {
 
-    /** A new turn: the previous one's traces, preview polls and usage must not carry into it. */
+    /**
+     * A new turn: the previous one's traces and usage must not carry into it. Its preview polls
+     * do: they resolve files of a reply that is already on screen, and the new turn's stream will
+     * never report on them.
+     */
     fun onTurnStarted() {
         subagentTraceDelegate.reset()
-        officePreviewDelegate.reset()
         // Its own emission, after the atomic begin-stream reset: safe, because on v0.8.8 the
         // previous turn's pending usage is already represented by its reply's metadata.usage, so
         // dropping it changes no total (older servers lose that share; see ContextProjectionDelegate).
@@ -78,11 +80,14 @@ class LiveReplyDelegate(
     }
 
     /**
-     * The stream has ended: any office-doc attachment still `pending` (its `ready` SSE update may
-     * never arrive once the run closes) now falls back to polling GET /api/files/:id/preview.
-     * De-duped + bounded in the delegate.
+     * The stream has ended: any attachment still `pending` (its `ready` SSE update may never
+     * arrive once the run closes) now falls back to polling GET /api/files/:id/preview. Reads the
+     * streamed list, so it runs before the finalize retires it; the results land in
+     * `previewOverrides`, which the finalize leaves alone. [finalAttachments] are the Final's own,
+     * which can name a file the stream never did (a resume whose sync frame predates it).
      */
-    fun onStreamEnded() = officePreviewDelegate.onStreamEnded()
+    fun onStreamEnded(finalAttachments: List<Attachment> = emptyList()) =
+        attachmentPreviewDelegate.onStreamEnded(finalAttachments)
 
     /** Applies one of the events [StreamingManagerDelegate] routes here; anything else is ignored. */
     fun apply(event: StreamEvent) {
@@ -96,7 +101,8 @@ class LiveReplyDelegate(
             }
             is StreamEvent.ToolCallComplete -> {
                 handle.update {
-                    content = content.updateToolCall(event.toolCallId) { it.copy(isComplete = true, output = event.output) }
+                    content = content.updateToolCall(event.toolCallId) { it.completedBy(event) }
+                        .withoutSandboxStarting(event.toolCallId)
                 }
                 // If this was a `subagent` tool_call, freeze its live trace —
                 // the child run is done; stop accumulating for that key.
@@ -104,13 +110,15 @@ class LiveReplyDelegate(
             }
             is StreamEvent.ToolCallClosed -> {
                 handle.update {
-                    content = content.updateToolCall(event.toolCallId) {
-                        it.copy(isComplete = true, closedStatus = event.status)
-                    }
+                    content = content.updateToolCall(event.toolCallId) { it.closedBy(event) }
+                        .withoutSandboxStarting(event.toolCallId)
                 }
                 // An aborted run closes its steps without ever completing them, so this is also
                 // where a subagent trace stops accumulating on that path.
                 subagentTraceDelegate.onParentToolCallResolved(event.toolCallId)
+            }
+            is StreamEvent.SandboxStarting -> handle.update {
+                content = content.copy(sandboxStartingToolCallIds = content.sandboxStartingToolCallIds + event.toolCallId)
             }
             is StreamEvent.AttachmentCreated -> onAttachment(event.toAttachment())
             is StreamEvent.Sync -> onSync(event)
@@ -145,11 +153,11 @@ class LiveReplyDelegate(
     }
 
     private fun onAttachment(attachment: Attachment) {
-        // Office-doc previews (v0.8.6) arrive twice per file_id (pending →
+        // A file with a deferred preview (v0.8.6) arrives twice per file_id (pending →
         // ready/failed) — route through the delegate for upsert-by-file_id +
         // poll-while-pending. Ordinary attachments keep the simple append path.
-        if (ArtifactType.isOfficePreviewMime(attachment.type)) {
-            officePreviewDelegate.onAttachment(attachment)
+        if (attachment.status != null) {
+            attachmentPreviewDelegate.onAttachment(attachment)
         } else if (attachment.webSearch != null && attachment.toolCallId != null) {
             // Web-search re-emits an accumulating superset per source processed —
             // upsert by toolCallId so we keep only the latest (fullest) one rather
@@ -190,7 +198,16 @@ class LiveReplyDelegate(
                     output = tc.output,
                 )
             }
-        handle.update { content = content.copy(retryInfo = null, activeToolCalls = syncedToolCalls) }
+        // A boot flag survives only on a call the snapshot still shows running: the snapshot
+        // carries no boot state, and a call it reports complete (or no longer has) is past it.
+        val running = syncedToolCalls.filterNot { it.isComplete }.mapTo(HashSet()) { it.id }
+        handle.update {
+            content = content.copy(
+                retryInfo = null,
+                activeToolCalls = syncedToolCalls,
+                sandboxStartingToolCallIds = content.sandboxStartingToolCallIds.filterTo(HashSet()) { it in running },
+            )
+        }
     }
 
     /**
@@ -220,18 +237,40 @@ internal fun MessagesState.resetLiveReply(
     streamingContent = text,
     streamingThinking = thinking,
     activeToolCalls = emptyList(),
+    sandboxStartingToolCallIds = emptySet(),
     streamingAttachments = emptyList(),
 )
 
 private fun MessagesState.updateToolCall(id: String, transform: (ActiveToolCall) -> ActiveToolCall) =
     copy(activeToolCalls = activeToolCalls.map { if (it.id == id) transform(it) else it })
 
+/** A completed or closed call is past its sandbox boot. Shared with the comparison panes. */
+internal fun MessagesState.withoutSandboxStarting(toolCallId: String): MessagesState =
+    if (toolCallId in sandboxStartingToolCallIds) {
+        copy(sandboxStartingToolCallIds = sandboxStartingToolCallIds - toolCallId)
+    } else {
+        this
+    }
+
+/** Shared with the comparison panes, which keep their own copies of the same list. */
+internal fun ActiveToolCall.completedBy(event: StreamEvent.ToolCallComplete) =
+    copy(isComplete = true, output = event.output, input = event.input ?: input)
+
+internal fun ActiveToolCall.closedBy(event: StreamEvent.ToolCallClosed) =
+    copy(isComplete = true, closedStatus = event.status, durationMs = event.durationMs ?: durationMs)
+
 private fun StreamEvent.AttachmentCreated.toAttachment() = Attachment(
     fileId = fileId,
     filename = filename,
     filepath = filepath,
     type = type,
+    conversationId = conversationId,
+    messageId = messageId,
     toolCallId = toolCallId,
+    expiresAt = expiresAt,
+    agentId = agentId,
+    workspaceChange = workspaceChange,
+    bytes = bytes,
     width = width,
     height = height,
     status = status,

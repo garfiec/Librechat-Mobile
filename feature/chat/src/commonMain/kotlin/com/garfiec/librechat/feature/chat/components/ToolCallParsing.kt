@@ -174,64 +174,92 @@ internal fun parseWebSearchResults(output: String?): List<WebSearchResult> {
     }
 }
 
-@Suppress("TooGenericExceptionCaught") // untrusted tool output; a malformed shape degrades to null, empty or the raw output
+/**
+ * The persisted call, read through the same [parseCodeExecution] the live card uses, so a reply
+ * reads the same before and after it settles. Prefers whichever args source carries the code:
+ * `args` as an object or a JSON string, else the legacy `function.arguments`.
+ */
 internal fun parseCodeExecution(toolCall: AgentToolCall?): CodeExecutionResult? {
     if (toolCall == null) return null
-    return try {
-        val argsElement = toolCall.args
-        val argsObj = argsElement?.jsonObject
-        val code = argsObj?.get("code")?.jsonPrimitive?.contentOrNull
-            ?: toolCall.function?.arguments?.let { argsStr ->
-                try {
-                    toolCallJson.parseToJsonElement(argsStr).jsonObject["code"]?.jsonPrimitive?.contentOrNull
-                } catch (e: Exception) {
-                    log.d(e) { "Failed to parse code execution args string" }
-                    null
-                }
-            }
-        val language = argsObj?.get("language")?.jsonPrimitive?.contentOrNull
-            ?: argsObj?.get("lang")?.jsonPrimitive?.contentOrNull
-            ?: toolCall.function?.arguments?.let { argsStr ->
-                try {
-                    val parsed = toolCallJson.parseToJsonElement(argsStr).jsonObject
-                    parsed["language"]?.jsonPrimitive?.contentOrNull
-                        ?: parsed["lang"]?.jsonPrimitive?.contentOrNull
-                } catch (e: Exception) {
-                    log.d(e) { "Failed to parse code execution language from args" }
-                    null
-                }
-            }
-
-        val outputStr = toolCall.output ?: toolCall.function?.output
-        var outputText: String? = null
-        var errorText: String? = null
-        var exitCode: Int? = null
-
-        if (!outputStr.isNullOrBlank()) {
-            try {
-                val outputObj = toolCallJson.parseToJsonElement(outputStr).jsonObject
-                outputText = outputObj["output"]?.jsonPrimitive?.contentOrNull
-                    ?: outputObj["stdout"]?.jsonPrimitive?.contentOrNull
-                errorText = outputObj["error"]?.jsonPrimitive?.contentOrNull
-                    ?: outputObj["stderr"]?.jsonPrimitive?.contentOrNull
-                exitCode = outputObj["exit_code"]?.jsonPrimitive?.intOrNull
-                    ?: outputObj["exitCode"]?.jsonPrimitive?.intOrNull
-                    ?: outputObj["status"]?.jsonPrimitive?.intOrNull
-            } catch (e: Exception) {
-                log.d(e) { "Code execution output is not structured JSON, using raw string" }
-                outputText = outputStr
-            }
-        }
-
-        CodeExecutionResult(
-            language = language, code = code, output = outputText,
-            error = errorText, exitCode = exitCode,
-        )
-    } catch (e: Exception) {
-        log.d(e) { "Failed to parse code execution tool call" }
-        null
+    val fromArgs = when (val args = toolCall.args) {
+        is JsonPrimitive -> args.contentOrNull
+        null -> null
+        else -> args.toString()
     }
+    val functionArgs = toolCall.function?.arguments
+    val argsJson = fromArgs?.takeIf { codeArgsObject(it)?.codeField() != null }
+        ?: functionArgs?.takeIf { codeArgsObject(it)?.codeField() != null }
+        ?: fromArgs
+        ?: functionArgs
+    return parseCodeExecution(
+        name = toolCall.name ?: toolCall.function?.name.orEmpty(),
+        argsJson = argsJson,
+        output = toolCall.output ?: toolCall.function?.output,
+    )
 }
+
+/**
+ * A code-execution call's code, language, intent and result from its raw args JSON and output —
+ * the shape both the live `ActiveToolCall` (args read at completion) and the persisted part carry.
+ *
+ * The output is usually plain stdout. Its trailing `Generated files:` listing is dropped, as the
+ * web client's `Stdout` does: those files render as attachments below the card. A JSON object
+ * output (older tools) is read for stdout/stderr/exit code instead.
+ */
+@Suppress("TooGenericExceptionCaught") // untrusted tool output; a malformed shape degrades to null, empty or the raw output
+internal fun parseCodeExecution(name: String, argsJson: String?, output: String?): CodeExecutionResult? = try {
+    val args = argsJson?.let(::codeArgsObject)
+    val language = args?.stringField("lang") ?: args?.stringField("language")
+    var outputText: String? = null
+    var errorText: String? = null
+    var exitCode: Int? = null
+    if (!output.isNullOrBlank()) {
+        // A program that prints a JSON object is still stdout: only a known result key makes it one.
+        val outputObj = try {
+            (toolCallJson.parseToJsonElement(output) as? JsonObject)?.takeIf { obj -> STRUCTURED_OUTPUT_KEYS.any { it in obj } }
+        } catch (e: Exception) {
+            log.d(e) { "Code execution output is not structured JSON, using raw string" }
+            null
+        }
+        if (outputObj != null) {
+            outputText = outputObj.stringField("output") ?: outputObj.stringField("stdout")
+            errorText = outputObj.stringField("error") ?: outputObj.stringField("stderr")
+            exitCode = outputObj.intField("exit_code") ?: outputObj.intField("exitCode") ?: outputObj.intField("status")
+        } else {
+            outputText = output.substringBefore(GENERATED_FILES_MARKER).trim().ifEmpty { null }
+        }
+    }
+    CodeExecutionResult(
+        language = language?.takeIf { it.isNotBlank() }
+            ?: "bash".takeIf { isBashToolCall(name.lowercase()) },
+        code = args?.codeField(),
+        output = outputText,
+        error = errorText,
+        exitCode = exitCode,
+        intent = args?.intentField(),
+    )
+} catch (e: Exception) {
+    log.d(e) { "Failed to parse code execution tool call" }
+    null
+}
+
+private const val GENERATED_FILES_MARKER = "Generated files:"
+
+private val STRUCTURED_OUTPUT_KEYS = listOf("output", "stdout", "error", "stderr", "exit_code", "exitCode")
+
+@Suppress("TooGenericExceptionCaught") // untrusted tool args
+private fun codeArgsObject(json: String): JsonObject? = try {
+    toolCallJson.parseToJsonElement(json) as? JsonObject
+} catch (e: Exception) {
+    log.d(e) { "Failed to parse code execution args" }
+    null
+}
+
+/** `code` for the code interpreter, `command` for the bash tools (web `BashCall`). */
+private fun JsonObject.codeField(): String? =
+    (stringField("code") ?: stringField("command"))?.takeIf { it.isNotBlank() }
+
+private fun JsonObject.intField(key: String): Int? = (this[key] as? JsonPrimitive)?.intOrNull
 
 /**
  * The fallback for a memory tool call with no `memory` attachment payload — an older server, or a

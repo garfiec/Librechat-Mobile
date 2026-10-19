@@ -7,9 +7,9 @@ import kotlin.math.roundToInt
  * and showing one decimal place with a trailing ".0" trimmed — e.g. `512 B`, `1.2 MB`, `20 MB`,
  * `3.4 GB`. Pure Kotlin so it works in `commonMain` on both platforms.
  *
- * Note: `feature/files` keeps its own `formatFileSize` (an `expect/actual` that uses iOS's native
- * `NSByteCountFormatter`), and `feature/settings` intentionally renders integer KB with no GB tier.
- * Those deliberately diverge; this helper is the default for new call sites.
+ * Note: file sizes the user sees beside a file (the Files screen, the chat's file chips, Settings'
+ * cache and log sizes) use `:core:ui`'s `formatFileSize`, an `expect/actual` that uses iOS's native
+ * `NSByteCountFormatter`. That deliberately diverges; this helper is the default elsewhere.
  */
 fun formatByteSize(bytes: Long): String {
     if (bytes < 1024) return "$bytes B"

@@ -8,6 +8,7 @@ import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
+import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.config.InterfaceConfig
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
@@ -173,16 +174,18 @@ class ChatConfigDelegate(
     /**
      * Downloads a generated tool-call file's bytes (authenticated) for the file-chip share action;
      * null on failure. Backs [com.garfiec.librechat.feature.chat.components.LocalAttachmentDownloader].
-     * Mirrors `ConversationMediaViewModel.downloadFileBytes`.
+     * Mirrors `ConversationMediaViewModel.downloadFileBytes`. A code-output fallback needs no user
+     * id, so a failed user lookup only fails a stored file.
      */
-    suspend fun downloadFileBytes(fileId: String): ByteArray? {
+    suspend fun downloadFileBytes(attachment: Attachment): ByteArray? {
         val userId = cachedUserId
             ?: (userRepository.getUser() as? Result.Success)?.data?.id?.also { cachedUserId = it }
-            ?: return null
-        return when (val result = fileRepository.downloadFile(userId, fileId)) {
+        return when (val result = fileRepository.downloadAttachment(attachment, userId)) {
             is Result.Success -> result.data
             is Result.Error -> {
-                Logger.e(result.exception) { "Failed to download file $fileId: ${result.message}" }
+                Logger.e(result.exception) {
+                    "Failed to download file ${attachment.fileId ?: attachment.filename}: ${result.message}"
+                }
                 null
             }
             is Result.Loading -> null

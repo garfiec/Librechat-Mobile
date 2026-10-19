@@ -8,6 +8,7 @@ import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
+import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.ui.media.MediaItem
 import com.garfiec.librechat.core.ui.media.MediaPreviewState
@@ -143,12 +144,14 @@ class ConversationMediaViewModel(
     }
 
     /** Downloads a file's bytes (authenticated) for the Files-tab share action; null on failure. */
-    suspend fun downloadFileBytes(fileId: String): ByteArray? {
-        val userId = cachedUserId ?: resolveUserId() ?: return null
-        return when (val result = fileRepository.downloadFile(userId, fileId)) {
+    suspend fun downloadFileBytes(attachment: Attachment): ByteArray? {
+        val userId = cachedUserId ?: resolveUserId()
+        return when (val result = fileRepository.downloadAttachment(attachment, userId)) {
             is Result.Success -> result.data
             is Result.Error -> {
-                Logger.e(result.exception) { "Failed to download file $fileId: ${result.message}" }
+                Logger.e(result.exception) {
+                    "Failed to download file ${attachment.fileId ?: attachment.filename}: ${result.message}"
+                }
                 null
             }
             is Result.Loading -> null

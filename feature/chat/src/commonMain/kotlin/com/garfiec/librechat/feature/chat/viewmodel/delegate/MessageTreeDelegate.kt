@@ -110,7 +110,7 @@ class MessageTreeDelegate(
     fun finalizeChatDisplay(event: StreamEvent.Final): List<Message> {
         // Defensive: upstream 0.8.7 sets responseMessage.attachments before saving, but the app
         // supports a backend version range. If the Final payload omitted a file that streamed in
-        // via `attachment` SSE events, fold it back in (by fileId) so it survives the reload — the
+        // via `attachment` SSE events, fold it back in (by fileId or filepath) so it survives the reload — the
         // streamed list is about to be cleared in the update below. Cheap insurance.
         val streamedAttachments = handle.state.streamingAttachments
         val response = event.resolvedResponseMessage()?.let { mergeStreamedAttachments(it, streamedAttachments) }
@@ -140,6 +140,7 @@ class MessageTreeDelegate(
                 // without this the stale banner survives the finalize.
                 retryInfo = null,
                 activeToolCalls = emptyList(),
+                sandboxStartingToolCallIds = emptySet(),
                 streamingAttachments = emptyList(),
                 // The turn is finalized and (for normal chats) about to be persisted, so the
                 // handed-off optimistic seed has done its job. Clear it unconditionally — not just
@@ -194,6 +195,7 @@ class MessageTreeDelegate(
                 streamingThinking = "",
                 retryInfo = null,
                 activeToolCalls = emptyList(),
+                sandboxStartingToolCallIds = emptySet(),
                 streamingAttachments = emptyList(),
                 // Defensive: earlyAbort means `created` never fired, so no handoff seeded this —
                 // but clearing keeps the invariant "finalize/unsend always retires the seed".
@@ -207,16 +209,22 @@ class MessageTreeDelegate(
 }
 
 /**
- * Upserts [streamed] attachments into [message] by `fileId`, keeping the server's copy on
- * conflict. Only fills gaps — when the Final payload already carried every streamed file, the
- * message is returned unchanged. Attachments with no fileId are skipped (can't be deduped, and
- * generated files always carry one).
+ * Upserts [streamed] attachments into [message] by `fileId ?: filepath`, keeping the server's copy
+ * on conflict. Only fills gaps — when the Final payload already carried every streamed file, the
+ * message is returned unchanged.
+ *
+ * Not every generated file has a fileId: a code-output download fallback (the server could not
+ * store the file) has only a filepath, and the Final's response carries its own copy of each.
+ * Keying on the fileId alone would add the streamed copy beside it. An attachment with neither key
+ * is skipped, since nothing could tell it apart from the server's.
  */
 internal fun mergeStreamedAttachments(message: Message, streamed: List<Attachment>): Message {
     if (streamed.isEmpty()) return message
     val existing = message.attachments.orEmpty()
-    val existingIds = existing.mapNotNull { it.fileId }.toHashSet()
-    val toAdd = streamed.filter { it.fileId != null && it.fileId !in existingIds }
+    val existingKeys = existing.mapNotNull { it.mergeKey() }.toHashSet()
+    val toAdd = streamed.filter { att -> att.mergeKey()?.let { existingKeys.add(it) } == true }
     if (toAdd.isEmpty()) return message
     return message.copy(attachments = existing + toAdd)
 }
+
+private fun Attachment.mergeKey(): String? = fileId ?: filepath

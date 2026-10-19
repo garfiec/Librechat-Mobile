@@ -59,6 +59,7 @@ import com.garfiec.librechat.feature.chat.util.groupContentParts
 import com.garfiec.librechat.feature.chat.util.groupedToolCallIds
 import com.garfiec.librechat.feature.chat.util.hasParallelGroupIds
 import com.garfiec.librechat.feature.chat.util.steerText
+import com.garfiec.librechat.feature.chat.util.withPreviews
 import org.jetbrains.compose.resources.stringResource
 
 /** Material 3's disabled content alpha. */
@@ -302,177 +303,190 @@ internal fun MessageContentAndActions(
         // via DisableSelection so "Select all" copies message text, not UI labels. The action
         // row below and the editing branch above stay outside — a text field must never sit
         // inside a SelectionContainer.
-        SelectionContainer {
-            Column {
-                // Verbatim excerpts the user referenced on this turn (v0.8.7), above the user's
-                // text. Created on web and via Android's selection-toolbar "Add to chat".
-                // Selectable: a quote is conversation text the user pulled forward, not chrome.
-                val quotes = message.quotes
-                if (isUser && !quotes.isNullOrEmpty()) {
-                    MessageQuotes(
-                        quotes = quotes,
-                        modifier = Modifier.padding(bottom = 6.dp),
-                    )
-                }
-
-                // Render attached files above message text (matches web app behavior)
-                val messageFiles = message.files
-                if (!messageFiles.isNullOrEmpty()) {
-                    DisableSelection {
-                        MessageFiles(
-                            files = messageFiles,
-                            baseUrl = baseUrl,
-                            alignImagesEnd = alignImagesEnd,
-                            // Aligned across the whole bubble, not just the files block, or a line of
-                            // text wider than the image holds it at the start.
-                            modifier = Modifier
-                                .padding(bottom = 4.dp)
-                                .then(if (alignImagesEnd) Modifier.align(Alignment.End) else Modifier),
-                        )
-                    }
-                }
-
-                val contentParts = message.content
-                if (!contentParts.isNullOrEmpty()) {
-                    // Occurrence indices are message-wide (SearchMatchEnumeration): rebase them
-                    // per part so each part resolves the focused occurrence within itself. The focused
-                    // message contains the query by definition, so the fast-path bail never triggers —
-                    // compute each part's starting offset once (not on every recomposition, which would
-                    // re-parse every part's markdown each animateScrollBy frame).
-                    val partOffsets = remember(contentParts, searchQuery, isCurrentSearchMatch) {
-                        val offsets = IntArray(contentParts.size)
-                        if (isCurrentSearchMatch && !searchQuery.isNullOrBlank()) {
-                            // Lockstep with countMessageOccurrences: a late batch label a
-                            // finalized phase consumed is not drawn, so it contributes no offset.
-                            val consumed = findLateBatchLabelsConsumedByPhase(contentParts)
-                            var acc = 0
-                            contentParts.forEachIndexed { i, part ->
-                                offsets[i] = acc
-                                acc += countPartOccurrences(
-                                    part,
-                                    searchQuery,
-                                    consumedLateBatchLabel = i in consumed,
-                                )
-                            }
-                        }
-                        offsets
-                    }
-                    // Segment + group the parts ONCE, not while emitting them: a group's header has to
-                    // be written before its members, which a Column cannot express without knowing the
-                    // group's extent up front. Pure, so the boundaries are unit-testable.
-                    val segments = remember(contentParts) {
-                        groupContentParts(
-                            contentParts,
-                            groupActivity = !hasParallelGroupIds(contentParts),
+        // The persisted attachments with any preview the client has since resolved applied, so a
+        // file that was still rendering when the reply was saved shows its result. Every read
+        // below goes through this, never `message.attachments`.
+        val previewOverrides = LocalPreviewOverrides.current
+        val effectiveAttachments = remember(message.attachments, previewOverrides) {
+            message.attachments?.withPreviews(previewOverrides)
+        }
+        // Workspace changes render once, in their own section, so every other reader takes the
+        // inline rest. Markdown images still resolve against all of them, as on web.
+        val workspace = remember(effectiveAttachments) { partitionWorkspaceChanges(effectiveAttachments) }
+        val inlineAttachments = workspace.inline
+        ProvideMarkdownMedia(effectiveAttachments, baseUrl) {
+            SelectionContainer {
+                Column {
+                    // Verbatim excerpts the user referenced on this turn (v0.8.7), above the user's
+                    // text. Created on web and via Android's selection-toolbar "Add to chat".
+                    // Selectable: a quote is conversation text the user pulled forward, not chrome.
+                    val quotes = message.quotes
+                    if (isUser && !quotes.isNullOrEmpty()) {
+                        MessageQuotes(
+                            quotes = quotes,
+                            modifier = Modifier.padding(bottom = 6.dp),
                         )
                     }
 
-                    // A collapsed group would swallow the match the user just navigated to, so the
-                    // one holding it opens. Resolved once per focus rather than per group per frame.
-                    val focusedGroupKey = remember(
-                        segments, partOffsets, searchQuery, searchFocusedOccurrence, isCurrentSearchMatch,
-                    ) {
-                        if (!isCurrentSearchMatch || searchQuery.isNullOrBlank() || searchFocusedOccurrence < 0) {
-                            null
-                        } else {
-                            segments.asSequence()
-                                .flatMap { it.groups.asSequence() }
-                                .filterIsInstance<ContentGroup.Activity>()
-                                .firstOrNull { group ->
-                                    group.entries.any { entry ->
-                                        val start = partOffsets[entry.index]
-                                        val count = countPartOccurrences(entry.part, searchQuery)
-                                        searchFocusedOccurrence in start until (start + count)
-                                    }
-                                }?.key
-                        }
-                    }
-
-                    @Composable
-                    fun PartContent(entry: IndexedContentPart, hideAttachments: Boolean = false) {
-                        val part = entry.part
-                        val focusedInPart =
-                            if (isCurrentSearchMatch) searchFocusedOccurrence - partOffsets[entry.index] else -1
-                        when (part.type) {
-                            // Handled here rather than in the shared dispatcher because both need the
-                            // viewer's identity, which a single-part renderer has no business knowing.
-                            ContentType.STEER -> part.steerText()?.let { steered ->
-                                SteerContentPart(
-                                    text = steered,
-                                    userName = userName,
-                                    userAvatarUrl = userAvatarUrl,
-                                    fontSizeMultiplier = fontSizeMultiplier,
-                                    useKatex = useKatex,
-                                )
-                            }
-                            ContentType.ACTIVITY_LABEL -> OrphanActivityLabel(part.activityLabelText())
-                            else -> ContentPartRenderer(
-                                part = part,
+                    // Render attached files above message text (matches web app behavior)
+                    val messageFiles = message.files
+                    if (!messageFiles.isNullOrEmpty()) {
+                        DisableSelection {
+                            MessageFiles(
+                                files = messageFiles,
                                 baseUrl = baseUrl,
-                                fontSizeMultiplier = fontSizeMultiplier,
-                                useKatex = useKatex,
-                                attachments = message.attachments.orEmpty(),
-                                showImageDescriptions = showImageDescriptions,
-                                searchQuery = if (isSearchMatch) searchQuery else null,
-                                searchFocusedOccurrence = focusedInPart,
-                                onFocusedOccurrencePosition = if (isCurrentSearchMatch) onFocusedOccurrencePosition else null,
-                                stateKey = "${message.messageId}:${entry.index}",
-                                hideAttachments = hideAttachments,
-                                modifier = Modifier.padding(vertical = 2.dp),
+                                alignImagesEnd = alignImagesEnd,
+                                // Aligned across the whole bubble, not just the files block, or a line of
+                                // text wider than the image holds it at the start.
+                                modifier = Modifier
+                                    .padding(bottom = 4.dp)
+                                    .then(if (alignImagesEnd) Modifier.align(Alignment.End) else Modifier),
                             )
                         }
                     }
 
-                    segments.forEach { segment ->
-                        key(segment.key) {
-                            // A traversal group so the attribution header is read immediately before
-                            // its own content instead of segments interleaving. It is not implicit:
-                            // a plain Column does not set one.
-                            Column(modifier = Modifier.semantics { isTraversalGroup = true }) {
-                                segment.author?.let { author ->
-                                    SegmentAuthorHeader(
-                                        author = author,
-                                        messageSender = message.sender,
-                                        messageIconUrl = message.iconURL,
-                                        messageEndpoint = message.endpoint,
+                    val contentParts = message.content
+                    if (!contentParts.isNullOrEmpty()) {
+                        // Occurrence indices are message-wide (SearchMatchEnumeration): rebase them
+                        // per part so each part resolves the focused occurrence within itself. The focused
+                        // message contains the query by definition, so the fast-path bail never triggers —
+                        // compute each part's starting offset once (not on every recomposition, which would
+                        // re-parse every part's markdown each animateScrollBy frame).
+                        val partOffsets = remember(contentParts, searchQuery, isCurrentSearchMatch) {
+                            val offsets = IntArray(contentParts.size)
+                            if (isCurrentSearchMatch && !searchQuery.isNullOrBlank()) {
+                                // Lockstep with countMessageOccurrences: a late batch label a
+                                // finalized phase consumed is not drawn, so it contributes no offset.
+                                val consumed = findLateBatchLabelsConsumedByPhase(contentParts)
+                                var acc = 0
+                                contentParts.forEachIndexed { i, part ->
+                                    offsets[i] = acc
+                                    acc += countPartOccurrences(
+                                        part,
+                                        searchQuery,
+                                        consumedLateBatchLabel = i in consumed,
                                     )
                                 }
-                                segment.groups.forEach { group ->
-                                    // Keyed, so per-part state (an expanded thinking block) follows its
-                                    // part when grouping shifts it under a wrapper instead of staying
-                                    // with whatever now occupies that position.
-                                    key(group.key) {
-                                        when (group) {
-                                            is ContentGroup.Single -> PartContent(group.entry)
-                                            is ContentGroup.Activity -> {
-                                                val hoisted = remember(message.attachments, group) {
-                                                    collectGroupAttachments(
-                                                        message.attachments.orEmpty(),
-                                                        group.groupedToolCallIds(),
-                                                    )
-                                                }
-                                                ActivityGroup(
-                                                    group = group,
-                                                    stateKey = "${message.messageId}:${group.key}",
-                                                    autoExpand = group.key == focusedGroupKey,
-                                                    autoExpandKey = LocalSearchFocusNonce.current,
-                                                    hoistedAttachments = {
-                                                        // Required: the inline path gets this from
-                                                        // the dispatcher, the hoisted one sits
-                                                        // outside it and would otherwise leak
-                                                        // filenames into "Select all".
-                                                        DisableSelection {
-                                                            ToolAttachmentBuckets(
-                                                                buckets = hoisted,
-                                                                baseUrl = baseUrl,
-                                                                modifier = Modifier.padding(top = 4.dp),
-                                                            )
-                                                        }
-                                                    },
-                                                ) {
-                                                    group.entries.forEach { entry ->
-                                                        key(entry.index) {
-                                                            PartContent(entry, hideAttachments = true)
+                            }
+                            offsets
+                        }
+                        // Segment + group the parts ONCE, not while emitting them: a group's header has to
+                        // be written before its members, which a Column cannot express without knowing the
+                        // group's extent up front. Pure, so the boundaries are unit-testable.
+                        val segments = remember(contentParts) {
+                            groupContentParts(
+                                contentParts,
+                                groupActivity = !hasParallelGroupIds(contentParts),
+                            )
+                        }
+
+                        // A collapsed group would swallow the match the user just navigated to, so the
+                        // one holding it opens. Resolved once per focus rather than per group per frame.
+                        val focusedGroupKey = remember(
+                            segments, partOffsets, searchQuery, searchFocusedOccurrence, isCurrentSearchMatch,
+                        ) {
+                            if (!isCurrentSearchMatch || searchQuery.isNullOrBlank() || searchFocusedOccurrence < 0) {
+                                null
+                            } else {
+                                segments.asSequence()
+                                    .flatMap { it.groups.asSequence() }
+                                    .filterIsInstance<ContentGroup.Activity>()
+                                    .firstOrNull { group ->
+                                        group.entries.any { entry ->
+                                            val start = partOffsets[entry.index]
+                                            val count = countPartOccurrences(entry.part, searchQuery)
+                                            searchFocusedOccurrence in start until (start + count)
+                                        }
+                                    }?.key
+                            }
+                        }
+
+                        @Composable
+                        fun PartContent(entry: IndexedContentPart, hideAttachments: Boolean = false) {
+                            val part = entry.part
+                            val focusedInPart =
+                                if (isCurrentSearchMatch) searchFocusedOccurrence - partOffsets[entry.index] else -1
+                            when (part.type) {
+                                // Handled here rather than in the shared dispatcher because both need the
+                                // viewer's identity, which a single-part renderer has no business knowing.
+                                ContentType.STEER -> part.steerText()?.let { steered ->
+                                    SteerContentPart(
+                                        text = steered,
+                                        userName = userName,
+                                        userAvatarUrl = userAvatarUrl,
+                                        fontSizeMultiplier = fontSizeMultiplier,
+                                        useKatex = useKatex,
+                                    )
+                                }
+                                ContentType.ACTIVITY_LABEL -> OrphanActivityLabel(part.activityLabelText())
+                                else -> ContentPartRenderer(
+                                    part = part,
+                                    baseUrl = baseUrl,
+                                    fontSizeMultiplier = fontSizeMultiplier,
+                                    useKatex = useKatex,
+                                    attachments = inlineAttachments,
+                                    showImageDescriptions = showImageDescriptions,
+                                    searchQuery = if (isSearchMatch) searchQuery else null,
+                                    searchFocusedOccurrence = focusedInPart,
+                                    onFocusedOccurrencePosition = if (isCurrentSearchMatch) onFocusedOccurrencePosition else null,
+                                    stateKey = "${message.messageId}:${entry.index}",
+                                    hideAttachments = hideAttachments,
+                                    modifier = Modifier.padding(vertical = 2.dp),
+                                )
+                            }
+                        }
+
+                        segments.forEach { segment ->
+                            key(segment.key) {
+                                // A traversal group so the attribution header is read immediately before
+                                // its own content instead of segments interleaving. It is not implicit:
+                                // a plain Column does not set one.
+                                Column(modifier = Modifier.semantics { isTraversalGroup = true }) {
+                                    segment.author?.let { author ->
+                                        SegmentAuthorHeader(
+                                            author = author,
+                                            messageSender = message.sender,
+                                            messageIconUrl = message.iconURL,
+                                            messageEndpoint = message.endpoint,
+                                        )
+                                    }
+                                    segment.groups.forEach { group ->
+                                        // Keyed, so per-part state (an expanded thinking block) follows its
+                                        // part when grouping shifts it under a wrapper instead of staying
+                                        // with whatever now occupies that position.
+                                        key(group.key) {
+                                            when (group) {
+                                                is ContentGroup.Single -> PartContent(group.entry)
+                                                is ContentGroup.Activity -> {
+                                                    val hoisted = remember(inlineAttachments, group) {
+                                                        collectGroupAttachments(
+                                                            inlineAttachments,
+                                                            group.groupedToolCallIds(),
+                                                        )
+                                                    }
+                                                    ActivityGroup(
+                                                        group = group,
+                                                        stateKey = "${message.messageId}:${group.key}",
+                                                        autoExpand = group.key == focusedGroupKey,
+                                                        autoExpandKey = LocalSearchFocusNonce.current,
+                                                        hoistedAttachments = {
+                                                            // Required: the inline path gets this from
+                                                            // the dispatcher, the hoisted one sits
+                                                            // outside it and would otherwise leak
+                                                            // filenames into "Select all".
+                                                            DisableSelection {
+                                                                ToolAttachmentBuckets(
+                                                                    buckets = hoisted,
+                                                                    baseUrl = baseUrl,
+                                                                    modifier = Modifier.padding(top = 4.dp),
+                                                                )
+                                                            }
+                                                        },
+                                                    ) {
+                                                        group.entries.forEach { entry ->
+                                                            key(entry.index) {
+                                                                PartContent(entry, hideAttachments = true)
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -482,77 +496,86 @@ internal fun MessageContentAndActions(
                                 }
                             }
                         }
+                    } else {
+                        if (isPersistedTurnError(message)) {
+                            StreamErrorPart(raw = message.text)
+                        } else if (message.text.isNotBlank()) {
+                            val query = if (isSearchMatch) searchQuery else null
+                            val focused = if (isCurrentSearchMatch) searchFocusedOccurrence else -1
+                            val onFocused = if (isCurrentSearchMatch) onFocusedOccurrencePosition else null
+                            // Reasoning saved inside the text (`:::thinking`) renders as a reasoning
+                            // block ahead of the reply, as on web; its matches are numbered first.
+                            val runs = remember(message.text) { message.legacyTextRuns() }
+                            val reasoningMatches = remember(runs, query) {
+                                if (query.isNullOrBlank()) 0 else countMarkdownOccurrences(runs.reasoning.orEmpty(), query)
+                            }
+                            runs.reasoning?.let { reasoning ->
+                                ThinkingContentPart(
+                                    thinkingText = reasoning,
+                                    modifier = Modifier.padding(bottom = 8.dp),
+                                    fontSizeMultiplier = fontSizeMultiplier,
+                                    useKatex = useKatex,
+                                    searchQuery = query,
+                                    searchFocusedOccurrence = if (focused < reasoningMatches) focused else -1,
+                                    onFocusedOccurrencePosition = onFocused,
+                                    stateKey = "${message.messageId}:legacy",
+                                )
+                            }
+                            val answerFocused = if (focused >= reasoningMatches) focused - reasoningMatches else -1
+                            if (runs.answer.isBlank()) {
+                                // Reasoning only: nothing else to draw.
+                            } else if (message.textFallbackSplitsArtifacts()) {
+                                TextContentPart(
+                                    text = runs.answer,
+                                    fontSizeMultiplier = fontSizeMultiplier,
+                                    useKatex = useKatex,
+                                    searchQuery = query,
+                                    searchFocusedOccurrence = answerFocused,
+                                    onFocusedOccurrencePosition = onFocused,
+                                )
+                            } else {
+                                MarkdownContent(
+                                    text = runs.answer,
+                                    fontSizeMultiplier = fontSizeMultiplier,
+                                    useKatex = useKatex,
+                                    searchQuery = query,
+                                    searchFocusedOccurrence = answerFocused,
+                                    onFocusedOccurrencePosition = onFocused,
+                                )
+                            }
+                        }
                     }
-                } else {
-                    if (isPersistedTurnError(message)) {
-                        StreamErrorPart(raw = message.text)
-                    } else if (message.text.isNotBlank()) {
-                        val query = if (isSearchMatch) searchQuery else null
-                        val focused = if (isCurrentSearchMatch) searchFocusedOccurrence else -1
-                        val onFocused = if (isCurrentSearchMatch) onFocusedOccurrencePosition else null
-                        // Reasoning saved inside the text (`:::thinking`) renders as a reasoning
-                        // block ahead of the reply, as on web; its matches are numbered first.
-                        val runs = remember(message.text) { message.legacyTextRuns() }
-                        val reasoningMatches = remember(runs, query) {
-                            if (query.isNullOrBlank()) 0 else countMarkdownOccurrences(runs.reasoning.orEmpty(), query)
-                        }
-                        runs.reasoning?.let { reasoning ->
-                            ThinkingContentPart(
-                                thinkingText = reasoning,
-                                modifier = Modifier.padding(bottom = 8.dp),
-                                fontSizeMultiplier = fontSizeMultiplier,
-                                useKatex = useKatex,
-                                searchQuery = query,
-                                searchFocusedOccurrence = if (focused < reasoningMatches) focused else -1,
-                                onFocusedOccurrencePosition = onFocused,
-                                stateKey = "${message.messageId}:legacy",
-                            )
-                        }
-                        val answerFocused = if (focused >= reasoningMatches) focused - reasoningMatches else -1
-                        if (runs.answer.isBlank()) {
-                            // Reasoning only: nothing else to draw.
-                        } else if (message.textFallbackSplitsArtifacts()) {
-                            TextContentPart(
-                                text = runs.answer,
-                                fontSizeMultiplier = fontSizeMultiplier,
-                                useKatex = useKatex,
-                                searchQuery = query,
-                                searchFocusedOccurrence = answerFocused,
-                                onFocusedOccurrencePosition = onFocused,
-                            )
-                        } else {
-                            MarkdownContent(
-                                text = runs.answer,
-                                fontSizeMultiplier = fontSizeMultiplier,
-                                useKatex = useKatex,
-                                searchQuery = query,
-                                searchFocusedOccurrence = answerFocused,
-                                onFocusedOccurrencePosition = onFocused,
-                            )
-                        }
+
+                    DisableSelection {
+                        WorkspaceChangesSection(
+                            changes = workspace.changes,
+                            baseUrl = baseUrl,
+                            stateKey = message.messageId,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
                     }
-                }
 
-                // Deferred office-doc preview attachments (v0.8.6) on a persisted message
-                // render as their own artifact card. Non-office attachments are unaffected.
-                DisableSelection {
-                    OfficePreviewAttachments(
-                        attachments = message.attachments.orEmpty(),
-                        isDarkTheme = isSurfaceDark(),
-                    )
-                }
+                    // Deferred office-doc preview attachments (v0.8.6) on a persisted message
+                    // render as their own artifact card. Non-office attachments are unaffected.
+                    val renderedCallIds = remember(message.content) { renderedToolCallIds(message.content) }
+                    DisableSelection {
+                        OfficePreviewAttachments(
+                            attachments = inlineAttachments,
+                            renderedToolCallIds = renderedCallIds,
+                            baseUrl = baseUrl,
+                            isDarkTheme = isSurfaceDark(),
+                        )
+                    }
 
-                val orphanMemory = remember(message.attachments, message.content) {
-                    collectUnrenderedMemoryArtifacts(
-                        message.attachments.orEmpty(),
-                        renderedToolCallIds(message.content),
-                    )
-                }
-                DisableSelection {
-                    MemoryArtifactsSection(
-                        artifacts = orphanMemory,
-                        stateKey = message.messageId,
-                    )
+                    val orphanMemory = remember(inlineAttachments, renderedCallIds) {
+                        collectUnrenderedMemoryArtifacts(inlineAttachments, renderedCallIds)
+                    }
+                    DisableSelection {
+                        MemoryArtifactsSection(
+                            artifacts = orphanMemory,
+                            stateKey = message.messageId,
+                        )
+                    }
                 }
             }
         }

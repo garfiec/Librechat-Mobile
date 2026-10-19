@@ -5,6 +5,7 @@ import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.PendingAction
 import com.garfiec.librechat.core.model.RunStepStatus
+import com.garfiec.librechat.core.model.response.FilePreviewResponse
 import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.model.usage.ContextUsageTotals
 import com.garfiec.librechat.core.model.usage.UsageAmount
@@ -23,7 +24,7 @@ enum class ChatScreenState { LANDING, LOADING, ACTIVE }
  * slice so they stay single StateFlow emissions. Written by [ChatViewModel],
  * ConversationLoadDelegate (every Room emission), SendDispatchDelegate (the optimistic insert
  * that starts a turn), StreamingManagerDelegate, MessageTreeDelegate, MessageEditingDelegate,
- * ComparisonModeDelegate and OfficePreviewDelegate.
+ * ComparisonModeDelegate and AttachmentPreviewDelegate.
  */
 @Immutable
 data class MessagesState(
@@ -74,9 +75,26 @@ data class MessagesState(
      */
     val streamingThinking: String = "",
     val activeToolCalls: List<ActiveToolCall> = emptyList(),
+    /**
+     * Code-execution calls whose sandbox is still cold-booting (`on_sandbox_starting`), keyed by
+     * tool_call id: the server emits one per code call in a step. Their card reads "Starting
+     * sandbox environment" instead of "Analyzing" until the call completes or closes. Keyed
+     * separately from [activeToolCalls] because the comparison panes keep their own copies of that
+     * list, and ids are unique across both. Cleared with it everywhere.
+     */
+    val sandboxStartingToolCallIds: Set<String> = emptySet(),
     /** Attachments received during SSE streaming (e.g., tool-generated images). Cleared when
      *  streaming ends. */
     val streamingAttachments: List<Attachment> = emptyList(),
+    /**
+     * Deferred-preview results (`ready` / `failed`) learned after a file's attachment was recorded,
+     * keyed by message and `file_id` (`previewKey`): from a poll of the preview endpoint, or from an
+     * SSE update that the Final's snapshot predates. Rendering applies them over `pending` records
+     * only (`withPreview`), for the streamed list and persisted messages alike. In memory only — never written to a message or to
+     * Room, so it is safe to change mid-stream. Survives the finalize and the next turn; cleared
+     * when the conversation changes. Written by AttachmentPreviewDelegate.
+     */
+    val previewOverrides: Map<String, FilePreviewResponse> = emptyMap(),
     /** SSE reconnection retry state (null when not retrying). */
     val retryInfo: RetryInfo? = null,
     /**
@@ -176,4 +194,10 @@ data class ActiveToolCall(
      * A closed step is never running, whatever else the stream did or did not send.
      */
     val closedStatus: RunStepStatus? = null,
+    /**
+     * How long the step ran, from the same `on_run_step_closed` (closed_at − created_at; the
+     * completion carries no timing). Null when the close never came or its stamps disagreed —
+     * "not known", never "instant".
+     */
+    val durationMs: Long? = null,
 )

@@ -198,13 +198,21 @@ internal fun ToolCallDispatcher(
                 }
             }
             isCodeExecutionToolCall(toolNameLower) -> {
-                val result = remember(toolCall, toolNameLower) {
-                    parseCodeExecution(toolCall)?.let { r ->
-                        if (r.language == null && isBashToolCall(toolNameLower)) r.copy(language = "bash") else r
-                    }
-                }
+                val result = remember(toolCall) { parseCodeExecution(toolCall) }
                 if (result != null) {
-                    CodeExecutionCard(result = result, modifier = cardModifier)
+                    CodeExecutionCard(
+                        result = result,
+                        // A saved part is settled: there is no running phase to restore.
+                        phase = codeExecutionPhase(
+                            toolCallVerdict(toolCall?.effectiveRunStepStatus, isComplete = true),
+                            sandboxStarting = false,
+                            result = result,
+                        ),
+                        // A backgrounded call's step closed at dispatch, so its duration is not the task's.
+                        durationMs = toolCall?.runStepDurationMs?.takeIf { toolCall.backgrounded != true },
+                        stateKey = cardKey,
+                        modifier = cardModifier,
+                    )
                 } else {
                     GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.effectiveRunStepStatus)
                 }

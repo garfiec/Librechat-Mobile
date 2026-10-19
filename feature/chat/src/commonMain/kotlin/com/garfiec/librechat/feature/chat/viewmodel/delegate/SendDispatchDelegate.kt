@@ -238,6 +238,7 @@ class SendDispatchDelegate(
                 streamingContent = "",
                 streamingThinking = "",
                 activeToolCalls = emptyList(),
+                sandboxStartingToolCallIds = emptySet(),
                 streamingAttachments = emptyList(),
                 screenState = if (isNewChat) ChatScreenState.LANDING else ChatScreenState.ACTIVE,
                 messages = updatedMessages,

@@ -13,6 +13,7 @@ import com.garfiec.librechat.core.model.response.Category
 import com.garfiec.librechat.core.network.api.FavoritesApi
 import com.garfiec.librechat.core.network.api.FilesApi
 import com.garfiec.librechat.core.network.api.FilesExtApi
+import com.garfiec.librechat.core.network.client.ServerUrlProvider
 import com.garfiec.librechat.core.network.di.librechatJson
 import com.google.common.truth.Truth.assertThat
 import io.ktor.client.HttpClient
@@ -130,6 +131,9 @@ class GateProbeDeviceTest {
             FakeConfig(detected),
             object : PdfNormalizer {
                 override fun normalize(bytes: ByteArray, password: String?) = PdfNormalizeResult.Unchanged
+            },
+            object : ServerUrlProvider {
+                override fun getBaseUrl() = BASE_URL
             },
         )
     }

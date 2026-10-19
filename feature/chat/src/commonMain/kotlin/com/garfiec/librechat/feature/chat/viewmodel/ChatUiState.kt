@@ -17,6 +17,7 @@ import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.PendingAction
 import com.garfiec.librechat.core.model.content.Compaction
 import com.garfiec.librechat.core.model.endpoint.KeyState
+import com.garfiec.librechat.core.model.response.FilePreviewResponse
 import com.garfiec.librechat.core.model.response.FileUploadConfig
 import com.garfiec.librechat.core.model.response.UploadRoute
 import com.garfiec.librechat.core.model.response.isProviderCapable
@@ -218,7 +219,9 @@ data class ChatUiState(
     val streamingContent: String get() = content.streamingContent
     val streamingThinking: String get() = content.streamingThinking
     val activeToolCalls: List<ActiveToolCall> get() = content.activeToolCalls
+    val sandboxStartingToolCallIds: Set<String> get() = content.sandboxStartingToolCallIds
     val streamingAttachments: List<Attachment> get() = content.streamingAttachments
+    val previewOverrides: Map<String, FilePreviewResponse> get() = content.previewOverrides
     val retryInfo: RetryInfo? get() = content.retryInfo
     val isRefreshingMessages: Boolean get() = content.isRefreshingMessages
     val messagesLoadFailed: Boolean get() = content.messagesLoadFailed

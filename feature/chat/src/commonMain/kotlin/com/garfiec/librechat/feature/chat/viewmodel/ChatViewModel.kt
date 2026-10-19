@@ -36,6 +36,7 @@ import com.garfiec.librechat.core.data.repository.TraceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.logging.Diag
+import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.MinimalFeedback
 import com.garfiec.librechat.core.model.Preset
@@ -60,6 +61,8 @@ import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import com.garfiec.librechat.feature.chat.util.extractBranchMedia
 import com.garfiec.librechat.feature.chat.util.serializeMessageForClipboard
+import com.garfiec.librechat.feature.chat.util.withAttachmentSources
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.AttachmentPreviewDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.BranchSwitch
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ChatConfigDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ComparisonModeDelegate
@@ -75,7 +78,6 @@ import com.garfiec.librechat.feature.chat.viewmodel.delegate.MessageEditingDeleg
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.MessageQueueDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.MessageTreeDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ModelSelectionDelegate
-import com.garfiec.librechat.feature.chat.viewmodel.delegate.OfficePreviewDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PdfPasswordPrompt
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PendingActionDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformDelegateFactory
@@ -231,7 +233,8 @@ class ChatViewModel(
         keyRepository = keyRepository,
     )
     private val subagentTraceDelegate = SubagentTraceDelegate(SubagentHandle(stateHandle), json)
-    private val officePreviewDelegate = OfficePreviewDelegate(OfficePreviewHandle(stateHandle), fileRepository)
+    private val attachmentPreviewDelegate =
+        AttachmentPreviewDelegate(AttachmentPreviewHandle(stateHandle), fileRepository)
     private val completionDelegate = SendCompletionDelegate(
         handle = SendCompletionHandle(stateHandle),
         conversationRepository = conversationRepository,
@@ -463,6 +466,7 @@ class ChatViewModel(
             modelDelegate.refilterModels(isNewConversation)
         },
         rehydrateComparison = comparisonDelegate::rehydrateFromMessage,
+        onMessagesSettled = attachmentPreviewDelegate::onMessagesSettled,
     )
 
     private val uploadIntakeDelegate = UploadIntakeDelegate(
@@ -531,7 +535,7 @@ class ChatViewModel(
         liveReply = LiveReplyDelegate(
             StreamingHandle(stateHandle),
             subagentTraceDelegate,
-            officePreviewDelegate,
+            attachmentPreviewDelegate,
             endpointTokenRepository,
         ),
         completionDelegate = completionDelegate,
@@ -1255,6 +1259,8 @@ class ChatViewModel(
     fun onPendingNavigationHandled() {
         streamingManager.reset()
         conversationLoadDelegate.stopObserving()
+        // The conversation changes here: nothing learned about the previous one's previews applies.
+        attachmentPreviewDelegate.reset()
         _uiState.update { current ->
             ChatUiState(
                 selection = ModelSelectionState(
@@ -1373,7 +1379,7 @@ class ChatViewModel(
     }
 
     /** Backs [com.garfiec.librechat.feature.chat.components.LocalAttachmentDownloader]; see [ChatConfigDelegate.downloadFileBytes]. */
-    suspend fun downloadFileBytes(fileId: String): ByteArray? = chatConfigDelegate.downloadFileBytes(fileId)
+    suspend fun downloadFileBytes(attachment: Attachment): ByteArray? = chatConfigDelegate.downloadFileBytes(attachment)
 
     fun dismissError() {
         _uiState.update { it.copy(error = null) }
@@ -1400,11 +1406,13 @@ class ChatViewModel(
             baseUrl = state.serverUrl,
         )
         val index = items.indexOfFirst { it.url == url }
-        val preview = if (index >= 0) {
-            MediaPreviewState(items = items, initialIndex = index)
-        } else {
-            MediaPreviewState(items = listOf(MediaItem(url = url, contentDescription = "")), initialIndex = 0)
-        }
+        val shown = if (index >= 0) items else listOf(MediaItem(url = url, contentDescription = ""))
+        val attachments = state.displayMessages.flatMap { it.message.attachments.orEmpty() } +
+            state.streamingAttachments
+        val preview = MediaPreviewState(
+            items = withAttachmentSources(shown, attachments, state.serverUrl),
+            initialIndex = index.coerceAtLeast(0),
+        )
         _uiState.update { it.copy(mediaPreview = preview) }
     }
 
@@ -1416,7 +1424,7 @@ class ChatViewModel(
         super.onCleared()
         voiceDelegate.release()
         ttsDelegate.release()
-        officePreviewDelegate.cancelPolls()
+        attachmentPreviewDelegate.cancelPolls()
     }
 
     // ── Delegated public API ────────────────────────────────────────

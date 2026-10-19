@@ -114,4 +114,24 @@
     <string name="date_group_previous_30_days">آخر 30 يومًا</string>
     <string name="date_group_unknown">غير معروف</string>
     <string name="snackbar_dismiss">إغلاق</string>
+    <string name="file_kind_spreadsheet">جدول بيانات</string>
+    <string name="file_kind_document">مستند</string>
+    <string name="file_kind_pdf">PDF</string>
+    <string name="file_kind_text">نص</string>
+    <string name="file_kind_code">شيفرة</string>
+    <string name="file_kind_data">بيانات</string>
+    <string name="file_kind_image">صورة</string>
+    <string name="file_kind_presentation">عرض تقديمي</string>
+    <string name="file_kind_archive">أرشيف</string>
+    <string name="file_kind_audio">صوت</string>
+    <string name="file_kind_video">فيديو</string>
+    <string name="file_kind_file">ملف</string>
+    <string name="file_type_and_size">%1$s · %2$s</string>
+    <string name="open_in">فتح في…</string>
+    <string name="save_to_device">حفظ على الجهاز</string>
+    <string name="share">مشاركة</string>
+    <string name="from_code_sandbox">من بيئة تشغيل الشيفرة</string>
+    <string name="cd_file_actions">إجراءات الملف</string>
+    <string name="file_saved">تم حفظ الملف</string>
+    <string name="file_save_failed">تعذّر حفظ الملف</string>
 </resources>

@@ -119,6 +119,61 @@
       "failure_mode": "An extension upstream added renders as a download chip instead of an image the user can see. One removed sends a non-image down the image path, where a null resolved URL degrades it to a chip. Neither errors."
     },
     {
+      "id": "image-ext-regex-inline-media",
+      "upstream": {
+        "file": "packages/data-provider/src/file-config.ts",
+        "symbol": "imageExtRegex",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/InlineMedia.kt",
+        "symbol": "INLINE_IMAGE_EXTENSIONS"
+      },
+      "why": "A second copy of the same regex, as a suffix list: which of a turn's attachments a markdown image in the reply (`![chart](chart.png)`) can resolve to by name. Upstream's media.ts indexes with this regex, so the two must agree on what is displayable. svg is absent upstream too.",
+      "failure_mode": "An extension upstream added is never indexed, so a reply naming such a file shows its alt text where the web shows the image. Nothing errors."
+    },
+    {
+      "id": "inline-media-resolver",
+      "upstream": {
+        "file": "client/src/utils/media.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/InlineMedia.kt",
+        "symbol": "buildAttachmentsByName / resolveInlineMedia / resolveInlineMediaTarget"
+      },
+      "why": "How a markdown image source in a reply resolves to a file the turn produced: the lowercase leaf name as the key, a name two stored files claim dropped as ambiguous, any scheme and the served /api and /images paths never looked up, and the source URL-decoded with ? and # stripped. Ported with string operations rather than the upstream regexes. Not ported, deliberately: attachmentIdentity/attachmentRenderKey, which serve the web's attachment merge, not image lookup.",
+      "failure_mode": "A rule change upstream (a new served path, a different ambiguity policy, sandbox: support) makes the same reply show an image on the web and alt text on mobile, or the reverse, or a different file under the same name. Nothing fails to decode."
+    },
+    {
+      "id": "workspace-changes-partition",
+      "upstream": {
+        "file": "client/src/components/Chat/Messages/Content/Parts/WorkspaceChanges.tsx",
+        "symbol": "partitionWorkspaceChanges",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/WorkspaceChanges.kt",
+        "symbol": "partitionWorkspaceChanges / workspaceChangeKey"
+      },
+      "why": "Which of a message's attachments are listed under \"Workspace changes\" instead of under their tool call: profile \"stateful\" with a filepath, deduped by file_id else agent and path, the last record winning.",
+      "failure_mode": "A changed predicate or key lists a file in both places, in neither, or twice. Nothing errors."
+    },
+    {
+      "id": "workspace-change-type",
+      "upstream": {
+        "file": "packages/data-provider/src/schemas.ts",
+        "symbol": "WorkspaceChange",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/WorkspaceChanges.kt",
+        "symbol": "STATEFUL_PROFILE / workspaceOperation"
+      },
+      "why": "The profile and operation literals the client matches on (\"stateful\"; \"created\" and \"updated\"). Both fields decode as plain strings, so a new or renamed value still decodes.",
+      "failure_mode": "A renamed profile drops every file out of the list and back under its tool call; a renamed or added operation loses its New/Edited tag. Nothing fails to decode."
+    },
+    {
       "id": "feedback-tags",
       "upstream": {
         "file": "packages/data-provider/src/feedback.ts",
@@ -1428,6 +1483,48 @@
       },
       "why": "How the \"Next refill\" date is computed from lastRefill plus the interval. Known divergence, kept on purpose: month-end clamps where JS Date rolls over.",
       "failure_mode": "Upstream changes the rule and the Balance section shows a next-refill date that differs from web's. A wrong date renders exactly like a right one."
+    },
+    {
+      "id": "preview-poll-interval",
+      "upstream": {
+        "file": "client/src/data-provider/Files/queries.ts",
+        "symbol": "previewRefetchInterval",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/repository/FileRepositoryImpl.kt",
+        "symbol": "pollFilePreview, POLL_INTERVAL_MS"
+      },
+      "why": "How often, and until when, the client polls GET /api/files/:id/preview for a generated file whose preview was still rendering when its attachment went out: every 2.5 s, stopping on a terminal status or on the consecutive-error cap.",
+      "failure_mode": "Upstream retunes the interval or adds a stop rule and the client keeps its own: it polls a server harder than the web does, or gives up on a preview the web would still be waiting for. Nothing fails to decode."
+    },
+    {
+      "id": "preview-poll-error-cap",
+      "upstream": {
+        "file": "client/src/data-provider/Files/queries.ts",
+        "symbol": "PREVIEW_MAX_CONSECUTIVE_ERRORS",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/repository/FileRepositoryImpl.kt",
+        "symbol": "POLL_MAX_CONSECUTIVE_ERRORS"
+      },
+      "why": "How many preview requests in a row may fail before the poll stops. Declared apart from previewRefetchInterval, which only references it, so a change to the number does not show in that block.",
+      "failure_mode": "The cap moves upstream and the client stops sooner or later than the web: a preview that recovers after a network blip is shown as unavailable, or a dead server is polled for the whole budget."
+    },
+    {
+      "id": "preview-finalize-timeout",
+      "upstream": {
+        "file": "api/server/services/Files/Code/process.js",
+        "symbol": "PREVIEW_FINALIZE_TIMEOUT_MS",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/repository/FileRepositoryImpl.kt",
+        "symbol": "POLL_MAX_ATTEMPTS"
+      },
+      "why": "The server stops extracting a preview after this long, and its lazy sweep then reports the record as failed. The client's poll budget (30 requests 2.5 s apart, about 75 s) is set to outlast it, so a stuck record ends as failed inside the loop.",
+      "failure_mode": "The server's timeout grows past the client's budget: the poll ends while the server would still have answered, and the client shows the preview as unavailable though reopening the conversation later finds it ready."
     }
   ]
 }

@@ -123,6 +123,7 @@ internal fun ComparisonPanes(
             } else {
                 uiState.activeToolCalls
             },
+            sandboxStartingToolCallIds = uiState.sandboxStartingToolCallIds,
             streamingAttachments = uiState.streamingAttachments,
             onSiblingNavigation = viewModel::switchBranch,
             onEditMessage = viewModel::startEditing,
@@ -178,6 +179,7 @@ internal fun ComparisonPanes(
             justSettledMessageId = uiState.justSettledMessageId,
             streamingContent = comparisonState.secondaryStreamingContent,
             activeToolCalls = comparisonState.secondaryActiveToolCalls,
+            sandboxStartingToolCallIds = uiState.sandboxStartingToolCallIds,
             streamingAttachments = uiState.streamingAttachments,
             error = null,
             baseUrl = uiState.serverUrl,

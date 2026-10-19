@@ -3,10 +3,13 @@ package com.garfiec.librechat.feature.chat.util
 import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.media.resolveAttachmentUrl
 import com.garfiec.librechat.core.model.media.resolveFileReferenceUrl
 import com.garfiec.librechat.core.model.media.resolveImageFilePartUrl
 import com.garfiec.librechat.core.ui.media.MediaItem
+import com.garfiec.librechat.feature.chat.components.downloadKey
 import com.garfiec.librechat.feature.chat.components.isImageGenToolCall
+import com.garfiec.librechat.feature.chat.components.isPseudoAttachment
 import com.garfiec.librechat.feature.chat.components.parseImageGenResult
 import com.garfiec.librechat.feature.chat.components.parseStreamingImageGenResult
 import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
@@ -53,6 +56,28 @@ internal fun extractBranchMedia(
     }
 
     return items.distinctBy { it.url }
+}
+
+/**
+ * Tags each of [items] that is a generated file with its [Attachment], matched by resolved URL, so
+ * the viewer saves and shares the file's original bytes instead of the image the loader decoded.
+ * An item already tagged, or matching no attachment, is left as it is. Pure.
+ */
+internal fun withAttachmentSources(
+    items: List<MediaItem>,
+    attachments: List<Attachment>,
+    baseUrl: String,
+): List<MediaItem> {
+    if (attachments.isEmpty()) return items
+    val byUrl = HashMap<String, Attachment>()
+    for (attachment in attachments) {
+        if (isPseudoAttachment(attachment) || downloadKey(attachment) == null) continue
+        val url = resolveAttachmentUrl(attachment, baseUrl) ?: continue
+        if (url !in byUrl) byUrl[url] = attachment
+    }
+    return items.map { item ->
+        if (item.attachment != null) item else byUrl[item.url]?.let { item.copy(attachment = it) } ?: item
+    }
 }
 
 /**

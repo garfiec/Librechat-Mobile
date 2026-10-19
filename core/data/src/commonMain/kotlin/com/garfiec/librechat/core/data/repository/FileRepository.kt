@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.data.repository
 
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.FileObject
 import com.garfiec.librechat.core.model.request.DeleteFileEntry
 import com.garfiec.librechat.core.model.response.DeleteFilesResponse
@@ -50,12 +51,21 @@ interface FileRepository {
         toolResource: String? = null,
     ): Result<DeleteFilesResponse>
     suspend fun downloadFile(userId: String, fileId: String): Result<ByteArray>
+
+    /**
+     * Downloads a generated file's bytes. A code-output download fallback (no `file_id`, a
+     * `/api/files/code/download/…` filepath) is fetched from the sandbox route it names; anything
+     * else goes through [downloadFile], which needs [userId]. Doesn't check expiry: callers skip an
+     * expired file rather than spend a request on a 404.
+     */
+    suspend fun downloadAttachment(attachment: Attachment, userId: String?): Result<ByteArray>
     suspend fun getAgentFiles(agentId: String): Result<List<FileObject>>
 
     /**
      * Polls `GET /api/files/:fileId/preview` until the status is terminal
-     * (`ready`/`failed`) or the attempt budget is exhausted, then returns the
-     * last [FilePreviewResponse]. Used by the deferred office-doc preview flow.
+     * (`ready`/`failed`), the attempt budget is exhausted, or several requests
+     * in a row fail, then returns the last result. Used by the deferred-preview
+     * flow for generated files.
      */
     suspend fun pollFilePreview(fileId: String): Result<FilePreviewResponse>
 

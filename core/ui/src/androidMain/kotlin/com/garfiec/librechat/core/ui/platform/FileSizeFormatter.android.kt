@@ -1,4 +1,4 @@
-package com.garfiec.librechat.feature.files.platform
+package com.garfiec.librechat.core.ui.platform
 
 actual fun formatFileSize(bytes: Long): String {
     // Simple human-readable formatter that doesn't need Context
