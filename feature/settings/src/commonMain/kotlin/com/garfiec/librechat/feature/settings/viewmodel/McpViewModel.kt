@@ -5,14 +5,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.McpRepository
+import com.garfiec.librechat.core.data.repository.PermissionsRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
-import com.garfiec.librechat.core.model.mcp.McpApiKeyConfig
-import com.garfiec.librechat.core.model.mcp.McpOAuthConfig
+import com.garfiec.librechat.core.model.ResourceType
 import com.garfiec.librechat.core.model.mcp.McpServer
 import com.garfiec.librechat.core.model.mcp.McpServerDiscovery
 import com.garfiec.librechat.core.model.mcp.McpServerStatus
-import com.garfiec.librechat.core.model.mcp.McpServerType
 import com.garfiec.librechat.core.model.mcp.McpTool
 import com.garfiec.librechat.core.model.mcp.applyDiscoveryAuthorizationState
 import com.garfiec.librechat.core.model.permissions.Permission
@@ -37,10 +37,11 @@ data class McpUiState(
     val isRefreshing: Boolean = false,
     val reinitializingServers: Set<String> = emptySet(),
     val error: String? = null,
-    val showServerDialog: Boolean = false,
-    val editingServer: McpServer? = null,
+    val errorRetry: McpRetry = McpRetry.Reload,
+    /** The all-tools sheet, opened from the top bar. One server's tools live in its own sheet. */
     val showToolsSheet: Boolean = false,
-    val toolsSheetServerName: String? = null,
+    /** The server whose sheet is open, by stored name. */
+    val selectedServerName: String? = null,
     val successMessage: String? = null,
     /**
      * An MCP server that answered a reinitialize by asking the user to authorize it
@@ -52,33 +53,34 @@ data class McpUiState(
      */
     val pendingOAuth: McpOAuthPrompt? = null,
     /**
-     * The last save was refused with `OAUTH_SECRET_REENTRY_REQUIRED`.
-     *
-     * The stored client secret is bound to the authorization/token endpoint it was issued for, so
-     * changing either endpoint invalidates it and every retry of the same body fails identically.
-     * This is a prompt-for-input outcome, not a retryable failure: the dialog stays open and asks
-     * for the secret again, because nothing the user can do from a generic "save failed" would
-     * ever succeed.
+     * The user's permission bits per server `dbId`, or null while unknown (not loaded, or the
+     * fetch failed). Read it through [mcpServerAccess], never directly.
      */
-    val oauthSecretReentryRequired: Boolean = false,
-    /**
-     * The last save was refused with `API_KEY_REENTRY_REQUIRED` (v0.8.8-rc4): a retained admin
-     * API key is bound to the connection it was entered for, and the edit changed that connection
-     * without re-sending the key. Same prompt-for-input outcome as [oauthSecretReentryRequired].
-     */
-    val apiKeyReentryRequired: Boolean = false,
-    /**
-     * Why the last save failed, shown inside the server dialog. Kept apart from [error] because a
-     * failed save leaves the dialog open, and [error] renders as a snackbar in the screen behind
-     * it — the modal covers the snackbar, which then times out and clears itself unseen.
-     */
-    val serverDialogError: String? = null,
-    /**
-     * The open dialog's save is in flight. Disables Save: the create route names every POST
-     * afresh, so a second tap on a slow save creates the server twice.
-     */
-    val isSavingServer: Boolean = false,
-)
+    val permissions: Map<String, Int>? = null,
+    val searchQuery: String = "",
+    val attentionOnly: Boolean = false,
+    /** Every server, sorted for display; derived in [McpViewModel.uiState], never set directly. */
+    val allRows: List<McpServerRow> = emptyList(),
+    /** [allRows] narrowed by [searchQuery] and [attentionOnly]: what the list shows. */
+    val rows: List<McpServerRow> = emptyList(),
+    /** Each server's display title by stored name, for the all-tools sheet's headers. Derived. */
+    val serverTitles: Map<String, String> = emptyMap(),
+) {
+    /** The open server's row; null once it is gone (deleted, or dropped by a reload), which closes its sheet. */
+    val selectedRow: McpServerRow? get() = selectedServerName?.let { name -> allRows.firstOrNull { it.name == name } }
+
+    val selectedTools: List<McpTool>
+        get() = selectedServerName?.let { name -> tools.filter { it.serverName == name } }.orEmpty()
+
+    val attentionCount: Int get() = allRows.count { it.status.needsAttention }
+}
+
+/** The action behind an error, so Retry repeats it rather than only reloading. */
+sealed interface McpRetry {
+    data object Reload : McpRetry
+    data class Delete(val serverName: String) : McpRetry
+    data class Reconnect(val serverName: String) : McpRetry
+}
 
 /** A server waiting on the user to authorize it, with the provider URL to send them to. */
 data class McpOAuthPrompt(
@@ -89,23 +91,47 @@ data class McpOAuthPrompt(
 class McpViewModel(
     private val mcpRepository: McpRepository,
     roleRepository: RoleRepository,
+    private val permissionsRepository: PermissionsRepository,
+    serverDataStore: ServerDataStore,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(McpUiState())
 
     /** MCP_SERVERS CREATE gates adding a server; permissive while the role is unknown. */
     val uiState: StateFlow<McpUiState> =
-        combine(_uiState, roleRepository.userPermissions) { state, role ->
-            state.copy(canCreateServer = role.hasAccessOrPermissive(PermissionType.MCP_SERVERS, Permission.CREATE))
+        combine(_uiState, roleRepository.userPermissions, serverDataStore.currentUrlFlow) { state, role, baseUrl ->
+            val allRows = mcpServerRows(
+                servers = state.servers,
+                connectionStatus = state.connectionStatus,
+                toolCounts = state.tools.groupingBy { it.serverName.orEmpty() }.eachCount(),
+                reinitializing = state.reinitializingServers,
+                permissions = state.permissions,
+                baseUrl = baseUrl,
+            )
+            // The filter outlives the servers needing attention: once none do, show everything.
+            val attentionOnly = state.attentionOnly && allRows.any { it.status.needsAttention }
+            state.copy(
+                canCreateServer = role.hasAccessOrPermissive(PermissionType.MCP_SERVERS, Permission.CREATE),
+                allRows = allRows,
+                attentionOnly = attentionOnly,
+                rows = filterMcpServerRows(allRows, state.searchQuery, attentionOnly),
+                serverTitles = allRows.associate { it.name to it.title },
+            )
         }.stateIn(viewModelScope, SharingStarted.Eagerly, McpUiState())
 
-    /** Bumped whenever the server dialog opens or closes, so a save can tell its dialog is gone. */
-    private var serverDialogSession = 0
+    /** The first resume follows `init`'s load; only later ones are returns from the editor. */
+    private var resumedOnce = false
 
     init {
+        loadAll()
+    }
+
+    /** Everything the page shows; permissions too, since a new server's id isn't in the map until refetched. */
+    private fun loadAll() {
         loadServers()
         loadConnectionStatus()
         loadTools()
+        loadPermissions()
     }
 
     fun loadServers() {
@@ -117,6 +143,9 @@ class McpViewModel(
                         servers = result.data,
                         isLoading = false,
                         isRefreshing = false,
+                        // With an empty list the error banner holds the error rather than a
+                        // snackbar, so a successful load is what retires it.
+                        error = if (_uiState.value.servers.isEmpty()) null else _uiState.value.error,
                     )
                 }
                 is Result.Error -> {
@@ -124,6 +153,7 @@ class McpViewModel(
                         isLoading = false,
                         isRefreshing = false,
                         error = result.message ?: "Failed to load servers",
+                        errorRetry = McpRetry.Reload,
                     )
                 }
                 is Result.Loading -> { /* no-op */ }
@@ -173,104 +203,52 @@ class McpViewModel(
         }
     }
 
-    fun refresh() {
-        _uiState.value = _uiState.value.copy(isRefreshing = true)
-        loadServers()
-        loadConnectionStatus()
-        loadTools()
-    }
-
-    fun showAddServerDialog() {
-        serverDialogSession++
-        _uiState.value = _uiState.value.copy(showServerDialog = true, editingServer = null).withoutSaveFeedback()
-    }
-
-    fun showEditServerDialog(server: McpServer) {
-        serverDialogSession++
-        _uiState.value = _uiState.value.copy(showServerDialog = true, editingServer = server).withoutSaveFeedback()
-    }
-
-    fun dismissServerDialog() {
-        serverDialogSession++
-        _uiState.value = _uiState.value.copy(showServerDialog = false, editingServer = null).withoutSaveFeedback()
-    }
-
-    fun saveServer(
-        name: String,
-        description: String? = null,
-        url: String,
-        type: McpServerType,
-        apiKey: McpApiKeyConfig? = null,
-        oauth: McpOAuthConfig? = null,
-    ) {
-        if (_uiState.value.isSavingServer) return
-        val session = serverDialogSession
-        // An edit addresses the stored server (PATCH), a new one does not (POST); see
-        // McpRepository.updateServer for why an edit must not be sent as a create.
-        val editing = _uiState.value.editingServer?.name
-        val preserved = preservedFieldsFor(_uiState.value.editingServer, apiKey, oauth)
-        _uiState.value = _uiState.value.withoutSaveFeedback().copy(isSavingServer = true)
+    private fun loadPermissions() {
         viewModelScope.launch {
-            val result = if (editing != null) {
-                mcpRepository.updateServer(
-                    serverName = editing,
-                    name = name,
-                    description = description,
-                    url = url,
-                    type = type,
-                    apiKey = apiKey,
-                    oauth = oauth,
-                    iconPath = preserved.iconPath,
-                    obo = preserved.obo,
-                )
-            } else {
-                mcpRepository.createServer(
-                    name = name,
-                    description = description,
-                    url = url,
-                    type = type,
-                    apiKey = apiKey,
-                    oauth = oauth,
-                )
-            }
-            // The dialog may have been closed, or reopened on another server, while this ran. Its
-            // outcome then belongs to no open dialog: a failure goes to the snackbar, and a success
-            // must not close the dialog the user has since opened.
-            val dialogStillOpen = session == serverDialogSession
-            when (result) {
-                is Result.Success -> {
-                    if (dialogStillOpen) dismissServerDialog()
-                    loadServers()
-                    loadConnectionStatus()
-                }
+            when (val result = permissionsRepository.getAllEffectivePermissions(ResourceType.MCP_SERVER)) {
+                is Result.Success -> _uiState.value = _uiState.value.copy(permissions = result.data)
                 is Result.Error -> {
-                    val failure = result.toMcpSaveFailure(fallback = "Failed to save server")
-                    _uiState.value = if (dialogStillOpen) {
-                        _uiState.value.copy(
-                            isSavingServer = false,
-                            oauthSecretReentryRequired = failure.secretReentry,
-                            apiKeyReentryRequired = failure.keyReentry,
-                            serverDialogError = failure.dialogMessage,
-                        )
-                    } else {
-                        _uiState.value.copy(error = failure.snackbarMessage)
-                    }
+                    // Keep the last known map: a failed refresh shouldn't flip every server's access.
+                    Logger.d(result.exception) { "Failed to load MCP server permissions: ${result.message}" }
                 }
                 is Result.Loading -> { /* no-op */ }
             }
         }
     }
 
+    fun refresh() {
+        _uiState.value = _uiState.value.copy(isRefreshing = true)
+        loadAll()
+    }
+
+    /**
+     * Reloads when the screen resumes after the first time, which is a return from the editor (or
+     * from the browser after an OAuth sign-in), so a saved or authorized server shows its new state.
+     * Quiet: no pull-to-refresh spinner for a reload the user didn't ask for.
+     */
+    fun refreshOnReturn() {
+        if (!resumedOnce) {
+            resumedOnce = true
+            return
+        }
+        if (_uiState.value.isLoading || _uiState.value.isRefreshing) return
+        loadAll()
+    }
+
     fun deleteServer(serverName: String) {
         viewModelScope.launch {
             when (val result = mcpRepository.deleteServer(serverName)) {
                 is Result.Success -> {
+                    if (_uiState.value.selectedServerName == serverName) dismissServer()
                     loadServers()
                     loadConnectionStatus()
+                    // Otherwise the all-tools sheet still lists the deleted server's tools.
+                    loadTools()
                 }
                 is Result.Error -> {
                     _uiState.value = _uiState.value.copy(
                         error = result.message ?: "Failed to delete server",
+                        errorRetry = McpRetry.Delete(serverName),
                     )
                 }
                 is Result.Loading -> { /* no-op */ }
@@ -279,10 +257,12 @@ class McpViewModel(
     }
 
     fun reinitializeServer(serverName: String) {
+        // One at a time: the first to land would clear the spinner while the second still runs.
+        if (serverName in _uiState.value.reinitializingServers) return
+        _uiState.value = _uiState.value.copy(
+            reinitializingServers = _uiState.value.reinitializingServers + serverName,
+        )
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(
-                reinitializingServers = _uiState.value.reinitializingServers + serverName,
-            )
             when (val result = mcpRepository.reinitialize(serverName)) {
                 is Result.Success -> {
                     val response = result.data
@@ -306,11 +286,14 @@ class McpViewModel(
                     )
                     loadServers()
                     loadConnectionStatus()
+                    // A server that just connected has tools to count and list.
+                    loadTools()
                 }
                 is Result.Error -> {
                     _uiState.value = _uiState.value.copy(
                         reinitializingServers = _uiState.value.reinitializingServers - serverName,
                         error = result.message ?: "Failed to reinitialize server",
+                        errorRetry = McpRetry.Reconnect(serverName),
                     )
                 }
                 is Result.Loading -> { /* no-op */ }
@@ -333,22 +316,40 @@ class McpViewModel(
         _uiState.value = _uiState.value.copy(pendingOAuth = null)
     }
 
-    fun showToolsSheet(serverName: String? = null) {
-        _uiState.value = _uiState.value.copy(
-            showToolsSheet = true,
-            toolsSheetServerName = serverName,
-        )
+    fun showToolsSheet() {
+        _uiState.value = _uiState.value.copy(showToolsSheet = true)
     }
 
     fun dismissToolsSheet() {
-        _uiState.value = _uiState.value.copy(
-            showToolsSheet = false,
-            toolsSheetServerName = null,
-        )
+        _uiState.value = _uiState.value.copy(showToolsSheet = false)
+    }
+
+    fun openServer(name: String) {
+        _uiState.value = _uiState.value.copy(selectedServerName = name)
+    }
+
+    fun dismissServer() {
+        _uiState.value = _uiState.value.copy(selectedServerName = null)
+    }
+
+    fun onSearchQueryChange(query: String) {
+        _uiState.value = _uiState.value.copy(searchQuery = query)
+    }
+
+    fun setAttentionOnly(attentionOnly: Boolean) {
+        _uiState.value = _uiState.value.copy(attentionOnly = attentionOnly)
     }
 
     fun dismissError() {
-        _uiState.value = _uiState.value.copy(error = null)
+        _uiState.value = _uiState.value.copy(error = null, errorRetry = McpRetry.Reload)
+    }
+
+    fun retry(action: McpRetry) {
+        when (action) {
+            McpRetry.Reload -> refresh()
+            is McpRetry.Delete -> deleteServer(action.serverName)
+            is McpRetry.Reconnect -> reinitializeServer(action.serverName)
+        }
     }
 
     fun dismissSuccessMessage() {
@@ -365,15 +366,3 @@ class McpViewModel(
         const val DEFERRED_MARKER = "mcp_connection_deferred"
     }
 }
-
-/**
- * A save's feedback — the re-entry prompts, the failure message and the in-flight flag — belongs
- * to the dialog that raised it. Carried into the next dialog, it would mark a secret or key field
- * red, report a failure, or disable Save on a server the user never tried to save.
- */
-private fun McpUiState.withoutSaveFeedback() = copy(
-    oauthSecretReentryRequired = false,
-    apiKeyReentryRequired = false,
-    serverDialogError = null,
-    isSavingServer = false,
-)

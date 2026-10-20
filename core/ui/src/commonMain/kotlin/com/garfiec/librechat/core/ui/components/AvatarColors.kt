@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.ui.components
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 
 /**
  * Curated background colors for letter-fallback avatars (accounts/users without a photo). Chosen
@@ -40,3 +41,6 @@ fun avatarColorForSeed(seed: String): Color {
     val index = ((hash % AvatarPalette.size) + AvatarPalette.size) % AvatarPalette.size
     return AvatarPalette[index]
 }
+
+/** Black or white, whichever reads on [background]: the letter colour for a seeded fallback. */
+internal fun readableOn(background: Color): Color = if (background.luminance() > 0.5f) Color.Black else Color.White

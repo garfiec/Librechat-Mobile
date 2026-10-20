@@ -33,17 +33,14 @@
     <string name="cd_delete_api_key">APIキーを削除</string>
     <string name="cd_delete_memory">メモリを削除</string>
     <string name="cd_delete_preset">プリセットを削除</string>
-    <string name="cd_delete_server">サーバーを削除</string>
     <string name="cd_delete_shared_link">共有リンクを削除</string>
     <string name="cd_edit_memory">メモリを編集</string>
     <string name="memory_redacted_key">非表示の項目</string>
     <string name="memory_redacted_value">このサーバーのコンテンツポリシーにより、保存内容は非表示になっています。削除は引き続き可能です。</string>
-    <string name="cd_edit_server">サーバーを編集</string>
     <string name="cd_loading_profile">プロフィールを読み込み中</string>
     <string name="cd_make_private">非公開にする</string>
     <string name="cd_make_public">公開にする</string>
     <string name="cd_preview_voice">音声をプレビュー</string>
-    <string name="cd_reinitialize">再初期化</string>
     <string name="cd_avatar_preview">アバターのプレビュー</string>
     <string name="cd_selected">選択済み</string>
     <string name="cd_selected_avatar">選択されたアバター</string>
@@ -55,7 +52,6 @@
     <string name="cd_tts_voice_selector">TTS音声を選択。現在は %1$s</string>
     <string name="cd_user_avatar">ユーザーのアバター</string>
     <string name="cd_view_all_tools">すべてのツールを表示</string>
-    <string name="cd_view_tools">ツールを表示</string>
 
     <!-- Section headers -->
     <string name="section_about">情報</string>
@@ -478,16 +474,12 @@
     <!-- MCP -->
     <string name="add_mcp_server">MCPサーバーを追加</string>
     <string name="edit_mcp_server">MCPサーバーを編集</string>
-    <string name="no_mcp_servers">MCPサーバーが設定されていません</string>
-    <string name="mcp_add_hint">＋ボタンをタップしてサーバーを追加</string>
     <string name="mcp_name_label">名前</string>
     <string name="mcp_description_label">説明</string>
     <string name="mcp_description_optional">任意</string>
     <string name="mcp_url_label">URL</string>
-    <string name="mcp_type_label">種類</string>
     <string name="mcp_type_sse">SSE</string>
     <string name="mcp_type_streamable_http">Streamable HTTP</string>
-    <string name="mcp_auth_label">認証</string>
     <string name="mcp_auth_none">なし</string>
     <string name="mcp_auth_api_key">APIキー</string>
     <string name="mcp_auth_oauth">OAuth</string>
@@ -745,12 +737,40 @@
     <string name="server_user_ca_notice">このデバイスにインストールされた認証局によって信頼されています</string>
     <string name="export_coming_soon">エクスポートは近日対応予定です</string>
     <string name="mcp_tools_all">すべての MCP ツール</string>
-    <string name="mcp_tools_for_server">ツール：%1$s</string>
-    <string name="mcp_tool_server">サーバー：%1$s</string>
     <string name="mcp_server_unknown">不明</string>
     <string name="avatar_upload_unavailable_ios">iOS ではアバターのアップロードはまだ利用できません。</string>
     <string name="dialog_ok">OK</string>
     <plurals name="mcp_tool_count">
         <item quantity="other">ツール %1$d 個</item>
     </plurals>
+    <string name="mcp_status_connected">接続済み</string>
+    <string name="mcp_status_connecting">接続中…</string>
+    <string name="mcp_status_needs_sign_in">サインインが必要</string>
+    <string name="mcp_status_needs_setup">Webで設定してください</string>
+    <string name="mcp_status_on_demand">チャット時に接続</string>
+    <string name="mcp_status_disconnected">未接続</string>
+    <string name="mcp_status_failed">接続できません</string>
+    <string name="mcp_action_sign_in">サインイン</string>
+    <string name="mcp_action_connect">接続</string>
+    <string name="mcp_action_reconnect">再接続</string>
+    <string name="mcp_action_edit">編集</string>
+    <string name="mcp_view_only">閲覧のみ</string>
+    <string name="mcp_filter_all">すべて</string>
+    <string name="mcp_filter_needs_attention">要対応 (%1$d)</string>
+    <string name="mcp_search_hint">サーバーを検索</string>
+    <string name="mcp_search_no_results">一致するサーバーはありません</string>
+    <string name="mcp_empty_title">チャットにツールを追加</string>
+    <string name="mcp_empty_body">MCPサーバーを使うと、モデルがGitHubやカレンダーなど別のアプリで検索・閲覧・操作できます。URLを指定して追加してください。</string>
+    <string name="mcp_empty_body_no_create">MCPサーバーを使うと、モデルがGitHubやカレンダーなど別のアプリで検索・閲覧・操作できます。追加は管理者に依頼してください。</string>
+    <string name="cd_server_options">%1$sのオプション</string>
+    <string name="mcp_tools_title">ツール</string>
+    <string name="mcp_tools_filter_hint">ツールを絞り込む</string>
+    <string name="mcp_tools_no_match">一致するツールはありません</string>
+    <string name="mcp_needs_setup_detail">このサーバーには、あなた自身のAPIキーなど、あなただけが入力できる情報が必要です。LibreChatのWebサイトで追加してから再接続してください。</string>
+    <string name="mcp_editor_section_about">概要</string>
+    <string name="mcp_editor_section_connection">接続</string>
+    <string name="mcp_editor_section_sign_in">サインイン</string>
+    <string name="mcp_editor_load_failed">このサーバーを読み込めませんでした。</string>
+    <string name="mcp_trust_label">このサーバーを信頼する</string>
+    <string name="mcp_trust_sublabel">送信した内容を読み取り、接続先のアプリであなたの代わりに操作できます。信頼できるサーバーだけを追加してください。</string>
 </resources>

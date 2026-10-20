@@ -157,6 +157,7 @@ val settingsSerializersModule = SerializersModule {
         subclass(ProviderKeys::class, ProviderKeys.serializer())
         subclass(Memories::class, Memories.serializer())
         subclass(McpServers::class, McpServers.serializer())
+        subclass(McpServerEditor::class, McpServerEditor.serializer())
         subclass(Favorites::class, Favorites.serializer())
         subclass(RoleSkillsAdmin::class, RoleSkillsAdmin.serializer())
         subclass(ArtifactShortcuts::class, ArtifactShortcuts.serializer())

@@ -33,17 +33,14 @@
     <string name="cd_delete_api_key">API-Schlüssel löschen</string>
     <string name="cd_delete_memory">Erinnerung löschen</string>
     <string name="cd_delete_preset">Vorlage löschen</string>
-    <string name="cd_delete_server">Server löschen</string>
     <string name="cd_delete_shared_link">Geteilten Link löschen</string>
     <string name="cd_edit_memory">Erinnerung bearbeiten</string>
     <string name="memory_redacted_key">Verborgener Eintrag</string>
     <string name="memory_redacted_value">Die Inhaltsrichtlinie dieses Servers verbirgt, was hier gespeichert ist. Du kannst den Eintrag trotzdem löschen.</string>
-    <string name="cd_edit_server">Server bearbeiten</string>
     <string name="cd_loading_profile">Profil wird geladen</string>
     <string name="cd_make_private">Privat machen</string>
     <string name="cd_make_public">Öffentlich machen</string>
     <string name="cd_preview_voice">Stimme anhören</string>
-    <string name="cd_reinitialize">Neu initialisieren</string>
     <string name="cd_avatar_preview">Avatar-Vorschau</string>
     <string name="cd_selected">Ausgewählt</string>
     <string name="cd_selected_avatar">Ausgewählter Avatar</string>
@@ -55,7 +52,6 @@
     <string name="cd_tts_voice_selector">TTS-Stimme auswählen. Aktuell %1$s</string>
     <string name="cd_user_avatar">Benutzer-Avatar</string>
     <string name="cd_view_all_tools">Alle Tools anzeigen</string>
-    <string name="cd_view_tools">Tools anzeigen</string>
 
     <!-- Section headers -->
     <string name="section_about">Info</string>
@@ -484,16 +480,12 @@
     <!-- MCP -->
     <string name="add_mcp_server">MCP-Server hinzufügen</string>
     <string name="edit_mcp_server">MCP-Server bearbeiten</string>
-    <string name="no_mcp_servers">Keine MCP-Server konfiguriert</string>
-    <string name="mcp_add_hint">Tippe auf die +-Schaltfläche, um einen Server hinzuzufügen</string>
     <string name="mcp_name_label">Name</string>
     <string name="mcp_description_label">Beschreibung</string>
     <string name="mcp_description_optional">Optional</string>
     <string name="mcp_url_label">URL</string>
-    <string name="mcp_type_label">Typ</string>
     <string name="mcp_type_sse">SSE</string>
     <string name="mcp_type_streamable_http">Streamable HTTP</string>
-    <string name="mcp_auth_label">Authentifizierung</string>
     <string name="mcp_auth_none">Keine</string>
     <string name="mcp_auth_api_key">API-Schlüssel</string>
     <string name="mcp_auth_oauth">OAuth</string>
@@ -753,8 +745,6 @@
     <string name="server_user_ca_notice">Vertrauenswürdig über eine auf diesem Gerät installierte Zertifizierungsstelle</string>
     <string name="export_coming_soon">Export folgt in Kürze</string>
     <string name="mcp_tools_all">Alle MCP-Tools</string>
-    <string name="mcp_tools_for_server">Tools: %1$s</string>
-    <string name="mcp_tool_server">Server: %1$s</string>
     <string name="mcp_server_unknown">Unbekannt</string>
     <string name="avatar_upload_unavailable_ios">Das Hochladen von Avataren ist unter iOS noch nicht verfügbar.</string>
     <string name="dialog_ok">OK</string>
@@ -762,4 +752,34 @@
         <item quantity="one">%1$d Tool</item>
         <item quantity="other">%1$d Tools</item>
     </plurals>
+    <string name="mcp_status_connected">Verbunden</string>
+    <string name="mcp_status_connecting">Verbindung wird hergestellt…</string>
+    <string name="mcp_status_needs_sign_in">Anmeldung erforderlich</string>
+    <string name="mcp_status_needs_setup">Im Web einrichten</string>
+    <string name="mcp_status_on_demand">Verbindet sich beim Chatten</string>
+    <string name="mcp_status_disconnected">Nicht verbunden</string>
+    <string name="mcp_status_failed">Keine Verbindung möglich</string>
+    <string name="mcp_action_sign_in">Anmelden</string>
+    <string name="mcp_action_connect">Verbinden</string>
+    <string name="mcp_action_reconnect">Neu verbinden</string>
+    <string name="mcp_action_edit">Bearbeiten</string>
+    <string name="mcp_view_only">Nur ansehen</string>
+    <string name="mcp_filter_all">Alle</string>
+    <string name="mcp_filter_needs_attention">Braucht Aufmerksamkeit (%1$d)</string>
+    <string name="mcp_search_hint">Server suchen</string>
+    <string name="mcp_search_no_results">Keine passenden Server</string>
+    <string name="mcp_empty_title">Gib deinen Chats Tools</string>
+    <string name="mcp_empty_body">Ein MCP-Server lässt Modelle in einer anderen App suchen, lesen und handeln, etwa in GitHub oder deinem Kalender. Füge einen mit seiner URL hinzu.</string>
+    <string name="mcp_empty_body_no_create">Ein MCP-Server lässt Modelle in einer anderen App suchen, lesen und handeln, etwa in GitHub oder deinem Kalender. Bitte einen Admin, einen hinzuzufügen.</string>
+    <string name="cd_server_options">Optionen für %1$s</string>
+    <string name="mcp_tools_title">Tools</string>
+    <string name="mcp_tools_filter_hint">Tools filtern</string>
+    <string name="mcp_tools_no_match">Keine passenden Tools</string>
+    <string name="mcp_needs_setup_detail">Dieser Server braucht Angaben, die nur du machen kannst, etwa deinen eigenen API-Schlüssel. Trag sie auf der LibreChat-Website ein und verbinde dann neu.</string>
+    <string name="mcp_editor_section_about">Allgemein</string>
+    <string name="mcp_editor_section_connection">Verbindung</string>
+    <string name="mcp_editor_section_sign_in">Anmeldung</string>
+    <string name="mcp_editor_load_failed">Dieser Server konnte nicht geladen werden.</string>
+    <string name="mcp_trust_label">Ich vertraue diesem Server</string>
+    <string name="mcp_trust_sublabel">Er kann lesen, was du ihm sendest, und in der verbundenen App für dich handeln. Füge nur Server hinzu, denen du vertraust.</string>
 </resources>

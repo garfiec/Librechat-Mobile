@@ -121,6 +121,9 @@ class McpApi constructor(
                 obo = ((config["obo"] as? JsonObject)?.get("scopes") as? JsonPrimitive)?.contentOrNull
                     ?.takeIf { it.isNotBlank() }
                     ?.let(::McpOboConfig),
+                dbId = (config["dbId"] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() },
+                consumeOnly = (config["consumeOnly"] as? JsonPrimitive)?.booleanOrNull ?: false,
+                requestScoped = (config["requestScoped"] as? JsonPrimitive)?.booleanOrNull ?: false,
             )
         }
     }

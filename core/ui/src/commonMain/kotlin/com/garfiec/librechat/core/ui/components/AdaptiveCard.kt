@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.shape.CornerBasedShape
@@ -14,6 +15,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.semantics.Role
 import com.garfiec.librechat.core.ui.glass.GlassDefaults
 import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
 import com.garfiec.librechat.core.ui.glass.glassSurface
@@ -42,6 +44,33 @@ fun AdaptiveCard(
             .glassSurface(style, glassShape, LocalGlassBackdrop.current)
             .clip(glassShape)
             .background(GlassDefaults.panelThickening(MaterialTheme.colorScheme.surface, LocalDarkTheme.current)),
+    ) {
+        CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) { content() }
+    }
+}
+
+/** The clickable [AdaptiveCard], mirroring M3's `Card(onClick)`: one target with ripple and button semantics. */
+@Composable
+fun AdaptiveCard(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    shape: Shape = CardDefaults.shape,
+    colors: CardColors = CardDefaults.cardColors(),
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val style = rememberGlassStyle()
+    if (style == null) {
+        Card(onClick = onClick, modifier = modifier, enabled = enabled, shape = shape, colors = colors, content = content)
+        return
+    }
+    val glassShape = shape as? CornerBasedShape ?: GlassDefaults.MenuShape
+    Column(
+        modifier
+            .glassSurface(style, glassShape, LocalGlassBackdrop.current)
+            .clip(glassShape)
+            .background(GlassDefaults.panelThickening(MaterialTheme.colorScheme.surface, LocalDarkTheme.current))
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
     ) {
         CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) { content() }
     }

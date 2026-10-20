@@ -780,6 +780,7 @@ fun MainNavDisplay(
                 onBack = { navigator.goBack() },
             )
             mcpServersEntry(
+                onNavigate = { navigator.navigate(it) },
                 onBack = { navigator.goBack() },
             )
         },

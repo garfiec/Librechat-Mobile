@@ -14,7 +14,10 @@ Material 3 theme and shared Compose components used across all feature modules. 
 - `LibreChatTopBar` - App bar with optional back navigation and actions.
 - `LoadingIndicator` - Centered circular progress.
 - `ErrorBanner` - Dismissible error message bar.
-- `EmptyState` - Illustration + message for empty lists.
+- `EmptyState` - Icon + message for empty lists, with an optional `action` slot (the create button).
+- `InitialTile` - Rounded-square tile for a named thing (project, MCP server): its image, else the
+  first letter on `avatarColorForSeed`. Seed it with a stable id. `TileStatusDot` goes in its
+  `badge` slot. Use it wherever a list of user-made things needs an identity mark, so they match.
 - `AvatarImage` - User/agent/model avatar with Coil image loading and fallback.
 - `ConfirmationDialog` - Reusable confirm/cancel dialog.
 - `DiscardChangesDialog` - "Discard changes?" for leaving an editor with unsaved edits. Every
@@ -185,7 +188,8 @@ the controls bullet below.
   `dismissOnBackPress` / `dismissOnClickOutside`, and rises above the keyboard. The panel is glass
   and the buttons stay plain `TextButton`s — one glass layer, as on an iOS alert. `AdaptiveDialog` (arbitrary full content) still opens a window and
   stays opaque. `AdaptiveCard` is a glass panel over `LocalGlassBackdrop` (cards floating over
-  content, e.g. the tool-approval / ask-user panels above the composer). The adaptive
+  content, e.g. the tool-approval / ask-user panels above the composer); its `onClick` overload
+  is the tappable list card, so don't add `Modifier.clickable` to the plain one. The adaptive
   dialogs and the M3 sheet provide `LocalInSeparateWindow`: inside their own window a sheet falls back
   to the opaque M3 sheet and a top bar stays in Compose, with nothing for the caller to set.
 - **Controls look like iOS in glass mode**, drawn in Compose: `AdaptiveSwitch`, `AdaptiveRadioButton`
@@ -197,7 +201,7 @@ the controls bullet below.
   row takes a `backdrop` only in a bar slot), `AdaptivePillChoice` (a full-width sliding-pill
   toggle in Material, like the drawer's Chats/Projects switch, for a few short options; the
   liquid segmented control in glass), `AdaptiveFloatingActionButton` (`small` for the M3
-  small FAB), `AdaptiveSectionHeader`, the four
+  small FAB), `AdaptiveExtendedFloatingActionButton` (labelled; collapse it with `expanded` on scroll), `AdaptiveSectionHeader`, the four
   `Adaptive*Chip`s (pills), `AdaptiveSnackbarHost` (a glass capsule toast that samples the
   `AdaptiveScaffold` backdrop) and `AdaptiveCircularProgressIndicator` (iOS activity indicator when
   indeterminate). Each mirrors the M3 signature and passes straight through in Material, and detekt
@@ -215,6 +219,11 @@ the controls bullet below.
   recorded content is usually transparent, and a blurred transparent copy lets the sharp original
   show through. Don't add `vibrancy()` back without measuring; it was the entire cost of glass while
   streaming.
+
+### Status colours (`theme/StatusColors.kt`)
+`statusColors()` gives `success`, `info`, `warning`, `neutral`, `error` for state (connected, in
+progress, needs you, idle, failed). Use it instead of colour literals; it follows light/dark and the
+accent. Always pair a status colour with a label or icon, never colour alone.
 
 ### Context usage breakdown (`contextusage/`)
 `ContextBreakdownCard` renders the context-window breakdown for both the chat gauge (`:feature:chat`)

@@ -1,54 +1,52 @@
 package com.garfiec.librechat.feature.settings.screen
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridScope
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Extension
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.garfiec.librechat.core.model.mcp.McpServer
-import com.garfiec.librechat.core.model.mcp.McpServerStatus
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
-import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
-import com.garfiec.librechat.core.ui.components.AdaptiveDivider
-import com.garfiec.librechat.core.ui.components.AdaptiveFloatingActionButton
+import com.garfiec.librechat.core.ui.components.AdaptiveButton
+import com.garfiec.librechat.core.ui.components.AdaptiveExtendedFloatingActionButton
+import com.garfiec.librechat.core.ui.components.AdaptiveFilterChip
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
+import com.garfiec.librechat.core.ui.components.EmptyState
 import com.garfiec.librechat.core.ui.components.ErrorBanner
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
@@ -59,32 +57,43 @@ import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
+import com.garfiec.librechat.feature.settings.viewmodel.MCP_SEARCH_THRESHOLD
+import com.garfiec.librechat.feature.settings.viewmodel.McpServerRow
+import com.garfiec.librechat.feature.settings.viewmodel.McpUiState
 import com.garfiec.librechat.feature.settings.viewmodel.McpViewModel
-import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
-/** Manages MCP server connections with status indicators, CRUD, and tool browsing. */
+/** Manages MCP server connections: status, the action that fixes each, CRUD, and tool browsing. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun McpServersScreen(
     onNavigateBack: () -> Unit,
+    onAddServer: () -> Unit,
+    onEditServer: (serverName: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: McpViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val retryLabel = stringResource(Res.string.action_retry)
+    val gridState = rememberLazyGridState()
+    val fabExpanded by remember { derivedStateOf { gridState.firstVisibleItemIndex == 0 } }
+    var pendingDelete by remember { mutableStateOf<McpServerRow?>(null) }
 
     LaunchedEffect(uiState.error) {
         val error = uiState.error ?: return@LaunchedEffect
+        // With nothing listed, the error banner owns the error; clearing it here would leave the
+        // empty state claiming there are no servers, with no way to retry.
+        if (uiState.servers.isEmpty()) return@LaunchedEffect
+        val retry = uiState.errorRetry
         val result = snackbarHostState.showSnackbar(
             message = error,
             actionLabel = retryLabel,
         )
         viewModel.dismissError()
         if (result == SnackbarResult.ActionPerformed) {
-            viewModel.loadServers()
+            viewModel.retry(retry)
         }
     }
 
@@ -96,6 +105,8 @@ fun McpServersScreen(
         )
         viewModel.dismissSuccessMessage()
     }
+
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refreshOnReturn() }
 
     AdaptiveScaffold(
         modifier = modifier,
@@ -121,99 +132,84 @@ fun McpServersScreen(
             )
         },
         floatingActionButton = {
-            if (uiState.canCreateServer) {
-                AdaptiveFloatingActionButton(onClick = viewModel::showAddServerDialog) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = stringResource(Res.string.cd_add_server),
-                    )
-                }
+            // The empty state carries its own Add button; two of them would compete.
+            if (uiState.canCreateServer && uiState.servers.isNotEmpty()) {
+                AdaptiveExtendedFloatingActionButton(
+                    text = { Text(stringResource(Res.string.cd_add_server)) },
+                    icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                    onClick = onAddServer,
+                    expanded = fabExpanded,
+                )
             }
         },
     ) { innerPadding ->
-        if (uiState.isLoading && uiState.servers.isEmpty()) {
-            LoadingIndicator()
-        } else if (uiState.error != null && uiState.servers.isEmpty()) {
-            ErrorBanner(
+        when {
+            uiState.isLoading && uiState.servers.isEmpty() -> LoadingIndicator()
+            uiState.error != null && uiState.servers.isEmpty() -> ErrorBanner(
                 message = uiState.error ?: stringResource(Res.string.error_failed_to_load_servers),
                 modifier = Modifier.padding(innerPadding),
-                onRetry = { viewModel.loadServers() },
+                // Everything, not just the list: a first load that failed lost status, tools and permissions too.
+                onRetry = {
+                    viewModel.dismissError()
+                    viewModel.refresh()
+                },
             )
-        } else {
-            PullToRefreshBox(
+            uiState.servers.isEmpty() -> McpEmptyState(
+                canCreate = uiState.canCreateServer,
+                onAdd = onAddServer,
+                modifier = Modifier.padding(innerPadding),
+            )
+            else -> PullToRefreshBox(
                 isRefreshing = uiState.isRefreshing,
                 onRefresh = viewModel::refresh,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
+                modifier = Modifier.fillMaxSize().padding(innerPadding),
             ) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                ) {
-                    if (uiState.servers.isEmpty()) {
-                        item(key = "empty_state") {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(32.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(
-                                        text = stringResource(Res.string.no_mcp_servers),
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = stringResource(Res.string.mcp_add_hint),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                            }
-                        }
-                    } else {
-                        items(
-                            items = uiState.servers,
-                            key = { it.name },
-                            contentType = { "mcp_server" },
-                        ) { server ->
-                            val serverStatus = uiState.connectionStatus[server.name]
-                            val serverTools = uiState.tools.filter { it.serverName == server.name }
-                            McpServerListItem(
-                                server = server,
-                                serverStatus = serverStatus,
-                                toolCount = serverTools.size,
-                                isReinitializing = server.name in uiState.reinitializingServers,
-                                onEdit = { viewModel.showEditServerDialog(server) },
-                                onDelete = { viewModel.deleteServer(server.name) },
-                                onReinitialize = { viewModel.reinitializeServer(server.name) },
-                                onShowTools = {
-                                    if (serverTools.isNotEmpty()) {
-                                        viewModel.showToolsSheet(server.name)
-                                    }
-                                },
+                BoxWithConstraints {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(if (maxWidth >= TWO_COLUMN_MIN_WIDTH) 2 else 1),
+                        state = gridState,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = FAB_CLEARANCE),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        listHeader(uiState, viewModel::onSearchQueryChange, viewModel::setAttentionOnly)
+                        // Prefixed: a server may be named like a header item ("search").
+                        items(items = uiState.rows, key = { "server:${it.name}" }, contentType = { "mcp_server" }) { row ->
+                            McpServerCard(
+                                row = row,
+                                onOpen = { viewModel.openServer(row.name) },
+                                onReconnect = { viewModel.reinitializeServer(row.name) },
+                                onEdit = { onEditServer(row.name) },
+                                onDelete = { pendingDelete = row },
+                                modifier = Modifier.animateItem(),
                             )
                         }
                     }
-
-                    item { Spacer(modifier = Modifier.height(80.dp)) }
                 }
             }
         }
     }
 
-    if (uiState.showServerDialog) {
-        McpServerDialog(
-            editingServer = uiState.editingServer,
-            oauthSecretReentryRequired = uiState.oauthSecretReentryRequired,
-            apiKeyReentryRequired = uiState.apiKeyReentryRequired,
-            saveError = uiState.serverDialogError,
-            isSaving = uiState.isSavingServer,
-            onDismiss = viewModel::dismissServerDialog,
-            onSave = { name, description, url, type, apiKey, oauth ->
-                viewModel.saveServer(name, description, url, type, apiKey, oauth)
+    pendingDelete?.let { row ->
+        AdaptiveAlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = { Text(stringResource(Res.string.dialog_title_delete_server)) },
+            text = { Text(stringResource(Res.string.dialog_delete_server_message, row.title)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        pendingDelete = null
+                        viewModel.deleteServer(row.name)
+                    },
+                ) {
+                    Text(stringResource(Res.string.action_delete), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDelete = null }) {
+                    Text(stringResource(Res.string.action_cancel))
+                }
             },
         )
     }
@@ -246,159 +242,98 @@ fun McpServersScreen(
         )
     }
 
+    uiState.selectedRow?.let { row ->
+        McpServerSheet(
+            row = row,
+            tools = uiState.selectedTools,
+            onDismiss = viewModel::dismissServer,
+            onReconnect = { viewModel.reinitializeServer(row.name) },
+            onEdit = {
+                viewModel.dismissServer()
+                onEditServer(row.name)
+            },
+            onDelete = { pendingDelete = row },
+        )
+    }
+
     if (uiState.showToolsSheet) {
         McpToolsSheet(
             tools = uiState.tools,
-            serverFilter = uiState.toolsSheetServerName,
+            serverTitles = uiState.serverTitles,
             onDismiss = viewModel::dismissToolsSheet,
         )
     }
 }
 
-@Composable
-internal fun McpServerListItem(
-    server: McpServer,
-    serverStatus: McpServerStatus?,
-    toolCount: Int,
-    isReinitializing: Boolean,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-    onReinitialize: () -> Unit,
-    onShowTools: () -> Unit,
-    modifier: Modifier = Modifier,
+/** Search (once there are enough servers to need it), the attention filter, and the no-match line. */
+private fun LazyGridScope.listHeader(
+    uiState: McpUiState,
+    onQueryChange: (String) -> Unit,
+    onAttentionOnlyChange: (Boolean) -> Unit,
 ) {
-    var showDeleteConfirm by remember { mutableStateOf(false) }
-    val isConnected = serverStatus?.isConnected ?: server.isConnected
-
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onEdit),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-        ) {
-            Row(
+    if (uiState.allRows.size >= MCP_SEARCH_THRESHOLD || uiState.searchQuery.isNotEmpty()) {
+        item(key = "search", span = { GridItemSpan(maxLineSpan) }, contentType = "search") {
+            AdaptiveOutlinedTextField(
+                value = uiState.searchQuery,
+                onValueChange = onQueryChange,
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                McpServerStatusIndicator(
-                    isConnected = if (serverStatus != null) isConnected else null,
+                placeholder = { Text(stringResource(Res.string.mcp_search_hint)) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                singleLine = true,
+            )
+        }
+    }
+    if (uiState.attentionCount > 0) {
+        item(key = "filters", span = { GridItemSpan(maxLineSpan) }, contentType = "filters") {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                AdaptiveFilterChip(
+                    selected = !uiState.attentionOnly,
+                    onClick = { onAttentionOnlyChange(false) },
+                    label = { Text(stringResource(Res.string.mcp_filter_all)) },
                 )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = server.title ?: server.name,
-                        style = MaterialTheme.typography.bodyLarge,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    if (server.url.isNotBlank()) {
-                        Text(
-                            text = server.url,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    if (toolCount > 0) {
-                        Text(
-                            text = pluralStringResource(Res.plurals.mcp_tool_count, toolCount, toolCount),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                IconButton(
-                    onClick = onReinitialize,
-                    modifier = Modifier.size(36.dp),
-                    enabled = !isReinitializing,
-                ) {
-                    if (isReinitializing) {
-                        AdaptiveCircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = stringResource(Res.string.cd_reinitialize),
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                if (toolCount > 0) {
-                    IconButton(onClick = onShowTools, modifier = Modifier.size(36.dp)) {
-                        Icon(
-                            imageVector = Icons.Default.Build,
-                            contentDescription = stringResource(Res.string.cd_view_tools),
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                IconButton(onClick = onEdit, modifier = Modifier.size(36.dp)) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = stringResource(Res.string.cd_edit_server),
-                        modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                IconButton(
-                    onClick = { showDeleteConfirm = true },
-                    modifier = Modifier.size(36.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = stringResource(Res.string.cd_delete_server),
-                        modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.error,
-                    )
-                }
-            }
-
-            // Error display
-            val error = serverStatus?.error ?: server.error
-            if (!error.isNullOrBlank()) {
-                Text(
-                    text = error,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(start = 22.dp, top = 4.dp),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
+                AdaptiveFilterChip(
+                    selected = uiState.attentionOnly,
+                    onClick = { onAttentionOnlyChange(true) },
+                    label = { Text(stringResource(Res.string.mcp_filter_needs_attention, uiState.attentionCount)) },
                 )
             }
         }
     }
-    AdaptiveDivider()
-
-    if (showDeleteConfirm) {
-        AdaptiveAlertDialog(
-            onDismissRequest = { showDeleteConfirm = false },
-            title = { Text(stringResource(Res.string.dialog_title_delete_server)) },
-            text = { Text(stringResource(Res.string.dialog_delete_server_message, server.name)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showDeleteConfirm = false
-                        onDelete()
-                    },
-                ) {
-                    Text(stringResource(Res.string.action_delete), color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text(stringResource(Res.string.action_cancel))
-                }
-            },
-        )
+    if (uiState.rows.isEmpty()) {
+        item(key = "no_results", span = { GridItemSpan(maxLineSpan) }, contentType = "no_results") {
+            Text(
+                text = stringResource(Res.string.mcp_search_no_results),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+            )
+        }
     }
 }
+
+@Composable
+private fun McpEmptyState(canCreate: Boolean, onAdd: () -> Unit, modifier: Modifier = Modifier) {
+    EmptyState(
+        title = stringResource(Res.string.mcp_empty_title),
+        description = stringResource(if (canCreate) Res.string.mcp_empty_body else Res.string.mcp_empty_body_no_create),
+        icon = Icons.Default.Extension,
+        modifier = modifier.padding(horizontal = 32.dp),
+        action = if (canCreate) {
+            {
+                AdaptiveButton(onClick = onAdd) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Text(stringResource(Res.string.cd_add_server), modifier = Modifier.padding(start = 8.dp))
+                }
+            }
+        } else {
+            null
+        },
+    )
+}
+
+/** Same breakpoint the Projects index uses for its second column. */
+private val TWO_COLUMN_MIN_WIDTH = 600.dp
+
+/** Room under the last card for the extended FAB. */
+private val FAB_CLEARANCE = 96.dp

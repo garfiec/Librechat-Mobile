@@ -57,6 +57,17 @@ class PermissionsApi(
         }.body()
 
     /**
+     * GET /api/permissions/{resourceType}/effective/all — the caller's `PermissionBits` on every
+     * resource of the type they can reach, keyed by resource id (the record's `_id`, e.g. an MCP
+     * server's `dbId`). A resource missing from the map grants nothing beyond what the caller
+     * could already see.
+     */
+    suspend fun getAllEffectivePermissions(resourceType: String): Map<String, Int> =
+        client.get {
+            url { path("api/permissions/$resourceType/effective/all") }
+        }.body()
+
+    /**
      * GET /api/permissions/search-principals?q=... — autocomplete users/groups
      * via the people-picker. Returns a list of principals (USER + GROUP).
      */

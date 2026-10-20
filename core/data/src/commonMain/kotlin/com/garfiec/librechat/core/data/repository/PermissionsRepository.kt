@@ -25,4 +25,7 @@ interface PermissionsRepository {
     suspend fun getResourceRoles(resourceType: String): Result<List<AccessRole>>
 
     suspend fun searchPrincipals(query: String, limit: Int? = null): Result<List<Principal>>
+
+    /** The caller's permission bits per resource id, for every [resourceType] resource they can reach. */
+    suspend fun getAllEffectivePermissions(resourceType: String): Result<Map<String, Int>>
 }

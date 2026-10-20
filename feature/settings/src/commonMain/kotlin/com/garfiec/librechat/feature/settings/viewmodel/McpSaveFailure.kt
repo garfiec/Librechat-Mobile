@@ -4,19 +4,17 @@ import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.model.error.ServerErrorCode
 
-/** A refused MCP server save, as [McpViewModel] reports it. */
+/** A refused MCP server save, as the editor reports it. */
 internal data class McpSaveFailure(
     /** `MCP_OAUTH_SECRET_REENTRY_REQUIRED`: the client secret must be typed again. */
     val secretReentry: Boolean,
     /** `MCP_API_KEY_REENTRY_REQUIRED` (v0.8.8-rc4): the admin API key must be typed again. */
     val keyReentry: Boolean,
     /**
-     * The line the open dialog shows, or null for a re-entry refusal: the dialog words those from
-     * its own string resources, so they are localized.
+     * The line the form shows, or null for a re-entry refusal: the form tells that once, by the
+     * field that has to be filled in, worded from its own localized strings.
      */
-    val dialogMessage: String?,
-    /** The same outcome as a snackbar, for a save whose dialog closed while it ran. */
-    val snackbarMessage: String,
+    val message: String?,
 )
 
 /**
@@ -33,16 +31,7 @@ internal fun Result.Error.toMcpSaveFailure(fallback: String): McpSaveFailure {
     return McpSaveFailure(
         secretReentry = secretReentry,
         keyReentry = keyReentry,
-        dialogMessage = detail.takeUnless { secretReentry || keyReentry },
-        snackbarMessage = when {
-            secretReentry ->
-                "This server's OAuth endpoints changed, so the saved client secret no longer applies. " +
-                    "Enter the client secret again to save."
-            keyReentry ->
-                "This server's connection settings changed, so the saved API key no longer applies. " +
-                    "Enter the API key again to save."
-            else -> detail
-        },
+        message = detail.takeUnless { secretReentry || keyReentry },
     )
 }
 

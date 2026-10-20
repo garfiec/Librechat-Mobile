@@ -1622,6 +1622,48 @@
       },
       "why": "The server's PPTX renderer. pptx-preview is not vendored because it is not FOSS (no LICENSE in the tarball; its README forbids republishing or modifying the source), so the client strips it and PPTX documents show the server's slide-list fallback.",
       "failure_mode": "Upstream switches PPTX to a different, FOSS renderer and mobile keeps showing the slide-list fallback without anyone noticing it could now render at full fidelity. Or a re-licensed pptx-preview goes unnoticed. Check the license of whatever this block now names."
+    },
+    {
+      "id": "mcp-status-badge",
+      "upstream": {
+        "file": "client/src/components/SidePanel/MCPBuilder/MCPStatusBadge.tsx",
+        "symbol": "getStatusDotColor",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/McpDisplayStatus.kt",
+        "symbol": "mcpDisplayStatus"
+      },
+      "why": "Which connection states the MCP servers page shows as connected, connecting, needing sign-in, idle or failed, and so which servers get a Sign in or Retry button and sort first.",
+      "failure_mode": "A state upstream starts reporting falls through to the wrong label: a server that needs the user's action reads as merely disconnected, or a healthy one as failed. Nothing errors."
+    },
+    {
+      "id": "mcp-trust-checkbox",
+      "upstream": {
+        "file": "client/src/components/SidePanel/MCPBuilder/MCPServerDialog/sections/TrustSection.tsx",
+        "symbol": "TrustSection",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/viewmodel/McpServerEditorViewModel.kt",
+        "symbol": "McpServerEditorUiState.canSave (draft.trusted)"
+      },
+      "why": "The web form refuses to add an MCP server until the user ticks the trust acknowledgement, and starts an edit already ticked. The server never checks it, so the rule lives only in the two clients.",
+      "failure_mode": "Upstream changes when the acknowledgement is asked (every edit, or a new required consent) and the app keeps adding servers without it. No request fails, so nothing reports the gap."
+    },
+    {
+      "id": "mcp-server-access",
+      "upstream": {
+        "file": "client/src/hooks/MCP/useMCPServerManager.ts",
+        "symbol": "effectivePermissions (dbId / consumeOnly gating)",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/viewmodel/McpServerAccess.kt",
+        "symbol": "mcpServerAccess"
+      },
+      "why": "Which MCP servers offer Edit and Delete: none without a dbId (YAML-defined) or with consumeOnly, otherwise the effective permission bits keyed by dbId. Deliberately looser than upstream where the bits are unknown.",
+      "failure_mode": "Upstream adds a new read-only marker or changes which id the permissions map is keyed by, and the app offers Edit/Delete on servers the user can't change (each save refused) or hides them on servers they can. Nothing errors until a write is attempted."
     }
   ]
 }

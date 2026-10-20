@@ -33,17 +33,14 @@
     <string name="cd_delete_api_key">Удалить API-ключ</string>
     <string name="cd_delete_memory">Удалить запись памяти</string>
     <string name="cd_delete_preset">Удалить пресет</string>
-    <string name="cd_delete_server">Удалить сервер</string>
     <string name="cd_delete_shared_link">Удалить общую ссылку</string>
     <string name="cd_edit_memory">Изменить запись памяти</string>
     <string name="memory_redacted_key">Скрытая запись</string>
     <string name="memory_redacted_value">Политика содержимого этого сервера скрывает сохранённые здесь данные. Удалить запись всё равно можно.</string>
-    <string name="cd_edit_server">Изменить сервер</string>
     <string name="cd_loading_profile">Загрузка профиля</string>
     <string name="cd_make_private">Сделать приватным</string>
     <string name="cd_make_public">Сделать публичным</string>
     <string name="cd_preview_voice">Прослушать голос</string>
-    <string name="cd_reinitialize">Переинициализировать</string>
     <string name="cd_avatar_preview">Предпросмотр аватара</string>
     <string name="cd_selected">Выбрано</string>
     <string name="cd_selected_avatar">Выбранный аватар</string>
@@ -55,7 +52,6 @@
     <string name="cd_tts_voice_selector">Выберите голос TTS. Сейчас выбран %1$s</string>
     <string name="cd_user_avatar">Аватар пользователя</string>
     <string name="cd_view_all_tools">Показать все инструменты</string>
-    <string name="cd_view_tools">Показать инструменты</string>
 
     <!-- Section headers -->
     <string name="section_about">О приложении</string>
@@ -496,16 +492,12 @@
     <!-- MCP -->
     <string name="add_mcp_server">Добавить сервер MCP</string>
     <string name="edit_mcp_server">Изменить сервер MCP</string>
-    <string name="no_mcp_servers">Серверы MCP не настроены</string>
-    <string name="mcp_add_hint">Нажмите кнопку +, чтобы добавить сервер</string>
     <string name="mcp_name_label">Имя</string>
     <string name="mcp_description_label">Описание</string>
     <string name="mcp_description_optional">Необязательно</string>
     <string name="mcp_url_label">URL</string>
-    <string name="mcp_type_label">Тип</string>
     <string name="mcp_type_sse">SSE</string>
     <string name="mcp_type_streamable_http">Streamable HTTP</string>
-    <string name="mcp_auth_label">Аутентификация</string>
     <string name="mcp_auth_none">Нет</string>
     <string name="mcp_auth_api_key">API-ключ</string>
     <string name="mcp_auth_oauth">OAuth</string>
@@ -769,8 +761,6 @@
     <string name="server_user_ca_notice">Доверие через центр сертификации, установленный на этом устройстве</string>
     <string name="export_coming_soon">Экспорт скоро появится</string>
     <string name="mcp_tools_all">Все инструменты MCP</string>
-    <string name="mcp_tools_for_server">Инструменты: %1$s</string>
-    <string name="mcp_tool_server">Сервер: %1$s</string>
     <string name="mcp_server_unknown">Неизвестный</string>
     <string name="avatar_upload_unavailable_ios">Загрузка аватара пока недоступна на iOS.</string>
     <string name="dialog_ok">ОК</string>
@@ -780,4 +770,34 @@
         <item quantity="many">%1$d инструментов</item>
         <item quantity="other">%1$d инструмента</item>
     </plurals>
+    <string name="mcp_status_connected">Подключён</string>
+    <string name="mcp_status_connecting">Подключение…</string>
+    <string name="mcp_status_needs_sign_in">Нужен вход</string>
+    <string name="mcp_status_needs_setup">Настройте в веб-версии</string>
+    <string name="mcp_status_on_demand">Подключается во время чата</string>
+    <string name="mcp_status_disconnected">Не подключён</string>
+    <string name="mcp_status_failed">Не удаётся подключиться</string>
+    <string name="mcp_action_sign_in">Войти</string>
+    <string name="mcp_action_connect">Подключить</string>
+    <string name="mcp_action_reconnect">Переподключить</string>
+    <string name="mcp_action_edit">Изменить</string>
+    <string name="mcp_view_only">Только просмотр</string>
+    <string name="mcp_filter_all">Все</string>
+    <string name="mcp_filter_needs_attention">Требуют внимания (%1$d)</string>
+    <string name="mcp_search_hint">Поиск серверов</string>
+    <string name="mcp_search_no_results">Нет подходящих серверов</string>
+    <string name="mcp_empty_title">Дайте чатам инструменты</string>
+    <string name="mcp_empty_body">MCP-сервер позволяет моделям искать, читать и действовать в другом приложении, например в GitHub или календаре. Добавьте его по URL.</string>
+    <string name="mcp_empty_body_no_create">MCP-сервер позволяет моделям искать, читать и действовать в другом приложении, например в GitHub или календаре. Попросите администратора добавить его.</string>
+    <string name="cd_server_options">Действия для %1$s</string>
+    <string name="mcp_tools_title">Инструменты</string>
+    <string name="mcp_tools_filter_hint">Фильтр инструментов</string>
+    <string name="mcp_tools_no_match">Нет подходящих инструментов</string>
+    <string name="mcp_needs_setup_detail">Этому серверу нужны данные, которые можете указать только вы, например ваш API-ключ. Добавьте их на сайте LibreChat и переподключитесь.</string>
+    <string name="mcp_editor_section_about">Описание</string>
+    <string name="mcp_editor_section_connection">Подключение</string>
+    <string name="mcp_editor_section_sign_in">Вход</string>
+    <string name="mcp_editor_load_failed">Не удалось загрузить этот сервер.</string>
+    <string name="mcp_trust_label">Я доверяю этому серверу</string>
+    <string name="mcp_trust_sublabel">Он может читать то, что вы ему отправляете, и действовать от вашего имени в подключённом приложении. Добавляйте только серверы, которым доверяете.</string>
 </resources>

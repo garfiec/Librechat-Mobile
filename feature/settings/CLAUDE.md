@@ -43,7 +43,10 @@
 
 ### Settings Sub-screens (via SettingsNavigation)
 - `MemoriesScreen` — full memory CRUD, enable/disable toggle, own ViewModel (`MemoriesViewModel`); opened from the Data tab's Memories row (route `Memories`)
-- `McpServersScreen` — server list with status badges, CRUD, reinitialize, tools sheet (`McpViewModel`); opened from the Data tab's MCP servers row (route `McpServers`). Add is hidden without MCP_SERVERS CREATE (`McpUiState.canCreateServer`)
+- `McpServersScreen` — server cards (`McpServerCard`), search, a "Needs attention" filter, CRUD, reinitialize, tools sheet (`McpViewModel`); opened from the Data tab's MCP servers row (route `McpServers`). Add is hidden without MCP_SERVERS CREATE (`McpUiState.canCreateServer`)
+  - Status comes from `mcpDisplayStatus` (`:core:model`, a registered mirror of upstream `MCPStatusBadge`), never from `isConnected`: needs-sign-in, request-scoped-idle and failed are all `disconnected` on the wire and must not look alike. Each card shows the status in words plus the one action that fixes it (Sign in / Retry / Connect) and an overflow menu (Reconnect when there is no action, Edit/Delete where allowed)
+  - Tapping a card opens `McpServerSheet` (status, full error, URL, actions, filterable tools) via `McpViewModel.openServer`; it disappears once `selectedRow` is null (server deleted). `McpToolsSheet` is the all-tools view from the top bar only
+  - Rows, sort and filter are pure functions in `McpServerRows.kt`, derived in `McpViewModel.uiState`; Edit/Delete follow `McpServerAccess` (no `dbId` or `consumeOnly` = read-only; else the effective permission bits; unknown = editable)
 - `PresetManagerScreen` — list/delete presets (`PresetManagerViewModel`)
 - `CommandsConfigScreen` — enable/disable slash commands
 - `AppearanceSettingsScreen` — theme, interface style, accent colour, wallpaper colours; reached from one summary row on the General tab (route `AppearanceSettings`, `AppearanceNavigation.kt`). Own ViewModel (`AppearanceSettingsViewModel`, ThemeDataStore only); the General tab's summary row reads it too
@@ -57,7 +60,9 @@
 - Delegates take a `SettingsStateHandle<S>` typed to their host ViewModel's state, so a delegate moves with the page that uses it
 - Routes: `Memories`, `McpServers`, `PresetManager` (all `@Serializable` data objects extending `SettingsRoute`)
 - **Gotcha**: Memories and MCP navigation routes defined in their own files (`MemoriesNavigation.kt`, `McpNavigation.kt`) but wired through `SettingsNavigation.kt`
-- **Gotcha**: `McpServerDialog` uses `McpServerType` enum (SSE, STREAMABLE_HTTP) — must match backend expectations
+- `McpServerEditorScreen` (route `McpServerEditor(serverName: String?)`, null = add) is the full-screen add/edit form, built like the schedule editor: `McpServerEditorViewModel` owns the draft, the discard prompt and the save, including the re-entry prompts (`MCP_OAUTH_SECRET_REENTRY_REQUIRED` / `MCP_API_KEY_REENTRY_REQUIRED`) and the iconPath/obo carry-over (`McpPreservedFields`). `McpServersScreen` refreshes on ON_RESUME (`refreshOnReturn`) to pick up a save
+- **Trust checkbox**: adding a server requires "I trust this server", as the web form does. It is client-side only (the server doesn't check it); an edit starts checked. The wording comes from `interface.mcpServers.trustCheckbox` when configured (`mcpTrustCheckbox()` + `resolveLocalizedConfigText`, markup stripped), else our strings
+- **Gotcha**: the editor offers `McpServerType` SSE and STREAMABLE_HTTP only; a stored `HTTP` shows as Streamable HTTP and is saved back as-is unless the user changes it
 - **Gotcha**: Memory keys are immutable after creation (edit dialog disables key field)
 
 ### API Keys

@@ -2,6 +2,7 @@ package com.garfiec.librechat.core.ui.components
 
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.FloatingActionButtonElevation
@@ -56,4 +57,41 @@ fun AdaptiveFloatingActionButton(
     } else {
         FloatingActionButton(onClick, fabModifier, shape, fabContainer, fabContent, fabElevation, content = content)
     }
+}
+
+/**
+ * The labelled FAB: [icon] beside [text], collapsing to the icon alone when [expanded] is false
+ * (callers collapse it once the list scrolls). Same glass and colour rules as
+ * [AdaptiveFloatingActionButton].
+ */
+@Composable
+fun AdaptiveExtendedFloatingActionButton(
+    text: @Composable () -> Unit,
+    icon: @Composable () -> Unit,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    expanded: Boolean = true,
+    containerColor: Color = FloatingActionButtonDefaults.containerColor,
+    contentColor: Color = contentColorFor(containerColor),
+    elevation: FloatingActionButtonElevation = FloatingActionButtonDefaults.elevation(),
+    backdrop: GlassBackdrop? = LocalGlassBackdrop.current,
+) {
+    val glass = rememberGlassStyle()
+    val bounce = rememberPressBounce()
+    val fabModifier = if (glass == null) {
+        modifier.pressBounce(bounce)
+    } else {
+        modifier.glassSurface(glass, GlassFabShape, backdrop)
+    }
+    ExtendedFloatingActionButton(
+        text = text,
+        icon = icon,
+        onClick = onClick,
+        modifier = fabModifier,
+        expanded = expanded,
+        shape = if (glass == null) FloatingActionButtonDefaults.extendedFabShape else GlassFabShape,
+        containerColor = if (glass == null) containerColor else Color.Transparent,
+        contentColor = if (glass == null) contentColor else MaterialTheme.colorScheme.primary,
+        elevation = if (glass == null) elevation else FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp),
+    )
 }

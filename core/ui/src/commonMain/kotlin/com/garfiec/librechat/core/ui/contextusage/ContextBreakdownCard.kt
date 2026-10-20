@@ -93,6 +93,7 @@ import com.garfiec.librechat.core.ui.resources.context_usage_used
 import com.garfiec.librechat.core.ui.resources.context_usage_window
 import com.garfiec.librechat.core.ui.theme.LocalAppLocale
 import com.garfiec.librechat.core.ui.theme.SeriesColors
+import com.garfiec.librechat.core.ui.theme.statusColors
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -116,8 +117,8 @@ data class ContextBreakdownModel(
 @Composable
 fun pressureColor(roundedPercent: Int): Color? = when (contextPressure(roundedPercent)) {
     ContextPressure.NONE -> null
-    ContextPressure.WARN -> SeriesColors.slot(WARNING_SLOT)
-    ContextPressure.DANGER -> MaterialTheme.colorScheme.error
+    ContextPressure.WARN -> statusColors().warning
+    ContextPressure.DANGER -> statusColors().error
 }
 
 /**
@@ -497,7 +498,5 @@ private val BreakdownCategory.label: StringResource
         BreakdownCategory.TOOLS_ALL -> Res.string.context_usage_tools_all
     }
 
-/** The series slot used for the "filling up" tint (amber in both themes). */
-private const val WARNING_SLOT = 4
 private val INDENT = 24.dp
 private val VALUE_GAP = 8.dp

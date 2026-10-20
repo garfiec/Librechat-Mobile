@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.ArtifactShortcut
-import com.garfiec.librechat.core.model.mcp.McpServer
+import com.garfiec.librechat.core.model.mcp.McpDisplayStatus
 import com.garfiec.librechat.core.model.ui.UiStyle
 import com.garfiec.librechat.core.ui.preview.PreviewNarrowScreens
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
@@ -30,15 +30,12 @@ private fun SettingsLabelsHost(style: UiStyle) {
         Surface {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(16.dp)) {
                 listOf(1, 3).forEach { count ->
-                    McpServerListItem(
-                        server = McpServer(name = "github-$count", title = "GitHub", url = "https://mcp.example.com/github"),
-                        serverStatus = null,
-                        toolCount = count,
-                        isReinitializing = false,
+                    McpServerCard(
+                        row = sampleMcpRow(title = "GitHub", status = McpDisplayStatus.CONNECTED, toolCount = count),
+                        onOpen = {},
+                        onReconnect = {},
                         onEdit = {},
                         onDelete = {},
-                        onReinitialize = {},
-                        onShowTools = {},
                     )
                 }
                 listOf("application/vnd.mermaid", "application/vnd.react").forEach { type ->

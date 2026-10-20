@@ -88,6 +88,11 @@ data class InterfaceConfig(
      * client unvalidated, and a non-integer here must not fail the whole `/api/config` decode.
      */
     val agentSelectorLimit: JsonElement? = null,
+    /**
+     * MCP server sub-capabilities, `{ placeholder, use, create, share, public, configureObo,
+     * trustCheckbox }`. Raw like [prompts] / [agents]; read the trust text through [mcpTrustCheckbox].
+     */
+    val mcpServers: JsonElement? = null,
 )
 
 /**

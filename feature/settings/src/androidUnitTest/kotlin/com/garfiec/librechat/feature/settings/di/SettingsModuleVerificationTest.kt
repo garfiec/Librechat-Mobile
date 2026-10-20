@@ -20,6 +20,7 @@ import com.garfiec.librechat.core.data.repository.FavoritesRepository
 import com.garfiec.librechat.core.data.repository.KeyRepository
 import com.garfiec.librechat.core.data.repository.McpRepository
 import com.garfiec.librechat.core.data.repository.MemoryRepository
+import com.garfiec.librechat.core.data.repository.PermissionsRepository
 import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.ServerRepository
@@ -53,6 +54,7 @@ class SettingsModuleVerificationTest {
                 ConversationRepository::class,
                 FavoritesRepository::class,
                 McpRepository::class,
+                PermissionsRepository::class,
                 MemoryRepository::class,
                 RoleRepository::class,
                 PermissionGate::class,

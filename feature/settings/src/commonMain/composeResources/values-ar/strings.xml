@@ -33,17 +33,14 @@
     <string name="cd_delete_api_key">حذف مفتاح API</string>
     <string name="cd_delete_memory">حذف الذاكرة</string>
     <string name="cd_delete_preset">حذف الإعداد المسبق</string>
-    <string name="cd_delete_server">حذف الخادم</string>
     <string name="cd_delete_shared_link">حذف الرابط المشترك</string>
     <string name="cd_edit_memory">تعديل الذاكرة</string>
     <string name="memory_redacted_key">إدخال مخفي</string>
     <string name="memory_redacted_value">تُخفي سياسة المحتوى في هذا الخادم ما هو مخزّن هنا. لا يزال بإمكانك حذفه.</string>
-    <string name="cd_edit_server">تعديل الخادم</string>
     <string name="cd_loading_profile">جارٍ تحميل الملف الشخصي</string>
     <string name="cd_make_private">جعله خاصًا</string>
     <string name="cd_make_public">جعله عامًا</string>
     <string name="cd_preview_voice">معاينة الصوت</string>
-    <string name="cd_reinitialize">إعادة التهيئة</string>
     <string name="cd_avatar_preview">معاينة الصورة الرمزية</string>
     <string name="cd_selected">محدد</string>
     <string name="cd_selected_avatar">الصورة الرمزية المحددة</string>
@@ -55,7 +52,6 @@
     <string name="cd_tts_voice_selector">اختيار صوت تحويل النص إلى كلام. الحالي %1$s</string>
     <string name="cd_user_avatar">الصورة الرمزية للمستخدم</string>
     <string name="cd_view_all_tools">عرض جميع الأدوات</string>
-    <string name="cd_view_tools">عرض الأدوات</string>
 
     <!-- Section headers -->
     <string name="section_about">حول</string>
@@ -508,16 +504,12 @@
     <!-- MCP -->
     <string name="add_mcp_server">إضافة خادم MCP</string>
     <string name="edit_mcp_server">تعديل خادم MCP</string>
-    <string name="no_mcp_servers">لا توجد خوادم MCP مُهيأة</string>
-    <string name="mcp_add_hint">انقر على زر + لإضافة خادم</string>
     <string name="mcp_name_label">الاسم</string>
     <string name="mcp_description_label">الوصف</string>
     <string name="mcp_description_optional">اختياري</string>
     <string name="mcp_url_label">الرابط</string>
-    <string name="mcp_type_label">النوع</string>
     <string name="mcp_type_sse">SSE</string>
     <string name="mcp_type_streamable_http">Streamable HTTP</string>
-    <string name="mcp_auth_label">المصادقة</string>
     <string name="mcp_auth_none">بدون</string>
     <string name="mcp_auth_api_key">مفتاح API</string>
     <string name="mcp_auth_oauth">OAuth</string>
@@ -785,8 +777,6 @@
     <string name="server_user_ca_notice">موثوق عبر جهة إصدار شهادات مثبّتة على هذا الجهاز</string>
     <string name="export_coming_soon">التصدير قادم قريبًا</string>
     <string name="mcp_tools_all">كل أدوات MCP</string>
-    <string name="mcp_tools_for_server">الأدوات: %1$s</string>
-    <string name="mcp_tool_server">الخادم: %1$s</string>
     <string name="mcp_server_unknown">غير معروف</string>
     <string name="avatar_upload_unavailable_ios">رفع الصورة الرمزية غير متاح بعد على iOS.</string>
     <string name="dialog_ok">حسنًا</string>
@@ -798,4 +788,34 @@
         <item quantity="many">%1$d أداة</item>
         <item quantity="other">%1$d أداة</item>
     </plurals>
+    <string name="mcp_status_connected">متصل</string>
+    <string name="mcp_status_connecting">جارٍ الاتصال…</string>
+    <string name="mcp_status_needs_sign_in">يلزم تسجيل الدخول</string>
+    <string name="mcp_status_needs_setup">أكمل الإعداد على الويب</string>
+    <string name="mcp_status_on_demand">يتصل عند الدردشة</string>
+    <string name="mcp_status_disconnected">غير متصل</string>
+    <string name="mcp_status_failed">تعذّر الاتصال</string>
+    <string name="mcp_action_sign_in">تسجيل الدخول</string>
+    <string name="mcp_action_connect">اتصال</string>
+    <string name="mcp_action_reconnect">إعادة الاتصال</string>
+    <string name="mcp_action_edit">تعديل</string>
+    <string name="mcp_view_only">عرض فقط</string>
+    <string name="mcp_filter_all">الكل</string>
+    <string name="mcp_filter_needs_attention">تحتاج إلى انتباه (%1$d)</string>
+    <string name="mcp_search_hint">البحث في الخوادم</string>
+    <string name="mcp_search_no_results">لا توجد خوادم مطابقة</string>
+    <string name="mcp_empty_title">امنح محادثاتك أدوات</string>
+    <string name="mcp_empty_body">يتيح خادم MCP للنماذج البحث والقراءة والتصرف في تطبيق آخر، مثل GitHub أو تقويمك. أضف خادمًا باستخدام عنوان URL الخاص به.</string>
+    <string name="mcp_empty_body_no_create">يتيح خادم MCP للنماذج البحث والقراءة والتصرف في تطبيق آخر، مثل GitHub أو تقويمك. اطلب من المسؤول إضافة خادم.</string>
+    <string name="cd_server_options">خيارات %1$s</string>
+    <string name="mcp_tools_title">الأدوات</string>
+    <string name="mcp_tools_filter_hint">تصفية الأدوات</string>
+    <string name="mcp_tools_no_match">لا توجد أدوات مطابقة</string>
+    <string name="mcp_needs_setup_detail">يحتاج هذا الخادم إلى بيانات لا يمكن أن يقدمها غيرك، مثل مفتاح API الخاص بك. أضفها على موقع LibreChat ثم أعد الاتصال.</string>
+    <string name="mcp_editor_section_about">حول</string>
+    <string name="mcp_editor_section_connection">الاتصال</string>
+    <string name="mcp_editor_section_sign_in">تسجيل الدخول</string>
+    <string name="mcp_editor_load_failed">تعذّر تحميل هذا الخادم.</string>
+    <string name="mcp_trust_label">أثق بهذا الخادم</string>
+    <string name="mcp_trust_sublabel">يمكنه قراءة ما ترسله إليه والتصرف نيابةً عنك في التطبيق الذي يتصل به. لا تُضف إلا الخوادم التي تثق بها.</string>
 </resources>

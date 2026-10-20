@@ -40,6 +40,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.common.extensions.firstGrapheme
 import com.garfiec.librechat.core.model.artifactTypeGlyph
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
@@ -207,7 +208,7 @@ internal fun AddArtifactToHomeScreenDialog(
                     AdaptiveOutlinedTextField(
                         // A single grapheme, so a short width is enough, but not narrower than its label.
                         value = custom.emoji,
-                        onValueChange = { choice = IconChoice.Custom(firstGrapheme(it)) },
+                        onValueChange = { choice = IconChoice.Custom(it.firstGrapheme()) },
                         singleLine = true,
                         label = { Text(stringResource(Res.string.add_to_home_screen_dialog_emoji_label)) },
                         modifier = Modifier.widthIn(min = 120.dp),
@@ -286,48 +287,3 @@ private fun glyphStyle(base: TextStyle, size: Dp): TextStyle {
 
 private val CHIP_GLYPH_SIZE = 22.dp
 private val PREVIEW_GLYPH_SIZE = 24.dp
-
-/**
- * Keeps only the first emoji grapheme cluster so the field holds a single glyph without corrupting the
- * common multi-code-unit emoji a naive "first code point" cut would break: variation-selector emoji
- * (❤️), skin-tone modifiers (👍🏽), flags and subdivision flags (🇺🇸), and ZWJ sequences (👨‍👩‍👧).
- */
-private fun firstGrapheme(input: String): String {
-    if (input.isEmpty()) return input
-    val (first, firstEnd) = codePointAt(input, 0)
-    if (first < 0) return "" // lone/partial surrogate — would render as a replacement box
-    // A flag is a pair of regional-indicator symbols.
-    if (first in 0x1F1E6..0x1F1FF) {
-        if (firstEnd < input.length) {
-            val (next, nextEnd) = codePointAt(input, firstEnd)
-            if (next in 0x1F1E6..0x1F1FF) return input.substring(0, nextEnd)
-        }
-        return input.substring(0, firstEnd)
-    }
-    var end = firstEnd
-    while (end < input.length) {
-        val (cp, cpEnd) = codePointAt(input, end)
-        val extends = cp == 0x200D || // ZWJ
-            cp in 0xFE00..0xFE0F || // variation selectors
-            cp in 0x1F3FB..0x1F3FF || // skin-tone modifiers
-            cp == 0x20E3 || // enclosing keycap
-            cp in 0x0300..0x036F || // combining marks
-            cp in 0xE0020..0xE007F // tag chars (subdivision flags)
-        if (!extends) break
-        end = cpEnd
-        // A ZWJ joins the following emoji into the same cluster — pull it in too.
-        if (cp == 0x200D && end < input.length) end = codePointAt(input, end).second
-    }
-    return input.substring(0, end)
-}
-
-/** Reads the code point starting at [index], returning it with the index just past it; -1 for a lone surrogate. */
-private fun codePointAt(s: String, index: Int): Pair<Int, Int> {
-    val c = s[index]
-    if (c.isHighSurrogate() && index + 1 < s.length && s[index + 1].isLowSurrogate()) {
-        val cp = 0x10000 + ((c.code - 0xD800) shl 10) + (s[index + 1].code - 0xDC00)
-        return cp to index + 2
-    }
-    if (c.isHighSurrogate() || c.isLowSurrogate()) return -1 to index + 1
-    return c.code to index + 1
-}

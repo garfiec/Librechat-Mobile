@@ -25,6 +25,7 @@ fun EmptyState(
     modifier: Modifier = Modifier,
     description: String? = null,
     icon: ImageVector? = null,
+    action: (@Composable () -> Unit)? = null,
 ) {
     Column(
         // Centred in what the keyboard leaves, so a search's "no results" is not drawn under it.
@@ -56,6 +57,10 @@ fun EmptyState(
                 color = MaterialTheme.colorScheme.outline,
                 textAlign = TextAlign.Center,
             )
+        }
+        if (action != null) {
+            Spacer(modifier = Modifier.height(24.dp))
+            action()
         }
     }
 }

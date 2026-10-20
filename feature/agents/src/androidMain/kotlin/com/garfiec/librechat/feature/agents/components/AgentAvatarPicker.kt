@@ -22,6 +22,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.garfiec.librechat.core.common.extensions.firstGrapheme
 import com.garfiec.librechat.feature.agents.resources.*
 import com.garfiec.librechat.feature.agents.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -68,7 +69,7 @@ actual fun AgentAvatarPicker(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = agentName.take(1).uppercase().ifEmpty { "?" },
+                    text = agentName.trim().firstGrapheme().uppercase().ifEmpty { "?" },
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )

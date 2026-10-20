@@ -22,3 +22,16 @@ object ResourceType {
     const val REMOTE_AGENT = "remoteAgent"
     const val SKILL = "skill"
 }
+
+/**
+ * Upstream `PermissionBits` (accessPermissions.ts): the bit flags in an effective-permissions
+ * value. A resource's bits are OR'd together, so test one with [has].
+ */
+object PermissionBits {
+    const val VIEW = 1
+    const val EDIT = 2
+    const val DELETE = 4
+    const val SHARE = 8
+
+    fun has(bits: Int, bit: Int): Boolean = bits and bit != 0
+}

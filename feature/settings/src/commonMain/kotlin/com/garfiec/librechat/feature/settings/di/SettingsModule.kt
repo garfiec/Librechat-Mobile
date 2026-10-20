@@ -11,6 +11,7 @@ import com.garfiec.librechat.feature.settings.viewmodel.ContextUsageSettingsView
 import com.garfiec.librechat.feature.settings.viewmodel.DataSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.FavoritesViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.GeneralSettingsViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.McpServerEditorViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.McpViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.MemoriesViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.PrefetchActivityViewModel
@@ -79,6 +80,8 @@ val settingsModule = module {
     viewModelOf(::GeneralSettingsViewModel)
     viewModelOf(::MemoriesViewModel)
     viewModelOf(::McpViewModel)
+    // viewModelOf can't read parametersOf: the editor takes the server it edits, or null to add one.
+    viewModel { params -> McpServerEditorViewModel(get(), get(), params.getOrNull()) }
     viewModelOf(::PresetManagerViewModel)
     // Explicit block for the same reason as AccountSettingsViewModel: the IO dispatcher is resolved by
     // qualifier, which the constructor DSL cannot express.

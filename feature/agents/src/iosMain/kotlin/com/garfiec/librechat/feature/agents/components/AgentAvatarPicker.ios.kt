@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.common.extensions.firstGrapheme
 
 @Composable
 actual fun AgentAvatarPicker(
@@ -28,7 +29,7 @@ actual fun AgentAvatarPicker(
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = agentName.take(1).uppercase().ifEmpty { "?" },
+            text = agentName.trim().firstGrapheme().uppercase().ifEmpty { "?" },
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onPrimaryContainer,
         )

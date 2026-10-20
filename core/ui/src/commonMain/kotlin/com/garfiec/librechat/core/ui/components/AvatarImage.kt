@@ -19,7 +19,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
@@ -27,6 +26,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.garfiec.librechat.core.common.extensions.firstGrapheme
 
 /** Default user avatar background matching the official web app. */
 private val UserAvatarBlue = Color(0xFF7989FF)
@@ -98,7 +98,7 @@ fun AvatarImage(
         // otherwise fall back to the theme's primaryContainer pair.
         val background = fallbackBackgroundColor ?: MaterialTheme.colorScheme.primaryContainer
         val foreground = if (fallbackBackgroundColor != null) {
-            if (background.luminance() > 0.5f) Color.Black else Color.White
+            readableOn(background)
         } else {
             MaterialTheme.colorScheme.onPrimaryContainer
         }
@@ -114,7 +114,7 @@ fun AvatarImage(
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = 1f)) {
                 Text(
-                    text = fallbackText.take(1).uppercase(),
+                    text = fallbackText.firstGrapheme().uppercase(),
                     style = MaterialTheme.typography.labelSmall,
                     color = foreground,
                     maxLines = 1,

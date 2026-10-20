@@ -33,17 +33,14 @@
     <string name="cd_delete_api_key">删除 API 密钥</string>
     <string name="cd_delete_memory">删除记忆</string>
     <string name="cd_delete_preset">删除预设</string>
-    <string name="cd_delete_server">删除服务器</string>
     <string name="cd_delete_shared_link">删除分享链接</string>
     <string name="cd_edit_memory">编辑记忆</string>
     <string name="memory_redacted_key">已隐藏的条目</string>
     <string name="memory_redacted_value">此服务器的内容策略隐藏了此处存储的内容。你仍可以将其删除。</string>
-    <string name="cd_edit_server">编辑服务器</string>
     <string name="cd_loading_profile">正在加载个人资料</string>
     <string name="cd_make_private">设为私有</string>
     <string name="cd_make_public">设为公开</string>
     <string name="cd_preview_voice">试听语音</string>
-    <string name="cd_reinitialize">重新初始化</string>
     <string name="cd_avatar_preview">头像预览</string>
     <string name="cd_selected">已选择</string>
     <string name="cd_selected_avatar">已选头像</string>
@@ -55,7 +52,6 @@
     <string name="cd_tts_voice_selector">选择 TTS 语音。当前为 %1$s</string>
     <string name="cd_user_avatar">用户头像</string>
     <string name="cd_view_all_tools">查看全部工具</string>
-    <string name="cd_view_tools">查看工具</string>
 
     <!-- Section headers -->
     <string name="section_about">关于</string>
@@ -478,16 +474,12 @@
     <!-- MCP -->
     <string name="add_mcp_server">添加 MCP 服务器</string>
     <string name="edit_mcp_server">编辑 MCP 服务器</string>
-    <string name="no_mcp_servers">未配置 MCP 服务器</string>
-    <string name="mcp_add_hint">点击 + 按钮添加服务器</string>
     <string name="mcp_name_label">名称</string>
     <string name="mcp_description_label">描述</string>
     <string name="mcp_description_optional">可选</string>
     <string name="mcp_url_label">URL</string>
-    <string name="mcp_type_label">类型</string>
     <string name="mcp_type_sse">SSE</string>
     <string name="mcp_type_streamable_http">Streamable HTTP</string>
-    <string name="mcp_auth_label">身份验证</string>
     <string name="mcp_auth_none">无</string>
     <string name="mcp_auth_api_key">API 密钥</string>
     <string name="mcp_auth_oauth">OAuth</string>
@@ -745,12 +737,40 @@
     <string name="server_user_ca_notice">通过此设备上安装的证书颁发机构获得信任</string>
     <string name="export_coming_soon">导出功能即将推出</string>
     <string name="mcp_tools_all">所有 MCP 工具</string>
-    <string name="mcp_tools_for_server">工具：%1$s</string>
-    <string name="mcp_tool_server">服务器：%1$s</string>
     <string name="mcp_server_unknown">未知</string>
     <string name="avatar_upload_unavailable_ios">iOS 暂不支持上传头像。</string>
     <string name="dialog_ok">确定</string>
     <plurals name="mcp_tool_count">
         <item quantity="other">%1$d 个工具</item>
     </plurals>
+    <string name="mcp_status_connected">已连接</string>
+    <string name="mcp_status_connecting">正在连接…</string>
+    <string name="mcp_status_needs_sign_in">需要登录</string>
+    <string name="mcp_status_needs_setup">请在网页版中设置</string>
+    <string name="mcp_status_on_demand">聊天时连接</string>
+    <string name="mcp_status_disconnected">未连接</string>
+    <string name="mcp_status_failed">无法连接</string>
+    <string name="mcp_action_sign_in">登录</string>
+    <string name="mcp_action_connect">连接</string>
+    <string name="mcp_action_reconnect">重新连接</string>
+    <string name="mcp_action_edit">编辑</string>
+    <string name="mcp_view_only">仅查看</string>
+    <string name="mcp_filter_all">全部</string>
+    <string name="mcp_filter_needs_attention">需要处理 (%1$d)</string>
+    <string name="mcp_search_hint">搜索服务器</string>
+    <string name="mcp_search_no_results">没有匹配的服务器</string>
+    <string name="mcp_empty_title">为你的聊天添加工具</string>
+    <string name="mcp_empty_body">MCP 服务器让模型可以在其他应用（如 GitHub 或你的日历）中搜索、读取和执行操作。使用其 URL 添加。</string>
+    <string name="mcp_empty_body_no_create">MCP 服务器让模型可以在其他应用（如 GitHub 或你的日历）中搜索、读取和执行操作。请让管理员添加。</string>
+    <string name="cd_server_options">%1$s 的选项</string>
+    <string name="mcp_tools_title">工具</string>
+    <string name="mcp_tools_filter_hint">筛选工具</string>
+    <string name="mcp_tools_no_match">没有匹配的工具</string>
+    <string name="mcp_needs_setup_detail">此服务器需要只有你能提供的信息，例如你自己的 API 密钥。请在 LibreChat 网站上添加，然后重新连接。</string>
+    <string name="mcp_editor_section_about">简介</string>
+    <string name="mcp_editor_section_connection">连接</string>
+    <string name="mcp_editor_section_sign_in">登录</string>
+    <string name="mcp_editor_load_failed">无法加载此服务器。</string>
+    <string name="mcp_trust_label">我信任此服务器</string>
+    <string name="mcp_trust_sublabel">它可以读取你发送的内容，并代表你在其连接的应用中执行操作。请只添加你信任的服务器。</string>
 </resources>
