@@ -636,6 +636,7 @@
     <string name="compact_confirm_not_now">Pas maintenant</string>
     <string name="compact_confirm_action">Compacter</string>
     <string name="cd_temporary_chat">Discussion temporaire</string>
+    <string name="temporary_chat_banner">Discussion temporaire : cette conversation ne sera pas enregistrée dans votre historique</string>
     <string name="notice_rename_failed">Impossible de renommer la conversation</string>
     <string name="notice_delete_failed">Impossible de supprimer la conversation</string>
     <string name="notice_archive_failed">Impossible d'archiver la conversation</string>

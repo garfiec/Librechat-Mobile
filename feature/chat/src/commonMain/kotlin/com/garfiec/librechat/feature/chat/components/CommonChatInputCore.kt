@@ -199,6 +199,8 @@ fun CommonChatInputCore(
     /** The pause holds a message the server refused: explain that the queue waits for the user,
      *  even mid-run, where the "Send queued" button itself is hidden. */
     queueHeldForRefusal: Boolean = false,
+    /** Temporary chat is on: a notice above the input says the conversation won't be saved. */
+    isTemporaryChat: Boolean = false,
     onSendQueuedMessages: () -> Unit = {},
     /** Commit / cancel the in-progress queued edit (see [ChatInputState.isEditingQueued]). */
     onCommitEdit: () -> Unit = {},
@@ -273,6 +275,8 @@ fun CommonChatInputCore(
                 onReorder = onReorderQueuedMessages,
                 fontSizeMultiplier = fontSizeMultiplier,
             )
+
+            TemporaryChatBanner(visible = isTemporaryChat)
 
             // Edit-mode banner takes priority over the paused-queue banner.
             if (state.isEditingQueued) {

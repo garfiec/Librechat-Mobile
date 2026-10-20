@@ -636,6 +636,7 @@
     <string name="compact_confirm_not_now">Не сейчас</string>
     <string name="compact_confirm_action">Сжать</string>
     <string name="cd_temporary_chat">Временный чат</string>
+    <string name="temporary_chat_banner">Временный чат: этот разговор не сохранится в истории</string>
     <string name="notice_rename_failed">Не удалось переименовать беседу</string>
     <string name="notice_delete_failed">Не удалось удалить беседу</string>
     <string name="notice_archive_failed">Не удалось архивировать беседу</string>

@@ -636,6 +636,7 @@
     <string name="compact_confirm_not_now">ليس الآن</string>
     <string name="compact_confirm_action">ضغط</string>
     <string name="cd_temporary_chat">محادثة مؤقتة</string>
+    <string name="temporary_chat_banner">محادثة مؤقتة: لن تُحفظ هذه المحادثة في سجلك</string>
     <string name="notice_rename_failed">تعذّرت إعادة تسمية المحادثة</string>
     <string name="notice_delete_failed">تعذّر حذف المحادثة</string>
     <string name="notice_archive_failed">تعذّرت أرشفة المحادثة</string>

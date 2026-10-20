@@ -636,6 +636,7 @@
     <string name="compact_confirm_not_now">後で</string>
     <string name="compact_confirm_action">圧縮</string>
     <string name="cd_temporary_chat">一時チャット</string>
+    <string name="temporary_chat_banner">一時チャット：この会話は履歴に保存されません</string>
     <string name="notice_rename_failed">会話の名前を変更できませんでした</string>
     <string name="notice_delete_failed">会話を削除できませんでした</string>
     <string name="notice_archive_failed">会話をアーカイブできませんでした</string>

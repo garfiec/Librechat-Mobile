@@ -66,6 +66,7 @@ internal expect fun ChatComposer(
     contextBarPlacement: ContextBarPlacement,
     queuedPausedCount: Int,
     queueHeldForRefusal: Boolean,
+    isTemporaryChat: Boolean,
     onSendQueuedMessages: () -> Unit,
     isEditingQueued: Boolean,
     onCommitEdit: () -> Unit,

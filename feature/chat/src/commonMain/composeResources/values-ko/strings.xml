@@ -636,6 +636,7 @@
     <string name="compact_confirm_not_now">나중에</string>
     <string name="compact_confirm_action">압축</string>
     <string name="cd_temporary_chat">임시 채팅</string>
+    <string name="temporary_chat_banner">임시 채팅: 이 대화는 기록에 저장되지 않습니다</string>
     <string name="notice_rename_failed">대화 이름을 변경하지 못했습니다</string>
     <string name="notice_delete_failed">대화를 삭제하지 못했습니다</string>
     <string name="notice_archive_failed">대화를 보관하지 못했습니다</string>

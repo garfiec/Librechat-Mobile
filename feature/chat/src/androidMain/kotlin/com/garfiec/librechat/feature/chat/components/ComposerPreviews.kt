@@ -43,6 +43,14 @@ private fun ComposerQueueHeldPreview() = ComposerSurface(UiStyle.MATERIAL) { Que
 
 @PreviewNarrowScreens
 @Composable
+private fun ComposerTemporaryChatMaterialPreview() = ComposerSurface(UiStyle.MATERIAL) { TemporaryChatComposerHost() }
+
+@PreviewNarrowScreens
+@Composable
+private fun ComposerTemporaryChatGlassPreview() = ComposerSurface(UiStyle.LIQUID_GLASS) { TemporaryChatComposerHost() }
+
+@PreviewNarrowScreens
+@Composable
 private fun ComposerContextPillPreview() = ComposerSurface(UiStyle.MATERIAL) { ContextPillComposerHost() }
 
 @PreviewNarrowScreens
@@ -108,6 +116,19 @@ private fun QueueHeldComposerHost() {
         onOpenTools = {},
         queueHeldForRefusal = true,
         queuedMessages = listOf(queuedRefused),
+    )
+}
+
+@Composable
+private fun TemporaryChatComposerHost() {
+    ChatInput(
+        inputText = "",
+        isStreaming = false,
+        onInputChange = {},
+        onSend = {},
+        onStop = {},
+        onOpenTools = {},
+        isTemporaryChat = true,
     )
 }
 

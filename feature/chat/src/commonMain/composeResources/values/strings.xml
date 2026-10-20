@@ -60,6 +60,7 @@
     <string name="title_edit_keep_editing">Keep editing</string>
     <string name="cd_more_options">More options</string>
     <string name="cd_temporary_chat">Temporary chat</string>
+    <string name="temporary_chat_banner">Temporary chat: this conversation won't be saved to your history</string>
     <string name="cd_scroll_to_bottom">Scroll to bottom</string>
     <string name="cd_select_model">Select model</string>
     <string name="cd_librechat">Switchboard</string>

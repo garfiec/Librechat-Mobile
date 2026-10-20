@@ -636,6 +636,7 @@
     <string name="compact_confirm_not_now">暂不</string>
     <string name="compact_confirm_action">压缩</string>
     <string name="cd_temporary_chat">临时聊天</string>
+    <string name="temporary_chat_banner">临时聊天：此对话不会保存到你的历史记录</string>
     <string name="notice_rename_failed">无法重命名对话</string>
     <string name="notice_delete_failed">无法删除对话</string>
     <string name="notice_archive_failed">无法归档对话</string>
