@@ -121,6 +121,70 @@ Other patterns that recur:
 - Comments state the rule the code follows, in the present tense ("drops below the label when it doesn't fit"). They never narrate the fix ("now", "used to", "the old height") and never cite audit ids.
 - Commit messages: Conventional Commits, no co-author, session or generated-by lines.
 
+## Writing previews
+
+A preview shows a layout at a chosen size, font scale and locale without building or installing the app. Write one for every component or screen a finding names, **before changing production code**. Commit them on their own, so the before renders show the code as it was. Previews are also how a fix is checked while it is written, and the render harness reuses their hosts.
+
+**Where they go.** Put them in a `*Previews.kt` file in the module's `androidMain`, beside what they preview (e.g. `feature/chat/src/androidMain/.../components/PausePanelPreviews.kt`). Use `androidx.compose.ui.tooling.preview.Preview`:
+- Only the Android `@Preview` takes `fontScale` and `locale`, which is why `@PreviewNarrowScreens` lives in `androidMain`. Android and iOS share the composables being previewed, so a preview shows what iOS lays out at the same width and scale. The exceptions are `iosMain` code and native UIKit views.
+- `commonMain` has a few `org.jetbrains.compose.ui.tooling.preview.Preview` previews (the `Dynamic*` parameter controls). Don't use that one for fit checks.
+
+**The shape.** A preview function is one line: a theme surface, a host, a fixture.
+- The **host** is an `@Composable` that holds the component's state with `remember`, the way its real owner hoists it, so interactive mode can tap and page.
+- A **fixture** is a `val` of fixed data with the long strings and the state that trigger the finding: the worst translation, a long file name, a full batch.
+- Hosts never load anything. Pass the loaded, failed or empty state directly. A host that fetches renders its spinner.
+
+```kotlin
+// State is hoisted the way the screen's ViewModel hoists it, so interactive mode works.
+
+@PreviewNarrowScreens
+@Preview(name = "SE · keyboard up", widthDp = 375, heightDp = 388, fontScale = 1.8f, showBackground = true)
+@Composable
+private fun RenameMaterialPreview() = PreviewSurface(UiStyle.MATERIAL) { RenameHost(longTitle) }
+
+@PreviewNarrowScreens
+@Composable
+private fun RenameGlassPreview() = PreviewSurface(UiStyle.LIQUID_GLASS) { RenameHost(longTitle) }
+
+@Composable
+private fun PreviewSurface(style: UiStyle, content: @Composable () -> Unit) {
+    LibreChatTheme(darkTheme = true, uiStyle = style, content = content)
+}
+
+@Composable
+private fun RenameHost(initial: String) {
+    var text by remember { mutableStateOf(initial) }
+    RenameField(value = text, onValueChange = { text = it }, onSave = {}, onCancel = {})
+}
+
+private val longTitle = "Quarterly planning notes for the infrastructure migration"
+```
+
+The names are illustrative; `PausePanelPreviews.kt` and `FilePreviewFallbackPreviews.kt` are real files in this shape.
+
+**Sizes:**
+- `@PreviewNarrowScreens` gives the standard five (320 at 1.0x and 2.0x, 375 at 1.0x and 1.5x, 375 at 1.3x in German).
+- Stack extra `@Preview`s for what a finding needs:
+  - a height (`heightDp = 388` for an SE with the keyboard up, `569` for a 320dp phone with 3-button nav);
+  - a landscape phone (`widthDp = 640, heightDp = 360`);
+  - another locale (`locale = "fr"`);
+  - a Fold or tablet width (`widthDp = 600`–`720`).
+- UI labels come from `stringResource`, so the `locale` parameter switches them: pick the locale `worst-strings.tsv` names for the key. Only user content (titles, names, messages) goes in a fixture as a literal.
+
+**Both styles** wherever the style changes the layout: dialogs, sheets, segmented controls, tabs, toasts. Glass draws its own versions of these, so one style passing says nothing about the other.
+
+**Dialogs and sheets:**
+- Wrap them in `DialogPreviewHost(style, height = …)` (`core/ui/src/androidMain/.../preview/`). Glass portals dialogs and sheets into that host, so its `height` is the room the dialog gets.
+- A shorter height stands in for the keyboard.
+
+**Viewing them.** Android Studio renders a `*Previews.kt` file in its Split or Design view as soon as the module compiles. No app build, emulator or device is involved.
+- Each `@Preview` is one frame; the five from `@PreviewNarrowScreens` appear under the group "narrow".
+- Interactive mode runs the host's state, so taps, paging and collapsing work.
+- "Run Preview" installs it on a device: don't use it for fit checks.
+- For the before/after record the user reviews, render the same hosts headlessly with `scripts/render.py`. A screenshot of the IDE pane doesn't pair before and after.
+
+**Keep them.** Previews stay committed after the fix, as the regression check for the next change. Use the names `<What><Style>Preview`, and say in the file's first comment what state the hosts reproduce.
+
 ## What renders can't show
 
 - **A render is one still frame from the top.** Where a fix makes content scroll, the after frame can show *less* than the before. Render a second, scrolled-to-the-end frame for those cases (`"scrolled": true` in the cases file).

@@ -31,8 +31,9 @@ Read it before any mode. The workflows hand it to every agent, so changing a rul
 
 ## Rules that hold in every mode
 
-- **Renders, not simulators or devices.** Layout is checked with headless renders of committed
-  `@PreviewNarrowScreens` previews (`harness/` + `scripts/render.py`). Run a device or simulator
+- **Previews and renders, not simulators or devices.** Layout is checked with committed
+  `@PreviewNarrowScreens` previews: in Android Studio's preview pane while working, and as headless
+  renders (`harness/` + `scripts/render.py`) for the before/after record. Run a device or simulator
   pass only when the user asks for one. Name what renders can't show (WebViews, popups, `iosMain`,
   the keyboard) so the user can choose to check it.
 - **The user sees before/after renders of every fix before any PR exists.** Batches stay on
@@ -81,7 +82,7 @@ few files' reading, not a fleet.
 3. **Try to refute each finding** as the reference says, and drop what doesn't survive.
 4. **Report** a table in the audit's format: id `K<n>`, sev, cls, file:line, title, min trigger, fix hint. Say what you couldn't judge.
 5. If the user wants them fixed, do it the `fix` way, one batch, yourself:
-   1. previews commit;
+   1. previews commit, written as the reference's "Writing previews" says;
    2. before renders;
    3. the fix;
    4. after renders;
@@ -184,7 +185,7 @@ few files' reading, not a fleet.
 
 | Path | Role |
 | --- | --- |
-| `reference.md` | The method: matrix, judging, rubric, classes and fixes, rejected approaches, render limits |
+| `reference.md` | The method: matrix, judging, rubric, classes and fixes, rejected approaches, writing and viewing previews, render limits |
 | `scripts/ledger.py` | Every UI file, with module, size and whether a prior audit named it |
 | `scripts/worst_strings.py` | Longest translation per key (CJK counts as 2) |
 | `scripts/scan.py` | Regex leads for readers (hints only) |
