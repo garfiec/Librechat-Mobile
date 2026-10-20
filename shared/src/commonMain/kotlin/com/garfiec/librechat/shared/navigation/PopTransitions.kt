@@ -27,6 +27,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsLayerScope
@@ -196,8 +197,9 @@ private fun PredictiveBackCard(
     }
 
     // NavDisplay hands the page tight constraints; keep passing them on to the entry.
+    // Clipped so the page behind, offset to the left, stays inside its pane in a two-pane layout.
     Box(
-        Modifier.drawWithContent {
+        Modifier.clipToBounds().drawWithContent {
             drawContent()
             // The page behind dims itself, from this unscaled layer so the scrim covers the screen.
             // It outlives the front page, which NavDisplay removes as soon as its transition ends,
