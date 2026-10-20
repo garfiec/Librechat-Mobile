@@ -23,7 +23,6 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -51,9 +50,9 @@ import kotlin.math.sign
 // the animation Pixel Settings shows between its pages.
 //
 // While dragging, the leaving page shrinks to a centred rounded card, and the previous page, offset
-// away from the side the finger moves to, shrinks further behind a scrim. Both follow the finger
-// vertically. On release the card fades out where it is while the previous page grows back to full
-// screen and the scrim clears.
+// to the left whichever edge the swipe starts from, shrinks further behind a scrim. Both follow the
+// finger vertically. On release the card fades out where it is while the previous page grows back
+// to full screen and the scrim clears.
 //
 // The drag follows the gesture's own progress, read from the dispatcher, not NavDisplay's seek of
 // its transition: that seek can sit at zero for a whole gesture, leaving the pages still while the
@@ -256,7 +255,7 @@ private fun GraphicsLayerScope.drawFront(
 }
 
 /**
- * Starts [EnteringOffset] off to the other side and shrinks in step with the card; on commit it
+ * Starts [EnteringOffset] off to the left and shrinks in step with the card; on commit it
  * grows back to full screen.
  */
 private fun GraphicsLayerScope.drawBack(
@@ -272,7 +271,7 @@ private fun GraphicsLayerScope.drawBack(
     val scale = lerp(dragScale, 1f, e)
     scaleX = scale
     scaleY = scale
-    translationX = -EnteringOffset.toPx() * latch.direction * (1f - e)
+    translationX = -EnteringOffset.toPx() * (1f - e)
     translationY = latch.yOffset(finger, size.height, dragScale, BoundsMargin.toPx(), pose, committed) * (1f - e)
     setCorners(CardCornerRadius.toPx() * p * (1f - e))
 }
@@ -291,15 +290,12 @@ private class FingerTracker {
     var progress by mutableFloatStateOf(0f)
     var touchY by mutableFloatStateOf(0f)
 
-    // +1 when the card moves right (swiped from the left edge), -1 when it moves left.
-    var direction by mutableIntStateOf(1)
     var startY = 0f
 
     fun onEvent(event: NavigationEvent) {
         if (!active) {
             active = true
             startY = event.touchY
-            direction = if (event.swipeEdge == NavigationEvent.EDGE_RIGHT) -1 else 1
         }
         progress = event.progress
         touchY = event.touchY
@@ -322,10 +318,6 @@ private class RoleLatch {
     var lastPose = 0f
         private set
 
-    // The finger's direction while it was down: a later gesture from the other edge mustn't flip it.
-    var direction = 1
-        private set
-
     // Pose, vertical offset and transition fraction when the stack popped; NaN until then.
     private var releasedPose = Float.NaN
     private var releasedY = Float.NaN
@@ -340,7 +332,6 @@ private class RoleLatch {
         committed = false
         settling = false
         lastPose = 0f
-        direction = 1
         releasedPose = Float.NaN
         releasedY = Float.NaN
         releasedFraction = Float.NaN
@@ -359,7 +350,6 @@ private class RoleLatch {
         if (finger.active) {
             settling = false
             lastPose = finger.progress
-            direction = finger.direction
             return lastPose
         }
         // The same for a cancel: hold the last pose until the settle has started from it.
