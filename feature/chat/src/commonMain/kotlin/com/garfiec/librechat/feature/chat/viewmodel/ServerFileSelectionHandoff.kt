@@ -8,6 +8,15 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.receiveAsFlow
 
 /**
+ * The key a chat screen's handoffs (shares, server-file picks) are addressed by: its conversation
+ * id, or `null` for the landing. A project's landing gets its own key: it sits above the plain
+ * landing, and sharing `null` would let it take over that key and, once cleared, evict it, leaving
+ * the plain landing unable to receive either handoff.
+ */
+fun chatHandoffKey(conversationId: String?, chatProjectId: String?): String? =
+    conversationId ?: chatProjectId?.let { "project-landing:$it" }
+
+/**
  * In-process, one-shot handoff carrying the files a user picked on the server-file picker
  * (`FilesPicker` route) back to the chat composer that launched it.
  *

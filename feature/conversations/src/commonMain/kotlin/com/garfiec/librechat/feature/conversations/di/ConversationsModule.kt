@@ -66,6 +66,7 @@ val conversationsModule = module {
             conversationExporter = get(),
             roleRepository = get(),
             configRepository = get(),
+            projectRepository = get(),
         )
     }
 }

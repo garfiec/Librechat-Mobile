@@ -87,6 +87,9 @@ fun ChatScreen(
     targetMessageId: String? = null,
     highlightQuery: String? = null,
     targetInReasoning: Boolean = false,
+    /** A new chat started from a project: filed into [chatProjectId], named by [chatProjectName]. */
+    chatProjectId: String? = null,
+    chatProjectName: String? = null,
     onConversationStart: ((conversationId: String, isTemporary: Boolean) -> Unit)? = null,
     onNavigateToConversation: ((String) -> Unit)? = null,
     onOpenDrawer: (() -> Unit)? = null,
@@ -111,6 +114,7 @@ fun ChatScreen(
                 targetMessageId,
                 highlightQuery,
                 targetInReasoning,
+                chatProjectId,
             )
         }
     // Chrome-rate state; ChatContent collects at full rate. Never read a neutralized field here.
@@ -305,6 +309,7 @@ fun ChatScreen(
                         topContentPadding = topContentPadding,
                         onShowSecondaryModelSheet = { showSecondaryModelSheet = true },
                         onComparisonTabChange = { activeComparisonTab = it },
+                        projectName = chatProjectName,
                     )
                 }
 
@@ -580,6 +585,8 @@ fun NewChatScreen(
     initialAgentId: String? = null,
     initialEndpoint: String? = null,
     initialModel: String? = null,
+    chatProjectId: String? = null,
+    chatProjectName: String? = null,
     onOpenDrawer: (() -> Unit)? = null,
     onNavigateToPromptsLibrary: (() -> Unit)? = null,
     onAttachFromServer: () -> Unit = {},
@@ -590,6 +597,8 @@ fun NewChatScreen(
         initialAgentId = initialAgentId,
         initialEndpoint = initialEndpoint,
         initialModel = initialModel,
+        chatProjectId = chatProjectId,
+        chatProjectName = chatProjectName,
         onConversationStart = onConversationStart,
         onOpenDrawer = onOpenDrawer,
         onNavigateToPromptsLibrary = onNavigateToPromptsLibrary,

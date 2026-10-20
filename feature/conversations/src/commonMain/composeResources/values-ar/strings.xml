@@ -56,16 +56,26 @@
     <string name="project_sort_updated">الأحدث تحديثًا</string>
     <string name="project_sort_created">الأحدث إنشاءً</string>
     <string name="projects_title">المشاريع</string>
-    <string name="project_rename">إعادة تسمية المشروع</string>
     <string name="project_delete">حذف المشروع</string>
     <string name="project_delete_confirm">حذف المشروع "%1$s"؟ ستبقى المحادثات، لكنها ستُزال من المشروع.</string>
-    <string name="project_open">فتح</string>
-    <string name="project_unassigned">غير مُسندة</string>
+    <string name="project_unassigned">خارج المشاريع</string>
     <string name="projects_all">جميع المشاريع</string>
+    <string name="projects_see_all">عرض كل المشاريع</string>
     <string name="project_new">مشروع جديد</string>
     <string name="project_name_label">اسم المشروع</string>
-    <string name="project_count">%1$d محادثة</string>
-    <string name="projects_empty">لا توجد مشاريع بعد</string>
+    <string name="project_edit">تعديل المشروع</string>
+    <string name="project_options">خيارات المشروع</string>
+    <string name="project_description_label">الوصف (اختياري)</string>
+    <string name="project_description_help">يظهر أسفل الاسم في قائمة مشاريعك</string>
+    <string name="project_create_confirm">إنشاء</string>
+    <string name="project_new_chat_in">محادثة جديدة في %1$s</string>
+    <string name="projects_empty">اجمع المحادثات المترابطة معًا</string>
+    <string name="project_unassigned_subtitle">محادثات لم تُصنّفها</string>
+    <string name="projects_search">البحث في المشاريع</string>
+    <string name="project_sort_activity">آخر نشاط</string>
+    <string name="project_sort_name">الاسم</string>
+    <string name="projects_empty_description">يجمع المشروع المحادثات حول موضوع واحد. انقل أي محادثة إلى مشروع من قائمتها.</string>
+    <string name="projects_no_match">لا توجد مشاريع تطابق "%1$s"</string>
     <string name="tags">الوسوم</string>
     <string name="rename_conversation">إعادة تسمية المحادثة</string>
     <string name="rename_dialog_message">أدخل عنوانًا جديدًا لهذه المحادثة.</string>
@@ -223,5 +233,21 @@
         <item quantity="few">%1$d وسوم نشطة</item>
         <item quantity="many">%1$d وسمًا نشطًا</item>
         <item quantity="other">%1$d وسم نشط</item>
+    </plurals>
+    <plurals name="project_chat_count">
+        <item quantity="zero">%1$d محادثة</item>
+        <item quantity="one">محادثة واحدة</item>
+        <item quantity="two">محادثتان</item>
+        <item quantity="few">%1$d محادثات</item>
+        <item quantity="many">%1$d محادثة</item>
+        <item quantity="other">%1$d محادثة</item>
+    </plurals>
+    <plurals name="projects_count">
+        <item quantity="zero">%1$d مشروع</item>
+        <item quantity="one">مشروع واحد</item>
+        <item quantity="two">مشروعان</item>
+        <item quantity="few">%1$d مشاريع</item>
+        <item quantity="many">%1$d مشروعًا</item>
+        <item quantity="other">%1$d مشروع</item>
     </plurals>
 </resources>

@@ -56,16 +56,26 @@
     <string name="project_sort_updated">更新日が新しい順</string>
     <string name="project_sort_created">作成日が新しい順</string>
     <string name="projects_title">プロジェクト</string>
-    <string name="project_rename">プロジェクト名を変更</string>
     <string name="project_delete">プロジェクトを削除</string>
     <string name="project_delete_confirm">プロジェクト「%1$s」を削除しますか？会話は残りますが、プロジェクトからは外されます。</string>
-    <string name="project_open">開く</string>
-    <string name="project_unassigned">未割り当て</string>
+    <string name="project_unassigned">プロジェクト外</string>
     <string name="projects_all">すべてのプロジェクト</string>
+    <string name="projects_see_all">すべてのプロジェクトを表示</string>
     <string name="project_new">新しいプロジェクト</string>
     <string name="project_name_label">プロジェクト名</string>
-    <string name="project_count">%1$d 件のチャット</string>
-    <string name="projects_empty">プロジェクトはまだありません</string>
+    <string name="project_edit">プロジェクトを編集</string>
+    <string name="project_options">プロジェクトのオプション</string>
+    <string name="project_description_label">説明（任意）</string>
+    <string name="project_description_help">プロジェクト一覧で名前の下に表示されます</string>
+    <string name="project_create_confirm">作成</string>
+    <string name="project_new_chat_in">%1$s で新しいチャット</string>
+    <string name="projects_empty">関連するチャットをまとめましょう</string>
+    <string name="project_unassigned_subtitle">まだ整理していないチャット</string>
+    <string name="projects_search">プロジェクトを検索</string>
+    <string name="project_sort_activity">最近のアクティビティ</string>
+    <string name="project_sort_name">名前</string>
+    <string name="projects_empty_description">プロジェクトは 1 つのテーマのチャットをまとめます。チャットはそのメニューからプロジェクトに移動できます。</string>
+    <string name="projects_no_match">「%1$s」に一致するプロジェクトはありません</string>
     <string name="tags">タグ</string>
     <string name="rename_conversation">会話の名前を変更</string>
     <string name="rename_dialog_message">この会話の新しいタイトルを入力してください。</string>
@@ -218,5 +228,11 @@
     <string name="endpoint_label_chat">チャット</string>
     <plurals name="tags_active_count">
         <item quantity="other">%1$d 個のタグが有効</item>
+    </plurals>
+    <plurals name="project_chat_count">
+        <item quantity="other">%1$d 件のチャット</item>
+    </plurals>
+    <plurals name="projects_count">
+        <item quantity="other">%1$d 件のプロジェクト</item>
     </plurals>
 </resources>

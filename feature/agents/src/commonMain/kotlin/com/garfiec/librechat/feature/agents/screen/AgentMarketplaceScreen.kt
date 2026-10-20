@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -40,8 +39,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -58,6 +55,7 @@ import com.garfiec.librechat.core.ui.components.EmptyState
 import com.garfiec.librechat.core.ui.components.ErrorBanner
 import com.garfiec.librechat.core.ui.components.LibreChatTopBar
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
+import com.garfiec.librechat.core.ui.components.UpToTwoColumns
 import com.garfiec.librechat.core.ui.components.endpointIconPainter
 import com.garfiec.librechat.feature.agents.AgentCardDisplayData
 import com.garfiec.librechat.feature.agents.components.displayLabel
@@ -269,23 +267,6 @@ internal fun AgentGrid(
 
 // Two columns hold on a 320dp phone up to about 1.15x, and on a 360dp one up to 1.3x.
 private val AgentCardMinWidth = 120.dp
-
-/**
- * Two columns, as wide as they come, or one when two would be narrower than [minColumnWidth]: a
- * small phone at a large font scale can't fit a card's name and description in half the width.
- */
-private class UpToTwoColumns(private val minColumnWidth: Dp) : GridCells {
-    override fun Density.calculateCrossAxisCellSizes(availableSize: Int, spacing: Int): List<Int> {
-        val count = if ((availableSize - spacing) / 2 >= minColumnWidth.roundToPx()) 2 else 1
-        // Split as GridCells.Fixed does: the remainder pixels go to the first columns.
-        val usable = availableSize - spacing * (count - 1)
-        return List(count) { usable / count + if (it < usable % count) 1 else 0 }
-    }
-
-    override fun equals(other: Any?): Boolean = other is UpToTwoColumns && other.minColumnWidth == minColumnWidth
-
-    override fun hashCode(): Int = minColumnWidth.hashCode()
-}
 
 @Composable
 private fun AgentCard(

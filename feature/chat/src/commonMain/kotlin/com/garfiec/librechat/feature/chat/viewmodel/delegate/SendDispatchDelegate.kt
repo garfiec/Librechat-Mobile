@@ -58,6 +58,9 @@ class SendDispatchDelegate(
     private val onComparisonSendStart: () -> Unit,
     /** `ComparisonModeDelegate.buildAddedConvo` for the parent this turn attaches to. */
     private val buildAddedConvo: (parentMessageId: String?) -> AddedConversation?,
+    /** The project a new chat from this landing is filed into; sent on its first turn only. */
+    private val chatProjectId: String? = null,
+    private val newChatDraftKey: String = NEW_CHAT_DRAFT_KEY,
 ) {
 
     /**
@@ -172,7 +175,7 @@ class SendDispatchDelegate(
 
     /** Clears the input, its persisted draft, and any attached files. */
     fun clearComposer() {
-        val draftKey = handle.state.conversationId ?: NEW_CHAT_DRAFT_KEY
+        val draftKey = handle.state.conversationId ?: newChatDraftKey
         // Drop any staged batch too: it belongs to the message just sent, and surviving here would
         // attach it to the next one.
         handle.update {
@@ -284,6 +287,9 @@ class SendDispatchDelegate(
             isTemporary = spec.isTemporary,
             modelParams = spec.modelParamsPayload,
             quotes = spec.quotes.takeIf { it.isNotEmpty() },
+            // First turn only: the server saves it on every turn that carries it, so a later one
+            // would move the chat. A temporary chat is never filed.
+            chatProjectId = if (isNewChat && !spec.isTemporary) chatProjectId else null,
         )
         launchStream(stream)
     }

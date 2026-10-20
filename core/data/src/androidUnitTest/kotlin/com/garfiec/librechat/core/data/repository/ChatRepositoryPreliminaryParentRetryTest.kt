@@ -56,6 +56,7 @@ class ChatRepositoryPreliminaryParentRetryTest {
             connectivityObserver = connectivityObserver,
             dispatcher = dispatcher,
             json = Json,
+            projectChanges = ProjectChangeSignal(),
         ).startChat(
             text = "and the second thing",
             conversationId = "conv-1",

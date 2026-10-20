@@ -56,16 +56,26 @@
     <string name="project_sort_updated">최근 업데이트순</string>
     <string name="project_sort_created">최근 생성순</string>
     <string name="projects_title">프로젝트</string>
-    <string name="project_rename">프로젝트 이름 변경</string>
     <string name="project_delete">프로젝트 삭제</string>
     <string name="project_delete_confirm">"%1$s" 프로젝트를 삭제할까요? 대화는 유지되지만 프로젝트에서 제거됩니다.</string>
-    <string name="project_open">열기</string>
-    <string name="project_unassigned">미지정</string>
+    <string name="project_unassigned">프로젝트 밖</string>
     <string name="projects_all">모든 프로젝트</string>
+    <string name="projects_see_all">모든 프로젝트 보기</string>
     <string name="project_new">새 프로젝트</string>
     <string name="project_name_label">프로젝트 이름</string>
-    <string name="project_count">채팅 %1$d개</string>
-    <string name="projects_empty">아직 프로젝트가 없습니다</string>
+    <string name="project_edit">프로젝트 편집</string>
+    <string name="project_options">프로젝트 옵션</string>
+    <string name="project_description_label">설명(선택 사항)</string>
+    <string name="project_description_help">프로젝트 목록에서 이름 아래에 표시됩니다</string>
+    <string name="project_create_confirm">만들기</string>
+    <string name="project_new_chat_in">%1$s에서 새 채팅</string>
+    <string name="projects_empty">관련된 채팅을 한곳에 모으세요</string>
+    <string name="project_unassigned_subtitle">아직 정리하지 않은 채팅</string>
+    <string name="projects_search">프로젝트 검색</string>
+    <string name="project_sort_activity">최근 활동</string>
+    <string name="project_sort_name">이름</string>
+    <string name="projects_empty_description">프로젝트는 한 주제의 채팅을 모아 둡니다. 채팅 메뉴에서 프로젝트로 옮길 수 있습니다.</string>
+    <string name="projects_no_match">"%1$s"와(과) 일치하는 프로젝트가 없습니다</string>
     <string name="tags">태그</string>
     <string name="rename_conversation">대화 이름 변경</string>
     <string name="rename_dialog_message">이 대화의 새 제목을 입력하세요.</string>
@@ -218,5 +228,11 @@
     <string name="endpoint_label_chat">채팅</string>
     <plurals name="tags_active_count">
         <item quantity="other">태그 %1$d개 활성</item>
+    </plurals>
+    <plurals name="project_chat_count">
+        <item quantity="other">채팅 %1$d개</item>
+    </plurals>
+    <plurals name="projects_count">
+        <item quantity="other">프로젝트 %1$d개</item>
     </plurals>
 </resources>

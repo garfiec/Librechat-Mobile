@@ -62,11 +62,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddComment
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OpenInFull
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Schedule
@@ -137,6 +138,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.EndpointIcon
 import com.garfiec.librechat.core.ui.components.ListDragSelection
 import com.garfiec.librechat.core.ui.components.MenuDragSelection
+import com.garfiec.librechat.core.ui.components.adaptiveSelectedRowColor
 import com.garfiec.librechat.core.ui.components.dragSelectRow
 import com.garfiec.librechat.core.ui.components.dragSelectRowIcon
 import com.garfiec.librechat.core.ui.components.listDragSelection
@@ -155,10 +157,11 @@ import com.garfiec.librechat.core.ui.theme.searchMatchColor
 import com.garfiec.librechat.feature.conversations.components.ConversationActionDialogs
 import com.garfiec.librechat.feature.conversations.components.ConversationActionEffects
 import com.garfiec.librechat.feature.conversations.components.ConversationActionsMenu
-import com.garfiec.librechat.feature.conversations.components.ProjectActionsMenu
 import com.garfiec.librechat.feature.conversations.components.ProjectDeleteDialog
-import com.garfiec.librechat.feature.conversations.components.ProjectNameDialog
+import com.garfiec.librechat.feature.conversations.components.ProjectEditorSheet
+import com.garfiec.librechat.feature.conversations.components.ProjectMenuButton
 import com.garfiec.librechat.feature.conversations.components.ProjectPicker
+import com.garfiec.librechat.feature.conversations.components.ProjectTile
 import com.garfiec.librechat.feature.conversations.components.TagPicker
 import com.garfiec.librechat.feature.conversations.export.ExportFormat
 import com.garfiec.librechat.feature.conversations.export.ExportFormatPicker
@@ -177,11 +180,16 @@ import com.garfiec.librechat.feature.conversations.resources.files
 import com.garfiec.librechat.feature.conversations.resources.new_chat
 import com.garfiec.librechat.feature.conversations.resources.no_conversations_found
 import com.garfiec.librechat.feature.conversations.resources.pinned
+import com.garfiec.librechat.feature.conversations.resources.project_create_confirm
+import com.garfiec.librechat.feature.conversations.resources.project_edit
 import com.garfiec.librechat.feature.conversations.resources.project_new
+import com.garfiec.librechat.feature.conversations.resources.project_new_chat_in
 import com.garfiec.librechat.feature.conversations.resources.project_unassigned
 import com.garfiec.librechat.feature.conversations.resources.projects
 import com.garfiec.librechat.feature.conversations.resources.projects_all
+import com.garfiec.librechat.feature.conversations.resources.projects_see_all
 import com.garfiec.librechat.feature.conversations.resources.remove_bookmark
+import com.garfiec.librechat.feature.conversations.resources.save
 import com.garfiec.librechat.feature.conversations.resources.schedules
 import com.garfiec.librechat.feature.conversations.resources.search_open_all
 import com.garfiec.librechat.feature.conversations.resources.search_title
@@ -237,6 +245,7 @@ fun DrawerContent(
     accounts: List<AccountUiModel>,
     modifier: Modifier = Modifier,
     onOpenProjectsIndex: () -> Unit = {},
+    onNewChatInProject: (projectId: String, projectName: String) -> Unit = { _, _ -> },
     onSwitchAccount: (String) -> Unit = {},
     onAddAccount: () -> Unit = {},
     // Round-robin swipe switch (in place, drawer stays open) + sheet remove — both are nav-shell
@@ -263,6 +272,7 @@ fun DrawerContent(
     // a frame or more later, and a field showing that copy drops keystrokes typed in between.
     val searchFieldText by viewModel.searchQuery.collectAsStateWithLifecycle()
     val projects by viewModel.projects.collectAsStateWithLifecycle()
+    val hasMoreProjects by viewModel.hasMoreProjects.collectAsStateWithLifecycle()
     val inlineProjectChats by viewModel.inlineProjectChats.collectAsStateWithLifecycle()
     val libraryTab by viewModel.drawerLibraryTab.collectAsStateWithLifecycle()
 
@@ -284,6 +294,9 @@ fun DrawerContent(
             showAccountSheet = false
             removeAccountTarget = null
         }
+    }
+    LaunchedEffect(isOpen, libraryTab) {
+        if (isOpen && libraryTab == DrawerTab.Projects) viewModel.reloadProjects()
     }
 
     // Side-effects for the long-press action menu (share-link copy, export file-save, navigate to
@@ -366,7 +379,8 @@ fun DrawerContent(
         onDelete = viewModel::deleteConversation,
         onPin = viewModel::pinConversation,
         projects = projects,
-        onLoadProjects = viewModel::loadProjects,
+        hasMoreProjects = hasMoreProjects,
+        onLoadProjects = { viewModel.reloadProjects() },
         onMoveToProject = viewModel::moveConversationToProject,
         onCreateProjectAndAssign = viewModel::createProjectAndAssign,
         onOpenProjectsIndex = onOpenProjectsIndex,
@@ -375,7 +389,8 @@ fun DrawerContent(
         inlineProjectChats = inlineProjectChats,
         onToggleProject = viewModel::toggleProjectExpanded,
         onCreateProject = viewModel::createProject,
-        onRenameProject = viewModel::renameProject,
+        onEditProject = viewModel::editProject,
+        onNewChatInProject = onNewChatInProject,
         onDeleteProject = viewModel::deleteProject,
         onShare = viewModel::shareConversation,
         onDuplicate = { id, title -> viewModel.duplicateConversation(id, title) },
@@ -442,6 +457,7 @@ fun DrawerContent(
     onDelete: (String) -> Unit = {},
     onPin: (String, Boolean) -> Unit = { _, _ -> },
     projects: List<ChatProject> = emptyList(),
+    hasMoreProjects: Boolean = false,
     onLoadProjects: () -> Unit = {},
     onMoveToProject: (String, String?) -> Unit = { _, _ -> },
     onCreateProjectAndAssign: (String, String) -> Unit = { _, _ -> },
@@ -453,9 +469,10 @@ fun DrawerContent(
     onSelectTab: (DrawerTab) -> Unit = {},
     inlineProjectChats: InlineProjectChatsState = InlineProjectChatsState(),
     onToggleProject: (String) -> Unit = {},
-    onCreateProject: (String) -> Unit = {},
-    onRenameProject: (String, String) -> Unit = { _, _ -> },
+    onCreateProject: (String, String) -> Unit = { _, _ -> },
+    onEditProject: (String, String, String) -> Unit = { _, _, _ -> },
     onDeleteProject: (String) -> Unit = {},
+    onNewChatInProject: (projectId: String, projectName: String) -> Unit = { _, _ -> },
     onShare: (String) -> Unit = {},
     onDuplicate: (String, String) -> Unit = { _, _ -> },
     onUpdateTags: (DrawerConversationDisplayData, List<String>) -> Unit = { _, _ -> },
@@ -554,6 +571,9 @@ fun DrawerContent(
         // the label slides out to the left as the field slides in behind it. Liquid Glass morphs in
         // place, as iOS controls do: the + fades into the search glyph where it sits, the label
         // into the field, the tint into the grey fill.
+        // The open folder is the selected project: on the Projects tab, New chat files the chat there.
+        val selectedProject = projects.firstOrNull { it.id == inlineProjectChats.expandedProjectId }
+            ?.takeIf { uiState.projectsEnabled && selectedTab == DrawerTab.Projects }
         val newChatBounce = rememberPressBounce()
         val searchBounce = rememberPressBounce()
         val focusManager = LocalFocusManager.current
@@ -596,7 +616,16 @@ fun DrawerContent(
                             enter = morphIn(glass, fromStart = true),
                             exit = morphOut(glass, toStart = true),
                         ) {
-                            NewChatLabel(onClick = onNewChat)
+                            NewChatLabel(
+                                project = selectedProject,
+                                onClick = {
+                                    if (selectedProject != null) {
+                                        onNewChatInProject(selectedProject.id, selectedProject.name)
+                                    } else {
+                                        onNewChat()
+                                    }
+                                },
+                            )
                         }
                         // Qualified: inside the Row, the RowScope overload would win and can't be called here.
                         androidx.compose.animation.AnimatedVisibility(
@@ -1007,11 +1036,13 @@ fun DrawerContent(
         if (showProjects) {
             DrawerProjectsList(
                 projects = projects,
+                hasMoreProjects = hasMoreProjects,
                 inlineProjectChats = inlineProjectChats,
                 onToggleProject = onToggleProject,
                 onOpenProjectsIndex = onOpenProjectsIndex,
                 onCreateProject = onCreateProject,
-                onRenameProject = onRenameProject,
+                onEditProject = onEditProject,
+                onNewChatInProject = onNewChatInProject,
                 onDeleteProject = onDeleteProject,
                 renderChat = renderConversationItem,
                 modifier = Modifier.fillMaxSize().then(panel(DrawerTab.Projects)),
@@ -1125,9 +1156,12 @@ fun DrawerContent(
     }
 }
 
-/** New Chat's label, filling the shared slot so the whole slot is the button. */
+/**
+ * New Chat's label, filling the shared slot so the whole slot is the button. With a [project]
+ * selected it says where the chat goes, the project's tile standing in for the +.
+ */
 @Composable
-private fun NewChatLabel(onClick: () -> Unit) {
+private fun NewChatLabel(onClick: () -> Unit, project: ChatProject? = null) {
     Row(
         modifier = Modifier
             .fillMaxSize()
@@ -1135,10 +1169,18 @@ private fun NewChatLabel(onClick: () -> Unit) {
             .padding(horizontal = NewChatStartPadding),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
+        if (project != null) {
+            ProjectTile(projectId = project.id, name = project.name, size = 20.dp)
+        } else {
+            Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
+        }
         Spacer(modifier = Modifier.width(8.dp))
         Text(
-            text = stringResource(Res.string.new_chat),
+            text = if (project != null) {
+                stringResource(Res.string.project_new_chat_in, project.name)
+            } else {
+                stringResource(Res.string.new_chat)
+            },
             style = MaterialTheme.typography.titleSmall,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -1267,18 +1309,19 @@ private val NewChatStartPadding = 16.dp
 @Composable
 private fun DrawerProjectsList(
     projects: List<ChatProject>,
+    hasMoreProjects: Boolean,
     inlineProjectChats: InlineProjectChatsState,
     onToggleProject: (String) -> Unit,
     onOpenProjectsIndex: () -> Unit,
-    onCreateProject: (String) -> Unit,
-    onRenameProject: (String, String) -> Unit,
+    onCreateProject: (name: String, description: String) -> Unit,
+    onEditProject: (projectId: String, name: String, description: String) -> Unit,
+    onNewChatInProject: (projectId: String, projectName: String) -> Unit,
     onDeleteProject: (String) -> Unit,
     renderChat: @Composable (String, DrawerConversationDisplayData) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var menuOpenId by remember { mutableStateOf<String?>(null) }
     var showCreateDialog by remember { mutableStateOf(false) }
-    var renameTarget by remember { mutableStateOf<ChatProject?>(null) }
+    var editTarget by remember { mutableStateOf<ChatProject?>(null) }
     var deleteTarget by remember { mutableStateOf<ChatProject?>(null) }
 
     // Expanded body for the open folder: a spinner while its page loads, an empty note, or the chat
@@ -1294,12 +1337,20 @@ private fun DrawerProjectsList(
                 }
             }
             inlineProjectChats.conversations.isEmpty() -> {
-                Text(
-                    text = stringResource(Res.string.no_conversations_found),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                )
+                val project = projects.firstOrNull { it.id == projectId }
+                if (project != null) {
+                    EmptyFolderNewChatRow(
+                        projectName = project.name,
+                        onClick = { onNewChatInProject(project.id, project.name) },
+                    )
+                } else {
+                    Text(
+                        text = stringResource(Res.string.no_conversations_found),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    )
+                }
             }
             else -> {
                 inlineProjectChats.conversations.forEach { data ->
@@ -1340,6 +1391,14 @@ private fun DrawerProjectsList(
             ProjectFolderAccordion(
                 name = unassignedLabel,
                 conversationCount = null,
+                leading = {
+                    Icon(
+                        imageVector = Icons.Default.Inbox,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
                 expanded = inlineProjectChats.expandedProjectId == ChatProject.UNASSIGNED,
                 onToggle = { onToggleProject(ChatProject.UNASSIGNED) },
                 menuContent = null,
@@ -1358,50 +1417,63 @@ private fun DrawerProjectsList(
             ProjectFolderAccordion(
                 name = folder.name,
                 conversationCount = folder.conversationCount,
+                leading = { ProjectTile(projectId = folder.id, name = folder.name, size = 20.dp) },
                 expanded = inlineProjectChats.expandedProjectId == folder.id,
+                highlighted = inlineProjectChats.expandedProjectId == folder.id,
                 onToggle = { onToggleProject(folder.id) },
                 menuContent = {
-                    IconButton(onClick = { menuOpenId = folder.id }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = null)
-                    }
-                    ProjectActionsMenu(
-                        expanded = menuOpenId == folder.id,
-                        onDismiss = { menuOpenId = null },
-                        onOpen = {
-                            if (inlineProjectChats.expandedProjectId != folder.id) {
-                                onToggleProject(folder.id)
-                            }
-                        },
-                        onRename = { renameTarget = folder },
+                    // Laid out at the slot's size; M3 still gives it a full-size touch target.
+                    ProjectMenuButton(
+                        buttonSize = ProjectMenuSlot,
+                        onNewChat = { onNewChatInProject(folder.id, folder.name) },
+                        onEdit = { editTarget = folder },
                         onDelete = { deleteTarget = folder },
                     )
                 },
                 expandedContent = { expandedChats(folder.id) },
             )
         }
+
+        if (hasMoreProjects) {
+            item(key = "projects_more") {
+                TextButton(
+                    onClick = onOpenProjectsIndex,
+                    modifier = Modifier.padding(start = 4.dp, top = 4.dp),
+                ) {
+                    Text(
+                        text = stringResource(Res.string.projects_see_all),
+                        style = MaterialTheme.typography.labelMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
     }
 
     if (showCreateDialog) {
-        ProjectNameDialog(
+        ProjectEditorSheet(
             title = stringResource(Res.string.project_new),
-            initialName = "",
-            onConfirm = {
-                onCreateProject(it)
+            confirmLabel = stringResource(Res.string.project_create_confirm),
+            onConfirm = { name, description ->
+                onCreateProject(name, description)
                 showCreateDialog = false
             },
             onDismiss = { showCreateDialog = false },
         )
     }
 
-    renameTarget?.let { target ->
-        ProjectNameDialog(
-            title = target.name,
+    editTarget?.let { target ->
+        ProjectEditorSheet(
+            title = stringResource(Res.string.project_edit),
+            confirmLabel = stringResource(Res.string.save),
             initialName = target.name,
-            onConfirm = {
-                onRenameProject(target.id, it)
-                renameTarget = null
+            initialDescription = target.description.orEmpty(),
+            onConfirm = { name, description ->
+                onEditProject(target.id, name, description)
+                editTarget = null
             },
-            onDismiss = { renameTarget = null },
+            onDismiss = { editTarget = null },
         )
     }
 
@@ -1426,11 +1498,14 @@ private fun DrawerProjectsList(
 private fun ProjectFolderAccordion(
     name: String,
     conversationCount: Int?,
+    leading: @Composable () -> Unit,
     expanded: Boolean,
     onToggle: () -> Unit,
     expandedContent: @Composable () -> Unit,
     modifier: Modifier = Modifier,
     menuContent: (@Composable () -> Unit)? = null,
+    /** The selected project (the open folder), which the drawer's New chat files into. */
+    highlighted: Boolean = false,
 ) {
     val chevronRotation by animateFloatAsState(
         targetValue = if (expanded) 0f else -90f,
@@ -1441,16 +1516,20 @@ private fun ProjectFolderAccordion(
             modifier = Modifier
                 .fillMaxWidth()
                 .drawerRowShape()
+                .background(
+                    if (highlighted) adaptiveSelectedRowColor else Color.Transparent,
+                )
                 .clickable(onClick = onToggle)
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(start = 4.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                imageVector = Icons.Default.Folder,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            // The menu leads the row, in the thumb's path from the drawer's edge. A row without one
+            // (Not in a project) keeps the slot, so every icon lines up.
+            Box(modifier = Modifier.size(ProjectMenuSlot), contentAlignment = Alignment.Center) {
+                menuContent?.invoke()
+            }
+            Spacer(modifier = Modifier.width(4.dp))
+            leading()
             Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = name,
@@ -1465,10 +1544,8 @@ private fun ProjectFolderAccordion(
                     text = conversationCount.toString(),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 8.dp),
                 )
-            }
-            if (menuContent != null) {
-                Box { menuContent() }
             }
             Icon(
                 imageVector = Icons.Default.KeyboardArrowDown,
@@ -1508,11 +1585,7 @@ private fun DrawerConversationItem(
 ) {
     val glass = isLiquidGlass
     val rowShape = if (glass) CircleShape else ItemShape
-    val backgroundColor = when {
-        !data.isActive -> Color.Transparent
-        glass -> GlassControlColors.fill
-        else -> MaterialTheme.colorScheme.secondaryContainer
-    }
+    val backgroundColor = if (data.isActive) adaptiveSelectedRowColor else Color.Transparent
 
     // Horizontal pixel position of the last press, so the long-press menu can open with its
     // left edge under the finger. Kept in pixels (no density captured in the gesture) and
@@ -1804,6 +1877,36 @@ internal fun DrawerFooterItem(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+private val ProjectMenuSlot = 32.dp
+
+@Composable
+private fun EmptyFolderNewChatRow(projectName: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .drawerRowShape()
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.Default.AddComment,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+            tint = MaterialTheme.colorScheme.primary,
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = stringResource(Res.string.project_new_chat_in, projectName),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )

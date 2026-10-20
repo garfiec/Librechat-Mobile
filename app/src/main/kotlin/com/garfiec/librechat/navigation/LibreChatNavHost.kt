@@ -14,6 +14,7 @@ import co.touchlab.kermit.Logger
 import com.garfiec.librechat.feature.chat.ShareIntentConsumer
 import com.garfiec.librechat.feature.chat.navigation.Chat
 import com.garfiec.librechat.feature.chat.navigation.NewChat
+import com.garfiec.librechat.feature.chat.navigation.isPlainLanding
 import com.garfiec.librechat.shared.navigation.DeepLinkResolution
 import com.garfiec.librechat.shared.navigation.DeepLinks
 import com.garfiec.librechat.shared.navigation.PhoneLayout
@@ -95,7 +96,11 @@ fun LibreChatNavHost(
             val currentRoute = navigator.currentRoute
             val target = when (currentRoute) {
                 is Chat -> currentRoute.conversationId
-                is NewChat -> null
+                // A share never lands in a project's landing: it would be filed there unasked.
+                is NewChat -> {
+                    if (!currentRoute.isPlainLanding) navigator.navigateToTopLevel(NewChat())
+                    null
+                }
                 // Not on a chat at all — open the landing and address the share to it. It has not
                 // composed yet; the consumer holds the share for its first collector.
                 else -> {

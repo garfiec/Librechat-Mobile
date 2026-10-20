@@ -70,6 +70,7 @@ import com.garfiec.librechat.core.data.repository.PermissionsRepository
 import com.garfiec.librechat.core.data.repository.PermissionsRepositoryImpl
 import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.PresetRepositoryImpl
+import com.garfiec.librechat.core.data.repository.ProjectChangeSignal
 import com.garfiec.librechat.core.data.repository.ProjectRepository
 import com.garfiec.librechat.core.data.repository.ProjectRepositoryImpl
 import com.garfiec.librechat.core.data.repository.PromptRepository
@@ -469,6 +470,7 @@ val dataModule = module {
             connectivityObserver = get(),
             dispatcher = get(KoinQualifiers.Default),
             json = get(),
+            projectChanges = get(),
         )
     }
 
@@ -533,6 +535,7 @@ val dataModule = module {
     singleOf(::PermissionsRepositoryImpl) bind PermissionsRepository::class
     singleOf(::EndpointTokenRepositoryImpl) bind EndpointTokenRepository::class
     singleOf(::PresetRepositoryImpl) bind PresetRepository::class
+    singleOf(::ProjectChangeSignal)
     singleOf(::ProjectRepositoryImpl) bind ProjectRepository::class
     singleOf(::PromptRepositoryImpl) bind PromptRepository::class
     singleOf(::QueuedTurnRepositoryImpl) bind QueuedTurnRepository::class

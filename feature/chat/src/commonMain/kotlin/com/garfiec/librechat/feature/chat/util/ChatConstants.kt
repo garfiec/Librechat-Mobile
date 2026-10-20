@@ -7,3 +7,10 @@ import com.garfiec.librechat.core.model.NEW_CHAT_DRAFT_KEY as CORE_NEW_CHAT_DRAF
  * in :core:model so the runtime key and the legacy-claim's special-case can never drift apart.
  */
 const val NEW_CHAT_DRAFT_KEY = CORE_NEW_CHAT_DRAFT_KEY
+
+/**
+ * The landing's draft slot. A project's new chat keeps its own, so text typed on one landing never
+ * fills another, and sending it never files it into a project it wasn't written for.
+ */
+fun newChatDraftKey(projectId: String?): String =
+    if (projectId == null) NEW_CHAT_DRAFT_KEY else "$NEW_CHAT_DRAFT_KEY:$projectId"

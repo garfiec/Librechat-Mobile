@@ -56,16 +56,26 @@
     <string name="project_sort_updated">Modifiés récemment</string>
     <string name="project_sort_created">Créés récemment</string>
     <string name="projects_title">Projets</string>
-    <string name="project_rename">Renommer le projet</string>
     <string name="project_delete">Supprimer le projet</string>
     <string name="project_delete_confirm">Supprimer le projet "%1$s" ? Les conversations sont conservées, mais retirées du projet.</string>
-    <string name="project_open">Ouvrir</string>
     <string name="project_unassigned">Sans projet</string>
     <string name="projects_all">Tous les projets</string>
+    <string name="projects_see_all">Voir tous les projets</string>
     <string name="project_new">Nouveau projet</string>
     <string name="project_name_label">Nom du projet</string>
-    <string name="project_count">%1$d discussions</string>
-    <string name="projects_empty">Aucun projet pour l'instant</string>
+    <string name="project_edit">Modifier le projet</string>
+    <string name="project_options">Options du projet</string>
+    <string name="project_description_label">Description (facultatif)</string>
+    <string name="project_description_help">Affichée sous le nom dans votre liste de projets</string>
+    <string name="project_create_confirm">Créer</string>
+    <string name="project_new_chat_in">Nouvelle discussion dans %1$s</string>
+    <string name="projects_empty">Regroupez les discussions liées</string>
+    <string name="project_unassigned_subtitle">Discussions non classées</string>
+    <string name="projects_search">Rechercher des projets</string>
+    <string name="project_sort_activity">Activité récente</string>
+    <string name="project_sort_name">Nom</string>
+    <string name="projects_empty_description">Un projet rassemble les discussions sur un même sujet. Déplacez une discussion dans un projet depuis son menu.</string>
+    <string name="projects_no_match">Aucun projet ne correspond à « %1$s »</string>
     <string name="tags">Étiquettes</string>
     <string name="rename_conversation">Renommer la conversation</string>
     <string name="rename_dialog_message">Saisissez un nouveau titre pour cette conversation.</string>
@@ -219,5 +229,15 @@
     <plurals name="tags_active_count">
         <item quantity="one">%1$d étiquette active</item>
         <item quantity="other">%1$d étiquettes actives</item>
+    </plurals>
+    <plurals name="project_chat_count">
+        <item quantity="one">%1$d discussion</item>
+        <item quantity="many">%1$d discussions</item>
+        <item quantity="other">%1$d discussions</item>
+    </plurals>
+    <plurals name="projects_count">
+        <item quantity="one">%1$d projet</item>
+        <item quantity="many">%1$d projets</item>
+        <item quantity="other">%1$d projets</item>
     </plurals>
 </resources>

@@ -58,6 +58,7 @@ class ConversationLoadDelegate(
      * messages still list as pending. Called on every settled emission; the delegate dedupes.
      */
     private val onMessagesSettled: (List<MessageNode>) -> Unit,
+    private val newChatDraftKey: String = NEW_CHAT_DRAFT_KEY,
 ) {
     private var roomObserverJob: Job? = null
 
@@ -274,14 +275,14 @@ class ConversationLoadDelegate(
             }
         }
         if (handle.state.inputText != text) return
-        val draftKey = handle.state.conversationId ?: NEW_CHAT_DRAFT_KEY
+        val draftKey = handle.state.conversationId ?: newChatDraftKey
         handle.scope.launch {
             draftRepository.saveDraft(draftKey, text)
         }
     }
 
     /**
-     * Restores a previously saved draft for the given key (conversation ID or [NEW_CHAT_DRAFT_KEY]).
+     * Restores a previously saved draft for the given key (conversation ID or the landing's key).
      */
     fun restoreDraft(draftKey: String) {
         handle.scope.launch {

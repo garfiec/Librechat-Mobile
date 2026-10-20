@@ -28,7 +28,8 @@ class ProjectsApi(
 ) {
     suspend fun listProjects(
         cursor: String? = null,
-        limit: Int = 25,
+        /** Null leaves it to the server: 25, capped at 100. */
+        limit: Int? = null,
         sortBy: String? = null,
         sortDirection: String? = null,
         search: String? = null,
@@ -36,10 +37,15 @@ class ProjectsApi(
         client.get {
             url { path("api/projects") }
             parameter("cursor", cursor)
-            parameter("limit", limit)
+            limit?.let { parameter("limit", it) }
             sortBy?.let { parameter("sortBy", it) }
             sortDirection?.let { parameter("sortDirection", it) }
             search?.let { parameter("search", it) }
+        }.body()
+
+    suspend fun getProject(projectId: String): ChatProject =
+        client.get {
+            url { path("api/projects/$projectId") }
         }.body()
 
     suspend fun createProject(name: String, description: String? = null): ChatProject =

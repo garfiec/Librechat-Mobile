@@ -2,9 +2,11 @@ package com.garfiec.librechat.feature.chat.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.EntryProviderScope
@@ -26,12 +28,16 @@ import com.garfiec.librechat.feature.chat.screen.ArtifactShortcutViewerScreen
 import com.garfiec.librechat.feature.chat.screen.ChatScreen
 import com.garfiec.librechat.feature.chat.screen.ConversationMediaScreen
 import com.garfiec.librechat.feature.chat.screen.NewChatScreen
+import com.garfiec.librechat.feature.chat.viewmodel.ProjectLandingViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.PromptInsertionHandoff
+import com.garfiec.librechat.feature.chat.viewmodel.chatHandoffKey
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.subclass
 import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
 
 @Serializable sealed interface ChatRoute : NavKey
 
@@ -54,7 +60,20 @@ import org.koin.compose.koinInject
      * A different value here is a different entry, and its store is discarded.
      */
     val accountScope: String? = null,
+    /**
+     * The project this new chat is filed into, and its name for the landing's "In <project>" chip.
+     * A project-scoped landing is pushed over the project rather than made the root, and is replaced
+     * by the chat once it starts, so Back from the chat returns to the project.
+     */
+    val chatProjectId: String? = null,
+    val chatProjectName: String? = null,
 ) : ChatRoute
+
+/** True for the landing a New chat tap would open: not filed into a project. */
+val NewChat.isPlainLanding: Boolean get() = chatProjectId == null
+
+/** The key this landing's server-file picks are addressed to; see [chatHandoffKey]. */
+val NewChat.handoffKey: String? get() = chatHandoffKey(conversationId = null, chatProjectId = chatProjectId)
 
 /**
  * [isTemporary] marks a conversation the user started as a temporary chat. It rides on the
@@ -95,6 +114,8 @@ import org.koin.compose.koinInject
 fun EntryProviderScope<NavKey>.chatEntries(
     onNavigate: (NavKey) -> Unit,
     onBack: () -> Unit,
+    /** Removes the given entry wherever it sits; for a screen closing itself, which may not be on top. */
+    onRemove: (NavKey) -> Unit,
     onNavigateToChat: (conversationId: String, isTemporary: Boolean) -> Unit,
     onOpenDrawer: (() -> Unit)? = null,
     /**
@@ -110,10 +131,23 @@ fun EntryProviderScope<NavKey>.chatEntries(
     onOpenWhatsNew: () -> Unit = {},
 ) {
     entry<NewChat> { key ->
+        val projectName = key.chatProjectId?.let { projectId ->
+            val landing = koinViewModel<ProjectLandingViewModel> {
+                parametersOf(projectId, key.chatProjectName.orEmpty())
+            }
+            val project by landing.state.collectAsStateWithLifecycle()
+            val currentOnRemove by rememberUpdatedState(onRemove)
+            LaunchedEffect(project.deleted) {
+                if (project.deleted) currentOnRemove(key)
+            }
+            project.name
+        }
         NewChatScreen(
             initialAgentId = key.agentId,
             initialEndpoint = key.endpoint,
             initialModel = key.model,
+            chatProjectId = key.chatProjectId,
+            chatProjectName = projectName,
             onConversationStart = { conversationId, isTemporary ->
                 onNavigateToChat(conversationId, isTemporary)
             },

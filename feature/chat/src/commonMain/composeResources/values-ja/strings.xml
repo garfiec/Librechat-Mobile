@@ -30,6 +30,7 @@
     <string name="chat_agent_fallback_label">エージェント</string>
     <string name="compare_models">モデルを比較</string>
     <string name="how_can_i_help">今日は何をお手伝いしましょうか？</string>
+    <string name="chat_in_project">%1$s 内</string>
     <string name="recording">録音中…</string>
     <string name="hint_message_model">%1$s にメッセージ</string>
     <string name="hint_message">メッセージ…</string>

@@ -36,7 +36,10 @@ fun EntryProviderScope<NavKey>.conversationsEntries(
     onConversationClick: (String) -> Unit,
     onNavigateToArchive: () -> Unit = {},
     onNavigateToProject: (projectId: String, projectName: String) -> Unit = { _, _ -> },
+    onNewChatInProject: (projectId: String, projectName: String) -> Unit = { _, _ -> },
     onBack: () -> Unit = {},
+    /** Removes the given entry wherever it sits; for a screen closing itself, which may not be on top. */
+    onRemove: (NavKey) -> Unit = {},
     onOpenMessage: (conversationId: String, messageId: String, query: String, inReasoning: Boolean) -> Unit =
         { conversationId, _, _, _ -> onConversationClick(conversationId) },
 ) {
@@ -55,6 +58,7 @@ fun EntryProviderScope<NavKey>.conversationsEntries(
         ProjectsScreen(
             onProjectClick = onNavigateToProject,
             onNavigateBack = onBack,
+            onNewChatInProject = onNewChatInProject,
         )
     }
     entry<Search> { route ->
@@ -71,6 +75,8 @@ fun EntryProviderScope<NavKey>.conversationsEntries(
             projectName = route.projectName,
             onConversationClick = onConversationClick,
             onNavigateBack = onBack,
+            onCloseSelf = { onRemove(route) },
+            onNewChatInProject = onNewChatInProject,
         )
     }
 }

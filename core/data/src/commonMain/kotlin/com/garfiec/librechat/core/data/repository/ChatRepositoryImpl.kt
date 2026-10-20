@@ -23,9 +23,12 @@ import com.garfiec.librechat.core.network.sse.SseClient
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -36,7 +39,20 @@ class ChatRepositoryImpl(
     private val connectivityObserver: ConnectivityObserver,
     private val dispatcher: CoroutineDispatcher,
     private val json: Json,
+    private val projectChanges: ProjectChangeSignal,
 ) : ChatRepository {
+
+    // New chats sent with a chatProjectId whose first reply hasn't finished. The server saves the
+    // conversation, filed, only then; the reply often finishes on a resumed stream, after the screen
+    // that started it is gone, so both stream paths check here.
+    private val filedChatsPending = MutableStateFlow<Set<String>>(emptySet())
+
+    private fun Flow<StreamEvent>.announcingFiledChat(conversationId: String): Flow<StreamEvent> = onEach { event ->
+        if (event is StreamEvent.Final && conversationId in filedChatsPending.value) {
+            filedChatsPending.update { it - conversationId }
+            projectChanges.bump()
+        }
+    }
 
     override fun startChat(
         text: String,
@@ -62,6 +78,7 @@ class ChatRepositoryImpl(
         isTemporary: Boolean,
         modelParams: JsonObject?,
         quotes: List<String>?,
+        chatProjectId: String?,
     ): Flow<StreamEvent> = flow {
         // Phase 1: POST to start the chat - get back a streamId (= conversationId)
         val request = ChatPayloadBuilder.build(
@@ -87,6 +104,7 @@ class ChatRepositoryImpl(
             ephemeralAgent = ephemeralAgent,
             isTemporary = isTemporary,
             quotes = quotes,
+            chatProjectId = chatProjectId,
         )
         // A send whose parent response is still being written now 409s ("Cannot submit a
         // follow-up while the selected parent response is still being saved"), which an
@@ -108,6 +126,7 @@ class ChatRepositoryImpl(
             chatApi.startChat(endpoint, ChatPayloadBuilder.toBody(json, request, modelParams))
         }
         val streamId = startResponse.conversationId
+        if (chatProjectId != null) filedChatsPending.update { it + streamId }
 
         // Emit a Created event from the POST response so the ViewModel
         // knows the conversationId before any SSE events arrive.
@@ -120,7 +139,10 @@ class ChatRepositoryImpl(
 
         // Phase 2: GET the SSE stream using the streamId
         val streamUrl = "api/agents/chat/stream/$streamId"
-        emitAll(sseClient.connect(streamUrl, connectivityFlow = connectivityObserver.isConnected))
+        emitAll(
+            sseClient.connect(streamUrl, connectivityFlow = connectivityObserver.isConnected)
+                .announcingFiledChat(streamId),
+        )
     }.flowOn(dispatcher)
 
     override suspend fun abortChat(
@@ -193,7 +215,10 @@ class ChatRepositoryImpl(
 
     override fun resumeStream(conversationId: String): Flow<StreamEvent> = flow {
         val streamUrl = "api/agents/chat/stream/$conversationId"
-        emitAll(sseClient.connect(streamUrl, resume = true, connectivityFlow = connectivityObserver.isConnected))
+        emitAll(
+            sseClient.connect(streamUrl, resume = true, connectivityFlow = connectivityObserver.isConnected)
+                .announcingFiledChat(conversationId),
+        )
     }.flowOn(dispatcher)
 
     /**

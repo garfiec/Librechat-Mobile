@@ -148,12 +148,14 @@ internal class ChatViewModelTestFixture {
         initialConversationId: String? = null,
         initialAgentId: String? = null,
         initialIsTemporary: Boolean = false,
+        initialChatProjectId: String? = null,
         activeAccountProvider: ActiveAccountProvider =
             InMemoryActiveAccountProvider(AccountState.Resolved(AccountId("srv:user-1"))),
     ): ChatViewModel = ChatViewModel(
         initialConversationId = initialConversationId,
         initialAgentId = initialAgentId,
         initialIsTemporary = initialIsTemporary,
+        initialChatProjectId = initialChatProjectId,
         agentRepository = agentRepository,
         chatRepository = chatRepository,
         messageRepository = messageRepository,

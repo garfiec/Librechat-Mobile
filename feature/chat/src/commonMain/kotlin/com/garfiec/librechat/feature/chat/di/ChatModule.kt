@@ -8,6 +8,7 @@ import com.garfiec.librechat.feature.chat.prompts.PromptsViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.BackgroundTasksViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationMediaViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.NewChatSelectionHandoff
+import com.garfiec.librechat.feature.chat.viewmodel.ProjectLandingViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.PromptInsertionHandoff
 import com.garfiec.librechat.feature.chat.viewmodel.ServerFileSelectionHandoff
 import com.garfiec.librechat.feature.chat.viewmodel.SiteIconPromptSession
@@ -40,6 +41,14 @@ val chatModule = module {
         PromptEditorViewModel(
             promptRepository = get(),
             initialGroupId = params.getOrNull(),
+        )
+    }
+    // The project's id and the name it was opened with, from the NewChat route via parametersOf.
+    viewModel { params ->
+        ProjectLandingViewModel(
+            projectId = params[0],
+            initialName = params[1],
+            projectRepository = get(),
         )
     }
     // conversationId arrives from the navigation layer via parametersOf — same reason as above.

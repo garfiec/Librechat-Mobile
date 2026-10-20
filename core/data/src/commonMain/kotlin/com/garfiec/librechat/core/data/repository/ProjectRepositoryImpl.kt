@@ -8,28 +8,51 @@ import com.garfiec.librechat.core.data.db.dao.ConversationDao
 import com.garfiec.librechat.core.model.ChatProject
 import com.garfiec.librechat.core.model.response.ProjectListResponse
 import com.garfiec.librechat.core.network.api.ProjectsApi
+import kotlinx.coroutines.flow.StateFlow
 
 class ProjectRepositoryImpl(
     private val projectsApi: ProjectsApi,
     private val conversationDao: ConversationDao,
     private val activeAccountProvider: ActiveAccountProvider,
+    private val projectChanges: ProjectChangeSignal,
 ) : ProjectRepository {
 
-    override suspend fun listProjects(cursor: String?): Result<ProjectListResponse> =
-        safeApiCall { projectsApi.listProjects(cursor = cursor) }
+    override val revision: StateFlow<Long> = projectChanges.revision
+
+    private fun <T> Result<T>.bumpOnSuccess(): Result<T> = also { if (it is Result.Success) projectChanges.bump() }
+
+    override suspend fun listProjects(
+        cursor: String?,
+        sortBy: String?,
+        sortDirection: String?,
+        search: String?,
+        limit: Int?,
+    ): Result<ProjectListResponse> =
+        safeApiCall {
+            projectsApi.listProjects(
+                cursor = cursor,
+                limit = limit,
+                sortBy = sortBy,
+                sortDirection = sortDirection,
+                search = search,
+            )
+        }
+
+    override suspend fun getProject(projectId: String): Result<ChatProject> =
+        safeApiCall { projectsApi.getProject(projectId) }
 
     override suspend fun createProject(name: String, description: String?): Result<ChatProject> =
-        safeApiCall { projectsApi.createProject(name, description) }
+        safeApiCall { projectsApi.createProject(name, description) }.bumpOnSuccess()
 
     override suspend fun updateProject(
         projectId: String,
         name: String?,
         description: String?,
     ): Result<ChatProject> =
-        safeApiCall { projectsApi.updateProject(projectId, name, description) }
+        safeApiCall { projectsApi.updateProject(projectId, name, description) }.bumpOnSuccess()
 
     override suspend fun deleteProject(projectId: String): Result<Unit> =
-        safeApiCall { projectsApi.deleteProject(projectId) }
+        safeApiCall<Unit> { projectsApi.deleteProject(projectId) }.bumpOnSuccess()
 
     override suspend fun assignConversation(
         conversationId: String,
@@ -47,5 +70,6 @@ class ProjectRepositoryImpl(
                     conversationDao.updateChatProjectId(conversationId, projectId, accountId)
                 }
             }
+            .bumpOnSuccess()
     }
 }

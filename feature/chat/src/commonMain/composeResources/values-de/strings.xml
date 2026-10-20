@@ -30,6 +30,7 @@
     <string name="chat_agent_fallback_label">Agent</string>
     <string name="compare_models">Modelle vergleichen</string>
     <string name="how_can_i_help">Wie kann ich dir heute helfen?</string>
+    <string name="chat_in_project">In %1$s</string>
     <string name="recording">Aufnahme läuft…</string>
     <string name="hint_message_model">Nachricht an %1$s</string>
     <string name="hint_message">Nachricht…</string>

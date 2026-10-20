@@ -56,16 +56,26 @@
     <string name="project_sort_updated">Недавно обновлённые</string>
     <string name="project_sort_created">Недавно созданные</string>
     <string name="projects_title">Проекты</string>
-    <string name="project_rename">Переименовать проект</string>
     <string name="project_delete">Удалить проект</string>
     <string name="project_delete_confirm">Удалить проект "%1$s"? Беседы сохранятся, но будут убраны из проекта.</string>
-    <string name="project_open">Открыть</string>
     <string name="project_unassigned">Без проекта</string>
     <string name="projects_all">Все проекты</string>
+    <string name="projects_see_all">Показать все проекты</string>
     <string name="project_new">Новый проект</string>
     <string name="project_name_label">Название проекта</string>
-    <string name="project_count">Чатов: %1$d</string>
-    <string name="projects_empty">Пока нет проектов</string>
+    <string name="project_edit">Изменить проект</string>
+    <string name="project_options">Параметры проекта</string>
+    <string name="project_description_label">Описание (необязательно)</string>
+    <string name="project_description_help">Показывается под названием в списке проектов</string>
+    <string name="project_create_confirm">Создать</string>
+    <string name="project_new_chat_in">Новый чат в «%1$s»</string>
+    <string name="projects_empty">Держите связанные чаты вместе</string>
+    <string name="project_unassigned_subtitle">Чаты, которые вы не разложили</string>
+    <string name="projects_search">Поиск проектов</string>
+    <string name="project_sort_activity">Последняя активность</string>
+    <string name="project_sort_name">Название</string>
+    <string name="projects_empty_description">Проект объединяет чаты на одну тему. Переместите любой чат в проект через его меню.</string>
+    <string name="projects_no_match">Нет проектов по запросу «%1$s»</string>
     <string name="tags">Теги</string>
     <string name="rename_conversation">Переименовать беседу</string>
     <string name="rename_dialog_message">Введите новое название для этой беседы.</string>
@@ -221,5 +231,17 @@
         <item quantity="few">%1$d активных тега</item>
         <item quantity="many">%1$d активных тегов</item>
         <item quantity="other">%1$d активного тега</item>
+    </plurals>
+    <plurals name="project_chat_count">
+        <item quantity="one">%1$d чат</item>
+        <item quantity="few">%1$d чата</item>
+        <item quantity="many">%1$d чатов</item>
+        <item quantity="other">%1$d чата</item>
+    </plurals>
+    <plurals name="projects_count">
+        <item quantity="one">%1$d проект</item>
+        <item quantity="few">%1$d проекта</item>
+        <item quantity="many">%1$d проектов</item>
+        <item quantity="other">%1$d проекта</item>
     </plurals>
 </resources>

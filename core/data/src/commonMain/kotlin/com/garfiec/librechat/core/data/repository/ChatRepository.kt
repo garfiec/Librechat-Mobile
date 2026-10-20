@@ -43,6 +43,8 @@ interface ChatRepository {
         modelParams: JsonObject? = null,
         /** Quoted excerpts riding this turn (v0.8.7); null/empty sends none. */
         quotes: List<String>? = null,
+        /** Project to file a NEW conversation into; pass it on the first turn only. */
+        chatProjectId: String? = null,
     ): Flow<StreamEvent>
 
     /**

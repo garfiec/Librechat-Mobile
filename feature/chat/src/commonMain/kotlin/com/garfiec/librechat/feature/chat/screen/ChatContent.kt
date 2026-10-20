@@ -56,6 +56,8 @@ internal fun ColumnScope.ChatContent(
     listPullUpModifier: Modifier = Modifier,
     // Drives the pull-up sheet directly from the (non-scrollable) landing surface.
     pullUpModifier: Modifier = Modifier,
+    /** The project a new chat from this landing is filed into, while it still is. */
+    projectName: String? = null,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val clipboard = rememberClipboardWriter()
@@ -72,6 +74,8 @@ internal fun ColumnScope.ChatContent(
                 selectedModel = uiState.selectedModel,
                 selectedAgentName = agentName,
                 onSelectModel = viewModel::openModelSheet,
+                // A temporary chat is never filed (SendDispatchDelegate), so it claims no project.
+                projectName = projectName?.takeIf { !uiState.isTemporaryChat },
                 modifier = topInsetModifier.then(pullUpModifier),
             )
         }

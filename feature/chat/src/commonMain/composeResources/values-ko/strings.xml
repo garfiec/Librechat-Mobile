@@ -30,6 +30,7 @@
     <string name="chat_agent_fallback_label">에이전트</string>
     <string name="compare_models">모델 비교</string>
     <string name="how_can_i_help">오늘 무엇을 도와드릴까요?</string>
+    <string name="chat_in_project">%1$s에서</string>
     <string name="recording">녹음 중…</string>
     <string name="hint_message_model">%1$s에게 메시지</string>
     <string name="hint_message">메시지…</string>

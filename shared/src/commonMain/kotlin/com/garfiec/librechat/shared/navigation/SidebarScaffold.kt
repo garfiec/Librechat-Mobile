@@ -22,6 +22,7 @@ fun SidebarScaffold(
     onSchedulesClick: () -> Unit,
     modifier: Modifier = Modifier,
     onOpenProjectsIndex: () -> Unit = {},
+    onNewChatInProject: (projectId: String, projectName: String) -> Unit = { _, _ -> },
     // Opens the Search screen with the drawer's query; see DrawerContent's param.
     onOpenSearch: ((String) -> Unit)? = null,
     // A drawer message hit was tapped; opens the chat at that message. Defaults to the conversation.
@@ -53,6 +54,7 @@ fun SidebarScaffold(
         onSchedulesClick = onSchedulesClick,
         accounts = accounts,
         onOpenProjectsIndex = onOpenProjectsIndex,
+        onNewChatInProject = onNewChatInProject,
         onOpenSearch = onOpenSearch,
         onMessageClick = onMessageClick,
         onSwitchAccount = onSwitchAccount,

@@ -10,6 +10,8 @@ import com.garfiec.librechat.feature.auth.navigation.Register
 import com.garfiec.librechat.feature.auth.navigation.ServerUrl
 import com.garfiec.librechat.feature.chat.navigation.Chat
 import com.garfiec.librechat.feature.chat.navigation.NewChat
+import com.garfiec.librechat.feature.conversations.navigation.ProjectChats
+import com.garfiec.librechat.feature.conversations.navigation.Projects
 import com.garfiec.librechat.feature.conversations.navigation.Search
 import com.garfiec.librechat.feature.settings.navigation.ProviderKeys
 import com.garfiec.librechat.feature.settings.navigation.SettingsTabbed
@@ -61,6 +63,68 @@ class NavigatorTest {
         val navigator = createNavigator(NewChat())
         navigator.navigate(SettingsTabbed)
         assertEquals(listOf(NewChat(), SettingsTabbed), navigator.backStack.toList())
+    }
+
+    @Test
+    fun `a chat started from a project landing replaces it, so back returns to the project`() {
+        val project = NewChat(chatProjectId = "p1", chatProjectName = "Thesis")
+        val navigator = createNavigator(NewChat(), SettingsTabbed, project)
+        navigator.navigateToChat("c1")
+        assertEquals(listOf(NewChat(), SettingsTabbed, Chat("c1")), navigator.backStack.toList())
+    }
+
+    @Test
+    fun `a chat started from the plain landing keeps it underneath`() {
+        val navigator = createNavigator(NewChat())
+        navigator.navigateToChat("c1")
+        assertEquals(listOf(NewChat(), Chat("c1")), navigator.backStack.toList())
+    }
+
+    @Test
+    fun `a new chat in a project is pushed, and replaces a project landing already on top`() {
+        val navigator = createNavigator(NewChat(), SettingsTabbed)
+        navigator.navigateToNewChatInProject("p1", "Thesis")
+        navigator.navigateToNewChatInProject("p2", "Recipes")
+        assertEquals(
+            listOf(NewChat(), SettingsTabbed, NewChat(chatProjectId = "p2", chatProjectName = "Recipes")),
+            navigator.backStack.toList(),
+        )
+    }
+
+    @Test
+    fun `a new chat in a project replaces a chat on top rather than stacking over it`() {
+        val navigator = createNavigator(NewChat(), Chat("a"))
+        navigator.navigateToNewChatInProject("p1", "Thesis")
+        navigator.navigateToChat("b")
+        assertEquals(listOf(NewChat(), Chat("b")), navigator.backStack.toList())
+    }
+
+    @Test
+    fun `a project's landing further down is moved up rather than duplicated`() {
+        val landing = NewChat(chatProjectId = "p1", chatProjectName = "Thesis")
+        val navigator = createNavigator(NewChat(), landing, SettingsTabbed)
+        navigator.navigateToNewChatInProject("p1", "Thesis")
+        assertEquals(listOf(NewChat(), SettingsTabbed, landing), navigator.backStack.toList())
+    }
+
+    @Test
+    fun `a search hit opened from a project landing replaces it, as a chat does`() {
+        val navigator = createNavigator(NewChat(), NewChat(chatProjectId = "p1", chatProjectName = "Thesis"))
+        navigator.navigateToMessage("c1", "m1", "query")
+        assertEquals(NewChat(), navigator.backStack.first())
+        assertEquals(2, navigator.backStack.size)
+        assertTrue(navigator.currentRoute is Chat)
+    }
+
+    @Test
+    fun `asking again for the project on top keeps that landing`() {
+        val navigator = createNavigator(NewChat())
+        navigator.navigateToNewChatInProject("p1", "Thesis")
+        navigator.navigateToNewChatInProject("p1", "Thesis")
+        assertEquals(
+            listOf(NewChat(), NewChat(chatProjectId = "p1", chatProjectName = "Thesis")),
+            navigator.backStack.toList(),
+        )
     }
 
     @Test
@@ -347,5 +411,35 @@ class NavigatorTest {
             listOf(NewChat(), Search("pelican"), Chat("c1", targetMessageId = "m1", highlightQuery = "pelican")),
             navigator.backStack.toList(),
         )
+    }
+
+    @Test
+    fun `remove takes out a screen below the top and leaves the top alone`() {
+        val landing = NewChat(chatProjectId = "p1", chatProjectName = "Thesis")
+        val navigator = createNavigator(NewChat(), landing, Search(""))
+
+        navigator.remove(landing)
+
+        assertEquals(listOf(NewChat(), Search("")), navigator.backStack.toList())
+    }
+
+    @Test
+    fun `remove takes out every copy of the screen`() {
+        val project = ProjectChats("p1", "Thesis")
+        val navigator = createNavigator(NewChat(), Projects, project, Chat("c1"), project)
+
+        navigator.remove(project)
+
+        assertEquals(listOf(NewChat(), Projects, Chat("c1")), navigator.backStack.toList())
+    }
+
+    @Test
+    fun `remove never empties the stack`() {
+        val landing = NewChat(chatProjectId = "p1", chatProjectName = "Thesis")
+        val navigator = createNavigator(landing)
+
+        navigator.remove(landing)
+
+        assertEquals(listOf<NavKey>(landing), navigator.backStack.toList())
     }
 }

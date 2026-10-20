@@ -98,4 +98,8 @@ data class ChatRequest(
      *  retries of the same send (minted in `ChatPayloadBuilder.build`, encoded once). Additive;
      *  a server that hasn't claimed it simply ignores the field. */
     val clientRequestId: String? = null,
+    /** Chat Project (folder) a NEW conversation is filed into. The server saves it on every turn
+     *  that carries it, so it must only ride the first send: on a later turn it would move the
+     *  chat. A project the user does not own is dropped silently server-side (no error). */
+    val chatProjectId: String? = null,
 )

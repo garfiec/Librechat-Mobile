@@ -33,6 +33,7 @@ class ChatRepositoryClaimOnReadTest {
         connectivityObserver = connectivityObserver,
         dispatcher = UnconfinedTestDispatcher(),
         json = Json,
+        projectChanges = ProjectChangeSignal(),
     )
 
     private val parked = listOf(

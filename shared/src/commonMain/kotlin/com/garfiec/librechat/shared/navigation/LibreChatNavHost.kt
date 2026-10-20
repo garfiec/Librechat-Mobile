@@ -83,6 +83,8 @@ import com.garfiec.librechat.feature.chat.navigation.Chat
 import com.garfiec.librechat.feature.chat.navigation.ModelShortcutBus
 import com.garfiec.librechat.feature.chat.navigation.NewChat
 import com.garfiec.librechat.feature.chat.navigation.chatEntries
+import com.garfiec.librechat.feature.chat.navigation.handoffKey
+import com.garfiec.librechat.feature.chat.navigation.isPlainLanding
 import com.garfiec.librechat.feature.chat.viewmodel.ServerFileSelectionHandoff
 import com.garfiec.librechat.feature.conversations.drawer.DrawerViewModel
 import com.garfiec.librechat.feature.conversations.navigation.ArchivedConversations
@@ -495,7 +497,8 @@ fun PhoneLayout(
                     isOpen = drawerOpen,
                     onNewChat = {
                         scope.launch { drawerState.close() }
-                        if (navigator.currentRoute !is NewChat) {
+                        // A project's landing is not the plain one, so New chat still leaves it.
+                        if ((navigator.currentRoute as? NewChat)?.isPlainLanding != true) {
                             navigator.navigateToTopLevel(NewChat())
                         }
                     },
@@ -531,6 +534,10 @@ fun PhoneLayout(
                     onOpenProjectsIndex = {
                         scope.launch { drawerState.close() }
                         navigator.navigate(Projects)
+                    },
+                    onNewChatInProject = { projectId, projectName ->
+                        scope.launch { drawerState.close() }
+                        navigator.navigateToNewChatInProject(projectId, projectName)
                     },
                     onOpenSearch = { query ->
                         scope.launch { drawerState.close() }
@@ -709,6 +716,7 @@ fun MainNavDisplay(
             chatEntries(
                 onNavigate = { navigator.navigate(it) },
                 onBack = { navigator.goBack() },
+                onRemove = { navigator.remove(it) },
                 onNavigateToChat = { conversationId, isTemporary ->
                     navigator.navigateToChat(conversationId, isTemporary)
                 },
@@ -719,7 +727,11 @@ fun MainNavDisplay(
                 onAttachFromServer = {
                     // Tag the picker with the launching conversation (null on the new-chat
                     // landing) so its selection routes back only to this chat.
-                    val launchingId = (navigator.currentRoute as? Chat)?.conversationId
+                    val launchingId = when (val route = navigator.currentRoute) {
+                        is Chat -> route.conversationId
+                        is NewChat -> route.handoffKey
+                        else -> null
+                    }
                     navigator.navigate(FilesPicker(targetConversationId = launchingId))
                 },
                 onOpenWhatsNew = { navigator.navigate(WhatsNew) },
@@ -730,7 +742,11 @@ fun MainNavDisplay(
                 onNavigateToProject = { projectId, projectName ->
                     navigator.navigate(ProjectChats(projectId, projectName))
                 },
+                onNewChatInProject = { projectId, projectName ->
+                    navigator.navigateToNewChatInProject(projectId, projectName)
+                },
                 onBack = { navigator.goBack() },
+                onRemove = { navigator.remove(it) },
                 onOpenMessage = { conversationId, messageId, query, inReasoning ->
                     navigator.navigateToMessage(conversationId, messageId, query, inReasoning)
                 },

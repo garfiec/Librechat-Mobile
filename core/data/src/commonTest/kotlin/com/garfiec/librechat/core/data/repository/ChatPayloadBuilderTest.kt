@@ -33,6 +33,18 @@ class ChatPayloadBuilderTest {
     }
 
     @Test
+    fun projectIdRidesOnlyWhenGiven() {
+        val filed = ChatPayloadBuilder.build(
+            text = "hi", conversationId = null, endpoint = "openAI", model = "gpt-4o", chatProjectId = "proj-1",
+        )
+        assertTrue("\"chatProjectId\":\"proj-1\"" in json.encodeToString(ChatRequest.serializer(), filed))
+
+        // Absent, not null: on a later turn a present field would move the chat.
+        val plain = ChatPayloadBuilder.build(text = "hi", conversationId = "c-1", endpoint = "openAI", model = "gpt-4o")
+        assertFalse("chatProjectId" in Json { explicitNulls = false }.encodeToString(ChatRequest.serializer(), plain))
+    }
+
+    @Test
     fun builtInUserProvidedEndpointSendsKey() {
         val req = ChatPayloadBuilder.build(
             text = "hi",

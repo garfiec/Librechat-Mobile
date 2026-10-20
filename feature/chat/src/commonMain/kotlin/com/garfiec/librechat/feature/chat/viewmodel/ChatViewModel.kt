@@ -56,10 +56,10 @@ import com.garfiec.librechat.feature.chat.components.PausePanelAutoAdvance
 import com.garfiec.librechat.feature.chat.model.PresetDisplayData
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
-import com.garfiec.librechat.feature.chat.util.NEW_CHAT_DRAFT_KEY
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import com.garfiec.librechat.feature.chat.util.extractBranchMedia
+import com.garfiec.librechat.feature.chat.util.newChatDraftKey
 import com.garfiec.librechat.feature.chat.util.serializeMessageForClipboard
 import com.garfiec.librechat.feature.chat.util.withAttachmentSources
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.AttachmentPreviewDelegate
@@ -130,6 +130,8 @@ class ChatViewModel(
     initialHighlightQuery: String? = null,
     /** The hit matched in the target's reasoning, so the jump lands on a match there. */
     initialTargetInReasoning: Boolean = false,
+    /** Project a new chat started from a project is filed into (null for an ordinary new chat). */
+    initialChatProjectId: String? = null,
     private val agentRepository: AgentRepository,
     private val chatRepository: ChatRepository,
     private val messageRepository: MessageRepository,
@@ -235,6 +237,7 @@ class ChatViewModel(
     private val subagentTraceDelegate = SubagentTraceDelegate(SubagentHandle(stateHandle), json)
     private val attachmentPreviewDelegate =
         AttachmentPreviewDelegate(AttachmentPreviewHandle(stateHandle), fileRepository)
+    private val newChatDraftKey = newChatDraftKey(initialChatProjectId)
     private val completionDelegate = SendCompletionDelegate(
         handle = SendCompletionHandle(stateHandle),
         conversationRepository = conversationRepository,
@@ -245,6 +248,7 @@ class ChatViewModel(
         tts = ttsDelegate,
         selectionHandoff = selectionHandoff,
         reloadConversation = { id -> conversationLoadDelegate.loadConversation(id) },
+        newChatDraftKey = newChatDraftKey,
     )
 
     // Channel-backed one-shot signal: N queued follow-ups were dropped on drain because they were
@@ -456,6 +460,7 @@ class ChatViewModel(
 
     private val conversationLoadDelegate = ConversationLoadDelegate(
         handle = ConversationLoadHandle(stateHandle),
+        newChatDraftKey = newChatDraftKey,
         messageRepository = messageRepository,
         conversationRepository = conversationRepository,
         draftRepository = draftRepository,
@@ -585,6 +590,8 @@ class ChatViewModel(
         launchStream = streamingManager::launchStream,
         onComparisonSendStart = comparisonDelegate::onSendStart,
         buildAddedConvo = comparisonDelegate::buildAddedConvo,
+        chatProjectId = initialChatProjectId,
+        newChatDraftKey = newChatDraftKey,
     )
 
     private val queueOrchestrationDelegate = QueueOrchestrationDelegate(
@@ -693,21 +700,22 @@ class ChatViewModel(
             // For new chats, mark conversationModelLoaded so refilterModels
             // doesn't wait for a conversation model that will never arrive.
             modelDelegate.conversationModelLoaded = true
-            conversationLoadDelegate.restoreDraft(NEW_CHAT_DRAFT_KEY)
+            conversationLoadDelegate.restoreDraft(newChatDraftKey)
         }
 
         // Content shared in from another app, addressed to this chat by the navigation layer.
         // Covers both a share that launched the app (staged before this screen composed, drained
         // on subscribe) and one arriving while this ViewModel is already on screen.
+        val handoffKey = chatHandoffKey(initialConversationId, initialChatProjectId)
         viewModelScope.launch {
-            shareConsumer.sharesFor(initialConversationId).collect(::applyShare)
+            shareConsumer.sharesFor(handoffKey).collect(::applyShare)
         }
 
         // Collect server-file picker results routed to this conversation's own channel
         // (keyed by id; null for the NewChat landing). Consumed here in common code rather
         // than per-platform in the screen — mirroring how NewChatSelectionHandoff is wired.
         viewModelScope.launch {
-            serverFileSelectionHandoff.selectionsFor(initialConversationId).collect { files ->
+            serverFileSelectionHandoff.selectionsFor(handoffKey).collect { files ->
                 uploadIntakeDelegate.attachServerFiles(files)
             }
         }
@@ -914,7 +922,7 @@ class ChatViewModel(
         // While editing a queued item the composer holds that item, not the persisted draft —
         // don't overwrite the on-disk new-message draft (it's restored on commit/cancel).
         if (_uiState.value.isEditingQueued) return
-        val draftKey = _uiState.value.conversationId ?: NEW_CHAT_DRAFT_KEY
+        val draftKey = _uiState.value.conversationId ?: newChatDraftKey
         viewModelScope.launch {
             draftRepository.saveDraft(draftKey, text)
         }

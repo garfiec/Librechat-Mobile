@@ -30,6 +30,7 @@
     <string name="chat_agent_fallback_label">智能体</string>
     <string name="compare_models">对比模型</string>
     <string name="how_can_i_help">今天我能帮你做些什么？</string>
+    <string name="chat_in_project">在%1$s中</string>
     <string name="recording">录音中…</string>
     <string name="hint_message_model">向 %1$s 发送消息</string>
     <string name="hint_message">发送消息…</string>

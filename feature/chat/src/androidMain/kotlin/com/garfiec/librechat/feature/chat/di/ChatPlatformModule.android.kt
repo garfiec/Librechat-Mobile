@@ -36,6 +36,8 @@ actual val chatPlatformModule: Module = module {
             initialHighlightQuery = params.values.getOrNull(6) as String?,
             // [7] the hit matched in the target's reasoning; absent otherwise.
             initialTargetInReasoning = params.values.getOrNull(7) as? Boolean ?: false,
+            // [8] project a new chat is filed into; absent otherwise.
+            initialChatProjectId = params.values.getOrNull(8) as String?,
             agentRepository = get(),
             chatRepository = get(),
             messageRepository = get(),
