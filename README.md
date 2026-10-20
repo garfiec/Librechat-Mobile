@@ -150,7 +150,7 @@ Without this setting, the server's violation system may accumulate ban points ag
 | Android Studio or IntelliJ IDEA | Latest stable (recommended IDE for all code editing) |
 | Xcode | 15+ (iOS only, Apple Silicon Mac required — IDE not needed, CLI only) |
 | iOS Deployment Target | 16.0+ |
-| Gradle | 9.5.1 (via wrapper) |
+| Gradle | 9.6.1 (via wrapper) |
 | Kotlin | 2.4.10 |
 
 ## Building from Source
