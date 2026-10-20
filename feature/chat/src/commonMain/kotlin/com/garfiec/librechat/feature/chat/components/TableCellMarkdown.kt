@@ -76,6 +76,7 @@ private fun isLineBreakTag(tag: CharSequence): Boolean =
 private val PlainCellSettings = DefaultAnnotatorSettings(
     linkTextSpanStyle = TextLinkStyles(),
     codeSpanStyle = SpanStyle(),
+    highlightSpanStyle = SpanStyle(),
     annotator = TableCellAnnotator,
 )
 
@@ -83,11 +84,14 @@ private val PlainCellSettings = DefaultAnnotatorSettings(
 internal fun rememberTableCellAnnotatorSettings(): AnnotatorSettings {
     val linkColor = MaterialTheme.colorScheme.primary
     val codeBackground = MaterialTheme.colorScheme.surfaceContainerHighest
+    val highlightText = MaterialTheme.colorScheme.onSecondaryContainer
+    val highlightBackground = MaterialTheme.colorScheme.secondaryContainer
     val uriHandler = LocalUriHandler.current
-    return remember(linkColor, codeBackground, uriHandler) {
+    return remember(linkColor, codeBackground, highlightText, highlightBackground, uriHandler) {
         DefaultAnnotatorSettings(
             linkTextSpanStyle = TextLinkStyles(SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline)),
             codeSpanStyle = SpanStyle(fontFamily = FontFamily.Monospace, background = codeBackground),
+            highlightSpanStyle = SpanStyle(color = highlightText, background = highlightBackground),
             annotator = TableCellAnnotator,
             linkInteractionListener = { link ->
                 (link as? LinkAnnotation.Url)?.url?.let { url -> runCatching { uriHandler.openUri(url) } }

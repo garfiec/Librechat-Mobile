@@ -90,6 +90,7 @@ private fun displayedText(markdown: String, contentNode: ASTNode): String =
 private val CountingSettings = DefaultAnnotatorSettings(
     linkTextSpanStyle = TextLinkStyles(),
     codeSpanStyle = SpanStyle(),
+    highlightSpanStyle = SpanStyle(),
     annotator = NoOpMarkdownAnnotator,
 )
 
