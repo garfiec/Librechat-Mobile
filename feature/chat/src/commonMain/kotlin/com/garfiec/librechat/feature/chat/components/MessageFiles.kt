@@ -178,6 +178,7 @@ internal fun FileChip(
     bytes: Long? = null,
     isLoading: Boolean = false,
     expired: Boolean = false,
+    outlined: Boolean = false,
     onClick: (() -> Unit)? = null,
 ) {
     val kind = remember(filename, type) { fileKindOf(filename, type) }
@@ -189,6 +190,7 @@ internal fun FileChip(
         isLoading = isLoading,
         dimmed = expired,
         glyph = if (expired) Icons.Outlined.Schedule else null,
+        outlined = outlined,
         onClick = onClick,
     )
 }

@@ -122,7 +122,6 @@
     <string name="cd_code_execution_result">Code execution result</string>
     <string name="cd_exit_code_success">Exit code 0 (success)</string>
     <string name="cd_exit_code_failure">Exit code %1$d (failure)</string>
-    <string name="exit_code">exit %1$d</string>
     <string name="label_code">Code</string>
     <string name="label_output">Output:</string>
     <string name="label_error">Error:</string>
@@ -747,7 +746,10 @@
     <!-- Code-execution card status once the code has run -->
     <string name="analyzing_finished">Finished analyzing</string>
     <!-- Expands a code run's output past its first lines -->
-    <string name="show_all_lines">Show all lines</string>
+    <plurals name="show_all_n_lines">
+        <item quantity="one">Show %1$d line</item>
+        <item quantity="other">Show all %1$d lines</item>
+    </plurals>
     <!-- Accessibility label of the copy button on a code run's output -->
     <string name="cd_copy_output">Copy output</string>
     <!-- Second line of a generated file the code sandbox no longer has -->

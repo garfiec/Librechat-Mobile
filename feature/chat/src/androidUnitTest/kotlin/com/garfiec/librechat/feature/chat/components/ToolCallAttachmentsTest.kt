@@ -485,16 +485,15 @@ class ToolCallAttachmentsTest {
     }
 
     @Test
-    fun `up to three downloadable chips stay ungrouped`() {
-        assertThat(shouldGroupFiles(files(FILE_GROUP_THRESHOLD), nowMs = 0)).isFalse()
-        assertThat(shouldGroupFiles(files(FILE_GROUP_THRESHOLD + 1), nowMs = 0)).isTrue()
+    fun `up to three chips stay ungrouped`() {
+        assertThat(shouldGroupFiles(files(FILE_GROUP_THRESHOLD))).isFalse()
+        assertThat(shouldGroupFiles(files(FILE_GROUP_THRESHOLD + 1))).isTrue()
     }
 
     @Test
-    fun `expired chips do not count toward grouping`() {
-        val items = files(2) + files(3, expiresAt = 10).map { ToolAttachment.File(it.attachment.copy(fileId = "x" + it.attachment.fileId)) }
-        assertThat(shouldGroupFiles(items, nowMs = 5)).isTrue()
-        assertThat(shouldGroupFiles(items, nowMs = 10)).isFalse()
+    fun `expired chips count toward grouping`() {
+        val items = files(3) + files(1, expiresAt = 10).map { ToolAttachment.File(it.attachment.copy(fileId = "x" + it.attachment.fileId)) }
+        assertThat(shouldGroupFiles(items)).isTrue()
     }
 
     // ─── expiry ────────────────────────────────────────────────────

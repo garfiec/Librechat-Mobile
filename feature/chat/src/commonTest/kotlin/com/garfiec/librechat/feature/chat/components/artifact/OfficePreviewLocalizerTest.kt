@@ -143,6 +143,15 @@ $bootstrap
     }
 
     @Test
+    fun `a meta refresh is dropped, other metas are kept`() {
+        val out = localizeOfficePreviewHtml(
+            "<html><head><meta charset=\"utf-8\"><meta http-equiv=\"Refresh\" content=\"0;url=https://x.test\"></head></html>",
+        )
+        assertFalse(out.contains("x.test"), out)
+        assertTrue(out.contains("<meta charset=\"utf-8\">"), out)
+    }
+
+    @Test
     fun `the final office document hands the WebView no CDN reference`() {
         val built = ArtifactWebContent.buildOfficePreviewHtml(doc("$jszipCdn\n$docxCdn"), "html", isDarkTheme = false)
         assertFalse(built.contains("cdn.jsdelivr.net"))

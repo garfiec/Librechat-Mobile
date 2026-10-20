@@ -8,10 +8,8 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -35,9 +33,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -111,6 +107,13 @@ internal fun partitionWorkspaceChanges(attachments: List<Attachment>?): Workspac
 
 private val NoWorkspaceChanges = WorkspaceChangesSplit(emptyList(), emptyList())
 
+/**
+ * Keys the section's open state: the reply's message id, which the stream stamps on each change, so
+ * the live list and the saved message share it. [fallback] covers records without one.
+ */
+internal fun workspaceStateKey(changes: List<Attachment>, fallback: String): String =
+    changes.firstNotNullOfOrNull { it.messageId?.takeIf(String::isNotEmpty) } ?: fallback
+
 /** Identifies one file across a turn's records: its fileId, else the agent and workspace path. */
 private fun workspaceChangeKey(attachment: Attachment): String = attachment.fileId
     ?: "${attachment.agentId.orEmpty()}:${attachment.workspaceChange?.path ?: attachment.filepath}"
@@ -160,10 +163,13 @@ internal fun WorkspaceChangesSection(
     stateKey: String,
     modifier: Modifier = Modifier,
     initiallyExpanded: Boolean = false,
+    // The reply is still streaming: an open list stays open when it ends.
+    live: Boolean = false,
 ) {
     if (changes.isEmpty()) return
-    var isExpanded by rememberSaveable(key = "workspace:$stateKey") { mutableStateOf(initiallyExpanded) }
-    var showAll by rememberSaveable(key = "workspace-all:$stateKey") { mutableStateOf(false) }
+    val carriedKey = workspaceStateKey(changes, stateKey)
+    var isExpanded by rememberCarriedExpansion("workspace", carriedKey, live, initiallyExpanded)
+    var showAll by rememberCarriedExpansion("workspace-all", carriedKey, live)
     val actions = rememberToolFileActions(baseUrl)
     val reduceMotion = rememberReduceMotion()
 
@@ -208,36 +214,31 @@ internal fun WorkspaceChangesSection(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun WorkspaceChangesHeader(count: Int, isExpanded: Boolean, onToggle: () -> Unit) {
     val state = stringResource(if (isExpanded) Res.string.state_expanded else Res.string.state_collapsed)
     Row(
         modifier = Modifier
+            .fillMaxWidth()
             .heightIn(min = 48.dp)
             .clip(HeaderShape)
             .clickable(role = Role.Button, onClick = onToggle)
             .semantics { stateDescription = state }
-            .padding(horizontal = 4.dp),
+            .padding(start = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = Icons.Outlined.FileCopy,
             contentDescription = null,
-            modifier = Modifier.size(16.dp),
+            modifier = Modifier.size(20.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Spacer(modifier = Modifier.width(8.dp))
-        // Wraps the count under the title rather than cutting it off on a narrow screen.
-        FlowRow(
-            modifier = Modifier.weight(1f, fill = false),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            itemVerticalAlignment = Alignment.CenterVertically,
-        ) {
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = stringResource(Res.string.workspace_changes),
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Medium),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
                 text = pluralStringResource(Res.plurals.n_files_changed, count, count),
@@ -245,13 +246,15 @@ private fun WorkspaceChangesHeader(count: Int, isExpanded: Boolean, onToggle: ()
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Spacer(modifier = Modifier.width(4.dp))
-        Icon(
-            imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-            contentDescription = null,
-            modifier = Modifier.size(16.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        // Part of the row's single tap target, sized like a button so the end of the row reads as one.
+        Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
@@ -426,5 +429,5 @@ private const val INLINE_ROW_LIMIT = 5
 private const val STATEFUL_PROFILE = "stateful"
 private const val CREATED_OPERATION = "created"
 private val ListShape = RoundedCornerShape(8.dp)
-private val HeaderShape = RoundedCornerShape(999.dp)
+private val HeaderShape = RoundedCornerShape(12.dp)
 private val BadgeShape = RoundedCornerShape(999.dp)

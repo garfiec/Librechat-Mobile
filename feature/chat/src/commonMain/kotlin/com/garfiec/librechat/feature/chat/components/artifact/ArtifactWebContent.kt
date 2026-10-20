@@ -90,8 +90,10 @@ object ArtifactWebContent {
             content.contains("<!DOCTYPE", ignoreCase = true)
 
         if (hasHtmlTag) {
+            // font-src: an office preview carries this policy beside its own, and both are enforced,
+            // so without it docx-preview's embedded (blob:) fonts fall to default-src and are blocked.
             val themeStyle = """
-                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' file:; style-src 'unsafe-inline'; img-src data: blob: https:;">
+                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' file:; style-src 'unsafe-inline'; img-src data: blob: https:; font-src data: blob:; form-action 'none';">
                 <style>:root { --bg: $bgColor; --fg: $fgColor; } html, body { max-width: 100%; overflow-x: hidden; } body { background: var(--bg); color: var(--fg); margin: 0; padding: 0; } img, svg, video, iframe { max-width: 100%; height: auto; }</style>
                 <script src="tailwind/tailwind.min.js"></script>
             """.trimIndent()
@@ -117,7 +119,7 @@ object ArtifactWebContent {
             <html>
             <head>
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' file:; style-src 'unsafe-inline'; img-src data: blob: https:;">
+                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' file:; style-src 'unsafe-inline'; img-src data: blob: https:; form-action 'none';">
                 <script src="tailwind/tailwind.min.js"></script>
                 <style>
                     :root { --bg: $bgColor; --fg: $fgColor; }
@@ -268,7 +270,7 @@ object ArtifactWebContent {
             <html>
             <head>
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: file:; style-src 'unsafe-inline'; img-src data: blob: https:; font-src data: file:;">
+                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: file:; style-src 'unsafe-inline'; img-src data: blob: https:; font-src data: file:; form-action 'none';">
                 <script src="react/react.production.min.js"></script>
                 <script src="react-dom/react-dom.production.min.js"></script>
                 <script src="babel/babel.min.js"></script>

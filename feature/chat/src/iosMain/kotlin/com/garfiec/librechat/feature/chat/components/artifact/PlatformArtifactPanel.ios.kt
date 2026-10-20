@@ -38,6 +38,7 @@ actual fun ArtifactPreviewSurface(
     var loadedHtml by remember { mutableStateOf("") }
 
     val assetBase = rememberWebAssetBaseUrl() ?: return
+    val navigationPolicy = remember { LocalOnlyNavigationPolicy() }
 
     UIKitView(
         modifier = modifier.fillMaxSize(),
@@ -50,6 +51,7 @@ actual fun ArtifactPreviewSurface(
                 configuration = config,
             )
             webView.setOpaque(false)
+            webView.navigationDelegate = navigationPolicy
             webView.loadVendoredHtml(html, assetBase)
             loadedHtml = html
             webView

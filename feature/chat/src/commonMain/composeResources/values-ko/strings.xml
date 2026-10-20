@@ -120,7 +120,6 @@
     <string name="cd_code_execution_result">코드 실행 결과</string>
     <string name="cd_exit_code_success">종료 코드 0 (성공)</string>
     <string name="cd_exit_code_failure">종료 코드 %1$d (실패)</string>
-    <string name="exit_code">종료 %1$d</string>
     <string name="label_code">코드</string>
     <string name="label_output">출력:</string>
     <string name="label_error">오류:</string>
@@ -704,7 +703,9 @@
     <string name="sandbox_starting">샌드박스 환경 시작 중</string>
     <string name="analyzing">분석 중</string>
     <string name="analyzing_finished">분석 완료</string>
-    <string name="show_all_lines">모든 줄 보기</string>
+    <plurals name="show_all_n_lines">
+        <item quantity="other">%1$d줄 모두 보기</item>
+    </plurals>
     <string name="cd_copy_output">출력 복사</string>
     <string name="expired">만료됨</string>
     <string name="expired_explainer">코드 샌드박스의 파일은 24시간 동안 보관됩니다. 이 파일은 만료되어 더 이상 다운로드할 수 없습니다.</string>

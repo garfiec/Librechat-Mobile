@@ -111,12 +111,14 @@ fun StreamingToolCallCard(
                 phase = codeExecutionPhase(verdict, sandboxStarting, result),
                 durationMs = toolCall.durationMs,
                 stateKey = toolCall.id,
+                live = true,
             )
             ToolCallAttachments(
                 attachments = streamingAttachments,
                 toolCallId = toolCall.id,
                 baseUrl = baseUrl,
                 modifier = Modifier.padding(top = 8.dp),
+                live = true,
             )
         }
         return
@@ -262,6 +264,7 @@ private fun GenericStreamingToolCard(
             toolCallId = toolCall.id,
             baseUrl = baseUrl,
             modifier = Modifier.padding(top = 8.dp),
+            live = true,
         )
     }
 }

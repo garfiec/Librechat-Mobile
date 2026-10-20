@@ -5,6 +5,7 @@ import android.content.Context
 import android.net.http.SslError
 import android.view.ViewGroup
 import android.webkit.SslErrorHandler
+import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.Column
@@ -123,6 +124,17 @@ actual fun InlineArtifactView(
     }
 }
 
+private val LOCAL_NAVIGATION_SCHEMES = setOf("about", "data", "blob", "file")
+
+/**
+ * SECURITY: whether to refuse [request], a navigation started from a preview. A link in one (a docx
+ * hyperlink, an HTML artifact's <a>) would otherwise replace the page with a remote one, running its
+ * script with any bridges bound. A form POST never reaches `shouldOverrideUrlLoading`; the
+ * artifact CSPs' `form-action 'none'` covers it.
+ */
+internal fun isRemoteMainFrameNavigation(request: WebResourceRequest): Boolean =
+    request.isForMainFrame && request.url.scheme?.lowercase() !in LOCAL_NAVIGATION_SCHEMES
+
 /**
  * A WebView configured for an inline preview. With [onContentHeight], the page reports its body
  * height through [ContentHeightJsBridge] once it has loaded and whenever it changes after.
@@ -152,6 +164,9 @@ private fun createInlineWebView(
         override fun onPageFinished(view: WebView, url: String?) {
             if (onContentHeight != null) view.evaluateJavascript(CONTENT_HEIGHT_REPORTER_JS, null)
         }
+
+        override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean =
+            isRemoteMainFrameNavigation(request)
 
         override fun onReceivedSslError(
             view: WebView?,

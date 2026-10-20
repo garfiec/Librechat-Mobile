@@ -120,7 +120,6 @@
     <string name="cd_code_execution_result">代码执行结果</string>
     <string name="cd_exit_code_success">退出码 0（成功）</string>
     <string name="cd_exit_code_failure">退出码 %1$d（失败）</string>
-    <string name="exit_code">退出码 %1$d</string>
     <string name="label_code">代码</string>
     <string name="label_output">输出：</string>
     <string name="label_error">错误：</string>
@@ -704,7 +703,9 @@
     <string name="sandbox_starting">正在启动沙盒环境</string>
     <string name="analyzing">正在分析</string>
     <string name="analyzing_finished">完成分析</string>
-    <string name="show_all_lines">显示全部行</string>
+    <plurals name="show_all_n_lines">
+        <item quantity="other">显示全部 %1$d 行</item>
+    </plurals>
     <string name="cd_copy_output">复制输出</string>
     <string name="expired">已过期</string>
     <string name="expired_explainer">代码沙盒中的文件保留 24 小时。此文件已过期，无法再下载。</string>

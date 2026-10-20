@@ -120,7 +120,6 @@
     <string name="cd_code_execution_result">Результат выполнения кода</string>
     <string name="cd_exit_code_success">Код выхода 0 (успех)</string>
     <string name="cd_exit_code_failure">Код выхода %1$d (ошибка)</string>
-    <string name="exit_code">выход %1$d</string>
     <string name="label_code">Код</string>
     <string name="label_output">Вывод:</string>
     <string name="label_error">Ошибка:</string>
@@ -719,7 +718,12 @@
     <string name="sandbox_starting">Запуск изолированной среды</string>
     <string name="analyzing">Анализ</string>
     <string name="analyzing_finished">Анализ завершен</string>
-    <string name="show_all_lines">Показать все строки</string>
+    <plurals name="show_all_n_lines">
+        <item quantity="one">Показать %1$d строку</item>
+        <item quantity="few">Показать все %1$d строки</item>
+        <item quantity="many">Показать все %1$d строк</item>
+        <item quantity="other">Показать все %1$d строки</item>
+    </plurals>
     <string name="cd_copy_output">Скопировать вывод</string>
     <string name="expired">Срок истёк</string>
     <string name="expired_explainer">Файлы из песочницы кода хранятся 24 часа. Срок хранения этого файла истёк, и его больше нельзя скачать.</string>

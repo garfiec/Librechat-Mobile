@@ -120,7 +120,6 @@
     <string name="cd_code_execution_result">Résultat de l'exécution du code</string>
     <string name="cd_exit_code_success">Code de sortie 0 (succès)</string>
     <string name="cd_exit_code_failure">Code de sortie %1$d (échec)</string>
-    <string name="exit_code">sortie %1$d</string>
     <string name="label_code">Code</string>
     <string name="label_output">Sortie :</string>
     <string name="label_error">Erreur :</string>
@@ -714,7 +713,10 @@
     <string name="sandbox_starting">Démarrage de l’environnement sandbox</string>
     <string name="analyzing">Analyse en cours</string>
     <string name="analyzing_finished">Analyse terminée</string>
-    <string name="show_all_lines">Afficher toutes les lignes</string>
+    <plurals name="show_all_n_lines">
+        <item quantity="one">Afficher %1$d ligne</item>
+        <item quantity="other">Afficher les %1$d lignes</item>
+    </plurals>
     <string name="cd_copy_output">Copier la sortie</string>
     <string name="expired">Expiré</string>
     <string name="expired_explainer">Les fichiers du bac à sable de code sont conservés 24 heures. Celui-ci a expiré et ne peut plus être téléchargé.</string>

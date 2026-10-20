@@ -109,6 +109,9 @@ actual fun ArtifactPreviewSurface(
                             isLoading = true
                         }
 
+                        override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean =
+                            isRemoteMainFrameNavigation(request)
+
                         override fun onReceivedError(
                             view: WebView?,
                             request: WebResourceRequest?,

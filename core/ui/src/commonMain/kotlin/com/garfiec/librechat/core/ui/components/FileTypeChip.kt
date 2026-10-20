@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -41,7 +42,8 @@ private const val DISABLED_ALPHA = 0.38f
  * for a spinner while a tap's work is in flight and holds further taps; [enabled] = false dims
  * the chip and ignores taps. [dimmed] dims it but keeps it tappable, for a file that can no longer
  * be opened but can still say why; [glyph] replaces the kind's glyph on the tile (a clock for an
- * expired file). Tappable only with an [onClick], and then at least 48dp tall.
+ * expired file). [outlined] draws a border instead of the fill, for chips that sit on the page
+ * rather than on a bubble or glass. Tappable only with an [onClick], and then at least 48dp tall.
  */
 @Composable
 fun FileTypeChip(
@@ -53,6 +55,7 @@ fun FileTypeChip(
     enabled: Boolean = true,
     dimmed: Boolean = false,
     glyph: ImageVector? = null,
+    outlined: Boolean = false,
     onClick: (() -> Unit)? = null,
 ) {
     Row(
@@ -60,7 +63,13 @@ fun FileTypeChip(
             .widthIn(max = ChipMaxWidth * LocalDensity.current.fontScale.coerceIn(1f, MAX_WIDTH_FONT_SCALE))
             .heightIn(min = 48.dp)
             .clip(ChipShape)
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .then(
+                if (outlined) {
+                    Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, ChipShape)
+                } else {
+                    Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                },
+            )
             .then(
                 if (onClick != null) {
                     Modifier.clickable(enabled = enabled && !isLoading, role = Role.Button, onClick = onClick)

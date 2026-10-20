@@ -39,7 +39,8 @@ private const val CSP_META = """<meta http-equiv="Content-Security-Policy" conte
  * - Every other `<script src>`, remote `<link>`, and remote `@import` in a `<style>` is removed,
  *   so an unknown renderer fails closed to the document's fallback (`#lc-fallback`).
  * - Every CSP `<meta>` is replaced by one [OFFICE_PREVIEW_CSP], placed first in `<head>`, or at
- *   the top when there is no `<head>` so a document without a policy does not fail open.
+ *   the top when there is no `<head>` so a document without a policy does not fail open. A
+ *   `<meta http-equiv="refresh">` is dropped.
  * - Inline scripts and comments are copied byte-for-byte without being scanned, as the HTML
  *   tokenizer treats them, so the bootstrap and the base64 payload survive untouched.
  *
@@ -92,8 +93,9 @@ internal fun localizeOfficePreviewHtml(html: String): String {
             }
             isTagStart(html, i, "meta") -> {
                 val tag = readTag(html, i, "meta")
-                val isCsp = tag.attrs["http-equiv"]?.trim().equals("content-security-policy", ignoreCase = true)
-                if (!isCsp) out.appendRange(html, i, tag.end)
+                // A refresh is a navigation, which no CSP directive here can stop.
+                val httpEquiv = tag.attrs["http-equiv"]?.trim()?.lowercase()
+                if (httpEquiv != "content-security-policy" && httpEquiv != "refresh") out.appendRange(html, i, tag.end)
                 i = tag.end
             }
             !cspInserted && isTagStart(html, i, "head") -> {

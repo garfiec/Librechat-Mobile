@@ -124,6 +124,7 @@ fun ChatRoot(
         LocalParsedMarkdownCache provides parsedMarkdownCache,
         LocalSubagentProgress provides subagentProgress,
         LocalPreviewOverrides provides previewOverrides,
+        LocalExpansionStates provides rememberExpansionStates(),
         LocalChatMediaViewer provides onOpenMedia,
         LocalAttachmentDownloader provides onDownloadAttachment,
         LocalFileNotice provides onFileNotice,

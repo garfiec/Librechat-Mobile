@@ -147,4 +147,19 @@ class WorkspaceChangesTest {
         assertThat(workspaceOperation(change("a", "a", operation = "deleted"))).isNull()
         assertThat(workspaceOperation(change("a", "a", operation = null))).isNull()
     }
+
+    // ─── workspaceStateKey ──────────────────────────────────────────
+
+    @Test
+    fun `the live list keys its open state on the reply's message id, like the saved message`() {
+        val live = listOf("a", "b").map { change(it, "$it.txt").copy(messageId = "msg-1") }
+
+        assertThat(workspaceStateKey(live, fallback = "streaming")).isEqualTo("msg-1")
+    }
+
+    @Test
+    fun `records without a message id fall back to the caller's key`() {
+        assertThat(workspaceStateKey(listOf(change("a", "a.txt")), fallback = "streaming")).isEqualTo("streaming")
+        assertThat(workspaceStateKey(listOf(change("a", "a.txt").copy(messageId = "")), fallback = "m")).isEqualTo("m")
+    }
 }

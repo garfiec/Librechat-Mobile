@@ -37,7 +37,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,6 +55,7 @@ import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.util.rememberClipboardWriter
 import kotlinx.coroutines.delay
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /** A code-execution call's code, language and result, from its args and output. */
@@ -102,7 +102,7 @@ private val ERROR_PATTERN = Regex("^(Traceback|Error:|Exception:|.*Error:)", Reg
 
 /**
  * A code-execution call: a status header ("Starting sandbox environment", "Analyzing", "Finished
- * analyzing") with a "language · duration · exit N" subtitle, the code behind the header's chevron,
+ * analyzing") with a "language · duration" subtitle, the code behind the header's chevron,
  * and the output capped at [OUTPUT_PREVIEW_LINES] lines. The call's files render outside the card,
  * so collapsing it never hides them.
  */
@@ -112,12 +112,15 @@ fun CodeExecutionCard(
     phase: CodeExecutionPhase,
     modifier: Modifier = Modifier,
     durationMs: Long? = null,
-    // Scopes the saveable expand state: the tool call's id, so it survives the card scrolling away.
+    // Keys the expand state: the tool call's id, which the live and the saved card share, so an
+    // open card stays open as the reply finishes and when it scrolls away.
     stateKey: String = "",
+    // Part of the reply still streaming: hands its state to the saved card when the reply ends.
+    live: Boolean = false,
 ) {
     val reduceMotion = rememberReduceMotion()
     val codeExecCd = stringResource(Res.string.cd_code_execution_result)
-    var isCodeExpanded by rememberSaveable(key = "codeexec:$stateKey") { mutableStateOf(false) }
+    var isCodeExpanded by rememberCarriedExpansion("codeexec", stateKey, live)
     val code = result.code?.takeIf { it.isNotBlank() }
     val settled = phase != CodeExecutionPhase.STARTING && phase != CodeExecutionPhase.RUNNING
 
@@ -150,7 +153,7 @@ fun CodeExecutionCard(
             }
         }
         if (settled && (!result.output.isNullOrBlank() || !result.error.isNullOrBlank())) {
-            CodeExecutionOutput(result = result, stateKey = stateKey)
+            CodeExecutionOutput(result = result, stateKey = stateKey, live = live)
         }
     }
 }
@@ -173,8 +176,7 @@ private fun CodeExecutionHeader(
         CodeExecutionPhase.FINISHED, CodeExecutionPhase.ERROR ->
             result.intent ?: stringResource(Res.string.analyzing_finished)
     }
-    val exitLabel = result.exitCode?.let { stringResource(Res.string.exit_code, it) }
-    val subtitle = listOfNotNull(result.language, durationMs?.let { formatTraceDuration(it, localeTag) }, exitLabel)
+    val subtitle = listOfNotNull(result.language, durationMs?.let { formatTraceDuration(it, localeTag) })
         .joinToString(" · ")
     val toggleLabel = stringResource(if (expanded) Res.string.cd_collapse_code else Res.string.cd_expand_code)
     val state = stringResource(if (expanded) Res.string.state_expanded else Res.string.state_collapsed)
@@ -257,7 +259,7 @@ private fun CodeExecutionHeader(
 }
 
 @Composable
-private fun CodeExecutionOutput(result: CodeExecutionResult, stateKey: String) {
+private fun CodeExecutionOutput(result: CodeExecutionResult, stateKey: String, live: Boolean) {
     val colors = MaterialTheme.colorScheme
     val clipboard = rememberClipboardWriter()
     var showCopied by remember { mutableStateOf(false) }
@@ -267,7 +269,7 @@ private fun CodeExecutionOutput(result: CodeExecutionResult, stateKey: String) {
             showCopied = false
         }
     }
-    var showAll by rememberSaveable(key = "codeexec-out:$stateKey") { mutableStateOf(false) }
+    var showAll by rememberCarriedExpansion("codeexec-out", stateKey, live)
     val stdout = result.output?.takeIf { it.isNotBlank() }
     val stderr = result.error?.takeIf { it.isNotBlank() }
     var stdoutClipped by remember(stdout) { mutableStateOf(false) }
@@ -322,7 +324,7 @@ private fun CodeExecutionOutput(result: CodeExecutionResult, stateKey: String) {
         }
         if (!showAll && (stdoutClipped || stderrClipped)) {
             TextButton(onClick = { showAll = true }) {
-                Text(stringResource(Res.string.show_all_lines, lineCount))
+                Text(pluralStringResource(Res.plurals.show_all_n_lines, lineCount, lineCount))
             }
         }
     }

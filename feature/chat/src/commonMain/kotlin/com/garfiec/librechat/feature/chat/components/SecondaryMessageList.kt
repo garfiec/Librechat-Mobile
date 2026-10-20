@@ -63,6 +63,8 @@ fun SecondaryMessageList(
         (if (isStreaming) 1 else 0) +
         (if (isStreaming) renderedToolCalls.size else 0)
 
+    ClearExpansionStatesAfterReply(isStreaming, ExpansionPane.SECONDARY)
+
     // Auto-scroll to bottom during streaming
     LaunchedEffect(streamingContent.length, totalItemCount) {
         if (totalItemCount > 0) {
@@ -106,6 +108,8 @@ fun SecondaryMessageList(
                         // No feedback affordance in a comparison pane, but provided for the same
                         // reason as the primary list so the two cannot drift.
                         LocalFeedbackEnabled provides !isStreaming,
+                        LocalExpansionScope provides
+                            expansionScope(ExpansionPane.SECONDARY, node.message.parentMessageId),
                     ) {
                     // Same branch as MessageList; this pane never edits. Its bubbles take no
                     // actions and no sibling navigation (their callbacks are no-ops), so neither
@@ -143,6 +147,11 @@ fun SecondaryMessageList(
 
                 if (isStreaming) {
                     val streamingWorkspace = partitionWorkspaceChanges(liveAttachments)
+                    // The message the reply answers, which its saved message names as its parent.
+                    val replyScope = expansionScope(
+                        ExpansionPane.SECONDARY,
+                        displayMessages.lastOrNull()?.message?.messageId,
+                    )
                     item(key = "secondary_streaming_message") {
                         ProvideMarkdownMedia(liveAttachments, baseUrl) {
                             StreamingMessageBubble(
@@ -165,24 +174,29 @@ fun SecondaryMessageList(
                             key = { "secondary_tool_call_${it.id}" },
                             contentType = { "tool_call" },
                         ) { toolCall ->
-                            StreamingToolCallCard(
-                                toolCall = toolCall,
-                                modifier = Modifier.streamingContentColumnPadding(chatLayoutStyle, showAvatars, showBubbles),
-                                baseUrl = baseUrl,
-                                streamingAttachments = streamingWorkspace.inline,
-                                sandboxStarting = toolCall.id in sandboxStartingToolCallIds,
-                            )
+                            CompositionLocalProvider(LocalExpansionScope provides replyScope) {
+                                StreamingToolCallCard(
+                                    toolCall = toolCall,
+                                    modifier = Modifier.streamingContentColumnPadding(chatLayoutStyle, showAvatars, showBubbles),
+                                    baseUrl = baseUrl,
+                                    streamingAttachments = streamingWorkspace.inline,
+                                    sandboxStarting = toolCall.id in sandboxStartingToolCallIds,
+                                )
+                            }
                         }
                     }
 
                     if (streamingWorkspace.changes.isNotEmpty()) {
                         item(key = "secondary_streaming_workspace_changes", contentType = "workspace_changes") {
-                            WorkspaceChangesSection(
-                                changes = streamingWorkspace.changes,
-                                baseUrl = baseUrl,
-                                stateKey = "secondary_streaming",
-                                modifier = Modifier.streamingContentColumnPadding(chatLayoutStyle, showAvatars, showBubbles),
-                            )
+                            CompositionLocalProvider(LocalExpansionScope provides replyScope) {
+                                WorkspaceChangesSection(
+                                    changes = streamingWorkspace.changes,
+                                    baseUrl = baseUrl,
+                                    stateKey = "secondary_streaming",
+                                    modifier = Modifier.streamingContentColumnPadding(chatLayoutStyle, showAvatars, showBubbles),
+                                    live = true,
+                                )
+                            }
                         }
                     }
                 }

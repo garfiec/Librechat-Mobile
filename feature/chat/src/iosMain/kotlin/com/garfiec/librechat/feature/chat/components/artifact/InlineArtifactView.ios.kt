@@ -69,6 +69,7 @@ actual fun InlineArtifactView(
     }
 
     val assetBase = rememberWebAssetBaseUrl() ?: return
+    val navigationPolicy = remember { LocalOnlyNavigationPolicy() }
 
     val uiKitViewBlock: @Composable () -> Unit = {
         var loadedHtml by remember { mutableStateOf("") }
@@ -88,6 +89,7 @@ actual fun InlineArtifactView(
                     val webView = WKWebView(frame = cValue { }, configuration = config)
                     webView.setOpaque(false)
                     webView.scrollView.setScrollEnabled(false)
+                    webView.navigationDelegate = navigationPolicy
                     webView.loadVendoredHtml(html, assetBase)
                     loadedHtml = html
                     webView

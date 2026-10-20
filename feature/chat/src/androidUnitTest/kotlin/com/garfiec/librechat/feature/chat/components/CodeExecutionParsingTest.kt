@@ -82,6 +82,25 @@ class CodeExecutionParsingTest {
     }
 
     @Test
+    fun `plain output is never read for an exit code`() {
+        val output = "stdout:\nworker: Execution exited with code 1\nall done"
+
+        assertThat(parseCodeExecution("execute_code", argsJson, output)?.exitCode).isNull()
+    }
+
+    @Test
+    fun `a failed run's message still reads as an error`() {
+        val failed = parseCodeExecution(
+            "execute_code",
+            argsJson,
+            "Error: Code execution failed. Execution exited with code 137\n\nStderr:\nKilled",
+        )
+
+        assertThat(codeExecutionPhase(ToolCallVerdict.COMPLETED, sandboxStarting = false, result = failed))
+            .isEqualTo(CodeExecutionPhase.ERROR)
+    }
+
+    @Test
     fun `a running call with empty args has no code yet`() {
         val result = parseCodeExecution("execute_code", "", null)
 

@@ -120,7 +120,6 @@
     <string name="cd_code_execution_result">コードの実行結果</string>
     <string name="cd_exit_code_success">終了コード 0（成功）</string>
     <string name="cd_exit_code_failure">終了コード %1$d（失敗）</string>
-    <string name="exit_code">終了 %1$d</string>
     <string name="label_code">コード</string>
     <string name="label_output">出力:</string>
     <string name="label_error">エラー:</string>
@@ -704,7 +703,9 @@
     <string name="sandbox_starting">サンドボックス環境を起動中</string>
     <string name="analyzing">分析中</string>
     <string name="analyzing_finished">分析終了</string>
-    <string name="show_all_lines">すべての行を表示</string>
+    <plurals name="show_all_n_lines">
+        <item quantity="other">%1$d 行をすべて表示</item>
+    </plurals>
     <string name="cd_copy_output">出力をコピー</string>
     <string name="expired">期限切れ</string>
     <string name="expired_explainer">コードサンドボックスのファイルは24時間保持されます。このファイルは期限切れのため、ダウンロードできません。</string>

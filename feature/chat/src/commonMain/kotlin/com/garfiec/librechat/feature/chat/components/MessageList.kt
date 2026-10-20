@@ -426,6 +426,8 @@ fun MessageList(
     }
 
     var wasStreaming by remember { mutableStateOf(false) }
+    ClearExpansionStatesAfterReply(isStreaming, ExpansionPane.PRIMARY)
+
     LaunchedEffect(isStreaming) {
         if (isStreaming) {
             wasStreaming = true
@@ -663,6 +665,7 @@ fun MessageList(
                     LocalSuppressGroupAutoCollapse provides (node.message.messageId == justSettledMessageId),
                     LocalFeedbackEnabled provides !isStreaming,
                     LocalResubmitEnabled provides canResubmit,
+                    LocalExpansionScope provides expansionScope(ExpansionPane.PRIMARY, node.message.parentMessageId),
                 ) {
                 val systemEvent = wakeups.wakeupOf(node, isEditing = editingMessageId == node.message.messageId)
                 if (systemEvent != null) {
@@ -773,6 +776,8 @@ fun MessageList(
                 // Workspace changes get their own item; tool cards, office previews and memory
                 // take the rest. The bubble's markdown images resolve against all of them.
                 val streamingWorkspace = partitionWorkspaceChanges(liveAttachments)
+                // The message the reply answers, which its saved message names as its parent.
+                val replyScope = expansionScope(ExpansionPane.PRIMARY, displayMessages.lastOrNull()?.message?.messageId)
                 item(key = streamingSlotKey) {
                     ProvideMarkdownMedia(liveAttachments, baseUrl) {
                         StreamingMessageBubble(
@@ -796,25 +801,30 @@ fun MessageList(
                         key = { "tool_call_${it.id}" },
                         contentType = { "tool_call" },
                     ) { toolCall ->
-                        StreamingToolCallCard(
-                            toolCall = toolCall,
-                            modifier = Modifier.streamingContentColumnPadding(chatLayoutStyle, showAvatars, showBubbles),
-                            baseUrl = baseUrl,
-                            streamingAttachments = streamingWorkspace.inline,
-                            showImageDescriptions = showImageDescriptions,
-                            sandboxStarting = toolCall.id in sandboxStartingToolCallIds,
-                        )
+                        CompositionLocalProvider(LocalExpansionScope provides replyScope) {
+                            StreamingToolCallCard(
+                                toolCall = toolCall,
+                                modifier = Modifier.streamingContentColumnPadding(chatLayoutStyle, showAvatars, showBubbles),
+                                baseUrl = baseUrl,
+                                streamingAttachments = streamingWorkspace.inline,
+                                showImageDescriptions = showImageDescriptions,
+                                sandboxStarting = toolCall.id in sandboxStartingToolCallIds,
+                            )
+                        }
                     }
                 }
 
                 if (streamingWorkspace.changes.isNotEmpty()) {
                     item(key = "streaming_workspace_changes", contentType = "workspace_changes") {
-                        WorkspaceChangesSection(
-                            changes = streamingWorkspace.changes,
-                            baseUrl = baseUrl,
-                            stateKey = "streaming",
-                            modifier = Modifier.streamingContentColumnPadding(chatLayoutStyle, showAvatars, showBubbles),
-                        )
+                        CompositionLocalProvider(LocalExpansionScope provides replyScope) {
+                            WorkspaceChangesSection(
+                                changes = streamingWorkspace.changes,
+                                baseUrl = baseUrl,
+                                stateKey = "streaming",
+                                modifier = Modifier.streamingContentColumnPadding(chatLayoutStyle, showAvatars, showBubbles),
+                                live = true,
+                            )
+                        }
                     }
                 }
 

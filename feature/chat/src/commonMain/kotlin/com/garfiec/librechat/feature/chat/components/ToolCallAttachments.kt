@@ -24,9 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -321,11 +319,13 @@ internal fun ToolCallAttachments(
     toolCallId: String?,
     baseUrl: String,
     modifier: Modifier = Modifier,
+    // Part of the reply still streaming: an open file group stays open when the reply ends.
+    live: Boolean = false,
 ) {
     val buckets = remember(attachments, toolCallId) {
         bucketToolAttachments(partitionToolCallAttachments(attachments, toolCallId))
     }
-    ToolAttachmentBuckets(buckets = buckets, baseUrl = baseUrl, modifier = modifier)
+    ToolAttachmentBuckets(buckets = buckets, baseUrl = baseUrl, modifier = modifier, live = live)
 }
 
 /**
@@ -342,6 +342,7 @@ internal fun ToolAttachmentBuckets(
     buckets: List<ToolAttachmentBucket>,
     baseUrl: String,
     modifier: Modifier = Modifier,
+    live: Boolean = false,
 ) {
     if (buckets.isEmpty()) return
 
@@ -351,7 +352,7 @@ internal fun ToolAttachmentBuckets(
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         buckets.forEach { bucket ->
             when (bucket) {
-                is ToolAttachmentBucket.Files -> FileChipGroup(items = bucket.items, actions = actions)
+                is ToolAttachmentBucket.Files -> FileChipGroup(items = bucket.items, actions = actions, live = live)
 
                 is ToolAttachmentBucket.Artifacts -> bucket.items.forEach { item ->
                     // Keyed by file, so a pending row and its resolved self are one composition
@@ -403,6 +404,7 @@ private fun AttachmentDownloadChip(attachment: Attachment, actions: ToolFileActi
         bytes = attachment.bytes,
         isLoading = isDownloading,
         expired = expired,
+        outlined = true,
         onClick = if (actions.canOpen(attachment) && !isDownloading) {
             { actions.openToolFile(attachment) }
         } else {
@@ -412,24 +414,27 @@ private fun AttachmentDownloadChip(attachment: Attachment, actions: ToolFileActi
 }
 
 /**
- * More downloadable chips than this collapse behind a summary row. A deliberate divergence: the
- * web groups at more than one, but a phone shows three chips without crowding the reply.
+ * More file chips than this collapse behind a summary row. A deliberate divergence: the web groups
+ * at more than one, but a phone shows three chips without crowding the reply.
  */
 internal const val FILE_GROUP_THRESHOLD = 3
 
 /** How many names the collapsed summary row spells out before "+N more". */
 private const val SUMMARY_NAMES = 2
 
-/** Whether [items] collapse behind a summary row: only downloadable chips count. Pure. */
-internal fun shouldGroupFiles(items: List<ToolAttachment.File>, nowMs: Long): Boolean =
-    items.count { isDownloadable(it.attachment, nowMs) } > FILE_GROUP_THRESHOLD
+/** Whether [items] collapse behind a summary row: every chip counts, expired ones too. Pure. */
+internal fun shouldGroupFiles(items: List<ToolAttachment.File>): Boolean = items.size > FILE_GROUP_THRESHOLD
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun FileChipGroup(items: List<ToolAttachment.File>, actions: ToolFileActions) {
-    val grouped = remember(items) { shouldGroupFiles(items, currentTimeMs()) }
-    // Saveable so a group the user opened stays open when the reply scrolls out and back.
-    var expanded by rememberSaveable(items.firstOrNull()?.attachment?.let(::downloadKey)) { mutableStateOf(false) }
+private fun FileChipGroup(items: List<ToolAttachment.File>, actions: ToolFileActions, live: Boolean) {
+    val grouped = shouldGroupFiles(items)
+    // A group the user opened stays open when the reply scrolls out and back, and when it ends.
+    var expanded by rememberCarriedExpansion(
+        kind = "filegroup",
+        id = items.firstOrNull()?.attachment?.let(::downloadKey).orEmpty(),
+        live = live,
+    )
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (grouped) {
             val fallbackName = stringResource(Res.string.attachment_fallback)
