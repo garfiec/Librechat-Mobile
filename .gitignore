@@ -46,3 +46,5 @@ Thumbs.db
 .claude/*.lock
 # Bytecode from the Python helpers bundled with .claude skills
 __pycache__/
+# Build-file backups the small-screens render harness keeps while it is applied
+.small-screens-render.bak*

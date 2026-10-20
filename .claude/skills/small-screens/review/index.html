@@ -1,0 +1,223 @@
+<title>Small-Screen Fix Review</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,600&display=swap">
+<style>
+/* Layout: sticky batch rail on top, batch brief, then a grid of before|after render pairs. */
+:root {
+  --bg: #f3f4f1; --panel: #ffffff; --fg: #1d2420; --muted: #5f6a63; --line: #d9ddd6;
+  --accent: #2f6b55; --accent-soft: #e1ede7; --before: #a2512f; --after: #2f6b55;
+  --warn: #9a6a00; --warn-soft: #f6ecd2; --chip: #eceee9;
+  --f-display: "Fraunces", Georgia, serif;
+  --f-body: "IBM Plex Sans", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #141815; --panel: #1c211e; --fg: #e4e8e3; --muted: #9aa59d; --line: #2e3530;
+  --accent: #7cc4a4; --accent-soft: #23362d; --before: #e0936f; --after: #7cc4a4;
+  --warn: #e3b75a; --warn-soft: #3a3020; --chip: #262c28; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #141815; --panel: #1c211e; --fg: #e4e8e3; --muted: #9aa59d; --line: #2e3530;
+  --accent: #7cc4a4; --accent-soft: #23362d; --before: #e0936f; --after: #7cc4a4;
+  --warn: #e3b75a; --warn-soft: #3a3020; --chip: #262c28; color-scheme: dark }
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--fg); font: 14px/1.5 var(--f-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 48px }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg) }
+.wrap { max-width: 1400px; margin: 0 auto }
+header.top { padding-block: 24px 8px }
+h1 { font: 600 28px/1.15 var(--f-display); margin: 0; text-wrap: balance }
+.lede { color: var(--muted); max-width: 70ch; margin: 6px 0 0 }
+nav.rail { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg);
+  padding-block: 10px; border-bottom: 1px solid var(--line); display: flex; gap: 6px; overflow-x: auto; scrollbar-width: thin }
+nav.rail button { flex: none; font: 500 13px var(--f-body); color: var(--fg); background: var(--chip);
+  border: 1px solid transparent; border-radius: 6px; padding: 6px 10px; cursor: pointer; display: flex; gap: 6px; align-items: baseline }
+nav.rail button small { font: 11px var(--f-mono); color: var(--muted) }
+nav.rail button[aria-current="true"] { background: var(--accent); color: var(--panel) }
+nav.rail button[aria-current="true"] small { color: var(--panel); opacity: .8 }
+button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+.brief { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 24px; padding-block: 20px; border-bottom: 1px solid var(--line) }
+@media (max-width: 860px) { .brief { grid-template-columns: minmax(0, 1fr) } }
+.brief h2 { font: 600 22px/1.2 var(--f-display); margin: 0 0 4px }
+.branch { font: 12px var(--f-mono); color: var(--muted); word-break: break-all }
+.brief ul { margin: 10px 0 0; padding-left: 18px; display: grid; gap: 4px }
+.brief .lbl { font: 600 11px var(--f-body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 12px 0 0 }
+.stats { display: flex; gap: 16px; flex-wrap: wrap; font-variant-numeric: tabular-nums; margin-top: 10px; color: var(--muted) }
+.stats b { color: var(--fg); font-weight: 600 }
+details.findings { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; align-self: start; max-height: 420px; overflow: auto }
+details.findings summary { cursor: pointer; font-weight: 600 }
+.f { padding-block: 8px; border-top: 1px solid var(--line); display: grid; gap: 2px }
+.f:first-of-type { border-top: 0 }
+.f .h { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap }
+.fid { font: 500 12px var(--f-mono); color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px }
+.sev, .st { font: 500 11px var(--f-mono); padding: 1px 6px; border-radius: 4px; background: var(--chip); color: var(--muted) }
+.sev.high { background: var(--warn-soft); color: var(--warn) }
+.st.partial, .st.skipped { background: var(--warn-soft); color: var(--warn) }
+.st.fixed { background: var(--accent-soft); color: var(--accent) }
+.f p { margin: 0; color: var(--muted); font-size: 13px }
+.tools { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding-block: 14px }
+.tools label { display: flex; gap: 6px; align-items: center; color: var(--muted) }
+.tools input[type="search"], .tools select { font: 13px var(--f-body); color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; min-width: 0 }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden }
+.seg button { font: 13px var(--f-body); background: var(--panel); color: var(--fg); border: 0; padding: 5px 10px; cursor: pointer }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--panel) }
+.count { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 520px), 1fr)); gap: 16px }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; display: grid; gap: 10px; min-width: 0 }
+.card.same { opacity: .72 }
+.card .meta { display: grid; gap: 4px; min-width: 0 }
+.card .name { font: 500 12px var(--f-mono); word-break: break-all }
+.card .desc { color: var(--muted); font-size: 13px }
+.tags { display: flex; gap: 4px; flex-wrap: wrap }
+.tag { font: 11px var(--f-mono); padding: 1px 6px; border-radius: 4px; background: var(--chip); color: var(--muted) }
+.tag.ctl { background: var(--accent-soft); color: var(--accent) }
+.tag.same { background: var(--chip); color: var(--muted); border: 1px dashed var(--line) }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: start }
+.pair figure { margin: 0; display: grid; gap: 4px; min-width: 0 }
+.pair figcaption { font: 600 11px var(--f-body); letter-spacing: .08em; text-transform: uppercase }
+.pair .b figcaption { color: var(--before) } .pair .a figcaption { color: var(--after) }
+.pair img { width: 100%; height: auto; border: 1px solid var(--line); border-radius: 4px; background: var(--chip); display: block; cursor: zoom-in }
+.none { border: 1px dashed var(--line); border-radius: 4px; padding: 24px 8px; text-align: center; color: var(--muted); font-size: 12px }
+.flip { position: relative; cursor: pointer }
+.flip img { width: 100%; border: 1px solid var(--line); border-radius: 4px; display: block }
+.flip .lab { position: absolute; top: 6px; left: 6px; font: 600 11px var(--f-body); letter-spacing: .08em; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; background: var(--panel) }
+.flip.b .lab { color: var(--before) } .flip.a .lab { color: var(--after) }
+.empty { color: var(--muted); padding: 40px 0; text-align: center }
+.loading { color: var(--muted); padding: 40px 0 }
+dialog { border: 0; padding: 0; background: var(--bg); color: var(--fg); max-width: 96vw; max-height: 94vh; border-radius: 8px }
+dialog::backdrop { background: rgba(0,0,0,.7) }
+dialog .zoom { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px; overflow: auto; max-height: 94vh }
+dialog .zoom img { width: 100%; max-width: 760px }
+dialog .zh { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 8px; font: 12px var(--f-mono) }
+dialog button { font: 13px var(--f-body); background: var(--chip); color: var(--fg); border: 0; border-radius: 6px; padding: 4px 10px; cursor: pointer }
+@media (max-width: 480px) { .pair { gap: 6px } h1 { font-size: 23px } }
+@media (prefers-reduced-motion: no-preference) { .card { transition: opacity .15s } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <h1>Small-screen fixes, before and after</h1>
+    <p class="lede">Each finding has two pairs. The <b>trigger</b> pair renders the screen at the small size, large font or locale where it broke, and should show the fix. The <b>control</b> pair renders the same screen on an ordinary phone (360×640dp, 1.0x, English) and should look the same before and after; it checks the fix didn't change normal phones. A render is one still frame from the top: where a fix makes content scroll, the after frame can show less than the before, so those cases add a scrolled-to-the-end frame. Tap a pair to compare it full size; in flip mode, tap to switch between before and after.</p>
+  </header>
+  <nav class="rail" id="rail" aria-label="Batches"></nav>
+  <section class="brief" id="brief"></section>
+  <div class="tools">
+    <div class="seg" role="group" aria-label="View">
+      <button id="m-side" aria-pressed="true">Side by side</button>
+      <button id="m-flip" aria-pressed="false">Flip</button>
+    </div>
+    <label><input type="checkbox" id="hideSame"> Hide identical pairs</label>
+    <label>Style <select id="style"><option value="">All</option><option value="material">Material</option><option value="glass">Glass</option></select></label>
+    <label>Filter <input type="search" id="q" placeholder="Finding id, screen, locale…"></label>
+    <span class="count" id="count"></span>
+  </div>
+  <div class="grid" id="grid"><p class="loading">Loading renders…</p></div>
+</div>
+<dialog id="zoom"><div class="zoom" id="zoomBody"></div></dialog>
+
+<script>
+let BATCHES = [];
+
+const cache = {};
+const state = { batch: "", mode: "side", hideSame: false, style: "", q: "" };
+try { const s = JSON.parse(localStorage.getItem("ssfr") || "{}"); Object.assign(state, s); } catch (e) {}
+if (/^#B\d+$/.test(location.hash)) state.batch = location.hash.slice(1);
+const save = () => { try { localStorage.setItem("ssfr", JSON.stringify(state)); } catch (e) {} };
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function rail() {
+  $("rail").innerHTML = BATCHES.map(b =>
+    `<button data-b="${b.id}" aria-current="${b.id === state.batch}">${b.id}<small>${esc(b.title)}</small></button>`).join("");
+  $("rail").querySelectorAll("button").forEach(btn => btn.onclick = () => select(btn.dataset.b));
+}
+
+async function load(id) {
+  if (!cache[id]) cache[id] = fetch(`data/${id}.json`).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+  return cache[id];
+}
+
+async function select(id) {
+  state.batch = id; save();
+  history.replaceState(null, "", "#" + id);
+  rail();
+  const b = BATCHES.find(x => x.id === id);
+  $("brief").innerHTML = `<div><h2>${b.id} · ${esc(b.title)}</h2><div class="branch">${esc(b.branch)}</div>
+    <p class="lbl">What changes</p><ul>${b.changes.map(c => `<li>${esc(c)}</li>`).join("")}</ul><div class="stats" id="stats"></div></div>
+    <details class="findings" id="fl"><summary>Findings</summary><div id="flist">Loading…</div></details>`;
+  $("grid").innerHTML = `<p class="loading">Loading ${id} renders…</p>`;
+  let d;
+  try { d = await load(id); } catch (e) { $("grid").innerHTML = `<p class="empty">Couldn't load ${id}'s renders. Reload the page to try again.</p>`; return; }
+  if (state.batch !== id) return;
+  const fs = Object.entries(d.findings);
+  const stat = k => fs.filter(([, f]) => f.status === k).length;
+  $("stats").innerHTML = `<span><b>${fs.length}</b> findings</span><span><b>${stat("fixed")}</b> fixed</span>` +
+    (stat("partial") ? `<span><b>${stat("partial")}</b> partial</span>` : "") +
+    `<span><b>${d.renders.length}</b> render pairs</span><span><b>${d.renders.filter(r => r.same).length}</b> identical</span>`;
+  $("flist").innerHTML = fs.map(([fid, f]) => `<div class="f"><div class="h"><button class="fid" data-id="${esc(fid)}">${esc(fid)}</button>
+      ${f.sev ? `<span class="sev ${esc(f.sev)}">${esc(f.sev)}</span>` : ""}${f.status ? `<span class="st ${esc(f.status)}">${esc(f.status)}</span>` : ""}</div>
+      ${f.title ? `<div>${esc(f.title)}</div>` : ""}${f.trigger ? `<p>Fails at: ${esc(f.trigger)}</p>` : ""}${f.note ? `<p>${esc(f.note)}</p>` : ""}</div>`).join("") || "No findings recorded.";
+  $("flist").querySelectorAll(".fid").forEach(x => x.onclick = () => { $("q").value = state.q = x.dataset.id; save(); draw(); $("grid").scrollIntoView({ behavior: "smooth" }); });
+  draw();
+}
+
+function img(src, size, alt) {
+  return `<img src="${src}" alt="${esc(alt)}" loading="lazy" decoding="async" ${size ? `width="${size[0]}" height="${size[1]}"` : ""}>`;
+}
+
+function draw() {
+  const d = cache[state.batch] && cache[state.batch].__v;
+  if (!d) return;
+  const q = state.q.trim().toLowerCase();
+  const rs = d.renders.filter(r =>
+    (!state.hideSame || !r.same) && (!state.style || r.style === state.style) &&
+    (!q || [r.name, r.desc, r.cfg, ...r.ids].join(" ").toLowerCase().includes(q)));
+  $("count").textContent = `${rs.length} of ${d.renders.length} pairs`;
+  if (!rs.length) { $("grid").innerHTML = `<p class="empty">No render pairs match. Clear the filter or show identical pairs.</p>`; return; }
+  $("grid").innerHTML = rs.map((r, i) => {
+    const tags = [r.width, r.scale, r.locale, r.style].filter(Boolean).map(t => `<span class="tag">${esc(t)}</span>`).join("") +
+      (r.control ? `<span class="tag ctl">control</span>` : "") + (r.same ? `<span class="tag same">identical</span>` : "") +
+      r.ids.map(t => `<span class="tag">${esc(t)}</span>`).join("");
+    const body = state.mode === "flip" && r.before && r.after
+      ? `<div class="flip a" data-i="${i}"><span class="lab">After</span>${img(r.after, r.asize, "After: " + r.name)}</div>`
+      : `<div class="pair" data-i="${i}">
+          <figure class="b"><figcaption>Before</figcaption>${r.before ? img(r.before, r.bsize, "Before: " + r.name) : `<div class="none">No before render (new preview)</div>`}</figure>
+          <figure class="a"><figcaption>After</figcaption>${r.after ? img(r.after, r.asize, "After: " + r.name) : `<div class="none">No after render</div>`}</figure></div>`;
+    return `<article class="card${r.same ? " same" : ""}"><div class="meta"><div class="name">${esc(r.name)}</div>
+      ${r.desc ? `<div class="desc">${esc(r.desc)}</div>` : ""}${r.cfg ? `<div class="desc">${esc(r.cfg)}</div>` : ""}<div class="tags">${tags}</div></div>${body}</article>`;
+  }).join("");
+  $("grid").querySelectorAll(".flip").forEach(el => el.onclick = () => {
+    const r = rs[+el.dataset.i], toB = el.classList.contains("a");
+    el.classList.toggle("a", !toB); el.classList.toggle("b", toB);
+    el.querySelector(".lab").textContent = toB ? "Before" : "After";
+    el.querySelector("img").src = toB ? r.before : r.after;
+  });
+  $("grid").querySelectorAll(".pair").forEach(el => el.onclick = () => zoom(rs[+el.dataset.i]));
+}
+
+function zoom(r) {
+  $("zoomBody").innerHTML = `<div class="zh"><span>${esc(r.name)}</span><button id="zclose">Close</button></div>
+    <figure style="margin:0"><figcaption style="color:var(--before);font-weight:600">BEFORE</figcaption>${r.before ? `<img src="${r.before}" alt="Before">` : "—"}</figure>
+    <figure style="margin:0"><figcaption style="color:var(--after);font-weight:600">AFTER</figcaption>${r.after ? `<img src="${r.after}" alt="After">` : "—"}</figure>`;
+  $("zclose").onclick = () => $("zoom").close();
+  $("zoom").showModal();
+}
+$("zoom").addEventListener("click", e => { if (e.target === $("zoom")) $("zoom").close(); });
+
+const origLoad = load;
+load = async id => { const d = await origLoad(id); cache[id].__v = d; return d; };
+
+function setMode(m) { state.mode = m; save(); $("m-side").setAttribute("aria-pressed", m === "side"); $("m-flip").setAttribute("aria-pressed", m === "flip"); draw(); }
+$("m-side").onclick = () => setMode("side");
+$("m-flip").onclick = () => setMode("flip");
+$("hideSame").checked = state.hideSame; $("hideSame").onchange = e => { state.hideSame = e.target.checked; save(); draw(); };
+$("style").value = state.style; $("style").onchange = e => { state.style = e.target.value; save(); draw(); };
+$("q").value = state.q; $("q").oninput = e => { state.q = e.target.value; save(); draw(); };
+setMode(state.mode);
+fetch("data/index.json").then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => {
+  BATCHES = d.batches;
+  if (d.title) document.querySelector("h1").textContent = d.title;
+  if (!BATCHES.some(b => b.id === state.batch)) state.batch = BATCHES[0] ? BATCHES[0].id : "";
+  if (state.batch) select(state.batch); else $("grid").innerHTML = `<p class="empty">No batches in this run.</p>`;
+}).catch(() => { $("grid").innerHTML = `<p class="empty">Couldn't load the run index. Reload the page to try again.</p>`; });
+</script>
