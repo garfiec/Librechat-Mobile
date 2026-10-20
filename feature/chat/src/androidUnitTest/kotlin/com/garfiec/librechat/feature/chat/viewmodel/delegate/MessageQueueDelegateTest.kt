@@ -6,6 +6,7 @@ import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
 import com.garfiec.librechat.core.data.endpoint.EndpointDispatch
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
+import com.garfiec.librechat.feature.chat.viewmodel.ComparisonState
 import com.garfiec.librechat.feature.chat.viewmodel.ComposerSnapshot
 import com.garfiec.librechat.feature.chat.viewmodel.QueueHandle
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedEditSession
@@ -242,6 +243,59 @@ class MessageQueueDelegateTest {
     }
 
     @Test
+    fun `drainNext holds the queue during Compare setup`() {
+        delegate.enqueue(spec("a"))
+        stateFlow.value = stateFlow.value.copy(comparisonState = ComparisonState(isSettingUp = true))
+
+        delegate.drainNext()
+
+        assertThat(sent).isEmpty()
+        assertThat(queue.map { it.localId }).containsExactly("a")
+    }
+
+    private fun setSettingUp(settingUp: Boolean) {
+        stateFlow.value = stateFlow.value.copy(comparisonState = ComparisonState(isSettingUp = settingUp))
+    }
+
+    @Test
+    fun `ending Compare setup drains what it held`() {
+        delegate.enqueue(spec("a"))
+        setSettingUp(true)
+        delegate.drainNext()
+
+        setSettingUp(false)
+        delegate.releaseCompareSetupHold()
+
+        assertThat(sent.map { it.localId }).containsExactly("a")
+    }
+
+    @Test
+    fun `ending Compare setup does not drain alongside an item already on its way`() {
+        delegate.enqueue(spec("a"))
+        delegate.enqueue(spec("b"))
+        delegate.drainNext() // a is popped and waiting on its settle
+
+        setSettingUp(true)
+        setSettingUp(false)
+        delegate.releaseCompareSetupHold()
+
+        assertThat(sent.map { it.localId }).containsExactly("a")
+        assertThat(queue.map { it.localId }).containsExactly("b")
+    }
+
+    @Test
+    fun `an item refused by Compare setup on its way is drained when setup ends`() {
+        setSettingUp(true)
+        delegate.requeueRefusedDrain(spec("a"))
+        assertThat(queue.map { it.localId }).containsExactly("a")
+
+        setSettingUp(false)
+        delegate.releaseCompareSetupHold()
+
+        assertThat(sent.map { it.localId }).containsExactly("a")
+    }
+
+    @Test
     fun `drainNext is a no-op on an empty queue`() {
         delegate.drainNext()
 
@@ -326,6 +380,77 @@ class MessageQueueDelegateTest {
         delegate.drainNext(endedGenerationCreatedAt = 200L)
 
         assertThat(sent.map { it.localId }).containsExactly("a")
+    }
+
+    @Test
+    fun `a run end during Compare setup still retires its admission`() {
+        delegate.enqueue(spec("a"))
+        settle(SettledQueuedTurn.Evidence.Admitted, effectivePredecessorCreatedAt = 100L)
+        setSettingUp(true)
+        delegate.drainNext(endedGenerationCreatedAt = 100L)
+        setSettingUp(false)
+        delegate.releaseCompareSetupHold()
+        assertThat(sent).isEmpty()
+
+        // "Send queued" later is not blocked by an admission that was never retired.
+        delegate.drainNext()
+
+        assertThat(sent.map { it.localId }).containsExactly("a")
+    }
+
+    @Test
+    fun `a drain held by Compare setup is released under its run's epoch`() {
+        // An admission for another boundary blocks only an epoch-less drain.
+        delegate.enqueue(spec("a"))
+        settle(SettledQueuedTurn.Evidence.Admitted, effectivePredecessorCreatedAt = 999L)
+        setSettingUp(true)
+        delegate.drainNext(endedGenerationCreatedAt = 100L)
+
+        setSettingUp(false)
+        delegate.releaseCompareSetupHold()
+
+        assertThat(sent.map { it.localId }).containsExactly("a")
+    }
+
+    @Test
+    fun `an item refused on its way is re-drained under the run end that sent it`() {
+        // Popped by run end 100, then refused by a setup that opened during its settle wait.
+        delegate.enqueue(spec("a"))
+        settle(SettledQueuedTurn.Evidence.Admitted, effectivePredecessorCreatedAt = 999L)
+        delegate.drainNext(endedGenerationCreatedAt = 100L)
+        setSettingUp(true)
+        delegate.requeueRefusedDrain(sent.removeAt(0))
+
+        setSettingUp(false)
+        delegate.releaseCompareSetupHold()
+
+        assertThat(sent.map { it.localId }).containsExactly("a")
+    }
+
+    @Test
+    fun `a drain held at a run end still waits for the reply to settle`() {
+        delegate.enqueue(spec("a"))
+        setSettingUp(true)
+        delegate.drainNext(endedGenerationCreatedAt = 100L)
+
+        setSettingUp(false)
+        val owed = delegate.releaseCompareSetupHold()
+
+        assertThat(owed).isTrue()
+        assertThat(awaitSettleFlags).containsExactly(true)
+    }
+
+    @Test
+    fun `a cleared setup hold drains nothing later`() {
+        delegate.enqueue(spec("a"))
+        setSettingUp(true)
+        delegate.drainNext()
+        delegate.clearCompareSetupHold()
+
+        setSettingUp(false)
+        delegate.releaseCompareSetupHold()
+
+        assertThat(sent).isEmpty()
     }
 
     @Test

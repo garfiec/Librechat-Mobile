@@ -87,6 +87,13 @@ private const val DISABLED_ALPHA = 0.38f
 internal val LocalFeedbackEnabled = compositionLocalOf { true }
 
 /**
+ * False while nothing may start a run (Compare setup). [MessageList] hides the entry points that
+ * would; an inline edit already open keeps Save and Cancel but disables Save & Submit, which the
+ * ViewModel would refuse with nothing shown.
+ */
+internal val LocalResubmitEnabled = compositionLocalOf { true }
+
+/**
  * Shared action buttons row for message bubbles (copy, edit, regenerate, feedback, read aloud, fork).
  * Used by both Android and iOS MessageBubble implementations.
  *

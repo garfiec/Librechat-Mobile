@@ -212,6 +212,11 @@ class ChatViewModel(
 
     /** Fires when a requested message isn't in the chat, for a "Message not found" snackbar. */
     val messageNotFound: Flow<Unit> = jumpDelegate.notFound
+
+    // Channel-backed one-shot signal: a send arrived during Compare setup and was held. Surfaced as
+    // a snackbar.
+    private val _sendHeldForCompareSetup = Channel<Unit>(Channel.CONFLATED)
+    val sendHeldForCompareSetup: Flow<Unit> = _sendHeldForCompareSetup.receiveAsFlow()
     val jumpBranchSwitched: Flow<BranchSwitch> = jumpDelegate.branchSwitched
     private val conversationActionsDelegate =
         ConversationActionsDelegate(ConversationActionsHandle(stateHandle), conversationRepository, shareRepository)
@@ -614,7 +619,7 @@ class ChatViewModel(
         streamingManager = streamingManager,
         requestBuilder = requestBuilder,
         getMessageText = ::getMessageText,
-        runWhenSendReady = { action -> sendReadinessDelegate.runWhenSendReady(action) },
+        runWhenSendReady = sendReadinessDelegate::runWhenSendReady,
     )
 
     /** True when this ViewModel was opened for a brand-new chat (no conversationId from navigation). */
@@ -967,6 +972,12 @@ class ChatViewModel(
             return
         }
         if (_uiState.value.isStreaming) return
+        // The composer's Send is disabled through Compare setup, but voice auto-send arrives here
+        // without it: keep the text and say why it didn't go.
+        if (!_uiState.value.canStartRun) {
+            _sendHeldForCompareSetup.trySend(Unit)
+            return
+        }
         val text = _uiState.value.inputText.trim()
         uploadIntakeDelegate.withUploadGate(text) {
             sendReadinessDelegate.runWhenSendReady { sendDispatchDelegate.sendNow(it) }
@@ -1271,6 +1282,9 @@ class ChatViewModel(
         attachmentPreviewDelegate.reset()
         // The landing now stands for the next new chat, which opens on the server's spec again.
         modelDelegate.rearmModelSpecDefault()
+        // The reset below ends any Compare setup without Cancel or Start, so nothing would release
+        // its hold; the queue it held is cleared with it.
+        queueOrchestrationDelegate.clearCompareSetupHold()
         _uiState.update { current ->
             ChatUiState(
                 selection = ModelSelectionState(
@@ -1523,9 +1537,38 @@ class ChatViewModel(
 
     // Model selection and comparison
     fun onModelSelected(endpoint: String, model: String) = modelDelegate.onModelSelected(endpoint, model)
-    fun toggleComparison() = comparisonDelegate.toggleComparison()
+    fun beginComparisonSetup() {
+        comparisonDelegate.beginComparisonSetup()
+        // Setup opens a model list (sheet or pane), so it takes the selector's self-heals.
+        prepareModelSelector()
+    }
+
+    fun cancelComparisonSetup() {
+        comparisonDelegate.cancelComparisonSetup()
+        // Cancel means a held follow-up goes to the chat's model alone. Its send builds the request
+        // only once the gate is ready, which can be later, so restoring a held comparison now could
+        // still turn it into a two-model send. When one is on its way, the old comparison stays off
+        // (reopening the chat restores it).
+        val followUpOwed = queueOrchestrationDelegate.releaseCompareSetupHold()
+        conversationLoadDelegate.releaseRehydrateHeldForSetup(started = followUpOwed)
+    }
+
+    /**
+     * Starts comparing against [endpoint]/[model], first applying [primary] (a changed A, as
+     * endpoint to model) as the chat's own model. Refused as a whole mid-reply (see
+     * ComparisonModeDelegate.startComparison), so a refused Start never applies A alone.
+     */
+    fun startComparison(endpoint: String, model: String, primary: Pair<String, String>? = null) {
+        if (_uiState.value.isStreaming) return
+        primary?.let { (primaryEndpoint, primaryModel) -> onModelSelected(primaryEndpoint, primaryModel) }
+        comparisonDelegate.startComparison(endpoint, model)
+        if (!_uiState.value.comparisonState.isEnabled) return
+        conversationLoadDelegate.releaseRehydrateHeldForSetup(started = true)
+        queueOrchestrationDelegate.releaseCompareSetupHold()
+    }
+
+    fun stopComparison() = comparisonDelegate.stopComparison()
     fun setSecondaryModel(endpoint: String, model: String) = comparisonDelegate.setSecondaryModel(endpoint, model)
-    fun getSecondaryModelDisplayName(): String? = comparisonDelegate.getSecondaryModelDisplayName()
     fun toggleMcpServer(serverName: String) = modelDelegate.toggleMcpServer(serverName)
     fun toggleTool(toolName: String) = modelDelegate.toggleTool(toolName)
     fun updateModelParameters(parameters: ModelParameters) = modelDelegate.updateModelParameters(parameters)

@@ -63,6 +63,9 @@ fun ComparisonTabBar(
             onSelect = { page -> coroutineScope.launch { pagerState.animateScrollToPage(page) } },
             // Model ids often share a long prefix and differ at the end.
             titleOverflow = TextOverflow.MiddleEllipsis,
+            dotColors = listOf(ComparisonLane.A.accent, ComparisonLane.B.accent),
+            // Each tab is a whole pane, so the underline marks the whole tab.
+            fullWidthIndicator = true,
         )
 
         HorizontalPager(

@@ -69,6 +69,8 @@ internal fun ChatOverflowMenu(
     contextGauge: ContextGaugeDetails?,
     onItem: (ChatOverflowItem) -> Unit,
     dragSelection: MenuDragSelection? = null,
+    /** False greys out Compare Models (a comparison can't be turned off mid-reply). */
+    canToggleComparison: Boolean = true,
 ) {
     AdaptiveDropdownMenu(
         expanded = expanded,
@@ -99,7 +101,13 @@ internal fun ChatOverflowMenu(
                         OverflowItem(stringResource(Res.string.save_as_preset), Icons.Outlined.SaveAs, select, dragTarget)
                     ChatOverflowItem.PROMPTS_LIBRARY ->
                         OverflowItem(stringResource(Res.string.prompts_library), Icons.Outlined.AutoAwesome, select, dragTarget)
-                    ChatOverflowItem.COMPARE -> CompareItem(isComparisonEnabled, select, dragTarget)
+                    // Disabled, it takes no drag-release either (as AdaptiveTopBar skips disabled rows).
+                    ChatOverflowItem.COMPARE -> CompareItem(
+                        isComparisonEnabled,
+                        canToggleComparison,
+                        select,
+                        if (canToggleComparison) dragTarget else Modifier,
+                    )
                     // The conversation trace (v0.8.8-rc3). Upstream puts it here on mobile too — the
                     // desktop header has a dedicated button, and HeaderMenu carries the same action
                     // behind the overflow control.
@@ -157,9 +165,10 @@ private fun OverflowItem(label: String, icon: ImageVector, onClick: () -> Unit, 
 }
 
 @Composable
-private fun CompareItem(isComparisonEnabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun CompareItem(isComparisonEnabled: Boolean, enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     DropdownMenuItem(
         modifier = modifier,
+        enabled = enabled,
         text = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(

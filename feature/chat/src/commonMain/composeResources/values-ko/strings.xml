@@ -29,6 +29,25 @@
     <!-- Neutral label for the active agent when its name hasn't resolved yet (never a model string). -->
     <string name="chat_agent_fallback_label">에이전트</string>
     <string name="compare_models">모델 비교</string>
+    <string name="compare_with">비교 대상</string>
+    <string name="compare_start">시작</string>
+    <string name="compare_setup_hint">모든 메시지가 두 모델에 전송됩니다. A 또는 B를 탭해 모델을 선택하세요.</string>
+    <string name="compare_same_model">같은 모델, 두 번째 답변</string>
+    <string name="compare_pick_below">아래에서 선택</string>
+    <string name="compare_message_both">두 모델에 메시지 보내기</string>
+    <string name="compare_pick_to_send">보내려면 모델 B를 선택하세요</string>
+    <string name="compare_not_picked">아직 선택 안 됨</string>
+    <string name="compare_empty_lane">메시지를 보내면 여기에 답변이 표시됩니다.</string>
+    <string name="compare_empty_pick_right">오른쪽에서 비교할 모델을 선택하세요.</string>
+    <string name="compare_empty_ready">시작을 탭한 다음 메시지를 보내세요. 두 모델이 나란히 답변합니다.</string>
+    <string name="compare_browse_all">모든 모델 보기</string>
+    <string name="compare_pick_second_model">두 번째 모델 선택</string>
+    <string name="compare_also_asking">함께 묻는 모델</string>
+    <string name="cd_change_compared_models">비교 중인 모델 변경</string>
+    <string name="cd_change_first_model">첫 번째 모델 변경, %1$s</string>
+    <string name="cd_change_second_model">두 번째 모델 변경, %1$s</string>
+    <string name="compare_lane_a">A</string>
+    <string name="compare_lane_b">B</string>
     <string name="how_can_i_help">오늘 무엇을 도와드릴까요?</string>
     <string name="chat_in_project">%1$s에서</string>
     <string name="recording">녹음 중…</string>
@@ -443,7 +462,6 @@
 
     <!-- Comparison mode -->
     <string name="continue_with_response">이 응답으로 계속하기</string>
-    <string name="waiting_for_response">응답 대기 중…</string>
 
     <!-- Provider Keys chat-time errors. -->
     <string name="provider_keys_chat_error_no_key">키를 찾을 수 없습니다. 키를 입력한 후 다시 시도하세요.</string>
@@ -713,7 +731,6 @@
     <string name="cd_mcp_server_enabled">MCP 서버 %1$s 사용 중</string>
     <string name="cd_code_block">코드 블록</string>
     <string name="cd_code_block_language">%1$s 코드 블록</string>
-    <string name="comparison_primary">기본</string>
     <string name="log_output_title">로그 출력</string>
     <string name="cd_attached_image">첨부된 이미지</string>
     <string name="model_selector_search">모델 검색…</string>

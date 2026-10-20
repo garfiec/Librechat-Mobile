@@ -63,6 +63,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.max
 import androidx.compose.ui.zIndex
+import com.garfiec.librechat.core.ui.components.LabelWithDot
+import com.garfiec.librechat.core.ui.components.labelDotReserve
 import com.garfiec.librechat.core.ui.components.rememberChoiceLabelFit
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
@@ -112,6 +114,7 @@ internal fun LiquidSegmentedControl(
     overflow: (@Composable () -> Unit)? = null,
     labelOverflow: TextOverflow = TextOverflow.Ellipsis,
     fitLabels: List<String> = options,
+    dotColors: List<Color>? = null,
 ) {
     val style = rememberGlassStyle()
     val refract = style?.refracts == true
@@ -160,7 +163,8 @@ internal fun LiquidSegmentedControl(
     ) {
         val segmentWidth = (maxWidth - TrackPadding * 2) / count
         val labelStyle = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
-        val fit = rememberChoiceLabelFit(fitLabels, labelStyle, segmentWidth, allowTwoLines)
+        val labelWidth = segmentWidth - labelDotReserve(dotColors)
+        val fit = rememberChoiceLabelFit(fitLabels, labelStyle, labelWidth, allowTwoLines)
         if (!fit.fits && overflow != null) {
             overflow()
             return@BoxWithConstraints
@@ -294,6 +298,7 @@ internal fun LiquidSegmentedControl(
                 segmentWidth = segmentWidth,
                 lines = fit.lines,
                 labelOverflow = labelOverflow,
+                dotColors = dotColors,
                 accent = null,
                 onSelect = onSelect.takeIf { enabled },
                 modifier = lean
@@ -311,6 +316,7 @@ internal fun LiquidSegmentedControl(
                 segmentWidth = segmentWidth,
                 lines = fit.lines,
                 labelOverflow = labelOverflow,
+                dotColors = dotColors,
                 accent = accent,
                 onSelect = null,
                 modifier = Modifier
@@ -405,6 +411,7 @@ private fun SegmentLabels(
     segmentWidth: Dp,
     lines: Int,
     labelOverflow: TextOverflow,
+    dotColors: List<Color>?,
     accent: Color?,
     onSelect: ((Int) -> Unit)?,
     modifier: Modifier = Modifier,
@@ -433,16 +440,18 @@ private fun SegmentLabels(
                     },
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = label,
-                    color = accent ?: Color.Unspecified,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = if (selected || accent != null) FontWeight.SemiBold else FontWeight.Medium,
-                    textAlign = TextAlign.Center,
-                    maxLines = lines,
-                    // A middle ellipsis only lays out on one line.
-                    overflow = if (lines == 1) labelOverflow else TextOverflow.Ellipsis,
-                )
+                LabelWithDot(dotColor = dotColors?.getOrNull(index)) {
+                    Text(
+                        text = label,
+                        color = accent ?: Color.Unspecified,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = if (selected || accent != null) FontWeight.SemiBold else FontWeight.Medium,
+                        textAlign = TextAlign.Center,
+                        maxLines = lines,
+                        // A middle ellipsis only lays out on one line.
+                        overflow = if (lines == 1) labelOverflow else TextOverflow.Ellipsis,
+                    )
+                }
             }
         }
     }

@@ -262,7 +262,6 @@ reject a send.
 | `MessageBubble` | Icon + content column + action bar + sibling nav |
 | `MessageList` | LazyColumn of MessageBubbles with scroll-to-bottom FAB |
 | `ModelSelectorSheet` | Bottom sheet: search + endpoint-grouped model list |
-| `ModelSelectorButton` | Header chip showing current model |
 | `SiblingNavigator` | "1/3" with chevrons for branch switching |
 | `LandingContent` | Greeting, entity icon, conversation starters |
 | `StreamingCursor` | Live insertion point during generation; `StreamingWaitIndicator` before the first delta |

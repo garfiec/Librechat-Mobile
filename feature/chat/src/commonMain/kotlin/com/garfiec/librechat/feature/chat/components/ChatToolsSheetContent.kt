@@ -86,6 +86,8 @@ fun ChatToolsSheetContent(
     selectedModelDisplay: String?,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Both models while comparing: the Model row then names A and B rather than A alone. */
+    comparisonModels: ComparisonModelLabels? = null,
     isCodeInterpreterAvailable: Boolean = true,
     webSearchEnabled: Boolean = true,
     /** Whether to offer the Google-only URL Context toggle (active provider is Google/Gemini). */
@@ -189,17 +191,26 @@ fun ChatToolsSheetContent(
                 )
                 Spacer(modifier = Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(Res.string.tool_model),
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Text(
-                        text = selectedModelDisplay ?: stringResource(Res.string.select_model),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    if (comparisonModels != null) {
+                        // Comparing: the row names both models, as the A/B pair the selector opens on.
+                        Text(
+                            text = stringResource(Res.string.compare_models),
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                        ComparisonModelsLine(comparisonModels)
+                    } else {
+                        Text(
+                            text = stringResource(Res.string.tool_model),
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                        Text(
+                            text = selectedModelDisplay ?: stringResource(Res.string.select_model),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,

@@ -5,6 +5,8 @@ import androidx.compose.runtime.Immutable
 @Immutable
 data class ComparisonState(
     val isEnabled: Boolean = false,
+    // The user turned Compare on and is choosing the second model; nothing is enabled yet.
+    val isSettingUp: Boolean = false,
     // Secondary agent/model selection (set by user via model selector)
     val secondaryEndpoint: String? = null,
     val secondaryModel: String? = null,

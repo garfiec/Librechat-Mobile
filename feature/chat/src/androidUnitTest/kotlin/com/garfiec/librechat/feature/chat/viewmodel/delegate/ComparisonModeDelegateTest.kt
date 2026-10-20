@@ -13,6 +13,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.ComparisonHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ComparisonState
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationMetaState
 import com.garfiec.librechat.feature.chat.viewmodel.MessagesState
+import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -101,6 +102,116 @@ class ComparisonModeDelegateTest {
         delegate.rehydrateFromMessage(single)
 
         assertThat(flow.value.comparisonState.isEnabled).isFalse()
+    }
+
+    private fun landingWithPrimary() = ChatUiState(
+        content = MessagesState(screenState = ChatScreenState.LANDING),
+        selection = ModelSelectionState(selectedEndpoint = "openAI", selectedModel = "gpt-5"),
+    )
+
+    @Test
+    fun `begin setup enables nothing, clones nothing and stays on landing`() {
+        val (delegate, flow) = delegateWith(landingWithPrimary())
+
+        delegate.beginComparisonSetup()
+
+        val comparison = flow.value.comparisonState
+        assertThat(comparison.isSettingUp).isTrue()
+        assertThat(comparison.isEnabled).isFalse()
+        assertThat(comparison.secondaryEndpoint).isNull()
+        assertThat(comparison.secondaryModel).isNull()
+        assertThat(flow.value.screenState).isEqualTo(ChatScreenState.LANDING)
+        assertThat(delegate.buildAddedConvo()).isNull()
+    }
+
+    @Test
+    fun `start enables the picked model and leaves landing`() {
+        val (delegate, flow) = delegateWith(landingWithPrimary())
+        delegate.beginComparisonSetup()
+
+        delegate.startComparison("anthropic", "claude-opus-4-5")
+
+        val comparison = flow.value.comparisonState
+        assertThat(comparison.isEnabled).isTrue()
+        assertThat(comparison.isSettingUp).isFalse()
+        assertThat(comparison.secondaryEndpoint).isEqualTo("anthropic")
+        assertThat(comparison.secondaryModel).isEqualTo("claude-opus-4-5")
+        assertThat(flow.value.screenState).isEqualTo(ChatScreenState.ACTIVE)
+    }
+
+    @Test
+    fun `start is refused while a reply streams`() {
+        val streaming = landingWithPrimary().let { it.copy(content = it.content.copy(isStreaming = true)) }
+        val (delegate, flow) = delegateWith(streaming)
+        delegate.beginComparisonSetup()
+
+        delegate.startComparison("anthropic", "claude-opus-4-5")
+
+        assertThat(flow.value.comparisonState.isEnabled).isFalse()
+        assertThat(flow.value.comparisonState.isSettingUp).isTrue()
+    }
+
+    @Test
+    fun `stop is refused while a reply streams`() {
+        val (delegate, flow) = delegateWith(landingWithPrimary())
+        delegate.startComparison("anthropic", "claude-opus-4-5")
+        flow.value = flow.value.copy(content = flow.value.content.copy(isStreaming = true))
+
+        delegate.stopComparison()
+
+        assertThat(flow.value.comparisonState.isEnabled).isTrue()
+    }
+
+    @Test
+    fun `start may pick the primary model itself`() {
+        val (delegate, flow) = delegateWith(landingWithPrimary())
+        delegate.beginComparisonSetup()
+
+        delegate.startComparison("openAI", "gpt-5")
+
+        assertThat(flow.value.comparisonState.isEnabled).isTrue()
+        assertThat(flow.value.comparisonState.secondaryModel).isEqualTo("gpt-5")
+    }
+
+    @Test
+    fun `cancel ends setup with comparison still off`() {
+        val (delegate, flow) = delegateWith(landingWithPrimary())
+        delegate.beginComparisonSetup()
+
+        delegate.cancelComparisonSetup()
+
+        assertThat(flow.value.comparisonState).isEqualTo(ComparisonState())
+        assertThat(flow.value.screenState).isEqualTo(ChatScreenState.LANDING)
+    }
+
+    @Test
+    fun `begin setup is a no-op while already comparing`() {
+        val enabled = ComparisonState(isEnabled = true, secondaryEndpoint = "anthropic", secondaryModel = "claude")
+        val (delegate, flow) = delegateWith(ChatUiState(comparisonState = enabled))
+
+        delegate.beginComparisonSetup()
+
+        assertThat(flow.value.comparisonState).isEqualTo(enabled)
+    }
+
+    @Test
+    fun `cancel does not turn off an active comparison`() {
+        val enabled = ComparisonState(isEnabled = true, secondaryEndpoint = "anthropic", secondaryModel = "claude")
+        val (delegate, flow) = delegateWith(ChatUiState(comparisonState = enabled))
+
+        delegate.cancelComparisonSetup()
+
+        assertThat(flow.value.comparisonState).isEqualTo(enabled)
+    }
+
+    @Test
+    fun `stop turns comparison off`() {
+        val enabled = ComparisonState(isEnabled = true, secondaryEndpoint = "anthropic", secondaryModel = "claude")
+        val (delegate, flow) = delegateWith(ChatUiState(comparisonState = enabled))
+
+        delegate.stopComparison()
+
+        assertThat(flow.value.comparisonState).isEqualTo(ComparisonState())
     }
 
     @Test

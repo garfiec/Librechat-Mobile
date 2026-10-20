@@ -221,11 +221,11 @@ private fun PresetPickerHost() {
     )
 }
 
-/** One dual-pane column's model button: half of a 600dp window, holding a 31-character model id. */
+/** One dual-pane column's model header: half of a 600dp window, holding a 31-character model id. */
 @Composable
 private fun ModelButtonHost() {
     Box(Modifier.width(280.dp)) {
-        ModelSelectorButton(modelName = "anthropic.claude-3-5-sonnet-v2:0", onClick = {})
+        ComparisonPaneModelSelector(lane = ComparisonLane.B, label = "anthropic.claude-3-5-sonnet-v2:0", onClick = {})
     }
 }
 

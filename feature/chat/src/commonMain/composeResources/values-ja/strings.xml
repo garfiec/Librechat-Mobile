@@ -29,6 +29,25 @@
     <!-- Neutral label for the active agent when its name hasn't resolved yet (never a model string). -->
     <string name="chat_agent_fallback_label">エージェント</string>
     <string name="compare_models">モデルを比較</string>
+    <string name="compare_with">比較する相手</string>
+    <string name="compare_start">開始</string>
+    <string name="compare_setup_hint">各メッセージは両方のモデルに送信されます。AまたはBをタップしてモデルを選択します。</string>
+    <string name="compare_same_model">同じモデルで別の回答</string>
+    <string name="compare_pick_below">下から選択</string>
+    <string name="compare_message_both">両方のモデルにメッセージ</string>
+    <string name="compare_pick_to_send">送信するにはモデルBを選択</string>
+    <string name="compare_not_picked">未選択</string>
+    <string name="compare_empty_lane">メッセージを送ると、ここに回答が表示されます。</string>
+    <string name="compare_empty_pick_right">右側で比較するモデルを選んでください。</string>
+    <string name="compare_empty_ready">「開始」をタップしてからメッセージを送信してください。両方のモデルが並べて回答します。</string>
+    <string name="compare_browse_all">すべてのモデルを見る</string>
+    <string name="compare_pick_second_model">2つ目のモデルを選択</string>
+    <string name="compare_also_asking">同時に質問</string>
+    <string name="cd_change_compared_models">比較中のモデルを変更</string>
+    <string name="cd_change_first_model">1つ目のモデルを変更、%1$s</string>
+    <string name="cd_change_second_model">2つ目のモデルを変更、%1$s</string>
+    <string name="compare_lane_a">A</string>
+    <string name="compare_lane_b">B</string>
     <string name="how_can_i_help">今日は何をお手伝いしましょうか？</string>
     <string name="chat_in_project">%1$s 内</string>
     <string name="recording">録音中…</string>
@@ -443,7 +462,6 @@
 
     <!-- Comparison mode -->
     <string name="continue_with_response">この応答で続ける</string>
-    <string name="waiting_for_response">応答を待っています…</string>
 
     <!-- Provider Keys chat-time errors. -->
     <string name="provider_keys_chat_error_no_key">キーが見つかりません。キーを入力してもう一度お試しください。</string>
@@ -713,7 +731,6 @@
     <string name="cd_mcp_server_enabled">MCP サーバー %1$s 有効</string>
     <string name="cd_code_block">コードブロック</string>
     <string name="cd_code_block_language">%1$s のコードブロック</string>
-    <string name="comparison_primary">メイン</string>
     <string name="log_output_title">ログ出力</string>
     <string name="cd_attached_image">添付画像</string>
     <string name="model_selector_search">モデルを検索…</string>

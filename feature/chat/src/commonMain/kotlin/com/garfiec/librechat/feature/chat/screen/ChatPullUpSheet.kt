@@ -501,6 +501,7 @@ internal fun BoxScope.ChatPullUpSheetOverlay(
                     hide()
                 },
                 selectedModelDisplay = selectedModelDisplay,
+                comparisonModels = comparisonModelLabels(uiState),
                 onDismiss = hide,
                 isCodeInterpreterAvailable = uiState.isCodeInterpreterAvailable,
                 webSearchEnabled = uiState.webSearchEnabled,

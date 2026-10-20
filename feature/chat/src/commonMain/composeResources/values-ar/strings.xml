@@ -29,6 +29,25 @@
     <!-- Neutral label for the active agent when its name hasn't resolved yet (never a model string). -->
     <string name="chat_agent_fallback_label">وكيل</string>
     <string name="compare_models">مقارنة النماذج</string>
+    <string name="compare_with">قارن مع</string>
+    <string name="compare_start">ابدأ</string>
+    <string name="compare_setup_hint">تُرسل كل رسالة إلى النموذجين. انقر على A أو B لاختيار نموذجه.</string>
+    <string name="compare_same_model">النموذج نفسه، إجابة ثانية</string>
+    <string name="compare_pick_below">اختر أدناه</string>
+    <string name="compare_message_both">راسل النموذجين</string>
+    <string name="compare_pick_to_send">اختر النموذج B للإرسال</string>
+    <string name="compare_not_picked">لم يُختر بعد</string>
+    <string name="compare_empty_lane">أرسل رسالة لترى إجابته هنا.</string>
+    <string name="compare_empty_pick_right">اختر نموذجًا على اليسار للمقارنة به.</string>
+    <string name="compare_empty_ready">اضغط «ابدأ»، ثم أرسل رسالة. يجيب النموذجان جنبًا إلى جنب.</string>
+    <string name="compare_browse_all">تصفح كل النماذج</string>
+    <string name="compare_pick_second_model">اختر النموذج الثاني</string>
+    <string name="compare_also_asking">يُسأل أيضًا</string>
+    <string name="cd_change_compared_models">تغيير النماذج المقارنة</string>
+    <string name="cd_change_first_model">تغيير النموذج الأول، %1$s</string>
+    <string name="cd_change_second_model">تغيير النموذج الثاني، %1$s</string>
+    <string name="compare_lane_a">A</string>
+    <string name="compare_lane_b">B</string>
     <string name="how_can_i_help">كيف يمكنني مساعدتك اليوم؟</string>
     <string name="chat_in_project">في %1$s</string>
     <string name="recording">جارٍ التسجيل…</string>
@@ -443,7 +462,6 @@
 
     <!-- Comparison mode -->
     <string name="continue_with_response">المتابعة بهذا الرد</string>
-    <string name="waiting_for_response">في انتظار الرد…</string>
 
     <!-- Provider Keys chat-time errors. -->
     <string name="provider_keys_chat_error_no_key">لم يتم العثور على مفتاح. يرجى تقديم مفتاح والمحاولة مرة أخرى.</string>
@@ -748,7 +766,6 @@
     <string name="cd_mcp_server_enabled">خادم MCP %1$s مفعّل</string>
     <string name="cd_code_block">كتلة شيفرة</string>
     <string name="cd_code_block_language">كتلة شيفرة %1$s</string>
-    <string name="comparison_primary">الأساسي</string>
     <string name="log_output_title">مخرجات السجل</string>
     <string name="cd_attached_image">صورة مرفقة</string>
     <string name="model_selector_search">البحث عن النماذج…</string>

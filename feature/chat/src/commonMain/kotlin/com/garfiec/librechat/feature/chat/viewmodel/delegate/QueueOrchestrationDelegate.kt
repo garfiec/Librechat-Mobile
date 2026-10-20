@@ -465,7 +465,11 @@ class QueueOrchestrationDelegate(
     }
 
     /** Puts a drained item back at the head after the send gate refused it. */
-    fun requeueRefusedDrain(spec: QueuedMessage): Unit = queueDelegate.reinsert(0, spec)
+    fun requeueRefusedDrain(spec: QueuedMessage): Unit = queueDelegate.requeueRefusedDrain(spec)
+
+    fun releaseCompareSetupHold(): Boolean = queueDelegate.releaseCompareSetupHold()
+
+    fun clearCompareSetupHold(): Unit = queueDelegate.clearCompareSetupHold()
 
     /**
      * Restarts the queued-turn reconcile poll, whose first read is unconditional.

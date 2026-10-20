@@ -8,6 +8,7 @@ import com.garfiec.librechat.core.model.config.EndpointDropParams
 import com.garfiec.librechat.feature.chat.components.ChatOptionsBottomSheet
 import com.garfiec.librechat.feature.chat.components.ChatOptionsSheetController
 import com.garfiec.librechat.feature.chat.components.ChatToolsPageParams
+import com.garfiec.librechat.feature.chat.components.ComparisonLane
 import com.garfiec.librechat.feature.chat.components.ModelParametersPageParams
 import com.garfiec.librechat.feature.chat.components.ModelSelectorPageParams
 import com.garfiec.librechat.feature.chat.components.localizedStreamError
@@ -37,6 +38,8 @@ internal fun ChatOptionsSheetHost(
     onAttachFromServer: () -> Unit,
     onNavigateToProviderKeys: (endpointName: String?) -> Unit,
     onShowSavePresetDialog: () -> Unit,
+    /** Compare setup's staged picks: during setup the Model page stages into them. */
+    compareSetupPick: CompareSetupPick,
 ) {
     // A send-block auto-opens the standalone selector; close this one so they can't stack. Gate on
     // the flag (not just its change) to also catch it being already true when this sheet opens.
@@ -57,6 +60,13 @@ internal fun ChatOptionsSheetHost(
     }
 
     val error = uiState.error?.let { localizedStreamError(it) }
+    val comparison = rememberComparisonSelectorRouting(
+        uiState = uiState,
+        initialTarget = if (isSecondaryTab) ComparisonLane.B else ComparisonLane.A,
+        onSelectPrimary = viewModel::onModelSelected,
+        onSelectSecondary = viewModel::setSecondaryModel,
+        setupPick = compareSetupPick,
+    )
 
     ChatOptionsBottomSheet(
         page = page,
@@ -73,6 +83,7 @@ internal fun ChatOptionsSheetHost(
             onPickPhotos = onPickPhotos,
             onAttachFromServer = onAttachFromServer,
             selectedModelDisplay = selectedModelDisplay,
+            comparisonModels = comparisonModelLabels(uiState),
             isCodeInterpreterAvailable = uiState.isCodeInterpreterAvailable,
             webSearchEnabled = uiState.webSearchEnabled,
             urlContextEnabled = uiState.urlContextProviderGate,
@@ -89,28 +100,18 @@ internal fun ChatOptionsSheetHost(
             contextGaugeExpanded = uiState.contextGaugeExpanded,
             onContextGaugeExpandedChange = viewModel::setContextGaugeExpanded,
         ),
-        // Point the selector page at the active tab's model, so the sheet needs no comparison branch.
+        // While comparing, the page edits whichever lane its A/B pair picks, starting on the active
+        // tab's; the sheet itself needs no comparison branch.
         selector = ModelSelectorPageParams(
             endpointConfigs = uiState.endpointConfigs,
             availableModels = uiState.availableModels,
             agents = uiState.agents,
-            selectedEndpoint = if (isSecondaryTab) {
-                uiState.comparisonState.secondaryEndpoint
-            } else {
-                uiState.selectedEndpoint
-            },
-            selectedModel = if (isSecondaryTab) {
-                uiState.comparisonState.secondaryModel
-            } else {
-                uiState.selectedModel
-            },
+            selectedEndpoint = comparison.selectedEndpoint,
+            selectedModel = comparison.selectedModel,
             // Neither branch clears the error: the sheet clears the selector's inline banner on
             // page-leave itself (see ChatOptionsBottomSheet), the only error that can flash.
-            onModelSelect = if (isSecondaryTab) {
-                viewModel::setSecondaryModel
-            } else {
-                viewModel::onModelSelected
-            },
+            onModelSelect = comparison.onModelSelect,
+            comparisonHeader = comparison.header,
             onSetApiKey = { name -> onNavigateToProviderKeys(name) },
             onSurfaced = viewModel::prepareModelSelector,
             // Inline because the Scaffold snackbar draws behind the sheet scrim.

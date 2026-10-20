@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.chat.screen
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import com.garfiec.librechat.feature.chat.components.ComparisonLane
 import com.garfiec.librechat.feature.chat.components.ModelSelectorSheet
 import com.garfiec.librechat.feature.chat.components.localizedStreamError
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
@@ -10,7 +11,9 @@ import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
 /*
  * The standalone model-selector sheets, shared by the Android and iOS chat screens. Unlike the
  * selector page in `ChatOptionsBottomSheet`, these open straight to the list and dismiss back to
- * the chat on selection. Both surfaces share the list body, ModelSelectorSheetContent.
+ * the chat on selection. Both surfaces share the list body, ModelSelectorSheetContent. While
+ * comparing, both show the A/B pair and edit whichever lane is picked there, and during Compare
+ * setup the primary one stages instead (see [rememberComparisonSelectorRouting]).
  */
 
 /**
@@ -23,16 +26,25 @@ internal fun PrimaryModelSelectorSheet(
     viewModel: ChatViewModel,
     sendBlockMessage: String?,
     onNavigateToProviderKeys: (endpointName: String?) -> Unit,
+    /** Compare setup's staged picks: during setup the list stages into them (see the routing). */
+    setupPick: CompareSetupPick? = null,
 ) {
     val error = uiState.error?.let { localizedStreamError(it) }
+    val comparison = rememberComparisonSelectorRouting(
+        uiState = uiState,
+        initialTarget = ComparisonLane.A,
+        onSelectPrimary = viewModel::onModelSelected,
+        onSelectSecondary = viewModel::setSecondaryModel,
+        setupPick = setupPick,
+    )
     ModelSelectorSheet(
         endpointConfigs = uiState.endpointConfigs,
         availableModels = uiState.availableModels,
         agents = uiState.agents,
-        selectedEndpoint = uiState.selectedEndpoint,
-        selectedModel = uiState.selectedModel,
+        selectedEndpoint = comparison.selectedEndpoint,
+        selectedModel = comparison.selectedModel,
         onModelSelect = { endpoint, model ->
-            viewModel.onModelSelected(endpoint, model)
+            comparison.onModelSelect(endpoint, model)
             // Clear a pending snackbar for the same error so it doesn't flash behind the close.
             viewModel.dismissError()
             viewModel.dismissSendBlockReason()
@@ -58,12 +70,13 @@ internal fun PrimaryModelSelectorSheet(
         starredDisplay = uiState.starredModelsDisplay,
         endpointKeyStates = uiState.endpointKeyStates,
         onSetApiKey = { name -> onNavigateToProviderKeys(name) },
+        header = comparison.header,
     )
 }
 
 /**
- * The secondary selector for comparison mode's second model (dual-pane button only; the composer's
- * "+" edits it through the options sheet). Renders unconditionally.
+ * The selector opened for comparison mode's second model (pane B's header, the phone chip on the A
+ * tab). Opens on lane B. Renders unconditionally.
  */
 @Composable
 internal fun SecondaryModelSelectorSheet(
@@ -76,14 +89,20 @@ internal fun SecondaryModelSelectorSheet(
     // load can self-heal here too (see its KDoc).
     LaunchedEffect(Unit) { viewModel.prepareModelSelector() }
 
+    val comparison = rememberComparisonSelectorRouting(
+        uiState = uiState,
+        initialTarget = ComparisonLane.B,
+        onSelectPrimary = viewModel::onModelSelected,
+        onSelectSecondary = viewModel::setSecondaryModel,
+    )
     ModelSelectorSheet(
         endpointConfigs = uiState.endpointConfigs,
         availableModels = uiState.availableModels,
         agents = uiState.agents,
-        selectedEndpoint = uiState.comparisonState.secondaryEndpoint,
-        selectedModel = uiState.comparisonState.secondaryModel,
+        selectedEndpoint = comparison.selectedEndpoint,
+        selectedModel = comparison.selectedModel,
         onModelSelect = { endpoint, model ->
-            viewModel.setSecondaryModel(endpoint, model)
+            comparison.onModelSelect(endpoint, model)
             onDismiss()
         },
         onDismiss = onDismiss,
@@ -95,5 +114,6 @@ internal fun SecondaryModelSelectorSheet(
         starredDisplay = uiState.starredModelsDisplay,
         endpointKeyStates = uiState.endpointKeyStates,
         onSetApiKey = { name -> onNavigateToProviderKeys(name) },
+        header = comparison.header,
     )
 }

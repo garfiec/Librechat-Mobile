@@ -29,6 +29,25 @@
     <!-- Neutral label for the active agent when its name hasn't resolved yet (never a model string). -->
     <string name="chat_agent_fallback_label">智能体</string>
     <string name="compare_models">对比模型</string>
+    <string name="compare_with">对比对象</string>
+    <string name="compare_start">开始</string>
+    <string name="compare_setup_hint">每条消息都会发送给两个模型。点按 A 或 B 选择对应的模型。</string>
+    <string name="compare_same_model">同一模型，再答一次</string>
+    <string name="compare_pick_below">在下方选择</string>
+    <string name="compare_message_both">给两个模型发消息</string>
+    <string name="compare_pick_to_send">选择模型 B 后即可发送</string>
+    <string name="compare_not_picked">尚未选择</string>
+    <string name="compare_empty_lane">发送一条消息，即可在这里看到它的回答。</string>
+    <string name="compare_empty_pick_right">在右侧选择一个用于比较的模型。</string>
+    <string name="compare_empty_ready">点按“开始”，然后发送消息。两个模型会并排回答。</string>
+    <string name="compare_browse_all">浏览所有模型</string>
+    <string name="compare_pick_second_model">选择第二个模型</string>
+    <string name="compare_also_asking">同时询问</string>
+    <string name="cd_change_compared_models">更换对比的模型</string>
+    <string name="cd_change_first_model">更换第一个模型，%1$s</string>
+    <string name="cd_change_second_model">更换第二个模型，%1$s</string>
+    <string name="compare_lane_a">A</string>
+    <string name="compare_lane_b">B</string>
     <string name="how_can_i_help">今天我能帮你做些什么？</string>
     <string name="chat_in_project">在%1$s中</string>
     <string name="recording">录音中…</string>
@@ -443,7 +462,6 @@
 
     <!-- Comparison mode -->
     <string name="continue_with_response">使用此回复继续</string>
-    <string name="waiting_for_response">等待回复…</string>
 
     <!-- Provider Keys chat-time errors. -->
     <string name="provider_keys_chat_error_no_key">未找到密钥。请提供密钥后重试。</string>
@@ -713,7 +731,6 @@
     <string name="cd_mcp_server_enabled">已启用 MCP 服务器 %1$s</string>
     <string name="cd_code_block">代码块</string>
     <string name="cd_code_block_language">%1$s 代码块</string>
-    <string name="comparison_primary">主要</string>
     <string name="log_output_title">日志输出</string>
     <string name="cd_attached_image">附加的图片</string>
     <string name="model_selector_search">搜索模型…</string>

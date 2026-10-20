@@ -71,13 +71,13 @@ import com.garfiec.librechat.core.ui.components.listDragSelection
 import com.garfiec.librechat.core.ui.components.rememberListDragSelection
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
-import com.garfiec.librechat.feature.chat.util.FuzzyMatch
-import com.garfiec.librechat.feature.chat.viewmodel.delegate.FavoritesDelegate
+import com.garfiec.librechat.feature.chat.util.blocksSelection
+import com.garfiec.librechat.feature.chat.util.searchByName
+import com.garfiec.librechat.feature.chat.util.starredModels
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.filterModelsByEndpoint
 import org.jetbrains.compose.resources.stringResource
 
 private val IconSize = 20.dp
-private const val FUZZY_MATCH_THRESHOLD = 55
 
 /** Sentinel endpoint name the optional "Starred" section's header passes to [EndpointGroupHeader]. */
 private const val STARRED_GROUP_KEY = "__starred__"
@@ -91,23 +91,6 @@ private fun endpointExpandKey(endpoint: String) = "ep:$endpoint"
 /** Row vertical padding for grouped list items vs. the denser starred-at-top section. */
 private val ListItemVerticalPadding = 12.dp
 private val StarredItemVerticalPadding = 6.dp
-
-private fun fuzzyMatches(candidate: String, query: String): Boolean {
-    // Short queries (1-2 chars) use substring matching for better UX
-    if (query.length <= 2) return candidate.contains(query, ignoreCase = true)
-    return FuzzyMatch.partialRatio(query, candidate) >= FUZZY_MATCH_THRESHOLD
-}
-
-/**
- * Returns the fuzzy match score (0-100) for [candidate] against [query].
- * For short queries (1-2 chars), returns 100 if substring matches, 0 otherwise.
- */
-private fun fuzzyScore(candidate: String, query: String): Int {
-    if (query.length <= 2) {
-        return if (candidate.contains(query, ignoreCase = true)) 100 else 0
-    }
-    return FuzzyMatch.partialRatio(query, candidate)
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -140,6 +123,8 @@ fun ModelSelectorSheet(
      * fail-open to the normal selectable rendering.
      */
     endpointKeyStates: Map<String, KeyState> = emptyMap(),
+    /** Above the list; the comparison A/B pair while comparing. */
+    header: (@Composable () -> Unit)? = null,
     /**
      * Invoked with the endpoint name when the user taps the "Set API Key" CTA on
      * a greyed group. Implementations should navigate to Settings → Provider API Keys.
@@ -172,6 +157,7 @@ fun ModelSelectorSheet(
             onToggleModelFavorite = onToggleModelFavorite,
             starredDisplay = starredDisplay,
             endpointKeyStates = endpointKeyStates,
+            header = header,
         )
     }
 }
@@ -217,6 +203,8 @@ fun ModelSelectorSheetContent(
     endpointKeyStates: Map<String, KeyState> = emptyMap(),
     /** Rendered above the error banner and title; the paged host passes a back-arrow row. */
     header: (@Composable () -> Unit)? = null,
+    /** False when [header] already titles the list (Compare setup). */
+    showTitle: Boolean = true,
 ) {
     var searchQuery by remember { mutableStateOf("") }
     // Only user toggles land here; absent keys default collapsed via `== true` reads below. Not
@@ -235,19 +223,8 @@ fun ModelSelectorSheetContent(
         val agents = agents.distinctBy { it.id }
         val base = if (!isSearching) {
             agents
-        } else if (searchQuery.length <= 2) {
-            agents.filter { agent ->
-                val name = agent.name ?: agent.id
-                fuzzyMatches(name, searchQuery)
-            }
         } else {
-            agents.map { agent ->
-                val name = agent.name ?: agent.id
-                agent to fuzzyScore(name, searchQuery)
-            }
-                .filter { (_, score) -> score >= FUZZY_MATCH_THRESHOLD }
-                .sortedByDescending { (_, score) -> score }
-                .map { (agent, _) -> agent }
+            searchByName(agents, searchQuery) { it.name ?: it.id }
         }
         if (isSearching) {
             base
@@ -270,11 +247,7 @@ fun ModelSelectorSheetContent(
         if (!showStarred) {
             emptyList()
         } else {
-            favoriteModelKeys.mapNotNull { key ->
-                val (endpoint, model) = FavoritesDelegate.parseFavoriteModelKey(key) ?: return@mapNotNull null
-                // Only surface favorites whose endpoint+model are actually available.
-                if (filteredByEndpoint[endpoint]?.contains(model) == true) endpoint to model else null
-            }
+            starredModels(favoriteModelKeys, filteredByEndpoint)
         }
     }
     val hasStarred = starredAgents.isNotEmpty() || starredModels.isNotEmpty()
@@ -291,13 +264,15 @@ fun ModelSelectorSheetContent(
         if (errorMessage != null) {
             ErrorBanner(message = errorMessage, onDismiss = onErrorDismiss)
         }
-        Text(
-            text = stringResource(Res.string.select_a_model),
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 16.dp),
-        )
+        if (showTitle) {
+            Text(
+                text = stringResource(Res.string.select_a_model),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 16.dp),
+            )
+        }
 
         AdaptiveOutlinedTextField(
             value = searchQuery,
@@ -427,16 +402,7 @@ fun ModelSelectorSheetContent(
 
             // Endpoint model groups
             filteredByEndpoint.forEach { (endpointName, models) ->
-                val baseFiltered = if (!isSearching) {
-                    models
-                } else if (searchQuery.length <= 2) {
-                    models.filter { fuzzyMatches(it, searchQuery) }
-                } else {
-                    models.map { model -> model to fuzzyScore(model, searchQuery) }
-                        .filter { (_, score) -> score >= FUZZY_MATCH_THRESHOLD }
-                        .sortedByDescending { (_, score) -> score }
-                        .map { (model, _) -> model }
-                }
+                val baseFiltered = if (!isSearching) models else searchByName(models, searchQuery) { it }
                 // Pinned models (v0.8.5+) sort to the top when not searching.
                 val filteredModels = if (isSearching) {
                     baseFiltered
@@ -451,8 +417,7 @@ fun ModelSelectorSheetContent(
                     val isExpanded = isSearching || expandedGroups[endpointExpandKey(endpointName)] == true
                     // Endpoints with userProvide=true and Unset/Expired key render disabled
                     // with a "Set API Key" CTA. Loading and absent states fail-open.
-                    val keyState = endpointKeyStates[endpointName]
-                    val needsKey = keyState is KeyState.Unset || keyState is KeyState.Expired
+                    val needsKey = endpointKeyStates[endpointName].blocksSelection()
                     val effectiveExpanded = isExpanded && !needsKey
                     item(key = "hdr:ep:$endpointName") {
                         EndpointGroupHeader(

@@ -78,7 +78,7 @@ fun InlineEditInput(
 
             AdaptiveButton(
                 onClick = onSaveAndSubmit,
-                enabled = text.isNotBlank(),
+                enabled = text.isNotBlank() && LocalResubmitEnabled.current,
             ) {
                 Text(stringResource(Res.string.save_and_submit), maxLines = 1, overflow = TextOverflow.Ellipsis)
             }

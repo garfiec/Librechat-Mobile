@@ -12,6 +12,7 @@ import androidx.compose.runtime.setValue
 import com.garfiec.librechat.core.ui.resources.snackbar_dismiss
 import com.garfiec.librechat.feature.chat.components.localizedStreamError
 import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.resources.compare_pick_to_send
 import com.garfiec.librechat.feature.chat.resources.jump_branch_switched
 import com.garfiec.librechat.feature.chat.resources.jump_message_not_found
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
@@ -81,6 +82,13 @@ internal fun ChatScreenEffects(
 
     SteerQueuedSnackbarEffect(
         viewModel = viewModel,
+        snackbarHostState = snackbarHostState,
+    )
+
+    // A send (voice auto-send) arrived during Compare setup: it waits for model B.
+    SignalSnackbarEffect(
+        signal = viewModel.sendHeldForCompareSetup,
+        message = Res.string.compare_pick_to_send,
         snackbarHostState = snackbarHostState,
     )
 

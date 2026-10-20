@@ -132,8 +132,14 @@ internal fun rememberChatTopBarSpec(
 
 @Composable
 private fun overflowMenuItem(item: ChatOverflowItem, uiState: ChatUiState, onClick: () -> Unit): BarMenuItem {
-    fun entry(label: String, icon: BarIcon, checked: Boolean = false, destructive: Boolean = false, subtitle: String? = null) =
-        BarMenuItem(item.name, label, icon, onClick, checked = checked, destructive = destructive, subtitle = subtitle)
+    fun entry(
+        label: String,
+        icon: BarIcon,
+        checked: Boolean = false,
+        destructive: Boolean = false,
+        subtitle: String? = null,
+        enabled: Boolean = true,
+    ) = BarMenuItem(item.name, label, icon, onClick, checked = checked, destructive = destructive, enabled = enabled, subtitle = subtitle)
 
     return when (item) {
         ChatOverflowItem.SEARCH -> entry(stringResource(Res.string.action_search), BarIcons.Search)
@@ -142,7 +148,13 @@ private fun overflowMenuItem(item: ChatOverflowItem, uiState: ChatUiState, onCli
         ChatOverflowItem.SAVE_PRESET -> entry(stringResource(Res.string.save_as_preset), BarIcons.SavePreset)
         ChatOverflowItem.PROMPTS_LIBRARY -> entry(stringResource(Res.string.prompts_library), BarIcons.Prompts)
         ChatOverflowItem.COMPARE ->
-            entry(stringResource(Res.string.compare_models), BarIcons.Compare, checked = uiState.comparisonState.isEnabled)
+            entry(
+                stringResource(Res.string.compare_models),
+                BarIcons.Compare,
+                // Checked through setup too: tapping it then cancels the setup, as it would stop a comparison.
+                checked = uiState.comparisonState.isEnabled || uiState.comparisonState.isSettingUp,
+                enabled = uiState.canToggleComparison,
+            )
         ChatOverflowItem.TRACE -> entry(stringResource(Res.string.trace_open), BarIcons.Trace)
         ChatOverflowItem.CONTEXT_USAGE -> entry(
             stringResource(Res.string.context_usage_label),

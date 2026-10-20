@@ -29,6 +29,25 @@
     <!-- Neutral label for the active agent when its name hasn't resolved yet (never a model string). -->
     <string name="chat_agent_fallback_label">Agent</string>
     <string name="compare_models">Compare Models</string>
+    <string name="compare_with">Compare with</string>
+    <string name="compare_start">Start</string>
+    <string name="compare_setup_hint">Each message goes to both models. Tap A or B to choose its model.</string>
+    <string name="compare_same_model">Same model, a second take</string>
+    <string name="compare_pick_below">Pick below</string>
+    <string name="compare_message_both">Message both models</string>
+    <string name="compare_pick_to_send">Pick model B to send</string>
+    <string name="compare_not_picked">Not picked yet</string>
+    <string name="compare_empty_lane">Send a message to see its answer here.</string>
+    <string name="compare_empty_pick_right">Pick a model on the right to compare with.</string>
+    <string name="compare_empty_ready">Tap Start, then send a message. Both models answer side by side.</string>
+    <string name="compare_browse_all">Browse all models</string>
+    <string name="compare_pick_second_model">Pick the second model</string>
+    <string name="compare_also_asking">Also asking</string>
+    <string name="cd_change_compared_models">Change compared models</string>
+    <string name="cd_change_first_model">Change first model, %1$s</string>
+    <string name="cd_change_second_model">Change second model, %1$s</string>
+    <string name="compare_lane_a">A</string>
+    <string name="compare_lane_b">B</string>
     <string name="how_can_i_help">How can I help you today?</string>
     <string name="chat_in_project">In %1$s</string>
     <string name="recording">Recording\u2026</string>
@@ -456,7 +475,6 @@
 
     <!-- Comparison mode -->
     <string name="continue_with_response">Continue with this response</string>
-    <string name="waiting_for_response">Waiting for response\u2026</string>
 
     <!-- Provider Keys chat-time errors. -->
     <string name="provider_keys_chat_error_no_key">No key found. Please provide a key and try again.</string>
@@ -764,7 +782,6 @@
     <string name="cd_mcp_server_enabled">%1$s MCP server enabled</string>
     <string name="cd_code_block">Code block</string>
     <string name="cd_code_block_language">%1$s code block</string>
-    <string name="comparison_primary">Primary</string>
     <string name="log_output_title">Log Output</string>
     <string name="cd_attached_image">Attached image</string>
     <string name="model_selector_search">Search models…</string>

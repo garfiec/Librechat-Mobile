@@ -72,6 +72,8 @@ data class ChatToolsPageParams(
     val onPickPhotos: () -> Unit,
     val onAttachFromServer: () -> Unit,
     val selectedModelDisplay: String?,
+    /** Both models while comparing; the Model row then names A and B. */
+    val comparisonModels: ComparisonModelLabels? = null,
     val isCodeInterpreterAvailable: Boolean = true,
     val webSearchEnabled: Boolean = true,
     val urlContextEnabled: Boolean = false,
@@ -93,7 +95,8 @@ data class ChatToolsPageParams(
 
 /**
  * Everything the ModelSelector page renders. In comparison mode the host points the selection
- * fields at the secondary model, so this page is agnostic to which tab is active.
+ * fields at whichever lane [comparisonHeader]'s A/B pair is editing, so this page is agnostic to
+ * which tab is active.
  */
 @Immutable
 data class ModelSelectorPageParams(
@@ -116,6 +119,8 @@ data class ModelSelectorPageParams(
     val onToggleModelFavorite: ((endpoint: String, model: String) -> Unit)? = null,
     val starredDisplay: StarredModelsDisplay = StarredModelsDisplay.GROUPED,
     val endpointKeyStates: Map<String, KeyState> = emptyMap(),
+    /** Under the page's back row; the comparison A/B pair while comparing. */
+    val comparisonHeader: (@Composable () -> Unit)? = null,
 )
 
 /** Everything the ModelParameters page renders. See [ModelParameterContent]. */
@@ -232,6 +237,7 @@ fun ChatOptionsBottomSheet(
                         onOpenModelParameters = { goTo(ChatOptionsPage.ModelParameters) },
                         onOpenModelSelector = { goTo(ChatOptionsPage.ModelSelector) },
                         selectedModelDisplay = tools.selectedModelDisplay,
+                        comparisonModels = tools.comparisonModels,
                         onDismiss = dismiss,
                         isCodeInterpreterAvailable = tools.isCodeInterpreterAvailable,
                         webSearchEnabled = tools.webSearchEnabled,
@@ -274,7 +280,12 @@ fun ChatOptionsBottomSheet(
                         onToggleModelFavorite = selector.onToggleModelFavorite,
                         starredDisplay = selector.starredDisplay,
                         endpointKeyStates = selector.endpointKeyStates,
-                        header = { SheetPageBackRow(title = null, onBack = back) },
+                        header = {
+                            Column {
+                                SheetPageBackRow(title = null, onBack = back)
+                                selector.comparisonHeader?.invoke()
+                            }
+                        },
                     )
 
                     ChatOptionsPage.ModelParameters -> Column {

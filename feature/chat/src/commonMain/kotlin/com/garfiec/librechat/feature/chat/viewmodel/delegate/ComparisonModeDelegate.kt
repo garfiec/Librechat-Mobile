@@ -45,30 +45,56 @@ class ComparisonModeDelegate(
 
     // ── Selection ────────────────────────────────────────────────────
 
-    /** Toggles comparison mode on/off, inheriting the primary endpoint/model when enabling. */
-    fun toggleComparison() {
-        val snapshot = handle.state
-        if (snapshot.comparisonState.isEnabled) {
-            primaryBuffer.clear()
-            secondaryBuffer.clear()
-            handle.update { comparisonState = ComparisonState() }
-        } else {
-            handle.update {
-                comparisonState = ComparisonState(
-                    isEnabled = true,
-                    secondaryEndpoint = snapshot.selectedEndpoint,
-                    secondaryModel = snapshot.selectedModel,
-                )
-                // When enabling on LANDING, switch to ACTIVE so comparison tabs render
-                content = content.copy(
-                    screenState = if (content.screenState == ChatScreenState.LANDING) {
-                        ChatScreenState.ACTIVE
-                    } else {
-                        content.screenState
-                    },
-                )
-            }
+    /**
+     * Turning Compare on starts a setup: the user picks the second model before anything is
+     * enabled (a sheet on phones, the empty second pane on wide screens). Nothing is sent and the
+     * screen does not leave LANDING until [startComparison].
+     */
+    fun beginComparisonSetup() {
+        if (handle.state.comparisonState.isEnabled) return
+        handle.update { comparisonState = ComparisonState(isSettingUp = true) }
+    }
+
+    /** Ends a setup without enabling comparison. */
+    fun cancelComparisonSetup() {
+        if (!handle.state.comparisonState.isSettingUp) return
+        handle.update { comparisonState = ComparisonState() }
+    }
+
+    /**
+     * Enables comparison against [endpoint]/[model], ending any setup. Refused while a reply
+     * streams: [routeEvent] reads [ComparisonState.isEnabled] per event, so the rest of a
+     * single-model reply would land in the comparison buffers and its streamed text would vanish.
+     */
+    fun startComparison(endpoint: String, model: String) {
+        if (handle.state.isStreaming) return
+        handle.update {
+            comparisonState = ComparisonState(
+                isEnabled = true,
+                secondaryEndpoint = endpoint,
+                secondaryModel = model,
+            )
+            // When enabling on LANDING, switch to ACTIVE so comparison tabs render
+            content = content.copy(
+                screenState = if (content.screenState == ChatScreenState.LANDING) {
+                    ChatScreenState.ACTIVE
+                } else {
+                    content.screenState
+                },
+            )
         }
+    }
+
+    /**
+     * Turns comparison mode off. Refused while a reply streams, for [startComparison]'s reason in
+     * reverse: the rest of both agents' deltas would fall through [routeEvent] into the single
+     * stream and finalize as one interleaved reply.
+     */
+    fun stopComparison() {
+        if (handle.state.isStreaming) return
+        primaryBuffer.clear()
+        secondaryBuffer.clear()
+        handle.update { comparisonState = ComparisonState() }
     }
 
     /** Updates the secondary model selection for comparison mode. */
@@ -77,18 +103,6 @@ class ComparisonModeDelegate(
         if (!comparison.isEnabled) return
         handle.update {
             comparisonState = comparison.copy(secondaryEndpoint = endpoint, secondaryModel = model)
-        }
-    }
-
-    /** Resolves a display-friendly name for the secondary model. */
-    fun getSecondaryModelDisplayName(): String? {
-        val comparison = handle.state.comparisonState
-        val endpoint = comparison.secondaryEndpoint ?: return null
-        val model = comparison.secondaryModel ?: return null
-        return if (endpoint == EndpointConstants.AGENTS) {
-            handle.state.agents.find { it.id == model }?.name ?: model
-        } else {
-            model
         }
     }
 

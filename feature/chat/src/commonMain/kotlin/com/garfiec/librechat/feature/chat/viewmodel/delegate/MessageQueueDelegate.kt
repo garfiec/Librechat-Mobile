@@ -54,6 +54,20 @@ class MessageQueueDelegate(
 ) {
 
     private var holdRenewalJob: Job? = null
+
+    /**
+     * Compare setup held a drain back (at [drainNext], or refused an item already on its way), so
+     * the setup's end owes one re-drain. Only a held drain is owed: an item already popped and
+     * waiting on its settle is still in flight, and re-draining for it would send the next item
+     * alongside it.
+     */
+    private var heldForCompareSetup = false
+
+    /** The ended run's epoch a held drain carried, replayed by [releaseCompareSetupHold]. */
+    private var heldEpoch: Long? = null
+
+    /** The epoch of the drain whose item is on its way, for a refusal that puts it back. */
+    private var inFlightEpoch: Long? = null
     private var lastRenewedAt: TimeMark = timeSource.markNow()
 
     fun enqueue(spec: QueuedMessage) {
@@ -170,6 +184,42 @@ class MessageQueueDelegate(
             queue = queue.copy(messageQueue = queue.messageQueue.toMutableList().apply { add(clamped, item) })
         }
         if (item.attachments.any { it.fileId != null }) startHoldRenewal()
+    }
+
+    /**
+     * Puts back a drained item the send gate refused. When the refusal was Compare setup, the
+     * setup's end re-drains it ([releaseCompareSetupHold]).
+     */
+    fun requeueRefusedDrain(item: QueuedMessage) {
+        reinsert(0, item)
+        if (!handle.state.canStartRun) {
+            heldForCompareSetup = true
+            // The refused item was popped by a run end; the re-drain is judged as that run end.
+            heldEpoch = inFlightEpoch ?: heldEpoch
+        }
+    }
+
+    /** Forgets a setup hold without draining: the state it belonged to was reset (a new chat). */
+    fun clearCompareSetupHold() {
+        heldForCompareSetup = false
+        heldEpoch = null
+    }
+
+    /**
+     * Compare setup ended: resumes a drain it held back. Returns whether a held follow-up is on its
+     * way (false when setup held nothing, or the user has since cancelled what it held).
+     */
+    fun releaseCompareSetupHold(): Boolean {
+        if (!heldForCompareSetup) return false
+        heldForCompareSetup = false
+        val epoch = heldEpoch
+        heldEpoch = null
+        val owed = handle.state.messageQueue.isNotEmpty()
+        // A run in progress drains at its own end. A hold taken at a run end keeps that drain's wait
+        // for the reply to settle, so the follow-up chains onto the finished reply; it returns at
+        // once when the reply has already landed.
+        if (!handle.state.isStreaming) drainNext(awaitSettle = epoch != null, endedGenerationCreatedAt = epoch)
+        return owed
     }
 
     /** Clears a now-meaningless pause when the queue is empty (e.g. an edit was committed empty,
@@ -301,6 +351,15 @@ class MessageQueueDelegate(
         // two turns. The evidence is consumed here so one admission fences one boundary, not
         // every later run end as well.
         if (consumeAdmittedBoundary(endedGenerationCreatedAt)) return
+        // Compare setup has no second model yet: hold the queue until it starts (both models) or is
+        // cancelled (the chat's model). After the boundary consume, so a run end's admission is
+        // still retired; the held drain keeps that run's epoch, so the re-drain at setup's end is
+        // judged as this run end rather than as an epoch-less "Send queued".
+        if (!handle.state.canStartRun) {
+            heldForCompareSetup = true
+            heldEpoch = endedGenerationCreatedAt ?: heldEpoch
+            return
+        }
         // "Send queued" and the idle re-drain arrive with no boundary epoch, so the match above is
         // a no-op for them and the evidence — whose row has already left the queue, which is why
         // the server-owned check below cannot stand in for it — would never be consulted at all.
@@ -326,6 +385,7 @@ class MessageQueueDelegate(
         // includes a `Rejected` row, which is never auto-recovered — it is held for the user.
         val head = handle.state.messageQueue.firstOrNull() ?: return
         handle.update { queue = queue.copy(messageQueue = queue.messageQueue.drop(1)) }
+        inFlightEpoch = endedGenerationCreatedAt
         sendWithSpec(head, awaitSettle)
     }
 

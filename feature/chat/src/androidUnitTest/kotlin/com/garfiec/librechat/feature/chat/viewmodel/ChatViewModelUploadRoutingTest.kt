@@ -304,6 +304,38 @@ class ChatViewModelUploadRoutingTest {
             io.mockk.verify(exactly = 0) { fileHandler.onFilesSelected(any()) }
         }
 
+    // Not upload routing, but the same gated-send shape, and this harness drives a real send.
+    @Test
+    fun `a send during Compare setup waits, keeping the text, and goes out once it starts`() =
+        routingTest(endpoint = "anthropic") { vm ->
+            vm.beginComparisonSetup()
+            vm.onInputChanged("which is better")
+
+            vm.sendMessage()
+            runCurrent()
+
+            io.mockk.verify(exactly = 0) {
+                chatRepository.startChat(
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                    any(),
+                )
+            }
+            assertThat(vm.uiState.value.inputText).isEqualTo("which is better")
+
+            vm.startComparison("openAI", "gpt-5")
+            vm.sendMessage()
+            runCurrent()
+
+            io.mockk.verify(exactly = 1) {
+                chatRepository.startChat(
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                    any(),
+                )
+            }
+        }
+
     @Test
     fun `a send while a batch is staged does not fire without it`() =
         routingTest(endpoint = "anthropic", mode = UploadRoutingMode.MANUAL) { vm ->

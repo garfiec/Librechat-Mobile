@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -101,6 +102,11 @@ fun MessageList(
      */
     justSettledMessageId: String? = null,
     onContinue: (messageId: String) -> Unit = {},
+    /**
+     * False hides the actions that start a run (edit, regenerate, continue): Compare setup sends
+     * nothing until it ends, so they would do nothing.
+     */
+    canResubmit: Boolean = true,
     onReadAloud: (messageId: String) -> Unit = {},
     onFork: (messageId: String) -> Unit = {},
     currentlyReadingMessageId: String? = null,
@@ -155,8 +161,12 @@ fun MessageList(
      * lists, and two sources writing one backdrop would overwrite each other, so its panes opt out.
      */
     recordsGlassBackdrop: Boolean = true,
+    /**
+     * Hoisted by a caller that swaps one list for another showing the same thread (the single list
+     * and Compare's pane A), so the swap keeps the reader's place.
+     */
+    listState: LazyListState = rememberLazyListState(),
 ) {
-    val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     // Stands the follower down while a finger rests on the list. Deliberately NOT a scroll-away
     // signal on its own — see the detector below.
@@ -652,6 +662,7 @@ fun MessageList(
                     LocalSearchFocusNonce provides if (isCurrent) searchFocusRequest?.requestId ?: 0L else 0L,
                     LocalSuppressGroupAutoCollapse provides (node.message.messageId == justSettledMessageId),
                     LocalFeedbackEnabled provides !isStreaming,
+                    LocalResubmitEnabled provides canResubmit,
                 ) {
                 val systemEvent = wakeups.wakeupOf(node, isEditing = editingMessageId == node.message.messageId)
                 if (systemEvent != null) {
@@ -667,7 +678,11 @@ fun MessageList(
                             onSiblingNavigation(node.treeParentKey, newIndex)
                         },
                         onCopy = { onCopyMessage(node.message.messageId) },
-                        onEdit = { onEditMessage(node.message.messageId) },
+                        onEdit = if (canResubmit) {
+                            { onEditMessage(node.message.messageId) }
+                        } else {
+                            null
+                        },
                         onReadAloud = { onReadAloud(node.message.messageId) },
                         isReading = currentlyReadingMessageId == node.message.messageId,
                         onFork = { onFork(node.message.messageId) },
@@ -683,8 +698,12 @@ fun MessageList(
                         onSiblingNavigation(node.treeParentKey, newIndex)
                     },
                     showActionsInitially = lastNavigatedParentKey == node.treeParentKey,
-                    onEdit = { onEditMessage(node.message.messageId) },
-                    onRegenerate = if (!node.message.isCreatedByUser) {
+                    onEdit = if (canResubmit) {
+                        { onEditMessage(node.message.messageId) }
+                    } else {
+                        null
+                    },
+                    onRegenerate = if (canResubmit && !node.message.isCreatedByUser) {
                         { onRegenerateMessage(node.message.messageId) }
                     } else {
                         null
@@ -695,7 +714,7 @@ fun MessageList(
                     } else {
                         null
                     },
-                    onContinue = if (!node.message.isCreatedByUser) {
+                    onContinue = if (canResubmit && !node.message.isCreatedByUser) {
                         { onContinue(node.message.messageId) }
                     } else {
                         null

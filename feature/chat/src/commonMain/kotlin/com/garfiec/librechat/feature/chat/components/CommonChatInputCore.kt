@@ -87,6 +87,8 @@ import com.garfiec.librechat.feature.chat.resources.cd_start_voice_recording
 import com.garfiec.librechat.feature.chat.resources.cd_steer_message
 import com.garfiec.librechat.feature.chat.resources.cd_stop_generation
 import com.garfiec.librechat.feature.chat.resources.cd_update_queued_message
+import com.garfiec.librechat.feature.chat.resources.compare_message_both
+import com.garfiec.librechat.feature.chat.resources.compare_pick_to_send
 import com.garfiec.librechat.feature.chat.resources.editing_queued_message
 import com.garfiec.librechat.feature.chat.resources.hint_message
 import com.garfiec.librechat.feature.chat.resources.hint_message_model
@@ -158,6 +160,10 @@ data class ChatInputState(
     val contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
     /** Prompt groups available to the `/` picker. Filtering happens here, off [inputText]. */
     val promptSuggestions: List<PromptMentionDisplayData> = emptyList(),
+    /** The active comparison's second model, shown as the "Also asking" row. Null when not comparing. */
+    val comparison: ComposerComparison? = null,
+    /** What the field says about an active or pending comparison; setup also holds sends. */
+    val comparisonHint: ComposerComparisonHint = ComposerComparisonHint.NONE,
 )
 
 /**
@@ -354,11 +360,18 @@ fun CommonChatInputCore(
                 onSelect = onSelectPrompt,
             )
 
+            // Material stacks the comparison row like the banners above; glass draws it inside the
+            // capsule, below.
+            val otherModel = state.comparison as? ComposerComparison.OtherModel
+            if (glass == null) {
+                otherModel?.let { ComposerComparisonRow(it, Modifier.padding(bottom = 6.dp)) }
+            }
+
             BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                 // Below a 360dp screen the gaps beside the field go, and the during-run caret folds
                 // into the send button, so the field keeps room for more than a word a line.
                 val compact = maxWidth < COMPACT_COMPOSER_ROW_WIDTH
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .then(
@@ -368,71 +381,116 @@ fun CommonChatInputCore(
                                 Modifier
                             },
                         ),
-                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    leadingButtons(compact)
-                    textFieldContent()
-                    trailingSpacer(compact)
-                    val hasComposerContent = composerCanSend(
-                        inputText = state.inputText,
-                        hasAttachments = state.attachedFiles.isNotEmpty(),
-                        arePicksUnsettled = state.arePicksUnsettled,
+                    if (glass != null) {
+                        otherModel?.let { ComposerComparisonRow(it, Modifier.padding(start = 12.dp)) }
+                    }
+                    ComposerInputRow(
+                        state = state,
+                        compact = compact,
+                        leadingButtons = leadingButtons,
+                        textFieldContent = textFieldContent,
+                        trailingSpacer = trailingSpacer,
+                        onSend = onSend,
+                        onStop = onStop,
+                        onQueue = onQueue,
+                        onSteer = onSteer,
+                        onDuringRunSend = onDuringRunSend,
+                        onSetDuringRunAction = onSetDuringRunAction,
+                        onCommitEdit = onCommitEdit,
+                        onCancelPendingSend = onCancelPendingSend,
                     )
-                    // Mid-stream + typed content + queueing allowed → morph Stop into a during-run send.
-                    val duringRunSend = state.canQueue && hasComposerContent && onQueue != null &&
-                        !state.isEditingQueued
-                    // The picker only earns its space when both routes are open; with steering
-                    // unavailable the send button alone says everything there is to say. `canSteer`
-                    // is false while a run is paused for review, which is also what keeps the picker
-                    // from offering a steer/queue choice over a send that will answer the pause.
-                    val picker = duringRunSend && state.canSteer
-                    val foldPicker = picker && compact
-                    // Keyed on the fold, so a menu left open when the run ends, the draft clears or
-                    // the window widens doesn't pop back open on the next mid-run draft.
-                    var foldedMenuOpen by remember(foldPicker) { mutableStateOf(false) }
-                    if (picker && !compact) {
-                        DuringRunSendMenu(
-                            defaultAction = state.duringRunAction,
-                            onSteerOnce = onSteer,
-                            onQueueOnce = onQueue ?: {},
-                            onSetDefault = onSetDuringRunAction,
-                        )
-                    }
-                    Box {
-                        SendStopButton(
-                            isStreaming = state.isStreaming,
-                            canSend = hasComposerContent,
-                            canQueue = duringRunSend,
-                            duringRunTarget = state.duringRunSendTarget,
-                            onSend = onSend,
-                            onStop = onStop,
-                            // Folded, a tap opens the picker, whose first two entries are the two sends.
-                            onQueue = if (foldPicker) {
-                                { foldedMenuOpen = true }
-                            } else {
-                                onDuringRunSend
-                            },
-                            opensMenu = foldPicker,
-                            // In queued-edit mode the button commits the edit instead of send/stop/queue.
-                            isEditingQueued = state.isEditingQueued,
-                            onUpdate = onCommitEdit,
-                            // A send waiting on an in-flight upload: spinner, tap to cancel.
-                            isAwaitingUploadSend = state.isAwaitingUploadSend,
-                            onCancelPendingSend = onCancelPendingSend,
-                        )
-                        DuringRunSendDropdown(
-                            expanded = foldPicker && foldedMenuOpen,
-                            onDismiss = { foldedMenuOpen = false },
-                            defaultAction = state.duringRunAction,
-                            onSteerOnce = onSteer,
-                            onQueueOnce = onQueue ?: {},
-                            onSetDefault = onSetDuringRunAction,
-                        )
-                    }
                 }
             }
         }
         bottomContent()
+    }
+}
+
+/** The field and its trailing send/stop control: the part of the composer the glass capsule wraps. */
+@Suppress("LongParameterList")
+@Composable
+private fun ComposerInputRow(
+    state: ChatInputState,
+    compact: Boolean,
+    leadingButtons: @Composable RowScope.(compact: Boolean) -> Unit,
+    textFieldContent: @Composable RowScope.() -> Unit,
+    trailingSpacer: @Composable RowScope.(compact: Boolean) -> Unit,
+    onSend: () -> Unit,
+    onStop: () -> Unit,
+    onQueue: (() -> Unit)?,
+    onSteer: () -> Unit,
+    onDuringRunSend: () -> Unit,
+    onSetDuringRunAction: (DuringRunAction) -> Unit,
+    onCommitEdit: () -> Unit,
+    onCancelPendingSend: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        leadingButtons(compact)
+        textFieldContent()
+        trailingSpacer(compact)
+        // A comparison still choosing its second model has nowhere to send yet. Committing a queued
+        // edit sends nothing (the queue is held through setup), so Update stays available.
+        val blockedBySetup = state.comparisonHint == ComposerComparisonHint.SETTING_UP && !state.isEditingQueued
+        val hasComposerContent = !blockedBySetup && composerCanSend(
+            inputText = state.inputText,
+            hasAttachments = state.attachedFiles.isNotEmpty(),
+            arePicksUnsettled = state.arePicksUnsettled,
+        )
+        // Mid-stream + typed content + queueing allowed → morph Stop into a during-run send.
+        val duringRunSend = state.canQueue && hasComposerContent && onQueue != null &&
+            !state.isEditingQueued
+        // The picker only earns its space when both routes are open; with steering
+        // unavailable the send button alone says everything there is to say. `canSteer`
+        // is false while a run is paused for review, which is also what keeps the picker
+        // from offering a steer/queue choice over a send that will answer the pause.
+        val picker = duringRunSend && state.canSteer
+        val foldPicker = picker && compact
+        // Keyed on the fold, so a menu left open when the run ends, the draft clears or
+        // the window widens doesn't pop back open on the next mid-run draft.
+        var foldedMenuOpen by remember(foldPicker) { mutableStateOf(false) }
+        if (picker && !compact) {
+            DuringRunSendMenu(
+                defaultAction = state.duringRunAction,
+                onSteerOnce = onSteer,
+                onQueueOnce = onQueue ?: {},
+                onSetDefault = onSetDuringRunAction,
+            )
+        }
+        Box {
+            SendStopButton(
+                isStreaming = state.isStreaming,
+                canSend = hasComposerContent,
+                canQueue = duringRunSend,
+                duringRunTarget = state.duringRunSendTarget,
+                onSend = onSend,
+                onStop = onStop,
+                // Folded, a tap opens the picker, whose first two entries are the two sends.
+                onQueue = if (foldPicker) {
+                    { foldedMenuOpen = true }
+                } else {
+                    onDuringRunSend
+                },
+                opensMenu = foldPicker,
+                // In queued-edit mode the button commits the edit instead of send/stop/queue.
+                isEditingQueued = state.isEditingQueued,
+                onUpdate = onCommitEdit,
+                // A send waiting on an in-flight upload: spinner, tap to cancel.
+                isAwaitingUploadSend = state.isAwaitingUploadSend,
+                onCancelPendingSend = onCancelPendingSend,
+            )
+            DuringRunSendDropdown(
+                expanded = foldPicker && foldedMenuOpen,
+                onDismiss = { foldedMenuOpen = false },
+                defaultAction = state.duringRunAction,
+                onSteerOnce = onSteer,
+                onQueueOnce = onQueue ?: {},
+                onSetDefault = onSetDuringRunAction,
+            )
+        }
     }
 }
 
@@ -840,10 +898,15 @@ fun ChatInputPlaceholder(
     isRecording: Boolean,
     selectedModelDisplay: String?,
     modifier: Modifier = Modifier,
+    comparisonHint: ComposerComparisonHint = ComposerComparisonHint.NONE,
 ) {
     Text(
         text = if (isRecording) {
             stringResource(Res.string.recording)
+        } else if (comparisonHint == ComposerComparisonHint.SETTING_UP) {
+            stringResource(Res.string.compare_pick_to_send)
+        } else if (comparisonHint == ComposerComparisonHint.BOTH) {
+            stringResource(Res.string.compare_message_both)
         } else if (!selectedModelDisplay.isNullOrBlank()) {
             stringResource(Res.string.hint_message_model, selectedModelDisplay)
         } else {

@@ -50,6 +50,12 @@ internal fun ChatScreenDialogs(
     onSetShowSavePresetDialog: (Boolean) -> Unit,
     onSetShowSecondaryModelSheet: (Boolean) -> Unit,
     onNavigateToProviderKeys: (endpointName: String?) -> Unit,
+    showCompareSetupSheet: Boolean,
+    /** Null: dismissing the sheet cancels setup (a phone's only picker). Else it just closes it. */
+    onCompareSetupSheetDismiss: (() -> Unit)?,
+    compareSetupPick: CompareSetupPick,
+    primaryModelLabel: String,
+    compareSetupActions: CompareSetupActions,
 ) {
     if (showPresetPicker) {
         PresetPicker(
@@ -102,6 +108,19 @@ internal fun ChatScreenDialogs(
             uiState = uiState,
             viewModel = viewModel,
             sendBlockMessage = sendBlockMessage,
+            onNavigateToProviderKeys = onNavigateToProviderKeys,
+            setupPick = compareSetupPick,
+        )
+    }
+
+    // Compare setup on a narrow chat; a wide one picks in the empty second pane instead.
+    if (showCompareSetupSheet) {
+        CompareSetupSheet(
+            uiState = uiState,
+            pick = compareSetupPick,
+            primaryLabel = primaryModelLabel,
+            actions = compareSetupActions,
+            onDismiss = onCompareSetupSheetDismiss,
             onNavigateToProviderKeys = onNavigateToProviderKeys,
         )
     }

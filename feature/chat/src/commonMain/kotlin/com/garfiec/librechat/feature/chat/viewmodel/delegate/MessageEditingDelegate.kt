@@ -31,15 +31,16 @@ class MessageEditingDelegate(
     private val streamingManager: StreamingManagerDelegate,
     private val requestBuilder: ChatRequestBuilder,
     private val getMessageText: (String) -> String,
-    private val runWhenSendReady: (action: () -> Unit) -> Unit,
+    private val runWhenSendReady: (onRefused: () -> Unit, action: () -> Unit) -> Unit,
 ) {
 
-    fun editMessage(messageId: String, newText: String) {
+    /** [onRefused] runs when the send gate refuses (see SendReadinessDelegate.runWhenSendReady). */
+    fun editMessage(messageId: String, newText: String, onRefused: () -> Unit = {}) {
         if (newText.isBlank() || handle.state.isStreaming) return
 
         val originalMessage = handle.state.messages.find { it.messageId == messageId } ?: return
 
-        runWhenSendReady {
+        runWhenSendReady(onRefused) {
             if (originalMessage.isCreatedByUser) {
                 editUserMessage(originalMessage, newText)
             } else {
@@ -123,7 +124,7 @@ class MessageEditingDelegate(
             it.messageId == aiMessage.parentMessageId
         } ?: return
 
-        runWhenSendReady { regenerateMessageNow(parentUserMessage) }
+        runWhenSendReady({}) { regenerateMessageNow(parentUserMessage) }
     }
 
     private fun regenerateMessageNow(parentUserMessage: Message) {
@@ -151,7 +152,7 @@ class MessageEditingDelegate(
         val state = handle.state
         if (!state.canCompactNow) return
         val leaf = state.compactionLeaf ?: return
-        runWhenSendReady { compactConversationNow(leaf) }
+        runWhenSendReady({}) { compactConversationNow(leaf) }
     }
 
     private fun compactConversationNow(leaf: Message) {
@@ -182,7 +183,7 @@ class MessageEditingDelegate(
             it.messageId == lastAiMessage.message.parentMessageId
         } ?: return
 
-        runWhenSendReady { continueGenerationNow(lastAiMessage.message, parentUserMessage) }
+        runWhenSendReady({}) { continueGenerationNow(lastAiMessage.message, parentUserMessage) }
     }
 
     private fun continueGenerationNow(lastAiMessage: Message, parentUserMessage: Message) {
@@ -297,9 +298,15 @@ class MessageEditingDelegate(
         val messageId = handle.state.editingMessageId ?: return
         val newText = handle.state.editingText.trim()
         if (newText.isBlank()) return
+        // Save & Submit is disabled while no run may start; this covers a tap that raced it.
+        if (!handle.state.canStartRun) return
 
         handle.update { editing = editing.copy(editingMessageId = null, editingText = "") }
-        editMessage(messageId, newText)
+        // A refusal (no model, a readiness timeout, Compare setup opening during the wait) reopens
+        // the edit with its text rather than dropping what the user wrote.
+        editMessage(messageId, newText) {
+            handle.update { editing = editing.copy(editingMessageId = messageId, editingText = newText) }
+        }
     }
 
     fun saveEditOnly() {

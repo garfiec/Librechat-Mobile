@@ -150,6 +150,7 @@ data class ChatUiState(
             Compaction.supportsCompaction(selectedEndpoint) &&
             !conversationId.isNullOrBlank() &&
             !isStreaming &&
+            canStartRun &&
             compactionLeaf != null
 
     /**
@@ -215,6 +216,20 @@ data class ChatUiState(
     val activeBranches: Map<String, Int> get() = content.activeBranches
     val justSettledMessageId: String? get() = content.justSettledMessageId
     val isStreaming: Boolean get() = content.isStreaming
+
+    /**
+     * Whether the Compare Models menu item may act. A live comparison can't be turned off mid-reply
+     * (see ComparisonModeDelegate.stopComparison); starting or cancelling a setup always can.
+     */
+    val canToggleComparison: Boolean get() = !(comparisonState.isEnabled && isStreaming)
+
+    /**
+     * Whether anything may start a run: a send, a queue drain, an edit's resubmit, regenerate,
+     * continue or compact. False through Compare setup, which has no second model yet. The send
+     * gate (`SendReadinessDelegate`) and the queue drain refuse on it, and every control that would
+     * start a run reads it to disable or hide itself, so no tap is refused with nothing shown.
+     */
+    val canStartRun: Boolean get() = !comparisonState.isSettingUp
     val isCompacting: Boolean get() = content.isCompacting
     val streamingContent: String get() = content.streamingContent
     val streamingThinking: String get() = content.streamingThinking

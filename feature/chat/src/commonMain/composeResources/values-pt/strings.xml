@@ -29,6 +29,25 @@
     <!-- Neutral label for the active agent when its name hasn't resolved yet (never a model string). -->
     <string name="chat_agent_fallback_label">Agente</string>
     <string name="compare_models">Comparar modelos</string>
+    <string name="compare_with">Comparar com</string>
+    <string name="compare_start">Começar</string>
+    <string name="compare_setup_hint">Cada mensagem vai para os dois modelos. Toque em A ou B para escolher o modelo.</string>
+    <string name="compare_same_model">Mesmo modelo, outra resposta</string>
+    <string name="compare_pick_below">Escolha abaixo</string>
+    <string name="compare_message_both">Mensagem para os dois modelos</string>
+    <string name="compare_pick_to_send">Escolha o modelo B para enviar</string>
+    <string name="compare_not_picked">Ainda não escolhido</string>
+    <string name="compare_empty_lane">Envie uma mensagem para ver a resposta dele aqui.</string>
+    <string name="compare_empty_pick_right">Escolha à direita um modelo para comparar.</string>
+    <string name="compare_empty_ready">Toque em Começar e envie uma mensagem. Os dois modelos respondem lado a lado.</string>
+    <string name="compare_browse_all">Ver todos os modelos</string>
+    <string name="compare_pick_second_model">Escolha o segundo modelo</string>
+    <string name="compare_also_asking">Também perguntando a</string>
+    <string name="cd_change_compared_models">Alterar os modelos comparados</string>
+    <string name="cd_change_first_model">Alterar o primeiro modelo, %1$s</string>
+    <string name="cd_change_second_model">Alterar o segundo modelo, %1$s</string>
+    <string name="compare_lane_a">A</string>
+    <string name="compare_lane_b">B</string>
     <string name="how_can_i_help">Como posso ajudar você hoje?</string>
     <string name="chat_in_project">Em %1$s</string>
     <string name="recording">Gravando…</string>
@@ -443,7 +462,6 @@
 
     <!-- Comparison mode -->
     <string name="continue_with_response">Continuar com esta resposta</string>
-    <string name="waiting_for_response">Aguardando resposta…</string>
 
     <!-- Provider Keys chat-time errors. -->
     <string name="provider_keys_chat_error_no_key">Nenhuma chave encontrada. Forneça uma chave e tente novamente.</string>
@@ -727,7 +745,6 @@
     <string name="cd_mcp_server_enabled">Servidor MCP %1$s ativado</string>
     <string name="cd_code_block">Bloco de código</string>
     <string name="cd_code_block_language">Bloco de código %1$s</string>
-    <string name="comparison_primary">Principal</string>
     <string name="log_output_title">Saída do log</string>
     <string name="cd_attached_image">Imagem anexada</string>
     <string name="model_selector_search">Pesquisar modelos…</string>

@@ -20,11 +20,9 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.common.ChatLayoutConstants
 import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.feature.chat.resources.*
-import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.util.withPreviews
 import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
-import org.jetbrains.compose.resources.stringResource
 
 /**
  * Simplified message list for the secondary comparison pane.
@@ -52,6 +50,9 @@ fun SecondaryMessageList(
     showBubbles: Boolean = false,
     useKatex: Boolean = false,
     bottomContentPadding: Dp = 160.dp,
+    /** The user's own name and avatar, so pane B labels their messages as pane A does. */
+    userAvatarUrl: String? = null,
+    userName: String? = null,
 ) {
     val listState = rememberLazyListState()
     // This pane hosts no AskUserQuestionPanel, so an unanswered ask has no affordance to resolve it.
@@ -79,16 +80,8 @@ fun SecondaryMessageList(
                     .align(Alignment.Center)
                     .padding(16.dp),
             )
-        } else if (!isStreaming && displayMessages.isEmpty() && streamingContent.isBlank()) {
-            Text(
-                text = stringResource(Res.string.waiting_for_response),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .padding(16.dp),
-            )
         } else {
+            // An empty pane stays empty, like the primary one beside it: nothing has been sent yet.
             val previewOverrides = LocalPreviewOverrides.current
             val liveAttachments = remember(streamingAttachments, previewOverrides) {
                 streamingAttachments.withPreviews(previewOverrides)
@@ -135,6 +128,8 @@ fun SecondaryMessageList(
                         onCopy = {},
                         baseUrl = baseUrl,
                         fontSizeMultiplier = fontSizeMultiplier,
+                        userAvatarUrl = userAvatarUrl,
+                        userName = userName,
                         selectedEndpoint = selectedEndpoint,
                         showImageDescriptions = showImageDescriptions,
                         chatLayoutStyle = chatLayoutStyle,

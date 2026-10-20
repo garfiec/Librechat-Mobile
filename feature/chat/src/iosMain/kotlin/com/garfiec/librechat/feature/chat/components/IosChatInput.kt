@@ -76,6 +76,8 @@ fun IosChatInput(
     onCancelEdit: () -> Unit = {},
     isAwaitingUploadSend: Boolean = false,
     arePicksUnsettled: Boolean = false,
+    comparison: ComposerComparison? = null,
+    comparisonHint: ComposerComparisonHint = ComposerComparisonHint.NONE,
     onCancelPendingSend: () -> Unit = {},
     queuedMessages: List<QueuedMessage> = emptyList(),
     onEditQueuedMessage: (localId: String) -> Unit = {},
@@ -133,6 +135,8 @@ fun IosChatInput(
         isEditingQueued = isEditingQueued,
         isAwaitingUploadSend = isAwaitingUploadSend,
         arePicksUnsettled = arePicksUnsettled,
+        comparison = comparison,
+        comparisonHint = comparisonHint,
         contextGauge = contextGauge,
         contextUsageEnabled = contextUsageEnabled,
         onCompact = onCompact,
@@ -227,7 +231,11 @@ fun IosChatInput(
                         ChatInputPlaceholder(
                             isRecording = isRecording,
                             selectedModelDisplay = selectedModelDisplay,
+                            comparisonHint = comparisonHint,
                         )
+                    },
+                    leadingIcon = (comparison as? ComposerComparison.BothModels)?.let { both ->
+                        { ComposerComparisonBadges(both) }
                     },
                     textStyle = MaterialTheme.typography.bodyLarge,
                     shape = ChatInputDefaults.shape,

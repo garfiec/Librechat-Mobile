@@ -73,6 +73,8 @@ internal expect fun ChatComposer(
     onCancelEdit: () -> Unit,
     isAwaitingUploadSend: Boolean,
     arePicksUnsettled: Boolean,
+    comparison: ComposerComparison?,
+    comparisonHint: ComposerComparisonHint,
     onCancelPendingSend: () -> Unit,
     queuedMessages: List<QueuedMessage>,
     onEditQueuedMessage: (localId: String) -> Unit,
