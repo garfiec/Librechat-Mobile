@@ -47,7 +47,7 @@ actual fun rememberShareImage(): (url: String) -> Unit {
 private suspend fun shareImage(url: String) {
     val png = loadAsPng(url)
     if (png == null) {
-        shareUrl(url)
+        shareText(url)
         return
     }
     shareFile(png, filename = "image", mime = "image/png")
@@ -69,15 +69,6 @@ actual fun rememberShareFile(): (bytes: ByteArray, filename: String, mime: Strin
     return remember(scope) {
         { bytes, filename, mime -> scope.launch { shareFile(bytes, filename, mime) } }
     }
-}
-
-private fun shareUrl(url: String) {
-    val viewController = currentTopmostViewController() ?: return
-    val activityVC = UIActivityViewController(
-        activityItems = listOf(url),
-        applicationActivities = null,
-    )
-    presentSheet(activityVC, from = viewController)
 }
 
 // Writes the downloaded bytes to a temp file and shares the file URL, so the user can open it in

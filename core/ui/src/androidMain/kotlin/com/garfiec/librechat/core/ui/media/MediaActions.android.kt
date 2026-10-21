@@ -92,7 +92,7 @@ actual fun rememberShareImage(): (url: String) -> Unit {
                 try {
                     val image = loadEncodedImage(context, url)
                     if (image == null) {
-                        shareUrlText(context, url)
+                        shareText(context, url)
                         return@launch
                     }
                     val file = withContext(Dispatchers.IO) {
@@ -121,7 +121,7 @@ actual fun rememberShareImage(): (url: String) -> Unit {
                 } catch (e: CancellationException) {
                     throw e
                 } catch (_: Exception) {
-                    shareUrlText(context, url)
+                    shareText(context, url)
                 }
             }
         }
@@ -290,12 +290,4 @@ private suspend fun toast(context: Context, message: String) {
     withContext(Dispatchers.Main) {
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
     }
-}
-
-private fun shareUrlText(context: Context, url: String) {
-    val sendIntent = Intent(Intent.ACTION_SEND).apply {
-        putExtra(Intent.EXTRA_TEXT, url)
-        type = "text/plain"
-    }
-    context.startActivity(Intent.createChooser(sendIntent, null))
 }
