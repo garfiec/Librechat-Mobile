@@ -3,11 +3,15 @@ package com.garfiec.librechat.core.data.share
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.ConfigRepository
+import com.garfiec.librechat.core.data.repository.PermissionsRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.ShareChangeSignal
 import com.garfiec.librechat.core.data.repository.ShareRepository
 import com.garfiec.librechat.core.data.repository.ShareRepositoryImpl
+import com.garfiec.librechat.core.model.PermissionBits
+import com.garfiec.librechat.core.model.ResourcePermissions
 import com.garfiec.librechat.core.model.SharedLink
+import com.garfiec.librechat.core.model.acl.AclState
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.core.model.request.UpdateShareRequest
@@ -57,6 +61,12 @@ class ShareLinkControllerTest {
         every { userPermissions } returns role
     }
     private val changes = ShareChangeSignal()
+
+    /** No SHARE bit on any link unless a test grants one. */
+    private val permissionsRepository = mockk<PermissionsRepository> {
+        coEvery { getEffectivePermissions(any(), any()) } returns Result.Success(0)
+        coEvery { getResourceRoles(any()) } returns Result.Success(emptyList())
+    }
     private val repository = ShareRepositoryImpl(
         shareApi = shareApi,
         serverUrlProvider = object : ServerUrlProvider {
@@ -72,7 +82,8 @@ class ShareLinkControllerTest {
 
     private fun link(shareId: String) = SharedLink(conversationId = "convo", shareId = shareId)
 
-    private fun TestScope.controller() = ShareLinkController(repository, configRepository, roleRepository, backgroundScope)
+    private fun TestScope.controller() =
+        ShareLinkController(repository, configRepository, roleRepository, permissionsRepository, backgroundScope)
 
     private suspend fun ShareLinkController.await(predicate: (ShareSheetState) -> Boolean): ShareSheetState =
         state.first(predicate)
@@ -518,7 +529,7 @@ class ShareLinkControllerTest {
 
     // Over a mocked repository: nothing leaves the test dispatcher, so "dropped" is not "not yet".
     private fun TestScope.controllerOver(shares: ShareRepository) =
-        ShareLinkController(shares, configRepository, roleRepository, backgroundScope)
+        ShareLinkController(shares, configRepository, roleRepository, permissionsRepository, backgroundScope)
 
     private fun slowRepository(): ShareRepository = mockk {
         every { shareUrl(any()) } answers { "https://chat.example.com/share/${firstArg<String>()}" }
@@ -578,6 +589,142 @@ class ShareLinkControllerTest {
         val state = controller.state.value as ShareSheetState.NoLink
         assertThat(state.busy).isNull()
         coVerify(exactly = 1) { shares.lookupShareLink("first") } // the open's, no settle after the dropped create
+    }
+
+    // ── manage access ──────────────────────────────────────────────────────
+
+    private fun allowShare(share: Boolean = true) {
+        role.value = UserRolePermissions(
+            name = "USER",
+            permissions = mapOf("SHARED_LINKS" to mapOf("CREATE" to true, "SHARE" to share)),
+        )
+    }
+
+    private fun grantShareBit(resourceId: String) {
+        coEvery { permissionsRepository.getEffectivePermissions("sharedLink", resourceId) } returns
+            Result.Success(PermissionBits.VIEW or PermissionBits.SHARE)
+    }
+
+    @Test
+    fun `manage access is offered with the role's SHARE and the link's SHARE bit`() = runTest {
+        allowShare()
+        grantShareBit("acl-s1")
+        coEvery { shareApi.getShareLink("convo") } returns live("s1")
+        val controller = controller()
+
+        controller.open("convo")
+
+        controller.await { it is ShareSheetState.Linked && it.canManageAccess }
+        coVerify { permissionsRepository.getEffectivePermissions("sharedLink", "acl-s1") }
+    }
+
+    @Test
+    fun `manage access stays hidden without the link's SHARE bit`() = runTest {
+        allowShare()
+        coEvery { permissionsRepository.getEffectivePermissions("sharedLink", "acl-s1") } returns
+            Result.Success(PermissionBits.VIEW)
+        coEvery { shareApi.getShareLink("convo") } returns live("s1")
+        val controller = controller()
+
+        controller.open("convo")
+        controller.awaitLinked()
+        settle()
+
+        assertThat((controller.state.value as ShareSheetState.Linked).canManageAccess).isFalse()
+    }
+
+    @Test
+    fun `manage access fails closed on an unknown role and never asks for the bit`() = runTest {
+        grantShareBit("acl-s1")
+        coEvery { shareApi.getShareLink("convo") } returns live("s1")
+        val controller = controller()
+
+        controller.open("convo")
+        controller.awaitLinked()
+        settle()
+
+        assertThat((controller.state.value as ShareSheetState.Linked).canManageAccess).isFalse()
+        coVerify(exactly = 0) { permissionsRepository.getEffectivePermissions(any(), any()) }
+    }
+
+    @Test
+    fun `manage access stays hidden when the role denies SHARE`() = runTest {
+        allowShare(share = false)
+        grantShareBit("acl-s1")
+        coEvery { shareApi.getShareLink("convo") } returns live("s1")
+        val controller = controller()
+
+        controller.open("convo")
+        controller.awaitLinked()
+        settle()
+
+        assertThat((controller.state.value as ShareSheetState.Linked).canManageAccess).isFalse()
+    }
+
+    @Test
+    fun `manage access stays hidden when the bit can't be read`() = runTest {
+        allowShare()
+        coEvery { permissionsRepository.getEffectivePermissions("sharedLink", "acl-s1") } returns
+            Result.Error(IOException("offline"))
+        coEvery { shareApi.getShareLink("convo") } returns live("s1")
+        val controller = controller()
+
+        controller.open("convo")
+        controller.awaitLinked()
+        settle()
+
+        assertThat((controller.state.value as ShareSheetState.Linked).canManageAccess).isFalse()
+    }
+
+    @Test
+    fun `a reduced link never offers manage access`() = runTest {
+        allowShare()
+        grantShareBit("acl-newest")
+        coEvery { shareApi.getShareLink("convo") } returns live("newest")
+        val controller = controller()
+
+        controller.open("convo", focusShareId = "older")
+        controller.awaitLinked()
+        settle()
+
+        val state = controller.state.value as ShareSheetState.Linked
+        assertThat(state.reduced).isTrue()
+        assertThat(state.canManageAccess).isFalse()
+        coVerify(exactly = 0) { permissionsRepository.getEffectivePermissions(any(), any()) }
+    }
+
+    @Test
+    fun `openAccess reads the link's grants by its lookup id, and closing the sheet closes it`() = runTest {
+        allowShare()
+        grantShareBit("acl-s1")
+        coEvery { permissionsRepository.getResourcePermissions("sharedLink", "acl-s1") } returns
+            Result.Success(ResourcePermissions())
+        coEvery { shareApi.getShareLink("convo") } returns live("s1")
+        val controller = controller()
+        controller.open("convo")
+        controller.await { it is ShareSheetState.Linked && it.canManageAccess }
+
+        controller.openAccess()
+        controller.access.state.first { it is AclState.Ready }
+        controller.close()
+
+        assertThat(controller.access.state.first { it == AclState.Closed }).isEqualTo(AclState.Closed)
+        coVerify(exactly = 1) { permissionsRepository.getResourcePermissions("sharedLink", "acl-s1") }
+    }
+
+    @Test
+    fun `openAccess does nothing while manage access isn't offered`() = runTest {
+        coEvery { shareApi.getShareLink("convo") } returns live("s1")
+        val controller = controller()
+        controller.open("convo")
+        controller.awaitLinked()
+        settle()
+
+        controller.openAccess()
+        settle()
+
+        assertThat(controller.access.state.value).isEqualTo(AclState.Closed)
+        coVerify(exactly = 0) { permissionsRepository.getResourcePermissions(any(), any()) }
     }
 
     private fun targetRejected(code: String) = ApiException(

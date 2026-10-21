@@ -26,6 +26,12 @@ interface PermissionsRepository {
 
     suspend fun searchPrincipals(query: String, limit: Int? = null): Result<List<Principal>>
 
+    /**
+     * The caller's [com.garfiec.librechat.core.model.PermissionBits] on one resource (for a shared
+     * link, its lookup `_id`). Zero grants nothing.
+     */
+    suspend fun getEffectivePermissions(resourceType: String, resourceId: String): Result<Int>
+
     /** The caller's permission bits per resource id, for every [resourceType] resource they can reach. */
     suspend fun getAllEffectivePermissions(resourceType: String): Result<Map<String, Int>>
 }

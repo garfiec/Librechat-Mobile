@@ -3,12 +3,20 @@ package com.garfiec.librechat.core.data.share
 import com.garfiec.librechat.core.common.BackendVersion
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.suspendRunCatching
+import com.garfiec.librechat.core.data.acl.AclController
+import com.garfiec.librechat.core.data.acl.AclPolicy
 import com.garfiec.librechat.core.data.repository.ConfigRepository
+import com.garfiec.librechat.core.data.repository.PermissionsRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
+import com.garfiec.librechat.core.model.PermissionBits
+import com.garfiec.librechat.core.model.ResourceType
 import com.garfiec.librechat.core.model.config.StartupConfig
+import com.garfiec.librechat.core.model.permissions.Permission
+import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.core.model.permissions.canCreateSharedLinks
+import com.garfiec.librechat.core.model.permissions.hasAccessStrictOrDenied
 import com.garfiec.librechat.core.model.response.ShareLinkLookup
 import com.garfiec.librechat.core.model.share.FilesOption
 import com.garfiec.librechat.core.model.share.ShareAudience
@@ -19,7 +27,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -28,9 +39,10 @@ class ShareLinkControllerFactory(
     private val shareRepository: ShareRepository,
     private val configRepository: ConfigRepository,
     private val roleRepository: RoleRepository,
+    private val permissionsRepository: PermissionsRepository,
 ) {
     fun create(scope: CoroutineScope): ShareLinkController =
-        ShareLinkController(shareRepository, configRepository, roleRepository, scope)
+        ShareLinkController(shareRepository, configRepository, roleRepository, permissionsRepository, scope)
 }
 
 /**
@@ -46,15 +58,26 @@ class ShareLinkControllerFactory(
  * `snapshotFiles` as "include files", so an update without it would turn files back on for a link
  * that had them off (scripts/mirrors.json `share-files-default-on`).
  *
+ * Manage access (the sheet's second page) is offered as on web: the role's SHARED_LINKS SHARE
+ * (fail-closed) AND the SHARE bit on this link's ACL (`/effective` on the lookup's `_id`). A
+ * reduced link has no `_id`, so it never offers it. [access] drives that page.
+ *
  * Results that land after the sheet closed or moved to another conversation are dropped.
  */
 class ShareLinkController internal constructor(
     private val shareRepository: ShareRepository,
     private val configRepository: ConfigRepository,
     private val roleRepository: RoleRepository,
+    private val permissionsRepository: PermissionsRepository,
     private val scope: CoroutineScope,
 ) {
     private val phase = MutableStateFlow<Phase>(Phase.Closed)
+
+    /** The SHARE bit on the open link's ACL, once read; null until then. */
+    private val linkShareBit = MutableStateFlow<LinkShareBit?>(null)
+
+    /** The Manage access page: who can open the open link. Opened by [openAccess]. */
+    val access: AclController = AclController(AclPolicy.SharedLink, permissionsRepository, roleRepository, scope)
 
     /** Counts opens and closes; an async step writes back only while it still matches. */
     private var generation = 0L
@@ -65,9 +88,31 @@ class ShareLinkController internal constructor(
         configRepository.startupConfig,
         roleRepository.userPermissions,
         configRepository.detectedBackendVersion,
-    ) { phase, config, role, version ->
-        render(phase, gates(config, role, version))
+        linkShareBit,
+    ) { phase, config, role, version, shareBit ->
+        render(phase, gates(config, role, version), shareBit)
     }.stateIn(scope, SharingStarted.Eagerly, ShareSheetState.Closed)
+
+    init {
+        // Reads the link's SHARE bit whenever a full link is open and the role may share links.
+        // collectLatest drops a read the sheet moved on from.
+        scope.launch {
+            combine(
+                phase.map { (it as? Phase.Linked)?.takeUnless { linked -> linked.reduced }?.resourceId },
+                roleRepository.userPermissions.map { it.canShareLinks() },
+            ) { resourceId, canShare -> resourceId?.takeIf { canShare } }
+                .distinctUntilChanged()
+                .collectLatest { resourceId ->
+                    linkShareBit.value = null
+                    if (resourceId == null) return@collectLatest
+                    val bits = permissionsRepository.getEffectivePermissions(ResourceType.SHARED_LINK, resourceId)
+                    linkShareBit.value = LinkShareBit(
+                        resourceId = resourceId,
+                        granted = bits is Result.Success && PermissionBits.has(bits.data, PermissionBits.SHARE),
+                    )
+                }
+        }
+    }
 
     /**
      * The open link's ACL resource id (the lookup's `_id`), for Manage access. Null when no full
@@ -86,6 +131,7 @@ class ShareLinkController internal constructor(
      *   it without the stored choice is exactly how files get turned back on.
      */
     fun open(conversationId: String, target: TargetResolver? = null, focusShareId: String? = null) {
+        access.close()
         val next = Session(conversationId, target, focusShareId)
         session = next
         val gen = ++generation
@@ -103,9 +149,23 @@ class ShareLinkController internal constructor(
     }
 
     fun close() {
+        access.close()
         generation++
         session = null
         phase.value = Phase.Closed
+    }
+
+    /** Opens the Manage access page on the open link, when the sheet offers it. */
+    fun openAccess() {
+        val linked = state.value as? ShareSheetState.Linked ?: return
+        val resourceId = linkResourceId ?: return
+        if (!linked.canManageAccess || linked.busy != null) return
+        access.open(resourceId)
+    }
+
+    /** Back from the Manage access page to the share page. */
+    fun closeAccess() {
+        access.close()
     }
 
     /** Flips the files switch. Nothing is sent until Create or Update. */
@@ -164,6 +224,7 @@ class ShareLinkController internal constructor(
                         // The link is gone, so it is treated as removed: what's left is to create
                         // one, and the sheet no longer follows the card it was opened from.
                         session = active.copy(focusShareId = null)
+                        access.close()
                         phase.value = Phase.NoLink(error = ShareSheetError.NotFound)
                     } else {
                         phase.value = current.copy(busy = null, error = outcome.error)
@@ -176,6 +237,7 @@ class ShareLinkController internal constructor(
         val current = phase.value as? Phase.Linked ?: return
         val active = session ?: return
         if (current.busy != null) return
+        access.close()
         val gen = generation
         phase.value = current.copy(busy = ShareSheetBusy.DELETING, error = null)
         scope.launch {
@@ -278,7 +340,7 @@ class ShareLinkController internal constructor(
         configRepository.detectedBackendVersion.value,
     )
 
-    private fun render(phase: Phase, gates: Gates): ShareSheetState = when (phase) {
+    private fun render(phase: Phase, gates: Gates, shareBit: LinkShareBit?): ShareSheetState = when (phase) {
         Phase.Closed -> ShareSheetState.Closed
         Phase.Loading -> ShareSheetState.Loading
         is Phase.Failed -> ShareSheetState.Failed(phase.error)
@@ -296,8 +358,12 @@ class ShareLinkController internal constructor(
             updateKeepsUrl = gates.updateKeepsUrl,
             filesOption = if (gates.filesEnabled && !phase.reduced) FilesOption(phase.includeFiles) else null,
             audience = gates.audience,
-            // Manage access (S3) and Preview (S6) are wired by their own stages.
-            canManageAccess = false,
+            canManageAccess = !phase.reduced &&
+                phase.resourceId != null &&
+                gates.canShareLinks &&
+                shareBit?.resourceId == phase.resourceId &&
+                shareBit.granted,
+            // Preview is wired by the viewer's stage.
             canPreview = false,
             reduced = phase.reduced,
             busy = phase.busy,
@@ -316,7 +382,14 @@ class ShareLinkController internal constructor(
         val filesEnabled: Boolean,
         val audience: ShareAudience,
         val updateKeepsUrl: Boolean,
+        val canShareLinks: Boolean,
     )
+
+    private data class LinkShareBit(val resourceId: String, val granted: Boolean)
+
+    /** SHARED_LINKS SHARE, fail-closed as on web (`useHasAccess`) and the server's `checkShareAccess`. */
+    private fun UserRolePermissions?.canShareLinks(): Boolean =
+        hasAccessStrictOrDenied(PermissionType.SHARED_LINKS, Permission.SHARE)
 
     private fun gates(config: StartupConfig?, role: UserRolePermissions?, version: String?) = Gates(
         canCreate = role.canCreateSharedLinks(config?.sharedLinksEnabled ?: false),
@@ -325,6 +398,7 @@ class ShareLinkController internal constructor(
         // Fail-safe false: only a CONFIRMED rc1+ server keeps the shareId across a re-publish, so
         // an unresolved version warns instead of promising it.
         updateKeepsUrl = version != null && BackendVersion.isCompatibleOrNewer(version, "0.8.8-rc1"),
+        canShareLinks = role.canShareLinks(),
     )
 
     private sealed interface Phase {

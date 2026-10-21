@@ -38,6 +38,9 @@ class PermissionsRepositoryImpl(
         api.searchPrincipals(query, limit)
     }
 
+    override suspend fun getEffectivePermissions(resourceType: String, resourceId: String): Result<Int> =
+        safeApiCall { api.getEffectivePermissions(resourceType, resourceId).permissionBits }
+
     override suspend fun getAllEffectivePermissions(resourceType: String): Result<Map<String, Int>> = safeApiCall {
         api.getAllEffectivePermissions(resourceType)
     }

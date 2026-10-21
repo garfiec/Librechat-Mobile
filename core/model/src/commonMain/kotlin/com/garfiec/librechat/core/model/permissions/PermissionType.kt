@@ -16,4 +16,5 @@ enum class PermissionType(val serverKey: String) {
     SKILLS("SKILLS"),
     SHARED_LINKS("SHARED_LINKS"),
     SCHEDULES("SCHEDULES"),
+    PEOPLE_PICKER("PEOPLE_PICKER"),
 }

@@ -1963,6 +1963,88 @@
       },
       "why": "A file whose source is 'text' has no stored bytes; the shared-link file route serves its extracted text as text/plain. The viewer opens such files as text.",
       "failure_mode": "The value is renamed and text-only files in a shared chat try to open as binary downloads that fail."
+    },
+    {
+      "id": "shared-link-access-roles",
+      "upstream": {
+        "file": "packages/data-provider/src/accessPermissions.ts",
+        "symbol": "AccessRoleIds",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/PermissionBits.kt",
+        "symbol": "AccessRoleIds / ResourceType.SHARED_LINK"
+      },
+      "why": "A shared link's ACL has two roles: sharedLink_viewer, which every grant and public access take, and sharedLink_owner, which is shown locked and never offered (web filters it from AccessRolesPicker and locks the row in SelectedPrincipalsList). The access section also labels a role by its id's _viewer / _editor / _owner suffix, since the roles route returns i18n keys (com_ui_role_viewer) as names.",
+      "failure_mode": "Upstream renames a role id or adds a shared-link role, and the editor offers the owner role, grants a role that no longer exists (the PUT fails), or labels roles by their raw ids."
+    },
+    {
+      "id": "shared-link-owner-protection",
+      "upstream": {
+        "file": "api/server/routes/accessPermissions.js",
+        "symbol": "rejectSharedLinkOwnerPermissionChanges",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/acl/AclController.kt",
+        "symbol": "OWNER_PROTECTED_MESSAGE / toAclError"
+      },
+      "why": "Any PUT that grants sharedLink_owner, or adds or removes the link's owner as a user, is refused with 400 {error:'Bad Request', message:'Shared link owner permissions cannot be changed'}. The body carries no code, so the client matches that exact message to say 'The owner's access can't be changed' instead of a generic failure.",
+      "failure_mode": "Upstream rewords the message or adds a code, and an owner-protection refusal reads as 'Couldn't update access. Try again.', inviting a retry that can never succeed."
+    },
+    {
+      "id": "acl-public-update-rule",
+      "upstream": {
+        "file": "api/server/controllers/PermissionsController.js",
+        "symbol": "updateResourcePermissions",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/acl/AclController.kt",
+        "symbol": "AclController.setPublic / grant / revoke"
+      },
+      "why": "In the PUT body, public:true with publicAccessRoleId grants public access, public:false (strictly false) revokes it, and an absent public leaves it alone. The share-policy middleware checks SHARE_PUBLIC whenever public is true, so the editor sends public only when public access is what changes (web's sendPublicUpdate rule), never echoed on a grant or revoke. UpdateResourcePermissionsRequest.public is nullable so false survives encodeDefaults=false.",
+      "failure_mode": "Upstream starts reading an absent public as false (every grant would turn public access off) or changes the revoke test, and public access flips without the user touching the switch."
+    },
+    {
+      "id": "acl-share-policy-gates",
+      "upstream": {
+        "file": "packages/api/src/middleware/share.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/acl/AclController.kt",
+        "symbol": "AclController.gates / ShareLinkController.canShareLinks"
+      },
+      "why": "Changing a resource's ACL needs the role's <type> SHARE (checkShareAccess, sharedLink -> SHARED_LINKS) and, for public:true, SHARE_PUBLIC (checkSharePublicAccess), each strictly === true. The client gates the Manage access row on SHARED_LINKS.SHARE and the public switch on SHARED_LINKS.SHARE_PUBLIC, fail-closed to match.",
+      "failure_mode": "Upstream maps sharedLink to another permission type or relaxes a check, and the app hides controls the server would allow or shows ones it refuses with a 403."
+    },
+    {
+      "id": "acl-people-picker-gate",
+      "upstream": {
+        "file": "packages/api/src/acl/search.ts",
+        "symbol": "PRINCIPAL_SEARCH_PERMISSIONS",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/acl/AclController.kt",
+        "symbol": "AclController.gates (canSearch)"
+      },
+      "why": "search-principals is behind checkPeoplePickerAccess: a non-admin may search only the principal types whose PEOPLE_PICKER permission (VIEW_USERS, VIEW_GROUPS, VIEW_ROLES) is strictly true, and gets a 403 when none is. The editor shows people search only with VIEW_USERS or VIEW_GROUPS and sends no type filter, so the server searches whatever the role allows.",
+      "failure_mode": "Upstream renames the permissions or changes the mapping, and the search box disappears for people who may search, or shows and only ever fails."
+    },
+    {
+      "id": "shared-link-manage-access-gate",
+      "upstream": {
+        "file": "client/src/components/Conversations/ConvoOptions/SharedLinkButton.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/share/ShareLinkController.kt",
+        "symbol": "ShareLinkController.render (canManageAccess)"
+      },
+      "why": "Web offers Manage access on a shared link only when the role has SHARED_LINKS.SHARE (useHasAccess, false on unknown), the link's effective permissions (GET /api/permissions/sharedLink/:_id/effective) include the SHARE bit, and the lookup returned the link's _id. The sheet's row follows the same three conditions.",
+      "failure_mode": "Web changes the gate, and the app offers a page whose reads the server refuses, or hides it from people web lets in."
     }
   ]
 }
