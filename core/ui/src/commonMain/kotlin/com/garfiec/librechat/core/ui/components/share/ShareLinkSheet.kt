@@ -36,6 +36,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -199,6 +200,7 @@ fun ShareLinkSheetContent(
     }
 }
 
+@Immutable
 private class LinkedActions(
     val onUpdate: () -> Unit,
     val onDelete: () -> Unit,
@@ -275,7 +277,8 @@ private fun LinkedBody(
     actions: LinkedActions,
 ) {
     var confirm by remember { mutableStateOf<Confirm?>(null) }
-    var showQr by rememberSaveable { mutableStateOf(false) }
+    // Shown by default, as on web; the row hides it to shorten the sheet.
+    var showQr by rememberSaveable { mutableStateOf(true) }
     val shareText = rememberShareText()
 
     Column(modifier = Modifier.fillMaxWidth()) {
