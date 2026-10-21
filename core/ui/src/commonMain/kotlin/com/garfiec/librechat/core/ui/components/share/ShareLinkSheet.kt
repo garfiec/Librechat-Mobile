@@ -57,6 +57,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -134,6 +135,7 @@ import org.jetbrains.compose.resources.stringResource
 
 /** How long "Copied" replaces the copy icon after a tap. */
 private const val COPIED_FEEDBACK_MS = 2_000L
+private const val DISABLED_ROW_ALPHA = 0.38f
 
 private val QrSize = 192.dp
 private val QrShape = RoundedCornerShape(12.dp)
@@ -396,7 +398,7 @@ private fun LinkedBody(
             controls.reducedNote -> NoteLine(stringResource(Res.string.share_sheet_reduced_note))
         }
         controls.error?.let { ErrorLine(it) }
-        UrlField(url = url, onCopy = { actions.onCopy(url) })
+        UrlField(url = url, enabled = controls.enabled, onCopy = { actions.onCopy(url) })
         Column(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -433,11 +435,23 @@ private fun LinkedBody(
         // Opens the shared-chat viewer on the owner's own link; hidden where the host has no viewer.
         val onPreview = actions.onPreview
         if (controls.preview && onPreview != null) {
-            SheetRow(Icons.AutoMirrored.Outlined.OpenInNew, stringResource(Res.string.share_sheet_preview), onPreview)
+            // Held while an Update or Delete runs: opening it would close the sheet, drop the result and
+            // show a link that is being replaced or revoked.
+            SheetRow(
+                icon = Icons.AutoMirrored.Outlined.OpenInNew,
+                label = stringResource(Res.string.share_sheet_preview),
+                onClick = onPreview,
+                enabled = controls.enabled,
+            )
         }
         // Opens the Manage access page: role SHARE plus the SHARE bit on this link's ACL.
         if (controls.manageAccess) {
-            SheetRow(Icons.Outlined.Group, stringResource(Res.string.share_sheet_manage_access), actions.onManageAccess)
+            SheetRow(
+                icon = Icons.Outlined.Group,
+                label = stringResource(Res.string.share_sheet_manage_access),
+                onClick = actions.onManageAccess,
+                enabled = controls.enabled,
+            )
         }
         if (controls.delete) {
             SheetRow(
@@ -483,7 +497,7 @@ private fun LinkedBody(
 private enum class Confirm { UPDATE, DELETE }
 
 @Composable
-private fun UrlField(url: String, onCopy: () -> Unit) {
+private fun UrlField(url: String, enabled: Boolean, onCopy: () -> Unit) {
     var copyTaps by remember { mutableIntStateOf(0) }
     var copied by remember { mutableStateOf(false) }
     LaunchedEffect(copyTaps) {
@@ -500,13 +514,18 @@ private fun UrlField(url: String, onCopy: () -> Unit) {
         singleLine = true,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 4.dp),
         trailingIcon = {
-            IconButton(onClick = {
-                onCopy()
-                copyTaps++
-            }) {
+            // Held mid-change: on servers where Update issues a new URL, the old one is about to stop working.
+            IconButton(
+                onClick = {
+                    onCopy()
+                    copyTaps++
+                },
+                enabled = enabled,
+            ) {
                 Icon(
                     imageVector = if (copied) Icons.Default.Check else Icons.Outlined.ContentCopy,
                     contentDescription = stringResource(Res.string.share_sheet_copy),
+                    // IconButton already dims LocalContentColor while disabled.
                     tint = if (copied) MaterialTheme.colorScheme.primary else LocalContentColor.current,
                 )
             }
@@ -648,10 +667,13 @@ private fun SheetRow(
             .padding(horizontal = 24.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // A held row reads as held, not as a tap that does nothing; its spinner stays full strength.
+        val contentAlpha = Modifier.alpha(if (enabled) 1f else DISABLED_ROW_ALPHA)
         Icon(
             imageVector = icon,
             contentDescription = null,
             tint = if (color == MaterialTheme.colorScheme.onSurface) MaterialTheme.colorScheme.onSurfaceVariant else color,
+            modifier = contentAlpha,
         )
         Spacer(Modifier.width(16.dp))
         Text(
@@ -660,7 +682,7 @@ private fun SheetRow(
             color = color,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).then(contentAlpha),
         )
         if (busy) AdaptiveCircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
     }

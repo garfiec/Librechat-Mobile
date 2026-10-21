@@ -149,4 +149,18 @@ class ShareSheetControlsTest {
         assertEquals(ShareSheetBusy.UPDATING, controls.busy)
         assertEquals(ShareSheetError.ContentBlocked("blocked"), controls.error)
     }
+
+    @Test
+    fun busyLinkKeepsPreviewAndManageAccessInPlaceButHeld() {
+        val idle = linked.copy(canPreview = true, canManageAccess = true)
+        for (busy in listOf(ShareSheetBusy.UPDATING, ShareSheetBusy.DELETING)) {
+            val controls = ShareSheetControls.of(idle.copy(busy = busy))
+            // The rows stay so the sheet doesn't jump, but the sheet draws them with enabled = false:
+            // Preview would close it and drop the result of a change that is still running.
+            assertTrue(controls.preview, "preview shown while $busy")
+            assertTrue(controls.manageAccess, "manage access shown while $busy")
+            assertEquals(linked.url, controls.url)
+            assertFalse(controls.enabled, "actions held while $busy")
+        }
+    }
 }

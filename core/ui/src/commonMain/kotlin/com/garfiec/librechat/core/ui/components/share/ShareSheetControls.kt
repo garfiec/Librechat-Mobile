@@ -32,7 +32,10 @@ internal data class ShareSheetControls(
     val manageAccess: Boolean = false,
     val delete: Boolean = false,
     val retry: Boolean = false,
-    /** The action in flight; it shows a spinner and every action is held until it lands. */
+    /**
+     * The action in flight; it shows a spinner and every action is held until it lands, Copy,
+     * Preview and Manage access included: each acts on a link that is being replaced or revoked.
+     */
     val busy: ShareSheetBusy? = null,
     val error: ShareSheetError? = null,
 ) {
