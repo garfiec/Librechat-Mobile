@@ -78,11 +78,9 @@ interface AgentRepository {
     suspend fun getAgentProvider(id: String): Result<String?>
 
     /**
-     * Fetches complete agent data for editing via the /expanded endpoint.
-     * Unlike [getAgent] which returns limited view-only fields, this method
-     * returns the full agent document including instructions, tools, category,
-     * conversation_starters, model_parameters, and all other configuration.
-     * Never served from cache -- always fetches fresh from the server.
+     * The full agent from `GET /api/agents/:id/expanded`, which requires EDIT permission: everything
+     * [getAgentForViewing] carries plus instructions, tools, category and the full
+     * model_parameters. Fails for a user who can only view the agent. Never served from cache.
      */
     suspend fun getAgentForEditing(id: String): Result<Agent>
     suspend fun createAgent(request: CreateAgentRequest): Result<Agent>

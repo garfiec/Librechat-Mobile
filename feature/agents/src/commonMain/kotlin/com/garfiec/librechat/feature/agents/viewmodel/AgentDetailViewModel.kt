@@ -172,13 +172,12 @@ class AgentDetailViewModel(
         viewModelScope.launch {
             val showsAgent = isRefresh && _uiState.value.agent != null
             if (!showsAgent) _uiState.update { it.copy(isLoading = true, loadError = null) }
-            // Try the expanded endpoint first (returns full agent data including
-            // description, category, tools, conversation_starters). It requires
-            // EDIT permission server-side, so a 403 there means the user may view
-            // but not edit this agent. Any other failure is transient/unknown, so
-            // stay optimistic rather than hiding Edit from an owner during a flaky
-            // request — the editor re-checks permission on entry. Fall back to the
-            // standard view-only endpoint for the displayed data.
+            // The expanded read doubles as the edit-permission probe: it requires EDIT, so a 403
+            // means the user may view but not edit. Only it carries tools and the agent's own
+            // category; description, starters, model and contacts come from the VIEW read too.
+            // Any other failure is transient, so Edit stays shown rather than vanishing for an
+            // owner on a flaky request; a wrong guess surfaces as the server's error when the
+            // editor loads or an action is sent.
             // When the agent list already said this user can't edit it, the probe could only 403.
             val listedVerdict = agentRepository.listedEditVerdict(agentId)
             val expanded = if (listedVerdict == false) {

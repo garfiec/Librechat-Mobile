@@ -56,11 +56,8 @@ class AgentLoaderDelegate(
         stateHandle.scope.launch {
             stateHandle.update { copy(isLoading = true, error = null) }
             Logger.d { "AgentEditor: Loading agent for editing: $agentId" }
-            // Use getAgentForEditing which calls the /expanded endpoint.
-            // The standard getAgent endpoint (GET /api/agents/:id) only returns
-            // basic view-only fields (id, name, description, avatar, model, provider).
-            // It does NOT return instructions, tools, category, conversation_starters,
-            // model_parameters, or other configuration needed for the editor.
+            // The editor needs /expanded: the VIEW route has no instructions, tools or category,
+            // and only a safe subset of model_parameters.
             when (val result = agentRepository.getAgentForEditing(agentId)) {
                 is Result.Success -> {
                     val agent = result.data

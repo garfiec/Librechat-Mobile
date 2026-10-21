@@ -109,8 +109,7 @@ class AgentRepositoryImpl(
     }
 
     override suspend fun getAgentForEditing(id: String): Result<Agent> {
-        // Always fetch from server via /expanded endpoint -- never use cache.
-        // The cache and standard getAgent endpoint only have basic view fields.
+        // No cache read: list rows and the VIEW route both lack instructions, tools and category.
         return safeApiCall {
             agentsApi.getAgentForEditing(id)
         }
