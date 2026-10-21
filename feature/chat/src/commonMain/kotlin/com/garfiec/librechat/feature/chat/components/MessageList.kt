@@ -145,6 +145,10 @@ fun MessageList(
     // LazyColumn contentPadding, not a solid spacer: content still scrolls up *behind* the
     // translucent ghosts. Defaults to the single-line bar's reserve.
     bottomContentPadding: Dp = 160.dp,
+    // Where the scroll-to-bottom button floats above the list's bottom edge. Null floats it just
+    // above the input bar, 30dp into [bottomContentPadding]. A caller with something else at the
+    // bottom (the shared-chat viewer's Continue FAB) passes a value that clears it.
+    scrollToBottomPadding: Dp? = null,
     // Scrollable top inset mirroring [bottomContentPadding] for the floating top bar: the first
     // message rests below the bar yet still scrolls up *behind* its translucent scrim. The caller
     // measures the bar's actual height (status bar + chips). Defaults to 0 for callers without an
@@ -743,7 +747,7 @@ fun MessageList(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 // Float the FAB just above the input bar, tracking the same inset as the content.
-                .padding(bottom = (bottomContentPadding - 30.dp).coerceAtLeast(16.dp)),
+                .padding(bottom = scrollToBottomPadding ?: (bottomContentPadding - 30.dp).coerceAtLeast(16.dp)),
             enter = fadeIn(),
             exit = fadeOut(),
         ) {

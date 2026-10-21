@@ -71,6 +71,45 @@ private fun ContinuingMaterialPreview() = SharedChatViewerPreview(UiStyle.MATERI
 @Composable
 private fun ContinuingGlassPreview() = SharedChatViewerPreview(UiStyle.LIQUID_GLASS, loaded.copy(isContinuing = true))
 
+/**
+ * A transcript longer than the screen, for checking the scroll-to-bottom button against Continue.
+ * The button shows only while the list is short of its end, and the list's initial-load scroll to
+ * the bottom may already have run in a render, so the button isn't guaranteed to be drawn here.
+ */
+private val longTranscript = (1..6).flatMap { turn ->
+    val parent = if (turn == 1) NO_PARENT else "a${turn - 1}"
+    listOf(
+        Message(
+            messageId = "u$turn",
+            conversationId = "anon",
+            parentMessageId = parent,
+            isCreatedByUser = true,
+            text = "Day $turn: where should we eat, and how far is the walk from the last stop?",
+        ),
+        Message(
+            messageId = "a$turn",
+            conversationId = "anon",
+            parentMessageId = "u$turn",
+            sender = "Travel planner",
+            text = "Start with coffee near the river, walk the old streets until lunch, then take the tram " +
+                "up the hill. Book dinner ahead: the small places fill up early on weekends.",
+        ),
+    )
+}
+
+private val scrolledUp = loaded.copy(
+    snapshot = loaded.snapshot?.copy(messages = longTranscript),
+    displayMessages = buildActiveMessagePath(longTranscript),
+)
+
+@PreviewNarrowScreens
+@Composable
+private fun ScrolledUpMaterialPreview() = SharedChatViewerPreview(UiStyle.MATERIAL, scrolledUp)
+
+@PreviewNarrowScreens
+@Composable
+private fun ScrolledUpGlassPreview() = SharedChatViewerPreview(UiStyle.LIQUID_GLASS, scrolledUp)
+
 @PreviewNarrowScreens
 @Composable
 private fun LoadingMaterialPreview() = SharedChatViewerPreview(UiStyle.MATERIAL, SharedChatUiState())

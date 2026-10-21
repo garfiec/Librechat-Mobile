@@ -23,10 +23,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -308,6 +312,11 @@ internal fun SharedChatScaffold(
     val shared = remember(snapshot?.updatedAt, snapshot?.createdAt, format, reference) {
         (snapshot?.updatedAt ?: snapshot?.createdAt)?.let(::parseIsoInstantOrNull)?.listLabel(format, reference)
     }
+    val density = LocalDensity.current
+    // Measured: the FAB grows with the font scale, and both the list's bottom inset and the
+    // scroll-to-bottom button have to clear it.
+    var fabHeight by remember { mutableStateOf(FAB_MIN_HEIGHT) }
+    val fabShown = snapshot != null && state.canContinue
     AdaptiveScaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
@@ -334,7 +343,11 @@ internal fun SharedChatScaffold(
         snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
         floatingActionButton = {
             if (snapshot != null && state.canContinue) {
-                ContinueButton(busy = state.isContinuing, onClick = actions.onContinue)
+                ContinueButton(
+                    busy = state.isContinuing,
+                    onClick = actions.onContinue,
+                    modifier = Modifier.onSizeChanged { fabHeight = with(density) { it.height.toDp() } },
+                )
             }
         },
     ) { padding ->
@@ -363,7 +376,9 @@ internal fun SharedChatScaffold(
                     showAvatars = display.showAvatars,
                     showBubbles = display.showBubbles,
                     useKatex = display.useKatex,
-                    bottomContentPadding = FAB_CLEARANCE,
+                    bottomContentPadding = maxOf(fabHeight + FAB_MARGIN + FAB_CONTENT_GAP, FAB_CLEARANCE),
+                    // Above the FAB's top edge, not centred over it.
+                    scrollToBottomPadding = if (fabShown) fabHeight + FAB_MARGIN + FAB_BUTTON_GAP else null,
                 )
                 error != null -> SharedChatErrorState(error, state.blockedMessage, actions.onRetry)
                 else -> LoadingIndicator()
@@ -374,6 +389,18 @@ internal fun SharedChatScaffold(
 
 /** Room under the last message for the extended FAB: its height plus its margins. */
 private val FAB_CLEARANCE: Dp = 96.dp
+
+/** An extended FAB's height at 1x font, until the real one is measured. */
+private val FAB_MIN_HEIGHT: Dp = 56.dp
+
+/** The Scaffold's margin under a FAB. */
+private val FAB_MARGIN: Dp = 16.dp
+
+/** Between the FAB's top and the last message. */
+private val FAB_CONTENT_GAP: Dp = 24.dp
+
+/** Between the FAB's top and the scroll-to-bottom button. */
+private val FAB_BUTTON_GAP: Dp = 8.dp
 
 @Composable
 private fun overflowMenu(actions: SharedChatActions): BarAction.Menu {
@@ -404,8 +431,9 @@ private fun overflowMenu(actions: SharedChatActions): BarAction.Menu {
 }
 
 @Composable
-private fun ContinueButton(busy: Boolean, onClick: () -> Unit) {
+private fun ContinueButton(busy: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     AdaptiveExtendedFloatingActionButton(
+        modifier = modifier,
         text = { Text(stringResource(Res.string.shared_chat_continue)) },
         icon = {
             if (busy) {
