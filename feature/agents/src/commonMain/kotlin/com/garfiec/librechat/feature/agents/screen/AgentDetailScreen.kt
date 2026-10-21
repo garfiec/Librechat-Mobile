@@ -49,6 +49,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.garfiec.librechat.core.common.datetime.TimestampLabel
 import com.garfiec.librechat.core.common.datetime.listLabel
 import com.garfiec.librechat.core.common.datetime.parseIsoInstantOrNull
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
@@ -83,6 +84,7 @@ import com.garfiec.librechat.feature.agents.viewmodel.AgentDetailUiState
 import com.garfiec.librechat.feature.agents.viewmodel.AgentDetailViewModel
 import com.garfiec.librechat.feature.agents.viewmodel.failureText
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -471,7 +473,17 @@ private fun updatedText(iso: String?): String? {
     val format = LocalDateTimeFormat.current
     val reference = LocalRelativeTimeReference.current
     val label = remember(iso, format, reference) { iso?.let(::parseIsoInstantOrNull)?.listLabel(format, reference) }
-    return label?.let { stringResource(Res.string.agent_updated, it.resolve()) }
+    return label?.let { stringResource(updatedTemplate(it), it.resolve()) }
+}
+
+/**
+ * The "Updated …" template for [label]. A calendar date takes a preposition in most of our locales
+ * ("Aktualisiert am 5. Okt.") where a relative phrase takes none ("Aktualisiert vor 1 Std."), so
+ * the two never share one string.
+ */
+internal fun updatedTemplate(label: TimestampLabel): StringResource = when (label) {
+    is TimestampLabel.Text -> Res.string.agent_updated_on
+    else -> Res.string.agent_updated_relative
 }
 
 @Composable

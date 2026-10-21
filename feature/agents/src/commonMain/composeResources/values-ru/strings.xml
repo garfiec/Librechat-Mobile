@@ -335,7 +335,8 @@
     <string name="agent_unpin">Открепить из меню моделей</string>
     <string name="agent_copy_link">Копировать ссылку</string>
     <string name="agent_link_copied">Ссылка скопирована</string>
-    <string name="agent_updated">Обновлено: %1$s</string>
+    <string name="agent_updated_relative">Обновлено: %1$s</string>
+    <string name="agent_updated_on">Обновлено: %1$s</string>
     <string name="agent_public">Публичный</string>
     <string name="agent_try_asking">Попробуйте спросить</string>
     <string name="agent_load_failed">Не удалось загрузить этого агента</string>

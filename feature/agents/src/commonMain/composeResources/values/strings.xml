@@ -339,7 +339,8 @@
     <string name="agent_unpin">Unpin from model menu</string>
     <string name="agent_copy_link">Copy link</string>
     <string name="agent_link_copied">Link copied</string>
-    <string name="agent_updated">Updated %1$s</string>
+    <string name="agent_updated_relative">Updated %1$s</string>
+    <string name="agent_updated_on">Updated on %1$s</string>
     <string name="agent_public">Public</string>
     <string name="agent_try_asking">Try asking</string>
     <string name="agent_load_failed">Couldn't load this agent</string>

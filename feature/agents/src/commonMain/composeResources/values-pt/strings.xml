@@ -335,7 +335,8 @@
     <string name="agent_unpin">Desafixar do menu de modelos</string>
     <string name="agent_copy_link">Copiar link</string>
     <string name="agent_link_copied">Link copiado</string>
-    <string name="agent_updated">Atualizado %1$s</string>
+    <string name="agent_updated_relative">Atualizado %1$s</string>
+    <string name="agent_updated_on">Atualizado em %1$s</string>
     <string name="agent_public">Público</string>
     <string name="agent_try_asking">Experimente perguntar</string>
     <string name="agent_load_failed">Não foi possível carregar este agente</string>

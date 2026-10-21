@@ -335,7 +335,8 @@
     <string name="agent_unpin">모델 메뉴에서 고정 해제</string>
     <string name="agent_copy_link">링크 복사</string>
     <string name="agent_link_copied">링크를 복사했습니다</string>
-    <string name="agent_updated">업데이트: %1$s</string>
+    <string name="agent_updated_relative">업데이트: %1$s</string>
+    <string name="agent_updated_on">업데이트 날짜: %1$s</string>
     <string name="agent_public">공개</string>
     <string name="agent_try_asking">이렇게 물어보세요</string>
     <string name="agent_load_failed">이 에이전트를 불러오지 못했습니다</string>

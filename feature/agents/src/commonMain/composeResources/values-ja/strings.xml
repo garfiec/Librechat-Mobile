@@ -335,7 +335,8 @@
     <string name="agent_unpin">モデルメニューのピン留めを外す</string>
     <string name="agent_copy_link">リンクをコピー</string>
     <string name="agent_link_copied">リンクをコピーしました</string>
-    <string name="agent_updated">更新: %1$s</string>
+    <string name="agent_updated_relative">更新: %1$s</string>
+    <string name="agent_updated_on">更新日: %1$s</string>
     <string name="agent_public">公開</string>
     <string name="agent_try_asking">質問の例</string>
     <string name="agent_load_failed">このエージェントを読み込めませんでした</string>

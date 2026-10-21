@@ -335,7 +335,8 @@
     <string name="agent_unpin">从模型菜单取消固定</string>
     <string name="agent_copy_link">复制链接</string>
     <string name="agent_link_copied">链接已复制</string>
-    <string name="agent_updated">更新于 %1$s</string>
+    <string name="agent_updated_relative">更新于 %1$s</string>
+    <string name="agent_updated_on">更新于 %1$s</string>
     <string name="agent_public">公开</string>
     <string name="agent_try_asking">试着问问</string>
     <string name="agent_load_failed">无法加载此智能体</string>

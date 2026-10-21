@@ -335,7 +335,8 @@
     <string name="agent_unpin">إلغاء التثبيت من قائمة النماذج</string>
     <string name="agent_copy_link">نسخ الرابط</string>
     <string name="agent_link_copied">تم نسخ الرابط</string>
-    <string name="agent_updated">تم التحديث %1$s</string>
+    <string name="agent_updated_relative">تم التحديث %1$s</string>
+    <string name="agent_updated_on">تم التحديث في %1$s</string>
     <string name="agent_public">عام</string>
     <string name="agent_try_asking">جرّب أن تسأل</string>
     <string name="agent_load_failed">تعذّر تحميل هذا الوكيل</string>
