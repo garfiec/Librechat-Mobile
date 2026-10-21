@@ -369,7 +369,10 @@ internal fun AgentPage(
     }
 }
 
-/** Tile, name, who to contact, and the Top pick and category marks. The "by <author>" byline is gone: contact replaces it. */
+/**
+ * Tile, name, the contact line (support contact, else owner contact; never the author id), and the
+ * Top pick and category marks.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AgentHeader(agent: AgentDetailDisplayData, categoryLabel: String?) {

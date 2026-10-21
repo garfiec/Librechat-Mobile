@@ -47,7 +47,7 @@
   many agents as were loaded, with no pull-to-refresh spinner; a failure keeps what is shown, a success clears
   a standing error. It does nothing before the first read has started (ON_RESUME fires on first composition,
   while the role is still awaited).
-- Errors are `AgentListError(message)` (the server's message, or null); the screen words them. A first-page
+- Errors are `AgentListError(serverMessage)` (the server's message, or null); the screen words them. A first-page
   failure with nothing listed is the error page with Retry; with a list for the same query it is a snackbar.
   A failed read for a NEW chip/search empties the list rather than leave the old chip's agents standing.
 
@@ -121,9 +121,6 @@
 - Triggers `loadMore()` when the last visible item is within 3 of the end, and again when a page lands with the
   end still in view
 - Footer: a spinner while a page loads, "Couldn't load more agents" + Retry after a failed one
-
-## Spec Notes (not yet implemented)
-- Category tabs with slide animation (`AnimatedContent` with `slideInHorizontally`)
 
 ### Agent Editor — Advanced Sections
 - `AgentEditorScreen` now includes 6 collapsible sections below the basic fields:
