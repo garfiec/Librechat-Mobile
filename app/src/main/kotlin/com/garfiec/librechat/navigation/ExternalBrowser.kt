@@ -22,9 +22,11 @@ internal object ExternalBrowser {
         val view = Intent(Intent.ACTION_VIEW, url.toUri())
             .addCategory(Intent.CATEGORY_BROWSABLE)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        // The default browser, or a chooser of browsers: the app is not one.
+        // The default browser, or a chooser of browsers: the app is not one. Not
+        // makeMainSelectorActivity: that returns a MAIN/LAUNCHER intent with the browser selector
+        // nested inside, and as a selector it resolves to every launcher activity, this app's too.
         val inBrowser = Intent(view).apply {
-            selector = Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_BROWSER)
+            selector = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_BROWSER)
         }
         try {
             context.startActivity(inBrowser)
