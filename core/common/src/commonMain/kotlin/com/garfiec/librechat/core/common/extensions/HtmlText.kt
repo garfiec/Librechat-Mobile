@@ -11,14 +11,18 @@ fun String.htmlToPlainText(): String {
     if ('<' !in this && '&' !in this) return trim()
     val withBreaks = COMMENT.replace(this, "").let { BLOCK_TAG.replace(it, "\n") }
     val withoutTags = ANY_TAG.replace(withBreaks, "")
-    return decodeHtmlEntities(withoutTags)
+    return withoutTags.decodeHtmlEntities()
         .lineSequence()
         .map { SPACES.replace(it, " ").trim() }
         .filter { it.isNotEmpty() }
         .joinToString("\n")
 }
 
-private fun decodeHtmlEntities(text: String): String = ENTITY.replace(text) { match ->
+/**
+ * This string with its HTML character references (`&amp;`, `&#39;`, `&#x1F600;`, a common named
+ * set) replaced by the characters they stand for. A reference it doesn't know stays as written.
+ */
+fun String.decodeHtmlEntities(): String = ENTITY.replace(this) { match ->
     val body = match.groupValues[1]
     when {
         body.startsWith("#x") || body.startsWith("#X") -> body.drop(2).toIntOrNull(HEX_RADIX)?.let(::codePointText)

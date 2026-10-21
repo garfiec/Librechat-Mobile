@@ -61,4 +61,9 @@ class HtmlTextTest {
     fun markup_only_text_becomes_empty() {
         assertEquals("", "<p><br></p>".htmlToPlainText())
     }
+
+    @Test
+    fun entity_decoding_keeps_whitespace_and_unknown_references() {
+        assertEquals("  a & b\n&bogus; ", "  a &amp; b\n&bogus; ".decodeHtmlEntities())
+    }
 }
