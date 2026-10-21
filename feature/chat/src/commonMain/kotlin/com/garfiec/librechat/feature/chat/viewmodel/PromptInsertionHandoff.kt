@@ -1,11 +1,14 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
 /**
- * Carries prompt text from the prompts library back to the chat composer.
+ * Carries prompt text from another navigation entry into a chat composer, unsent.
  *
- * The library is its own navigation entry, so "Use in chat" can't hand text to the chat screen
- * directly — it pops the back stack and the chat entry (whose ViewModel is still alive) picks the
- * text up on resume.
+ * Two producers, one consumer: the chat screen takes the text when it enters composition.
+ * - The prompts library's "Use in chat" pops back, and the chat entry (whose ViewModel is still
+ *   alive) re-enters.
+ * - An agent page's conversation starter (staged by the nav host, since feature/agents can't see
+ *   this type) opens `NewChat(agentId)`: a fresh landing composes for the first time, or the
+ *   existing landing for that agent re-enters when the stack unwinds to it.
  *
  * Deliberately *not* routed through `DraftRepository`: drafts for an unsaved chat share the single
  * `__new_chat__` key across every conversation, so staging text there leaks between threads.

@@ -85,6 +85,7 @@ import com.garfiec.librechat.feature.chat.navigation.NewChat
 import com.garfiec.librechat.feature.chat.navigation.chatEntries
 import com.garfiec.librechat.feature.chat.navigation.handoffKey
 import com.garfiec.librechat.feature.chat.navigation.isPlainLanding
+import com.garfiec.librechat.feature.chat.viewmodel.PromptInsertionHandoff
 import com.garfiec.librechat.feature.chat.viewmodel.ServerFileSelectionHandoff
 import com.garfiec.librechat.feature.conversations.drawer.DrawerViewModel
 import com.garfiec.librechat.feature.conversations.navigation.ArchivedConversations
@@ -679,6 +680,7 @@ fun MainNavDisplay(
     navHostViewModel: NavHostViewModel = koinViewModel(),
     drawerViewModel: DrawerViewModel = koinViewModel(),
     serverFileSelectionHandoff: ServerFileSelectionHandoff = koinInject(),
+    promptInsertionHandoff: PromptInsertionHandoff = koinInject(),
 ) {
     NavDisplay(
         backStack = navigator.backStack,
@@ -762,9 +764,13 @@ fun MainNavDisplay(
                     // back to last-used / first-agent / first-model.
                     navigator.navigateToTopLevel(NewChat(agentId))
                 },
-                // Gap: the starter should land unsent in the new chat's composer (through
-                // PromptInsertionHandoff). Until that is wired, a starter opens the chat without it.
-                onStartChatWithPrompt = { agentId, _ -> navigator.navigateToTopLevel(NewChat(agentId)) },
+                // The starter lands in the new chat's composer unsent: staged here, taken by the
+                // landing's ChatScreen when it enters composition (a fresh NewChat(agentId) entry,
+                // or the existing one re-entering when it already was that agent's landing).
+                onStartChatWithPrompt = { agentId, prompt ->
+                    promptInsertionHandoff.put(prompt)
+                    navigator.navigateToTopLevel(NewChat(agentId))
+                },
             )
             skillsEntries(
                 onNavigate = { navigator.navigate(it) },

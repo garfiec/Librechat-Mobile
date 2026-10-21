@@ -1527,8 +1527,10 @@ class ChatViewModel(
     fun handleSlashCommand(displayData: PromptMentionDisplayData) = presetPromptDelegate.handleSlashCommand(displayData)
 
     /**
-     * Picks up prompt text staged by the prompts library. Called when the chat screen re-enters
-     * composition after the library pops, which is the only moment the text can have been staged.
+     * Picks up text staged in [PromptInsertionHandoff] (the prompts library, an agent's starter).
+     * Called whenever the chat screen enters composition, first or again, which is when either
+     * producer's text can be waiting. It replaces the composer text outright, so a new-chat draft
+     * restored first yields to it, and one restored later yields because the composer isn't blank.
      */
     fun consumePendingPromptInsertion() {
         promptInsertionHandoff.take()?.let(presetPromptDelegate::insertPromptText)

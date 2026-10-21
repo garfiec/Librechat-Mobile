@@ -10,7 +10,8 @@
 - Feature entries registered via `EntryProviderScope<NavKey>.agentsEntries()`
 - `onStartChat(agentId)` callback navigates to chat with the selected agent
 - `onStartChatWithPrompt(agentId, prompt)`: a conversation starter was tapped. The nav host owns what it does
-  (feature/agents never depends on feature/chat); today it opens the new chat without the prompt.
+  (feature/agents never depends on feature/chat): it stages the prompt in feature/chat's
+  `PromptInsertionHandoff` and opens `NewChat(agentId)`, so the starter sits unsent in that chat's composer.
 - Duplicate from the page `onReplace`s it with the copy's page, as Duplicate in the editor does
 
 ## Who can reach the index
