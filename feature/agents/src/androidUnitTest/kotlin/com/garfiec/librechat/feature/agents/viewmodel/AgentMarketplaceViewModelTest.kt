@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.agents.viewmodel
 
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.common.result.toSafeError
 import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.PaginatedAgents
 import com.google.common.truth.Truth.assertThat
@@ -74,13 +75,14 @@ class AgentMarketplaceViewModelTest : AgentMarketplaceViewModelTestBase() {
 
     @Test
     fun `a failed first load is the error page, and Retry recovers`() = runTest {
-        stubPage(null) returns Result.Error(message = "Network error") andThen page(testAgents)
+        // A network failure's message is toSafeError's English fallback; the screen words it instead.
+        stubPage(null) returns IllegalStateException("socket closed").toSafeError() andThen page(testAgents)
 
         viewModel = createViewModel()
         advanceUntilIdle()
 
         val failed = viewModel.uiState.value
-        assertThat(failed.loadError).isEqualTo(AgentListError("Network error"))
+        assertThat(failed.loadError).isEqualTo(AgentListError(serverMessage = null))
         assertThat(failed.agents).isEmpty()
         assertThat(failed.isLoading).isFalse()
 
@@ -309,8 +311,7 @@ class AgentMarketplaceViewModelTest : AgentMarketplaceViewModelTestBase() {
 
     @Test
     fun `a failed refresh keeps the list and reports the error`() = runTest {
-        stubPage(null) returns page(testAgents, next = "c1") andThen
-            Result.Error(message = "Refresh failed")
+        stubPage(null) returns page(testAgents, next = "c1") andThen serverError("Refresh failed")
 
         viewModel = createViewModel()
         advanceUntilIdle()
@@ -409,7 +410,7 @@ class AgentMarketplaceViewModelTest : AgentMarketplaceViewModelTestBase() {
     @Test
     fun `a failed load for a new chip doesn't leave the old chip's agents standing`() = runTest {
         coEvery { agentRepository.getAgentsPaginated(any(), null, any(), "coding", any(), any()) } returns
-            Result.Error(message = "boom")
+            serverError("boom")
 
         viewModel = createViewModel()
         advanceUntilIdle()

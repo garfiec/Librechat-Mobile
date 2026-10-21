@@ -25,9 +25,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** A list read that failed. [message] is the server's, when it sent one; the screen words the rest. */
+/**
+ * A list read that failed. The screen says so in its own words; [serverMessage] is the server's
+ * explanation, added under them only when the server wrote one.
+ */
 @Immutable
-data class AgentListError(val message: String?)
+data class AgentListError(val serverMessage: String?)
 
 @Immutable
 data class AgentMarketplaceUiState(
@@ -322,7 +325,7 @@ class AgentMarketplaceViewModel(
                     )
                 }
                 is Result.Error -> _uiState.update { state ->
-                    val error = AgentListError(result.message)
+                    val error = AgentListError(result.serverMessage())
                     when {
                         // Nobody asked for this read; what is on screen stays, error and all.
                         mode == LoadMode.QUIET -> state

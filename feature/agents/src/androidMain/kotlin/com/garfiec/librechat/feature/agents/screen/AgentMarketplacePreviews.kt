@@ -124,7 +124,7 @@ private val noSearchResults = AgentMarketplaceUiState(
 
 private val loadFailed = AgentMarketplaceUiState(
     isLoading = false,
-    loadError = AgentListError(message = null),
+    loadError = AgentListError(serverMessage = null),
     selectedChip = AgentChip.All,
     shownQuery = AgentListQuery(AgentChip.All, ""),
     categories = categories,

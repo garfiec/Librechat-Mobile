@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.agents.viewmodel
 
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.common.result.toSafeError
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.FavoritesRepository
@@ -70,6 +71,10 @@ class AgentDetailViewModelTest {
     }
 
     private fun forbidden() = Result.Error(exception = ApiException(statusCode = 403, message = "Forbidden"))
+
+    /** A failure whose text the server wrote, as `safeApiCall` hands it over. */
+    private fun serverError(text: String, status: Int = 400) =
+        ApiException(statusCode = status, message = text, serverAuthored = true).toSafeError()
 
     private fun createViewModel() = AgentDetailViewModel(
         agentRepository = agentRepository,
@@ -192,14 +197,14 @@ class AgentDetailViewModelTest {
     @Test
     fun `canEdit is false when the agent fails to load entirely`() = runTest(testDispatcher) {
         coEvery { agentRepository.getAgentForEditing("agent-1") } returns forbidden()
-        coEvery { agentRepository.getAgentForViewing("agent-1") } returns Result.Error(message = "Not found")
+        coEvery { agentRepository.getAgentForViewing("agent-1") } returns serverError("Agent not found", status = 404)
 
         val viewModel = createViewModel()
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
         assertThat(state.agent).isNull()
-        assertThat(state.loadError).isEqualTo(AgentLoadError("Not found"))
+        assertThat(state.loadError).isEqualTo(AgentLoadError("Agent not found"))
         assertThat(state.canEdit).isFalse()
     }
 
@@ -342,13 +347,17 @@ class AgentDetailViewModelTest {
 
     @Test
     fun `a failed load carries no English of its own`() = runTest(testDispatcher) {
+        // toSafeError always fills `message`, here with its English "Something went wrong" fallback.
+        // That must not reach the page in place of its translated "Couldn't load this agent".
+        val dropped = IllegalStateException("socket closed").toSafeError()
+        assertThat(dropped.message).isNotNull()
         coEvery { agentRepository.getAgentForEditing("agent-1") } returns forbidden()
-        coEvery { agentRepository.getAgentForViewing("agent-1") } returns Result.Error(message = null)
+        coEvery { agentRepository.getAgentForViewing("agent-1") } returns dropped
 
         val viewModel = createViewModel()
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.loadError).isEqualTo(AgentLoadError(message = null))
+        assertThat(viewModel.uiState.value.loadError).isEqualTo(AgentLoadError(serverMessage = null))
     }
 
     // --- Categories ---
@@ -380,7 +389,7 @@ class AgentDetailViewModelTest {
     @Test
     fun `a failed delete is an action error and the page stays`() = runTest(testDispatcher) {
         coEvery { agentRepository.getAgentForEditing("agent-1") } returns Result.Success(agent)
-        coEvery { agentRepository.deleteAgent("agent-1") } returns Result.Error(message = "Nope")
+        coEvery { agentRepository.deleteAgent("agent-1") } returns serverError("Nope", status = 403)
         val viewModel = createViewModel()
         advanceUntilIdle()
 
@@ -400,7 +409,9 @@ class AgentDetailViewModelTest {
     @Test
     fun `a failed duplicate is an action error and the page stays`() = runTest(testDispatcher) {
         coEvery { agentRepository.getAgentForEditing("agent-1") } returns Result.Success(agent)
-        coEvery { agentRepository.duplicateAgent("agent-1") } returns Result.Error(message = null)
+        // An app-written status fallback, not the server's: the screen's own wording stands alone.
+        coEvery { agentRepository.duplicateAgent("agent-1") } returns
+            ApiException(statusCode = 403, message = "Access denied", serverAuthored = false).toSafeError()
         val viewModel = createViewModel()
         advanceUntilIdle()
 
@@ -411,7 +422,7 @@ class AgentDetailViewModelTest {
         assertThat(state.agent).isNotNull()
         assertThat(state.loadError).isNull()
         assertThat(state.isDuplicating).isFalse()
-        assertThat(state.actionError).isEqualTo(AgentActionError.Duplicate(message = null))
+        assertThat(state.actionError).isEqualTo(AgentActionError.Duplicate(serverMessage = null))
     }
 
     // --- Duplicate ---
@@ -559,7 +570,7 @@ class AgentDetailViewModelTest {
         advanceUntilIdle()
 
         coVerify(exactly = 0) { favoritesRepository.setFavorites(any()) }
-        assertThat(viewModel.uiState.value.actionError).isEqualTo(AgentActionError.Pin(message = null))
+        assertThat(viewModel.uiState.value.actionError).isEqualTo(AgentActionError.Pin(serverMessage = null))
     }
 
     @Test
@@ -596,7 +607,7 @@ class AgentDetailViewModelTest {
 
     @Test
     fun `a failed pin save is an action error`() = runTest(testDispatcher) {
-        coEvery { favoritesRepository.setFavorites(any()) } returns Result.Error(message = "Server said no")
+        coEvery { favoritesRepository.setFavorites(any()) } returns serverError("Server said no")
         coEvery { agentRepository.getAgentForEditing("agent-1") } returns Result.Success(agent)
         val viewModel = createViewModel()
         advanceUntilIdle()

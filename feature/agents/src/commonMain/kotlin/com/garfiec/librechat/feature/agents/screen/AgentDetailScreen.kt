@@ -81,6 +81,7 @@ import com.garfiec.librechat.feature.agents.viewmodel.AgentActionError
 import com.garfiec.librechat.feature.agents.viewmodel.AgentDetailEvent
 import com.garfiec.librechat.feature.agents.viewmodel.AgentDetailUiState
 import com.garfiec.librechat.feature.agents.viewmodel.AgentDetailViewModel
+import com.garfiec.librechat.feature.agents.viewmodel.failureText
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -218,7 +219,7 @@ internal fun AgentDetailContent(
             )
 
             loadError != null && !uiState.isLoading -> ErrorBanner(
-                message = loadError.message ?: stringResource(Res.string.agent_load_failed),
+                message = failureText(stringResource(Res.string.agent_load_failed), loadError.serverMessage),
                 modifier = Modifier.padding(innerPadding),
                 onRetry = actions.onRetry,
             )
@@ -280,9 +281,9 @@ private fun agentBarActions(
 
 @Composable
 private fun actionErrorText(error: AgentActionError): String = when (error) {
-    is AgentActionError.Delete -> error.message ?: stringResource(Res.string.agent_delete_failed)
-    is AgentActionError.Duplicate -> error.message ?: stringResource(Res.string.agent_duplicate_failed)
-    is AgentActionError.Pin -> error.message ?: stringResource(Res.string.agent_pin_failed)
+    is AgentActionError.Delete -> failureText(stringResource(Res.string.agent_delete_failed), error.serverMessage)
+    is AgentActionError.Duplicate -> failureText(stringResource(Res.string.agent_duplicate_failed), error.serverMessage)
+    is AgentActionError.Pin -> failureText(stringResource(Res.string.agent_pin_failed), error.serverMessage)
     is AgentActionError.PinLimit -> pluralStringResource(Res.plurals.agent_pin_limit, error.max, error.max)
 }
 

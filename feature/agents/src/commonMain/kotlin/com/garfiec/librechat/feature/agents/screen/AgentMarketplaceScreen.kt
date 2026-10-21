@@ -88,6 +88,7 @@ import com.garfiec.librechat.feature.agents.viewmodel.AgentChip
 import com.garfiec.librechat.feature.agents.viewmodel.AgentListQuery
 import com.garfiec.librechat.feature.agents.viewmodel.AgentMarketplaceUiState
 import com.garfiec.librechat.feature.agents.viewmodel.AgentMarketplaceViewModel
+import com.garfiec.librechat.feature.agents.viewmodel.failureText
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -170,7 +171,7 @@ internal fun AgentMarketplaceContent(
     LaunchedEffect(uiState.loadError, uiState.agents.isEmpty()) {
         val error = uiState.loadError ?: return@LaunchedEffect
         if (uiState.agents.isEmpty()) return@LaunchedEffect
-        val result = snackbarHostState.showSnackbar(message = error.message ?: loadFailed, actionLabel = retryLabel)
+        val result = snackbarHostState.showSnackbar(message = failureText(loadFailed, error.serverMessage), actionLabel = retryLabel)
         currentActions.onDismissError()
         if (result == SnackbarResult.ActionPerformed) currentActions.onRefresh()
     }
@@ -284,7 +285,7 @@ internal fun AgentGrid(
             uiState.loadError != null && uiState.agents.isEmpty() -> fullWidthItem(key = "error") {
                 EmptyState(
                     title = stringResource(Res.string.agents_load_failed),
-                    description = uiState.loadError.message,
+                    description = uiState.loadError.serverMessage,
                     icon = Icons.Default.CloudOff,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 48.dp),
                     action = { AdaptiveButton(onClick = actions.onRetry) { Text(stringResource(Res.string.agents_retry)) } },

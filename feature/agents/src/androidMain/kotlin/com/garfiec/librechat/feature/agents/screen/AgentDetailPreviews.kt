@@ -90,4 +90,4 @@ private val viewOnly = AgentDetailUiState(
     canCreate = false,
 )
 
-private val loadFailed = AgentDetailUiState(loadError = AgentLoadError(message = null))
+private val loadFailed = AgentDetailUiState(loadError = AgentLoadError(serverMessage = null))

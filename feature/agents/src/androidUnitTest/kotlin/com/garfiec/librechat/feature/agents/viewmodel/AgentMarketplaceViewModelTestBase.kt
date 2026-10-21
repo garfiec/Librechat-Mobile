@@ -1,6 +1,8 @@
 package com.garfiec.librechat.feature.agents.viewmodel
 
+import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.common.result.toSafeError
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
@@ -84,6 +86,10 @@ abstract class AgentMarketplaceViewModelTestBase {
     /** One page; [next] is its `after`, and there is more exactly when there is one. */
     protected fun page(agents: List<Agent>, next: String? = null): Result<PaginatedAgents> =
         Result.Success(PaginatedAgents(agents = agents, hasMore = next != null, nextCursor = next))
+
+    /** A failure whose text the server wrote, as `safeApiCall` hands it over. */
+    protected fun serverError(text: String): Result.Error =
+        ApiException(statusCode = 500, message = text, serverAuthored = true).toSafeError()
 
     protected fun createViewModel() = AgentMarketplaceViewModel(
         agentRepository = agentRepository,

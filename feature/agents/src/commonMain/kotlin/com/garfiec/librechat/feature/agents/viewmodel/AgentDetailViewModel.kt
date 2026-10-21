@@ -63,16 +63,22 @@ data class AgentDetailUiState(
     val canDelete: Boolean get() = canEdit && canCreate
 }
 
-/** Why the page could not load: the server's [message], or null for the page's own wording. */
+/**
+ * The page could not load. The screen says so in its own words; [serverMessage] is the server's
+ * explanation, added under them only when the server wrote one.
+ */
 @Immutable
-data class AgentLoadError(val message: String?)
+data class AgentLoadError(val serverMessage: String?)
 
-/** An action on the page that failed. The screen words each; [message] is the server's, when it sent one. */
+/**
+ * An action on the page that failed. The screen names the action in its own words;
+ * [serverMessage] is the server's explanation, added under them only when the server wrote one.
+ */
 @Immutable
 sealed interface AgentActionError {
-    data class Delete(val message: String?) : AgentActionError
-    data class Duplicate(val message: String?) : AgentActionError
-    data class Pin(val message: String?) : AgentActionError
+    data class Delete(val serverMessage: String?) : AgentActionError
+    data class Duplicate(val serverMessage: String?) : AgentActionError
+    data class Pin(val serverMessage: String?) : AgentActionError
 
     /** The pin list is full ([max] favorites); nothing was sent. */
     data class PinLimit(val max: Int) : AgentActionError
@@ -209,7 +215,7 @@ class AgentDetailViewModel(
                 is Result.Error -> {
                     if (showsAgent) return@launch
                     _uiState.update {
-                        it.copy(isLoading = false, canEdit = false, loadError = AgentLoadError(result.message))
+                        it.copy(isLoading = false, canEdit = false, loadError = AgentLoadError(result.serverMessage()))
                     }
                 }
                 is Result.Loading -> { /* no-op */ }
@@ -243,7 +249,7 @@ class AgentDetailViewModel(
         if (pinJob?.isActive == true) return
         pinJob = viewModelScope.launch {
             if (!favoritesLoaded && !refreshFavorites()) {
-                _uiState.update { it.copy(actionError = AgentActionError.Pin(message = null)) }
+                _uiState.update { it.copy(actionError = AgentActionError.Pin(serverMessage = null)) }
                 return@launch
             }
             val current = favoritesRepository.favorites.value
@@ -258,7 +264,7 @@ class AgentDetailViewModel(
                 current + UserFavorite(agentId = agentId)
             }
             when (val result = favoritesRepository.setFavorites(next)) {
-                is Result.Error -> _uiState.update { it.copy(actionError = AgentActionError.Pin(result.message)) }
+                is Result.Error -> _uiState.update { it.copy(actionError = AgentActionError.Pin(result.serverMessage())) }
                 else -> Unit
             }
         }
@@ -288,7 +294,7 @@ class AgentDetailViewModel(
                     _events.emit(AgentDetailEvent.Deleted)
                 }
                 is Result.Error -> _uiState.update {
-                    it.copy(isDeleting = false, actionError = AgentActionError.Delete(result.message))
+                    it.copy(isDeleting = false, actionError = AgentActionError.Delete(result.serverMessage()))
                 }
                 is Result.Loading -> { /* no-op */ }
             }
@@ -306,7 +312,7 @@ class AgentDetailViewModel(
                     _events.emit(AgentDetailEvent.Duplicated(result.data.id))
                 }
                 is Result.Error -> _uiState.update {
-                    it.copy(isDuplicating = false, actionError = AgentActionError.Duplicate(result.message))
+                    it.copy(isDuplicating = false, actionError = AgentActionError.Duplicate(result.serverMessage()))
                 }
                 is Result.Loading -> { /* no-op */ }
             }
