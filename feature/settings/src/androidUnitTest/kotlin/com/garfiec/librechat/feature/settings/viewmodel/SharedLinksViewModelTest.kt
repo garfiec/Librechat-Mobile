@@ -121,6 +121,47 @@ class SharedLinksViewModelTest {
     }
 
     @Test
+    fun `a next page that repeats a row already shown appends it once`() = runTest {
+        // A link made between the two requests pushes page 1's last row onto page 2.
+        repository.page(null) { page("a", "b", next = "n1") }
+        repository.page("n1") { page("b", "c") }
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.loadMore()
+        advanceUntilIdle()
+
+        assertThat(ids(viewModel)).containsExactly("a", "b", "c").inOrder()
+    }
+
+    @Test
+    fun `a load more during a quiet reload runs once the reload lands, from its cursor`() = runTest {
+        repository.page(null) { page("a", "b", next = "n1") }
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        repository.calls.clear()
+
+        val reload = CompletableDeferred<Result<SharedLinksResponse>>()
+        repository.page(null) { reload.await() }
+        repository.page("n2") { page("c") }
+        repository.revision.value += 1
+        runCurrent()
+        // A quiet reload shows no spinner, so the scroll trigger can still fire.
+        assertThat(viewModel.uiState.value.isLoading).isFalse()
+
+        viewModel.loadMore()
+        runCurrent()
+        assertThat(repository.calls.map { it.cursor }).containsExactly(null)
+
+        reload.complete(page("new", "a", "b", next = "n2"))
+        advanceUntilIdle()
+
+        assertThat(repository.calls.map { it.cursor }).containsExactly(null, "n2").inOrder()
+        assertThat(ids(viewModel)).containsExactly("new", "a", "b", "c").inOrder()
+        assertThat(viewModel.uiState.value.isLoadingMore).isFalse()
+    }
+
+    @Test
     fun `a sort change starts again from the first page and drops the old sort's page`() = runTest {
         repository.page(null) { page("a", "b", next = "n1") }
         val viewModel = createViewModel()
