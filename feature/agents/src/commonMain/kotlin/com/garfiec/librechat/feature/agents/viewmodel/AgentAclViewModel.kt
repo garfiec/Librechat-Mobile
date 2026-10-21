@@ -104,6 +104,8 @@ class AgentAclViewModel(
         }
     }
 
+    // grant() and revoke() leave `public` out of the body (null): any value there turns public
+    // access on or off. Only setPublic() sends it.
     fun grant(principal: Principal, accessRoleId: String) {
         val agentId = currentAgentId ?: return
         val granted = principal.copy(accessRoleId = accessRoleId)
@@ -111,8 +113,6 @@ class AgentAclViewModel(
             val body = UpdateResourcePermissionsRequest(
                 updated = listOf(granted),
                 removed = emptyList(),
-                public = _uiState.value.isPublic,
-                publicAccessRoleId = _uiState.value.publicAccessRoleId,
             )
             applyUpdate(agentId, body, dismissDialogOnSuccess = true)
         }
@@ -124,8 +124,6 @@ class AgentAclViewModel(
             val body = UpdateResourcePermissionsRequest(
                 updated = emptyList(),
                 removed = listOf(principal),
-                public = _uiState.value.isPublic,
-                publicAccessRoleId = _uiState.value.publicAccessRoleId,
             )
             applyUpdate(agentId, body, dismissDialogOnSuccess = false)
         }
@@ -148,6 +146,9 @@ class AgentAclViewModel(
         _uiState.value = _uiState.value.copy(error = null)
     }
 
+    // Known gap (follow-up: move onto :core:data AclController, which re-reads after a PUT): the PUT
+    // answers `{message, results}`, not the GET shape, so the state read from it below is incomplete
+    // until the next load().
     private suspend fun applyUpdate(
         agentId: String,
         body: UpdateResourcePermissionsRequest,

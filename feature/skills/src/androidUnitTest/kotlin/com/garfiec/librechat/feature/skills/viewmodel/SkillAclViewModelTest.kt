@@ -6,6 +6,7 @@ import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.model.Principal
 import com.garfiec.librechat.core.model.ResourcePermissions
 import com.garfiec.librechat.core.model.ResourceType
+import com.garfiec.librechat.core.model.UpdateResourcePermissionsRequest
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -101,7 +102,31 @@ class SkillAclViewModelTest {
     }
 
     @Test
-    fun `setPublic propagates the public flag through applyUpdate`() = runTest(testDispatcher) {
+    fun `grant and revoke leave public access out of the body`() = runTest(testDispatcher) {
+        coEvery { permissionsRepository.getResourceRoles(ResourceType.SKILL) } returns Result.Success(emptyList())
+        // A public skill: a grant or revoke that sent `public` would risk turning it off.
+        coEvery { permissionsRepository.getResourcePermissions(ResourceType.SKILL, "sk-1") } returns
+            Result.Success(ResourcePermissions(public = true, publicAccessRoleId = "skill_viewer"))
+        val bodies = mutableListOf<UpdateResourcePermissionsRequest>()
+        coEvery {
+            permissionsRepository.updateResourcePermissions(ResourceType.SKILL, "sk-1", capture(bodies))
+        } returns Result.Success(ResourcePermissions())
+
+        val viewModel = vm()
+        viewModel.load("sk-1")
+        advanceUntilIdle()
+        viewModel.grant(Principal(type = "user", id = "u1"), "role_editor")
+        advanceUntilIdle()
+        viewModel.revoke(Principal(type = "user", id = "u2"))
+        advanceUntilIdle()
+
+        assertThat(bodies).hasSize(2)
+        assertThat(bodies.map { it.public }).containsExactly(null, null)
+        assertThat(bodies.map { it.publicAccessRoleId }).containsExactly(null, null)
+    }
+
+    @Test
+    fun `setPublic propagates the public flag through applyUpdate`()= runTest(testDispatcher) {
         coEvery { permissionsRepository.getResourceRoles(ResourceType.SKILL) } returns Result.Success(emptyList())
         coEvery { permissionsRepository.getResourcePermissions(ResourceType.SKILL, "sk-1") } returns
             Result.Success(ResourcePermissions())
