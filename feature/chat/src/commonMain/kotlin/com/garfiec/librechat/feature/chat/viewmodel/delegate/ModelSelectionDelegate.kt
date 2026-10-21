@@ -598,6 +598,8 @@ class ModelSelectionDelegate(
             // Hold this explicit agent across the transient empty-agents window until the populated
             // list arrives (see [holdAgentForPopulate]); without it the next (agentsLoaded=true,
             // agents=[]) emission would score the agent INVALID/PENDING and clobber it to a config model.
+            // Unconfirmed gap: the populated list is getAgents()'s first 100, so an agent beyond them
+            // (started from the agent page) may never be confirmed and may fall back to another model.
             holdAgentForPopulate = true
             applySelection(inferred(EndpointConstants.AGENTS, agentId), reason = "tier0-agentOverride")
             return true
