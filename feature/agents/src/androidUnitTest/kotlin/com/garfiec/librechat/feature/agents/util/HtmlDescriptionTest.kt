@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.agents.util
 
 import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import com.google.common.truth.Truth.assertThat
@@ -94,6 +95,70 @@ class HtmlDescriptionTest {
         assertThat(result.text).isEqualTo("bold both plain")
         val bold = result.spanStyles.filter { it.item.fontWeight == FontWeight.Bold }
         assertThat(bold.map { result.text.substring(it.start, it.end) }).containsExactly("bold both")
+    }
+
+    /** The web treats text as HTML only when its first tag is allowlisted; a generic is not one. */
+    @Test
+    fun `a plain description with generics or placeholders comes back verbatim`() {
+        val generics = "Converts List<String> to Map<K, V>.\nSecond line"
+        assertThat(htmlDescriptionToAnnotatedString(generics).text).isEqualTo(generics)
+
+        val placeholders = "Reply with <name> and <date>, then <b>sign</b> off"
+        assertThat(htmlDescriptionToAnnotatedString(placeholders).text).isEqualTo(placeholders)
+        assertThat(htmlDescriptionToAnnotatedString(placeholders).spanStyles).isEmpty()
+    }
+
+    @Test
+    fun `text whose first tag is allowlisted renders as HTML`() {
+        val result = htmlDescriptionToAnnotatedString("Intro <p>Writes <b>SQL</b></p>")
+        assertThat(result.text).isEqualTo("Intro\n\nWrites SQL")
+        assertThat(result.spanStyles.filter { it.item.fontWeight == FontWeight.Bold }).hasSize(1)
+    }
+
+    @Test
+    fun `tags outside the allowlist are dropped with their text kept, not styled`() {
+        val result = htmlDescriptionToAnnotatedString("<p>Intro</p><h2>Heading</h2><blockquote>Quote</blockquote>")
+        assertThat(result.text).isEqualTo("Intro\n\nHeadingQuote")
+        assertThat(result.spanStyles).isEmpty()
+    }
+
+    @Test
+    fun `code is set in a monospace face`() {
+        val result = htmlDescriptionToAnnotatedString("<p>Run <code>make test</code></p>")
+        val code = result.spanStyles.filter { it.item.fontFamily == FontFamily.Monospace }
+        assertThat(code.map { result.text.substring(it.start, it.end) }).containsExactly("make test")
+    }
+
+    @Test
+    fun `a tel link stays a link`() {
+        val result = htmlDescriptionToAnnotatedString("<a href=\"tel:+15551234567\">Call us</a>")
+        assertThat((result.getLinkAnnotations(0, result.length).single().item as LinkAnnotation.Url).url)
+            .isEqualTo("tel:+15551234567")
+    }
+
+    @Test
+    fun `a relative link resolves against the server`() {
+        val result = htmlDescriptionToAnnotatedString(
+            "<a href=\"/c/new?agent_id=agent_x\">Try it</a> or <a href='docs/help'>help</a>",
+            baseUrl = "https://chat.example.com/",
+        )
+        val urls = result.getLinkAnnotations(0, result.length).map { (it.item as LinkAnnotation.Url).url }
+        assertThat(urls).containsExactly("https://chat.example.com/c/new?agent_id=agent_x", "https://chat.example.com/docs/help")
+    }
+
+    @Test
+    fun `a relative link without a server stays text`() {
+        val result = htmlDescriptionToAnnotatedString("<a href=\"/c/new\">Try it</a>")
+        assertThat(result.text).isEqualTo("Try it")
+        assertThat(result.getLinkAnnotations(0, result.length)).isEmpty()
+    }
+
+    @Test
+    fun `scheme-relative and unknown-scheme links stay text`() {
+        assertThat(safeHref("href=\"//evil.example.com/x\"", "https://chat.example.com")).isNull()
+        assertThat(safeHref("href=\"intent://scan\"", "https://chat.example.com")).isNull()
+        assertThat(safeHref("href=\"  javascript:alert(1)\"", "https://chat.example.com")).isNull()
+        assertThat(safeHref("href=\"\"", "https://chat.example.com")).isNull()
     }
 
     @Test

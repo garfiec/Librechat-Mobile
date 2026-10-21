@@ -1,11 +1,11 @@
 package com.garfiec.librechat.feature.agents.viewmodel
 
-import com.garfiec.librechat.core.common.extensions.htmlToPlainText
 import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 import com.garfiec.librechat.feature.agents.AgentCardDisplayData
 import com.garfiec.librechat.feature.agents.AgentContactDisplayData
 import com.garfiec.librechat.feature.agents.AgentDetailDisplayData
+import com.garfiec.librechat.feature.agents.util.agentDescriptionPreview
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -18,7 +18,7 @@ internal fun Agent.toCardDisplayData(baseUrl: String): AgentCardDisplayData {
         id = id,
         name = name?.trim()?.takeIf { it.isNotEmpty() },
         // Admins write descriptions in the web editor, some as HTML; a card shows two lines of text.
-        description = description?.htmlToPlainText()?.takeIf { it.isNotEmpty() },
+        description = description?.agentDescriptionPreview(),
         avatarUrl = resolveAvatarUrl(avatarUrl, baseUrl),
         categoryValue = category?.trim()?.takeIf { it.isNotEmpty() },
         isPromoted = isPromoted,
@@ -40,6 +40,7 @@ internal fun Agent.toDetailDisplayData(baseUrl: String): AgentDetailDisplayData 
     tools = tools.orEmpty().filter { it.isNotBlank() },
     conversationStarters = conversationStarters.map { it.trim() }.filter { it.isNotEmpty() },
     contact = resolvedContact(),
+    linkBaseUrl = baseUrl.takeIf { it.isNotBlank() },
 )
 
 /**

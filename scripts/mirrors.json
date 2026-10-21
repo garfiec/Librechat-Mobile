@@ -1787,6 +1787,33 @@
       },
       "why": "The link the agent page's Copy link puts on the clipboard: the web's own agent URL, `<origin>/c/new?agent_id=<id>` (the AGENT entry's getResourceUrl). It is pasted into the web, so it must name a route the web client opens.",
       "failure_mode": "Upstream moves the new-chat route or renames the agent query parameter, and a copied link opens the web on a 404 or on a new chat without the agent. Nothing in the app fails."
+    },
+    {
+      "id": "agent-description-html",
+      "upstream": {
+        "file": "client/src/utils/configHtml.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/agents/src/commonMain/kotlin/com/garfiec/librechat/feature/agents/util/AgentDescriptionMarkup.kt",
+        "symbol": "AGENT_DESCRIPTION_TAGS / isAgentDescriptionHtml; HtmlDescription.kt safeHref and HtmlRenderer.tag"
+      },
+      "why": "Which tags an agent description may use as HTML (a, strong, b, em, i, br, code, span, p, div, ul, ol, li) and which links survive (CONFIG_HTML_SAFE_URI: http(s), mailto, tel, or relative). A description is HTML only when its first tag is allowlisted (decisions C7); the card strips it with core/common HtmlText.kt htmlToPlainText.",
+      "failure_mode": "Upstream widens or narrows the allowlist or the safe-URI rule, and the same description renders differently on the web and in the app: a tag the web styles shows as bare text, or a link the web drops becomes tappable here. Nothing errors."
+    },
+    {
+      "id": "agent-description-html-detection",
+      "upstream": {
+        "file": "client/src/components/Chat/Landing.tsx",
+        "symbol": "descriptionIsHTML",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/agents/src/commonMain/kotlin/com/garfiec/librechat/feature/agents/util/AgentDescriptionMarkup.kt",
+        "symbol": "isAgentDescriptionHtml"
+      },
+      "why": "How the web decides a description is HTML at all: the pinned upstream's chat landing calls `isHtmlDescription(description)`, which this client ports as the first-tag-allowlisted rule (decisions C7), so a plain description mentioning `List<String>` stays plain. Older upstream used `description.trim().startsWith('<')`. Watched so a change to the web's rule is seen.",
+      "failure_mode": "Upstream changes its detection, and a description the web shows as text renders as HTML here (placeholders vanish) or the reverse (markup shows raw). Nothing fails to decode."
     }
   ]
 }

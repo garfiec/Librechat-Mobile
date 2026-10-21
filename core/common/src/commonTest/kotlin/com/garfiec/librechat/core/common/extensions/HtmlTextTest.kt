@@ -18,11 +18,11 @@ class HtmlTextTest {
     }
 
     @Test
-    fun block_tags_become_line_breaks() {
-        assertEquals("First\nSecond\nThird", "<p>First</p><p>Second</p>Third".htmlToPlainText())
-        assertEquals("One\nTwo", "One<br>Two".htmlToPlainText())
-        assertEquals("One\nTwo", "One<BR/>Two".htmlToPlainText())
-        assertEquals("Items\nA\nB", "Items<ul><li>A</li><li>B</li></ul>".htmlToPlainText())
+    fun block_tags_become_spaces() {
+        assertEquals("First Second Third", "<p>First</p><p>Second</p>Third".htmlToPlainText())
+        assertEquals("One Two", "One<br>Two".htmlToPlainText())
+        assertEquals("One Two", "One<BR/>Two".htmlToPlainText())
+        assertEquals("Items A B", "Items<ul><li>A</li><li>B</li></ul>".htmlToPlainText())
     }
 
     @Test
@@ -42,8 +42,9 @@ class HtmlTextTest {
     }
 
     @Test
-    fun whitespace_collapses_and_blank_lines_drop() {
-        assertEquals("A spaced line\nNext", "<div>  A \t spaced&nbsp;&nbsp;line  </div>\n\n\n<div>Next</div>".htmlToPlainText())
+    fun whitespace_and_line_breaks_collapse_to_one_space() {
+        assertEquals("A spaced line Next", "<div>  A \t spaced&nbsp;&nbsp;line  </div>\n\n\n<div>Next</div>".htmlToPlainText())
+        assertEquals("One Two", "<b>One</b>\n\nTwo".htmlToPlainText())
     }
 
     @Test

@@ -42,6 +42,8 @@ data class AgentDetailDisplayData(
      * it declares none (v0.8.8). Null when neither exists.
      */
     val contact: AgentContactDisplayData? = null,
+    /** The server URL a relative link in [description] resolves against; null leaves such links as text. */
+    val linkBaseUrl: String? = null,
 )
 
 /**

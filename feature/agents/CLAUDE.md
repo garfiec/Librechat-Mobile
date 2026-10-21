@@ -52,7 +52,9 @@
 - `AdaptiveCard(onClick)` + `InitialTile(seed = id)`; name (1 line), plain-text description (2 lines) and a meta
   row: Top pick mark (`is_promoted`), category label (not "general"), contact.
 - `AgentCardDisplayData.name` is null for an unnamed agent; the card shows `agent_unnamed`. No English in the VM.
-- Descriptions are reduced to text with `htmlToPlainText()` (`:core:common`): admins write some as HTML.
+- Descriptions go through `agentDescriptionPreview()`: HTML (see "HTML descriptions" below) is reduced to one
+  run of text by `htmlToPlainText()` (`:core:common`; block tags become spaces); plain text is kept as written,
+  whitespace collapsed.
 - Contact = support contact's name (or email), else the owner's name (`Agent.resolvedContact()` in
   `AgentDisplayMappers.kt`, shared with the detail page). Never the raw `author` id.
 - No per-card menu: agent actions live on the agent page.
@@ -76,8 +78,12 @@
 - **Header**: `InitialTile` (64dp), name (heading; `agent_unnamed` when null), contact line (support contact,
   else owner; a `Role.Button` that opens `mailto:` when there is an email), Top pick mark, category label via
   `agentCategoryLabel()` (shared with the cards; "general" has none). No "by <author>" byline.
-- **Body**: Start chat, the description (`htmlDescriptionToAnnotatedString`: b/strong, i/em, http(s)/mailto
-  links, br, p, lists; other tags dropped, text without tags untouched), one facts line ("Updated <relative
+- **HTML descriptions** (decisions C7, mirror `agent-description-html`): a description is HTML only when its
+  FIRST tag is on `AGENT_DESCRIPTION_TAGS` (a, strong, b, em, i, br, code, span, p, div, ul, ol, li);
+  `List<String>` or `<name>` keeps it plain text, shown as written (upstream `isHtmlDescription`; releases
+  before v0.8.8 used `startsWith('<')`). Other tags are dropped with their text kept. Links: http(s), mailto,
+  tel, or relative (resolved against the server URL, `AgentDetailDisplayData.linkBaseUrl`); anything else is text.
+- **Body**: Start chat, the description (`htmlDescriptionToAnnotatedString`), one facts line ("Updated <relative
   time>" through the date-format setting, "Public" when `isPublic`), Model, Tools (plain labels, not chips),
   "Try asking" starter cards. Capped at 600dp wide, centred.
 - Categories are read once, only for an agent with a non-general category, so an admin's own label shows.

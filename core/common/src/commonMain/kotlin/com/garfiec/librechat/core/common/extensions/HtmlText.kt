@@ -4,18 +4,15 @@ package com.garfiec.librechat.core.common.extensions
  * This string with any HTML markup reduced to plain text, for a one- or two-line preview.
  *
  * Only tag-shaped runs are removed (`<p>`, `</b>`, `<br/>`, `<!-- … -->`), so a plain "a < b"
- * survives. Block-level tags become line breaks, entities are decoded, and runs of spaces and
- * blank lines collapse to one. Text without markup comes back trimmed and otherwise untouched.
+ * survives. Block-level tags become spaces, entities are decoded, and every run of whitespace,
+ * line breaks included, collapses to one space: a preview's lines go to text, not to fragments.
+ *
+ * It treats any tag-shaped run as markup. Whether a text is HTML at all is the caller's call.
  */
 fun String.htmlToPlainText(): String {
-    if ('<' !in this && '&' !in this) return trim()
-    val withBreaks = COMMENT.replace(this, "").let { BLOCK_TAG.replace(it, "\n") }
-    val withoutTags = ANY_TAG.replace(withBreaks, "")
-    return withoutTags.decodeHtmlEntities()
-        .lineSequence()
-        .map { SPACES.replace(it, " ").trim() }
-        .filter { it.isNotEmpty() }
-        .joinToString("\n")
+    val spaced = COMMENT.replace(this, "").let { BLOCK_TAG.replace(it, " ") }
+    val withoutTags = ANY_TAG.replace(spaced, "")
+    return SPACES.replace(withoutTags.decodeHtmlEntities(), " ").trim()
 }
 
 /**
@@ -56,7 +53,7 @@ private val BLOCK_TAG = Regex(
 // A letter, `/` or `!` right after `<` is what makes it a tag; "a < b" is left alone.
 private val ANY_TAG = Regex("</?[A-Za-z!][^>]*>")
 private val ENTITY = Regex("&(#[0-9]{1,7}|#[xX][0-9A-Fa-f]{1,6}|[A-Za-z]{2,8});")
-private val SPACES = Regex("[ \\t\\u00A0]+")
+private val SPACES = Regex("[\\s\\u00A0]+")
 
 private val NAMED_ENTITIES = mapOf(
     "amp" to "&",

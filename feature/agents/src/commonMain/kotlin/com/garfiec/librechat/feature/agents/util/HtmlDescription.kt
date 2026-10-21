@@ -4,6 +4,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import com.garfiec.librechat.core.common.extensions.decodeHtmlEntities
@@ -11,18 +12,27 @@ import com.garfiec.librechat.core.common.extensions.decodeHtmlEntities
 /**
  * An agent description as styled text.
  *
- * Admins write some descriptions as HTML in the web editor. This renders what a description uses —
- * bold, italic, links, line breaks, paragraphs and lists — and drops every other tag while keeping
- * its text. A description with no tags is plain text and comes back as written, newlines and all.
+ * Admins write some descriptions as HTML in the web editor. A description is HTML only when its
+ * first tag is one the web allows ([isAgentDescriptionHtml]); anything else, `List<String>` and
+ * `<name>` placeholders included, is plain text and comes back as written, newlines and all.
  *
- * Links are kept only for http(s) and mailto targets: the markup is somebody else's, and a
- * `javascript:` or app-scheme link must not become something to tap.
+ * Of the markup, this renders the web's allowlist: bold, italic, code, links, line breaks,
+ * paragraphs, divs and lists. Every other tag is dropped and its text kept, as the web's sanitiser
+ * does; script and style lose their text too.
+ *
+ * Links are kept only for http(s), mailto and tel targets and for relative ones, which resolve
+ * against [baseUrl] (the server) and stay plain text without one: the markup is somebody else's,
+ * and a `javascript:` or app-scheme link must not become something to tap.
  */
-internal fun htmlDescriptionToAnnotatedString(text: String, linkStyles: TextLinkStyles? = null): AnnotatedString {
+internal fun htmlDescriptionToAnnotatedString(
+    text: String,
+    linkStyles: TextLinkStyles? = null,
+    baseUrl: String? = null,
+): AnnotatedString {
     val source = text.trim()
-    if (!TAG.containsMatchIn(source)) return AnnotatedString(source)
+    if (!source.isAgentDescriptionHtml()) return AnnotatedString(source)
     val cleaned = DECLARATION.replace(COMMENT.replace(source, ""), "")
-    val renderer = HtmlRenderer(linkStyles)
+    val renderer = HtmlRenderer(linkStyles, baseUrl?.takeIf { it.isNotBlank() })
     var position = 0
     for (match in TAG.findAll(cleaned)) {
         renderer.text(cleaned.substring(position, match.range.first))
@@ -37,7 +47,7 @@ internal fun htmlDescriptionToAnnotatedString(text: String, linkStyles: TextLink
     return renderer.build()
 }
 
-private class HtmlRenderer(private val linkStyles: TextLinkStyles?) {
+private class HtmlRenderer(private val linkStyles: TextLinkStyles?, private val baseUrl: String?) {
     private class OpenTag(val name: String, val styleIndex: Int)
     private class OpenList(val ordered: Boolean, var next: Int = 1)
 
@@ -73,21 +83,21 @@ private class HtmlRenderer(private val linkStyles: TextLinkStyles?) {
         atLineStart = false
     }
 
+    // Only the allowlist renders; any other tag falls through and is dropped with its text kept.
     fun tag(closing: Boolean, name: String, attributes: String) {
         when (name) {
             in SKIPPED -> skipDepth = (skipDepth + if (closing) -1 else 1).coerceAtLeast(0)
             "br" -> lineBreak()
-            "p", "hr" -> breakAtLeast(BLANK_LINE)
-            "div", "blockquote", "pre", "tr", "section", "article", "header", "footer" -> breakAtLeast(LINE)
+            "p" -> breakAtLeast(BLANK_LINE)
+            "div" -> breakAtLeast(LINE)
             "ul", "ol" -> list(closing, ordered = name == "ol")
             "li" -> if (closing) breakAtLeast(LINE) else listItem()
-            in HEADINGS -> {
-                breakAtLeast(BLANK_LINE)
-                inline(closing, name) { builder.pushStyle(BOLD) }
-            }
             "b", "strong" -> inline(closing, name) { builder.pushStyle(BOLD) }
             "i", "em" -> inline(closing, name) { builder.pushStyle(ITALIC) }
-            "a" -> inline(closing, name) { safeHref(attributes)?.let { builder.pushLink(LinkAnnotation.Url(it, linkStyles)) } }
+            "code" -> inline(closing, name) { builder.pushStyle(CODE) }
+            "a" -> inline(closing, name) {
+                safeHref(attributes, baseUrl)?.let { builder.pushLink(LinkAnnotation.Url(it, linkStyles)) }
+            }
         }
     }
 
@@ -150,11 +160,24 @@ private class HtmlRenderer(private val linkStyles: TextLinkStyles?) {
         pendingSpace = false
         atLineStart = true
     }
+}
 
-    private fun safeHref(attributes: String): String? {
-        val match = HREF.find(attributes) ?: return null
-        val url = match.groupValues.drop(1).firstOrNull { it.isNotEmpty() }?.decodeHtmlEntities()?.trim() ?: return null
-        return url.takeIf { candidate -> SAFE_SCHEMES.any { candidate.startsWith(it, ignoreCase = true) } }
+/**
+ * The link an `href` may become, or null. Mirrors the web's `CONFIG_HTML_SAFE_URI`
+ * (upstream `client/src/utils/configHtml.ts`, registered in `scripts/mirrors.json`): http(s),
+ * mailto and tel, or a relative URL (no scheme, not `//`). A relative one resolves against
+ * [baseUrl], the server the web client is served from; without it, no link.
+ */
+internal fun safeHref(attributes: String, baseUrl: String?): String? {
+    val match = HREF.find(attributes) ?: return null
+    val url = match.groupValues.drop(1).firstOrNull { it.isNotEmpty() }?.decodeHtmlEntities()?.trim() ?: return null
+    if (url.isEmpty()) return null
+    if (ABSOLUTE_SAFE.containsMatchIn(url)) return url
+    if (ANY_SCHEME.containsMatchIn(url) || url.startsWith("//")) return null
+    val base = baseUrl?.trimEnd('/') ?: return null
+    return when {
+        url.startsWith("/") || url.startsWith("?") || url.startsWith("#") -> "$base$url"
+        else -> "$base/$url"
     }
 }
 
@@ -166,10 +189,9 @@ private const val INDENT = "    "
 
 private val BOLD = SpanStyle(fontWeight = FontWeight.Bold)
 private val ITALIC = SpanStyle(fontStyle = FontStyle.Italic)
+private val CODE = SpanStyle(fontFamily = FontFamily.Monospace)
 
-private val HEADINGS = setOf("h1", "h2", "h3", "h4", "h5", "h6")
 private val SKIPPED = setOf("script", "style", "head", "title")
-private val SAFE_SCHEMES = listOf("https://", "http://", "mailto:")
 
 // A letter right after `<` (or `</`) is what makes it a tag; "a < b" is text.
 private val TAG = Regex("<(/?)([A-Za-z][A-Za-z0-9]*)([^>]*)>")
@@ -177,3 +199,5 @@ private val COMMENT = Regex("<!--[\\s\\S]*?-->")
 private val DECLARATION = Regex("<![^>]*>")
 private val WHITESPACE = Regex("[\\s\\u00A0]+")
 private val HREF = Regex("""\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))""", RegexOption.IGNORE_CASE)
+private val ABSOLUTE_SAFE = Regex("^(?:https?|mailto|tel):", RegexOption.IGNORE_CASE)
+private val ANY_SCHEME = Regex("^[a-z][a-z0-9+.-]*:", RegexOption.IGNORE_CASE)

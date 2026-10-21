@@ -440,10 +440,11 @@ private fun AboutSection(agent: AgentDetailDisplayData) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (description != null) {
             val linkColor = MaterialTheme.colorScheme.primary
-            val rendered = remember(description, linkColor) {
+            val rendered = remember(description, linkColor, agent.linkBaseUrl) {
                 htmlDescriptionToAnnotatedString(
                     description,
                     TextLinkStyles(style = SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline)),
+                    baseUrl = agent.linkBaseUrl,
                 )
             }
             Text(text = rendered, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
