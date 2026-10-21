@@ -107,7 +107,7 @@ class ConversationActionsDelegate(
     fun shareConversation() {
         val conversationId = handle.state.conversationId ?: return
         handle.scope.launch {
-            when (val result = shareRepository.createShareLink(conversationId)) {
+            when (val result = shareRepository.getOrCreateShareLink(conversationId)) {
                 is Result.Success -> {
                     handle.setError(null)
                     // Store the share URL to be copied by the UI

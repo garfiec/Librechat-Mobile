@@ -4,6 +4,7 @@ import com.garfiec.librechat.core.model.SharedLink
 import com.garfiec.librechat.core.model.request.CreateShareRequest
 import com.garfiec.librechat.core.model.request.ForkSharedConversationRequest
 import com.garfiec.librechat.core.model.response.ForkConversationResponse
+import com.garfiec.librechat.core.model.response.ShareLinkLookup
 import com.garfiec.librechat.core.model.response.SharedLinksResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -28,6 +29,16 @@ class ShareApi constructor(
             parameter("isPublic", isPublic)
         }.body()
 
+    /**
+     * The caller's live share link for a conversation, if any. Present on every supported backend
+     * (0.8.4 onward); the web client reads it before offering to create one.
+     */
+    suspend fun getShareLink(conversationId: String): ShareLinkLookup =
+        client.get {
+            url { path("api/share/link/$conversationId") }
+        }.body()
+
+    /** Mints a new link. 409 `SHARE_EXISTS` while a live one exists; see [getShareLink]. */
     suspend fun createShareLink(
         conversationId: String,
         targetMessageId: String? = null,

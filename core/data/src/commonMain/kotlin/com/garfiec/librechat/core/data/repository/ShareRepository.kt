@@ -6,7 +6,14 @@ import com.garfiec.librechat.core.model.response.ForkConversationResponse
 import com.garfiec.librechat.core.model.response.SharedLinksResponse
 
 interface ShareRepository {
-    suspend fun createShareLink(conversationId: String): Result<String>
+    /**
+     * The URL of the conversation's share link, minting one only when no live link exists.
+     *
+     * The server refuses a second link while the first is unexpired (409 `SHARE_EXISTS`), which
+     * is exactly when a user re-sharing a chat wants the link back, so this looks up first, as the
+     * web client does, and treats a 409 on create as "look it up again".
+     */
+    suspend fun getOrCreateShareLink(conversationId: String): Result<String>
     suspend fun getSharedLinksPaginated(cursor: String? = null): Result<SharedLinksResponse>
 
     /**

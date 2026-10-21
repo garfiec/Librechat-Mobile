@@ -310,7 +310,7 @@ class ConversationListViewModelTest {
 
     @Test
     fun `shareConversation emits ShareLinkCopied event on success`() = runTest {
-        coEvery { shareRepository.createShareLink("convo-1") } returns
+        coEvery { shareRepository.getOrCreateShareLink("convo-1") } returns
             Result.Success("https://example.com/share/abc")
 
         viewModel = createViewModel()
@@ -334,7 +334,7 @@ class ConversationListViewModelTest {
 
     @Test
     fun `shareConversation emits ShowError on failure`() = runTest {
-        coEvery { shareRepository.createShareLink("convo-1") } returns
+        coEvery { shareRepository.getOrCreateShareLink("convo-1") } returns
             Result.Error(message = "Share failed")
 
         viewModel = createViewModel()

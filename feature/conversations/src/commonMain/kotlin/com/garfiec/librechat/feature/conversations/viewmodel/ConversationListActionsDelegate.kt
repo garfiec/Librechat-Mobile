@@ -81,7 +81,7 @@ class ConversationListActionsDelegate(
 
     fun shareConversation(conversationId: String) {
         scope.launch {
-            when (val result = shareRepository.createShareLink(conversationId)) {
+            when (val result = shareRepository.getOrCreateShareLink(conversationId)) {
                 is Result.Success -> events.emit(ConversationListEvent.ShareLinkCopied(result.data))
                 is Result.Error -> events.emit(
                     ConversationListEvent.ShowError(result.message ?: "Failed to create share link"),

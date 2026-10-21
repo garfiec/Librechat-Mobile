@@ -2,10 +2,13 @@ package com.garfiec.librechat.core.data.repository
 
 import com.garfiec.librechat.core.common.BackendVersion
 import com.garfiec.librechat.core.common.identity.cleanServerUrl
+import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.safeApiCall
+import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.model.SharedLink
 import com.garfiec.librechat.core.model.response.ForkConversationResponse
+import com.garfiec.librechat.core.model.response.ShareLinkLookup
 import com.garfiec.librechat.core.model.response.SharedLinksResponse
 import com.garfiec.librechat.core.network.api.ShareApi
 import com.garfiec.librechat.core.network.client.ServerUrlProvider
@@ -32,14 +35,30 @@ class ShareRepositoryImpl(
         return if (isConfirmedModern) null else true
     }
 
-    override suspend fun createShareLink(conversationId: String): Result<String> {
+    override suspend fun getOrCreateShareLink(conversationId: String): Result<String> {
         return safeApiCall {
-            val sharedLink = shareApi.createShareLink(conversationId)
-            val shareId = sharedLink.shareId
-                ?: throw IllegalStateException("Server returned no shareId")
-            "${cleanServerUrl(serverUrlProvider.getBaseUrl())}/share/$shareId"
+            // Best effort: a failed lookup falls through to create, whose own 409 says if a link
+            // exists after all.
+            val existing = suspendRunCatching { shareApi.getShareLink(conversationId) }.getOrNull()
+            existing?.liveShareId()?.let { return@safeApiCall shareUrl(it) }
+
+            val shareId = try {
+                shareApi.createShareLink(conversationId).shareId
+                    ?: throw IllegalStateException("Server returned no shareId")
+            } catch (e: ApiException) {
+                if (e.statusCode != HTTP_CONFLICT) throw e
+                // A link appeared between the lookup and the create (another device, or the
+                // lookup failed above): the server's refusal is the answer, so hand that link back.
+                shareApi.getShareLink(conversationId).liveShareId() ?: throw e
+            }
+            shareUrl(shareId)
         }
     }
+
+    private fun ShareLinkLookup.liveShareId(): String? = shareId?.takeIf { success }
+
+    private fun shareUrl(shareId: String): String =
+        "${cleanServerUrl(serverUrlProvider.getBaseUrl())}/share/$shareId"
 
     override suspend fun getSharedLinksPaginated(cursor: String?): Result<SharedLinksResponse> {
         return safeApiCall {
@@ -70,5 +89,9 @@ class ShareRepositoryImpl(
         return safeApiCall {
             shareApi.forkSharedConversation(shareId, targetMessageIndex)
         }
+    }
+
+    private companion object {
+        const val HTTP_CONFLICT = 409
     }
 }
