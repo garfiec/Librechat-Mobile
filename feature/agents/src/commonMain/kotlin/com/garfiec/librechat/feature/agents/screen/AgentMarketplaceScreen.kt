@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -518,13 +520,19 @@ internal fun AgentCard(
     }
 }
 
+/**
+ * Top pick, then category and contact. A flow row, so at a large font or in a long translation the
+ * details wrap under the Top pick mark instead of being squeezed to nothing beside it.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AgentMetaRow(isPromoted: Boolean, details: List<String>) {
     if (!isPromoted && details.isEmpty()) return
-    Row(
+    FlowRow(
         modifier = Modifier.padding(top = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        itemVerticalAlignment = Alignment.CenterVertically,
     ) {
         val style = MaterialTheme.typography.labelMedium
         val color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -537,7 +545,13 @@ private fun AgentMetaRow(isPromoted: Boolean, details: List<String>) {
                     modifier = Modifier.size(16.dp),
                 )
                 Spacer(Modifier.width(4.dp))
-                Text(stringResource(Res.string.agents_top_pick), style = style, color = color, maxLines = 1, softWrap = false)
+                Text(
+                    stringResource(Res.string.agents_top_pick),
+                    style = style,
+                    color = color,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
         if (details.isNotEmpty()) {
@@ -547,7 +561,6 @@ private fun AgentMetaRow(isPromoted: Boolean, details: List<String>) {
                 color = color,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false),
             )
         }
     }
