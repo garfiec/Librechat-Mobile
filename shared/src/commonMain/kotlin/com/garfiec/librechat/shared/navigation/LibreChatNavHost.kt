@@ -801,6 +801,7 @@ fun MainNavDisplay(
                 // successor was promoted.
                 onLogout = { navHostViewModel.logout() },
                 onNavigateToArchive = { navigator.navigate(ArchivedConversations) },
+                onOpenConversation = { navigator.navigateToChat(it) },
             )
             memoriesEntry(
                 onBack = { navigator.goBack() },
