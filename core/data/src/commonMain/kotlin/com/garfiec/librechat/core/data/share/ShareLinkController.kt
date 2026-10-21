@@ -414,15 +414,15 @@ class ShareLinkController internal constructor(
      * grant only when the role's SHARED_LINKS.SHARE_PUBLIC is strictly true, and without that grant
      * nobody but the owner and the people they add gets in, whatever `publicSharedLinksEnabled`
      * says (scripts/mirrors.json `share-public-grant-rule`). Fail-closed on an unknown role, as
-     * the Manage access switch is. A server confirmed older than the link ACLs keeps the
-     * flag-only wording; whether those versions grant by role is not verified.
+     * the Manage access switch is. The rule holds from 0.8.7-rc1, the first release with per-link
+     * ACLs; a server confirmed older than that keeps the flag-only wording.
      */
     private fun newLinkAudience(
         publicAudience: ShareAudience,
         role: UserRolePermissions?,
         version: String?,
     ): ShareAudience {
-        val beforeAcl = version != null && !BackendVersion.isCompatibleOrNewer(version, V0_8_8_RC1)
+        val beforeAcl = version != null && !BackendVersion.isCompatibleOrNewer(version, V0_8_7_RC1)
         return when {
             beforeAcl -> publicAudience
             role.hasAccessStrictOrDenied(PermissionType.SHARED_LINKS, Permission.SHARE_PUBLIC) -> publicAudience
@@ -473,5 +473,8 @@ class ShareLinkController internal constructor(
     }
 }
 
-/** The first release with in-place link updates and per-link ACLs (read: everything newer than 0.8.7). */
+/** The first release whose Update keeps the shareId; 0.8.7's update mints a new one. */
 private const val V0_8_8_RC1 = "0.8.8-rc1"
+
+/** The first release with per-link ACLs, where the create route grants public access by SHARE_PUBLIC. */
+private const val V0_8_7_RC1 = "0.8.7-rc1"

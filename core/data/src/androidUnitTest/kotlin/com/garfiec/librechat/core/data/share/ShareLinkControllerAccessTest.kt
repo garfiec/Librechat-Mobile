@@ -49,8 +49,20 @@ class ShareLinkControllerAccessTest : ShareLinkControllerTestBase() {
     }
 
     @Test
-    fun `a server older than link ACLs keeps the flag-only wording`() = runTest {
+    fun `0_8_7 already grants public access by SHARE_PUBLIC`() = runTest {
         version.value = "0.8.7"
+        allowSharePublic(false)
+        coEvery { shareApi.getShareLink("convo") } returns none
+        val controller = controller()
+
+        controller.open("convo")
+
+        assertThat(controller.awaitNoLink().audience).isEqualTo(ShareAudience.PEOPLE_ADDED)
+    }
+
+    @Test
+    fun `a server older than link ACLs keeps the flag-only wording`() = runTest {
+        version.value = "0.8.6"
         coEvery { shareApi.getShareLink("convo") } returns none
         val controller = controller()
 
