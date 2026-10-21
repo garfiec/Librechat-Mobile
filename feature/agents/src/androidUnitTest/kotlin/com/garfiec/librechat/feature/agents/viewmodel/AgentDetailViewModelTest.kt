@@ -496,6 +496,22 @@ class AgentDetailViewModelTest {
         assertThat(events).containsExactly(AgentDetailEvent.Deleted)
     }
 
+    /** The editor's save (PATCH /api/agents/:id) needs AGENTS.CREATE too, so Edit isn't offered without it. */
+    @Test
+    fun `an editable agent without AGENTS CREATE offers no Edit`() = runTest(testDispatcher) {
+        coEvery { agentRepository.getAgentForEditing("agent-1") } returns Result.Success(agent)
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.canOpenEditor).isTrue()
+
+        role.value = UserRolePermissions(name = "USER", permissions = mapOf("AGENTS" to mapOf("CREATE" to false)))
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.canEdit).isTrue()
+        assertThat(state.canOpenEditor).isFalse()
+    }
+
     @Test
     fun `duplicate needs AGENTS CREATE`() = runTest(testDispatcher) {
         coEvery { agentRepository.getAgentForEditing("agent-1") } returns Result.Success(agent)

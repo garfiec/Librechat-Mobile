@@ -57,6 +57,12 @@ data class AgentDetailUiState(
     val canDuplicate: Boolean get() = canEdit && canCreate
 
     /**
+     * Edit opens the editor, whose save (`PATCH /api/agents/:id`) needs AGENTS.CREATE as well as EDIT
+     * (upstream routes/agents/v1.js). Without CREATE every save would 403, so Edit isn't offered.
+     */
+    val canOpenEditor: Boolean get() = canEdit && canCreate
+
+    /**
      * The delete route needs AGENTS.CREATE and the agent's DELETE bit. Nothing reports DELETE on its
      * own, so EDIT stands in for it; a 403 still lands in the action-error snackbar.
      */

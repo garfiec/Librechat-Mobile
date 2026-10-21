@@ -61,6 +61,8 @@
 
 ## Index states
 - First load (and a chip change with nothing listed): placeholder cards, never the empty state.
+- Pull-to-refresh: placeholders only over the error page (the error is kept until the pull lands); over an
+  empty or no-matches answer that answer stays under the pull spinner, FAB and all.
 - A chip/search change with a list showing: the old list stays, dimmed, until the answer lands.
 - Empty server (All, no search): "No agents yet" + New agent (with CREATE; the FAB hides) or "Check back later".
 - Nothing under a chip or search: names what it looked in, with a way out (Search all agents keeps the search,
@@ -89,10 +91,11 @@
   time>" through the date-format setting, "Public" when `isPublic`), Model, Tools (plain labels, not chips),
   "Try asking" starter cards. Capped at 600dp wide, centred.
 - Categories are read once, only for an agent with a non-general category, so an admin's own label shows.
-- **Bar**: a star toggle (pin to the chat model menu), then ⋮ = Copy link, Edit (canEdit), Duplicate
-  (`canDuplicate`), Delete (`canDelete`). Both are `canEdit && canCreate` (AGENTS.CREATE): the duplicate route
-  needs EDIT on the source, the delete route needs CREATE plus a DELETE bit nothing reports (EDIT stands in;
-  a 403 is an action error). The VM no-ops either when its gate is false. While one runs, ⋮ is a spinner.
+- **Bar**: a star toggle (pin to the chat model menu), then ⋮ = Copy link, Edit (`canOpenEditor`), Duplicate
+  (`canDuplicate`), Delete (`canDelete`). All three are `canEdit && canCreate` (AGENTS.CREATE): the editor's save
+  (PATCH) and the duplicate route need CREATE plus EDIT on the agent, the delete route needs CREATE plus a DELETE
+  bit nothing reports (EDIT stands in; a 403 is an action error). The VM no-ops Duplicate or Delete when its
+  gate is false. While one runs, ⋮ is a spinner.
 - **Pin**: writes the WHOLE favorites list through `FavoritesRepository`, like `FavoritesDelegate.toggleAgent`
   in feature/chat. **Gotcha**: never toggle on a list that wasn't read: the VM refreshes on open and, if that
   failed, refreshes again before the first write; a failed read is an error, not a write of `[thisAgent]`.

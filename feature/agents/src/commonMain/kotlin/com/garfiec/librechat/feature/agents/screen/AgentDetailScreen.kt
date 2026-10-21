@@ -258,7 +258,7 @@ private fun agentBarActions(
     val delete = stringResource(Res.string.delete)
     val items = buildList {
         add(BarMenuItem(id = "copy_link", label = copyLink, icon = BarIcons.Link, onClick = onCopyLink))
-        if (uiState.canEdit) {
+        if (uiState.canOpenEditor) {
             add(BarMenuItem(id = "edit", label = edit, icon = BarIcons.EditFilled, onClick = { actions.onEdit(agentId) }))
         }
         if (uiState.canDuplicate) {
