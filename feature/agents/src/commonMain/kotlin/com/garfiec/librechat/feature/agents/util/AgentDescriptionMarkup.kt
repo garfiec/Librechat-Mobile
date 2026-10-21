@@ -11,13 +11,22 @@ internal val AGENT_DESCRIPTION_TAGS = setOf(
 )
 
 /**
- * Whether this description is HTML: its FIRST tag-shaped run (`<p>`, `</b>`, `<br/>`, comments
- * aside) names an allowlisted tag. "Reply with <name>" or "List<String>" starts with a tag the
- * web doesn't allow, so it is plain text and shown as written; "a < b" has no tag at all.
+ * The tags that make a description HTML: the allowlist plus `img`, as the web's
+ * `descriptionHtmlTags` (rich-text tags plus media tags). An `img` is never drawn here, as on the
+ * web's agent card and page; it only decides that the text is markup, which is then dropped.
+ */
+private val HTML_LEADING_TAGS = AGENT_DESCRIPTION_TAGS + "img"
+
+/**
+ * Whether this description is HTML: once trimmed, it STARTS with a tag (`<p>`, `</b>`, `< br/>`)
+ * that [HTML_LEADING_TAGS] names, as upstream `isHtmlDescription` (`client/src/components/ui/Description.tsx`)
+ * decides it. A tag further in ("Ask me about <b>pricing</b>"), a leading comment, or a leading
+ * tag the web doesn't allow ("Reply with <name>", "List<String>") leaves it plain text, shown as
+ * written.
  */
 internal fun String.isAgentDescriptionHtml(): Boolean {
-    val first = FIRST_TAG.find(COMMENT.replace(this, "")) ?: return false
-    return first.groupValues[1].lowercase() in AGENT_DESCRIPTION_TAGS
+    val first = LEADING_TAG.find(trim()) ?: return false
+    return first.groupValues[1].lowercase() in HTML_LEADING_TAGS
 }
 
 /**
@@ -29,6 +38,7 @@ internal fun String.agentDescriptionPreview(): String? {
     return text.takeIf { it.isNotEmpty() }
 }
 
-private val FIRST_TAG = Regex("</?([A-Za-z][A-Za-z0-9]*)[^>]*>")
-private val COMMENT = Regex("<!--[\\s\\S]*?-->")
+// Upstream: /^<\s*\/?\s*([a-z][a-z0-9]*)\b/i. The lookahead is JavaScript's ASCII `\b` after a tag
+// name; a Kotlin `\b` would also count a non-ASCII letter as part of the word.
+private val LEADING_TAG = Regex("^<\\s*/?\\s*([A-Za-z][A-Za-z0-9]*)(?![A-Za-z0-9_])")
 private val SPACES = Regex("[\\s\\u00A0]+")

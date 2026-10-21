@@ -12,13 +12,14 @@ import com.garfiec.librechat.core.common.extensions.decodeHtmlEntities
 /**
  * An agent description as styled text.
  *
- * Admins write some descriptions as HTML in the web editor. A description is HTML only when its
- * first tag is one the web allows ([isAgentDescriptionHtml]); anything else, `List<String>` and
- * `<name>` placeholders included, is plain text and comes back as written, newlines and all.
+ * Admins write some descriptions as HTML in the web editor. A description is HTML only when it
+ * starts with a tag the web allows ([isAgentDescriptionHtml]); anything else, `List<String>`,
+ * `<name>` placeholders and a tag mid-sentence included, is plain text and comes back as written,
+ * newlines and all.
  *
  * Of the markup, this renders the web's allowlist: bold, italic, code, links, line breaks,
- * paragraphs, divs and lists. Every other tag is dropped and its text kept, as the web's sanitiser
- * does; script and style lose their text too.
+ * paragraphs, divs and lists. Every other tag (`img` among them) is dropped and its text kept, as
+ * the web's sanitiser does; script and style lose their text too.
  *
  * Links are kept only for http(s), mailto and tel targets and for relative ones, which resolve
  * against [baseUrl] (the server) and stay plain text without one: the markup is somebody else's,

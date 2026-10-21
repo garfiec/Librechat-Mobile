@@ -1798,21 +1798,20 @@
         "file": "feature/agents/src/commonMain/kotlin/com/garfiec/librechat/feature/agents/util/AgentDescriptionMarkup.kt",
         "symbol": "AGENT_DESCRIPTION_TAGS / isAgentDescriptionHtml; HtmlDescription.kt safeHref and HtmlRenderer.tag"
       },
-      "why": "Which tags an agent description may use as HTML (a, strong, b, em, i, br, code, span, p, div, ul, ol, li) and which links survive (CONFIG_HTML_SAFE_URI: http(s), mailto, tel, or relative). A description is HTML only when its first tag is allowlisted (decisions C7); the card strips it with core/common HtmlText.kt htmlToPlainText.",
+      "why": "Which tags an agent description may use as HTML (a, strong, b, em, i, br, code, span, p, div, ul, ol, li) and which links survive (CONFIG_HTML_SAFE_URI: http(s), mailto, tel, or relative). Detection (a description is HTML only when it starts with an allowlisted tag, decisions C7) is the separate agent-description-html-detection entry; the card strips it with core/common HtmlText.kt htmlToPlainText.",
       "failure_mode": "Upstream widens or narrows the allowlist or the safe-URI rule, and the same description renders differently on the web and in the app: a tag the web styles shows as bare text, or a link the web drops becomes tappable here. Nothing errors."
     },
     {
       "id": "agent-description-html-detection",
       "upstream": {
-        "file": "client/src/components/Chat/Landing.tsx",
-        "symbol": "descriptionIsHTML",
-        "mode": "block"
+        "file": "client/src/components/ui/Description.tsx",
+        "mode": "file"
       },
       "kotlin": {
         "file": "feature/agents/src/commonMain/kotlin/com/garfiec/librechat/feature/agents/util/AgentDescriptionMarkup.kt",
         "symbol": "isAgentDescriptionHtml"
       },
-      "why": "How the web decides a description is HTML at all: the pinned upstream's chat landing calls `isHtmlDescription(description)`, which this client ports as the first-tag-allowlisted rule (decisions C7), so a plain description mentioning `List<String>` stays plain. Other upstream revisions use `description.trim().startsWith('<')` instead. Watched so a change to the web's rule is seen.",
+      "why": "How the web decides a description is HTML at all. The rule lives in Description.tsx: `isHtmlDescription` matches `^<\\s*\\/?\\s*([a-z][a-z0-9]*)\\b` on the trimmed text and checks the tag against `descriptionHtmlTags` (CONFIG_HTML_RICH_TEXT_TAGS plus CONFIG_HTML_MEDIA_TAGS, so `img` counts). This client ports it as `isAgentDescriptionHtml` (decisions C7): only a description that starts with such a tag is HTML, so `List<String>` or a tag mid-sentence stays plain. Other upstream revisions use `description.trim().startsWith('<')` instead. The whole file is watched so a change to the regex or the tag set is seen.",
       "failure_mode": "Upstream changes its detection, and a description the web shows as text renders as HTML here (placeholders vanish) or the reverse (markup shows raw). Nothing fails to decode."
     }
   ]

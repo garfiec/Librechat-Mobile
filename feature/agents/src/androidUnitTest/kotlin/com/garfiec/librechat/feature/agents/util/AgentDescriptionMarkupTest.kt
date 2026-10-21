@@ -3,15 +3,42 @@ package com.garfiec.librechat.feature.agents.util
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
-/** Decisions C7: a description is HTML only when its first tag is on the web's allowlist. */
+/** A description is HTML only when it starts with a tag the web allows (upstream `isHtmlDescription`). */
 class AgentDescriptionMarkupTest {
 
     @Test
-    fun `a first allowlisted tag makes it HTML`() {
+    fun `a leading allowlisted tag makes it HTML`() {
         assertThat("<p>Hi</p>".isAgentDescriptionHtml()).isTrue()
-        assertThat("Hello <b>there</b>".isAgentDescriptionHtml()).isTrue()
-        assertThat("One<BR/>Two".isAgentDescriptionHtml()).isTrue()
-        assertThat("<!-- note --><div>x</div>".isAgentDescriptionHtml()).isTrue()
+        assertThat("  \n<BR/>Two".isAgentDescriptionHtml()).isTrue()
+        assertThat("</b> stray close".isAgentDescriptionHtml()).isTrue()
+        assertThat("< span >spaced</span>".isAgentDescriptionHtml()).isTrue()
+    }
+
+    @Test
+    fun `a leading img makes it HTML, and the card drops the image`() {
+        val description = "<img src=\"/images/logo.png\"> Helps with billing"
+        assertThat(description.isAgentDescriptionHtml()).isTrue()
+        assertThat(description.agentDescriptionPreview()).isEqualTo("Helps with billing")
+    }
+
+    @Test
+    fun `text before the first tag keeps it plain`() {
+        assertThat("Hello <b>there</b>".isAgentDescriptionHtml()).isFalse()
+        assertThat("Tip: wrap snippets in <code> tags".isAgentDescriptionHtml()).isFalse()
+        assertThat("One<BR/>Two".isAgentDescriptionHtml()).isFalse()
+        assertThat("Ask me about <b>pricing</b>".agentDescriptionPreview()).isEqualTo("Ask me about <b>pricing</b>")
+    }
+
+    @Test
+    fun `a leading comment keeps it plain`() {
+        assertThat("<!-- note --><div>x</div>".isAgentDescriptionHtml()).isFalse()
+    }
+
+    @Test
+    fun `a tag name must end at a word boundary`() {
+        assertThat("<bold>x</bold>".isAgentDescriptionHtml()).isFalse()
+        assertThat("<b_x>y".isAgentDescriptionHtml()).isFalse()
+        assertThat("<b-x>y".isAgentDescriptionHtml()).isTrue()
     }
 
     @Test

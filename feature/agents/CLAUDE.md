@@ -78,10 +78,12 @@
 - **Header**: `InitialTile` (64dp), name (heading; `agent_unnamed` when null), contact line (support contact,
   else owner; a `Role.Button` that opens `mailto:` when there is an email), Top pick mark, category label via
   `agentCategoryLabel()` (shared with the cards; "general" has none). No "by <author>" byline.
-- **HTML descriptions** (decisions C7, mirror `agent-description-html`): a description is HTML only when its
-  FIRST tag is on `AGENT_DESCRIPTION_TAGS` (a, strong, b, em, i, br, code, span, p, div, ul, ol, li);
-  `List<String>` or `<name>` keeps it plain text, shown as written (upstream `isHtmlDescription` at the pinned v0.8.8;
-  other revisions use `startsWith('<')`). Other tags are dropped with their text kept. Links: http(s), mailto,
+- **HTML descriptions** (mirror `agent-description-html`): a description is HTML only when,
+  trimmed, it STARTS with a tag on `AGENT_DESCRIPTION_TAGS` (a, strong, b, em, i, br, code, span, p, div, ul, ol,
+  li) or `img`; a tag mid-sentence, a leading comment, `List<String>` or `<name>` keeps it plain text, shown as
+  written (upstream `isHtmlDescription` in `client/src/components/ui/Description.tsx` at the pinned v0.8.8, mirror
+  `agent-description-html-detection`; other revisions use `startsWith('<')`). Other tags, `img` included, are
+  dropped with their text kept, as on the web's agent card and page. Links: http(s), mailto,
   tel, or relative (resolved against the server URL, `AgentDetailDisplayData.linkBaseUrl`); anything else is text.
 - **Body**: Start chat, the description (`htmlDescriptionToAnnotatedString`), one facts line ("Updated <relative
   time>" through the date-format setting, "Public" when `isPublic`), Model, Tools (plain labels, not chips),

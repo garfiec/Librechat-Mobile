@@ -24,7 +24,7 @@ class HtmlDescriptionTest {
 
     @Test
     fun `bold and strong render bold`() {
-        val result = htmlDescriptionToAnnotatedString("Writes <b>read-only</b> and <strong>safe</strong> SQL")
+        val result = htmlDescriptionToAnnotatedString("<p>Writes <b>read-only</b> and <strong>safe</strong> SQL</p>")
         assertThat(result.text).isEqualTo("Writes read-only and safe SQL")
         val bold = result.spanStyles.filter { it.item.fontWeight == FontWeight.Bold }
         assertThat(bold.map { result.text.substring(it.start, it.end) }).containsExactly("read-only", "safe")
@@ -40,7 +40,7 @@ class HtmlDescriptionTest {
 
     @Test
     fun `an https link becomes a tappable url`() {
-        val html = "See <a href=\"https://docs.example.com/a?b=1&amp;c=2\">the docs</a>."
+        val html = "<span>See <a href=\"https://docs.example.com/a?b=1&amp;c=2\">the docs</a>.</span>"
         val result = htmlDescriptionToAnnotatedString(html)
         assertThat(result.text).isEqualTo("See the docs.")
         val links = result.getLinkAnnotations(0, result.length)
@@ -63,7 +63,7 @@ class HtmlDescriptionTest {
 
     @Test
     fun `br breaks a line and paragraphs leave one blank line`() {
-        assertThat(htmlDescriptionToAnnotatedString("One<br>Two<br/>Three").text).isEqualTo("One\nTwo\nThree")
+        assertThat(htmlDescriptionToAnnotatedString("<span>One<br>Two<br/>Three</span>").text).isEqualTo("One\nTwo\nThree")
         assertThat(htmlDescriptionToAnnotatedString("<p>First</p><p>Second</p>").text).isEqualTo("First\n\nSecond")
     }
 
@@ -75,7 +75,7 @@ class HtmlDescriptionTest {
 
     @Test
     fun `unordered and ordered lists get markers`() {
-        val bullets = htmlDescriptionToAnnotatedString("Can:<ul><li>Search</li><li>Summarise</li></ul>Done")
+        val bullets = htmlDescriptionToAnnotatedString("<span>Can:</span><ul><li>Search</li><li>Summarise</li></ul>Done")
         assertThat(bullets.text).isEqualTo("Can:\n• Search\n• Summarise\nDone")
 
         val numbered = htmlDescriptionToAnnotatedString("<ol><li>Ask</li><li> Wait </li></ol>")
@@ -108,11 +108,26 @@ class HtmlDescriptionTest {
         assertThat(htmlDescriptionToAnnotatedString(placeholders).spanStyles).isEmpty()
     }
 
+    /** Upstream matches the tag at the start of the trimmed text only, so markup mid-sentence is text. */
     @Test
-    fun `text whose first tag is allowlisted renders as HTML`() {
-        val result = htmlDescriptionToAnnotatedString("Intro <p>Writes <b>SQL</b></p>")
-        assertThat(result.text).isEqualTo("Intro\n\nWrites SQL")
+    fun `text before the first tag comes back verbatim`() {
+        val text = "Intro <p>Writes <b>SQL</b></p>"
+        val result = htmlDescriptionToAnnotatedString(text)
+        assertThat(result.text).isEqualTo(text)
+        assertThat(result.spanStyles).isEmpty()
+    }
+
+    @Test
+    fun `a leading img makes it HTML and the image is dropped`() {
+        val result = htmlDescriptionToAnnotatedString("<img src=\"/images/logo.png\" alt=\"Logo\"> Helps with <b>billing</b>")
+        assertThat(result.text).isEqualTo("Helps with billing")
         assertThat(result.spanStyles.filter { it.item.fontWeight == FontWeight.Bold }).hasSize(1)
+    }
+
+    @Test
+    fun `a leading comment keeps the description plain`() {
+        val text = "<!-- note --><div>x</div>"
+        assertThat(htmlDescriptionToAnnotatedString(text).text).isEqualTo(text)
     }
 
     @Test
