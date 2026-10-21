@@ -802,4 +802,6 @@
     <string name="prompt_permission_view_only">عرض فقط</string>
     <string name="prompt_permission_can_edit">يمكنه التعديل</string>
     <string name="prompt_preview_placeholder">أدخل قيم المتغيرات لرؤية المعاينة</string>
+    <string name="cd_sync_scroll_on">تتمرّر اللوحتان معًا. إلغاء الربط</string>
+    <string name="cd_sync_scroll_off">تتمرّر اللوحتان كلٌّ على حدة. ربط</string>
 </resources>

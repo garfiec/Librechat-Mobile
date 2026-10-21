@@ -762,4 +762,6 @@
     <string name="prompt_permission_view_only">閲覧のみ</string>
     <string name="prompt_permission_can_edit">編集可能</string>
     <string name="prompt_preview_placeholder">変数の値を入力するとプレビューが表示されます</string>
+    <string name="cd_sync_scroll_on">ペインは連動してスクロールします。連動を解除</string>
+    <string name="cd_sync_scroll_off">ペインは個別にスクロールします。連動させる</string>
 </resources>

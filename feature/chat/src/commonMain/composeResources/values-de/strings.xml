@@ -770,4 +770,6 @@
     <string name="prompt_permission_view_only">Nur ansehen</string>
     <string name="prompt_permission_can_edit">Darf bearbeiten</string>
     <string name="prompt_preview_placeholder">Variablenwerte eingeben, um die Vorschau zu sehen</string>
+    <string name="cd_sync_scroll_on">Bereiche scrollen gemeinsam. Trennen</string>
+    <string name="cd_sync_scroll_off">Bereiche scrollen getrennt. Verknüpfen</string>
 </resources>

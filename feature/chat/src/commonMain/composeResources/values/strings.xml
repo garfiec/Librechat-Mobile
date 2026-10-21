@@ -814,4 +814,6 @@
     <string name="prompt_permission_view_only">View only</string>
     <string name="prompt_permission_can_edit">Can edit</string>
     <string name="prompt_preview_placeholder">Enter variable values to see preview</string>
+    <string name="cd_sync_scroll_on">Panes scroll together. Unlink</string>
+    <string name="cd_sync_scroll_off">Panes scroll separately. Link</string>
 </resources>

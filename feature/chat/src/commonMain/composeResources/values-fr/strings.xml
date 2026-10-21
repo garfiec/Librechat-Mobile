@@ -777,4 +777,6 @@
     <string name="prompt_permission_view_only">Lecture seule</string>
     <string name="prompt_permission_can_edit">Peut modifier</string>
     <string name="prompt_preview_placeholder">Saisissez les valeurs des variables pour voir l’aperçu</string>
+    <string name="cd_sync_scroll_on">Les volets défilent ensemble. Dissocier</string>
+    <string name="cd_sync_scroll_off">Les volets défilent séparément. Associer</string>
 </resources>

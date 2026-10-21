@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.lazy.LazyListLayoutInfo
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -65,30 +66,29 @@ internal fun Modifier.tailFollowerTouch(state: TailFollowerState): Modifier = po
 /** Whether [listState] rests within [NEAR_BOTTOM_BUFFER] of its tail. */
 @Composable
 internal fun rememberIsNearBottom(listState: LazyListState): State<Boolean> {
-    val nearBottomThresholdPx = with(LocalDensity.current) { NEAR_BOTTOM_BUFFER.toPx() }
+    val nearBottomThresholdPx = rememberNearBottomThresholdPx()
     // Keyed on the threshold, which is derived from LocalDensity: a keyless remember holds the
     // first composition's pixel value while the layout numbers it is compared against stay live,
     // so the buffer is measured in stale units after a density or font-scale change.
     return remember(listState, nearBottomThresholdPx) {
-        derivedStateOf {
-            val info = listState.layoutInfo
-            val lastItem = info.visibleItemsInfo.lastOrNull()
-            val itemCount = info.totalItemsCount
-            if (lastItem == null || itemCount == 0) {
-                true
-            } else {
-                // Measured from the follower's OWN rest target, not from viewportEndOffset: that
-                // baseline sits a whole bottom reserve below where the list can actually rest
-                // (composer height plus the reading gap — 184dp at the floor, more once queued
-                // ghost rows stack). Measure from it and the effective slack becomes
-                // [NEAR_BOTTOM_BUFFER] PLUS that reserve, so the pin re-grabs the list after a
-                // scroll-up of a quarter screen.
-                val restOffset = info.viewportEndOffset - info.afterContentPadding
-                lastItem.index >= itemCount - 2 &&
-                    (lastItem.offset + lastItem.size - restOffset) < nearBottomThresholdPx
-            }
-        }
+        derivedStateOf { listState.layoutInfo.restsNearTail(nearBottomThresholdPx) }
     }
+}
+
+@Composable
+internal fun rememberNearBottomThresholdPx(): Float = with(LocalDensity.current) { NEAR_BOTTOM_BUFFER.toPx() }
+
+internal fun LazyListLayoutInfo.restsNearTail(thresholdPx: Float): Boolean {
+    val lastItem = visibleItemsInfo.lastOrNull()
+    if (lastItem == null || totalItemsCount == 0) return true
+    // Measured from the follower's OWN rest target, not from viewportEndOffset: that baseline sits
+    // a whole bottom reserve below where the list can actually rest (composer height plus the
+    // reading gap — 184dp at the floor, more once queued ghost rows stack). Measure from it and the
+    // effective slack becomes [NEAR_BOTTOM_BUFFER] PLUS that reserve, so the pin re-grabs the list
+    // after a scroll-up of a quarter screen.
+    val restOffset = viewportEndOffset - afterContentPadding
+    return lastItem.index >= totalItemsCount - 2 &&
+        (lastItem.offset + lastItem.size - restOffset) < thresholdPx
 }
 
 /**
@@ -98,7 +98,8 @@ internal fun rememberIsNearBottom(listState: LazyListState): State<Boolean> {
  * 2. STREAMING FOLLOW — ONE per-frame follower runs for the whole run, easing a fraction of the
  *    remaining distance-to-bottom each frame from live layout. It is deliberately NOT driven off
  *    the streamed text. It yields to the user on a finger-down (isTouching), once the scroll-away
- *    latch is set, or while [holdFollow] is true; see the loop itself for the invariants it rests on.
+ *    latch is set, or while [holdFollow] or [syncHold] is true; see the loop itself for the
+ *    invariants it rests on.
  * 3. POST-STREAMING — When streaming ends, a brief layout-settle, then scroll to show the
  *    complete response unless the user scrolled away.
  */
@@ -109,11 +110,18 @@ internal fun TailFollowEffects(
     isNearBottom: State<Boolean>,
     isStreaming: Boolean,
     holdFollow: Boolean = false,
+    /**
+     * Compare's scroll sync is holding this list level with the other pane. Unlike [holdFollow],
+     * the scrolls it makes are the sync's, not the user's, so none of them latch scroll-away: when
+     * the hold lifts the list follows its tail again.
+     */
+    syncHold: Boolean = false,
 ) {
     // Read through updated state, not the captured parameter: the follower below runs for a whole
     // run inside one LaunchedEffect, so a plain capture would keep reporting whatever was true on
     // the frame the run started.
     val currentHoldFollow by rememberUpdatedState(holdFollow)
+    val currentSyncHold by rememberUpdatedState(syncHold)
 
     // Detect user scroll-away: when the user drags or flings away from the bottom, set the flag.
     // When they return to the bottom (manually or via FAB), clear it.
@@ -126,7 +134,7 @@ internal fun TailFollowEffects(
     // included, so gesture latching loses nothing without the touch term.
     LaunchedEffect(listState, state) {
         snapshotFlow {
-            (listState.isScrollInProgress && !state.programmaticScroll) to isNearBottom.value
+            (listState.isScrollInProgress && !state.programmaticScroll && !currentSyncHold) to isNearBottom.value
         }
             .collect { (userIsScrolling, nearBottom) ->
                 if (userIsScrolling && !nearBottom) {
@@ -163,7 +171,7 @@ internal fun TailFollowEffects(
                     // loop pinning the tail every frame while the one thing it exists to follow —
                     // output — has stopped, and a follower still running would undo every scroll
                     // the instant the user's finger lifts.
-                    if (state.isTouching || state.userScrolledUp || currentHoldFollow) {
+                    if (state.isTouching || state.userScrolledUp || currentHoldFollow || currentSyncHold) {
                         state.programmaticScroll = false
                         continue
                     }

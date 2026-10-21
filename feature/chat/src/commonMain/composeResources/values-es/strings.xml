@@ -777,4 +777,6 @@
     <string name="prompt_permission_view_only">Solo ver</string>
     <string name="prompt_permission_can_edit">Puede editar</string>
     <string name="prompt_preview_placeholder">Introduce valores para las variables y verás la vista previa</string>
+    <string name="cd_sync_scroll_on">Los paneles se desplazan juntos. Desvincular</string>
+    <string name="cd_sync_scroll_off">Los paneles se desplazan por separado. Vincular</string>
 </resources>

@@ -160,6 +160,8 @@ fun MessageList(
      * and Compare's pane A), so the swap keeps the reader's place.
      */
     listState: LazyListState = rememberLazyListState(),
+    /** Compare's scroll sync is holding this pane level with the other; its tail follower stands down. */
+    syncHold: Boolean = false,
 ) {
     val coroutineScope = rememberCoroutineScope()
     val follower = rememberTailFollowerState()
@@ -368,6 +370,7 @@ fun MessageList(
         // A run paused for human review holds the follower: the marker is brought into view
         // once by its own effect above, and after that the list is the user's.
         holdFollow = pendingAction != null,
+        syncHold = syncHold,
     )
 
     // ── Keyboard scroll ────────────────────────────────────────────

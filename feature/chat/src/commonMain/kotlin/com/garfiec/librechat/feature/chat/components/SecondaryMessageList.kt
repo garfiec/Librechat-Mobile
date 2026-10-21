@@ -60,6 +60,8 @@ fun SecondaryMessageList(
     userName: String? = null,
     /** Hoisted by Compare so the pane keeps its place across layout switches. */
     listState: LazyListState = rememberLazyListState(),
+    /** Compare's scroll sync is holding this pane level with the other; its tail follower stands down. */
+    syncHold: Boolean = false,
 ) {
     val follower = rememberTailFollowerState()
     val isNearBottom = rememberIsNearBottom(listState)
@@ -88,6 +90,7 @@ fun SecondaryMessageList(
         state = follower,
         isNearBottom = isNearBottom,
         isStreaming = isStreaming,
+        syncHold = syncHold,
     )
 
     Box(modifier = modifier.fillMaxSize()) {

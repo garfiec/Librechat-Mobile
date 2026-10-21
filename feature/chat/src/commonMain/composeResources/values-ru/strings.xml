@@ -786,4 +786,6 @@
     <string name="prompt_permission_view_only">Только просмотр</string>
     <string name="prompt_permission_can_edit">Может редактировать</string>
     <string name="prompt_preview_placeholder">Введите значения переменных, чтобы увидеть предпросмотр</string>
+    <string name="cd_sync_scroll_on">Панели прокручиваются вместе. Отвязать</string>
+    <string name="cd_sync_scroll_off">Панели прокручиваются по отдельности. Связать</string>
 </resources>

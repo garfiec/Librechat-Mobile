@@ -51,6 +51,7 @@ class AppPreferencesTest {
             "prefetch_on_metered" to everyChannel(true),
             "prefetch_depth" to everyChannel(50),
             "advanced_search" to everyChannel(false),
+            "compare_sync_scroll" to everyChannel(true),
         )
         assertEquals(expected, actual)
     }

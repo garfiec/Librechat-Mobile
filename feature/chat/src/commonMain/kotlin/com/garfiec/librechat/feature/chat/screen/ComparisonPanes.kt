@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.remember
@@ -14,11 +15,14 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.feature.chat.components.ComparisonDualPane
 import com.garfiec.librechat.feature.chat.components.ComparisonLane
+import com.garfiec.librechat.feature.chat.components.ComparisonPane
 import com.garfiec.librechat.feature.chat.components.ComparisonPaneEmpty
 import com.garfiec.librechat.feature.chat.components.ComparisonPaneModelSelector
 import com.garfiec.librechat.feature.chat.components.ComparisonTabBar
 import com.garfiec.librechat.feature.chat.components.MessageList
 import com.garfiec.librechat.feature.chat.components.SecondaryMessageList
+import com.garfiec.librechat.feature.chat.components.comparisonSyncLead
+import com.garfiec.librechat.feature.chat.components.rememberComparisonScrollSync
 import com.garfiec.librechat.feature.chat.util.buildComparisonDisplayMessages
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
@@ -129,6 +133,18 @@ internal fun ComparisonPanes(
         )
     }
 
+    // Side by side, the two lists scroll together while both have something to show.
+    val settingUp = comparisonState.isSettingUp
+    val syncScrollPreferred by viewModel.compareSyncScroll.collectAsState()
+    val scrollSync = rememberComparisonScrollSync(
+        primary = primaryListState,
+        secondary = secondaryListState,
+        enabled = wide && !settingUp && syncScrollPreferred &&
+            primaryDisplayMessages.isNotEmpty() && secondaryDisplayMessages.isNotEmpty(),
+        isStreaming = uiState.isStreaming || comparisonState.primaryIsStreaming || comparisonState.secondaryIsStreaming,
+    )
+    val syncHold = scrollSync.holdingTails
+
     // Side by side, the cards themselves end above the composer, so a list inside one needs only
     // a little room at its foot; the tab pager's lists run under the composer and need all of it.
     val listBottomPadding = if (wide) PaneListBottomPadding else bottomContentPadding
@@ -194,6 +210,7 @@ internal fun ComparisonPanes(
                 bottomContentPadding = listBottomPadding,
                 // The comparison container is already padded clear of the floating bar.
                 topContentPadding = 0.dp,
+                syncHold = syncHold,
                 modifier = Modifier.fillMaxSize(),
             )
         }
@@ -229,6 +246,7 @@ internal fun ComparisonPanes(
                 userAvatarUrl = uiState.userAvatarUrl,
                 userName = uiState.userName,
                 listState = secondaryListState,
+                syncHold = syncHold,
                 modifier = Modifier.fillMaxSize(),
             )
         }
@@ -246,7 +264,6 @@ internal fun ComparisonPanes(
     }
 
     // Setup only reaches here on a wide chat (a narrow one sets up in a sheet over its own screen).
-    val settingUp = comparisonState.isSettingUp
     Box(modifier = modifier) {
         if (wide && settingUp) {
             CompareSetupPanes(
@@ -283,11 +300,19 @@ internal fun ComparisonPanes(
                         onClick = onShowSecondaryModelSheet,
                     )
                 },
-                primaryContent = primaryMessageList,
-                secondaryContent = secondaryMessageList,
+                // The lead goes to whichever pane a finger lands on; outside the movable content so
+                // pane A's list itself is untouched.
+                primaryContent = {
+                    Box(Modifier.fillMaxSize().comparisonSyncLead(scrollSync, ComparisonPane.A)) { primaryMessageList() }
+                },
+                secondaryContent = {
+                    Box(Modifier.fillMaxSize().comparisonSyncLead(scrollSync, ComparisonPane.B)) { secondaryMessageList() }
+                },
                 bottomInset = paneBottomInset,
                 onContinueWithPrimary = onContinuePrimary,
                 onContinueWithSecondary = onContinueSecondary,
+                syncScroll = syncScrollPreferred,
+                onSyncScrollChange = viewModel::setCompareSyncScroll,
                 modifier = Modifier.fillMaxSize(),
             )
         } else {

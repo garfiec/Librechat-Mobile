@@ -1089,6 +1089,14 @@ class ChatViewModel(
         viewModelScope.launch { preferenceStore.set(AppPreferences.SiteIcons, show) }
     }
 
+    /** Whether Compare's side-by-side panes scroll together (see [AppPreferences.CompareSyncScroll]). */
+    val compareSyncScroll: StateFlow<Boolean> = preferenceStore.observe(AppPreferences.CompareSyncScroll)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, preferenceStore.initial(AppPreferences.CompareSyncScroll))
+
+    fun setCompareSyncScroll(enabled: Boolean) {
+        viewModelScope.launch { preferenceStore.set(AppPreferences.CompareSyncScroll, enabled) }
+    }
+
     /** The website-icons prompt was closed without a choice: stay quiet until the next launch. */
     fun dismissSiteIconPrompt() = siteIconPromptSession.dismiss()
 

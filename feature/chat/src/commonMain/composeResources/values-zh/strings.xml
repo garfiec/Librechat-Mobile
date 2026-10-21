@@ -762,4 +762,6 @@
     <string name="prompt_permission_view_only">仅查看</string>
     <string name="prompt_permission_can_edit">可编辑</string>
     <string name="prompt_preview_placeholder">输入变量值以查看预览</string>
+    <string name="cd_sync_scroll_on">窗格同步滚动。取消关联</string>
+    <string name="cd_sync_scroll_off">窗格各自滚动。关联</string>
 </resources>

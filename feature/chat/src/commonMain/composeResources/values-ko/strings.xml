@@ -762,4 +762,6 @@
     <string name="prompt_permission_view_only">보기만 가능</string>
     <string name="prompt_permission_can_edit">편집 가능</string>
     <string name="prompt_preview_placeholder">변수 값을 입력하면 미리보기가 표시됩니다</string>
+    <string name="cd_sync_scroll_on">창이 함께 스크롤됩니다. 연결 해제</string>
+    <string name="cd_sync_scroll_off">창이 따로 스크롤됩니다. 연결</string>
 </resources>

@@ -47,6 +47,20 @@ object AppPreferences {
      */
     val AdvancedSearch = boolPreference("advanced_search", default = always(false))
 
+    /**
+     * Whether Compare's side-by-side panes scroll together, each at the rate that keeps their
+     * corresponding parts level. Toggled from the link between the panes.
+     */
+    val CompareSyncScroll = boolPreference("compare_sync_scroll", default = always(true))
+
     val all: List<PreferenceSpec<*, *>> =
-        listOf(SiteIcons, PrefetchEnabled, PrefetchAttachments, PrefetchOnMetered, PrefetchDepthSetting, AdvancedSearch)
+        listOf(
+            SiteIcons,
+            PrefetchEnabled,
+            PrefetchAttachments,
+            PrefetchOnMetered,
+            PrefetchDepthSetting,
+            AdvancedSearch,
+            CompareSyncScroll,
+        )
 }
