@@ -64,16 +64,6 @@ interface ShareRepository {
     suspend fun deleteShareLink(shareId: String): Result<Unit>
 
     /**
-     * The URL of the conversation's share link, minting one only when no live link exists.
-     *
-     * The server refuses a second link while the first is unexpired (409 `SHARE_EXISTS`), which
-     * is exactly when a user re-sharing a chat wants the link back, so this looks up first, as the
-     * web client does, and treats a 409 on create as "look it up again".
-     */
-    // Kept for the chat and conversation-list Share actions until they open the share sheet.
-    suspend fun getOrCreateShareLink(conversationId: String): Result<String>
-
-    /**
      * One page of the user's links. A [cursor] belongs to the [sort] and [search] that produced
      * it; the server 400s a cursor from another sort, so a change of either starts from null.
      * [search] is trimmed and cut to [com.garfiec.librechat.core.model.share.MAX_SHARED_LINK_SEARCH_LENGTH].

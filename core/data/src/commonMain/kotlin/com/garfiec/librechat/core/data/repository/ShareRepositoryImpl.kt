@@ -6,7 +6,6 @@ import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.apiCallCatching
 import com.garfiec.librechat.core.common.result.safeApiCall
-import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.common.result.toSafeError
 import com.garfiec.librechat.core.model.SharedLink
 import com.garfiec.librechat.core.model.request.UpdateShareRequest
@@ -76,19 +75,6 @@ class ShareRepositoryImpl(
             // lookup failed): the server's refusal is the answer, so hand that link back.
             shareApi.getShareLink(conversationId).liveShareId() ?: throw e
         }
-
-    override suspend fun getOrCreateShareLink(conversationId: String): Result<String> {
-        var created = false
-        val result = safeApiCall {
-            // Best effort: a failed lookup falls through to create, whose own 409 says if a link
-            // exists after all.
-            val existing = suspendRunCatching { shareApi.getShareLink(conversationId) }.getOrNull()
-            existing?.liveShareId()?.let { return@safeApiCall shareUrl(it) }
-            created = true
-            shareUrl(createOrAdopt(conversationId, targetMessageId = null, snapshotFiles = null))
-        }
-        return if (created) result.bumpOnSuccess() else result
-    }
 
     private fun ShareLinkLookup.liveShareId(): String? = shareId?.takeIf { success }
 

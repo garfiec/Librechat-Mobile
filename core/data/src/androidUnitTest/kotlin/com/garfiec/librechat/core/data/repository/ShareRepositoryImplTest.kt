@@ -22,9 +22,9 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
 /**
- * Re-sharing a chat hands back its live link instead of the server's 409: the lookup comes first,
- * and a conflict on create is read as "it exists after all". Updates always carry the file choice,
- * a delete of a link that is already gone succeeds, and every change bumps the revision.
+ * A create that the server refuses as a duplicate (409) hands back the live link: the conflict is
+ * read as "it exists after all". Updates always carry the file choice, a delete of a link that is
+ * already gone succeeds, and every change bumps the revision.
  */
 class ShareRepositoryImplTest {
 
@@ -48,57 +48,26 @@ class ShareRepositoryImplTest {
     private val notFound = ApiException(statusCode = 404, message = "Not found")
 
     @Test
-    fun `an existing live link is returned without creating another`() = runTest {
-        coEvery { shareApi.getShareLink("convo") } returns liveLink
+    fun `a create conflict with no link to show is still an error`() = runTest {
+        coEvery { shareApi.createShareLink("convo", null, true) } throws conflict
+        coEvery { shareApi.getShareLink("convo") } returns noLink
 
-        val result = repository.getOrCreateShareLink("convo") as Result.Success
+        val result = repository.createShareLink("convo", targetMessageId = null, snapshotFiles = true)
 
-        assertThat(result.data).isEqualTo("https://chat.example.com/share/existing")
-        coVerify(exactly = 0) { shareApi.createShareLink(any(), any(), any()) }
+        assertThat(result).isInstanceOf(Result.Error::class.java)
+        assertThat((result as Result.Error).message).isEqualTo("Share already exists")
         assertThat(changes.revision.value).isEqualTo(0)
     }
 
     @Test
-    fun `no live link creates one`() = runTest {
-        coEvery { shareApi.getShareLink("convo") } returns noLink
-        coEvery { shareApi.createShareLink("convo") } returns SharedLink(conversationId = "convo", shareId = "fresh")
-
-        val result = repository.getOrCreateShareLink("convo") as Result.Success
-
-        assertThat(result.data).isEqualTo("https://chat.example.com/share/fresh")
-        assertThat(changes.revision.value).isEqualTo(1)
-    }
-
-    @Test
-    fun `a failed lookup still creates, and a conflict then falls back to the lookup`() = runTest {
-        coEvery { shareApi.getShareLink("convo") } throws IllegalStateException("lookup down") andThen liveLink
-        coEvery { shareApi.createShareLink("convo") } throws conflict
-
-        val result = repository.getOrCreateShareLink("convo") as Result.Success
-
-        assertThat(result.data).isEqualTo("https://chat.example.com/share/existing")
-    }
-
-    @Test
-    fun `a conflict with no link to show is still an error`() = runTest {
-        coEvery { shareApi.getShareLink("convo") } returns noLink
-        coEvery { shareApi.createShareLink("convo") } throws conflict
-
-        val result = repository.getOrCreateShareLink("convo")
-
-        assertThat(result).isInstanceOf(Result.Error::class.java)
-        assertThat((result as Result.Error).message).isEqualTo("Share already exists")
-    }
-
-    @Test
     fun `other create failures are not retried as lookups`() = runTest {
-        coEvery { shareApi.getShareLink("convo") } returns noLink
-        coEvery { shareApi.createShareLink("convo") } throws ApiException(statusCode = 403, message = "Forbidden")
+        coEvery { shareApi.createShareLink("convo", null, true) } throws
+            ApiException(statusCode = 403, message = "Forbidden")
 
-        val result = repository.getOrCreateShareLink("convo")
+        val result = repository.createShareLink("convo", targetMessageId = null, snapshotFiles = true)
 
         assertThat(result).isInstanceOf(Result.Error::class.java)
-        coVerify(exactly = 1) { shareApi.getShareLink("convo") }
+        coVerify(exactly = 0) { shareApi.getShareLink("convo") }
     }
 
     @Test
