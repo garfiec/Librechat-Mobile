@@ -35,11 +35,9 @@ fun LibreChatNavHost(
     modifier: Modifier = Modifier,
     deepLinkUri: Uri? = null,
     onDeepLinkConsume: () -> Unit = {},
-    /** A `/share/` link handed to the app, waiting to be routed; see [routeSharedInLink]. */
-    sharedInLink: SharedInLink? = null,
+    /** Shared-in text that is exactly one `/share/` link; see [routeSharedInLink]. */
+    sharedLinkText: String? = null,
     onSharedLinkConsume: () -> Unit = {},
-    /** Opens a link in a browser, never back in this app. */
-    openInBrowser: (String) -> Unit = {},
     appLocaleTag: String? = null,
 ) {
     // Resolve the pending link once (both the auth-suppression flag and the handler below use it).
@@ -94,14 +92,12 @@ fun LibreChatNavHost(
             currentOnDeepLinkConsume()
         }
 
-        // A `/share/` link shared in or opened with the app: the viewer when a signed-in account is
-        // on its server (after a switch the user agrees to, for another account); otherwise shared
-        // text goes to the composer and an opened link to the browser.
+        // A shared-in `/share/` link: the viewer when a signed-in account is on its server (after a
+        // switch the user agrees to, for another account), the composer otherwise, as any shared text.
         val currentOnSharedLinkConsume by rememberUpdatedState(onSharedLinkConsume)
-        val currentOpenInBrowser by rememberUpdatedState(openInBrowser)
-        LaunchedEffect(sharedInLink) {
-            val link = sharedInLink ?: return@LaunchedEffect
-            routeSharedInLink(link, navigator, navHostViewModel, currentOpenInBrowser)
+        LaunchedEffect(sharedLinkText) {
+            val text = sharedLinkText ?: return@LaunchedEffect
+            routeSharedInLink(text, navigator, navHostViewModel)
             currentOnSharedLinkConsume()
         }
 
@@ -149,30 +145,14 @@ fun LibreChatNavHost(
 }
 
 /**
- * A `/share/` link handed to the app from outside: [text] shared to it (ACTION_SEND), or a link
- * opened with it ([openedWith], ACTION_VIEW from the "Open with" filter).
+ * Routes [text], a shared-in `/share/` link: the in-app viewer on the active account, an offer to
+ * switch for another signed-in account's link, and the composer (as any other shared text) for a
+ * link no signed-in account can open.
  */
-data class SharedInLink(val text: String, val openedWith: Boolean)
-
-/**
- * Routes [link]: the in-app viewer on the active account, an offer to switch for another signed-in
- * account's link. A link no signed-in account can open goes where it would have gone without the
- * app: shared text to the composer, as any other shared text; an opened link to the browser.
- */
-private suspend fun routeSharedInLink(
-    link: SharedInLink,
-    navigator: Navigator,
-    navHostViewModel: NavHostViewModel,
-    openInBrowser: (String) -> Unit,
-) {
-    val url = link.text.trim()
-    when (val route = navHostViewModel.routeSharedLink(url)) {
+private suspend fun routeSharedInLink(text: String, navigator: Navigator, navHostViewModel: NavHostViewModel) {
+    when (val route = navHostViewModel.routeSharedLink(text.trim())) {
         is SharedLinkRoute.Open -> navigator.navigateToSharedChat(route.shareId)
         is SharedLinkRoute.OfferSwitch -> navHostViewModel.offerSharedLinkSwitch(route)
-        SharedLinkRoute.NotOurs -> if (link.openedWith) {
-            openInBrowser(url)
-        } else {
-            ShareIntentConsumer.setPendingShare(SharedContent(text = link.text))
-        }
+        SharedLinkRoute.NotOurs -> ShareIntentConsumer.setPendingShare(SharedContent(text = text))
     }
 }

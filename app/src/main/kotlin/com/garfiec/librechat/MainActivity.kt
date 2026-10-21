@@ -26,17 +26,14 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
@@ -58,10 +55,7 @@ import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
 import com.garfiec.librechat.feature.chat.ShareIntentConsumer
 import com.garfiec.librechat.feature.chat.SharedContent
-import com.garfiec.librechat.navigation.BrowserFirstUriHandler
-import com.garfiec.librechat.navigation.ExternalBrowser
 import com.garfiec.librechat.navigation.LibreChatNavHost
-import com.garfiec.librechat.navigation.SharedInLink
 import com.garfiec.librechat.navigation.toDeepLinkUri
 import com.garfiec.librechat.shared.navigation.AppShortcuts
 import com.garfiec.librechat.shared.navigation.DeepLinkResolution
@@ -73,7 +67,6 @@ import org.koin.android.ext.android.inject
 
 private const val KEY_PENDING_DEEP_LINK = "pending_deep_link"
 private const val KEY_PENDING_SHARED_LINK = "pending_shared_link"
-private const val KEY_PENDING_SHARED_LINK_OPENED = "pending_shared_link_opened"
 
 class MainActivity : ComponentActivity() {
 
@@ -84,8 +77,8 @@ class MainActivity : ComponentActivity() {
 
     private var deepLinkUri by mutableStateOf<Uri?>(null)
 
-    /** A `/share/` link shared in or opened with the app, waiting for the nav host to route it. */
-    private var sharedInLink by mutableStateOf<SharedInLink?>(null)
+    /** Shared-in text that is exactly one `/share/` link, waiting for the nav host to route it. */
+    private var sharedLinkText by mutableStateOf<String?>(null)
 
     @Suppress("LongMethod") // debt: 101 lines
     @OptIn(ExperimentalComposeUiApi::class)
@@ -103,9 +96,7 @@ class MainActivity : ComponentActivity() {
             handleIntent(intent)
         } else {
             deepLinkUri = savedInstanceState.getString(KEY_PENDING_DEEP_LINK)?.toUri()
-            sharedInLink = savedInstanceState.getString(KEY_PENDING_SHARED_LINK)?.let { text ->
-                SharedInLink(text, openedWith = savedInstanceState.getBoolean(KEY_PENDING_SHARED_LINK_OPENED))
-            }
+            sharedLinkText = savedInstanceState.getString(KEY_PENDING_SHARED_LINK)
         }
 
         // Keep home-screen model shortcuts in sync with the account's most-used models. The flow
@@ -198,30 +189,22 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
                             }
-                            // `/share/` links the app hands back go to a browser, never back here.
-                            val platformUriHandler = LocalUriHandler.current
-                            val uriHandler = remember(platformUriHandler) {
-                                BrowserFirstUriHandler(platformUriHandler, ::openInBrowser)
-                            }
-                            CompositionLocalProvider(LocalUriHandler provides uriHandler) {
-                                LibreChatNavHost(
-                                    deepLinkUri = deepLinkUri,
-                                    onDeepLinkConsume = { deepLinkUri = null },
-                                    sharedInLink = sharedInLink,
-                                    onSharedLinkConsume = { sharedInLink = null },
-                                    openInBrowser = ::openInBrowser,
-                                    appLocaleTag = appLocale,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .then(
-                                            if (!isConnected) {
-                                                Modifier.consumeWindowInsets(WindowInsets.statusBars)
-                                            } else {
-                                                Modifier
-                                            },
-                                        ),
-                                )
-                            }
+                            LibreChatNavHost(
+                                deepLinkUri = deepLinkUri,
+                                onDeepLinkConsume = { deepLinkUri = null },
+                                sharedLinkText = sharedLinkText,
+                                onSharedLinkConsume = { sharedLinkText = null },
+                                appLocaleTag = appLocale,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .then(
+                                        if (!isConnected) {
+                                            Modifier.consumeWindowInsets(WindowInsets.statusBars)
+                                        } else {
+                                            Modifier
+                                        },
+                                    ),
+                            )
                         }
                     }
                 }
@@ -234,10 +217,7 @@ class MainActivity : ComponentActivity() {
         // Preserve a link that hasn't been placed on the back stack yet, so a recreation during the
         // warm-up gate doesn't drop it (restored in onCreate). A consumed link is already null.
         deepLinkUri?.let { outState.putString(KEY_PENDING_DEEP_LINK, it.toString()) }
-        sharedInLink?.let {
-            outState.putString(KEY_PENDING_SHARED_LINK, it.text)
-            outState.putBoolean(KEY_PENDING_SHARED_LINK_OPENED, it.openedWith)
-        }
+        sharedLinkText?.let { outState.putString(KEY_PENDING_SHARED_LINK, it) }
     }
 
     // Ctrl/⌘+Shift+F is caught here, before Compose, which misses it while nothing holds focus (see AppShortcuts).
@@ -269,12 +249,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleDeepLink(intent: Intent) {
-        val data = intent.data
-        if (intent.action == Intent.ACTION_VIEW && (data?.scheme == "https" || data?.scheme == "http")) {
-            handleOpenedLink(data.toString())
-            return
-        }
-        data?.let { uri ->
+        intent.data?.let { uri ->
             if (uri.scheme != DeepLinks.SCHEME) return@let
             // Same resolver the nav host uses — the accept decision and the routing decision can't
             // drift because they're one source of truth. Anything it doesn't route is dropped here.
@@ -285,24 +260,6 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
-    /**
-     * A web link opened with the app through the unverified "Open with" filter on `/share/` paths.
-     * The nav host opens it in the viewer when a signed-in account is on its server, and hands it to
-     * the browser otherwise, as tapping it would have without the app.
-     */
-    private fun handleOpenedLink(url: String) {
-        if (ShareLinkMatcher.parse(url) != null) {
-            Logger.d { "Opened with: a shared-chat link" }
-            sharedInLink = SharedInLink(url, openedWith = true)
-        } else {
-            // The filter's path glob is looser than a shared-chat link (a `/share/` segment with
-            // more after it): this one was never ours.
-            openInBrowser(url)
-        }
-    }
-
-    private fun openInBrowser(url: String) = ExternalBrowser.open(this, url)
 
     private fun handleShareIntent(intent: Intent) {
         val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
@@ -318,10 +275,11 @@ class MainActivity : ComponentActivity() {
 
         // Text that is exactly one shared-chat link may open the in-app viewer; the nav host decides,
         // since only it can tell whether a signed-in account is on that server, and sends anything
-        // it can't open to the composer as before. Links opened with the app: [handleOpenedLink].
+        // it can't open to the composer as before. Share-to only: the app has no ACTION_VIEW filter
+        // for web links.
         if (sharedText != null && fileUris.isEmpty() && ShareLinkMatcher.parse(sharedText) != null) {
             Logger.d { "Share intent received: a shared-chat link" }
-            sharedInLink = SharedInLink(sharedText, openedWith = false)
+            sharedLinkText = sharedText
             return
         }
 
