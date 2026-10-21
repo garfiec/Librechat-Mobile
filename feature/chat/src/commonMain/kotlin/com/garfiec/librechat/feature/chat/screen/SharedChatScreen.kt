@@ -1,9 +1,13 @@
 package com.garfiec.librechat.feature.chat.screen
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AddComment
 import androidx.compose.material.icons.outlined.Block
@@ -427,17 +431,26 @@ private fun SharedChatErrorState(error: SharedChatError, blockedMessage: String?
         SharedChatError.NETWORK, SharedChatError.GENERIC ->
             Triple(stringResource(Res.string.shared_chat_load_failed), null, Icons.Outlined.CloudOff)
     }
-    EmptyState(
-        title = title,
-        description = description,
-        icon = icon,
-        // Access and the content filter are the server's answer; asking again won't change it.
-        action = if (error == SharedChatError.NO_ACCESS || error == SharedChatError.BLOCKED) {
-            null
-        } else {
-            { AdaptiveOutlinedButton(onClick = onRetry) { Text(stringResource(Res.string.retry)) } }
-        },
-    )
+    // A filter's own explanation can run to several sentences: a gutter keeps it off the screen
+    // edges, and the page scrolls once it outgrows a short screen, still centred until it does.
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val viewportHeight = maxHeight
+        EmptyState(
+            title = title,
+            description = description,
+            icon = icon,
+            // Access and the content filter are the server's answer; asking again won't change it.
+            action = if (error == SharedChatError.NO_ACCESS || error == SharedChatError.BLOCKED) {
+                null
+            } else {
+                { AdaptiveOutlinedButton(onClick = onRetry) { Text(stringResource(Res.string.retry)) } }
+            },
+            modifier = Modifier
+                .verticalScroll(rememberScrollState())
+                .heightIn(min = viewportHeight)
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+        )
+    }
 }
 
 @Composable

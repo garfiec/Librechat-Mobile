@@ -117,6 +117,22 @@ private fun BlockedGlassPreview() = ViewerPreview(
     failed(SharedChatError.BLOCKED).copy(blockedMessage = "Message 4 matched the policy \"no internal hostnames\"."),
 )
 
+/** A filter's own explanation can run to several sentences: it keeps a gutter and scrolls. */
+private val blockedLong = failed(SharedChatError.BLOCKED).copy(
+    blockedMessage = "Sharing was blocked by your organisation's content policy. Message 4 contains an internal " +
+        "hostname and message 9 an access token, and both rules apply to shared links as well as exports. " +
+        "Remove or redact those messages, then ask the owner to update the link. If you believe this is a " +
+        "mistake, contact your administrator and quote reference 7f3c-2291.",
+)
+
+@PreviewNarrowScreens
+@Composable
+private fun BlockedLongMaterialPreview() = ViewerPreview(UiStyle.MATERIAL, blockedLong)
+
+@PreviewNarrowScreens
+@Composable
+private fun BlockedLongGlassPreview() = ViewerPreview(UiStyle.LIQUID_GLASS, blockedLong)
+
 @PreviewNarrowScreens
 @Composable
 private fun LoadFailedMaterialPreview() = ViewerPreview(UiStyle.MATERIAL, failed(SharedChatError.NETWORK))
