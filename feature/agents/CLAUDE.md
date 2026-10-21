@@ -24,14 +24,14 @@
 - Server-side cursor pagination via `AgentRepository.getAgentsPaginated()`, 20 agents a page (`limit`). Each
   page's `after` (`PaginatedAgents.nextCursor`) is the next request's `cursor`; the route ignores page numbers.
 - Categories come from `getAgentCategories()` (server-driven, not client-derived).
-- **Chips** (`AgentChip`): Top picks (only when categories include `promoted`), All, Yours (only with
+- **Chips** (`AgentChip`): Top picks (only when categories include `promoted`), All, Editable (only with
   AGENTS.CREATE), then the real categories. Exactly one is selected; tapping the selected chip does nothing.
-  A chip the row stops offering (Yours after losing CREATE, a removed category) falls back to All.
+  A chip the row stops offering (Editable after losing CREATE, a removed category) falls back to All.
 - **Default chip**: Top picks when offered, else All. The first read waits for the role AND the categories, so
   the default is known before anything is fetched (no flash of All, no second read). Placeholders cover the wait.
 - **Gotcha**: the categories route appends `promoted` and `all`, which are not categories. `AgentListFilter.of`
   maps them like the web grid: `promoted` → `promoted=1`, `all` → no filter, and while searching both send
-  neither. Never send them as `category` (registered in `scripts/mirrors.json`). Yours is
+  neither. Never send them as `category` (registered in `scripts/mirrors.json`). Editable is
   `requiredPermission` = `PermissionBits.EDIT`; it ignores categories and still narrows a search.
 - **One load pipeline**: every read that replaces the list (chip, search, Retry, pull-to-refresh, return) goes
   through `startLoad`, which cancels the previous read and any next-page read and bumps a generation; a late

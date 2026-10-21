@@ -38,7 +38,7 @@
     <string name="check_back_later">稍后再来看看新的智能体</string>
     <string name="agents_chip_top_picks">精选</string>
     <string name="agents_chip_all">全部</string>
-    <string name="agents_chip_yours">我的</string>
+    <string name="agents_chip_editable">可编辑</string>
     <string name="agents_top_pick">精选</string>
     <string name="agents_new_agent">新建智能体</string>
     <string name="agent_unnamed">未命名智能体</string>

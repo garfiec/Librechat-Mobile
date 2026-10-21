@@ -38,7 +38,7 @@
     <string name="check_back_later">나중에 새 에이전트를 확인하세요</string>
     <string name="agents_chip_top_picks">추천</string>
     <string name="agents_chip_all">전체</string>
-    <string name="agents_chip_yours">내 에이전트</string>
+    <string name="agents_chip_editable">편집 가능</string>
     <string name="agents_top_pick">추천</string>
     <string name="agents_new_agent">새 에이전트</string>
     <string name="agent_unnamed">이름 없는 에이전트</string>

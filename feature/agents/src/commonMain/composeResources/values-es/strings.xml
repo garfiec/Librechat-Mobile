@@ -38,7 +38,7 @@
     <string name="check_back_later">Vuelve más tarde para ver nuevos agentes</string>
     <string name="agents_chip_top_picks">Destacados</string>
     <string name="agents_chip_all">Todos</string>
-    <string name="agents_chip_yours">Tuyos</string>
+    <string name="agents_chip_editable">Editables</string>
     <string name="agents_top_pick">Destacado</string>
     <string name="agents_new_agent">Nuevo agente</string>
     <string name="agent_unnamed">Agente sin nombre</string>

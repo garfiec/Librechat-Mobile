@@ -38,7 +38,7 @@
     <string name="check_back_later">Загляните позже за новыми агентами</string>
     <string name="agents_chip_top_picks">Лучшее</string>
     <string name="agents_chip_all">Все</string>
-    <string name="agents_chip_yours">Ваши</string>
+    <string name="agents_chip_editable">Редактируемые</string>
     <string name="agents_top_pick">Рекомендуемый</string>
     <string name="agents_new_agent">Новый агент</string>
     <string name="agent_unnamed">Агент без названия</string>

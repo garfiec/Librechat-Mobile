@@ -63,7 +63,7 @@ data class AgentMarketplaceUiState(
     val canBrowse: Boolean get() = agentsEnabled && marketplaceEnabled
 
     /**
-     * The chip row: Top picks (only when the server has promoted agents), All, Yours (only with
+     * The chip row: Top picks (only when the server has promoted agents), All, Editable (only with
      * AGENTS.CREATE), then the server's real categories.
      */
     val chips: List<AgentChip>
@@ -73,7 +73,7 @@ data class AgentMarketplaceUiState(
 internal fun availableChips(categories: List<AgentCategory>, canCreate: Boolean): List<AgentChip> = buildList {
     if (categories.any { it.value == AgentListFilter.PROMOTED }) add(AgentChip.TopPicks)
     add(AgentChip.All)
-    if (canCreate) add(AgentChip.Yours)
+    if (canCreate) add(AgentChip.Editable)
     categories
         .filter { it.value != AgentListFilter.PROMOTED && it.value != AgentListFilter.ALL }
         .forEach { add(AgentChip.Category(it.value)) }
@@ -391,7 +391,7 @@ class AgentMarketplaceViewModel(
         }
     }
 
-    /** A selected chip the row no longer offers (Yours after losing CREATE, a removed category) falls back to All. */
+    /** A selected chip the row no longer offers (Editable after losing CREATE, a removed category) falls back to All. */
     private fun fallBackIfChipGone() {
         val state = _uiState.value
         val selected = state.selectedChip ?: return

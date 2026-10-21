@@ -13,7 +13,7 @@ sealed interface AgentChip {
     data object All : AgentChip
 
     /** Agents the user can edit. Client-side chip, offered only with AGENTS.CREATE. */
-    data object Yours : AgentChip
+    data object Editable : AgentChip
 
     /** A real category, by its server value. */
     data class Category(val value: String) : AgentChip
@@ -34,8 +34,10 @@ data class AgentListQuery(val chip: AgentChip, val search: String)
  * - searching: `promoted` and `all` send neither, so the search covers every agent; a real
  *   category still narrows it.
  *
- * Yours is this app's own chip: `requiredPermission` = EDIT, the bit the list route checks each
- * agent's effective permissions against. It narrows a search too, and ignores categories.
+ * Editable is this app's own chip: `requiredPermission` = EDIT, the bit the list route checks each
+ * agent's effective permissions against. It narrows a search too, and ignores categories. The
+ * answer is every agent the user can edit, not only the ones they own: agents shared with edit
+ * rights, and for an admin every agent. Hence "Editable" rather than "Yours".
  *
  * Mirrored by hand (scripts/mirrors.json: agent-category-sentinels, agent-grid-query-params).
  */
@@ -54,7 +56,7 @@ internal data class AgentListFilter(
             return when (chip) {
                 AgentChip.TopPicks -> AgentListFilter(search = search, promoted = search == null)
                 AgentChip.All -> AgentListFilter(search = search)
-                AgentChip.Yours -> AgentListFilter(search = search, requiredPermission = PermissionBits.EDIT)
+                AgentChip.Editable -> AgentListFilter(search = search, requiredPermission = PermissionBits.EDIT)
                 is AgentChip.Category -> AgentListFilter(search = search, category = chip.value)
             }
         }

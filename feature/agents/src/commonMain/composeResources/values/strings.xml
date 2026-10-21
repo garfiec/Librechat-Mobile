@@ -38,7 +38,7 @@
     <string name="check_back_later">Check back later for new agents</string>
     <string name="agents_chip_top_picks">Top picks</string>
     <string name="agents_chip_all">All</string>
-    <string name="agents_chip_yours">Yours</string>
+    <string name="agents_chip_editable">Editable</string>
     <string name="agents_top_pick">Top pick</string>
     <string name="agents_new_agent">New agent</string>
     <string name="agent_unnamed">Unnamed agent</string>

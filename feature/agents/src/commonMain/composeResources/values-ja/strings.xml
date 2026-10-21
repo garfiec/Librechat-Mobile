@@ -38,7 +38,7 @@
     <string name="check_back_later">新しいエージェントについては後でもう一度ご確認ください</string>
     <string name="agents_chip_top_picks">おすすめ</string>
     <string name="agents_chip_all">すべて</string>
-    <string name="agents_chip_yours">マイエージェント</string>
+    <string name="agents_chip_editable">編集可能</string>
     <string name="agents_top_pick">おすすめ</string>
     <string name="agents_new_agent">新しいエージェント</string>
     <string name="agent_unnamed">名前のないエージェント</string>

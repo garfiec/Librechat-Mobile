@@ -135,7 +135,7 @@ class AgentMarketplaceFiltersTest : AgentMarketplaceViewModelTestBase() {
     // --- Chips ---
 
     @Test
-    fun `the chip row is Top picks, All, Yours, then the real categories`() = runTest {
+    fun `the chip row is Top picks, All, Editable, then the real categories`() = runTest {
         coEvery { agentRepository.getAgentCategories() } returns Result.Success(categoriesWithSentinels)
 
         viewModel = createViewModel()
@@ -144,7 +144,7 @@ class AgentMarketplaceFiltersTest : AgentMarketplaceViewModelTestBase() {
         assertThat(viewModel.uiState.value.chips).containsExactly(
             AgentChip.TopPicks,
             AgentChip.All,
-            AgentChip.Yours,
+            AgentChip.Editable,
             AgentChip.Category("coding"),
             AgentChip.Category("writing"),
             AgentChip.Category("education"),
@@ -152,31 +152,31 @@ class AgentMarketplaceFiltersTest : AgentMarketplaceViewModelTestBase() {
     }
 
     @Test
-    fun `Yours is offered only with AGENTS create`() = runTest {
+    fun `Editable is offered only with AGENTS create`() = runTest {
         roleFlow.value = UserRolePermissions(name = "USER", permissions = mapOf("AGENTS" to mapOf("CREATE" to false)))
 
         viewModel = createViewModel()
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.chips).doesNotContain(AgentChip.Yours)
+        assertThat(viewModel.uiState.value.chips).doesNotContain(AgentChip.Editable)
     }
 
     @Test
-    fun `Yours asks for the agents the user can edit`() = runTest {
+    fun `Editable asks for the agents the user can edit`() = runTest {
         viewModel = createViewModel()
         advanceUntilIdle()
 
-        viewModel.onChipSelected(AgentChip.Yours)
+        viewModel.onChipSelected(AgentChip.Editable)
         advanceUntilIdle()
 
         coVerify(exactly = 1) { agentRepository.getAgentsPaginated(20, null, null, null, false, requiredPermission = 2) }
     }
 
     @Test
-    fun `searching under Yours keeps the edit filter`() = runTest {
+    fun `searching under Editable keeps the edit filter`() = runTest {
         viewModel = createViewModel()
         advanceUntilIdle()
-        viewModel.onChipSelected(AgentChip.Yours)
+        viewModel.onChipSelected(AgentChip.Editable)
         advanceUntilIdle()
 
         viewModel.onSearchQueryChanged("math")
@@ -186,10 +186,10 @@ class AgentMarketplaceFiltersTest : AgentMarketplaceViewModelTestBase() {
     }
 
     @Test
-    fun `losing AGENTS create while on Yours falls back to All`() = runTest {
+    fun `losing AGENTS create while on Editable falls back to All`() = runTest {
         viewModel = createViewModel()
         advanceUntilIdle()
-        viewModel.onChipSelected(AgentChip.Yours)
+        viewModel.onChipSelected(AgentChip.Editable)
         advanceUntilIdle()
 
         roleFlow.value = UserRolePermissions(name = "USER", permissions = mapOf("AGENTS" to mapOf("CREATE" to false)))

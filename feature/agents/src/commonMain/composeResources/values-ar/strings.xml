@@ -38,7 +38,7 @@
     <string name="check_back_later">تحقّق لاحقًا من وجود وكلاء جدد</string>
     <string name="agents_chip_top_picks">الأبرز</string>
     <string name="agents_chip_all">الكل</string>
-    <string name="agents_chip_yours">وكلاؤك</string>
+    <string name="agents_chip_editable">قابلة للتعديل</string>
     <string name="agents_top_pick">من الأبرز</string>
     <string name="agents_new_agent">وكيل جديد</string>
     <string name="agent_unnamed">وكيل بلا اسم</string>

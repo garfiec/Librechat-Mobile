@@ -38,7 +38,7 @@
     <string name="check_back_later">Revenez plus tard pour de nouveaux agents</string>
     <string name="agents_chip_top_picks">Coups de cœur</string>
     <string name="agents_chip_all">Tous</string>
-    <string name="agents_chip_yours">Les vôtres</string>
+    <string name="agents_chip_editable">Modifiables</string>
     <string name="agents_top_pick">Coup de cœur</string>
     <string name="agents_new_agent">Nouvel agent</string>
     <string name="agent_unnamed">Agent sans nom</string>

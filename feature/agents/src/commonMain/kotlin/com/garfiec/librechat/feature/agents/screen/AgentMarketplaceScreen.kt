@@ -376,7 +376,7 @@ private val AgentChip.key: String
     get() = when (this) {
         AgentChip.TopPicks -> "top_picks"
         AgentChip.All -> "all"
-        AgentChip.Yours -> "yours"
+        AgentChip.Editable -> "editable"
         // Prefixed: a category may be named like one of the chips above.
         is AgentChip.Category -> "category:$value"
     }
@@ -385,7 +385,7 @@ private val AgentChip.key: String
 private fun AgentChip.label(categoriesByValue: Map<String, AgentCategory>): String = when (this) {
     AgentChip.TopPicks -> stringResource(Res.string.agents_chip_top_picks)
     AgentChip.All -> stringResource(Res.string.agents_chip_all)
-    AgentChip.Yours -> stringResource(Res.string.agents_chip_yours)
+    AgentChip.Editable -> stringResource(Res.string.agents_chip_editable)
     is AgentChip.Category -> categoriesByValue[value]?.displayLabel() ?: categoryValueLabel(value)
 }
 
