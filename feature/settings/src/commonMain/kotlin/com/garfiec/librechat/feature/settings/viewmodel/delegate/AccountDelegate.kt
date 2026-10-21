@@ -11,7 +11,7 @@ import com.garfiec.librechat.feature.settings.util.ContentReader
 import com.garfiec.librechat.feature.settings.viewmodel.AccountSettingsUiState
 import com.garfiec.librechat.feature.settings.viewmodel.BalanceUiState
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
-import com.garfiec.librechat.feature.settings.viewmodel.isHttpStatus
+import com.garfiec.librechat.feature.settings.viewmodel.isTwoFactorCodeRequired
 import com.garfiec.librechat.feature.settings.viewmodel.toDisplayData
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
@@ -20,7 +20,7 @@ import kotlinx.coroutines.withContext
 
 /**
  * The account section: user-profile load, avatar upload, balance, sign-out, and
- * account deletion (with the 403 → OTP step-up). Holds the in-flight profile-load
+ * account deletion (with the 2FA code step-up). Holds the in-flight profile-load
  * job so a retry cancels a hung request before starting a fresh one.
  */
 class AccountDelegate(
@@ -158,7 +158,21 @@ class AccountDelegate(
         stateHandle.update { copy(isLoggedOut = true) }
     }
 
+    /**
+     * Deletes the account, collecting a 2FA code first when the profile says one is needed.
+     *
+     * The code is asked for up front, as the web client does, rather than discovered from the
+     * server's refusal: with 2FA on and no code the server answers 400, not 403. The 400 is still
+     * honoured as a fallback, for a profile loaded before 2FA was turned on elsewhere. A 403 means
+     * the server has account deletion switched off, and no code will change that, so it shows the
+     * server's message instead of the prompt.
+     */
     fun deleteAccount(token: String? = null, backupCode: String? = null) {
+        val hasCode = token != null || backupCode != null
+        if (!hasCode && stateHandle.state.isTwoFactorEnabled) {
+            stateHandle.update { copy(showDeleteAccountOtpDialog = true) }
+            return
+        }
         stateHandle.scope.launch {
             stateHandle.update { copy(isDeletingAccount = true) }
             when (val result = userRepository.deleteUser(token = token, backupCode = backupCode)) {
@@ -168,8 +182,7 @@ class AccountDelegate(
                     }
                 }
                 is Result.Error -> {
-                    val needsOtp = token == null && backupCode == null &&
-                        result.isHttpStatus(403)
+                    val needsOtp = !hasCode && result.isTwoFactorCodeRequired()
                     stateHandle.update {
                         copy(
                             isDeletingAccount = false,

@@ -1,5 +1,6 @@
 package com.garfiec.librechat.feature.settings.viewmodel
 
+import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.AuthRepository
@@ -246,6 +247,75 @@ class AccountSettingsViewModelTest {
         assertThat(viewModel.uiState.value.showRegenerateBackupCodesConfirm).isFalse()
         assertThat(viewModel.uiState.value.showBackupCodesOtpDialog).isFalse()
         coVerify(exactly = 0) { authRepository.regenerateBackupCodes(any(), any()) }
+    }
+
+    @Test
+    fun `deleteAccount asks for the 2FA code before calling the server when 2FA is on`() = runTest {
+        coEvery { userRepository.getUser() } returns Result.Success(testUser.copy(twoFactorEnabled = true))
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.deleteAccount()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.showDeleteAccountOtpDialog).isTrue()
+        assertThat(viewModel.uiState.value.error).isNull()
+        coVerify(exactly = 0) { userRepository.deleteUser(any(), any()) }
+    }
+
+    @Test
+    fun `deleteAccount sends the collected code and closes the prompt on success`() = runTest {
+        coEvery { userRepository.getUser() } returns Result.Success(testUser.copy(twoFactorEnabled = true))
+        coEvery { userRepository.deleteUser(token = "123456", backupCode = null) } returns Result.Success(Unit)
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.deleteAccount()
+        advanceUntilIdle()
+
+        viewModel.deleteAccount(token = "123456")
+        advanceUntilIdle()
+
+        coVerify { userRepository.deleteUser(token = "123456", backupCode = null) }
+        assertThat(viewModel.uiState.value.isAccountDeleted).isTrue()
+        assertThat(viewModel.uiState.value.showDeleteAccountOtpDialog).isFalse()
+    }
+
+    @Test
+    fun `a 400 asking for the code opens the prompt even when the profile says 2FA is off`() = runTest {
+        val message = "TOTP token or backup code is required to delete account with 2FA enabled"
+        coEvery { userRepository.deleteUser() } returns Result.Error(
+            exception = ApiException(statusCode = 400, message = message, serverAuthored = true),
+            message = message,
+        )
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.deleteAccount()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.showDeleteAccountOtpDialog).isTrue()
+        assertThat(viewModel.uiState.value.error).isNull()
+    }
+
+    @Test
+    fun `a 403 shows the server's refusal instead of the code prompt`() = runTest {
+        val message = "You do not have permission to delete this account"
+        coEvery { userRepository.deleteUser() } returns Result.Error(
+            exception = ApiException(statusCode = 403, message = message, serverAuthored = true),
+            message = message,
+        )
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.deleteAccount()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.showDeleteAccountOtpDialog).isFalse()
+        assertThat(viewModel.uiState.value.error).isEqualTo(message)
     }
 
     @Test
