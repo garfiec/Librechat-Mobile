@@ -265,6 +265,71 @@ class SharedLinksViewModelTest {
     }
 
     @Test
+    fun `a refresh that takes over from a sort change and fails doesn't leave the old sort's rows`() = runTest {
+        repository.page(null) { page("a", "b") }
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val sortPage = CompletableDeferred<Result<SharedLinksResponse>>()
+        repository.page(null) { sortPage.await() }
+        viewModel.setSort(SharedLinksSort.OLDEST)
+        runCurrent()
+        assertThat(ids(viewModel)).containsExactly("a", "b")
+
+        repository.page(null) { Result.Error(exception = ApiException(statusCode = 500, message = "boom")) }
+        viewModel.refresh()
+        advanceUntilIdle()
+        sortPage.complete(page("b", "a"))
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.sort).isEqualTo(SharedLinksSort.OLDEST)
+        assertThat(ids(viewModel)).isEmpty()
+        assertThat(state.loadFailed).isTrue()
+        assertThat(state.hasNextPage).isFalse()
+        assertThat(state.isRefreshing).isFalse()
+    }
+
+    @Test
+    fun `a quiet reload that takes over from a search and fails doesn't leave the old search's rows`() = runTest {
+        searchEnabled.value = true
+        repository.page(null) { page("a") }
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val searchPage = CompletableDeferred<Result<SharedLinksResponse>>()
+        repository.page(null) { searchPage.await() }
+        viewModel.onSearchQueryChange("hit")
+        advanceTimeBy(301)
+        runCurrent()
+
+        repository.page(null) { Result.Error(exception = ApiException(statusCode = 500, message = "boom")) }
+        repository.revision.value += 1
+        advanceUntilIdle()
+
+        assertThat(ids(viewModel)).isEmpty()
+        assertThat(viewModel.uiState.value.loadFailed).isTrue()
+        assertThat(viewModel.uiState.value.isLoading).isFalse()
+    }
+
+    @Test
+    fun `a failed refresh after the new sort landed keeps its rows`() = runTest {
+        repository.page(null) { page("a", "b") }
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        repository.page(null) { page("b", "a") }
+        viewModel.setSort(SharedLinksSort.OLDEST)
+        advanceUntilIdle()
+
+        repository.page(null) { Result.Error(exception = ApiException(statusCode = 500, message = "boom")) }
+        viewModel.refresh()
+        advanceUntilIdle()
+
+        assertThat(ids(viewModel)).containsExactly("b", "a").inOrder()
+        assertThat(viewModel.messages.first()).isEqualTo(SharedLinksMessage.REFRESH_FAILED)
+    }
+
+    @Test
     fun `a return to the page reloads quietly, keeping as many rows as were loaded`() = runTest {
         val first = (1..25).map { "p$it" }
         repository.page(null) { page(*first.toTypedArray(), next = "n1") }

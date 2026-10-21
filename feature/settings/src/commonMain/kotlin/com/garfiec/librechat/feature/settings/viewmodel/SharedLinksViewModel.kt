@@ -104,6 +104,12 @@ class SharedLinksViewModel(
     /** The trimmed search the current first page asks for; set when it starts, not when it lands. */
     private var requestedQuery = ""
 
+    /**
+     * The rows on screen answer an older sort or search: a LOAD for the new one started and no first
+     * page has landed since. A refresh or quiet reload that takes over and fails must not leave them.
+     */
+    private var rowsStale = false
+
     init {
         load(Kind.LOAD)
         viewModelScope.launch {
@@ -208,6 +214,7 @@ class SharedLinksViewModel(
         val sort = _uiState.value.sort
         val query = if (kind == Kind.QUIET) requestedQuery else _uiState.value.searchQuery.trim()
         requestedQuery = query
+        if (kind == Kind.LOAD) rowsStale = true
         _uiState.update {
             it.copy(
                 // A quiet reload keeps a spinner it took over, and shows none of its own.
@@ -226,6 +233,7 @@ class SharedLinksViewModel(
             when (result) {
                 is Result.Success -> {
                     nextCursor = result.data.nextCursorOrNull()
+                    rowsStale = false
                     _uiState.update {
                         it.copy(
                             links = result.data.toDisplayRows(),
@@ -248,18 +256,19 @@ class SharedLinksViewModel(
     }
 
     private suspend fun onFirstPageFailed(kind: Kind) {
-        when (kind) {
-            // The rows shown answer another sort or search: show the error state, not them.
-            Kind.LOAD -> {
+        when {
+            // The rows shown answer another sort or search: show the error state, not them. Also when a
+            // refresh or quiet reload took over from that LOAD and failed in its place.
+            kind == Kind.LOAD || rowsStale -> {
                 nextCursor = null
                 _uiState.update { it.copy(links = emptyList(), hasNextPage = false, loadFailed = true) }
             }
-            Kind.REFRESH -> {
+            kind == Kind.REFRESH -> {
                 _uiState.update { it.copy(loadFailed = true) }
                 if (_uiState.value.links.isNotEmpty()) _messages.send(SharedLinksMessage.REFRESH_FAILED)
             }
             // Nobody asked: the rows already shown stay, and so does the page's state.
-            Kind.QUIET -> Unit
+            else -> Unit
         }
     }
 
