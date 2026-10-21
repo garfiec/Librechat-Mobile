@@ -342,7 +342,7 @@
     <string name="two_factor_auth">二要素認証</string>
     <string name="enable_two_factor">二要素認証を有効にする</string>
     <string name="disable_two_factor">二要素認証を無効にする</string>
-    <string name="view_backup_codes">バックアップコードを表示</string>
+    <string name="regenerate_backup_codes">バックアップコードを再生成</string>
 
     <!-- 2FA setup dialog -->
     <string name="dialog_title_enable_2fa">二要素認証を有効にする</string>
@@ -356,7 +356,6 @@
     <string name="action_hide_qr">QRコードを非表示</string>
     <string name="cd_twofa_qr">別のデバイスで登録するためのQRコード</string>
     <string name="twofa_disable_instructions">2FAを無効にするには認証アプリのコードを入力してください。</string>
-    <string name="hint_verification_code">確認コード</string>
 
     <!-- OTP verification dialogs -->
     <string name="otp_title_verify_identity">本人確認</string>
@@ -372,6 +371,10 @@
     <!-- Backup codes dialog -->
     <string name="dialog_title_backup_codes">バックアップコード</string>
     <string name="backup_codes_instructions">これらのバックアップコードを安全な場所に保管してください。各コードは一度しか使用できません。</string>
+    <string name="dialog_title_regenerate_backup_codes">バックアップコードを再生成しますか？</string>
+    <string name="regenerate_backup_codes_warning">現在のバックアップコードは使えなくなります。新しいコードを保存してください。</string>
+    <string name="action_regenerate">再生成</string>
+    <string name="backup_codes_saved_ack">これらのコードを保存しました</string>
 
     <!-- Danger zone -->
     <string name="delete_account">アカウントを削除</string>

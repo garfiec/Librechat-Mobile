@@ -32,13 +32,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveFilledTonalButton
-import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.OTP_LENGTH
 import com.garfiec.librechat.core.ui.components.OtpCodeInput
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
-import com.garfiec.librechat.core.ui.components.sanitizeOtpInput
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.util.rememberClipboardWriter
@@ -218,53 +217,6 @@ private fun SetupKeyRow(secret: String, onCopy: () -> Unit) {
 private val QR_SIZE = 200.dp
 
 @Composable
-internal fun TwoFactorCodeDialog(
-    title: String,
-    description: String,
-    isLoading: Boolean,
-    onConfirm: (String) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var code by remember { mutableStateOf("") }
-
-    AdaptiveAlertDialog(
-        modifier = Modifier.clearFocusOnTap(),
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                AdaptiveOutlinedTextField(
-                    value = code,
-                    onValueChange = { new -> sanitizeOtpInput(old = code, new = new)?.let { code = it } },
-                    label = { Text(stringResource(Res.string.hint_verification_code)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onConfirm(code) },
-                enabled = code.length == 6 && !isLoading,
-            ) {
-                Text(stringResource(if (isLoading) Res.string.action_verifying else Res.string.action_confirm))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(Res.string.action_cancel))
-            }
-        },
-    )
-}
-
-@Composable
 internal fun BackupCodesDialog(
     backupCodes: List<String>,
     onDismiss: () -> Unit,
@@ -276,7 +228,10 @@ internal fun BackupCodesDialog(
     var copied by remember { mutableStateOf(false) }
 
     AdaptiveAlertDialog(
-        onDismissRequest = onDismiss,
+        // Shown exactly once, and after a regenerate the old set is already dead: a stray tap
+        // outside must not be able to close this. Only the acknowledgement button does.
+        onDismissRequest = {},
+        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
         title = { Text(stringResource(Res.string.dialog_title_backup_codes)) },
         text = {
             Column(
@@ -318,7 +273,7 @@ internal fun BackupCodesDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text(stringResource(Res.string.action_done))
+                Text(stringResource(Res.string.backup_codes_saved_ack))
             }
         },
         dismissButton = {

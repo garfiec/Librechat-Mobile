@@ -8,6 +8,7 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.ApiKey
 import com.garfiec.librechat.core.model.ui.UiStyle
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.OtpVerificationDialog
 import com.garfiec.librechat.core.ui.preview.DialogPreviewHost
 import com.garfiec.librechat.core.ui.preview.PreviewNarrowScreens
 import com.garfiec.librechat.feature.settings.resources.Res
@@ -18,7 +19,6 @@ import com.garfiec.librechat.feature.settings.resources.server_headers_discard_t
 import com.garfiec.librechat.feature.settings.resources.server_headers_keep_editing
 import com.garfiec.librechat.feature.settings.resources.twofa_disable_instructions
 import com.garfiec.librechat.feature.settings.screen.sections.BackupCodesDialog
-import com.garfiec.librechat.feature.settings.screen.sections.TwoFactorCodeDialog
 import org.jetbrains.compose.resources.stringResource
 
 @PreviewNarrowScreens
@@ -67,11 +67,10 @@ private fun ServerHeadersDiscardHost(style: UiStyle, height: Dp = 640.dp) = Dial
 
 @Composable
 private fun DisableTwoFactorHost(style: UiStyle, height: Dp = 640.dp) = DialogPreviewHost(style, height = height) {
-    TwoFactorCodeDialog(
+    OtpVerificationDialog(
         title = stringResource(Res.string.dialog_title_disable_2fa),
         description = stringResource(Res.string.twofa_disable_instructions),
-        isLoading = false,
-        onConfirm = {},
+        onVerify = { _, _ -> },
         onDismiss = {},
     )
 }

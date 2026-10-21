@@ -158,10 +158,11 @@ class AuthApi constructor(
             }
         }.body()
 
-    suspend fun disableTwoFactor(code: String) {
+    /** The server verifies whichever of [token] and [backupCode] is sent, so either one disables 2FA. */
+    suspend fun disableTwoFactor(token: String? = null, backupCode: String? = null) {
         client.post {
             url { path("api/auth/2fa/disable") }
-            setBody(TwoFactorDisableRequest(token = code))
+            setBody(TwoFactorDisableRequest(token = token, backupCode = backupCode))
         }
     }
 }

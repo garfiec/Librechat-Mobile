@@ -36,7 +36,7 @@ interface AuthRepository {
     suspend fun restoreAccountIfNeeded(): Boolean
     suspend fun enableTwoFactor(token: String? = null, backupCode: String? = null): Result<TwoFactorSetupResponse>
     suspend fun confirmTwoFactor(code: String): Result<Unit>
-    suspend fun disableTwoFactor(code: String): Result<Unit>
+    suspend fun disableTwoFactor(token: String? = null, backupCode: String? = null): Result<Unit>
     suspend fun regenerateBackupCodes(token: String? = null, backupCode: String? = null): Result<BackupCodesResponse>
     suspend fun requestPasswordReset(email: String): Result<Unit>
     suspend fun resetPassword(userId: String, token: String, password: String, confirmPassword: String): Result<Unit>

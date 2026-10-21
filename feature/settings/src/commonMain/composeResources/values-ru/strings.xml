@@ -360,7 +360,7 @@
     <string name="two_factor_auth">Двухфакторная аутентификация</string>
     <string name="enable_two_factor">Включить двухфакторную аутентификацию</string>
     <string name="disable_two_factor">Отключить двухфакторную аутентификацию</string>
-    <string name="view_backup_codes">Показать резервные коды</string>
+    <string name="regenerate_backup_codes">Создать новые резервные коды</string>
 
     <!-- 2FA setup dialog -->
     <string name="dialog_title_enable_2fa">Включить двухфакторную аутентификацию</string>
@@ -374,7 +374,6 @@
     <string name="action_hide_qr">Скрыть QR-код</string>
     <string name="cd_twofa_qr">QR-код для подключения на другом устройстве</string>
     <string name="twofa_disable_instructions">Введите код из аутентификатора, чтобы отключить 2FA.</string>
-    <string name="hint_verification_code">Код подтверждения</string>
 
     <!-- OTP verification dialogs -->
     <string name="otp_title_verify_identity">Подтверждение личности</string>
@@ -390,6 +389,10 @@
     <!-- Backup codes dialog -->
     <string name="dialog_title_backup_codes">Резервные коды</string>
     <string name="backup_codes_instructions">Сохраните эти резервные коды в надёжном месте. Каждый код можно использовать только один раз.</string>
+    <string name="dialog_title_regenerate_backup_codes">Создать новые резервные коды?</string>
+    <string name="regenerate_backup_codes_warning">Текущие резервные коды перестанут работать. Вы получите новый набор, который нужно сохранить.</string>
+    <string name="action_regenerate">Создать</string>
+    <string name="backup_codes_saved_ack">Я сохранил(а) эти коды</string>
 
     <!-- Danger zone -->
     <string name="delete_account">Удалить аккаунт</string>

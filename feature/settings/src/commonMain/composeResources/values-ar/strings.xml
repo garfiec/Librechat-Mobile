@@ -372,7 +372,7 @@
     <string name="two_factor_auth">المصادقة الثنائية</string>
     <string name="enable_two_factor">تفعيل المصادقة الثنائية</string>
     <string name="disable_two_factor">تعطيل المصادقة الثنائية</string>
-    <string name="view_backup_codes">عرض رموز النسخ الاحتياطي</string>
+    <string name="regenerate_backup_codes">إعادة إنشاء رموز النسخ الاحتياطي</string>
 
     <!-- 2FA setup dialog -->
     <string name="dialog_title_enable_2fa">تفعيل المصادقة الثنائية</string>
@@ -386,7 +386,6 @@
     <string name="action_hide_qr">إخفاء رمز QR</string>
     <string name="cd_twofa_qr">رمز QR للتسجيل على جهاز آخر</string>
     <string name="twofa_disable_instructions">أدخل رمز المصادقة لتعطيل المصادقة الثنائية.</string>
-    <string name="hint_verification_code">رمز التحقق</string>
 
     <!-- OTP verification dialogs -->
     <string name="otp_title_verify_identity">التحقق من الهوية</string>
@@ -402,6 +401,10 @@
     <!-- Backup codes dialog -->
     <string name="dialog_title_backup_codes">رموز النسخ الاحتياطي</string>
     <string name="backup_codes_instructions">احفظ رموز النسخ الاحتياطي هذه في مكان آمن. يمكن استخدام كل رمز مرة واحدة فقط.</string>
+    <string name="dialog_title_regenerate_backup_codes">إعادة إنشاء رموز النسخ الاحتياطي؟</string>
+    <string name="regenerate_backup_codes_warning">ستتوقف رموز النسخ الاحتياطي الحالية عن العمل. ستحصل على مجموعة جديدة لحفظها.</string>
+    <string name="action_regenerate">إعادة الإنشاء</string>
+    <string name="backup_codes_saved_ack">لقد حفظت هذه الرموز</string>
 
     <!-- Danger zone -->
     <string name="delete_account">حذف الحساب</string>

@@ -357,7 +357,7 @@
     <string name="two_factor_auth">Two-Factor Authentication</string>
     <string name="enable_two_factor">Enable Two-Factor Authentication</string>
     <string name="disable_two_factor">Disable Two-Factor Authentication</string>
-    <string name="view_backup_codes">View Backup Codes</string>
+    <string name="regenerate_backup_codes">Regenerate backup codes</string>
 
     <!-- 2FA setup dialog -->
     <string name="dialog_title_enable_2fa">Enable Two-Factor Authentication</string>
@@ -371,7 +371,6 @@
     <string name="action_hide_qr">Hide QR code</string>
     <string name="cd_twofa_qr">QR code for enrolling on another device</string>
     <string name="twofa_disable_instructions">Enter your authenticator code to disable 2FA.</string>
-    <string name="hint_verification_code">Verification code</string>
 
     <!-- OTP verification dialogs -->
     <string name="otp_title_verify_identity">Verify Identity</string>
@@ -387,6 +386,10 @@
     <!-- Backup codes dialog -->
     <string name="dialog_title_backup_codes">Backup Codes</string>
     <string name="backup_codes_instructions">Save these backup codes in a safe place. Each code can only be used once.</string>
+    <string name="dialog_title_regenerate_backup_codes">Regenerate backup codes?</string>
+    <string name="regenerate_backup_codes_warning">Your current backup codes will stop working. You'll get a new set to save.</string>
+    <string name="action_regenerate">Regenerate</string>
+    <string name="backup_codes_saved_ack">I've saved these codes</string>
 
     <!-- Danger zone -->
     <string name="delete_account">Delete account</string>

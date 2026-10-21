@@ -61,7 +61,6 @@ import com.garfiec.librechat.core.ui.resources.server_headers_unverified_delete
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.screen.sections.BackupCodesDialog
-import com.garfiec.librechat.feature.settings.screen.sections.TwoFactorCodeDialog
 import com.garfiec.librechat.feature.settings.screen.sections.TwoFactorSetupDialog
 import com.garfiec.librechat.feature.settings.viewmodel.AccountSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ServerHeadersViewModel
@@ -246,7 +245,7 @@ fun AccountSettingsContent(
                         isTwoFactorEnabled = uiState.isTwoFactorEnabled,
                         isLoading = uiState.isTwoFactorLoading,
                         onToggleTwoFactor = viewModel::toggleTwoFactor,
-                        onViewBackupCodes = viewModel::viewBackupCodes,
+                        onRegenerateBackupCodes = viewModel::requestRegenerateBackupCodes,
                     )
                 }
                 row(key = "api_keys_row") {
@@ -325,14 +324,41 @@ fun AccountSettingsContent(
             )
         }
 
-        // 2FA disable dialog
+        // 2FA disable dialog. Takes a backup code too: losing the authenticator is the usual
+        // reason to turn 2FA off, and the server accepts either.
         if (uiState.showDisableTwoFactorDialog) {
-            TwoFactorCodeDialog(
+            OtpVerificationDialog(
                 title = stringResource(Res.string.dialog_title_disable_2fa),
                 description = stringResource(Res.string.twofa_disable_instructions),
                 isLoading = uiState.isTwoFactorLoading,
-                onConfirm = viewModel::confirmDisableTwoFactor,
+                onVerify = { token, backupCode ->
+                    viewModel.confirmDisableTwoFactor(token = token, backupCode = backupCode)
+                },
                 onDismiss = viewModel::dismissDisableTwoFactorDialog,
+                verifyLabel = stringResource(Res.string.otp_verify),
+                cancelLabel = stringResource(Res.string.otp_cancel),
+                backupCodeLabel = stringResource(Res.string.otp_backup_code_label),
+                useBackupToggleLabel = stringResource(Res.string.otp_use_backup_code),
+                useOtpToggleLabel = stringResource(Res.string.otp_use_otp_code),
+            )
+        }
+
+        // Regenerating invalidates every existing code, so it is confirmed before the code prompt.
+        if (uiState.showRegenerateBackupCodesConfirm) {
+            AdaptiveAlertDialog(
+                onDismissRequest = viewModel::dismissRegenerateBackupCodesConfirm,
+                title = { Text(stringResource(Res.string.dialog_title_regenerate_backup_codes)) },
+                text = { Text(stringResource(Res.string.regenerate_backup_codes_warning)) },
+                confirmButton = {
+                    TextButton(onClick = viewModel::confirmRegenerateBackupCodes) {
+                        Text(stringResource(Res.string.action_regenerate))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = viewModel::dismissRegenerateBackupCodesConfirm) {
+                        Text(stringResource(Res.string.action_cancel))
+                    }
+                },
             )
         }
 
@@ -459,7 +485,7 @@ fun AccountSettingsContent(
                 description = stringResource(Res.string.otp_desc_regenerate_backup_codes),
                 isLoading = uiState.isTwoFactorLoading,
                 onVerify = { token, backupCode ->
-                    viewModel.viewBackupCodesWithOtp(token = token, backupCode = backupCode)
+                    viewModel.regenerateBackupCodesWithOtp(token = token, backupCode = backupCode)
                 },
                 onDismiss = viewModel::dismissBackupCodesOtpDialog,
                 verifyLabel = stringResource(Res.string.otp_verify),

@@ -348,7 +348,7 @@
     <string name="two_factor_auth">Zwei-Faktor-Authentifizierung</string>
     <string name="enable_two_factor">Zwei-Faktor-Authentifizierung aktivieren</string>
     <string name="disable_two_factor">Zwei-Faktor-Authentifizierung deaktivieren</string>
-    <string name="view_backup_codes">Backup-Codes anzeigen</string>
+    <string name="regenerate_backup_codes">Backup-Codes neu erstellen</string>
 
     <!-- 2FA setup dialog -->
     <string name="dialog_title_enable_2fa">Zwei-Faktor-Authentifizierung aktivieren</string>
@@ -362,7 +362,6 @@
     <string name="action_hide_qr">QR-Code ausblenden</string>
     <string name="cd_twofa_qr">QR-Code zur Einrichtung auf einem anderen Gerät</string>
     <string name="twofa_disable_instructions">Gib deinen Authenticator-Code ein, um 2FA zu deaktivieren.</string>
-    <string name="hint_verification_code">Bestätigungscode</string>
 
     <!-- OTP verification dialogs -->
     <string name="otp_title_verify_identity">Identität bestätigen</string>
@@ -378,6 +377,10 @@
     <!-- Backup codes dialog -->
     <string name="dialog_title_backup_codes">Backup-Codes</string>
     <string name="backup_codes_instructions">Bewahre diese Backup-Codes an einem sicheren Ort auf. Jeder Code kann nur einmal verwendet werden.</string>
+    <string name="dialog_title_regenerate_backup_codes">Backup-Codes neu erstellen?</string>
+    <string name="regenerate_backup_codes_warning">Deine aktuellen Backup-Codes funktionieren dann nicht mehr. Du erhältst einen neuen Satz zum Speichern.</string>
+    <string name="action_regenerate">Neu erstellen</string>
+    <string name="backup_codes_saved_ack">Ich habe diese Codes gespeichert</string>
 
     <!-- Danger zone -->
     <string name="delete_account">Konto löschen</string>

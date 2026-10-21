@@ -342,7 +342,7 @@
     <string name="two_factor_auth">2단계 인증</string>
     <string name="enable_two_factor">2단계 인증 사용</string>
     <string name="disable_two_factor">2단계 인증 사용 안 함</string>
-    <string name="view_backup_codes">백업 코드 보기</string>
+    <string name="regenerate_backup_codes">백업 코드 재생성</string>
 
     <!-- 2FA setup dialog -->
     <string name="dialog_title_enable_2fa">2단계 인증 사용</string>
@@ -356,7 +356,6 @@
     <string name="action_hide_qr">QR 코드 숨기기</string>
     <string name="cd_twofa_qr">다른 기기에서 등록할 QR 코드</string>
     <string name="twofa_disable_instructions">2FA를 사용 중지하려면 인증 앱 코드를 입력하세요.</string>
-    <string name="hint_verification_code">인증 코드</string>
 
     <!-- OTP verification dialogs -->
     <string name="otp_title_verify_identity">본인 확인</string>
@@ -372,6 +371,10 @@
     <!-- Backup codes dialog -->
     <string name="dialog_title_backup_codes">백업 코드</string>
     <string name="backup_codes_instructions">이 백업 코드를 안전한 곳에 보관하세요. 각 코드는 한 번만 사용할 수 있습니다.</string>
+    <string name="dialog_title_regenerate_backup_codes">백업 코드를 재생성할까요?</string>
+    <string name="regenerate_backup_codes_warning">현재 백업 코드는 더 이상 사용할 수 없게 됩니다. 새 코드를 받아 저장하세요.</string>
+    <string name="action_regenerate">재생성</string>
+    <string name="backup_codes_saved_ack">이 코드를 저장했습니다</string>
 
     <!-- Danger zone -->
     <string name="delete_account">계정 삭제</string>

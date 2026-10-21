@@ -356,9 +356,9 @@ class AuthRepositoryImpl(
         }
     }
 
-    override suspend fun disableTwoFactor(code: String): Result<Unit> {
+    override suspend fun disableTwoFactor(token: String?, backupCode: String?): Result<Unit> {
         return safeApiCall {
-            authApi.disableTwoFactor(code)
+            authApi.disableTwoFactor(token = token, backupCode = backupCode)
         }
     }
 

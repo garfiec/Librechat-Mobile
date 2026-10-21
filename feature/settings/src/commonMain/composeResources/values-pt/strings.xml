@@ -348,7 +348,7 @@
     <string name="two_factor_auth">Autenticação de dois fatores</string>
     <string name="enable_two_factor">Ativar autenticação de dois fatores</string>
     <string name="disable_two_factor">Desativar autenticação de dois fatores</string>
-    <string name="view_backup_codes">Ver códigos de backup</string>
+    <string name="regenerate_backup_codes">Gerar novos códigos de backup</string>
 
     <!-- 2FA setup dialog -->
     <string name="dialog_title_enable_2fa">Ativar autenticação de dois fatores</string>
@@ -362,7 +362,6 @@
     <string name="action_hide_qr">Ocultar código QR</string>
     <string name="cd_twofa_qr">Código QR para registrar em outro dispositivo</string>
     <string name="twofa_disable_instructions">Digite o código do seu autenticador para desativar o 2FA.</string>
-    <string name="hint_verification_code">Código de verificação</string>
 
     <!-- OTP verification dialogs -->
     <string name="otp_title_verify_identity">Verificar identidade</string>
@@ -378,6 +377,10 @@
     <!-- Backup codes dialog -->
     <string name="dialog_title_backup_codes">Códigos de backup</string>
     <string name="backup_codes_instructions">Guarde estes códigos de backup em um lugar seguro. Cada código só pode ser usado uma vez.</string>
+    <string name="dialog_title_regenerate_backup_codes">Gerar novos códigos de backup?</string>
+    <string name="regenerate_backup_codes_warning">Seus códigos de backup atuais deixarão de funcionar. Você receberá um novo conjunto para guardar.</string>
+    <string name="action_regenerate">Gerar novos</string>
+    <string name="backup_codes_saved_ack">Salvei estes códigos</string>
 
     <!-- Danger zone -->
     <string name="delete_account">Excluir conta</string>

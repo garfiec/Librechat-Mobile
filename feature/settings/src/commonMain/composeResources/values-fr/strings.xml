@@ -348,7 +348,7 @@
     <string name="two_factor_auth">Authentification à deux facteurs</string>
     <string name="enable_two_factor">Activer l'authentification à deux facteurs</string>
     <string name="disable_two_factor">Désactiver l'authentification à deux facteurs</string>
-    <string name="view_backup_codes">Voir les codes de secours</string>
+    <string name="regenerate_backup_codes">Régénérer les codes de secours</string>
 
     <!-- 2FA setup dialog -->
     <string name="dialog_title_enable_2fa">Activer l'authentification à deux facteurs</string>
@@ -362,7 +362,6 @@
     <string name="action_hide_qr">Masquer le code QR</string>
     <string name="cd_twofa_qr">Code QR pour configurer un autre appareil</string>
     <string name="twofa_disable_instructions">Saisissez le code de votre application d'authentification pour désactiver la 2FA.</string>
-    <string name="hint_verification_code">Code de vérification</string>
 
     <!-- OTP verification dialogs -->
     <string name="otp_title_verify_identity">Vérifier l'identité</string>
@@ -378,6 +377,10 @@
     <!-- Backup codes dialog -->
     <string name="dialog_title_backup_codes">Codes de secours</string>
     <string name="backup_codes_instructions">Conservez ces codes de secours en lieu sûr. Chaque code ne peut être utilisé qu'une seule fois.</string>
+    <string name="dialog_title_regenerate_backup_codes">Régénérer les codes de secours ?</string>
+    <string name="regenerate_backup_codes_warning">Vos codes de secours actuels cesseront de fonctionner. Vous recevrez un nouveau jeu à conserver.</string>
+    <string name="action_regenerate">Régénérer</string>
+    <string name="backup_codes_saved_ack">J'ai enregistré ces codes</string>
 
     <!-- Danger zone -->
     <string name="delete_account">Supprimer le compte</string>

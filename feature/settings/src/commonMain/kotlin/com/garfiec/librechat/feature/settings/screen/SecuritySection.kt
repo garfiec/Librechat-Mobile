@@ -30,7 +30,7 @@ internal fun SecuritySection(
     isTwoFactorEnabled: Boolean,
     isLoading: Boolean,
     onToggleTwoFactor: () -> Unit,
-    onViewBackupCodes: () -> Unit,
+    onRegenerateBackupCodes: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
@@ -88,14 +88,15 @@ internal fun SecuritySection(
                 )
             }
 
-            // View backup codes (only when 2FA is enabled)
+            // Regenerate backup codes (only when 2FA is enabled). The server keeps only hashes,
+            // so a fresh set is the only thing it can show, and the old set stops working.
             if (isTwoFactorEnabled) {
                 AdaptiveOutlinedButton(
-                    onClick = onViewBackupCodes,
+                    onClick = onRegenerateBackupCodes,
                     enabled = !isLoading,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text(stringResource(Res.string.view_backup_codes))
+                    Text(stringResource(Res.string.regenerate_backup_codes))
                 }
             }
 

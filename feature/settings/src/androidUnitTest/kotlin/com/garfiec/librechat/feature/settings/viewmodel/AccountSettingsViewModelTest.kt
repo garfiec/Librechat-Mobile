@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.model.Balance
 import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.config.BalanceConfig
 import com.garfiec.librechat.core.model.config.StartupConfig
+import com.garfiec.librechat.core.model.response.BackupCodesResponse
 import com.garfiec.librechat.core.ui.media.PreparedImage
 import com.garfiec.librechat.feature.settings.model.AutoRefillInfo
 import com.garfiec.librechat.feature.settings.util.ContentReader
@@ -183,6 +184,68 @@ class AccountSettingsViewModelTest {
 
         assertThat(viewModel.uiState.value.error).isEqualTo("Server error")
         assertThat(viewModel.uiState.value.isAccountDeleted).isFalse()
+    }
+
+    @Test
+    fun `2FA can be turned off with a backup code`() = runTest {
+        coEvery { userRepository.getUser() } returns Result.Success(testUser.copy(twoFactorEnabled = true))
+        coEvery { authRepository.disableTwoFactor(token = null, backupCode = "abcd1234") } returns Result.Success(Unit)
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.toggleTwoFactor()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.showDisableTwoFactorDialog).isTrue()
+
+        viewModel.confirmDisableTwoFactor(token = null, backupCode = "abcd1234")
+        advanceUntilIdle()
+
+        coVerify { authRepository.disableTwoFactor(token = null, backupCode = "abcd1234") }
+        assertThat(viewModel.uiState.value.isTwoFactorEnabled).isFalse()
+        assertThat(viewModel.uiState.value.showDisableTwoFactorDialog).isFalse()
+    }
+
+    @Test
+    fun `regenerating backup codes asks for confirmation, then the code, before any request`() = runTest {
+        coEvery { userRepository.getUser() } returns Result.Success(testUser.copy(twoFactorEnabled = true))
+        coEvery { authRepository.regenerateBackupCodes(token = "123456", backupCode = null) } returns
+            Result.Success(BackupCodesResponse(backupCodes = listOf("code-1", "code-2")))
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.requestRegenerateBackupCodes()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.showRegenerateBackupCodesConfirm).isTrue()
+        coVerify(exactly = 0) { authRepository.regenerateBackupCodes(any(), any()) }
+
+        viewModel.confirmRegenerateBackupCodes()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.showRegenerateBackupCodesConfirm).isFalse()
+        assertThat(viewModel.uiState.value.showBackupCodesOtpDialog).isTrue()
+        coVerify(exactly = 0) { authRepository.regenerateBackupCodes(any(), any()) }
+
+        viewModel.regenerateBackupCodesWithOtp(token = "123456", backupCode = null)
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.showBackupCodesOtpDialog).isFalse()
+        assertThat(viewModel.uiState.value.showBackupCodesDialog).isTrue()
+        assertThat(viewModel.uiState.value.backupCodes).containsExactly("code-1", "code-2")
+    }
+
+    @Test
+    fun `cancelling the regenerate confirmation leaves the codes alone`() = runTest {
+        coEvery { userRepository.getUser() } returns Result.Success(testUser.copy(twoFactorEnabled = true))
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.requestRegenerateBackupCodes()
+        viewModel.dismissRegenerateBackupCodesConfirm()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.showRegenerateBackupCodesConfirm).isFalse()
+        assertThat(viewModel.uiState.value.showBackupCodesOtpDialog).isFalse()
+        coVerify(exactly = 0) { authRepository.regenerateBackupCodes(any(), any()) }
     }
 
     @Test

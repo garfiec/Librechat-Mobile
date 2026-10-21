@@ -4,5 +4,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class TwoFactorDisableRequest(
-    val token: String,
+    val token: String? = null,
+    val backupCode: String? = null,
 )
