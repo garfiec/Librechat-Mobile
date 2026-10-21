@@ -71,6 +71,8 @@ data class DrawerUiState(
     val hasMore: Boolean = true,
     // Role-permission gates — default permissive.
     val agentsEnabled: Boolean = true,
+    /** MARKETPLACE.USE: browsing agents. Upstream's USER role is denied it by default. */
+    val marketplaceEnabled: Boolean = true,
     val bookmarksEnabled: Boolean = true,
     val skillsEnabled: Boolean = true,
     /** Scheduled chats: the SCHEDULES permission AND the server's `interface.schedules` flag,
@@ -87,7 +89,14 @@ data class DrawerUiState(
     val projectsEnabled: Boolean = false,
     /** Message hits for the current query; [DrawerMessageSearch.Idle] while not searching. */
     val messageSearch: DrawerMessageSearch = DrawerMessageSearch.Idle,
-)
+) {
+    /**
+     * The Agents entry (phone drawer and tablet sidebar): AGENTS.USE and MARKETPLACE.USE, as the web
+     * app hides its marketplace. It is also the app's only way to the agent editor, so a role without
+     * MARKETPLACE.USE can't create or edit agents here; that was decided, not overlooked.
+     */
+    val agentsEntryVisible: Boolean get() = agentsEnabled && marketplaceEnabled
+}
 
 /**
  * The drawer's Messages section: a short preview of the query's message hits, with the full list a

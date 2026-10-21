@@ -26,6 +26,7 @@ import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.config.isSchedulesEnabled
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
+import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.core.model.permissions.canCreateSharedLinks
 import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
 import com.garfiec.librechat.feature.conversations.export.ConversationExporter
@@ -223,17 +224,7 @@ class DrawerViewModel(
      */
     private val drawerPermissionFlags: StateFlow<DrawerPermissionFlags> =
         roleRepository.userPermissions
-            .map { role ->
-                DrawerPermissionFlags(
-                    agentsEnabled = role.hasAccessOrPermissive(PermissionType.AGENTS, Permission.USE),
-                    bookmarksEnabled = role.hasAccessOrPermissive(PermissionType.BOOKMARKS, Permission.USE),
-                    // USE gate is fail-OPEN (read/list visibility); mutation gating
-                    // lives fail-CLOSED inside feature/skills.
-                    skillsEnabled = role.hasAccessOrPermissive(PermissionType.SKILLS, Permission.USE),
-                    schedulesPermitted =
-                        role.hasAccessOrPermissive(PermissionType.SCHEDULES, Permission.USE),
-                )
-            }
+            .map(::drawerPermissionFlags)
             .stateIn(viewModelScope, SharingStarted.Eagerly, DrawerPermissionFlags())
 
     /**
@@ -297,6 +288,7 @@ class DrawerViewModel(
             isLoadingMore = loadingMore,
             hasMore = hasMore,
             agentsEnabled = perms.agentsEnabled,
+            marketplaceEnabled = perms.marketplaceEnabled,
             bookmarksEnabled = perms.bookmarksEnabled,
             skillsEnabled = perms.skillsEnabled,
             // BOTH halves, in upstream's order: the permission, then the server flag.
@@ -316,14 +308,6 @@ class DrawerViewModel(
         const val ACTIVE_JOBS_POLL_MS = 5_000L
         const val ACTIVE_JOBS_GRACE_MS = 30_000L
     }
-
-    private data class DrawerPermissionFlags(
-        val agentsEnabled: Boolean = true,
-        val bookmarksEnabled: Boolean = true,
-        val skillsEnabled: Boolean = true,
-        /** The permission half only. Scheduled chats need the server flag too — see the combine. */
-        val schedulesPermitted: Boolean = true,
-    )
 
     private data class DrawerActionMenuState(
         val availableTags: List<ConversationTag> = emptyList(),
@@ -653,3 +637,23 @@ class DrawerViewModel(
         }
     }
 }
+
+internal data class DrawerPermissionFlags(
+    val agentsEnabled: Boolean = true,
+    val marketplaceEnabled: Boolean = true,
+    val bookmarksEnabled: Boolean = true,
+    val skillsEnabled: Boolean = true,
+    /** The permission half only. Scheduled chats need the server flag too — see the combine. */
+    val schedulesPermitted: Boolean = true,
+)
+
+/** The role's drawer flags; a null role (still loading, failed, timed out) is permissive. */
+internal fun drawerPermissionFlags(role: UserRolePermissions?): DrawerPermissionFlags = DrawerPermissionFlags(
+    agentsEnabled = role.hasAccessOrPermissive(PermissionType.AGENTS, Permission.USE),
+    marketplaceEnabled = role.hasAccessOrPermissive(PermissionType.MARKETPLACE, Permission.USE),
+    bookmarksEnabled = role.hasAccessOrPermissive(PermissionType.BOOKMARKS, Permission.USE),
+    // USE gate is fail-OPEN (read/list visibility); mutation gating
+    // lives fail-CLOSED inside feature/skills.
+    skillsEnabled = role.hasAccessOrPermissive(PermissionType.SKILLS, Permission.USE),
+    schedulesPermitted = role.hasAccessOrPermissive(PermissionType.SCHEDULES, Permission.USE),
+)

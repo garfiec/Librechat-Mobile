@@ -1069,7 +1069,7 @@ fun DrawerContent(
                     .verticalScroll(footerScroll, enabled = footerScrolls)
                     .listDragSelection(dragSelection, holdOnly = footerScrolls),
             ) {
-                if (uiState.agentsEnabled) {
+                if (uiState.agentsEntryVisible) {
                     DrawerFooterItem(
                         icon = Icons.Default.SmartToy,
                         label = stringResource(Res.string.agents),
