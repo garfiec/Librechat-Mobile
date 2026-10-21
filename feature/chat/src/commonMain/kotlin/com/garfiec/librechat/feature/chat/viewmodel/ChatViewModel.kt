@@ -1540,6 +1540,7 @@ class ChatViewModel(
     // Favorites (v0.8.5)
     fun toggleAgentFavorite(agentId: String) = favoritesDelegate.toggleAgent(agentId)
     fun toggleModelFavorite(endpoint: String, model: String) = favoritesDelegate.toggleModel(endpoint, model)
+    fun toggleSpecFavorite(name: String) = favoritesDelegate.toggleSpec(name)
 
     // Model selection and comparison
     fun onSpecSelected(spec: ModelSpec) = modelDelegate.onSpecSelected(spec)

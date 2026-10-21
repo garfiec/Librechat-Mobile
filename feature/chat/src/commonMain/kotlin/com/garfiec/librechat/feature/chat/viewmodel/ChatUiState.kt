@@ -93,6 +93,7 @@ data class ChatUiState(
     val jumpPending: Boolean get() = search.jumpPending
     val favoriteAgentIds: Set<String> get() = favorites.favoriteAgentIds
     val favoriteModelKeys: Set<String> get() = favorites.favoriteModelKeys
+    val favoriteSpecNames: Set<String> get() = favorites.favoriteSpecNames
     val subagentProgress: Map<String, SubagentTrace> get() = subagents.subagentProgress
     val showRenameDialog: Boolean get() = actions.showRenameDialog
     val showDeleteConfirmation: Boolean get() = actions.showDeleteConfirmation

@@ -75,6 +75,7 @@ class CompareSetupPickTest {
             },
             onToggleAgentFavorite = {},
             onToggleModelFavorite = { _, _ -> },
+            onToggleSpecFavorite = {},
         )
         val pick = CompareSetupPick()
         pick.target = ComparisonLane.A
@@ -89,7 +90,7 @@ class CompareSetupPickTest {
     @Test
     fun `start does nothing until B is picked`() {
         var started = false
-        val actions = CompareSetupActions({}, { _, _ -> started = true }, {}, { _, _ -> })
+        val actions = CompareSetupActions({}, { _, _ -> started = true }, {}, { _, _ -> }, {})
 
         CompareSetupPick().start(actions)
 
@@ -139,7 +140,7 @@ class CompareSetupPickTest {
     @Test
     fun `start hands over both lanes' specs`() {
         var started: Pair<ComparisonPick, ComparisonPick?>? = null
-        val actions = CompareSetupActions({}, { second, primary -> started = second to primary }, {}, { _, _ -> })
+        val actions = CompareSetupActions({}, { second, primary -> started = second to primary }, {}, { _, _ -> }, {})
         val pick = CompareSetupPick()
         pick.target = ComparisonLane.A
         pick.setSpec(fast)

@@ -13,8 +13,8 @@ import kotlinx.serialization.Serializable
  * `MAX_FAVORITES` and `MAX_STRING_LENGTH` in [FavoritesLimits] mirror those
  * caps so the client can short-circuit out-of-bounds writes.
  *
- * [spec] is passed through unchanged; mobile does not yet render a spec picker,
- * but round-trip fidelity keeps other clients' pinned specs intact across saves.
+ * A [spec] pin names the spec only. It stays in the list while the server's
+ * config doesn't offer that spec; the pickers just don't show it.
  */
 @Serializable
 data class UserFavorite(

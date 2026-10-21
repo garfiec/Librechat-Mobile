@@ -80,6 +80,7 @@ import com.garfiec.librechat.feature.chat.util.requiresSpec
 import com.garfiec.librechat.feature.chat.util.searchByName
 import com.garfiec.librechat.feature.chat.util.showsRawEndpoint
 import com.garfiec.librechat.feature.chat.util.starredModels
+import com.garfiec.librechat.feature.chat.util.starredSpecs
 import com.garfiec.librechat.feature.chat.util.toSeed
 import com.garfiec.librechat.feature.chat.util.visibleSpecs
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.filterModelsByEndpoint
@@ -120,8 +121,10 @@ fun ModelSelectorSheet(
     onErrorDismiss: () -> Unit = {},
     favoriteAgentIds: Set<String> = emptySet(),
     favoriteModelKeys: Set<String> = emptySet(),
+    favoriteSpecNames: Set<String> = emptySet(),
     onToggleAgentFavorite: ((agentId: String) -> Unit)? = null,
     onToggleModelFavorite: ((endpoint: String, model: String) -> Unit)? = null,
+    onToggleSpecFavorite: ((name: String) -> Unit)? = null,
     /**
      * Mobile-only preference controlling whether pinned items also appear in a
      * dedicated section at the top of the sheet. [StarredModelsDisplay.OFF] skips it
@@ -169,8 +172,10 @@ fun ModelSelectorSheet(
             onErrorDismiss = onErrorDismiss,
             favoriteAgentIds = favoriteAgentIds,
             favoriteModelKeys = favoriteModelKeys,
+            favoriteSpecNames = favoriteSpecNames,
             onToggleAgentFavorite = onToggleAgentFavorite,
             onToggleModelFavorite = onToggleModelFavorite,
+            onToggleSpecFavorite = onToggleSpecFavorite,
             starredDisplay = starredDisplay,
             endpointKeyStates = endpointKeyStates,
             header = header,
@@ -207,8 +212,10 @@ fun ModelSelectorSheetContent(
     onErrorDismiss: () -> Unit = {},
     favoriteAgentIds: Set<String> = emptySet(),
     favoriteModelKeys: Set<String> = emptySet(),
+    favoriteSpecNames: Set<String> = emptySet(),
     onToggleAgentFavorite: ((agentId: String) -> Unit)? = null,
     onToggleModelFavorite: ((endpoint: String, model: String) -> Unit)? = null,
+    onToggleSpecFavorite: ((name: String) -> Unit)? = null,
     /**
      * Mobile-only preference controlling whether pinned items also appear in a
      * dedicated section at the top of the sheet. [StarredModelsDisplay.OFF] skips it
@@ -244,8 +251,12 @@ fun ModelSelectorSheetContent(
     // A spec selection checks only its own row, not the raw model it runs on.
     val rawSelectedModel = selectedModel.takeIf { selectedSpec == null }
     val visibleSpecs = remember(modelSpecs, agents, agentsLoaded) { modelSpecs.visibleSpecs(agents, agentsLoaded) }
-    val shownSpecs = remember(visibleSpecs, searchQuery) {
-        if (isSearching) searchByName(visibleSpecs, searchQuery) { it.displayLabel } else visibleSpecs
+    val shownSpecs = remember(visibleSpecs, searchQuery, starredDisplay, favoriteSpecNames) {
+        when {
+            isSearching -> searchByName(visibleSpecs, searchQuery) { it.displayLabel }
+            starredDisplay == StarredModelsDisplay.OFF -> visibleSpecs.sortedByDescending { it.name in favoriteSpecNames }
+            else -> visibleSpecs
+        }
     }
 
     // Filter agents by search query (fuzzy matching), sorted by score when searching.
@@ -283,7 +294,21 @@ fun ModelSelectorSheetContent(
             starredModels(favoriteModelKeys, filteredByEndpoint)
         }
     }
-    val hasStarred = starredAgents.isNotEmpty() || starredModels.isNotEmpty()
+    val starredSpecs = remember(visibleSpecs, favoriteSpecNames, showStarred) {
+        if (!showStarred) emptyList() else starredSpecs(favoriteSpecNames, visibleSpecs)
+    }
+    val hasStarredRaw = starredAgents.isNotEmpty() || starredModels.isNotEmpty()
+    val hasStarred = starredSpecs.isNotEmpty() || hasStarredRaw
+    val starredItemsVisible = showStarred && hasStarred &&
+        (starredDisplay == StarredModelsDisplay.TOP || expandedGroups[STARRED_EXPAND_KEY] == true)
+    // Under enforce the note heads the first raw row: the starred agents and models when they show.
+    val specOnlyNoteInStarred = !rawSelectable && starredItemsVisible && hasStarredRaw
+
+    val onSpecClick: (ModelSpec, String?) -> Unit = { spec, endpoint ->
+        val keyState = endpointKeyStates[endpoint]
+        val keyRequired = keyState == KeyState.Unset || keyState == KeyState.Expired
+        if (keyRequired && endpoint != null) onSetApiKey(endpoint) else onSpecSelect(spec)
+    }
 
     Column(
         modifier = modifier
@@ -336,58 +361,24 @@ fun ModelSelectorSheetContent(
                 .weight(1f)
                 .listDragSelection(dragSelection, holdOnly = true),
         ) {
-            items(
-                items = shownSpecs,
-                key = { "spec:${it.name}" },
-                contentType = { "spec" },
-            ) { spec ->
-                val endpoint = spec.toSeed()?.endpoint
-                val keyState = endpointKeyStates[endpoint]
-                val keyRequired = keyState == KeyState.Unset || keyState == KeyState.Expired
-                SpecListItem(
-                    spec = spec,
-                    endpoint = endpoint,
-                    isSelected = selectedSpec == spec.name,
-                    serverUrl = serverUrl,
-                    onClick = { if (keyRequired && endpoint != null) onSetApiKey(endpoint) else onSpecSelect(spec) },
-                    dragSelection = dragSelection,
-                )
-            }
-            // Above the Starred section too: that is the first raw row on screen.
-            if (!rawSelectable && (hasStarred || filteredAgents.isNotEmpty() || filteredByEndpoint.isNotEmpty())) {
-                item(key = "note:spec-only", contentType = "note") {
-                    Text(
-                        text = stringResource(Res.string.model_selector_spec_only_note),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    )
-                }
-            }
             // Optional "Starred" section at the very top (mobile-only). Starred items
             // are duplicated here — they still render in their own groups below.
             if (showStarred && hasStarred) {
                 // GROUPED renders a collapsible header and respects its toggle; TOP is a
                 // flat, always-shown list closed off with a divider. OFF never reaches here.
-                val starredItemsVisible = when (starredDisplay) {
-                    StarredModelsDisplay.GROUPED -> {
-                        val expanded = expandedGroups[STARRED_EXPAND_KEY] == true
-                        item(key = "hdr:starred") {
-                            EndpointGroupHeader(
-                                endpointName = STARRED_GROUP_KEY,
-                                displayLabel = stringResource(Res.string.starred_group),
-                                modelCount = starredAgents.size + starredModels.size,
-                                isExpanded = expanded,
-                                iconUrl = null,
-                                leadingIcon = Icons.Default.Star,
-                                onToggle = { expandedGroups[STARRED_EXPAND_KEY] = !expanded },
-                                dragSelection = dragSelection,
-                            )
-                        }
-                        expanded
+                if (starredDisplay == StarredModelsDisplay.GROUPED) {
+                    item(key = "hdr:starred") {
+                        EndpointGroupHeader(
+                            endpointName = STARRED_GROUP_KEY,
+                            displayLabel = stringResource(Res.string.starred_group),
+                            modelCount = starredSpecs.size + starredAgents.size + starredModels.size,
+                            isExpanded = starredItemsVisible,
+                            iconUrl = null,
+                            leadingIcon = Icons.Default.Star,
+                            onToggle = { expandedGroups[STARRED_EXPAND_KEY] = !starredItemsVisible },
+                            dragSelection = dragSelection,
+                        )
                     }
-                    StarredModelsDisplay.TOP -> true
-                    StarredModelsDisplay.OFF -> false
                 }
                 if (starredItemsVisible) {
                     // The flat TOP list reads as a dense quick-access strip; GROUPED keeps
@@ -396,6 +387,23 @@ fun ModelSelectorSheetContent(
                         StarredItemVerticalPadding
                     } else {
                         ListItemVerticalPadding
+                    }
+                    items(starredSpecs, key = { "starred:spec:${it.name}" }, contentType = { "spec" }) { spec ->
+                        val endpoint = spec.toSeed()?.endpoint
+                        SpecListItem(
+                            spec = spec,
+                            endpoint = endpoint,
+                            isSelected = selectedSpec == spec.name,
+                            serverUrl = serverUrl,
+                            onClick = { onSpecClick(spec, endpoint) },
+                            dragSelection = dragSelection,
+                            isFavorite = true,
+                            onToggleFavorite = onToggleSpecFavorite?.let { toggle -> { toggle(spec.name) } },
+                            verticalPadding = starredPadding,
+                        )
+                    }
+                    if (specOnlyNoteInStarred) {
+                        item(key = "note:spec-only", contentType = "note") { SpecOnlyNote() }
                     }
                     items(starredAgents, key = { "starred:agent:${it.id}" }, contentType = { "agent" }) { agent ->
                         AgentListItem(
@@ -432,6 +440,29 @@ fun ModelSelectorSheetContent(
                         AdaptiveDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
                     }
                 }
+            }
+
+            items(
+                items = shownSpecs,
+                key = { "spec:${it.name}" },
+                contentType = { "spec" },
+            ) { spec ->
+                val endpoint = spec.toSeed()?.endpoint
+                SpecListItem(
+                    spec = spec,
+                    endpoint = endpoint,
+                    isSelected = selectedSpec == spec.name,
+                    serverUrl = serverUrl,
+                    onClick = { onSpecClick(spec, endpoint) },
+                    dragSelection = dragSelection,
+                    isFavorite = spec.name in favoriteSpecNames,
+                    onToggleFavorite = onToggleSpecFavorite?.let { toggle -> { toggle(spec.name) } },
+                )
+            }
+            // Shown once: the Starred-section placement uses the same "note:spec-only" key, and a
+            // duplicate LazyColumn key crashes.
+            if (!rawSelectable && !specOnlyNoteInStarred && (filteredAgents.isNotEmpty() || filteredByEndpoint.isNotEmpty())) {
+                item(key = "note:spec-only", contentType = "note") { SpecOnlyNote() }
             }
 
             // "My Agents" group (shown first, like the web frontend)
@@ -760,6 +791,9 @@ private fun LazyItemScope.SpecListItem(
     serverUrl: String,
     onClick: () -> Unit,
     dragSelection: ListDragSelection,
+    isFavorite: Boolean = false,
+    onToggleFavorite: (() -> Unit)? = null,
+    verticalPadding: Dp = ListItemVerticalPadding,
 ) {
     // `iconURL` is either an image or an endpoint name whose glyph to borrow.
     val iconUrl = spec.iconURL?.takeIf { it.startsWith("http") || it.startsWith("/") }
@@ -767,7 +801,7 @@ private fun LazyItemScope.SpecListItem(
         modifier = Modifier
             .fillMaxWidth()
             .dragSelectRow(dragSelection, onClick = onClick)
-            .padding(vertical = ListItemVerticalPadding, horizontal = 16.dp)
+            .padding(vertical = verticalPadding, horizontal = 16.dp)
             .animateItem(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -803,7 +837,26 @@ private fun LazyItemScope.SpecListItem(
                 tint = MaterialTheme.colorScheme.primary,
             )
         }
+        if (onToggleFavorite != null) {
+            Spacer(modifier = Modifier.width(4.dp))
+            FavoriteStarButton(
+                isFavorite = isFavorite,
+                onToggle = onToggleFavorite,
+                modifier = Modifier.dragSelectExclude(dragSelection),
+            )
+        }
     }
+}
+
+/** Under `enforce`: the raw rows below are listed, greyed, but can't be sent. */
+@Composable
+private fun SpecOnlyNote() {
+    Text(
+        text = stringResource(Res.string.model_selector_spec_only_note),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+    )
 }
 
 private const val DisabledAlpha = 0.38f

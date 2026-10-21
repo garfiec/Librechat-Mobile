@@ -121,8 +121,10 @@ data class ModelSelectorPageParams(
     val serverUrl: String = "",
     val favoriteAgentIds: Set<String> = emptySet(),
     val favoriteModelKeys: Set<String> = emptySet(),
+    val favoriteSpecNames: Set<String> = emptySet(),
     val onToggleAgentFavorite: ((agentId: String) -> Unit)? = null,
     val onToggleModelFavorite: ((endpoint: String, model: String) -> Unit)? = null,
+    val onToggleSpecFavorite: ((name: String) -> Unit)? = null,
     val starredDisplay: StarredModelsDisplay = StarredModelsDisplay.GROUPED,
     val endpointKeyStates: Map<String, KeyState> = emptyMap(),
     /** Under the page's back row; the comparison A/B pair while comparing. */
@@ -289,8 +291,10 @@ fun ChatOptionsBottomSheet(
                         onErrorDismiss = selector.onErrorDismiss,
                         favoriteAgentIds = selector.favoriteAgentIds,
                         favoriteModelKeys = selector.favoriteModelKeys,
+                        favoriteSpecNames = selector.favoriteSpecNames,
                         onToggleAgentFavorite = selector.onToggleAgentFavorite,
                         onToggleModelFavorite = selector.onToggleModelFavorite,
+                        onToggleSpecFavorite = selector.onToggleSpecFavorite,
                         starredDisplay = selector.starredDisplay,
                         endpointKeyStates = selector.endpointKeyStates,
                         header = {

@@ -43,6 +43,7 @@ fun compareQuickPicks(
     favoriteModelKeys: Set<String>,
     favoriteAgentIds: Set<String>,
     agentCaption: String,
+    favoriteSpecNames: Set<String> = emptySet(),
     endpointKeyStates: Map<String, KeyState> = emptyMap(),
     specs: List<ModelSpec> = emptyList(),
     modelSpecs: ModelSpecs? = null,
@@ -71,7 +72,9 @@ fun compareQuickPicks(
         starred = agent.id in favoriteAgentIds,
     )
 
-    val specPicks = specs.mapNotNull { spec ->
+    // Pinned specs lead, in pin order, so the limit never cuts one in favour of an unpinned spec.
+    val pinOrder = favoriteSpecNames.withIndex().associate { (index, name) -> name to index }
+    val specPicks = specs.sortedBy { pinOrder[it.name] ?: Int.MAX_VALUE }.mapNotNull { spec ->
         val seed = spec.toSeed() ?: return@mapNotNull null
         if (endpointKeyStates[seed.endpoint].blocksSelection()) return@mapNotNull null
         CompareQuickPick(
@@ -79,7 +82,7 @@ fun compareQuickPicks(
             model = seed.model,
             name = spec.displayLabel,
             source = if (seed.endpoint == EndpointConstants.AGENTS) agentCaption else sourceOf(seed.endpoint),
-            starred = false,
+            starred = spec.name in favoriteSpecNames,
             spec = spec.name,
         )
     }

@@ -158,4 +158,31 @@ class CompareQuickPickTest {
 
         assertThat(result.map { it.spec }).containsExactly("fast")
     }
+
+    @Test
+    fun `a pinned spec row is starred`() {
+        val slow = ModelSpec(name = "slow", label = "Slow", preset = Preset(endpoint = "openAI", model = "gpt-5"))
+        val specs = ModelSpecs(list = listOf(fast, slow))
+        val result = compareQuickPicks(
+            "", models, configs, agents, emptySet(), emptySet(), agentCaption = "Agent",
+            favoriteSpecNames = setOf("slow"),
+            specs = specs.list, modelSpecs = specs,
+        )
+
+        assertThat(result.filter { it.spec != null }.associate { it.spec to it.starred })
+            .containsExactly("fast", false, "slow", true)
+    }
+
+    @Test
+    fun `pinned specs lead the spec rows in pin order`() {
+        val specList = (1..8).map { ModelSpec(name = "s$it", label = "S$it", preset = Preset(endpoint = "openAI", model = "gpt-5")) }
+        val specs = ModelSpecs(list = specList, enforce = true)
+        val result = compareQuickPicks(
+            "", models, configs, agents, emptySet(), emptySet(), agentCaption = "Agent",
+            favoriteSpecNames = linkedSetOf("s8", "s7"),
+            specs = specs.list, modelSpecs = specs,
+        )
+
+        assertThat(result.map { it.spec }).containsExactly("s8", "s7", "s1", "s2", "s3", "s4").inOrder()
+    }
 }

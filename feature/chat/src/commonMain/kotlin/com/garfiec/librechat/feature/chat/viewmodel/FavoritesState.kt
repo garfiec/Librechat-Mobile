@@ -3,7 +3,7 @@ package com.garfiec.librechat.feature.chat.viewmodel
 import androidx.compose.runtime.Immutable
 
 /**
- * User-pinned agents/models (v0.8.5 favorites) surfaced in [ModelSelectorSheet]. Owned by
+ * User-pinned agents, models and model specs (v0.8.5 favorites) surfaced in [ModelSelectorSheet]. Owned by
  * [com.garfiec.librechat.feature.chat.viewmodel.delegate.FavoritesDelegate].
  */
 @Immutable
@@ -18,4 +18,6 @@ data class FavoritesState(
      * `FavoritesDelegate.favoriteModelKey(endpoint, model)`.
      */
     val favoriteModelKeys: Set<String> = emptySet(),
+    /** User-pinned model spec names, in pin order. A pin outlives its spec leaving the config. */
+    val favoriteSpecNames: Set<String> = emptySet(),
 )

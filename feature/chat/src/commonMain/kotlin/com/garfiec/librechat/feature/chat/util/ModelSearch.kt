@@ -1,5 +1,6 @@
 package com.garfiec.librechat.feature.chat.util
 
+import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.endpoint.KeyState
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.FavoritesDelegate
 
@@ -36,6 +37,16 @@ fun starredModels(favoriteModelKeys: Set<String>, models: Map<String, List<Strin
         val (endpoint, model) = FavoritesDelegate.parseFavoriteModelKey(key) ?: return@mapNotNull null
         if (models[endpoint]?.contains(model) == true) endpoint to model else null
     }
+
+/**
+ * Starred specs in pin order ([favoriteSpecNames] is a LinkedHashSet), keeping only those among
+ * [visibleSpecs], the picker's spec rows. A pin whose spec is hidden or gone shows nothing but stays
+ * pinned. Web keeps a hidden one too, but its sidebar deletes a pin whose spec left the config.
+ */
+fun starredSpecs(favoriteSpecNames: Set<String>, visibleSpecs: List<ModelSpec>): List<ModelSpec> {
+    val byName = visibleSpecs.associateBy { it.name }
+    return favoriteSpecNames.mapNotNull { byName[it] }
+}
 
 /**
  * A user-provided-key endpoint with no usable key: the selector greys it out behind "Set API Key".
