@@ -49,10 +49,15 @@ class Navigator(val backStack: NavBackStack<NavKey>) {
         if (backStack.any { it != route }) backStack.removeAll { it == route }
     }
 
-    /** Swap the top entry for [route], so back skips the screen being left. */
-    fun replaceTop(route: NavKey) {
+    /**
+     * Swap [route] for [replacement] so back skips [route], but only while [route] is the top entry:
+     * a screen that hands itself over once a request finishes can't drop a different screen when the
+     * user has already left it and the result lands during its exit animation.
+     */
+    fun replace(route: NavKey, replacement: NavKey) {
+        if (backStack.lastOrNull() != route) return
         backStack.removeLastOrNull()
-        backStack.add(route)
+        backStack.add(replacement)
     }
 
     /** Pop while [predicate] holds for the top entry. Never pops the last one. */

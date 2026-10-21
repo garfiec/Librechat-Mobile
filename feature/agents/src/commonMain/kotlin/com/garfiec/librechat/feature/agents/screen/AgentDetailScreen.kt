@@ -102,18 +102,19 @@ fun AgentDetailScreen(
     onStartChatWithPrompt: (agentId: String, prompt: String) -> Unit,
     onEdit: (String) -> Unit,
     onDuplicate: (String) -> Unit,
+    onClose: () -> Unit,
     modifier: Modifier = Modifier,
     agentId: String? = null,
     viewModel: AgentDetailViewModel = koinViewModel { parametersOf(agentId) },
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val currentOnBack by rememberUpdatedState(onBack)
+    val currentOnClose by rememberUpdatedState(onClose)
     val currentOnDuplicated by rememberUpdatedState(onDuplicate)
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
-                is AgentDetailEvent.Deleted -> currentOnBack()
+                is AgentDetailEvent.Deleted -> currentOnClose()
                 is AgentDetailEvent.Duplicated -> currentOnDuplicated(event.agentId)
             }
         }

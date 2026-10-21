@@ -756,7 +756,8 @@ fun MainNavDisplay(
             agentsEntries(
                 onNavigate = { navigator.navigate(it) },
                 onBack = { navigator.goBack() },
-                onReplace = { navigator.replaceTop(it) },
+                onReplace = { route, replacement -> navigator.replace(route, replacement) },
+                onRemove = { navigator.remove(it) },
                 onPopWhile = { navigator.popWhile(it) },
                 onStartChat = { agentId ->
                     // Carry the agent id into the new chat so it opens on that agent

@@ -23,7 +23,10 @@ import kotlinx.serialization.modules.subclass
 fun EntryProviderScope<NavKey>.agentsEntries(
     onNavigate: (NavKey) -> Unit,
     onBack: () -> Unit,
-    onReplace: (NavKey) -> Unit,
+    /** Swaps the first route for the second only while the first is on top (see Navigator.replace). */
+    onReplace: (route: NavKey, replacement: NavKey) -> Unit,
+    /** Removes a screen that closes itself, wherever it sits, without popping whatever is on top. */
+    onRemove: (NavKey) -> Unit,
     onPopWhile: ((NavKey) -> Boolean) -> Unit,
     onStartChat: (String) -> Unit,
     onStartChatWithPrompt: (agentId: String, prompt: String) -> Unit,
@@ -42,15 +45,18 @@ fun EntryProviderScope<NavKey>.agentsEntries(
             onStartChatWithPrompt = onStartChatWithPrompt,
             onEdit = { agentId -> onNavigate(AgentEditorEdit(agentId = agentId)) },
             // The copy's page takes this one's place, as Duplicate in the editor does: back from
-            // the copy returns to where the original was opened from, not to the original.
-            onDuplicate = { agentId -> onReplace(AgentDetail(agentId = agentId)) },
+            // the copy returns to where the original was opened from, not to the original. Both
+            // results can land after the user has backed out (the page stays composed for its exit
+            // animation), so they act on this entry only, never on whatever is on top by then.
+            onDuplicate = { agentId -> onReplace(key, AgentDetail(agentId = agentId)) },
+            onClose = { onRemove(key) },
             agentId = key.agentId,
         )
     }
-    entry<AgentEditorCreate> {
+    entry<AgentEditorCreate> { key ->
         AgentEditorScreen(
             onBack = onBack,
-            onSave = { agentId -> onReplace(AgentDetail(agentId = agentId)) },
+            onSave = { agentId -> onReplace(key, AgentDetail(agentId = agentId)) },
             agentId = null,
         )
     }
@@ -60,7 +66,7 @@ fun EntryProviderScope<NavKey>.agentsEntries(
             onBack = onBack,
             // The editor is opened from the agent's detail page, which is still underneath.
             onSave = { onBack() },
-            onDuplicate = { agentId -> onReplace(AgentDetail(agentId = agentId)) },
+            onDuplicate = { agentId -> onReplace(key, AgentDetail(agentId = agentId)) },
             onDelete = { onPopWhile { it == key || it == deletedDetail } },
             agentId = key.agentId,
         )

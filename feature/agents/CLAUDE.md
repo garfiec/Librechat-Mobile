@@ -12,7 +12,10 @@
 - `onStartChatWithPrompt(agentId, prompt)`: a conversation starter was tapped. The nav host owns what it does
   (feature/agents never depends on feature/chat): it stages the prompt in feature/chat's
   `PromptInsertionHandoff` and opens `NewChat(agentId)`, so the starter sits unsent in that chat's composer.
-- Duplicate from the page `onReplace`s it with the copy's page, as Duplicate in the editor does
+- Duplicate from the page `onReplace`s it with the copy's page, as Duplicate in the editor does. Results that
+  land after the user has left (the entry is still composed for its exit animation) must act on that entry
+  only: `onReplace(key, …)` swaps it only while it is on top, and Delete closes it with `onRemove(key)`, never
+  a bare pop.
 
 ## Who can reach the index
 - AGENTS.USE **and** MARKETPLACE.USE (web parity). Without either, the drawer and tablet sidebar hide the
