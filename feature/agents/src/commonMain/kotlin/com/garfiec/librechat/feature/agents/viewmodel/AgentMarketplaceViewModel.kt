@@ -279,7 +279,9 @@ class AgentMarketplaceViewModel(
                     it.copy(
                         agents = appended,
                         isLoadingMore = false,
-                        hasMore = result.data.hasMore,
+                        // A cursor the server can't parse reads the first page again, with the same
+                        // `after`; paging on would re-request it forever.
+                        hasMore = result.data.hasMore && result.data.nextCursor != cursor,
                         nextCursor = result.data.nextCursor,
                     )
                 }
@@ -379,18 +381,24 @@ class AgentMarketplaceViewModel(
         }
     }
 
-    /** Reads the first page, then on until [target] agents are in or there are no more. */
+    /**
+     * Reads the first page, then on until [target] agents are in or there are no more. A page whose
+     * `after` was already sent (an unparseable cursor reads the first page again) ends the list.
+     */
     private suspend fun readPages(query: AgentListQuery, target: Int): Result<PaginatedAgents> {
         val agents = mutableListOf<Agent>()
+        val sent = mutableSetOf<String>()
         var cursor: String? = null
         while (true) {
             when (val page = readPage(query, cursor)) {
                 is Result.Success -> {
                     agents += page.data.agents
                     val next = page.data.nextCursor
-                    if (!page.data.hasMore || next == null || agents.size >= target) {
-                        return Result.Success(page.data.copy(agents = agents.toList()))
+                    val hasMore = page.data.hasMore && next != null && next !in sent
+                    if (!hasMore || next == null || agents.size >= target) {
+                        return Result.Success(page.data.copy(agents = agents.toList(), hasMore = hasMore))
                     }
+                    sent += next
                     cursor = next
                 }
                 else -> return page

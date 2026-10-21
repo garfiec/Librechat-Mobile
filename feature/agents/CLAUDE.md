@@ -43,6 +43,9 @@
 - `loadMore()` appends the page after `nextCursor`; no-ops while any read runs, with no cursor, or after a
   failed page (`loadMoreFailed`) until `retryLoadMore()` (the footer's Retry). Without that stop, the scroll
   trigger re-arms and re-reads a failing page forever.
+- **Gotcha**: an unparseable cursor makes the route answer with the first page and the same `after`. A page
+  whose `after` is the cursor just sent ends paging, and the quiet reload's walk stops at a cursor it already
+  sent; without either, paging re-reads that page forever.
 - **Return to the screen** (`refreshOnReturn`, ON_RESUME): a quiet reload that walks the cursor until it has as
   many agents as were loaded, with no pull-to-refresh spinner; a failure keeps what is shown, a success clears
   a standing error. It does nothing before the first read has started (ON_RESUME fires on first composition,

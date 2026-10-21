@@ -150,6 +150,24 @@ class AgentMarketplaceViewModelTest : AgentMarketplaceViewModelTestBase() {
     }
 
     @Test
+    fun `a page that returns its own cursor ends paging`() = runTest {
+        // An unparseable cursor reads the first page again, with the same `after`.
+        stubPage("c1") returns page(testAgents, next = "c1")
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.loadMore()
+        advanceUntilIdle()
+        viewModel.loadMore()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.hasMore).isFalse()
+        assertThat(state.agents.map { it.id }).containsExactly("agent-1", "agent-2", "agent-3").inOrder()
+        coVerify(exactly = 1) { agentRepository.getAgentsPaginated(any(), "c1", any(), any(), any(), any()) }
+    }
+
+    @Test
     fun `a filter change reads from the first page again`() = runTest {
         stubPage("c1") returns page(listOf(Agent(id = "agent-4")), next = "c2")
 
@@ -420,6 +438,28 @@ class AgentMarketplaceViewModelTest : AgentMarketplaceViewModelTestBase() {
         assertThat(state.nextCursor).isEqualTo("c2")
         coVerify(exactly = 2) { agentRepository.getAgentsPaginated(any(), "c1", any(), any(), any(), any()) }
         coVerify(exactly = 0) { agentRepository.getAgentsPaginated(any(), "c2", any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `the quiet reload stops at a page that returns its own cursor`() = runTest {
+        stubPage("c1") returns page(listOf(Agent(id = "agent-4")), next = "c2")
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.loadMore()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.agents).hasSize(4)
+
+        // Short of the four loaded, the walk would re-send c1 forever.
+        stubPage("c1") returns page(emptyList(), next = "c1")
+        viewModel.refreshOnReturn()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.agents.map { it.id }).containsExactly("agent-1", "agent-2", "agent-3").inOrder()
+        assertThat(state.hasMore).isFalse()
+        assertThat(state.loadError).isNull()
+        coVerify(exactly = 2) { agentRepository.getAgentsPaginated(any(), "c1", any(), any(), any(), any()) }
     }
 
     /**
