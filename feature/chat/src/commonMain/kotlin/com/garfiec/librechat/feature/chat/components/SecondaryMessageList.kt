@@ -20,6 +20,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.common.ChatLayoutConstants
@@ -61,10 +62,13 @@ fun SecondaryMessageList(
     /** Hoisted by Compare so the pane keeps its place across layout switches. */
     listState: LazyListState = rememberLazyListState(),
     /** Compare's scroll sync is holding this pane level with the other; its tail follower stands down. */
-    syncHold: Boolean = false,
+    syncHold: () -> Boolean = { false },
+    /** Reading room past the last line, as in [MessageList]. */
+    extraEndSpace: Dp = 0.dp,
 ) {
+    val extraEndPx = with(LocalDensity.current) { extraEndSpace.toPx() }
     val follower = rememberTailFollowerState()
-    val isNearBottom = rememberIsNearBottom(listState)
+    val isNearBottom = rememberIsNearBottom(listState, extraEndPx)
     // This pane hosts no AskUserQuestionPanel, so an unanswered ask has no affordance to resolve it.
     val renderedToolCalls = remember(activeToolCalls) { activeToolCalls.withoutAnyUnansweredQuestions() }
     // Parsed once per list; `contentType` runs on every measure pass.
@@ -79,18 +83,18 @@ fun SecondaryMessageList(
         if (!hasScrolledToBottom && displayMessages.isNotEmpty()) {
             // From the data, not layoutInfo: this can run before the list's first layout.
             val untouched = listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
-            if (untouched) listState.scrollToItem(displayMessages.lastIndex, scrollOffset = Int.MAX_VALUE)
+            if (untouched) listState.scrollToTail(displayMessages.lastIndex, extraEndPx)
             hasScrolledToBottom = true
         }
     }
 
-    // The same follower as the primary pane, so a finger on this pane holds its tail too.
     TailFollowEffects(
         listState = listState,
         state = follower,
         isNearBottom = isNearBottom,
         isStreaming = isStreaming,
         syncHold = syncHold,
+        extraEndPx = extraEndPx,
     )
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -115,7 +119,7 @@ fun SecondaryMessageList(
                     .tailFollowerTouch(follower),
                 state = listState,
                 // The same reading gap as the primary pane, so the two tails rest at one height.
-                contentPadding = PaddingValues(top = 8.dp, bottom = bottomContentPadding + MESSAGE_LIST_BOTTOM_GAP),
+                contentPadding = PaddingValues(top = 8.dp, bottom = bottomContentPadding + MESSAGE_LIST_BOTTOM_GAP + extraEndSpace),
             ) {
                 items(
                     items = displayMessages,

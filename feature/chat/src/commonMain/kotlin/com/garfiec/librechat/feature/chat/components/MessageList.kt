@@ -161,8 +161,14 @@ fun MessageList(
      */
     listState: LazyListState = rememberLazyListState(),
     /** Compare's scroll sync is holding this pane level with the other; its tail follower stands down. */
-    syncHold: Boolean = false,
+    syncHold: () -> Boolean = { false },
+    /**
+     * Reading room past the last line, so a reader can scroll the end of a reply up to where they
+     * read. Automatic scrolls stop short of it (see [scrollToTail]).
+     */
+    extraEndSpace: Dp = 0.dp,
 ) {
+    val extraEndPx = with(LocalDensity.current) { extraEndSpace.toPx() }
     val coroutineScope = rememberCoroutineScope()
     val follower = rememberTailFollowerState()
     // Height (px) of the floating top bar occluding the list's top edge. The search fine-tune adds
@@ -192,7 +198,7 @@ fun MessageList(
     // view on its own, and unlike this file it knows which node that is.
     var listHasFocus by remember { mutableStateOf(false) }
 
-    val isNearBottom = rememberIsNearBottom(listState)
+    val isNearBottom = rememberIsNearBottom(listState, extraEndPx)
 
     val showScrollToBottom by remember {
         derivedStateOf {
@@ -333,7 +339,7 @@ fun MessageList(
             // waited out, and only one that gave up without a message to focus lands at the bottom,
             // and only if the user hasn't scrolled the list while it waited.
             val untouched = listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
-            if (searchFocusRequest == null && untouched) listState.scrollToItem(totalItemCount - 1, scrollOffset = Int.MAX_VALUE)
+            if (searchFocusRequest == null && untouched) listState.scrollToTail(totalItemCount - 1, extraEndPx)
             hasScrolledToBottom = true
         }
     }
@@ -352,7 +358,7 @@ fun MessageList(
             if (total > 0) {
                 follower.programmaticScroll = true
                 try {
-                    listState.animateScrollToItem(total - 1, scrollOffset = Int.MAX_VALUE)
+                    listState.animateScrollToTail(total - 1, extraEndPx)
                 } finally {
                     follower.programmaticScroll = false
                 }
@@ -371,6 +377,7 @@ fun MessageList(
         // once by its own effect above, and after that the list is the user's.
         holdFollow = pendingAction != null,
         syncHold = syncHold,
+        extraEndPx = extraEndPx,
     )
 
     // ── Keyboard scroll ────────────────────────────────────────────
@@ -415,7 +422,7 @@ fun MessageList(
                 val itemCount = info.totalItemsCount
                 if (lastVisible != null && itemCount > 0 && lastVisible.index >= itemCount - 2) {
                     coroutineScope.launch {
-                        listState.scrollToItem(itemCount - 1, scrollOffset = Int.MAX_VALUE)
+                        listState.scrollToTail(itemCount - 1, extraEndPx)
                     }
                 }
             }
@@ -462,7 +469,7 @@ fun MessageList(
             // flicker class).
             contentPadding = PaddingValues(
                 top = topContentPadding + 8.dp,
-                bottom = bottomContentPadding + MESSAGE_LIST_BOTTOM_GAP,
+                bottom = bottomContentPadding + MESSAGE_LIST_BOTTOM_GAP + extraEndSpace,
             ),
         ) {
             itemsIndexed(
@@ -737,7 +744,7 @@ fun MessageList(
                     follower.userScrolledUp = false
                     coroutineScope.launch {
                         if (totalItemCount > 0) {
-                            listState.animateScrollToItem(totalItemCount - 1, scrollOffset = Int.MAX_VALUE)
+                            listState.animateScrollToTail(totalItemCount - 1, extraEndPx)
                         }
                     }
                 },

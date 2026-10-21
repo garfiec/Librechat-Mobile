@@ -104,10 +104,6 @@ fun ComparisonDualPane(
     }
 }
 
-/**
- * The link between the two panes, straddling the gutter where their headers end: linked, they
- * scroll together; unlinked, each scrolls on its own.
- */
 @Composable
 private fun ComparisonSyncLink(linked: Boolean, onLinkedChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
     AdaptiveFloatingActionButton(

@@ -40,6 +40,12 @@ internal data class SyncViewport(
     val heightAbove: Float? = if (items.firstOrNull()?.index == 0) 0f else null,
     /** Total height of the items below the last visible one, when every one has been measured. */
     val heightBelow: Float? = if (items.lastOrNull()?.index == totalItemsCount - 1) 0f else null,
+    /**
+     * Reading room at the end of [afterContentPadding] that the list's own scrolls stop short of.
+     * The end ramp finishes where they rest, so scrolling to the bottom brings both last lines
+     * down together; the room past it is the same in both panes, so they stay level through it.
+     */
+    val extraEnd: Float = 0f,
 ) {
     val height: Float get() = endOffset - startOffset
 
@@ -52,17 +58,17 @@ internal data class SyncViewport(
     /** How far the list can still scroll toward its end, or null when that's unknown (so: far). */
     fun distanceToEnd(): Float? {
         val last = items.lastOrNull() ?: return null
-        return heightBelow?.let { max(0f, last.end + it + afterContentPadding - endOffset) }
+        return heightBelow?.let { max(0f, last.end + it + afterContentPadding - extraEnd - endOffset) }
     }
 
     fun referenceLine(syncpoint: Float): Float = startOffset + syncpoint * height
 }
 
 /**
- * Where on the viewport the two panes are held level, as a fraction of its height. Meld's ramp
- * around [READING_LINE] rather than Meld's middle: the reading line while far from either end,
- * easing to the top over the first [READING_LINE] of a screen and to the bottom over the rest, so
- * both panes reach their top together and their end together.
+ * Where on the viewport the two panes are held level, as a fraction of its height: [READING_LINE]
+ * while far from either end, easing (as Meld's does) to the top over the first [READING_LINE] of a
+ * screen and to the bottom over the rest, so both panes reach their top together and their end
+ * together.
  */
 internal fun syncpoint(distanceFromTop: Float?, distanceToEnd: Float?, viewportHeight: Float): Float {
     if (viewportHeight <= 0f) return 0f

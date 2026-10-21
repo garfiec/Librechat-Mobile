@@ -1,5 +1,6 @@
 package com.garfiec.librechat.feature.chat.components
 
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.lazy.LazyListLayoutInfo
 import androidx.compose.foundation.lazy.LazyListState
@@ -22,6 +23,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 
 /**
@@ -65,20 +67,21 @@ internal fun Modifier.tailFollowerTouch(state: TailFollowerState): Modifier = po
 
 /** Whether [listState] rests within [NEAR_BOTTOM_BUFFER] of its tail. */
 @Composable
-internal fun rememberIsNearBottom(listState: LazyListState): State<Boolean> {
+internal fun rememberIsNearBottom(listState: LazyListState, extraEndPx: Float = 0f): State<Boolean> {
     val nearBottomThresholdPx = rememberNearBottomThresholdPx()
     // Keyed on the threshold, which is derived from LocalDensity: a keyless remember holds the
     // first composition's pixel value while the layout numbers it is compared against stay live,
     // so the buffer is measured in stale units after a density or font-scale change.
-    return remember(listState, nearBottomThresholdPx) {
-        derivedStateOf { listState.layoutInfo.restsNearTail(nearBottomThresholdPx) }
+    return remember(listState, nearBottomThresholdPx, extraEndPx) {
+        derivedStateOf { listState.layoutInfo.restsNearTail(nearBottomThresholdPx, extraEndPx) }
     }
 }
 
 @Composable
 internal fun rememberNearBottomThresholdPx(): Float = with(LocalDensity.current) { NEAR_BOTTOM_BUFFER.toPx() }
 
-internal fun LazyListLayoutInfo.restsNearTail(thresholdPx: Float): Boolean {
+/** [extraEndPx] is reading room past the last line (see [scrollToTail]); the rest sits above it. */
+internal fun LazyListLayoutInfo.restsNearTail(thresholdPx: Float, extraEndPx: Float = 0f): Boolean {
     val lastItem = visibleItemsInfo.lastOrNull()
     if (lastItem == null || totalItemsCount == 0) return true
     // Measured from the follower's OWN rest target, not from viewportEndOffset: that baseline sits
@@ -86,7 +89,7 @@ internal fun LazyListLayoutInfo.restsNearTail(thresholdPx: Float): Boolean {
     // reading gap — 184dp at the floor, more once queued ghost rows stack). Measure from it and the
     // effective slack becomes [NEAR_BOTTOM_BUFFER] PLUS that reserve, so the pin re-grabs the list
     // after a scroll-up of a quarter screen.
-    val restOffset = viewportEndOffset - afterContentPadding
+    val restOffset = viewportEndOffset - afterContentPadding + extraEndPx
     return lastItem.index >= totalItemsCount - 2 &&
         (lastItem.offset + lastItem.size - restOffset) < thresholdPx
 }
@@ -111,17 +114,25 @@ internal fun TailFollowEffects(
     isStreaming: Boolean,
     holdFollow: Boolean = false,
     /**
-     * Compare's scroll sync is holding this list level with the other pane. Unlike [holdFollow],
-     * the scrolls it makes are the sync's, not the user's, so none of them latch scroll-away: when
-     * the hold lifts the list follows its tail again.
+     * Whether Compare's scroll sync is holding this list level with the other pane. Unlike
+     * [holdFollow], the scrolls it makes are the sync's, not the user's, so none of them latch
+     * scroll-away: when the hold lifts the list follows its tail again. Read live, not passed as a
+     * value: the sync starts holding and scrolls this list in the same step, before any
+     * recomposition could deliver a new value, and the detector must already see the hold.
      */
-    syncHold: Boolean = false,
+    syncHold: () -> Boolean = { false },
+    /** Reading room past the last line, which the follower's rest stays above (see [scrollToTail]). */
+    extraEndPx: Float = 0f,
 ) {
     // Read through updated state, not the captured parameter: the follower below runs for a whole
     // run inside one LaunchedEffect, so a plain capture would keep reporting whatever was true on
     // the frame the run started.
     val currentHoldFollow by rememberUpdatedState(holdFollow)
     val currentSyncHold by rememberUpdatedState(syncHold)
+    val currentExtraEndPx by rememberUpdatedState(extraEndPx)
+    // The caller re-creates its near-bottom state when the threshold or the reading room changes
+    // (Compare's room is measured after the first layout), so the detector must not keep the first one.
+    val currentIsNearBottom by rememberUpdatedState(isNearBottom)
 
     // Detect user scroll-away: when the user drags or flings away from the bottom, set the flag.
     // When they return to the bottom (manually or via FAB), clear it.
@@ -134,7 +145,7 @@ internal fun TailFollowEffects(
     // included, so gesture latching loses nothing without the touch term.
     LaunchedEffect(listState, state) {
         snapshotFlow {
-            (listState.isScrollInProgress && !state.programmaticScroll && !currentSyncHold) to isNearBottom.value
+            (listState.isScrollInProgress && !state.programmaticScroll && !currentSyncHold()) to currentIsNearBottom.value
         }
             .collect { (userIsScrolling, nearBottom) ->
                 if (userIsScrolling && !nearBottom) {
@@ -154,7 +165,7 @@ internal fun TailFollowEffects(
             // Jump to bottom immediately (user just sent a message)
             val total = listState.layoutInfo.totalItemsCount
             if (total > 0) {
-                listState.scrollToItem(total - 1, scrollOffset = Int.MAX_VALUE)
+                listState.scrollToTail(total - 1, currentExtraEndPx)
             }
             // ONE continuous follower for the whole run, driven per frame — not a scroll per text
             // flush, which at the buffer's STREAMING_UI_UPDATE_INTERVAL_MS means ~20 instant
@@ -171,7 +182,7 @@ internal fun TailFollowEffects(
                     // loop pinning the tail every frame while the one thing it exists to follow —
                     // output — has stopped, and a follower still running would undo every scroll
                     // the instant the user's finger lifts.
-                    if (state.isTouching || state.userScrolledUp || currentHoldFollow || currentSyncHold) {
+                    if (state.isTouching || state.userScrolledUp || currentHoldFollow || currentSyncHold()) {
                         state.programmaticScroll = false
                         continue
                     }
@@ -194,14 +205,14 @@ internal fun TailFollowEffects(
                             // tool call, an office preview, a review pause), so there is no
                             // on-screen distance to ease along; jump instead. Once per appended
                             // item, not per flush.
-                            listState.scrollToItem(itemCount - 1, scrollOffset = Int.MAX_VALUE)
+                            listState.scrollToTail(itemCount - 1, currentExtraEndPx)
                         } else {
                             // Rest the tail against the bottom reserve, NOT viewportEndOffset: that
                             // is the layout size minus *before*-content-padding, so it sits below
                             // where the list can actually rest and inflates every step by the whole
                             // reserve — the ease then never decelerates, it runs full speed into
                             // the scroll clamp.
-                            val restOffset = info.viewportEndOffset - info.afterContentPadding
+                            val restOffset = info.viewportEndOffset - info.afterContentPadding + currentExtraEndPx
                             val distance = (lastItem.offset + lastItem.size - restOffset).toFloat()
                             if (distance > FOLLOW_SETTLE_PX) {
                                 val step = (distance * FOLLOW_FRACTION)
@@ -225,17 +236,47 @@ internal fun TailFollowEffects(
             // Streaming just ended. The final messages are now in the list synchronously
             // (finalizeChatDisplay swaps the streaming bubble for the real AI message in the same
             // state update that clears isStreaming), so we only need a brief layout-settle before
-            // scrolling to show the complete response. Only auto-scroll if user hasn't scrolled away.
+            // scrolling to show the complete response. Only auto-scroll if user hasn't scrolled away,
+            // and not while Compare's sync holds this pane level with the other: its scrolls never
+            // latch scroll-away, so the jump would pull the reader's place to the end.
             wasStreaming = false
-            if (!state.userScrolledUp) {
+            if (!state.userScrolledUp && !currentSyncHold()) {
                 delay(50)
                 val total = listState.layoutInfo.totalItemsCount
                 if (total > 0) {
-                    listState.scrollToItem(total - 1, scrollOffset = Int.MAX_VALUE)
+                    listState.scrollToTail(total - 1, currentExtraEndPx)
                 }
             }
         }
     }
+}
+
+/**
+ * Scrolls to where a list's tail rests: its end, less [extraEndPx] of reading room. That room lets
+ * a reader scroll the last lines up to where they read; the automatic scrolls stop short of it, so
+ * the last line still lands just above the composer.
+ */
+internal suspend fun LazyListState.scrollToTail(lastIndex: Int, extraEndPx: Float = 0f) {
+    if (extraEndPx > 0f) {
+        // Before its first layout a list only records the jump, and the step back below would
+        // be lost against the position it still has.
+        snapshotFlow { layoutInfo.totalItemsCount }.first { it > 0 }
+    }
+    scrollToItem(lastIndex, scrollOffset = Int.MAX_VALUE)
+    if (extraEndPx > 0f) scrollBy(-extraEndPx)
+}
+
+/** [scrollToTail], animated. */
+internal suspend fun LazyListState.animateScrollToTail(lastIndex: Int, extraEndPx: Float = 0f) {
+    if (extraEndPx <= 0f) {
+        animateScrollToItem(lastIndex, scrollOffset = Int.MAX_VALUE)
+        return
+    }
+    if (layoutInfo.visibleItemsInfo.none { it.index == lastIndex }) animateScrollToItem(lastIndex)
+    val info = layoutInfo
+    val last = info.visibleItemsInfo.lastOrNull { it.index == lastIndex } ?: return
+    val restOffset = info.viewportEndOffset - info.afterContentPadding + extraEndPx
+    animateScrollBy(last.offset + last.size - restOffset)
 }
 
 // ── Streaming follow tuning ───────────────────────────────────────────

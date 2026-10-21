@@ -7,9 +7,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.movableContentOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.common.EndpointConstants
@@ -19,10 +23,12 @@ import com.garfiec.librechat.feature.chat.components.ComparisonPane
 import com.garfiec.librechat.feature.chat.components.ComparisonPaneEmpty
 import com.garfiec.librechat.feature.chat.components.ComparisonPaneModelSelector
 import com.garfiec.librechat.feature.chat.components.ComparisonTabBar
+import com.garfiec.librechat.feature.chat.components.MESSAGE_LIST_BOTTOM_GAP
 import com.garfiec.librechat.feature.chat.components.MessageList
 import com.garfiec.librechat.feature.chat.components.SecondaryMessageList
 import com.garfiec.librechat.feature.chat.components.comparisonSyncLead
 import com.garfiec.librechat.feature.chat.components.rememberComparisonScrollSync
+import com.garfiec.librechat.feature.chat.util.READING_LINE
 import com.garfiec.librechat.feature.chat.util.buildComparisonDisplayMessages
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
@@ -63,7 +69,7 @@ internal fun ComparisonPanes(
     primaryLaneLabel: String,
     /** Pane A's scroll position, shared with the single list it replaces (see ChatContent). */
     primaryListState: LazyListState,
-    /** Pane B's scroll position, hoisted beside pane A's so it survives the wide/narrow switch. */
+    /** Pane B's scroll position, hoisted beside pane A's (see ChatContent). */
     secondaryListState: LazyListState,
     modifier: Modifier = Modifier,
 ) {
@@ -133,8 +139,22 @@ internal fun ComparisonPanes(
         )
     }
 
-    // Side by side, the two lists scroll together while both have something to show.
+    // Side by side, the cards themselves end above the composer, so a list inside one needs only
+    // a little room at its foot; the tab pager's lists run under the composer and need all of it.
+    val listBottomPadding = if (wide) PaneListBottomPadding else bottomContentPadding
+
+    // Reading room past the last line, enough to scroll it up to the reading line the panes are
+    // synced on, so a reply's end can be compared where the rest of it was. The same in both panes,
+    // so their ends still meet. Measured from pane A's list; both panes are the same height. In
+    // both layouts: on a phone it gives each tab the same comfortable end to read into.
     val settingUp = comparisonState.isSettingUp
+    var paneListHeightPx by remember { mutableIntStateOf(0) }
+    val density = LocalDensity.current
+    val extraEndSpace = with(density) { (paneListHeightPx * (1f - READING_LINE)).toDp() }
+        .minus(listBottomPadding + MESSAGE_LIST_BOTTOM_GAP)
+        .coerceAtLeast(0.dp)
+    val extraEndPx = with(density) { extraEndSpace.toPx() }
+
     val syncScrollPreferred by viewModel.compareSyncScroll.collectAsState()
     val scrollSync = rememberComparisonScrollSync(
         primary = primaryListState,
@@ -142,12 +162,9 @@ internal fun ComparisonPanes(
         enabled = wide && !settingUp && syncScrollPreferred &&
             primaryDisplayMessages.isNotEmpty() && secondaryDisplayMessages.isNotEmpty(),
         isStreaming = uiState.isStreaming || comparisonState.primaryIsStreaming || comparisonState.secondaryIsStreaming,
+        extraEndPx = extraEndPx,
     )
-    val syncHold = scrollSync.holdingTails
-
-    // Side by side, the cards themselves end above the composer, so a list inside one needs only
-    // a little room at its foot; the tab pager's lists run under the composer and need all of it.
-    val listBottomPadding = if (wide) PaneListBottomPadding else bottomContentPadding
+    val syncHold = { scrollSync.holdingTails }
     val primaryMessageListBody: @Composable () -> Unit = {
         if (primaryDisplayMessages.isEmpty() && !comparisonState.primaryIsStreaming && !uiState.isStreaming) {
             ComparisonPaneEmpty(ComparisonLane.A, primaryLaneLabel, bottomPadding = listBottomPadding)
@@ -211,7 +228,8 @@ internal fun ComparisonPanes(
                 // The comparison container is already padded clear of the floating bar.
                 topContentPadding = 0.dp,
                 syncHold = syncHold,
-                modifier = Modifier.fillMaxSize(),
+                extraEndSpace = extraEndSpace,
+                modifier = Modifier.fillMaxSize().onSizeChanged { paneListHeightPx = it.height },
             )
         }
     }
@@ -247,6 +265,7 @@ internal fun ComparisonPanes(
                 userName = uiState.userName,
                 listState = secondaryListState,
                 syncHold = syncHold,
+                extraEndSpace = extraEndSpace,
                 modifier = Modifier.fillMaxSize(),
             )
         }
@@ -311,7 +330,9 @@ internal fun ComparisonPanes(
                 bottomInset = paneBottomInset,
                 onContinueWithPrimary = onContinuePrimary,
                 onContinueWithSecondary = onContinueSecondary,
-                syncScroll = syncScrollPreferred,
+                syncScroll = syncScrollPreferred.takeIf {
+                    primaryDisplayMessages.isNotEmpty() && secondaryDisplayMessages.isNotEmpty()
+                },
                 onSyncScrollChange = viewModel::setCompareSyncScroll,
                 modifier = Modifier.fillMaxSize(),
             )

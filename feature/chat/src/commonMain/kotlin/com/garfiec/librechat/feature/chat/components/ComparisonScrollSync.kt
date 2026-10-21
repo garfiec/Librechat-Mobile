@@ -63,14 +63,14 @@ internal class ComparisonScrollSync(private val primary: LazyListState, private 
         lastJump = null
     }
 
-    internal suspend fun step(isStreaming: Boolean, nearTailThresholdPx: Float) {
+    internal suspend fun step(isStreaming: Boolean, nearTailThresholdPx: Float, extraEndPx: Float) {
         val leadPane = lead
         val followerPane = leadPane.other()
         val leader = state(leadPane)
         val follower = state(followerPane)
         val leaderInfo = leader.layoutInfo
 
-        holdingTails = isStreaming && !leaderInfo.restsNearTail(nearTailThresholdPx)
+        holdingTails = isStreaming && !leaderInfo.restsNearTail(nearTailThresholdPx, extraEndPx)
         if (isStreaming && !holdingTails) {
             forget()
             return
@@ -93,8 +93,8 @@ internal class ComparisonScrollSync(private val primary: LazyListState, private 
 
         val followerHeights = heights[followerPane.ordinal]
         val move = followerMove(
-            leaderInfo.toSyncViewport(heights[leadPane.ordinal]),
-            follower.layoutInfo.toSyncViewport(followerHeights),
+            leaderInfo.toSyncViewport(heights[leadPane.ordinal], extraEndPx),
+            follower.layoutInfo.toSyncViewport(followerHeights, extraEndPx),
             direction,
             estimateSize = followerHeights::height,
         )
@@ -128,10 +128,13 @@ internal fun rememberComparisonScrollSync(
     secondary: LazyListState,
     enabled: Boolean,
     isStreaming: Boolean,
+    /** Both panes' reading room past their last line (see [scrollToTail]). */
+    extraEndPx: Float = 0f,
 ): ComparisonScrollSync {
     val sync = remember(primary, secondary) { ComparisonScrollSync(primary, secondary) }
     val nearTailThresholdPx = rememberNearBottomThresholdPx()
     val currentIsStreaming by rememberUpdatedState(isStreaming)
+    val currentExtraEndPx by rememberUpdatedState(extraEndPx)
     LaunchedEffect(sync, enabled, nearTailThresholdPx) {
         if (!enabled) {
             sync.release()
@@ -140,8 +143,9 @@ internal fun rememberComparisonScrollSync(
         // A new layoutInfo is published on every layout pass of either pane, so this runs once per
         // frame in which something moved or resized — and not at all while both are still. Our own
         // move re-triggers it once, and that pass finds nothing left to do.
-        snapshotFlow { Triple(sync.lead, primary.layoutInfo, secondary.layoutInfo) }
-            .collect { sync.step(currentIsStreaming, nearTailThresholdPx) }
+        // A run starting or ending moves neither pane, but changes whether the tails are held.
+        snapshotFlow { listOf(sync.lead, primary.layoutInfo, secondary.layoutInfo, currentIsStreaming) }
+            .collect { sync.step(currentIsStreaming, nearTailThresholdPx, currentExtraEndPx) }
     }
     return sync
 }
@@ -194,7 +198,7 @@ private class ItemHeights {
     }
 }
 
-private fun LazyListLayoutInfo.toSyncViewport(heights: ItemHeights): SyncViewport {
+private fun LazyListLayoutInfo.toSyncViewport(heights: ItemHeights, extraEndPx: Float): SyncViewport {
     heights.record(this)
     val first = visibleItemsInfo.firstOrNull()?.index ?: 0
     val last = visibleItemsInfo.lastOrNull()?.index ?: (totalItemsCount - 1)
@@ -206,5 +210,6 @@ private fun LazyListLayoutInfo.toSyncViewport(heights: ItemHeights): SyncViewpor
         totalItemsCount = totalItemsCount,
         heightAbove = heights.total(0 until first),
         heightBelow = heights.total(last + 1 until totalItemsCount),
+        extraEnd = extraEndPx,
     )
 }

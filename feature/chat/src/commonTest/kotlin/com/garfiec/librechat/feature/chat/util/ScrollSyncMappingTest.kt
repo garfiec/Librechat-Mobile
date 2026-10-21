@@ -149,7 +149,7 @@ class ScrollSyncMappingTest {
 
     @Test
     fun aShortFirstMessageScrollingOffDoesNotJumpTheOtherPane() {
-        // The field layout: a one-line prompt, then replies of 982px and 1691px.
+        // A one-line prompt, then replies of 982px and 1691px.
         val lead = listOf(136f, 982f, 136f, 1456f, 136f, 1172f)
         val follower = listOf(136f, 1691f, 136f, 2002f, 136f, 1882f)
         var previous = 0f
@@ -183,5 +183,23 @@ class ScrollSyncMappingTest {
         val landed = follower.take(jump.index).sum() + jump.scrollOffsetPx
         val next = followerMove(leadView, viewport(follower, landed))
         assertTrue(next !is FollowerMove.ToItem, "jumped again: $next")
+    }
+
+    @Test
+    fun bothLastLinesRestTogetherAboveTheReadingRoom() {
+        val room = 500f
+        fun view(sizes: List<Float>, scroll: Float): SyncViewport {
+            val plain = viewport(sizes, scroll)
+            return plain.copy(afterContentPadding = padding + room, extraEnd = room)
+        }
+
+        // Where scroll-to-bottom rests: the end, less the room.
+        fun rest(sizes: List<Float>) = sizes.sum() + 2 * padding - viewportHeight
+        val lead = listOf(300f, 2400f, 300f, 1800f)
+        val follower = listOf(300f, 1400f, 300f, 900f)
+
+        val move = followerMove(view(lead, rest(lead)), view(follower, rest(follower)))
+
+        assertEquals(FollowerMove.None, move)
     }
 }
