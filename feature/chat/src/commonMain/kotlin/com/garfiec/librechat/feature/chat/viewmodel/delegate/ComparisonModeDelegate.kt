@@ -64,17 +64,19 @@ class ComparisonModeDelegate(
     }
 
     /**
-     * Enables comparison against [endpoint]/[model], ending any setup. Refused while a reply
-     * streams: [routeEvent] reads [ComparisonState.isEnabled] per event, so the rest of a
-     * single-model reply would land in the comparison buffers and its streamed text would vanish.
+     * Enables comparison against [endpoint]/[model] ([spec] when it is a spec), ending any setup.
+     * Refused while a reply streams: [routeEvent] reads [ComparisonState.isEnabled] per event, so
+     * the rest of a single-model reply would land in the comparison buffers and its streamed text
+     * would vanish.
      */
-    fun startComparison(endpoint: String, model: String) {
+    fun startComparison(endpoint: String, model: String, spec: String? = null) {
         if (handle.state.isStreaming) return
         handle.update {
             comparisonState = ComparisonState(
                 isEnabled = true,
                 secondaryEndpoint = endpoint,
                 secondaryModel = model,
+                secondarySpec = spec,
             )
             // When enabling on LANDING, switch to ACTIVE so comparison tabs render
             content = content.copy(

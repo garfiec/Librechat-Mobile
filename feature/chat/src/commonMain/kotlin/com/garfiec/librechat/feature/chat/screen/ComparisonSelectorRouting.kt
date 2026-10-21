@@ -23,9 +23,9 @@ internal class ComparisonSelectorRouting(
     val onModelSelect: (endpoint: String, model: String) -> Unit,
     /** The A/B pair above the list; null outside Compare. */
     val header: (@Composable () -> Unit)?,
-    /** The edited lane's spec, and where a spec pick goes. Null during setup, which stages models only. */
+    /** The edited lane's spec, and where a spec pick goes (staged during setup, like a model). */
     val selectedSpec: String? = null,
-    val onSpecSelect: ((ModelSpec) -> Unit)? = null,
+    val onSpecSelect: (ModelSpec) -> Unit = {},
 )
 
 /** Both compared models' labels, for the options sheet's Model row; null when not comparing. */
@@ -35,8 +35,20 @@ internal fun comparisonModelLabels(uiState: ChatUiState): ComparisonModelLabels?
     val secondaryModel = comparison.secondaryModel
     if (!comparison.isEnabled || secondaryModel == null) return null
     return ComparisonModelLabels(
-        primary = comparisonLaneLabel(uiState.selectedEndpoint, uiState.selectedModel, uiState.agents),
-        secondary = comparisonLaneLabel(comparison.secondaryEndpoint, secondaryModel, uiState.agents),
+        primary = comparisonLaneLabel(
+            uiState.selectedEndpoint,
+            uiState.selectedModel,
+            uiState.agents,
+            uiState.selectedSpec,
+            uiState.modelSpecs,
+        ),
+        secondary = comparisonLaneLabel(
+            comparison.secondaryEndpoint,
+            secondaryModel,
+            uiState.agents,
+            comparison.secondarySpec,
+            uiState.modelSpecs,
+        ),
     )
 }
 
@@ -52,9 +64,9 @@ internal fun rememberComparisonSelectorRouting(
     initialTarget: ComparisonLane,
     onSelectPrimary: (endpoint: String, model: String) -> Unit,
     onSelectSecondary: (endpoint: String, model: String) -> Unit,
+    onSelectPrimarySpec: (ModelSpec) -> Unit,
+    onSelectSecondarySpec: (ModelSpec) -> Unit,
     setupPick: CompareSetupPick? = null,
-    onSelectPrimarySpec: ((ModelSpec) -> Unit)? = null,
-    onSelectSecondarySpec: ((ModelSpec) -> Unit)? = null,
 ): ComparisonSelectorRouting {
     var target by remember(initialTarget) { mutableStateOf(initialTarget) }
     val comparison = uiState.comparisonState
@@ -65,26 +77,41 @@ internal fun rememberComparisonSelectorRouting(
             val staged = compareSetupLabels(
                 staging,
                 uiState,
-                comparisonLaneLabel(uiState.selectedEndpoint, uiState.selectedModel, uiState.agents),
+                comparisonLaneLabel(
+                    uiState.selectedEndpoint,
+                    uiState.selectedModel,
+                    uiState.agents,
+                    uiState.selectedSpec,
+                    uiState.modelSpecs,
+                ),
             )
+            val stage = { endpoint: String, model: String -> staging.set(endpoint, model) }
             ComparisonLanes(
                 aEndpoint = staged.primaryEndpoint,
                 aModel = staged.primaryModel,
+                aSpec = staged.primarySpec,
                 bEndpoint = staging.endpoint,
                 bModel = staging.model,
+                bSpec = staging.spec,
                 // The setup's own pick: it knows which lane is being edited, and moves on to B
                 // after an A while B is empty, as in the setup sheet.
-                selectA = staging::set,
-                selectB = staging::set,
+                selectA = stage,
+                selectB = stage,
+                selectSpecA = staging::setSpec,
+                selectSpecB = staging::setSpec,
             )
         }
         else -> ComparisonLanes(
             aEndpoint = uiState.selectedEndpoint,
             aModel = uiState.selectedModel,
+            aSpec = uiState.selectedSpec,
             bEndpoint = comparison.secondaryEndpoint,
             bModel = comparison.secondaryModel,
+            bSpec = comparison.secondarySpec,
             selectA = onSelectPrimary,
             selectB = onSelectSecondary,
+            selectSpecA = onSelectPrimarySpec,
+            selectSpecB = onSelectSecondarySpec,
         )
     }
     // During setup the lane being edited is the setup's, shared with its sheet and panes; while
@@ -99,21 +126,15 @@ internal fun rememberComparisonSelectorRouting(
     // options sheet's ModelSelectorPageParams unequal on each chrome emission and redraw the page.
     val latestSelect by rememberUpdatedState(if (editingA) lanes.selectA else lanes.selectB)
     val onModelSelect = remember { { endpoint: String, model: String -> latestSelect(endpoint, model) } }
-    val selectedSpec = when {
-        staging != null -> null
-        editingA -> uiState.selectedSpec
-        else -> comparison.secondarySpec
-    }
-    val specSelect = if (staging != null) null else if (editingA) onSelectPrimarySpec else onSelectSecondarySpec
-    val latestSpecSelect by rememberUpdatedState(specSelect)
-    val hasSpecSelect = specSelect != null
-    val onSpecSelect = remember(hasSpecSelect) {
-        if (hasSpecSelect) { spec: ModelSpec -> latestSpecSelect?.invoke(spec) ?: Unit } else null
-    }
-    val primaryLabel = comparisonLaneLabel(lanes.aEndpoint, lanes.aModel, uiState.agents)
-    val secondaryLabel = comparisonLaneLabel(lanes.bEndpoint, lanes.bModel, uiState.agents)
+    val selectedSpec = if (editingA) lanes.aSpec else lanes.bSpec
+    val latestSpecSelect by rememberUpdatedState(if (editingA) lanes.selectSpecA else lanes.selectSpecB)
+    val onSpecSelect = remember { { spec: ModelSpec -> latestSpecSelect(spec) } }
+    val specs = uiState.modelSpecs
+    val primaryLabel = comparisonLaneLabel(lanes.aEndpoint, lanes.aModel, uiState.agents, lanes.aSpec, specs)
+    val secondaryLabel = comparisonLaneLabel(lanes.bEndpoint, lanes.bModel, uiState.agents, lanes.bSpec, specs)
         .takeIf { lanes.bModel != null }
-    val isSameModel = lanes.bEndpoint == lanes.aEndpoint && lanes.bModel == lanes.aModel
+    // Two specs on one model are two different lanes.
+    val isSameModel = lanes.bEndpoint == lanes.aEndpoint && lanes.bModel == lanes.aModel && lanes.bSpec == lanes.aSpec
     val header: (@Composable () -> Unit)? =
         remember(inCompare, primaryLabel, secondaryLabel, isSameModel, laneTarget, staging) {
             if (!inCompare) {
@@ -130,7 +151,7 @@ internal fun rememberComparisonSelectorRouting(
                 }
             }
         }
-    return remember(selectedEndpoint, selectedModel, header, selectedSpec, onSpecSelect) {
+    return remember(selectedEndpoint, selectedModel, header, selectedSpec) {
         ComparisonSelectorRouting(selectedEndpoint, selectedModel, onModelSelect, header, selectedSpec, onSpecSelect)
     }
 }
@@ -139,8 +160,12 @@ internal fun rememberComparisonSelectorRouting(
 private class ComparisonLanes(
     val aEndpoint: String?,
     val aModel: String?,
+    val aSpec: String?,
     val bEndpoint: String?,
     val bModel: String?,
+    val bSpec: String?,
     val selectA: (endpoint: String, model: String) -> Unit,
     val selectB: (endpoint: String, model: String) -> Unit,
+    val selectSpecA: (ModelSpec) -> Unit,
+    val selectSpecB: (ModelSpec) -> Unit,
 )

@@ -82,8 +82,13 @@ internal fun ComparisonPanes(
         )
     }
     // Named like the lane everywhere else (tab, pane header, composer).
-    val secondaryModelName =
-        comparisonLaneLabel(comparisonState.secondaryEndpoint, comparisonState.secondaryModel, uiState.agents)
+    val secondaryModelName = comparisonLaneLabel(
+        comparisonState.secondaryEndpoint,
+        comparisonState.secondaryModel,
+        uiState.agents,
+        comparisonState.secondarySpec,
+        uiState.modelSpecs,
+    )
     val secondaryEndpoint = comparisonState.secondaryEndpoint ?: EndpointConstants.AGENTS
     // Re-point the secondary bubble avatar at its own agent: the persisted parallel
     // message only carries the primary's endpoint/iconURL. For an agents-endpoint

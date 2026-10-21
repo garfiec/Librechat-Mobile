@@ -130,7 +130,7 @@ internal fun ColumnScope.ChatContent(
         when (uiState.screenState) {
             ChatScreenState.LANDING -> {
                 // A selected spec is named by its label, as the top bar names it.
-                val specLabel = uiState.selection.modelSpecs?.labelFor(uiState.selectedSpec)
+                val specLabel = uiState.modelSpecs?.labelFor(uiState.selectedSpec)
                 LandingContent(
                     selectedModel = specLabel ?: uiState.selectedModel,
                     selectedAgentName = agentName?.let { specLabel ?: it },

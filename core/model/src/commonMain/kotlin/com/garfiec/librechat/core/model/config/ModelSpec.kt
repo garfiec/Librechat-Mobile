@@ -22,4 +22,10 @@ data class ModelSpec(
     @SerialName("default") val isDefault: Boolean = false,
     /** A default that yields to the user's own prior selection. */
     val softDefault: Boolean = false,
+    /**
+     * Picker position, ascending; specs without one follow, in list order. A `Double` because the
+     * server's schema is `z.number()`: a fractional value would fail an `Int` decode, and with it
+     * the whole `/api/config`.
+     */
+    val order: Double? = null,
 )

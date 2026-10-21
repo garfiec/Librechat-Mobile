@@ -108,6 +108,7 @@ data class ModelSelectorPageParams(
     val selectedEndpoint: String?,
     val selectedModel: String?,
     val onModelSelect: (endpoint: String, model: String) -> Unit,
+    val agentsLoaded: Boolean = false,
     val modelSpecs: ModelSpecs? = null,
     val selectedSpec: String? = null,
     val onSpecSelect: (ModelSpec) -> Unit = {},
@@ -272,6 +273,7 @@ fun ChatOptionsBottomSheet(
                         selectedModel = selector.selectedModel,
                         selectedSpec = selector.selectedSpec,
                         modelSpecs = selector.modelSpecs,
+                        agentsLoaded = selector.agentsLoaded,
                         onSpecSelect = { spec ->
                             selector.onSpecSelect(spec)
                             goTo(ChatOptionsPage.Options)

@@ -105,12 +105,13 @@ internal fun ChatOptionsSheetHost(
         // While comparing, the page edits whichever lane its A/B pair picks, starting on the active
         // tab's; the sheet itself needs no comparison branch.
         selector = ModelSelectorPageParams(
-            modelSpecs = uiState.selection.modelSpecs.takeIf { comparison.onSpecSelect != null },
+            modelSpecs = uiState.modelSpecs,
             selectedSpec = comparison.selectedSpec,
-            onSpecSelect = { spec -> comparison.onSpecSelect?.invoke(spec) },
+            onSpecSelect = comparison.onSpecSelect,
             endpointConfigs = uiState.endpointConfigs,
             availableModels = uiState.availableModels,
             agents = uiState.agents,
+            agentsLoaded = uiState.agentsLoaded,
             selectedEndpoint = comparison.selectedEndpoint,
             selectedModel = comparison.selectedModel,
             // Neither branch clears the error: the sheet clears the selector's inline banner on

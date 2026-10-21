@@ -1699,7 +1699,7 @@ private fun DrawerConversationItem(
                 val subtitle = remember(data.modelLabel, relativeTime) {
                     buildString {
                         data.modelLabel?.let { model ->
-                            append(model)
+                            append(model.take(20))
                         }
                         if (!relativeTime.isNullOrEmpty()) {
                             if (isNotEmpty()) append(" \u00B7 ")

@@ -45,8 +45,8 @@ internal fun PrimaryModelSelectorSheet(
         agents = uiState.agents,
         selectedEndpoint = comparison.selectedEndpoint,
         selectedModel = comparison.selectedModel,
-        // Setup stages models only, so spec rows (and the enforce filtering) show outside it.
-        modelSpecs = uiState.selection.modelSpecs.takeIf { comparison.onSpecSelect != null },
+        modelSpecs = uiState.modelSpecs,
+        agentsLoaded = uiState.agentsLoaded,
         selectedSpec = comparison.selectedSpec,
         onModelSelect = { endpoint, model ->
             comparison.onModelSelect(endpoint, model)
@@ -56,7 +56,7 @@ internal fun PrimaryModelSelectorSheet(
             viewModel.dismissModelSheet()
         },
         onSpecSelect = { spec ->
-            comparison.onSpecSelect?.invoke(spec)
+            comparison.onSpecSelect(spec)
             viewModel.dismissError()
             viewModel.dismissSendBlockReason()
             viewModel.dismissModelSheet()
@@ -114,15 +114,15 @@ internal fun SecondaryModelSelectorSheet(
         agents = uiState.agents,
         selectedEndpoint = comparison.selectedEndpoint,
         selectedModel = comparison.selectedModel,
-        // Setup stages models only, so spec rows (and the enforce filtering) show outside it.
-        modelSpecs = uiState.selection.modelSpecs.takeIf { comparison.onSpecSelect != null },
+        modelSpecs = uiState.modelSpecs,
+        agentsLoaded = uiState.agentsLoaded,
         selectedSpec = comparison.selectedSpec,
         onModelSelect = { endpoint, model ->
             comparison.onModelSelect(endpoint, model)
             onDismiss()
         },
         onSpecSelect = { spec ->
-            comparison.onSpecSelect?.invoke(spec)
+            comparison.onSpecSelect(spec)
             onDismiss()
         },
         onDismiss = onDismiss,

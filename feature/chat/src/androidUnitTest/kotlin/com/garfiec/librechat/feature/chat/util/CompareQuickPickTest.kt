@@ -2,6 +2,9 @@ package com.garfiec.librechat.feature.chat.util
 
 import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.EndpointConfig
+import com.garfiec.librechat.core.model.Preset
+import com.garfiec.librechat.core.model.config.ModelSpec
+import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.endpoint.KeyState
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
@@ -127,5 +130,32 @@ class CompareQuickPickTest {
 
         assertThat(result.single().model).isEqualTo("agent_1")
         assertThat(result.single().source).isEqualTo("Agent")
+    }
+
+    private val fast =
+        ModelSpec(name = "fast", label = "Fast", preset = Preset(endpoint = "openAI", model = "gpt-5-mini"))
+
+    @Test
+    fun `spec rows lead the list and carry their name`() {
+        val specs = ModelSpecs(list = listOf(fast))
+        val result = compareQuickPicks(
+            "", models, configs, agents, emptySet(), emptySet(), agentCaption = "Agent",
+            specs = specs.list, modelSpecs = specs,
+        )
+
+        assertThat(result.first().name).isEqualTo("Fast")
+        assertThat(result.first().spec).isEqualTo("fast")
+        assertThat(result.drop(1).none { it.spec != null }).isTrue()
+    }
+
+    @Test
+    fun `under enforce only spec rows are offered`() {
+        val specs = ModelSpecs(list = listOf(fast), enforce = true)
+        val result = compareQuickPicks(
+            "", models, configs, agents, setOf("openAI::gpt-5"), setOf("agent_1"), agentCaption = "Agent",
+            specs = specs.list, modelSpecs = specs,
+        )
+
+        assertThat(result.map { it.spec }).containsExactly("fast")
     }
 }

@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.common.network.ConnectivityObserver
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.datastore.LastUsedSelection
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
@@ -31,6 +32,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
@@ -85,9 +87,9 @@ class ModelSelectionDelegateTest {
     }
     private val mcpRepository = mockk<McpRepository>(relaxed = true)
     private val settingsDataStore = mockk<SettingsDataStore>(relaxed = true).also {
-        every { it.lastUsedEndpoint } returns lastUsedEndpoint
-        every { it.lastUsedModel } returns lastUsedModel
-        every { it.lastUsedSpec } returns lastUsedSpec
+        // The tests set the three keys one at a time; production reads them as one snapshot.
+        every { it.lastUsedSelection } returns
+            combine(lastUsedEndpoint, lastUsedModel, lastUsedSpec, ::LastUsedSelection)
     }
     private val permissionGate = mockk<PermissionGate>(relaxed = true)
 
@@ -524,6 +526,8 @@ class ModelSelectionDelegateTest {
         assertThat(handle.state.selectedModel).isNull()
         assertThat(handle.state.agents).isEmpty()
         assertThat(delegate.agentsLoaded.value).isTrue()
+        // The picker must not read the empty list as "no agents" and hide every agent spec.
+        assertThat(handle.state.agentsLoaded).isFalse()
     }
 
     @Test
@@ -1866,5 +1870,151 @@ class ModelSelectionDelegateTest {
 
         assertThat(handle.state.selectedModel).isEqualTo("gpt-4.1")
         assertThat(handle.state.selectedSpec).isEqualTo("picked")
+    }
+
+    // --- Entry points under enforce, stale stored specs ---
+
+    private fun enforced(vararg specs: ModelSpec) =
+        StartupConfig(modelSpecs = ModelSpecs(list = specs.toList(), enforce = true, prioritize = false))
+
+    @Test
+    fun tier0AgentCardAdoptsTheSpecForItsAgentUnderEnforce() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val handle = newHandle(scope)
+        val delegate = newDelegate(handle, initialAgentId = "agent_w")
+        rawLastUsed()
+        startupConfig.value = enforced(ModelSpec(name = "writer", preset = Preset(agentId = "agent_w")))
+
+        delegate.seedInitialSelection(isNewConversation = true)
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedModel).isEqualTo("agent_w")
+        assertThat(handle.state.selectedSpec).isEqualTo("writer")
+    }
+
+    @Test
+    fun tier0ShortcutAdoptsTheOnlySpecOnItsPairUnderEnforce() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val handle = newHandle(scope)
+        val delegate = newDelegate(handle, initialEndpoint = "openAI", initialModel = "gpt-4.1")
+        rawLastUsed()
+        startupConfig.value = enforced(modelSpec("fast", "gpt-4.1"), modelSpec("other", "gpt-4o"))
+
+        delegate.seedInitialSelection(isNewConversation = true)
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedSpec).isEqualTo("fast")
+    }
+
+    @Test
+    fun tier0ShortcutAdoptsItsSpecWhenTheConfigArrivesAfterTheLaunch() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val handle = newHandle(scope)
+        val delegate = newDelegate(handle, initialEndpoint = "openAI", initialModel = "gpt-4.1")
+        rawLastUsed()
+
+        delegate.seedInitialSelection(isNewConversation = true)
+        advanceUntilIdle()
+        assertThat(handle.state.selectedSpec).isNull()
+
+        startupConfig.value = enforced(modelSpec("fast", "gpt-4.1"))
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedModel).isEqualTo("gpt-4.1")
+        assertThat(handle.state.selectedSpec).isEqualTo("fast")
+    }
+
+    @Test
+    fun tier0ShortcutSurvivesALastUsedSpecResolvingWhenTheConfigArrives() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val handle = newHandle(scope)
+        val delegate = newDelegate(handle, initialEndpoint = "openAI", initialModel = "gpt-4.1")
+        rawLastUsed()
+        lastUsedSpec.value = "other"
+
+        delegate.seedInitialSelection(isNewConversation = true)
+        advanceUntilIdle()
+
+        startupConfig.value = enforced(modelSpec("fast", "gpt-4.1"), modelSpec("other", "gpt-4o"))
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedModel).isEqualTo("gpt-4.1")
+        assertThat(handle.state.selectedSpec).isEqualTo("fast")
+    }
+
+    @Test
+    fun tier0ShortcutWithTwoSpecsOnItsPairStaysRaw() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val handle = newHandle(scope)
+        val delegate = newDelegate(handle, initialEndpoint = "openAI", initialModel = "gpt-4.1")
+        rawLastUsed()
+        startupConfig.value = enforced(modelSpec("fast", "gpt-4.1"), modelSpec("careful", "gpt-4.1"))
+
+        delegate.seedInitialSelection(isNewConversation = true)
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedModel).isEqualTo("gpt-4.1")
+        assertThat(handle.state.selectedSpec).isNull()
+    }
+
+    @Test
+    fun tier0ShortcutStaysRawWithoutEnforce() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val handle = newHandle(scope)
+        val delegate = newDelegate(handle, initialEndpoint = "openAI", initialModel = "gpt-4.1")
+        rawLastUsed()
+        startupConfig.value = specConfig(modelSpec("fast", "gpt-4.1"), prioritize = false)
+
+        delegate.seedInitialSelection(isNewConversation = true)
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedSpec).isNull()
+    }
+
+    @Test
+    fun conversationSpecIsKeptOnlyWhileOfferedOnTheConversationsPair() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val handle = newHandle(scope)
+        val delegate = newDelegate(handle)
+        startupConfig.value = specConfig(modelSpec("fast", "gpt-4.1"), prioritize = false)
+
+        delegate.applyResolvedConversationModel("openAI", "gpt-4o", spec = "fast")
+        assertThat(handle.state.selectedSpec).isNull()
+
+        delegate.applyResolvedConversationModel("openAI", "gpt-4.1", spec = "fast")
+        assertThat(handle.state.selectedSpec).isEqualTo("fast")
+    }
+
+    @Test
+    fun conversationSpecAppliedBeforeTheConfigIsCheckedOnceItArrives() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val handle = newHandle(scope, uiState(conversationId = "c1"))
+        val delegate = newDelegate(handle)
+        rawLastUsed()
+
+        delegate.applyResolvedConversationModel("openAI", "gpt-4o", spec = "fast")
+        assertThat(handle.state.selectedSpec).isEqualTo("fast")
+
+        delegate.seedInitialSelection(isNewConversation = false)
+        startupConfig.value = specConfig(modelSpec("fast", "gpt-4.1"), prioritize = false)
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedModel).isEqualTo("gpt-4o")
+        assertThat(handle.state.selectedSpec).isNull()
+    }
+
+    @Test
+    fun specPickGoesThroughTheModelPickPath() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val handle = newHandle(scope)
+        val delegate = newDelegate(handle)
+
+        delegate.onSpecSelected(ModelSpec(name = "writer", preset = Preset(agentId = "agent_w")))
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedEndpoint).isEqualTo(EndpointConstants.AGENTS)
+        assertThat(handle.state.selectedModel).isEqualTo("agent_w")
+        assertThat(handle.state.selectedSpec).isEqualTo("writer")
+        coVerify(exactly = 1) { settingsDataStore.setLastUsedModel(EndpointConstants.AGENTS, "agent_w", "writer") }
     }
 }

@@ -32,7 +32,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
-import com.garfiec.librechat.core.model.config.labelFor
 import com.garfiec.librechat.core.model.response.pickerMimeTypes
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.PdfPasswordDialog
@@ -178,7 +177,7 @@ fun ChatScreen(
         selectedModel = uiState.selectedModel,
         agents = uiState.agents,
         selectedSpec = uiState.selectedSpec,
-        modelSpecs = uiState.selection.modelSpecs,
+        modelSpecs = uiState.modelSpecs,
     )
 
     val onStartRecordingWithPermission = rememberChatStartRecording(
@@ -198,8 +197,13 @@ fun ChatScreen(
     // can be stale from before an unfold), so it is never the secondary one.
     val isSecondaryTab = uiState.comparisonState.isEnabled && activeComparisonTab == 1 && !comparisonWide
     val secondaryModelLabel = if (uiState.comparisonState.isEnabled) {
-        uiState.selection.modelSpecs?.labelFor(uiState.comparisonState.secondarySpec)
-            ?: comparisonLaneLabel(uiState.comparisonState.secondaryEndpoint, uiState.comparisonState.secondaryModel, uiState.agents)
+        comparisonLaneLabel(
+            uiState.comparisonState.secondaryEndpoint,
+            uiState.comparisonState.secondaryModel,
+            uiState.agents,
+            uiState.comparisonState.secondarySpec,
+            uiState.modelSpecs,
+        )
     } else {
         null
     }
@@ -212,7 +216,13 @@ fun ChatScreen(
     // (A on the B tab). Side by side it is the A·B badge pair inside the field, whose menu opens
     // either model's selector.
     // Lane A without a model reads "Select model", never B's name.
-    val primaryLaneLabel = comparisonLaneLabel(uiState.selectedEndpoint, uiState.selectedModel, uiState.agents)
+    val primaryLaneLabel = comparisonLaneLabel(
+        uiState.selectedEndpoint,
+        uiState.selectedModel,
+        uiState.agents,
+        uiState.selectedSpec,
+        uiState.modelSpecs,
+    )
     val composerComparison = remember(
         secondaryModelLabel,
         primaryLaneLabel,

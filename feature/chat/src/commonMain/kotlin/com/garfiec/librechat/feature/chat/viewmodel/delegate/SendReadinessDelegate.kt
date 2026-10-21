@@ -80,7 +80,7 @@ class SendReadinessDelegate(
      */
     private fun preflightSendBlockReason(state: ChatUiState): SendBlockReason? {
         // The server rejects a send naming no spec, `addedEndpoints` or not.
-        if (state.selection.modelSpecs.requiresSpec && state.selectedSpec.isNullOrBlank()) {
+        if (state.modelSpecs.requiresSpec && state.selectedSpec.isNullOrBlank()) {
             return SendBlockReason.SelectModel
         }
         if (state.selectedModel == null) {

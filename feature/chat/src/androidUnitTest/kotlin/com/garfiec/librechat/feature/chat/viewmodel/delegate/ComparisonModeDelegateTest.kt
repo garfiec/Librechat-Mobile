@@ -140,6 +140,16 @@ class ComparisonModeDelegateTest {
     }
 
     @Test
+    fun `start carries a spec picked during setup`() {
+        val (delegate, flow) = delegateWith(landingWithPrimary())
+        delegate.beginComparisonSetup()
+
+        delegate.startComparison("openAI", "gpt-4.1", spec = "fast")
+
+        assertThat(flow.value.comparisonState.secondarySpec).isEqualTo("fast")
+    }
+
+    @Test
     fun `start is refused while a reply streams`() {
         val streaming = landingWithPrimary().let { it.copy(content = it.content.copy(isStreaming = true)) }
         val (delegate, flow) = delegateWith(streaming)

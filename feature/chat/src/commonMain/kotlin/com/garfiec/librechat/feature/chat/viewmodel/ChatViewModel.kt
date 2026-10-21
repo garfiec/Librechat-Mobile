@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.common.BackendVersion
 import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
+import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.common.network.ConnectivityObserver
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.AppPreferences
@@ -478,6 +479,8 @@ class ChatViewModel(
         },
         rehydrateComparison = comparisonDelegate::rehydrateFromMessage,
         onMessagesSettled = attachmentPreviewDelegate::onMessagesSettled,
+        currentModelSpecs = { configRepository.startupConfig.value?.modelSpecs },
+        currentAccountId = { activeAccountProvider.currentAccountId()?.value },
     )
 
     private val uploadIntakeDelegate = UploadIntakeDelegate(
@@ -1296,6 +1299,7 @@ class ChatViewModel(
                     availableModels = current.availableModels,
                     endpointConfigs = current.endpointConfigs,
                     agents = current.agents,
+                    agentsLoaded = current.agentsLoaded,
                     mcpServers = current.mcpServers,
                     selectedMcpServerNames = current.selectedMcpServerNames,
                     enabledTools = current.enabledTools,
@@ -1559,14 +1563,14 @@ class ChatViewModel(
     }
 
     /**
-     * Starts comparing against [endpoint]/[model], first applying [primary] (a changed A, as
-     * endpoint to model) as the chat's own model. Refused as a whole mid-reply (see
+     * Starts comparing against [endpoint]/[model] ([spec] when B is a spec), first applying
+     * [primary] (a changed A) as the chat's own model. Refused as a whole mid-reply (see
      * ComparisonModeDelegate.startComparison), so a refused Start never applies A alone.
      */
-    fun startComparison(endpoint: String, model: String, primary: Pair<String, String>? = null) {
+    fun startComparison(endpoint: String, model: String, spec: String? = null, primary: ComparisonPick? = null) {
         if (_uiState.value.isStreaming) return
-        primary?.let { (primaryEndpoint, primaryModel) -> onModelSelected(primaryEndpoint, primaryModel) }
-        comparisonDelegate.startComparison(endpoint, model)
+        primary?.let { modelDelegate.onModelSelected(it.endpoint, it.model, it.spec) }
+        comparisonDelegate.startComparison(endpoint, model, spec)
         if (!_uiState.value.comparisonState.isEnabled) return
         conversationLoadDelegate.releaseRehydrateHeldForSetup(started = true)
         queueOrchestrationDelegate.releaseCompareSetupHold()

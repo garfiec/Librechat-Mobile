@@ -119,9 +119,11 @@ is a possible follow-up (#552). It would be a mobile addition (web has none), so
 Settings, not in the resolver.
 
 **The spec name travels with the selection and is sent as `spec`.** Named specs are separate picker
-rows even when they share a model, and a raw pick clears the name; nothing infers a spec from a
-model match. Queue and composer snapshots, the new-chat handoff, the conversation cache (`spec`
-column, Room 10→11), comparison, presets, edit/regenerate and paused-run pins all carry it. Sending
+rows even when they share a model, and a raw pick clears the name. Nothing infers a spec from a
+model match, with one exception: under `enforce`, a Tier-0 entry point (an agent card, a model
+shortcut) adopts the spec when exactly one opens on its pair (`uniqueSpecFor`), since the server
+would refuse the raw pair anyway. With none or several, the send preflight asks. Queue and
+composer snapshots, the new-chat handoff, the conversation cache (`spec` column, Room 10→11), comparison, presets, edit/regenerate and paused-run pins all carry it. Sending
 it changes what the server does even without `enforce`: it fills the spec's unset private preset
 fields (`promptPrefix`, `instructions`, `system`, …) into the request (`mergeModelSpecPreset`), so a
 chat opened on a spec gets the admin's prompt as on web.
@@ -131,7 +133,22 @@ the server rejects any send without a `spec` (`buildEndpointOption.js`). So `req
 such a send in the preflight, and the picker greys the raw rows it still lists (those in
 `addedEndpoints`, as web lists them) under a note. With no `addedEndpoints` it lists no raw rows at
 all, where web lists everything and every pick fails. A cached conversation with no spec under
-`enforce` is refreshed from the server once per process.
+`enforce` is refreshed from the server once per account and process, read against the fetched
+config rather than the selection (unseeded when the conversation loads); a failed refresh is
+retried on the next open.
+
+**A stored spec is kept only while the server still offers it on the same endpoint and model**
+(`offeredOn`): on a conversation load, a preset load (which adopts the spec's own pair when the
+preset names none), the last-used restore, and again whenever the spec config changes. This is
+stricter than the server, whose mismatch check compares the endpoint only, so a spec whose model
+an admin changed is dropped too. Under `enforce` the send is then blocked with "Select a model"
+rather than refused by the server.
+
+**Spec rows** (`visibleSpecs`) sort by `order`, ascending with unordered specs after in list order
+(librechatios parity; web ignores `order`), and leave out an agent spec once the agents list has
+loaded without its agent (web parity; until then, and after a failed fetch, every spec shows).
+The list is one page of up to 100 agents where web loads them all, so a full page hides nothing.
+Compare setup stages specs like models, so a spec can be either lane before the comparison starts.
 
 ## Message Tree
 - Messages stored flat, linked by `parentMessageId` (root = `NO_PARENT` UUID)

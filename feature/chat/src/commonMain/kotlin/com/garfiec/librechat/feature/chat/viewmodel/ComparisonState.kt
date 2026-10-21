@@ -27,3 +27,7 @@ data class ComparisonState(
     val primaryFinalContent: String? = null,
     val secondaryFinalContent: String? = null,
 )
+
+/** One Compare lane's pick: a model, and the spec it came from when it was a spec row. */
+@Immutable
+data class ComparisonPick(val endpoint: String, val model: String, val spec: String? = null)

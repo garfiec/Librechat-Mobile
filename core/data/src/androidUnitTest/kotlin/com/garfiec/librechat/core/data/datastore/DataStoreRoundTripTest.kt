@@ -303,8 +303,11 @@ class DataStoreRoundTripTest {
         val store = settingsStore(ds)
 
         store.setLastUsedModel("anthropic", "claude-3.5-sonnet")
-        assertThat(store.lastUsedEndpoint.first()).isEqualTo("anthropic")
-        assertThat(store.lastUsedModel.first()).isEqualTo("claude-3.5-sonnet")
+        assertThat(store.lastUsedSelection.first())
+            .isEqualTo(LastUsedSelection("anthropic", "claude-3.5-sonnet", spec = null))
+
+        store.setLastUsedModel("openAI", "gpt-4.1", spec = "fast")
+        assertThat(store.lastUsedSelection.first()).isEqualTo(LastUsedSelection("openAI", "gpt-4.1", "fast"))
 
         store.setSelectedVoiceId("voice-en-us-001")
         assertThat(store.selectedVoiceId.first()).isEqualTo("voice-en-us-001")
@@ -319,8 +322,8 @@ class DataStoreRoundTripTest {
         val provider = InMemoryActiveAccountProvider() // starts Warming
         val store = SettingsDataStore(ds, provider, CoroutineScope(testDispatcher), testDispatcher)
 
-        val emissions = mutableListOf<String?>()
-        val job = launch { store.lastUsedModel.collect { emissions.add(it) } }
+        val emissions = mutableListOf<LastUsedSelection>()
+        val job = launch { store.lastUsedSelection.collect { emissions.add(it) } }
         advanceUntilIdle()
         // While the account is Warming the flow is suppressed (no null emission that a seeder would
         // mistake for "no last-used saved"). Asserting an ABSENCE legitimately needs a snapshot, so
@@ -335,7 +338,7 @@ class DataStoreRoundTripTest {
         // `scope`, so it reads the file on Dispatchers.IO — real threads on the real clock — while
         // advanceUntilIdle() only drains the virtual scheduler. Snapshotting a collector after it
         // races real disk I/O and flakes as "List is empty" under load.
-        assertThat(store.lastUsedModel.first()).isEqualTo("gpt-4o")
+        assertThat(store.lastUsedSelection.first().model).isEqualTo("gpt-4o")
     }
 
     // --- SettingsDataStore: model usage ranking (home-screen shortcuts) ---

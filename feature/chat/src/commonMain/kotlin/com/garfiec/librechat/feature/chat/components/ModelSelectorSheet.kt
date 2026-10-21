@@ -57,6 +57,7 @@ import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
+import com.garfiec.librechat.core.model.config.displayLabel
 import com.garfiec.librechat.core.model.endpoint.KeyState
 import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
@@ -80,6 +81,7 @@ import com.garfiec.librechat.feature.chat.util.searchByName
 import com.garfiec.librechat.feature.chat.util.showsRawEndpoint
 import com.garfiec.librechat.feature.chat.util.starredModels
 import com.garfiec.librechat.feature.chat.util.toSeed
+import com.garfiec.librechat.feature.chat.util.visibleSpecs
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.filterModelsByEndpoint
 import org.jetbrains.compose.resources.stringResource
 
@@ -112,6 +114,7 @@ fun ModelSelectorSheet(
     modelSpecs: ModelSpecs? = null,
     selectedSpec: String? = null,
     onSpecSelect: (ModelSpec) -> Unit = {},
+    agentsLoaded: Boolean = false,
     serverUrl: String = "",
     errorMessage: String? = null,
     onErrorDismiss: () -> Unit = {},
@@ -158,6 +161,7 @@ fun ModelSelectorSheet(
             modelSpecs = modelSpecs,
             selectedSpec = selectedSpec,
             onSpecSelect = onSpecSelect,
+            agentsLoaded = agentsLoaded,
             onSetApiKey = onSetApiKey,
             modifier = Modifier.fillMaxSize(),
             serverUrl = serverUrl,
@@ -196,6 +200,8 @@ fun ModelSelectorSheetContent(
     modelSpecs: ModelSpecs? = null,
     selectedSpec: String? = null,
     onSpecSelect: (ModelSpec) -> Unit = {},
+    /** Whether [agents] is the fetched list; until it is, no agent spec is hidden for missing from it. */
+    agentsLoaded: Boolean = false,
     serverUrl: String = "",
     errorMessage: String? = null,
     onErrorDismiss: () -> Unit = {},
@@ -237,6 +243,10 @@ fun ModelSelectorSheetContent(
     val rawSelectable = !modelSpecs.requiresSpec
     // A spec selection checks only its own row, not the raw model it runs on.
     val rawSelectedModel = selectedModel.takeIf { selectedSpec == null }
+    val visibleSpecs = remember(modelSpecs, agents, agentsLoaded) { modelSpecs.visibleSpecs(agents, agentsLoaded) }
+    val shownSpecs = remember(visibleSpecs, searchQuery) {
+        if (isSearching) searchByName(visibleSpecs, searchQuery) { it.displayLabel } else visibleSpecs
+    }
 
     // Filter agents by search query (fuzzy matching), sorted by score when searching.
     // When not searching, pinned agents (v0.8.5+) sort to the top of the list.
@@ -326,9 +336,8 @@ fun ModelSelectorSheetContent(
                 .weight(1f)
                 .listDragSelection(dragSelection, holdOnly = true),
         ) {
-            val specs = modelSpecs?.list.orEmpty().filter { it.showInMenu != false && it.toSeed() != null }
             items(
-                items = if (isSearching) searchByName(specs, searchQuery) { it.label ?: it.name } else specs,
+                items = shownSpecs,
                 key = { "spec:${it.name}" },
                 contentType = { "spec" },
             ) { spec ->
@@ -773,7 +782,7 @@ private fun LazyItemScope.SpecListItem(
         Spacer(modifier = Modifier.width(8.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = spec.label ?: spec.name,
+                text = spec.displayLabel,
                 style = MaterialTheme.typography.bodyMedium,
             )
             spec.description?.takeIf { it.isNotBlank() }?.let { description ->

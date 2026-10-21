@@ -29,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -65,6 +66,7 @@ import com.garfiec.librechat.feature.chat.resources.compare_start
 import com.garfiec.librechat.feature.chat.resources.model_selector_search
 import com.garfiec.librechat.feature.chat.util.CompareQuickPick
 import com.garfiec.librechat.feature.chat.util.compareQuickPicks
+import com.garfiec.librechat.feature.chat.util.visibleSpecs
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -165,6 +167,9 @@ private fun QuickPicker(
     paneHeight: Dp,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
+    val specs = remember(uiState.modelSpecs, uiState.agents, uiState.agentsLoaded) {
+        uiState.modelSpecs.visibleSpecs(uiState.agents, uiState.agentsLoaded)
+    }
     // Off the main thread: a query fuzzy-matches every agent and model on each keystroke. The last
     // list stays up while the next one is worked out.
     val picks by produceState(
@@ -176,6 +181,8 @@ private fun QuickPicker(
         uiState.favoriteModelKeys,
         uiState.favoriteAgentIds,
         uiState.endpointKeyStates,
+        specs,
+        uiState.modelSpecs,
         agentCaption,
     ) {
         value = withContext(Dispatchers.Default) {
@@ -188,6 +195,8 @@ private fun QuickPicker(
                 favoriteAgentIds = uiState.favoriteAgentIds,
                 agentCaption = agentCaption,
                 endpointKeyStates = uiState.endpointKeyStates,
+                specs = specs,
+                modelSpecs = uiState.modelSpecs,
             )
         }
     }
@@ -223,9 +232,10 @@ private fun QuickPicker(
                 picks.forEach { quick ->
                     QuickPickRow(
                         quick = quick,
-                        selected = quick.endpoint == pick.endpoint && quick.model == pick.model,
+                        selected = quick.endpoint == pick.endpoint && quick.model == pick.model &&
+                            quick.spec == pick.spec,
                         // This pane only ever picks B, whichever lane the full list was last editing.
-                        onClick = { pick.setSecond(quick.endpoint, quick.model) },
+                        onClick = { pick.setSecond(quick.endpoint, quick.model, quick.spec) },
                     )
                 }
             }

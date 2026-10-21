@@ -33,6 +33,12 @@ data class ModelSelectionState(
     val availableModels: Map<String, List<String>> = emptyMap(),
     val agents: List<Agent> = emptyList(),
     /**
+     * Whether [agents] is the user's agent list: the fetch succeeded, or the role denies agents.
+     * Until then (and after a failed fetch) [agents] being empty or missing an agent says nothing,
+     * so the picker keeps agent specs it cannot check.
+     */
+    val agentsLoaded: Boolean = false,
+    /**
      * The selected agent's LLM provider, resolved by [ModelSelectionDelegate] from
      * `GET /api/agents/:id` whenever the agent selection changes. Null on every non-agents
      * endpoint, and null while the fetch is in flight or after it fails.

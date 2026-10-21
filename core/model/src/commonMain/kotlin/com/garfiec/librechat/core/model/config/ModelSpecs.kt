@@ -18,5 +18,8 @@ data class ModelSpecs(
 /** Resolves only an explicit spec identity, never an ambiguous endpoint/model match. */
 fun ModelSpecs.labelFor(specName: String?): String? {
     val spec = list.find { it.name == specName } ?: return null
-    return spec.label?.takeIf(String::isNotBlank) ?: spec.name.takeIf(String::isNotBlank)
+    return spec.displayLabel.takeIf(String::isNotBlank)
 }
+
+val ModelSpec.displayLabel: String
+    get() = label?.takeIf(String::isNotBlank) ?: name

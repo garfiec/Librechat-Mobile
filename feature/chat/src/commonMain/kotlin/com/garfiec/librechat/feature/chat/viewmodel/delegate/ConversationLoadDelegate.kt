@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.logging.Diag
 import com.garfiec.librechat.core.logging.LogOrigin
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.util.NEW_CHAT_DRAFT_KEY
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
@@ -58,6 +59,13 @@ class ConversationLoadDelegate(
      * messages still list as pending. Called on every settled emission; the delegate dedupes.
      */
     private val onMessagesSettled: (List<MessageNode>) -> Unit,
+    /**
+     * The server's spec config as last fetched. Read directly rather than from the selection,
+     * which the seeder fills in only after the conversation has loaded.
+     */
+    private val currentModelSpecs: () -> ModelSpecs?,
+    /** The active account's id, which keys [specBackfillDone]: conversation ids repeat across servers. */
+    private val currentAccountId: () -> String?,
     private val newChatDraftKey: String = NEW_CHAT_DRAFT_KEY,
 ) {
     private var roomObserverJob: Job? = null
@@ -332,12 +340,15 @@ class ConversationLoadDelegate(
             // Rows cached before the spec column have none, and an enforced server rejects a send
             // without it. Ask the server once per process: a conversation that has no spec there
             // either would otherwise cost a request on every open.
-            if (conversation != null && conversation.spec == null &&
-                handle.state.selection.modelSpecs?.enforce == true &&
-                specBackfillAttempted.add(conversationId)
+            val backfillKey = currentAccountId()?.let { "$it:$conversationId" }
+            if (conversation != null && conversation.spec == null && backfillKey != null &&
+                currentModelSpecs()?.enforce == true && backfillKey !in specBackfillDone
             ) {
-                conversation = conversationRepository.refreshConversation(conversationId, originAccount = null)
-                    .getOrNull() ?: conversation
+                conversationRepository.refreshConversation(conversationId, originAccount = null).getOrNull()?.let {
+                    // Only a successful fetch settles it: a failed one is retried on the next open.
+                    specBackfillDone.add(backfillKey)
+                    conversation = it
+                }
             }
             if (conversation != null) {
                 handle.update { conversationTitle = conversation.title }
@@ -385,8 +396,11 @@ class ConversationLoadDelegate(
     }
 }
 
-/** Conversations already asked for their spec this process. Touched only on the main thread. */
-private val specBackfillAttempted = HashSet<String>()
+/**
+ * Conversations whose spec the server has answered for this process, keyed `accountId:conversationId`.
+ * Touched only on the main thread.
+ */
+private val specBackfillDone = HashSet<String>()
 
 private data class MessagePathEmission(
     val messages: List<Message>,

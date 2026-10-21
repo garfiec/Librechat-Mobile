@@ -45,6 +45,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
@@ -156,8 +157,9 @@ class DrawerViewModel(
 
     private val drawerModelConfig = combine(
         configRepository.endpointConfigs,
-        configRepository.startupConfig,
-    ) { endpoints, config -> DrawerModelConfig(endpoints, config?.modelSpecs) }
+        // Only the specs matter here: any other startup-config change would re-map the whole list.
+        configRepository.startupConfig.map { it?.modelSpecs }.distinctUntilChanged(),
+    ) { endpoints, specs -> DrawerModelConfig(endpoints, specs) }
 
     val inlineProjectChats: StateFlow<InlineProjectChatsState> = combine(
         _expandedProjectId,

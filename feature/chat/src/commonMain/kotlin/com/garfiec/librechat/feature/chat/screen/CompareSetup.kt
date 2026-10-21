@@ -14,14 +14,17 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.chat.components.CompareSetupHeader
 import com.garfiec.librechat.feature.chat.components.ComparisonLane
 import com.garfiec.librechat.feature.chat.components.ModelSelectorSheetContent
+import com.garfiec.librechat.feature.chat.util.toSeed
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
+import com.garfiec.librechat.feature.chat.viewmodel.ComparisonPick
 
 /**
  * Chat width at which Compare shows both panes side by side. Below it, the panes are tabs and
@@ -41,31 +44,43 @@ internal class CompareSetupPick {
     var endpoint by mutableStateOf<String?>(null)
     var model by mutableStateOf<String?>(null)
 
+    /** The spec B was picked as; null for a raw model. */
+    var spec by mutableStateOf<String?>(null)
+
     /** Null while A is still the chat's own model. */
     var primaryEndpoint by mutableStateOf<String?>(null)
     var primaryModel by mutableStateOf<String?>(null)
+    var primarySpec by mutableStateOf<String?>(null)
 
     var target by mutableStateOf(ComparisonLane.B)
 
-    /** Stages [endpoint]/[model] for the lane being edited. Picking A moves on to B while B is still empty. */
-    fun set(endpoint: String, model: String) {
+    /**
+     * Stages [endpoint]/[model] (and [spec], for a spec row) for the lane being edited. Picking A
+     * moves on to B while B is still empty.
+     */
+    fun set(endpoint: String, model: String, spec: String? = null) {
         when (target) {
             ComparisonLane.A -> {
                 primaryEndpoint = endpoint
                 primaryModel = model
+                primarySpec = spec
                 if (this.model == null) target = ComparisonLane.B
             }
-            ComparisonLane.B -> {
-                this.endpoint = endpoint
-                this.model = model
-            }
+            ComparisonLane.B -> setSecond(endpoint, model, spec)
         }
     }
 
+    /** Stages a spec row for the lane being edited, as [set] does a model. */
+    fun setSpec(spec: ModelSpec) {
+        val seed = spec.toSeed() ?: return
+        set(seed.endpoint, seed.model, seed.spec)
+    }
+
     /** Stages [endpoint]/[model] as B whichever lane the list is editing (the wide pane B picker). */
-    fun setSecond(endpoint: String, model: String) {
+    fun setSecond(endpoint: String, model: String, spec: String? = null) {
         this.endpoint = endpoint
         this.model = model
+        this.spec = spec
     }
 
     /** Starts the comparison against B with any staged A. A no-op until B is picked. */
@@ -74,15 +89,21 @@ internal class CompareSetupPick {
         val secondModel = model ?: return
         val stagedEndpoint = primaryEndpoint
         val stagedModel = primaryModel
-        val stagedPrimary = if (stagedEndpoint != null && stagedModel != null) stagedEndpoint to stagedModel else null
-        actions.onStart(secondEndpoint, secondModel, stagedPrimary)
+        val stagedPrimary = if (stagedEndpoint != null && stagedModel != null) {
+            ComparisonPick(stagedEndpoint, stagedModel, primarySpec)
+        } else {
+            null
+        }
+        actions.onStart(ComparisonPick(secondEndpoint, secondModel, spec), stagedPrimary)
     }
 
     fun clear() {
         endpoint = null
         model = null
+        spec = null
         primaryEndpoint = null
         primaryModel = null
+        primarySpec = null
         target = ComparisonLane.B
     }
 }
@@ -96,6 +117,7 @@ internal data class CompareSetupLabels(
     val primary: String,
     val primaryEndpoint: String?,
     val primaryModel: String?,
+    val primarySpec: String?,
     /** Null until B is picked. */
     val second: String?,
 )
@@ -105,12 +127,14 @@ internal fun compareSetupLabels(pick: CompareSetupPick, uiState: ChatUiState, ch
     val stagedEndpoint = pick.primaryEndpoint
     val stagedModel = pick.primaryModel
     val staged = stagedEndpoint != null && stagedModel != null
-    val stagedLabel = comparisonLaneLabel(stagedEndpoint, stagedModel, uiState.agents)
-    val secondLabel = comparisonLaneLabel(pick.endpoint, pick.model, uiState.agents)
+    val specs = uiState.modelSpecs
+    val stagedLabel = comparisonLaneLabel(stagedEndpoint, stagedModel, uiState.agents, pick.primarySpec, specs)
+    val secondLabel = comparisonLaneLabel(pick.endpoint, pick.model, uiState.agents, pick.spec, specs)
     return CompareSetupLabels(
         primary = if (staged) stagedLabel else chatPrimaryLabel,
         primaryEndpoint = if (staged) stagedEndpoint else uiState.selectedEndpoint,
         primaryModel = if (staged) stagedModel else uiState.selectedModel,
+        primarySpec = if (staged) pick.primarySpec else uiState.selectedSpec,
         second = secondLabel.takeIf { pick.endpoint != null && pick.model != null },
     )
 }
@@ -124,14 +148,18 @@ internal fun rememberCompareSetupPick(isSettingUp: Boolean): CompareSetupPick {
 }
 
 private val CompareSetupPickSaver = listSaver<CompareSetupPick, String?>(
-    save = { listOf(it.endpoint, it.model, it.primaryEndpoint, it.primaryModel, it.target.name) },
+    save = {
+        listOf(it.endpoint, it.model, it.spec, it.primaryEndpoint, it.primaryModel, it.primarySpec, it.target.name)
+    },
     restore = { saved ->
         CompareSetupPick().apply {
             endpoint = saved[0]
             model = saved[1]
-            primaryEndpoint = saved[2]
-            primaryModel = saved[3]
-            target = saved[4]?.let { name -> ComparisonLane.entries.firstOrNull { it.name == name } } ?: ComparisonLane.B
+            spec = saved[2]
+            primaryEndpoint = saved[3]
+            primaryModel = saved[4]
+            primarySpec = saved[5]
+            target = saved[6]?.let { name -> ComparisonLane.entries.firstOrNull { it.name == name } } ?: ComparisonLane.B
         }
     },
 )
@@ -166,7 +194,11 @@ internal fun CompareSetupPicker(
         // The checkmark follows the lane being edited.
         selectedEndpoint = if (editingA) aEndpoint else pickEndpoint,
         selectedModel = if (editingA) aModel else pickModel,
-        onModelSelect = pick::set,
+        onModelSelect = { endpoint, model -> pick.set(endpoint, model) },
+        modelSpecs = uiState.modelSpecs,
+        selectedSpec = if (editingA) labels.primarySpec else pick.spec,
+        onSpecSelect = pick::setSpec,
+        agentsLoaded = uiState.agentsLoaded,
         onSetApiKey = { name -> onNavigateToProviderKeys(name) },
         modifier = modifier,
         serverUrl = uiState.serverUrl,
@@ -181,7 +213,7 @@ internal fun CompareSetupPicker(
             CompareSetupHeader(
                 primaryLabel = labels.primary,
                 pickLabel = labels.second,
-                isSameModel = pickEndpoint == aEndpoint && pickModel == aModel,
+                isSameModel = pickEndpoint == aEndpoint && pickModel == aModel && pick.spec == labels.primarySpec,
                 target = pick.target,
                 onSelectTarget = { pick.target = it },
                 onCancel = onCancel,
@@ -197,15 +229,15 @@ internal fun CompareSetupPicker(
 @Immutable
 internal data class CompareSetupActions(
     val onCancel: () -> Unit,
-    /** Starts against B, first applying a changed A (endpoint to model) when there is one. */
-    val onStart: (endpoint: String, model: String, primary: Pair<String, String>?) -> Unit,
+    /** Starts against B, first applying a changed A when there is one. */
+    val onStart: (second: ComparisonPick, primary: ComparisonPick?) -> Unit,
     val onToggleAgentFavorite: (agentId: String) -> Unit,
     val onToggleModelFavorite: (endpoint: String, model: String) -> Unit,
 )
 
 internal fun ChatViewModel.compareSetupActions(): CompareSetupActions = CompareSetupActions(
     onCancel = ::cancelComparisonSetup,
-    onStart = ::startComparison,
+    onStart = { second, primary -> startComparison(second.endpoint, second.model, second.spec, primary) },
     onToggleAgentFavorite = ::toggleAgentFavorite,
     onToggleModelFavorite = ::toggleModelFavorite,
 )

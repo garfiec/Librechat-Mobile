@@ -83,16 +83,22 @@ internal fun chatModelLabel(
 }
 
 /**
- * A Compare lane's label: [chatModelLabel]'s, or "Select model" for a lane with no model. Every
- * Compare surface (composer, panes, selectors, options sheet) names a lane through this, so the
- * same lane never reads two ways.
+ * A Compare lane's label: [chatModelLabel]'s (the [spec]'s label when the lane is a spec), or
+ * "Select model" for a lane with no model. Every Compare surface (composer, panes, tabs, selectors,
+ * options sheet) names a lane through this, so the same lane never reads two ways.
  */
 @Composable
-internal fun comparisonLaneLabel(endpoint: String?, model: String?, agents: List<Agent>): String {
+internal fun comparisonLaneLabel(
+    endpoint: String?,
+    model: String?,
+    agents: List<Agent>,
+    spec: String? = null,
+    modelSpecs: ModelSpecs? = null,
+): String {
     val agentFallbackLabel = stringResource(Res.string.chat_agent_fallback_label)
     val selectModel = stringResource(Res.string.select_model)
     // No model means not chosen, whatever the endpoint: chatModelLabel would name an agents lane
     // "Agent" with no agent picked.
     if (model == null) return selectModel
-    return chatModelLabel(endpoint, model, agents, agentFallbackLabel).displayModel ?: selectModel
+    return chatModelLabel(endpoint, model, agents, agentFallbackLabel, spec, modelSpecs).displayModel ?: selectModel
 }
