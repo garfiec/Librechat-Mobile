@@ -5,6 +5,7 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.FavoritesRepository
+import com.garfiec.librechat.core.data.repository.ListedAgentLabels
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.AgentCategory
@@ -50,6 +51,8 @@ class AgentDetailViewModelTest {
         // Stubbed explicitly because a relaxed mock answers `false` for a nullable Boolean, which
         // this screen reads as the list denying edit — the opposite of "no list answer".
         coEvery { agentRepository.listedEditVerdict(any()) } returns null
+        // Likewise: a relaxed mock would answer a mocked labels object, not "never listed".
+        coEvery { agentRepository.listedLabels(any()) } returns null
         every { agentRepository.revision } returns revision
         every { serverDataStore.getBaseUrl() } returns "https://chat.example.com"
         every { favoritesRepository.favorites } returns favorites
@@ -94,7 +97,7 @@ class AgentDetailViewModelTest {
     @Test
     fun `canEdit is false when the edit endpoint returns a 403 and view fetch succeeds`() = runTest(testDispatcher) {
         coEvery { agentRepository.getAgentForEditing("agent-1") } returns forbidden()
-        coEvery { agentRepository.getAgent("agent-1") } returns Result.Success(agent)
+        coEvery { agentRepository.getAgentForViewing("agent-1") } returns Result.Success(agent)
 
         val viewModel = createViewModel()
         advanceUntilIdle()
@@ -108,7 +111,7 @@ class AgentDetailViewModelTest {
     fun `canEdit stays true when the edit endpoint fails transiently but view fetch succeeds`() = runTest(testDispatcher) {
         coEvery { agentRepository.getAgentForEditing("agent-1") } returns
             Result.Error(exception = ApiException(statusCode = 500, message = "Server error"))
-        coEvery { agentRepository.getAgent("agent-1") } returns Result.Success(agent)
+        coEvery { agentRepository.getAgentForViewing("agent-1") } returns Result.Success(agent)
 
         val viewModel = createViewModel()
         advanceUntilIdle()
@@ -125,7 +128,7 @@ class AgentDetailViewModelTest {
      */
     @Test
     fun `canEdit is false when the list said this agent is not editable`() = runTest(testDispatcher) {
-        coEvery { agentRepository.getAgent("agent-1") } returns Result.Success(agent)
+        coEvery { agentRepository.getAgentForViewing("agent-1") } returns Result.Success(agent)
         coEvery { agentRepository.listedEditVerdict("agent-1") } returns false
 
         val viewModel = createViewModel()
@@ -139,7 +142,7 @@ class AgentDetailViewModelTest {
 
     @Test
     fun `the agent's own editable verdict outranks a stale list denial`() = runTest(testDispatcher) {
-        coEvery { agentRepository.getAgent("agent-1") } returns Result.Success(agent.copy(isEditable = true))
+        coEvery { agentRepository.getAgentForViewing("agent-1") } returns Result.Success(agent.copy(isEditable = true))
         coEvery { agentRepository.listedEditVerdict("agent-1") } returns false
 
         val viewModel = createViewModel()
@@ -167,7 +170,7 @@ class AgentDetailViewModelTest {
     @Test
     fun `a list verdict of true does not override a forbidden probe`() = runTest(testDispatcher) {
         coEvery { agentRepository.getAgentForEditing("agent-1") } returns forbidden()
-        coEvery { agentRepository.getAgent("agent-1") } returns Result.Success(agent)
+        coEvery { agentRepository.getAgentForViewing("agent-1") } returns Result.Success(agent)
         coEvery { agentRepository.listedEditVerdict("agent-1") } returns true
 
         val viewModel = createViewModel()
@@ -192,7 +195,7 @@ class AgentDetailViewModelTest {
     @Test
     fun `canEdit is false when the agent fails to load entirely`() = runTest(testDispatcher) {
         coEvery { agentRepository.getAgentForEditing("agent-1") } returns forbidden()
-        coEvery { agentRepository.getAgent("agent-1") } returns Result.Error(message = "Not found")
+        coEvery { agentRepository.getAgentForViewing("agent-1") } returns Result.Error(message = "Not found")
 
         val viewModel = createViewModel()
         advanceUntilIdle()
@@ -231,7 +234,7 @@ class AgentDetailViewModelTest {
         advanceUntilIdle()
 
         coEvery { agentRepository.getAgentForEditing("agent-1") } returns forbidden()
-        coEvery { agentRepository.getAgent("agent-1") } returns Result.Error(message = "Not found")
+        coEvery { agentRepository.getAgentForViewing("agent-1") } returns Result.Error(message = "Not found")
         revision.value += 1
         advanceUntilIdle()
 
@@ -243,7 +246,7 @@ class AgentDetailViewModelTest {
     // --- Full record ---
 
     @Test
-    fun `model and tools count as the agent's own only after the expanded read`() = runTest(testDispatcher) {
+    fun `the expanded read is a full record with the agent's own tools`() = runTest(testDispatcher) {
         coEvery { agentRepository.getAgentForEditing("agent-1") } returns
             Result.Success(agent.copy(model = "gpt-5", tools = listOf("web_search")))
 
@@ -255,10 +258,11 @@ class AgentDetailViewModelTest {
         assertThat(viewModel.uiState.value.agent?.tools).containsExactly("web_search")
     }
 
+    /** Tools stay behind the full record: nothing else carries the agent's real ones. */
     @Test
-    fun `the view-only fallback is not a full record`() = runTest(testDispatcher) {
+    fun `the view read is not a full record, so its tools are not shown`() = runTest(testDispatcher) {
         coEvery { agentRepository.getAgentForEditing("agent-1") } returns forbidden()
-        coEvery { agentRepository.getAgent("agent-1") } returns Result.Success(agent.copy(model = "gpt-5"))
+        coEvery { agentRepository.getAgentForViewing("agent-1") } returns Result.Success(agent.copy(model = "gpt-5"))
 
         val viewModel = createViewModel()
         advanceUntilIdle()
@@ -267,10 +271,75 @@ class AgentDetailViewModelTest {
         assertThat(viewModel.uiState.value.isFullRecord).isFalse()
     }
 
+    /**
+     * A viewer who browsed the index first: the cached list row has no model and no Public flag,
+     * and the page must not be built from it. The VIEW route has both, for every viewer.
+     */
+    @Test
+    fun `a viewer's page reads the VIEW route, not the list cache, and carries its model`() = runTest(testDispatcher) {
+        coEvery { agentRepository.getAgentForEditing("agent-1") } returns forbidden()
+        coEvery { agentRepository.getAgent("agent-1") } returns Result.Success(agent.copy(model = null, isPublic = null))
+        coEvery { agentRepository.getAgentForViewing("agent-1") } returns Result.Success(
+            agent.copy(model = "gpt-5", isPublic = true, updatedAt = "2026-10-19T10:00:00.000Z"),
+        )
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val page = viewModel.uiState.value.agent
+        assertThat(page?.model).isEqualTo("gpt-5")
+        assertThat(page?.isPublic).isTrue()
+        assertThat(page?.updatedAt).isEqualTo("2026-10-19T10:00:00.000Z")
+        assertThat(viewModel.uiState.value.canEdit).isFalse()
+        coVerify { agentRepository.getAgentForViewing("agent-1") }
+        coVerify(exactly = 0) { agentRepository.getAgent(any()) }
+    }
+
+    /** The list already said "not editable", so the probe is skipped: VIEW still supplies the model. */
+    @Test
+    fun `a skipped probe still reads the VIEW route`() = runTest(testDispatcher) {
+        coEvery { agentRepository.listedEditVerdict("agent-1") } returns false
+        coEvery { agentRepository.getAgentForViewing("agent-1") } returns Result.Success(agent.copy(model = "gpt-5"))
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.agent?.model).isEqualTo("gpt-5")
+        coVerify(exactly = 0) { agentRepository.getAgent(any()) }
+    }
+
+    /** VIEW has no category or is_promoted; the tapped list row's labels stand in. */
+    @Test
+    fun `the view read takes its category and Top pick from the listed row`() = runTest(testDispatcher) {
+        coEvery { agentRepository.getAgentForEditing("agent-1") } returns forbidden()
+        // What decoding a VIEW body yields: the model's "general" default, never the agent's own.
+        coEvery { agentRepository.getAgentForViewing("agent-1") } returns Result.Success(agent.copy(category = "general"))
+        coEvery { agentRepository.listedLabels("agent-1") } returns ListedAgentLabels(category = "hr", isPromoted = true)
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.agent?.categoryValue).isEqualTo("hr")
+        assertThat(viewModel.uiState.value.agent?.isPromoted).isTrue()
+    }
+
+    @Test
+    fun `a view read with no listed row shows no category or Top pick`() = runTest(testDispatcher) {
+        coEvery { agentRepository.getAgentForEditing("agent-1") } returns forbidden()
+        coEvery { agentRepository.getAgentForViewing("agent-1") } returns
+            Result.Success(agent.copy(category = "general", isPromoted = true))
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.agent?.categoryValue).isNull()
+        assertThat(viewModel.uiState.value.agent?.isPromoted).isFalse()
+    }
+
     @Test
     fun `a skipped probe is not a full record either`() = runTest(testDispatcher) {
         coEvery { agentRepository.listedEditVerdict("agent-1") } returns false
-        coEvery { agentRepository.getAgent("agent-1") } returns Result.Success(agent)
+        coEvery { agentRepository.getAgentForViewing("agent-1") } returns Result.Success(agent)
 
         val viewModel = createViewModel()
         advanceUntilIdle()
@@ -291,7 +360,7 @@ class AgentDetailViewModelTest {
     @Test
     fun `a failed load carries no English of its own`() = runTest(testDispatcher) {
         coEvery { agentRepository.getAgentForEditing("agent-1") } returns forbidden()
-        coEvery { agentRepository.getAgent("agent-1") } returns Result.Error(message = null)
+        coEvery { agentRepository.getAgentForViewing("agent-1") } returns Result.Error(message = null)
 
         val viewModel = createViewModel()
         advanceUntilIdle()
@@ -399,7 +468,7 @@ class AgentDetailViewModelTest {
     @Test
     fun `a view-only agent offers neither duplicate nor delete even with AGENTS CREATE`() = runTest(testDispatcher) {
         coEvery { agentRepository.getAgentForEditing("agent-1") } returns forbidden()
-        coEvery { agentRepository.getAgent("agent-1") } returns Result.Success(agent)
+        coEvery { agentRepository.getAgentForViewing("agent-1") } returns Result.Success(agent)
         val viewModel = createViewModel()
         advanceUntilIdle()
 

@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.FavoritesRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
+import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.AgentCategory
 import com.garfiec.librechat.core.model.FavoritesLimits
 import com.garfiec.librechat.core.model.UserFavorite
@@ -35,8 +36,9 @@ data class AgentDetailUiState(
     /** The page could not be loaded at all; a failed refresh of a shown page leaves this null. */
     val loadError: AgentLoadError? = null,
     /**
-     * The edit-gated `/expanded` read answered, so model and tools are the agent's own. The
-     * view-only read leaves them out (or sends a projection), and the page doesn't show a guess.
+     * The edit-gated `/expanded` read answered, so the tools are the agent's own. The VIEW read
+     * sends none, and a list row only a cut-down projection, so the page shows Tools only then.
+     * Model is on the VIEW read too and doesn't wait for this.
      */
     val isFullRecord: Boolean = false,
     val canEdit: Boolean = false,
@@ -178,7 +180,7 @@ class AgentDetailViewModel(
             val canEdit = expanded == null || expanded !is Result.Error || !expanded.isPermissionDenied()
             val result = when (expanded) {
                 is Result.Success -> expanded
-                else -> agentRepository.getAgent(agentId)
+                else -> viewRecord()
             }
             when (result) {
                 is Result.Success -> {
@@ -188,8 +190,7 @@ class AgentDetailViewModel(
                     // every server that predates it.
                     //
                     // Read from the LIST's answer, since neither endpoint loaded above stamps the
-                    // field; the agent's own copy still wins where it exists, because `getAgent`
-                    // can serve a list-projection row from the cache.
+                    // field; the agent's own copy still wins should a server ever send it there.
                     val serverSaysEditable =
                         result.data.isEditable ?: listedVerdict
                     val agent = result.data.toDetailDisplayData(serverDataStore.getBaseUrl())
@@ -212,6 +213,22 @@ class AgentDetailViewModel(
                 is Result.Loading -> { /* no-op */ }
             }
         }
+    }
+
+    /**
+     * The VIEW read, which every viewer may make. It carries the agent's own model, Public flag,
+     * update time and contacts, but no `category` or `is_promoted`: those come from the list row
+     * the user tapped, and are left out when there was none (the decoded "general"/false defaults
+     * are not the agent's). Its tools are not the agent's either; [AgentDetailUiState.isFullRecord]
+     * stays false and the page doesn't show them.
+     */
+    private suspend fun viewRecord(): Result<Agent> {
+        val result = agentRepository.getAgentForViewing(agentId)
+        if (result !is Result.Success) return result
+        val listed = agentRepository.listedLabels(agentId)
+        return Result.Success(
+            result.data.copy(category = listed?.category, isPromoted = listed?.isPromoted == true),
+        )
     }
 
     /**

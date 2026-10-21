@@ -307,8 +307,9 @@ private fun DeleteAgentDialog(name: String?, actions: AgentDetailActions) {
 }
 
 /**
- * The page: who the agent is, Start chat, what it does, and what to ask it. Model and tools appear
- * only from the full (`/expanded`) record; a view-only read doesn't carry the agent's real ones.
+ * The page: who the agent is, Start chat, what it does, and what to ask it. Model shows for every
+ * viewer (the VIEW read carries it); tools only from the full (`/expanded`) record, since nothing
+ * else carries the agent's real ones.
  */
 @Composable
 internal fun AgentPage(
@@ -342,16 +343,14 @@ internal fun AgentPage(
 
             AboutSection(agent)
 
-            if (uiState.isFullRecord) {
-                val model = agent.model
-                if (model != null) {
-                    LabelledSection(label = stringResource(Res.string.label_model)) {
-                        Text(text = model, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
-                    }
+            val model = agent.model
+            if (model != null) {
+                LabelledSection(label = stringResource(Res.string.label_model)) {
+                    Text(text = model, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
                 }
-                if (agent.tools.isNotEmpty()) {
-                    LabelledSection(label = stringResource(Res.string.label_tools)) { ToolLabels(agent.tools) }
-                }
+            }
+            if (uiState.isFullRecord && agent.tools.isNotEmpty()) {
+                LabelledSection(label = stringResource(Res.string.label_tools)) { ToolLabels(agent.tools) }
             }
 
             if (agent.conversationStarters.isNotEmpty()) {

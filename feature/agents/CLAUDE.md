@@ -67,10 +67,12 @@
 ## Agent Detail
 - `AgentDetailScreen` (VM + nav glue) over a stateless `AgentDetailContent(uiState, actions)`; previews in
   `AgentDetailPreviews.kt`.
-- **Load**: the edit-gated `/expanded` read first, then the view-only read (see the comments in
-  `fetchAgent`). `isFullRecord` is true only when `/expanded` answered; Model and Tools render only then,
-  because the view-only read doesn't carry the agent's real ones. A skipped probe (the list said "not
-  editable") is not a full record either.
+- **Load**: the edit-gated `/expanded` read first, then the VIEW read `getAgentForViewing` (see the comments
+  in `fetchAgent`). **Gotcha**: never `getAgent` here: its warm cache serves the list projection, which has
+  no model, `isPublic` or contacts' detail. VIEW has no `category`/`is_promoted` (decoding fills in
+  "general"/false); they come from the tapped list row (`listedLabels`), else are left out. Model shows for
+  every viewer. `isFullRecord` is true only when `/expanded` answered, and Tools render only then (list rows
+  carry a cut-down `tools`, VIEW none). A skipped probe (the list said "not editable") is not a full record.
 - **Header**: `InitialTile` (64dp), name (heading; `agent_unnamed` when null), contact line (support contact,
   else owner; a `Role.Button` that opens `mailto:` when there is an email), Top pick mark, category label via
   `agentCategoryLabel()` (shared with the cards; "general" has none). No "by <author>" byline.

@@ -56,6 +56,21 @@ interface AgentRepository {
     suspend fun listedEditVerdict(id: String): Boolean?
 
     /**
+     * The category and Top pick mark a LIST row last carried for [id], or null when this account
+     * has listed no such agent. [getAgentForViewing] answers without either field.
+     */
+    suspend fun listedLabels(id: String): ListedAgentLabels?
+
+    /**
+     * The agent from `GET /api/agents/:id` (VIEW permission), never from the list cache.
+     *
+     * Unlike [getAgent], whose warm cache serves the list projection, this carries the agent's own
+     * `model`, `provider`, `isPublic`, `updatedAt` and contacts. It has no `category` or
+     * `is_promoted` (the decoded defaults stand in; read [listedLabels]) and no `tools`.
+     */
+    suspend fun getAgentForViewing(id: String): Result<Agent>
+
+    /**
      * The agent's LLM `provider`, straight from `GET /api/agents/:id` (returned at VIEW permission).
      *
      * Deliberately not expressed as `getAgent(id).provider`: the agent *list* projection omits

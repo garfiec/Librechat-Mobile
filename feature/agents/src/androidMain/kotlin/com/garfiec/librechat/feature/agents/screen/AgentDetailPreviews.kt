@@ -83,7 +83,7 @@ private val viewOnly = AgentDetailUiState(
         name = "Onboarding Buddy for New Engineers Joining the Platform Team",
         description = "Answers questions about our repos, CI and on-call.\nAsk it anything.",
         avatarUrl = null,
-        model = null,
+        model = "gpt-5-mini",
         categoryValue = "general",
         contact = AgentContactDisplayData(name = "Platform", email = null),
     ),
