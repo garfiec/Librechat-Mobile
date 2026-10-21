@@ -295,6 +295,9 @@ fun LibreChatNavHost(
             val imageLoader = SingletonImageLoader.get(platformContext)
             imageLoader.memoryCache?.clear()
             withContext(Dispatchers.IO) { imageLoader.diskCache?.clear() }
+            // A shared link that asked for this switch is taken on every flip, so one that can't
+            // open now (the flip landed signed out) can't open over some later, unrelated switch.
+            val pendingSharedChat = navHostViewModel.takePendingSharedChat(current)
             // Reset the stack only on an account-to-account flip; on account-to-logged-out the
             // initiating flow (or the session-expired signal) owns navigation.
             // A flip that lands with the session already gone (the account switched to expired, and
@@ -303,9 +306,9 @@ fun LibreChatNavHost(
                 // Scoped to the incoming account, or the landing's ViewModel would survive the
                 // flip — see Navigator.navigateToChat.
                 navigator.navigateToChat(accountScope = current)
-                // A shared link that asked for this switch opens over the fresh stack. Here and not
-                // in a collector of its own, which would race the reset above.
-                navHostViewModel.takePendingSharedChat(current)?.let(navigator::navigateToSharedChat)
+                // The shared link opens over the fresh stack. Here and not in a collector of its
+                // own, which would race the reset above.
+                pendingSharedChat?.let(navigator::navigateToSharedChat)
             }
         }
         hygieneAccountId = current

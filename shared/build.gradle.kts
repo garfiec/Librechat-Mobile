@@ -67,6 +67,9 @@ kotlin {
             implementation(libs.coil3.network.ktor)
             implementation(libs.coil3.svg)
         }
+        commonTest.dependencies {
+            implementation(libs.coroutines.test)
+        }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
         }
