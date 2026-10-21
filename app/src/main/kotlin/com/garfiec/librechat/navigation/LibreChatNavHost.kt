@@ -12,12 +12,16 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.feature.chat.ShareIntentConsumer
+import com.garfiec.librechat.feature.chat.SharedContent
 import com.garfiec.librechat.feature.chat.navigation.Chat
 import com.garfiec.librechat.feature.chat.navigation.NewChat
 import com.garfiec.librechat.feature.chat.navigation.isPlainLanding
 import com.garfiec.librechat.shared.navigation.DeepLinkResolution
 import com.garfiec.librechat.shared.navigation.DeepLinks
+import com.garfiec.librechat.shared.navigation.NavHostViewModel
+import com.garfiec.librechat.shared.navigation.Navigator
 import com.garfiec.librechat.shared.navigation.PhoneLayout
+import com.garfiec.librechat.shared.navigation.SharedLinkRoute
 import com.garfiec.librechat.shared.navigation.TabletLayout
 import com.garfiec.librechat.shared.navigation.usesSidebarLayout
 import com.garfiec.librechat.shared.navigation.LibreChatNavHost as SharedLibreChatNavHost
@@ -31,6 +35,9 @@ fun LibreChatNavHost(
     modifier: Modifier = Modifier,
     deepLinkUri: Uri? = null,
     onDeepLinkConsume: () -> Unit = {},
+    /** Shared-in text that is exactly one `/share/` link; see [routeSharedInLink]. */
+    sharedLinkText: String? = null,
+    onSharedLinkConsume: () -> Unit = {},
     appLocaleTag: String? = null,
 ) {
     // Resolve the pending link once (both the auth-suppression flag and the handler below use it).
@@ -85,6 +92,15 @@ fun LibreChatNavHost(
             currentOnDeepLinkConsume()
         }
 
+        // A shared-in `/share/` link: the viewer when a signed-in account is on its server (after a
+        // switch the user agrees to, for another account), the composer otherwise, as any shared text.
+        val currentOnSharedLinkConsume by rememberUpdatedState(onSharedLinkConsume)
+        LaunchedEffect(sharedLinkText) {
+            val text = sharedLinkText ?: return@LaunchedEffect
+            routeSharedInLink(text, navigator, navHostViewModel)
+            currentOnSharedLinkConsume()
+        }
+
         // Handle share intent. This is the only place that knows both that a share is waiting and
         // which chat is on screen, so it owns addressing it: the share is delivered to exactly that
         // chat's composer instead of being offered to every live ChatViewModel, where the landing
@@ -125,5 +141,18 @@ fun LibreChatNavHost(
                 modifier = mod,
             )
         }
+    }
+}
+
+/**
+ * Routes [text], a shared-in `/share/` link: the in-app viewer on the active account, an offer to
+ * switch for another signed-in account's link, and the composer (as any other shared text) for a
+ * link no signed-in account can open.
+ */
+private suspend fun routeSharedInLink(text: String, navigator: Navigator, navHostViewModel: NavHostViewModel) {
+    when (val route = navHostViewModel.routeSharedLink(text.trim())) {
+        is SharedLinkRoute.Open -> navigator.navigateToSharedChat(route.shareId)
+        is SharedLinkRoute.OfferSwitch -> navHostViewModel.offerSharedLinkSwitch(route)
+        SharedLinkRoute.NotOurs -> ShareIntentConsumer.setPendingShare(SharedContent(text = text))
     }
 }

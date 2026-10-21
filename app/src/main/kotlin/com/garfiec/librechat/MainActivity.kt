@@ -45,6 +45,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import co.touchlab.kermit.Logger
+import com.garfiec.librechat.core.common.identity.ShareLinkMatcher
 import com.garfiec.librechat.core.common.network.ConnectivityObserver
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
@@ -65,6 +66,7 @@ import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 
 private const val KEY_PENDING_DEEP_LINK = "pending_deep_link"
+private const val KEY_PENDING_SHARED_LINK = "pending_shared_link"
 
 class MainActivity : ComponentActivity() {
 
@@ -74,6 +76,9 @@ class MainActivity : ComponentActivity() {
     private val dateTimePrefsStore: DateTimePrefsStore by inject()
 
     private var deepLinkUri by mutableStateOf<Uri?>(null)
+
+    /** Shared-in text that is exactly one `/share/` link, waiting for the nav host to route it. */
+    private var sharedLinkText by mutableStateOf<String?>(null)
 
     @Suppress("LongMethod") // debt: 101 lines
     @OptIn(ExperimentalComposeUiApi::class)
@@ -91,6 +96,7 @@ class MainActivity : ComponentActivity() {
             handleIntent(intent)
         } else {
             deepLinkUri = savedInstanceState.getString(KEY_PENDING_DEEP_LINK)?.toUri()
+            sharedLinkText = savedInstanceState.getString(KEY_PENDING_SHARED_LINK)
         }
 
         // Keep home-screen model shortcuts in sync with the account's most-used models. The flow
@@ -186,6 +192,8 @@ class MainActivity : ComponentActivity() {
                             LibreChatNavHost(
                                 deepLinkUri = deepLinkUri,
                                 onDeepLinkConsume = { deepLinkUri = null },
+                                sharedLinkText = sharedLinkText,
+                                onSharedLinkConsume = { sharedLinkText = null },
                                 appLocaleTag = appLocale,
                                 modifier = Modifier
                                     .weight(1f)
@@ -209,6 +217,7 @@ class MainActivity : ComponentActivity() {
         // Preserve a link that hasn't been placed on the back stack yet, so a recreation during the
         // warm-up gate doesn't drop it (restored in onCreate). A consumed link is already null.
         deepLinkUri?.let { outState.putString(KEY_PENDING_DEEP_LINK, it.toString()) }
+        sharedLinkText?.let { outState.putString(KEY_PENDING_SHARED_LINK, it) }
     }
 
     // Ctrl/⌘+Shift+F is caught here, before Compose, which misses it while nothing holds focus (see AppShortcuts).
@@ -263,6 +272,15 @@ class MainActivity : ComponentActivity() {
         }
 
         val fileUris = if (sharedUri != null) listOf(sharedUri) else emptyList()
+
+        // Text that is exactly one shared-chat link may open the in-app viewer; the nav host decides,
+        // since only it can tell whether a signed-in account is on that server, and sends anything
+        // it can't open to the composer as before. No "Open with" filter: this is share-to only.
+        if (sharedText != null && fileUris.isEmpty() && ShareLinkMatcher.parse(sharedText) != null) {
+            Logger.d { "Share intent received: a shared-chat link" }
+            sharedLinkText = sharedText
+            return
+        }
 
         if (sharedText != null || fileUris.isNotEmpty()) {
             Logger.d { "Share intent received: text=${sharedText != null}, uris=${fileUris.size}" }

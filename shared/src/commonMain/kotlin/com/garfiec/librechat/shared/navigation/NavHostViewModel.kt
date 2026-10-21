@@ -53,6 +53,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * An unannounced sign-out, or a ban. [accountLabel] is blank when the account can't be named;
@@ -354,12 +355,16 @@ class NavHostViewModel(
      */
     suspend fun routeSharedLink(url: String): SharedLinkRoute {
         if (!isLoggedIn.value) return SharedLinkRoute.NotOurs
+        // A link shared into a cold start can arrive before the active account resolves; without it
+        // the active account would read as another one and be offered as a switch to itself.
+        val activeId = withTimeoutOrNull(ACCOUNT_RESOLVE_TIMEOUT_MS) { activeAccountProvider.awaitResolvedAccount() }
+            ?.value ?: return SharedLinkRoute.NotOurs
         val entries = accountRoster.snapshot().entries
         // hasSession reads each account's slot through the encrypted store.
         val liveIds = withContext(Dispatchers.IO) {
             entries.filter { accountSwitcher.hasSession(it.accountId) }.mapTo(mutableSetOf()) { it.accountId }
         }
-        return sharedLinkRoute(url, entries, activeAccountId(), liveIds)
+        return sharedLinkRoute(url, entries, activeId, liveIds)
     }
 
     /** Asks the user whether to switch accounts for [offer]. */
@@ -594,3 +599,6 @@ class NavHostViewModel(
         viewModelScope.launch { authRepository.logout() }
     }
 }
+
+/** How long a shared link waits for the active account to resolve before it goes elsewhere. */
+private const val ACCOUNT_RESOLVE_TIMEOUT_MS = 5_000L
