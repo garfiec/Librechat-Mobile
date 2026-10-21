@@ -16,8 +16,6 @@
     <string name="close">Закрыть</string>
 
     <!-- Content descriptions -->
-    <string name="cd_create_agent">Создать агента</string>
-    <string name="cd_search">Поиск</string>
     <string name="cd_back">Назад</string>
     <string name="cd_more_actions">Ещё действия</string>
     <string name="cd_more_options">Дополнительно</string>
@@ -34,11 +32,26 @@
     <!-- Marketplace screen -->
     <string name="search_agents_hint">Поиск агентов…</string>
     <string name="no_agents_found">Агенты не найдены</string>
-    <string name="no_agents_available">Нет доступных агентов</string>
     <string name="agents_not_available_title">Агенты недоступны</string>
     <string name="agents_not_available_description">Администратор вашего сервера отключил агентов для вашего аккаунта.</string>
     <string name="try_different_search">Попробуйте другой поисковый запрос</string>
     <string name="check_back_later">Загляните позже за новыми агентами</string>
+    <string name="agents_chip_top_picks">Лучшее</string>
+    <string name="agents_chip_all">Все</string>
+    <string name="agents_chip_yours">Ваши</string>
+    <string name="agents_top_pick">Рекомендуемый</string>
+    <string name="agents_new_agent">Новый агент</string>
+    <string name="agent_unnamed">Агент без названия</string>
+    <string name="agents_clear_search">Очистить поиск</string>
+    <string name="agents_no_matches_in">Нет совпадений в разделе «%1$s»</string>
+    <string name="agents_none_in">Нет агентов в разделе «%1$s»</string>
+    <string name="agents_search_all">Искать среди всех агентов</string>
+    <string name="agents_show_all">Показать всех агентов</string>
+    <string name="agents_empty_title">Агентов пока нет</string>
+    <string name="agents_empty_description_create">Создайте агента со своими инструкциями, моделью и инструментами.</string>
+    <string name="agents_load_failed">Не удалось загрузить агентов</string>
+    <string name="agents_load_more_failed">Не удалось загрузить больше агентов</string>
+    <string name="agents_retry">Повторить</string>
     <string name="error_unknown">Произошла неизвестная ошибка</string>
     <string name="unknown_author">Неизвестно</string>
 

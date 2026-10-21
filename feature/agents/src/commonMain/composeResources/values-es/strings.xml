@@ -16,8 +16,6 @@
     <string name="close">Cerrar</string>
 
     <!-- Content descriptions -->
-    <string name="cd_create_agent">Crear agente</string>
-    <string name="cd_search">Buscar</string>
     <string name="cd_back">Atrás</string>
     <string name="cd_more_actions">Más acciones</string>
     <string name="cd_more_options">Más opciones</string>
@@ -34,11 +32,26 @@
     <!-- Marketplace screen -->
     <string name="search_agents_hint">Buscar agentes…</string>
     <string name="no_agents_found">No se encontraron agentes</string>
-    <string name="no_agents_available">No hay agentes disponibles</string>
     <string name="agents_not_available_title">Agentes no disponibles</string>
     <string name="agents_not_available_description">El administrador de tu servidor ha desactivado los agentes para tu cuenta.</string>
     <string name="try_different_search">Prueba con otro término de búsqueda</string>
     <string name="check_back_later">Vuelve más tarde para ver nuevos agentes</string>
+    <string name="agents_chip_top_picks">Destacados</string>
+    <string name="agents_chip_all">Todos</string>
+    <string name="agents_chip_yours">Tuyos</string>
+    <string name="agents_top_pick">Destacado</string>
+    <string name="agents_new_agent">Nuevo agente</string>
+    <string name="agent_unnamed">Agente sin nombre</string>
+    <string name="agents_clear_search">Borrar búsqueda</string>
+    <string name="agents_no_matches_in">Sin resultados en %1$s</string>
+    <string name="agents_none_in">No hay agentes en %1$s</string>
+    <string name="agents_search_all">Buscar en todos los agentes</string>
+    <string name="agents_show_all">Mostrar todos los agentes</string>
+    <string name="agents_empty_title">Aún no hay agentes</string>
+    <string name="agents_empty_description_create">Crea un agente con sus propias instrucciones, modelo y herramientas.</string>
+    <string name="agents_load_failed">No se pudieron cargar los agentes</string>
+    <string name="agents_load_more_failed">No se pudieron cargar más agentes</string>
+    <string name="agents_retry">Reintentar</string>
     <string name="error_unknown">Ocurrió un error desconocido</string>
     <string name="unknown_author">Desconocido</string>
 

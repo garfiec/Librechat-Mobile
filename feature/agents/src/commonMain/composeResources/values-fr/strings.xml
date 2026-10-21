@@ -16,8 +16,6 @@
     <string name="close">Fermer</string>
 
     <!-- Content descriptions -->
-    <string name="cd_create_agent">Créer un agent</string>
-    <string name="cd_search">Rechercher</string>
     <string name="cd_back">Retour</string>
     <string name="cd_more_actions">Plus d'actions</string>
     <string name="cd_more_options">Plus d'options</string>
@@ -34,11 +32,26 @@
     <!-- Marketplace screen -->
     <string name="search_agents_hint">Rechercher des agents…</string>
     <string name="no_agents_found">Aucun agent trouvé</string>
-    <string name="no_agents_available">Aucun agent disponible</string>
     <string name="agents_not_available_title">Agents non disponibles</string>
     <string name="agents_not_available_description">L'administrateur de votre serveur a désactivé les agents pour votre compte.</string>
     <string name="try_different_search">Essayez un autre terme de recherche</string>
     <string name="check_back_later">Revenez plus tard pour de nouveaux agents</string>
+    <string name="agents_chip_top_picks">Coups de cœur</string>
+    <string name="agents_chip_all">Tous</string>
+    <string name="agents_chip_yours">Les vôtres</string>
+    <string name="agents_top_pick">Coup de cœur</string>
+    <string name="agents_new_agent">Nouvel agent</string>
+    <string name="agent_unnamed">Agent sans nom</string>
+    <string name="agents_clear_search">Effacer la recherche</string>
+    <string name="agents_no_matches_in">Aucun résultat dans %1$s</string>
+    <string name="agents_none_in">Aucun agent dans %1$s</string>
+    <string name="agents_search_all">Rechercher dans tous les agents</string>
+    <string name="agents_show_all">Afficher tous les agents</string>
+    <string name="agents_empty_title">Aucun agent pour l’instant</string>
+    <string name="agents_empty_description_create">Créez un agent avec ses propres instructions, son modèle et ses outils.</string>
+    <string name="agents_load_failed">Impossible de charger les agents</string>
+    <string name="agents_load_more_failed">Impossible de charger plus d’agents</string>
+    <string name="agents_retry">Réessayer</string>
     <string name="error_unknown">Une erreur inconnue s'est produite</string>
     <string name="unknown_author">Inconnu</string>
 

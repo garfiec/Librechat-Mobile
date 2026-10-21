@@ -1,5 +1,28 @@
 package com.garfiec.librechat.feature.agents.viewmodel
 
+import androidx.compose.runtime.Immutable
+import com.garfiec.librechat.core.model.PermissionBits
+
+/** One marketplace chip. Exactly one is selected; the screen opens on [TopPicks] when offered, else [All]. */
+@Immutable
+sealed interface AgentChip {
+    /** The categories route's `promoted` sentinel: agents an admin marked as Top picks. */
+    data object TopPicks : AgentChip
+
+    /** The categories route's `all` sentinel: no filter. */
+    data object All : AgentChip
+
+    /** Agents the user can edit. Client-side chip, offered only with AGENTS.CREATE. */
+    data object Yours : AgentChip
+
+    /** A real category, by its server value. */
+    data class Category(val value: String) : AgentChip
+}
+
+/** What one list read asks for: a chip and the trimmed search. */
+@Immutable
+data class AgentListQuery(val chip: AgentChip, val search: String)
+
 /**
  * The list filter one marketplace chip and search query turn into.
  *
@@ -11,25 +34,29 @@ package com.garfiec.librechat.feature.agents.viewmodel
  * - searching: `promoted` and `all` send neither, so the search covers every agent; a real
  *   category still narrows it.
  *
+ * Yours is this app's own chip: `requiredPermission` = EDIT, the bit the list route checks each
+ * agent's effective permissions against. It narrows a search too, and ignores categories.
+ *
  * Mirrored by hand (scripts/mirrors.json: agent-category-sentinels, agent-grid-query-params).
  */
 internal data class AgentListFilter(
     val search: String? = null,
     val category: String? = null,
     val promoted: Boolean = false,
+    val requiredPermission: Int? = null,
 ) {
     companion object {
         const val PROMOTED = "promoted"
         const val ALL = "all"
 
-        fun of(selectedCategory: String?, searchQuery: String): AgentListFilter {
-            val search = searchQuery.ifBlank { null }
-            val category = selectedCategory?.takeUnless { it == PROMOTED || it == ALL }
-            return AgentListFilter(
-                search = search,
-                category = category,
-                promoted = search == null && selectedCategory == PROMOTED,
-            )
+        fun of(chip: AgentChip, searchQuery: String): AgentListFilter {
+            val search = searchQuery.trim().ifEmpty { null }
+            return when (chip) {
+                AgentChip.TopPicks -> AgentListFilter(search = search, promoted = search == null)
+                AgentChip.All -> AgentListFilter(search = search)
+                AgentChip.Yours -> AgentListFilter(search = search, requiredPermission = PermissionBits.EDIT)
+                is AgentChip.Category -> AgentListFilter(search = search, category = chip.value)
+            }
         }
     }
 }

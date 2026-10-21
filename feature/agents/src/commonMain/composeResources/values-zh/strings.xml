@@ -16,8 +16,6 @@
     <string name="close">关闭</string>
 
     <!-- Content descriptions -->
-    <string name="cd_create_agent">创建智能体</string>
-    <string name="cd_search">搜索</string>
     <string name="cd_back">返回</string>
     <string name="cd_more_actions">更多操作</string>
     <string name="cd_more_options">更多选项</string>
@@ -34,11 +32,26 @@
     <!-- Marketplace screen -->
     <string name="search_agents_hint">搜索智能体…</string>
     <string name="no_agents_found">未找到智能体</string>
-    <string name="no_agents_available">没有可用的智能体</string>
     <string name="agents_not_available_title">智能体不可用</string>
     <string name="agents_not_available_description">你的服务器管理员已为你的账户禁用智能体。</string>
     <string name="try_different_search">尝试其他搜索关键词</string>
     <string name="check_back_later">稍后再来看看新的智能体</string>
+    <string name="agents_chip_top_picks">精选</string>
+    <string name="agents_chip_all">全部</string>
+    <string name="agents_chip_yours">我的</string>
+    <string name="agents_top_pick">精选</string>
+    <string name="agents_new_agent">新建智能体</string>
+    <string name="agent_unnamed">未命名智能体</string>
+    <string name="agents_clear_search">清除搜索</string>
+    <string name="agents_no_matches_in">%1$s 中没有匹配项</string>
+    <string name="agents_none_in">%1$s 中没有智能体</string>
+    <string name="agents_search_all">搜索全部智能体</string>
+    <string name="agents_show_all">显示全部智能体</string>
+    <string name="agents_empty_title">还没有智能体</string>
+    <string name="agents_empty_description_create">创建一个拥有自己的指令、模型和工具的智能体。</string>
+    <string name="agents_load_failed">无法加载智能体</string>
+    <string name="agents_load_more_failed">无法加载更多智能体</string>
+    <string name="agents_retry">重试</string>
     <string name="error_unknown">发生未知错误</string>
     <string name="unknown_author">未知</string>
 

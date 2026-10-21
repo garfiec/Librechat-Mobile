@@ -16,8 +16,6 @@
     <string name="close">Fechar</string>
 
     <!-- Content descriptions -->
-    <string name="cd_create_agent">Criar agente</string>
-    <string name="cd_search">Buscar</string>
     <string name="cd_back">Voltar</string>
     <string name="cd_more_actions">Mais ações</string>
     <string name="cd_more_options">Mais opções</string>
@@ -34,11 +32,26 @@
     <!-- Marketplace screen -->
     <string name="search_agents_hint">Buscar agentes…</string>
     <string name="no_agents_found">Nenhum agente encontrado</string>
-    <string name="no_agents_available">Nenhum agente disponível</string>
     <string name="agents_not_available_title">Agentes indisponíveis</string>
     <string name="agents_not_available_description">O administrador do seu servidor desativou os agentes para sua conta.</string>
     <string name="try_different_search">Tente um termo de busca diferente</string>
     <string name="check_back_later">Volte mais tarde para ver novos agentes</string>
+    <string name="agents_chip_top_picks">Destaques</string>
+    <string name="agents_chip_all">Todos</string>
+    <string name="agents_chip_yours">Seus</string>
+    <string name="agents_top_pick">Destaque</string>
+    <string name="agents_new_agent">Novo agente</string>
+    <string name="agent_unnamed">Agente sem nome</string>
+    <string name="agents_clear_search">Limpar pesquisa</string>
+    <string name="agents_no_matches_in">Nenhum resultado em %1$s</string>
+    <string name="agents_none_in">Nenhum agente em %1$s</string>
+    <string name="agents_search_all">Pesquisar todos os agentes</string>
+    <string name="agents_show_all">Mostrar todos os agentes</string>
+    <string name="agents_empty_title">Ainda não há agentes</string>
+    <string name="agents_empty_description_create">Crie um agente com suas próprias instruções, modelo e ferramentas.</string>
+    <string name="agents_load_failed">Não foi possível carregar os agentes</string>
+    <string name="agents_load_more_failed">Não foi possível carregar mais agentes</string>
+    <string name="agents_retry">Tentar novamente</string>
     <string name="error_unknown">Ocorreu um erro desconhecido</string>
     <string name="unknown_author">Desconhecido</string>
 

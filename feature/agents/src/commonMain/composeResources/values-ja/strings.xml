@@ -16,8 +16,6 @@
     <string name="close">閉じる</string>
 
     <!-- Content descriptions -->
-    <string name="cd_create_agent">エージェントを作成</string>
-    <string name="cd_search">検索</string>
     <string name="cd_back">戻る</string>
     <string name="cd_more_actions">その他の操作</string>
     <string name="cd_more_options">その他のオプション</string>
@@ -34,11 +32,26 @@
     <!-- Marketplace screen -->
     <string name="search_agents_hint">エージェントを検索…</string>
     <string name="no_agents_found">エージェントが見つかりません</string>
-    <string name="no_agents_available">利用可能なエージェントがありません</string>
     <string name="agents_not_available_title">エージェントを利用できません</string>
     <string name="agents_not_available_description">サーバー管理者がお使いのアカウントでエージェントを無効にしています。</string>
     <string name="try_different_search">別の検索語をお試しください</string>
     <string name="check_back_later">新しいエージェントについては後でもう一度ご確認ください</string>
+    <string name="agents_chip_top_picks">おすすめ</string>
+    <string name="agents_chip_all">すべて</string>
+    <string name="agents_chip_yours">マイエージェント</string>
+    <string name="agents_top_pick">おすすめ</string>
+    <string name="agents_new_agent">新しいエージェント</string>
+    <string name="agent_unnamed">名前のないエージェント</string>
+    <string name="agents_clear_search">検索をクリア</string>
+    <string name="agents_no_matches_in">%1$s に一致するものはありません</string>
+    <string name="agents_none_in">%1$s にエージェントはありません</string>
+    <string name="agents_search_all">すべてのエージェントを検索</string>
+    <string name="agents_show_all">すべてのエージェントを表示</string>
+    <string name="agents_empty_title">エージェントはまだありません</string>
+    <string name="agents_empty_description_create">独自の指示、モデル、ツールを持つエージェントを作成しましょう。</string>
+    <string name="agents_load_failed">エージェントを読み込めませんでした</string>
+    <string name="agents_load_more_failed">続きのエージェントを読み込めませんでした</string>
+    <string name="agents_retry">再試行</string>
     <string name="error_unknown">不明なエラーが発生しました</string>
     <string name="unknown_author">不明</string>
 

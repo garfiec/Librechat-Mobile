@@ -16,8 +16,6 @@
     <string name="close">إغلاق</string>
 
     <!-- Content descriptions -->
-    <string name="cd_create_agent">إنشاء وكيل</string>
-    <string name="cd_search">بحث</string>
     <string name="cd_back">رجوع</string>
     <string name="cd_more_actions">إجراءات إضافية</string>
     <string name="cd_more_options">خيارات إضافية</string>
@@ -34,11 +32,26 @@
     <!-- Marketplace screen -->
     <string name="search_agents_hint">البحث في الوكلاء…</string>
     <string name="no_agents_found">لم يتم العثور على وكلاء</string>
-    <string name="no_agents_available">لا يوجد وكلاء متاحون</string>
     <string name="agents_not_available_title">الوكلاء غير متاحين</string>
     <string name="agents_not_available_description">قام مسؤول الخادم بتعطيل الوكلاء لحسابك.</string>
     <string name="try_different_search">جرّب مصطلح بحث مختلفًا</string>
     <string name="check_back_later">تحقّق لاحقًا من وجود وكلاء جدد</string>
+    <string name="agents_chip_top_picks">الأبرز</string>
+    <string name="agents_chip_all">الكل</string>
+    <string name="agents_chip_yours">وكلاؤك</string>
+    <string name="agents_top_pick">من الأبرز</string>
+    <string name="agents_new_agent">وكيل جديد</string>
+    <string name="agent_unnamed">وكيل بلا اسم</string>
+    <string name="agents_clear_search">مسح البحث</string>
+    <string name="agents_no_matches_in">لا توجد نتائج في %1$s</string>
+    <string name="agents_none_in">لا يوجد وكلاء في %1$s</string>
+    <string name="agents_search_all">البحث في كل الوكلاء</string>
+    <string name="agents_show_all">عرض كل الوكلاء</string>
+    <string name="agents_empty_title">لا يوجد وكلاء بعد</string>
+    <string name="agents_empty_description_create">أنشئ وكيلًا بتعليماته ونموذجه وأدواته الخاصة.</string>
+    <string name="agents_load_failed">تعذّر تحميل الوكلاء</string>
+    <string name="agents_load_more_failed">تعذّر تحميل المزيد من الوكلاء</string>
+    <string name="agents_retry">إعادة المحاولة</string>
     <string name="error_unknown">حدث خطأ غير معروف</string>
     <string name="unknown_author">غير معروف</string>
 

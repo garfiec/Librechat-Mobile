@@ -53,7 +53,7 @@ internal fun AgentCategory.displayLabel(): String {
 }
 
 @Composable
-private fun categoryValueLabel(value: String): String =
+internal fun categoryValueLabel(value: String): String =
     CATEGORY_LABELS[value]?.let { stringResource(it) } ?: value.replaceFirstChar { it.uppercase() }
 
 @OptIn(ExperimentalMaterial3Api::class)

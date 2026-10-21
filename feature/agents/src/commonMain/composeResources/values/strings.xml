@@ -16,8 +16,6 @@
     <string name="close">Close</string>
 
     <!-- Content descriptions -->
-    <string name="cd_create_agent">Create Agent</string>
-    <string name="cd_search">Search</string>
     <string name="cd_back">Back</string>
     <string name="cd_more_actions">More actions</string>
     <string name="cd_more_options">More options</string>
@@ -34,11 +32,26 @@
     <!-- Marketplace screen -->
     <string name="search_agents_hint">Search agents\u2026</string>
     <string name="no_agents_found">No agents found</string>
-    <string name="no_agents_available">No agents available</string>
     <string name="agents_not_available_title">Agents not available</string>
     <string name="agents_not_available_description">Your server administrator has disabled agents for your account.</string>
     <string name="try_different_search">Try a different search term</string>
     <string name="check_back_later">Check back later for new agents</string>
+    <string name="agents_chip_top_picks">Top picks</string>
+    <string name="agents_chip_all">All</string>
+    <string name="agents_chip_yours">Yours</string>
+    <string name="agents_top_pick">Top pick</string>
+    <string name="agents_new_agent">New agent</string>
+    <string name="agent_unnamed">Unnamed agent</string>
+    <string name="agents_clear_search">Clear search</string>
+    <string name="agents_no_matches_in">No matches in %1$s</string>
+    <string name="agents_none_in">No agents in %1$s</string>
+    <string name="agents_search_all">Search all agents</string>
+    <string name="agents_show_all">Show all agents</string>
+    <string name="agents_empty_title">No agents yet</string>
+    <string name="agents_empty_description_create">Create an agent with its own instructions, model and tools.</string>
+    <string name="agents_load_failed">Couldn't load agents</string>
+    <string name="agents_load_more_failed">Couldn't load more agents</string>
+    <string name="agents_retry">Retry</string>
     <string name="error_unknown">An unknown error occurred</string>
     <string name="unknown_author">Unknown</string>
 

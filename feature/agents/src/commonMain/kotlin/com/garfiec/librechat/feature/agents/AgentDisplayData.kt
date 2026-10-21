@@ -2,13 +2,20 @@ package com.garfiec.librechat.feature.agents
 
 import androidx.compose.runtime.Immutable
 
+/** One marketplace card. [name] null = the agent has none; the card says so in the user's language. */
 @Immutable
 data class AgentCardDisplayData(
     val id: String,
-    val name: String,
+    val name: String?,
+    /** Plain text: an HTML description arrives with its markup stripped. */
     val description: String?,
     val avatarUrl: String?,
-    val authorName: String?,
+    /** The agent's category value ("hr", "general", an admin's own), labelled at render time. */
+    val categoryValue: String? = null,
+    /** The server's `is_promoted`: a Top pick. */
+    val isPromoted: Boolean = false,
+    /** Support contact's name (or email), else the owner's name. Never the raw author id. */
+    val contactName: String? = null,
 )
 
 @Immutable

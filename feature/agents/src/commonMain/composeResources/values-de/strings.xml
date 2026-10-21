@@ -16,8 +16,6 @@
     <string name="close">Schließen</string>
 
     <!-- Content descriptions -->
-    <string name="cd_create_agent">Agent erstellen</string>
-    <string name="cd_search">Suchen</string>
     <string name="cd_back">Zurück</string>
     <string name="cd_more_actions">Weitere Aktionen</string>
     <string name="cd_more_options">Weitere Optionen</string>
@@ -34,11 +32,26 @@
     <!-- Marketplace screen -->
     <string name="search_agents_hint">Agenten suchen…</string>
     <string name="no_agents_found">Keine Agenten gefunden</string>
-    <string name="no_agents_available">Keine Agenten verfügbar</string>
     <string name="agents_not_available_title">Agenten nicht verfügbar</string>
     <string name="agents_not_available_description">Dein Serveradministrator hat Agenten für dein Konto deaktiviert.</string>
     <string name="try_different_search">Versuche einen anderen Suchbegriff</string>
     <string name="check_back_later">Schau später nach neuen Agenten</string>
+    <string name="agents_chip_top_picks">Top-Empfehlungen</string>
+    <string name="agents_chip_all">Alle</string>
+    <string name="agents_chip_yours">Deine</string>
+    <string name="agents_top_pick">Top-Empfehlung</string>
+    <string name="agents_new_agent">Neuer Agent</string>
+    <string name="agent_unnamed">Unbenannter Agent</string>
+    <string name="agents_clear_search">Suche löschen</string>
+    <string name="agents_no_matches_in">Keine Treffer in %1$s</string>
+    <string name="agents_none_in">Keine Agenten in %1$s</string>
+    <string name="agents_search_all">Alle Agenten durchsuchen</string>
+    <string name="agents_show_all">Alle Agenten anzeigen</string>
+    <string name="agents_empty_title">Noch keine Agenten</string>
+    <string name="agents_empty_description_create">Erstelle einen Agenten mit eigenen Anweisungen, eigenem Modell und eigenen Tools.</string>
+    <string name="agents_load_failed">Agenten konnten nicht geladen werden</string>
+    <string name="agents_load_more_failed">Weitere Agenten konnten nicht geladen werden</string>
+    <string name="agents_retry">Erneut versuchen</string>
     <string name="error_unknown">Ein unbekannter Fehler ist aufgetreten</string>
     <string name="unknown_author">Unbekannt</string>
 

@@ -15,7 +15,9 @@ import com.garfiec.librechat.core.model.AgentCategory
 import com.garfiec.librechat.core.model.ui.UiStyle
 import com.garfiec.librechat.core.ui.preview.PreviewNarrowScreens
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
-import com.garfiec.librechat.feature.agents.screen.AgentCategoryChips
+import com.garfiec.librechat.feature.agents.screen.AgentChipRow
+import com.garfiec.librechat.feature.agents.viewmodel.AgentChip
+import com.garfiec.librechat.feature.agents.viewmodel.availableChips
 
 // What /api/agents/categories serves: the built-in categories carry a localization key as their
 // label, a custom one carries the admin's own label.
@@ -25,6 +27,8 @@ private val categories = listOf(
     AgentCategory(value = "rd", label = "com_agents_category_rd"),
     AgentCategory(value = "aftersales", label = "com_agents_category_aftersales"),
     AgentCategory(value = "legal", label = "Legal"),
+    AgentCategory(value = "promoted", label = "com_agents_top_picks"),
+    AgentCategory(value = "all", label = "com_agents_all"),
 )
 
 @PreviewNarrowScreens
@@ -47,11 +51,13 @@ private fun AgentCategoryHost(style: UiStyle) {
                     onCategorySelect = { editorCategory = it },
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
-                var chip by remember { mutableStateOf<String?>("hr") }
-                AgentCategoryChips(
-                    categories = categories,
-                    selectedCategory = chip,
-                    onCategorySelect = { chip = if (chip == it) null else it },
+                var chip by remember { mutableStateOf<AgentChip>(AgentChip.Category("hr")) }
+                AgentChipRow(
+                    chips = availableChips(categories, canCreate = true),
+                    selected = chip,
+                    categoriesByValue = categories.associateBy { it.value },
+                    onSelect = { chip = it },
+                    modifier = Modifier.padding(horizontal = 16.dp),
                 )
             }
         }
