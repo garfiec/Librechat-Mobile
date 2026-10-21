@@ -12,6 +12,7 @@ import io.ktor.client.request.parameter
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.http.path
+import kotlinx.serialization.Serializable
 
 /**
  * Granular ACL permission endpoints, mirroring upstream
@@ -38,6 +39,10 @@ class PermissionsApi(
      * PUT /api/permissions/{resourceType}/{resourceId} — bulk update. Server
      * diffs `updated[]` against existing entries and revokes `removed[]`.
      * Requires SHARE (and SHARE_PUBLIC for `public=true`).
+     *
+     * The server answers `{message, results: {principals, public?, publicAccessRoleId}}`, where
+     * `principals` holds only what this call granted, so the decoded value is NOT the resource's
+     * grant list: read that again with [getResourcePermissions] after a change.
      */
     suspend fun updateResourcePermissions(
         resourceType: String,
@@ -81,13 +86,24 @@ class PermissionsApi(
         }.body()
 
     /**
-     * GET /api/permissions/search-principals?q=... — autocomplete users/groups
-     * via the people-picker. Returns a list of principals (USER + GROUP).
+     * GET /api/permissions/search-principals?q=... — autocomplete users/groups via the people
+     * picker. The server answers `{query, limit, types, results, count, sources}` and searches only
+     * the principal types the caller's PEOPLE_PICKER permissions allow (403 when none); this
+     * returns the `results`.
      */
     suspend fun searchPrincipals(query: String, limit: Int? = null): List<Principal> =
         client.get {
             url { path("api/permissions/search-principals") }
             parameter("q", query)
             limit?.let { parameter("limit", it) }
-        }.body()
+        }.body<PrincipalSearchResponse>().results
 }
+
+/**
+ * The `search-principals` envelope (upstream `TPrincipalSearchResponse`); only the hits are read.
+ * [results] is required so a renamed field fails the search instead of reading as "no matches".
+ */
+@Serializable
+internal data class PrincipalSearchResponse(
+    val results: List<Principal>,
+)

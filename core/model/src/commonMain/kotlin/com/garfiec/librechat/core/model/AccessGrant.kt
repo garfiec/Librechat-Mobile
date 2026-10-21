@@ -40,13 +40,17 @@ data class ResourcePermissions(
 
 /**
  * The `PUT /api/permissions/{resourceType}/{resourceId}` request body
- * (PermissionsController.js updateResourcePermissions:58).
+ * (PermissionsController.js updateResourcePermissions).
+ *
+ * [public] is three-state on the wire: null leaves public access as it is (and skips the server's
+ * SHARE_PUBLIC check), `false` revokes it, `true` grants [publicAccessRoleId]. It is nullable so
+ * that `false` is not the default and survives the client's `encodeDefaults = false`.
  */
 @Serializable
 data class UpdateResourcePermissionsRequest(
     val updated: List<Principal> = emptyList(),
     val removed: List<Principal> = emptyList(),
-    val public: Boolean = false,
+    val public: Boolean? = null,
     val publicAccessRoleId: String? = null,
 )
 
