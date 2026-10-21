@@ -16,8 +16,10 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -263,7 +265,6 @@ class AgentMarketplaceViewModelTest {
         viewModel.loadMore()
         advanceUntilIdle()
 
-        // Only the first page is read.
         coVerify(exactly = 1) { agentRepository.getAgentsPaginated(any(), any(), any(), any(), any(), any()) }
     }
 
@@ -479,6 +480,76 @@ class AgentMarketplaceViewModelTest {
 
         coVerify(exactly = 1) {
             agentRepository.getAgentsPaginated(20, "c1", search = null, category = null, promoted = true, null)
+        }
+    }
+
+    @Test
+    fun `a page still in flight when the chip changes never reaches the new list`() = runTest {
+        stubPage("c1") coAnswers {
+            delay(1_000)
+            page(listOf(Agent(id = "agent-old")), next = "old-c2")
+        }
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.loadMore()
+        advanceTimeBy(100)
+
+        coEvery {
+            agentRepository.getAgentsPaginated(any(), cursor = null, any(), category = "coding", any(), any())
+        } returns page(listOf(Agent(id = "agent-coding")), next = "coding-c1")
+        viewModel.onCategorySelected("coding")
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.agents.map { it.id }).containsExactly("agent-coding")
+        assertThat(state.nextCursor).isEqualTo("coding-c1")
+        assertThat(state.isLoadingMore).isFalse()
+    }
+
+    @Test
+    fun `a page that hands back the cursor it was read by ends paging`() = runTest {
+        stubPage("c1") returns page(testAgents, next = "c1")
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.loadMore()
+        advanceUntilIdle()
+        viewModel.loadMore()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.hasMore).isFalse()
+        coVerify(exactly = 1) { agentRepository.getAgentsPaginated(any(), cursor = "c1", any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `loadMore waits out a refresh`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        stubPage(null) coAnswers {
+            delay(1_000)
+            page(testAgents, next = "c1")
+        }
+        viewModel.refresh()
+        advanceTimeBy(100)
+
+        viewModel.loadMore()
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { agentRepository.getAgentsPaginated(any(), cursor = "c1", any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `loadMore during the search debounce reads the shown list's filter`() = runTest {
+        stubPage("c1") returns page(listOf(Agent(id = "agent-2")), next = null)
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onSearchQueryChanged("pending")
+        viewModel.loadMore()
+        advanceTimeBy(100)
+
+        coVerify(exactly = 1) {
+            agentRepository.getAgentsPaginated(any(), cursor = "c1", search = null, any(), any(), any())
         }
     }
 }

@@ -92,7 +92,10 @@ fun AgentMarketplaceScreen(
             lastVisibleItem >= totalItems - 3 &&
                 uiState.hasMore &&
                 !uiState.isLoadingMore &&
-                !uiState.isLoading
+                !uiState.isLoading &&
+                !uiState.isRefreshing &&
+                // A failed page would otherwise re-request itself the moment isLoadingMore clears.
+                uiState.error == null
         }
     }
 
