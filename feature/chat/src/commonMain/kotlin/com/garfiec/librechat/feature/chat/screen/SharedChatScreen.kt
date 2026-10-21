@@ -494,10 +494,10 @@ private fun SharedChatErrorState(error: SharedChatError, blockedMessage: String?
 @Composable
 private fun rememberCopyMessage(state: SharedChatUiState): (String) -> Unit {
     val clipboard = rememberClipboardWriter()
-    val nodes by rememberUpdatedState(state.displayMessages)
+    val current by rememberUpdatedState(state)
     return remember(clipboard) {
         { messageId ->
-            val text = nodes.firstOrNull { it.message.messageId == messageId }?.message?.text.orEmpty()
+            val text = current.clipboardText(messageId)
             if (text.isNotBlank()) clipboard.copy(text, "Message")
         }
     }

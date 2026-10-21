@@ -24,6 +24,7 @@ import com.garfiec.librechat.core.ui.media.MediaPreviewState
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import com.garfiec.librechat.feature.chat.util.extractBranchMedia
+import com.garfiec.librechat.feature.chat.util.serializeMessageForClipboard
 import com.garfiec.librechat.feature.chat.util.withAttachmentSources
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -125,6 +126,15 @@ data class SharedChatUiState(
      * label that does, as web's `getHeaderHoverLabel` does.
      */
     val hidesModelName: Boolean get() = snapshot?.hasConfiguredSender == true
+
+    /**
+     * What Copy puts on the clipboard for [messageId], serialized as the chat screen copies: an
+     * agent reply keeps its output in content parts and often leaves `text` blank.
+     */
+    fun clipboardText(messageId: String): String =
+        displayMessages.firstOrNull { it.message.messageId == messageId }
+            ?.let { serializeMessageForClipboard(it.message) }
+            .orEmpty()
 }
 
 /**

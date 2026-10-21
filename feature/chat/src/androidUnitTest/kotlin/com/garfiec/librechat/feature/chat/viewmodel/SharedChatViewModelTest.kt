@@ -11,14 +11,17 @@ import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
 import com.garfiec.librechat.core.model.Attachment
+import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.FILE_SOURCE_TEXT
 import com.garfiec.librechat.core.model.FileReference
 import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.core.model.request.NO_PARENT
 import com.garfiec.librechat.core.model.response.ForkConversationResponse
 import com.garfiec.librechat.core.model.response.SharedConversationSnapshot
 import com.garfiec.librechat.core.network.client.ServerUrlProvider
+import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -105,6 +108,21 @@ class SharedChatViewModelTest {
         assertThat(state.error).isNull()
         assertThat(state.shareUrl).isEqualTo("https://chat.example.com/share/share-1")
         assertThat(state.displayMessages.map { it.message.messageId }).containsExactly("u1", "a2").inOrder()
+    }
+
+    @Test
+    fun `Copy on a reply kept in content parts copies the parts, not the blank text`() {
+        val reply = Message(
+            messageId = "a1",
+            conversationId = "anon",
+            parentMessageId = "u1",
+            text = "",
+            content = listOf(MessageContentPart(type = ContentType.TEXT, text = "agent answer")),
+        )
+        val state = SharedChatUiState(displayMessages = listOf(MessageNode(reply, emptyList(), 0, 1)))
+
+        assertThat(state.clipboardText("a1")).isEqualTo("agent answer")
+        assertThat(state.clipboardText("missing")).isEmpty()
     }
 
     @Test
