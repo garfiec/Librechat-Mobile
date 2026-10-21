@@ -62,7 +62,17 @@ data class AclSearch(
     val results: List<Principal> = emptyList(),
     val searching: Boolean = false,
     val failed: Boolean = false,
-)
+) {
+    /** Long enough to send; a shorter query shows nothing rather than "no matches". */
+    val isSendable: Boolean get() = isSendable(query)
+
+    companion object {
+        /** Upstream createPrincipalSearch answers 400 below this trimmed length (scripts/mirrors.json). */
+        const val MIN_QUERY_LENGTH = 2
+
+        fun isSendable(query: String): Boolean = query.trim().length >= MIN_QUERY_LENGTH
+    }
+}
 
 /** Why reading or changing access failed, as the editor words it. */
 enum class AclError {

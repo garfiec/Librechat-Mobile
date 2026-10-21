@@ -2089,6 +2089,20 @@
       "failure_mode": "Upstream renames the permissions or changes the mapping, and the search box disappears for people who may search, or shows and only ever fails."
     },
     {
+      "id": "acl-principal-search-min-length",
+      "upstream": {
+        "file": "packages/api/src/acl/search.ts",
+        "symbol": "createPrincipalSearch",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/acl/AclState.kt",
+        "symbol": "AclSearch.MIN_QUERY_LENGTH"
+      },
+      "why": "search-principals answers 400 'Query must be at least 2 characters long' when the trimmed q is shorter than 2 (web's people search is enabled only from 2 characters). AclController sends no search below that length, and the editor shows neither an error nor 'no matches' for it.",
+      "failure_mode": "Upstream raises the minimum, and every query below the new length shows 'Couldn't search' instead of waiting for more letters."
+    },
+    {
       "id": "shared-link-manage-access-gate",
       "upstream": {
         "file": "client/src/components/Conversations/ConvoOptions/SharedLinkButton.tsx",

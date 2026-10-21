@@ -164,7 +164,8 @@ class AclController(
     /** Searches people and groups to add, debounced. Needs the people picker. */
     fun onSearchQueryChange(query: String) {
         searchJob?.cancel()
-        if (query.isBlank() || resourceId == null || !currentGates().canSearch) {
+        // The server answers 400 to a too-short query, so one is never sent.
+        if (!AclSearch.isSendable(query) || resourceId == null || !currentGates().canSearch) {
             search.value = AclSearch(query = query)
             return
         }

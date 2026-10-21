@@ -331,26 +331,43 @@ class AclControllerTest {
     @Test
     fun `search results leave out whoever already has access`() = runTest {
         serve(owner, viewer)
-        coEvery { api.searchPrincipals("b", any()) } returns listOf(viewer.copy(accessRoleId = null), group)
+        coEvery { api.searchPrincipals("be", any()) } returns listOf(viewer.copy(accessRoleId = null), group)
         val controller = controller()
         controller.open("link1")
         controller.awaitReady()
 
-        controller.onSearchQueryChange("b")
+        controller.onSearchQueryChange("be")
         val state = controller.state.first { it is AclState.Ready && it.search.results.isNotEmpty() } as AclState.Ready
 
         assertThat(state.search.results.map { it.id }).containsExactly("g1")
     }
 
     @Test
-    fun `a failed search says so instead of showing no matches`() = runTest {
+    fun `a one-character query is not sent, since the server refuses it`() = runTest {
         serve(owner)
-        coEvery { api.searchPrincipals("b", any()) } throws ApiException(403, "Forbidden")
         val controller = controller()
         controller.open("link1")
         controller.awaitReady()
 
-        controller.onSearchQueryChange("b")
+        controller.onSearchQueryChange(" b ")
+        advanceTimeBy(1_000)
+        settle()
+        val state = controller.state.first { it is AclState.Ready && it.search.query == " b " } as AclState.Ready
+
+        coVerify(exactly = 0) { api.searchPrincipals(any(), any()) }
+        assertThat(state.search.failed).isFalse()
+        assertThat(state.search.searching).isFalse()
+    }
+
+    @Test
+    fun `a failed search says so instead of showing no matches`() = runTest {
+        serve(owner)
+        coEvery { api.searchPrincipals("be", any()) } throws ApiException(403, "Forbidden")
+        val controller = controller()
+        controller.open("link1")
+        controller.awaitReady()
+
+        controller.onSearchQueryChange("be")
         val state = controller.state.first { it is AclState.Ready && it.search.failed } as AclState.Ready
 
         assertThat(state.search.results).isEmpty()

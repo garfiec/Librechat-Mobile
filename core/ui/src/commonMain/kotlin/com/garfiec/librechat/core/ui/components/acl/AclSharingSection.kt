@@ -272,7 +272,7 @@ private fun SearchBlock(state: AclState.Ready, enabled: Boolean, actions: AclSha
             GrantRolePicker(state = state, enabled = enabled, onChange = actions.onGrantRoleChange)
         }
         when {
-            search.query.isBlank() -> Unit
+            !search.isSendable -> Unit
             search.searching -> Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
                 AdaptiveCircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
             }
