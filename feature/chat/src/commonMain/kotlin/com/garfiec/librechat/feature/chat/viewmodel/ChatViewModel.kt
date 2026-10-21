@@ -62,6 +62,7 @@ import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import com.garfiec.librechat.feature.chat.util.extractBranchMedia
 import com.garfiec.librechat.feature.chat.util.newChatDraftKey
+import com.garfiec.librechat.feature.chat.util.restore
 import com.garfiec.librechat.feature.chat.util.serializeMessageForClipboard
 import com.garfiec.librechat.feature.chat.util.withAttachmentSources
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.AttachmentPreviewDelegate
@@ -672,9 +673,9 @@ class ChatViewModel(
             if (handoff != null) {
                 Diag.d(
                     tag = "ModelSel",
-                    attrs = mapOf("endpoint" to handoff.endpoint, "model" to (handoff.model ?: "null")),
+                    attrs = mapOf("endpoint" to handoff.choice.endpoint, "model" to (handoff.choice.model ?: "null")),
                 ) { "handoff applied for $conversationId" }
-                modelDelegate.applyResolvedConversationModel(handoff.endpoint, handoff.model, handoff.spec)
+                modelDelegate.applyResolvedConversationModel(handoff.choice.endpoint, handoff.choice.model, handoff.choice.spec)
             }
             // Seed the optimistic user message the landing VM sent, so it stays visible while the
             // resumed stream runs. The server doesn't persist the request message until the reply
@@ -1292,9 +1293,7 @@ class ChatViewModel(
         _uiState.update { current ->
             ChatUiState(
                 selection = ModelSelectionState(
-                    selectedEndpoint = current.selectedEndpoint,
-                    selectedModel = current.selectedModel,
-                    selectedSpec = current.selectedSpec,
+                    choice = current.selection.choice,
                     modelSpecs = current.selection.modelSpecs,
                     availableModels = current.availableModels,
                     endpointConfigs = current.endpointConfigs,
@@ -1545,7 +1544,7 @@ class ChatViewModel(
     // Model selection and comparison
     fun onSpecSelected(spec: ModelSpec) = modelDelegate.onSpecSelected(spec)
 
-    fun onModelSelected(endpoint: String, model: String) = modelDelegate.onModelSelected(endpoint, model)
+    fun onModelSelected(endpoint: String, model: String) = modelDelegate.onChoiceSelected(ModelChoice.Raw(endpoint, model))
     fun beginComparisonSetup() {
         comparisonDelegate.beginComparisonSetup()
         // Setup opens a model list (sheet or pane), so it takes the selector's self-heals.
@@ -1569,7 +1568,7 @@ class ChatViewModel(
      */
     fun startComparison(endpoint: String, model: String, spec: String? = null, primary: ComparisonPick? = null) {
         if (_uiState.value.isStreaming) return
-        primary?.let { modelDelegate.onModelSelected(it.endpoint, it.model, it.spec) }
+        primary?.let { modelDelegate.onChoiceSelected(ModelChoice.restore(it.endpoint, it.model, it.spec)) }
         comparisonDelegate.startComparison(endpoint, model, spec)
         if (!_uiState.value.comparisonState.isEnabled) return
         conversationLoadDelegate.releaseRehydrateHeldForSetup(started = true)

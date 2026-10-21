@@ -24,7 +24,7 @@ class ChatUiStateUploadRouteTest {
         configs: Map<String, EndpointConfig> = mapOf(endpoint to EndpointConfig()),
     ) = ChatUiState(
         selection = ModelSelectionState(
-            selectedEndpoint = endpoint,
+            choice = ModelChoice.Raw(endpoint, null),
             selectedAgentProvider = agentProvider,
             endpointConfigs = configs,
         ),

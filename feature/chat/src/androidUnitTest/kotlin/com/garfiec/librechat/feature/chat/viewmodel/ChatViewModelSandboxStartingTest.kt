@@ -144,7 +144,7 @@ class ChatViewModelSandboxStartingTest {
     )
 
     private fun liveRunTest(body: suspend TestScope.(ChatViewModel) -> Unit) = runTest(testDispatcher) {
-        fixture.selectionHandoff.put(conversationId = CONVERSATION_ID, endpoint = ENDPOINT, model = MODEL)
+        fixture.selectionHandoff.put(conversationId = CONVERSATION_ID, choice = ModelChoice.Raw(ENDPOINT, MODEL))
         val vm = fixture.build(defaultDispatcher = testDispatcher, initialConversationId = CONVERSATION_ID)
         runCurrent()
         try {

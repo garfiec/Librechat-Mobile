@@ -21,8 +21,7 @@ class ChatUiStateSendReadyTest {
     fun `not ready when availableModels is empty`() {
         val state = ChatUiState(
             selection = ModelSelectionState(
-                selectedEndpoint = anthropic,
-                selectedModel = haiku,
+                choice = ModelChoice.Raw(anthropic, haiku),
                 availableModels = emptyMap(),
             ),
             gates = FeatureGatesState(agentsEnabled = true),
@@ -34,8 +33,7 @@ class ChatUiStateSendReadyTest {
     fun `ready when non-agents endpoint selected and models available`() {
         val state = ChatUiState(
             selection = ModelSelectionState(
-                selectedEndpoint = anthropic,
-                selectedModel = haiku,
+                choice = ModelChoice.Raw(anthropic, haiku),
                 availableModels = mapOf(anthropic to listOf(haiku)),
             ),
             gates = FeatureGatesState(agentsEnabled = true),
@@ -50,7 +48,7 @@ class ChatUiStateSendReadyTest {
         // would hit /api/agents/chat/agents and 403.
         val state = ChatUiState(
             selection = ModelSelectionState(
-                selectedEndpoint = EndpointConstants.AGENTS,
+                choice = ModelChoice.Raw(EndpointConstants.AGENTS, null),
                 availableModels = mapOf(anthropic to listOf(haiku)),
             ),
             gates = FeatureGatesState(agentsEnabled = false),
@@ -62,7 +60,7 @@ class ChatUiStateSendReadyTest {
     fun `ready when agents endpoint selected and AGENTS USE granted`() {
         val state = ChatUiState(
             selection = ModelSelectionState(
-                selectedEndpoint = EndpointConstants.AGENTS,
+                choice = ModelChoice.Raw(EndpointConstants.AGENTS, null),
                 availableModels = mapOf(anthropic to listOf(haiku)),
             ),
             gates = FeatureGatesState(agentsEnabled = true),
@@ -76,7 +74,7 @@ class ChatUiStateSendReadyTest {
         // The endpoint config is the readiness signal there (#541).
         val state = ChatUiState(
             selection = ModelSelectionState(
-                selectedEndpoint = EndpointConstants.AGENTS,
+                choice = ModelChoice.Raw(EndpointConstants.AGENTS, null),
                 availableModels = emptyMap(),
                 endpointConfigs = mapOf(EndpointConstants.AGENTS to EndpointConfig()),
             ),
@@ -88,7 +86,7 @@ class ChatUiStateSendReadyTest {
     @Test
     fun `not ready on the agents endpoint before any config arrives`() {
         val state = ChatUiState(
-            selection = ModelSelectionState(selectedEndpoint = EndpointConstants.AGENTS),
+            selection = ModelSelectionState(choice = ModelChoice.Raw(EndpointConstants.AGENTS, null)),
             gates = FeatureGatesState(agentsEnabled = true),
         )
         assertThat(state.isSendReady).isFalse()
@@ -99,7 +97,7 @@ class ChatUiStateSendReadyTest {
         // A config without an `agents` entry means the endpoint is disabled; sending would fail.
         val state = ChatUiState(
             selection = ModelSelectionState(
-                selectedEndpoint = EndpointConstants.AGENTS,
+                choice = ModelChoice.Raw(EndpointConstants.AGENTS, null),
                 endpointConfigs = mapOf(anthropic to EndpointConfig()),
             ),
             gates = FeatureGatesState(agentsEnabled = true),
@@ -111,8 +109,7 @@ class ChatUiStateSendReadyTest {
     fun `endpoint configs alone do not make a non-agents endpoint ready`() {
         val state = ChatUiState(
             selection = ModelSelectionState(
-                selectedEndpoint = anthropic,
-                selectedModel = haiku,
+                choice = ModelChoice.Raw(anthropic, haiku),
                 endpointConfigs = mapOf(anthropic to EndpointConfig()),
             ),
             gates = FeatureGatesState(agentsEnabled = true),
@@ -126,7 +123,7 @@ class ChatUiStateSendReadyTest {
         // No viable send path — stays not-ready. runWhenSendReady will time out and toast.
         val state = ChatUiState(
             selection = ModelSelectionState(
-                selectedEndpoint = EndpointConstants.AGENTS,
+                choice = ModelChoice.Raw(EndpointConstants.AGENTS, null),
                 endpointConfigs = mapOf(EndpointConstants.AGENTS to EndpointConfig()),
             ),
             gates = FeatureGatesState(agentsEnabled = false),
@@ -141,8 +138,7 @@ class ChatUiStateSendReadyTest {
         // is the user's concern (pick a model), not the race guard's.
         val state = ChatUiState(
             selection = ModelSelectionState(
-                selectedEndpoint = anthropic,
-                selectedModel = null,
+                choice = ModelChoice.Raw(anthropic, null),
                 availableModels = mapOf(
                     "openAI" to listOf("gpt-4o"),
                     anthropic to emptyList(),

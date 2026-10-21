@@ -23,6 +23,7 @@ import com.garfiec.librechat.core.ui.theme.LibreChatTheme
 import com.garfiec.librechat.feature.chat.viewmodel.CompactNudge
 import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import com.garfiec.librechat.feature.chat.viewmodel.DuringRunSendTarget
+import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedTurnServerState
 
@@ -202,9 +203,7 @@ private val previewDispatch = EndpointDispatch(endpointType = null, key = null, 
 private val queuedRefused = QueuedMessage(
     localId = "refused",
     text = "And book the character breakfast for the second morning if it's still open",
-    endpoint = "openAI",
-    model = "gpt-5.1",
-    agentId = null,
+    choice = ModelChoice.Raw("openAI", "gpt-5.1"),
     dispatch = previewDispatch,
     server = QueuedTurnServerState(status = QueuedTurnServerState.Status.Rejected),
 )

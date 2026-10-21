@@ -89,7 +89,7 @@ class SendCompletionDelegate(
             // can keep it on screen during the resumed stream — the server doesn't persist the
             // request message until the reply completes. See NewChatSelectionHandoff.
             val optimisticUserMessage = sent.messages.lastOrNull { it.isCreatedByUser }
-            selectionHandoff.put(conversationId, sent.selectedEndpoint, sent.selectedModel, optimisticUserMessage, sent.selectedSpec)
+            selectionHandoff.put(conversationId, sent.selection.choice, optimisticUserMessage)
             val snapshot = handle.state
             if (snapshot.pendingNavigationConversationId == null && !snapshot.comparisonState.isEnabled) {
                 handle.update {

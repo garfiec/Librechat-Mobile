@@ -31,7 +31,7 @@ class ChatUiStateCompactNudgeTest {
         isCompacting: Boolean = false,
     ) = ChatUiState(
         conversation = ConversationMetaState(conversationId = "conv-1"),
-        selection = ModelSelectionState(selectedEndpoint = "openAI"),
+        selection = ModelSelectionState(choice = ModelChoice.Raw("openAI", null)),
         gates = FeatureGatesState(compactionEnabled = true, contextUsageEnabled = true),
         prefs = ChatPrefsState(
             contextBarPlacement = placement,

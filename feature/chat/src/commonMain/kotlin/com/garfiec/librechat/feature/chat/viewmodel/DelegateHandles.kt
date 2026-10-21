@@ -430,15 +430,13 @@ class SendDispatchHandle(root: ChatStateHandle) : DelegateHandle(root) {
 // ── QueueOrchestrationDelegate ────────────────────────────────────────────
 // Writes nothing on the queue slice: every row change goes through MessageQueueDelegate and
 // QueuedTurnDelegate. What it owns is the composer swap a queued edit makes — the text, a staged
-// batch, the edit session — and the five selection fields that swap carries, so `applyComposer`
+// batch, the edit session — and the four selection fields that swap carries, so `applyComposer`
 // stays one emission.
 class QueueOrchestrationWrites internal constructor(state: ChatUiState) {
     var inputText: String = state.composer.inputText
     var pendingUploadRouting: PendingUploadRouting? = state.composer.pendingUploadRouting
     var editingQueuedItem: QueuedEditSession? = state.composer.editingQueuedItem
-    var selectedEndpoint: String = state.selection.selectedEndpoint
-    var selectedModel: String? = state.selection.selectedModel
-    var selectedSpec: String? = state.selection.selectedSpec
+    var choice: ModelChoice = state.selection.choice
     var enabledTools: Set<String> = state.selection.enabledTools
     var selectedMcpServerNames: Set<String> = state.selection.selectedMcpServerNames
     var modelParameters: ModelParameters = state.selection.modelParameters
@@ -450,9 +448,7 @@ class QueueOrchestrationWrites internal constructor(state: ChatUiState) {
             editingQueuedItem = editingQueuedItem,
         ),
         selection = s.selection.copy(
-            selectedEndpoint = selectedEndpoint,
-            selectedModel = selectedModel,
-            selectedSpec = selectedSpec,
+            choice = choice,
             enabledTools = enabledTools,
             selectedMcpServerNames = selectedMcpServerNames,
             modelParameters = modelParameters,

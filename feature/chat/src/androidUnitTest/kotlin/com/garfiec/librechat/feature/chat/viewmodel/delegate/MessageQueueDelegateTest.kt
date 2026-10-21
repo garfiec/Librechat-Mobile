@@ -8,6 +8,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ComparisonState
 import com.garfiec.librechat.feature.chat.viewmodel.ComposerSnapshot
+import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.QueueHandle
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedEditSession
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
@@ -48,9 +49,7 @@ class MessageQueueDelegateTest {
     private fun spec(id: String, text: String = id, model: String? = "gpt-4") = QueuedMessage(
         localId = id,
         text = text,
-        endpoint = "openAI",
-        model = model,
-        agentId = null,
+        choice = ModelChoice.Raw("openAI", model),
         dispatch = EndpointDispatch(endpointType = null, key = null, modelDisplayLabel = null),
     )
 
@@ -88,7 +87,7 @@ class MessageQueueDelegateTest {
                 editingQueuedItem = QueuedEditSession(
                     original = original,
                     originalIndex = 0,
-                    stashed = ComposerSnapshot(text = "", endpoint = "openAI", model = null),
+                    stashed = ComposerSnapshot(text = "", choice = ModelChoice.Raw("openAI", null)),
                 ),
             ),
         )
@@ -530,7 +529,7 @@ class MessageQueueDelegateTest {
         delegate.enqueue(spec("a", model = "gpt-4"))
         // Mutate live state after queueing — must not retro-edit the queued snapshot.
         stateFlow.value = stateFlow.value.copy(
-            selection = stateFlow.value.selection.copy(selectedModel = "claude", selectedEndpoint = "anthropic"),
+            selection = stateFlow.value.selection.copy(choice = ModelChoice.Raw("anthropic", "claude")),
         )
 
         delegate.drainNext()

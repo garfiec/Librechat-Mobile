@@ -3,8 +3,10 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 import com.garfiec.librechat.core.model.Preset
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
+import com.garfiec.librechat.feature.chat.util.restore
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
+import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
 import com.garfiec.librechat.feature.chat.viewmodel.SendBlockReason
 import com.garfiec.librechat.feature.chat.viewmodel.SendReadinessHandle
@@ -29,8 +31,7 @@ class SendReadinessSpecTest {
     fun enforcedServerRefusesARawPickOnAnAddedEndpoint() {
         val reason = refusal(
             ModelSelectionState(
-                selectedEndpoint = "agents",
-                selectedModel = "agent_1",
+                choice = ModelChoice.Raw("agents", "agent_1"),
                 modelSpecs = ModelSpecs(list = listOf(spec), enforce = true, addedEndpoints = listOf("agents")),
             ),
         )
@@ -41,9 +42,7 @@ class SendReadinessSpecTest {
     fun enforcedServerAcceptsASpecSelection() {
         val reason = refusal(
             ModelSelectionState(
-                selectedEndpoint = "openAI",
-                selectedModel = "gpt-4.1",
-                selectedSpec = "fast",
+                choice = ModelChoice.restore("openAI", "gpt-4.1", "fast"),
                 modelSpecs = ModelSpecs(list = listOf(spec), enforce = true),
             ),
         )

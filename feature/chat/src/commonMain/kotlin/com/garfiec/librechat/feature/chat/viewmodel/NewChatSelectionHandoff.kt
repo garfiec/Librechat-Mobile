@@ -36,8 +36,7 @@ class NewChatSelectionHandoff {
 
     data class Selection(
         val conversationId: String,
-        val endpoint: String,
-        val model: String?,
+        val choice: ModelChoice,
         /**
          * The optimistic user message the landing VM minted and sent (its id is adopted by the
          * server, PR #139). Handed off because the server persists the request message only when
@@ -47,13 +46,12 @@ class NewChatSelectionHandoff {
          * resumed stream instead of vanishing until completion.
          */
         val optimisticUserMessage: Message? = null,
-        val spec: String? = null,
     )
 
     private var pending: Selection? = null
 
-    fun put(conversationId: String, endpoint: String, model: String?, optimisticUserMessage: Message? = null, spec: String? = null) {
-        pending = Selection(conversationId, endpoint, model, optimisticUserMessage, spec)
+    fun put(conversationId: String, choice: ModelChoice, optimisticUserMessage: Message? = null) {
+        pending = Selection(conversationId, choice, optimisticUserMessage)
     }
 
     /** Returns and clears the pending selection only when it was staged for [conversationId]. */

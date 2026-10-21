@@ -1,5 +1,6 @@
 package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
+import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.PromptRepository
@@ -9,6 +10,7 @@ import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.feature.chat.model.PresetDisplayData
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
+import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
 import com.garfiec.librechat.feature.chat.viewmodel.PresetPromptHandle
 import com.google.common.truth.Truth.assertThat
@@ -31,7 +33,7 @@ class PresetSpecLoadTest {
     private fun TestScope.loadPreset(
         preset: Preset,
         specs: ModelSpecs?,
-        state: ModelSelectionState = ModelSelectionState(selectedEndpoint = "anthropic", selectedModel = "claude-3"),
+        state: ModelSelectionState = ModelSelectionState(choice = ModelChoice.Raw("anthropic", "claude-3")),
     ): ModelSelectionState {
         val presetRepository = mockk<PresetRepository>()
         coEvery { presetRepository.getAll() } returns Result.Success(listOf(preset))
@@ -83,5 +85,16 @@ class PresetSpecLoadTest {
         val selection = loadPreset(preset, specs = null)
 
         assertThat(selection.selectedSpec).isEqualTo("fast")
+    }
+
+    @Test
+    fun `before the spec config loads a spec with no model to pair it with is raw`() = runTest {
+        val selection = loadPreset(
+            Preset(presetId = "p1", spec = "fast"),
+            specs = null,
+            state = ModelSelectionState(choice = ModelChoice.Raw(EndpointConstants.AGENTS, null)),
+        )
+
+        assertThat(selection.choice).isEqualTo(ModelChoice.Raw(EndpointConstants.AGENTS, null))
     }
 }

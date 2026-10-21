@@ -23,6 +23,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.ChatRequestBuilder
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationMetaState
+import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
 import com.garfiec.librechat.feature.chat.viewmodel.PendingActionHandle
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
@@ -51,17 +52,15 @@ class PendingActionDelegateTest {
 
     private fun pausedState() = ChatUiState(
         conversation = ConversationMetaState(conversationId = "conv-1"),
-        selection = ModelSelectionState(selectedEndpoint = "agents", selectedModel = "agent_abc"),
+        selection = ModelSelectionState(choice = ModelChoice.Raw("agents", "agent_abc")),
     )
 
     private val pinStore = ResumePinStore()
 
-    private fun queuedSpec(endpoint: String, model: String?, agentId: String?) = QueuedMessage(
+    private fun queuedSpec(endpoint: String, model: String?) = QueuedMessage(
         localId = "q-1",
         text = "hi",
-        endpoint = endpoint,
-        model = model,
-        agentId = agentId,
+        choice = ModelChoice.Raw(endpoint, model),
         dispatch = EndpointDispatch(endpointType = endpoint, key = null, modelDisplayLabel = null),
     )
 
@@ -550,7 +549,7 @@ class PendingActionDelegateTest {
             // The picker stays live while the card is up; switching agents mid-pause must not
             // change what we resume as, or the server 403s the fingerprint mismatch.
             flow.value = flow.value.copy(
-                selection = flow.value.selection.copy(selectedModel = "agent_other"),
+                selection = flow.value.selection.copy(choice = ModelChoice.Raw(flow.value.selection.selectedEndpoint, "agent_other")),
             )
             delegate.submitAnswer("yes")
 
@@ -571,14 +570,12 @@ class PendingActionDelegateTest {
                 QueuedMessage(
                     localId = "q-1",
                     text = "hi",
-                    endpoint = "agents",
-                    model = "agent_queued",
-                    agentId = "agent_queued",
+                    choice = ModelChoice.Raw("agents", "agent_queued"),
                     dispatch = EndpointDispatch(endpointType = "agents", key = null, modelDisplayLabel = null),
                 ),
             )
             flow.value = flow.value.copy(
-                selection = flow.value.selection.copy(selectedModel = "agent_other"),
+                selection = flow.value.selection.copy(choice = ModelChoice.Raw(flow.value.selection.selectedEndpoint, "agent_other")),
             )
             delegate.onPendingAction(toolApproval())
             delegate.submitAnswer("yes")
@@ -601,9 +598,7 @@ class PendingActionDelegateTest {
                 QueuedMessage(
                     localId = "q-1",
                     text = "hi",
-                    endpoint = "openAI",
-                    model = "gpt-4o",
-                    agentId = null,
+                    choice = ModelChoice.Raw("openAI", "gpt-4o"),
                     modelParamsPayload = buildJsonObject {
                         put("promptPrefix", "be terse")
                         put("temperature", 0.4)
@@ -626,8 +621,7 @@ class PendingActionDelegateTest {
             val state = ChatUiState(
                 conversation = ConversationMetaState(conversationId = "conv-1"),
                 selection = ModelSelectionState(
-                    selectedEndpoint = "openAI",
-                    selectedModel = "gpt-4o",
+                    choice = ModelChoice.Raw("openAI", "gpt-4o"),
                     modelParameters = ModelParameters.DEFAULT.copy(customInstructions = "answer in French"),
                 ),
             )
@@ -675,7 +669,7 @@ class PendingActionDelegateTest {
             // The ViewModel that started the run publishes its pin once the id is minted.
             val (starter, _) = delegateWith(this)
             starter.onTurnStarted(
-                queuedSpec(endpoint = "openAI", model = "gpt-4o", agentId = null),
+                queuedSpec(endpoint = "openAI", model = "gpt-4o"),
             )
             starter.onConversationIdResolved("conv-1")
 
@@ -684,7 +678,7 @@ class PendingActionDelegateTest {
                 this,
                 state = ChatUiState(
                     conversation = ConversationMetaState(conversationId = "conv-1"),
-                    selection = ModelSelectionState(selectedEndpoint = "agents", selectedModel = null),
+                    selection = ModelSelectionState(choice = ModelChoice.Raw("agents", null)),
                 ),
             )
             resumer.onPendingAction(toolApproval())

@@ -121,13 +121,15 @@ sealed interface SendBlockReason {
 data class ComposerSnapshot(
     val text: String,
     val attachments: List<AttachedFile> = emptyList(),
-    val endpoint: String,
-    val model: String?,
-    val modelSpec: String? = null,
+    val choice: ModelChoice,
     val enabledTools: Set<String> = emptySet(),
     val mcpServerNames: Set<String> = emptySet(),
     val modelParameters: ModelParameters = ModelParameters.DEFAULT,
-)
+) {
+    val endpoint: String get() = choice.endpoint
+    val model: String? get() = choice.model
+    val modelSpec: String? get() = choice.spec
+}
 
 /**
  * Active queued-edit session: the composer is loaded with [original]'s content + config for

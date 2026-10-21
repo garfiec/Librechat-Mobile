@@ -46,7 +46,7 @@ class ChatUiStateCompactionTest {
         leaf: Message? = reply(),
     ) = ChatUiState(
         conversation = ConversationMetaState(conversationId = conversationId),
-        selection = ModelSelectionState(selectedEndpoint = endpoint),
+        selection = ModelSelectionState(choice = ModelChoice.Raw(endpoint, null)),
         gates = FeatureGatesState(compactionEnabled = compactionEnabled),
         content = MessagesState(
             isStreaming = isStreaming,

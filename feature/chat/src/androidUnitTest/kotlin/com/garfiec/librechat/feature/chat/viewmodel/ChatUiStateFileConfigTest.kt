@@ -15,7 +15,7 @@ class ChatUiStateFileConfigTest {
         agentProvider: String? = null,
         providerScoped: Boolean = true,
     ) = ChatUiState(
-        selection = ModelSelectionState(selectedEndpoint = endpoint, selectedAgentProvider = agentProvider),
+        selection = ModelSelectionState(choice = ModelChoice.Raw(endpoint, null), selectedAgentProvider = agentProvider),
         account = AccountConfigState(fileUploadConfig = config),
         gates = FeatureGatesState(providerScopedUploadsSupported = providerScoped),
     )

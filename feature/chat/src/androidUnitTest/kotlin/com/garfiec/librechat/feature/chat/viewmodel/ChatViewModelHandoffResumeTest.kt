@@ -126,8 +126,7 @@ class ChatViewModelHandoffResumeTest {
         every { fixture.chatRepository.resumeStream(CONVERSATION_ID) } returns emptyFlow()
         fixture.selectionHandoff.put(
             conversationId = CONVERSATION_ID,
-            endpoint = ENDPOINT,
-            model = MODEL,
+            choice = ModelChoice.Raw(ENDPOINT, MODEL),
             // The id the client minted; the server persists the same message as "user-1".
             optimisticUserMessage = user.copy(messageId = "client-minted-1", conversationId = ""),
         )
@@ -161,7 +160,7 @@ class ChatViewModelHandoffResumeTest {
                 any(),
             )
         } returns flowOf(StreamEvent.ContentDelta(chunk = "Alpine meadows on "))
-        fixture.selectionHandoff.put(conversationId = CONVERSATION_ID, endpoint = ENDPOINT, model = MODEL)
+        fixture.selectionHandoff.put(conversationId = CONVERSATION_ID, choice = ModelChoice.Raw(ENDPOINT, MODEL))
         val vm = fixture.build(defaultDispatcher = testDispatcher, initialConversationId = CONVERSATION_ID)
         try {
             advanceUntilIdle()
@@ -230,7 +229,7 @@ class ChatViewModelHandoffResumeTest {
             emit(StreamEvent.ContentDelta(chunk = "Alpine meadows on "))
             socketClosed.await()
         }
-        fixture.selectionHandoff.put(conversationId = CONVERSATION_ID, endpoint = ENDPOINT, model = MODEL)
+        fixture.selectionHandoff.put(conversationId = CONVERSATION_ID, choice = ModelChoice.Raw(ENDPOINT, MODEL))
         val vm = fixture.build(defaultDispatcher = testDispatcher, initialConversationId = CONVERSATION_ID)
         try {
             advanceUntilIdle()

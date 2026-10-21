@@ -986,8 +986,7 @@ class ChatViewModelQueuedTurnTest {
         // to capture, so without it there is nothing for the assertions to be about.
         selectionHandoff.put(
             conversationId = CONVERSATION_ID,
-            endpoint = ENDPOINT,
-            model = AGENT_ID,
+            choice = ModelChoice.Raw(ENDPOINT, AGENT_ID),
             optimisticUserMessage = Message(
                 messageId = USER_MESSAGE_ID,
                 conversationId = CONVERSATION_ID,

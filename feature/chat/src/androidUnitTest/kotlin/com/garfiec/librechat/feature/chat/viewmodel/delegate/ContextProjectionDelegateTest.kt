@@ -16,6 +16,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.ContextUsageSource
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationMetaState
 import com.garfiec.librechat.feature.chat.viewmodel.FeatureGatesState
 import com.garfiec.librechat.feature.chat.viewmodel.MessagesState
+import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -97,8 +98,7 @@ class ContextProjectionDelegateTest {
         gates = FeatureGatesState(contextUsageEnabled = true),
         conversation = ConversationMetaState(conversationId = conversationId),
         selection = ModelSelectionState(
-            selectedEndpoint = "openai",
-            selectedModel = "gpt-4o",
+            choice = ModelChoice.Raw("openai", "gpt-4o"),
             modelParameters = ModelParameters.DEFAULT.copy(maxContextTokens = windowOverride),
         ),
         content = MessagesState(

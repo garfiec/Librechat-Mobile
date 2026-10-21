@@ -13,6 +13,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.ComparisonHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ComparisonState
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationMetaState
 import com.garfiec.librechat.feature.chat.viewmodel.MessagesState
+import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -106,7 +107,7 @@ class ComparisonModeDelegateTest {
 
     private fun landingWithPrimary() = ChatUiState(
         content = MessagesState(screenState = ChatScreenState.LANDING),
-        selection = ModelSelectionState(selectedEndpoint = "openAI", selectedModel = "gpt-5"),
+        selection = ModelSelectionState(choice = ModelChoice.Raw("openAI", "gpt-5")),
     )
 
     @Test

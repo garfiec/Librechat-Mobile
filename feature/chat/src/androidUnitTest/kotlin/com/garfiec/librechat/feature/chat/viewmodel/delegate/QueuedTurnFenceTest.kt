@@ -11,6 +11,7 @@ import com.garfiec.librechat.core.model.queuedturn.QueuedTurnReceiptSource
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnStatus
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
+import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.QueueHandle
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedTurnServerState
@@ -60,9 +61,7 @@ class QueuedTurnFenceTest {
     private fun legacyRow(id: String) = QueuedMessage(
         localId = id,
         text = id,
-        endpoint = "agents",
-        model = "agent_abc",
-        agentId = "agent_abc",
+        choice = ModelChoice.Raw("agents", "agent_abc"),
         dispatch = EndpointDispatch(endpointType = "agents", key = null, modelDisplayLabel = null),
     )
 

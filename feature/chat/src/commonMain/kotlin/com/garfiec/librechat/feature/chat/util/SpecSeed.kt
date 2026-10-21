@@ -4,6 +4,7 @@ import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
+import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 
 /**
  * The selection a server's model spec asks new chats to open on.
@@ -50,6 +51,16 @@ internal fun resolveDefaultModelSpec(specs: ModelSpecs?, modelSelect: Boolean, l
     return if (prioritized) specs.list.first().toSeed(prioritized = true) else null
 }
 
+internal fun SpecSeed.toChoice(): ModelChoice = ModelChoice.Spec(spec, endpoint, model)
+
+/**
+ * A stored selection (a conversation, preset, last-used pick or staged Compare pick) as a [ModelChoice]:
+ * a spec when it names one and has a model to pair it with, else raw. The spec is not checked
+ * against the config here; see [offeredOrUnchecked] and [withoutStale].
+ */
+internal fun ModelChoice.Companion.restore(endpoint: String, model: String?, spec: String?): ModelChoice =
+    if (spec != null && model != null) ModelChoice.Spec(spec, endpoint, model) else ModelChoice.Raw(endpoint, model)
+
 internal fun ModelSpec.toSeed(prioritized: Boolean = false): SpecSeed? {
     if (name.isBlank()) return null
     val preset = preset ?: return null
@@ -89,17 +100,33 @@ internal fun String?.offeredOn(endpoint: String, model: String, specs: ModelSpec
     }
 
 /**
- * [offeredOn], or the name unchanged while there is nothing to check it against ([checkable] false:
- * the spec config has not loaded). The seeder re-checks it when the config arrives.
+ * The selection for this stored spec name on [endpoint] and [model]: the spec while
+ * [offeredOn] holds, or unchecked while there is nothing to check it against ([checkable] false:
+ * the spec config has not loaded; the seeder re-checks it when the config arrives). Else raw.
  */
 internal fun String?.offeredOrUnchecked(
     endpoint: String,
     model: String?,
     specs: ModelSpecs?,
     checkable: Boolean,
-): String? {
-    if (this == null || !checkable) return this
-    return model?.let { offeredOn(endpoint, it, specs) }
+): ModelChoice {
+    val spec = if (checkable) model?.let { offeredOn(endpoint, it, specs) } else this
+    return ModelChoice.restore(endpoint, model, spec)
+}
+
+/** This choice without a spec [specs] no longer offers on its pair. */
+internal fun ModelChoice.withoutStale(specs: ModelSpecs?): ModelChoice =
+    if (this is ModelChoice.Spec && name.offeredOn(endpoint, model, specs) == null) ModelChoice.Raw(endpoint, model) else this
+
+/**
+ * This raw choice as the one spec [uniqueSpecFor] finds for it, while it still holds the [tier0]
+ * raw pair an entry point asked for and [specs] are enforced.
+ */
+internal fun ModelChoice.inferredFor(tier0: Pair<String, String>?, specs: ModelSpecs?): ModelChoice {
+    val (endpoint, model) = tier0 ?: return this
+    if (this !is ModelChoice.Raw || this.endpoint != endpoint || this.model != model) return this
+    if (!specs.requiresSpec) return this
+    return ModelChoice.restore(endpoint, model, specs.uniqueSpecFor(endpoint, model))
 }
 
 /**

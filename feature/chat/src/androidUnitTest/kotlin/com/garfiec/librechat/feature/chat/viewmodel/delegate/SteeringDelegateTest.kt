@@ -13,6 +13,7 @@ import com.garfiec.librechat.core.model.steer.SteerRejectionCodes
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationMetaState
+import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
 import com.garfiec.librechat.feature.chat.viewmodel.SteerChipStatus
 import com.garfiec.librechat.feature.chat.viewmodel.SteeringHandle
@@ -53,9 +54,7 @@ class SteeringDelegateTest {
     private fun spec(text: String) = QueuedMessage(
         localId = "spec-$text",
         text = text,
-        endpoint = "agents",
-        model = "agent_abc",
-        agentId = "agent_abc",
+        choice = ModelChoice.Raw("agents", "agent_abc"),
         dispatch = EndpointDispatch(endpointType = "agents", key = null, modelDisplayLabel = null),
     )
 
@@ -480,7 +479,7 @@ class SteeringDelegateTest {
                 handle = SteeringHandle(ChatStateHandle(flow, this)),
                 chatRepository = chatRepository,
                 // A rebuilt spec is distinguishable from the one minted at send time.
-                buildFollowUp = { text -> spec(text).copy(model = "model-at-failure-time") },
+                buildFollowUp = { text -> spec(text).copy(choice = ModelChoice.Raw("agents", "model-at-failure-time")) },
                 enqueueFollowUp = { enqueued += it },
                 enqueueParked = { enqueued += it },
                 pauseQueue = { queuePaused = true },
@@ -490,7 +489,7 @@ class SteeringDelegateTest {
                 restageQuotes = { restaged += it },
             )
 
-            delegate.steer("conv-1", spec("be brief").copy(model = "model-at-send-time"))
+            delegate.steer("conv-1", spec("be brief").copy(choice = ModelChoice.Raw("agents", "model-at-send-time")))
             // The app is backgrounded and foregrounded: resumeStream opens a new session…
             delegate.clear()
             assertThat(flow.value.pendingSteers).isEmpty()

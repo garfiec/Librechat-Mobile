@@ -31,9 +31,8 @@ class ChatRequestBuilderModelParamsTest {
 
     private fun agentState(params: ModelParameters) = ChatUiState(
         selection = ModelSelectionState(
-            selectedEndpoint = "agents",
             // What the endpoint really holds here: the agent id, not a model name.
-            selectedModel = anthropicAgent.id,
+            choice = ModelChoice.Raw("agents", anthropicAgent.id),
             agents = listOf(anthropicAgent),
             modelParameters = params,
         ),

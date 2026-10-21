@@ -100,8 +100,7 @@ class ChatViewModelContextProjectionInitTest {
         // message tail (both required for the projection to reach the agents-branch map lookup).
         selectionHandoff.put(
             conversationId = conversationId,
-            endpoint = EndpointConstants.AGENTS,
-            model = agentId,
+            choice = ModelChoice.Raw(EndpointConstants.AGENTS, agentId),
             optimisticUserMessage = Message(
                 messageId = "user-msg-1",
                 conversationId = conversationId,

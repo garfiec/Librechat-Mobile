@@ -85,15 +85,11 @@ class SendDispatchDelegate(
         }
         if (text.isBlank() && files.isEmpty()) return null
         val state = handle.state
-        val isAgent = state.selectedEndpoint == EndpointConstants.AGENTS
         return QueuedMessage(
             localId = Uuid.random().toString(),
             text = text,
             attachments = files,
-            endpoint = state.selectedEndpoint,
-            model = state.selectedModel,
-            modelSpec = state.selectedSpec,
-            agentId = if (isAgent) state.selectedModel else null,
+            choice = state.selection.choice,
             enabledTools = state.enabledTools,
             mcpServerNames = state.selectedMcpServerNames,
             modelParameters = state.modelParameters,
@@ -211,8 +207,9 @@ class SendDispatchDelegate(
         // ranking behind home-screen shortcuts. Fires on every dispatched send (live or a drained
         // queue item, since both land here). Agents are excluded: their selection is an opaque
         // agentId, which would surface as an unreadable shortcut label.
-        if (spec.endpoint != EndpointConstants.AGENTS && !spec.model.isNullOrBlank()) {
-            handle.scope.launch { settingsDataStore.incrementModelUsage(spec.endpoint, spec.model) }
+        val usedModel = spec.model
+        if (spec.endpoint != EndpointConstants.AGENTS && !usedModel.isNullOrBlank()) {
+            handle.scope.launch { settingsDataStore.incrementModelUsage(spec.endpoint, usedModel) }
         }
 
         val conversationId = handle.state.conversationId
@@ -252,7 +249,6 @@ class SendDispatchDelegate(
         }
         beginStreaming(optimisticMessage.messageId, spec)
 
-        val isAgent = spec.endpoint == EndpointConstants.AGENTS
         Logger.d {
             "sendMessage: webSearch=${spec.modelParameters.webSearch}, " +
                 "endpoint=${spec.endpoint}, " +
@@ -266,7 +262,7 @@ class SendDispatchDelegate(
         // middleware creates ephemeral agents for non-agent endpoints, so no
         // swapping is needed. Just keep the primary's original endpoint.
         val effectiveEndpoint = spec.endpoint
-        val effectiveAgentId = if (isAgent) spec.agentId else null
+        val effectiveAgentId = spec.agentId
         onComparisonSendStart()
 
         val effectiveAddedConvo = buildAddedConvo(lastMessageId)

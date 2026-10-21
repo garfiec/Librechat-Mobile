@@ -14,13 +14,16 @@ import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
  * model-selector sheet's open state. Written by [ChatViewModel], ModelSelectionDelegate,
  * PresetPromptDelegate, EndpointKeyStatusDelegate and QueueOrchestrationDelegate (the composer
  * swap around a queued edit).
+ *
+ * [choice] is written whole: through ModelSelectionDelegate's `applySelection`, or, where it must
+ * land in the same emission as another field, by the preset load, the composer swap and the
+ * seeder's spec-config update. ChatViewModel's reset carries the current one over unchanged.
+ * Nothing stops another `copy(choice = …)`; keep it to those.
  */
 @Immutable
 data class ModelSelectionState(
-    val selectedModel: String? = null,
-    val selectedSpec: String? = null,
+    val choice: ModelChoice = ModelChoice.Raw(EndpointConstants.AGENTS, null),
     val modelSpecs: ModelSpecs? = null,
-    val selectedEndpoint: String = EndpointConstants.AGENTS,
     val endpointConfigs: Map<String, EndpointConfig> = emptyMap(),
     /**
      * Per-endpoint user-provided-key state for endpoints with `userProvide=true`
@@ -66,4 +69,8 @@ data class ModelSelectionState(
     val extendedEffortSupported: Boolean = false,
     /** Whether thinkingDisplay `updates` may be offered (v0.8.8); see `EndpointParameterRegistry.getDefinitions`. */
     val thinkingDisplayUpdatesSupported: Boolean = false,
-)
+) {
+    val selectedEndpoint: String get() = choice.endpoint
+    val selectedModel: String? get() = choice.model
+    val selectedSpec: String? get() = choice.spec
+}

@@ -94,7 +94,7 @@ class ChatViewModelCompareSetupQueueTest {
                 any(), any(), any(), any(),
             )
         } returns MutableSharedFlow()
-        fixture.selectionHandoff.put(conversationId = CONVERSATION_ID, endpoint = ENDPOINT, model = MODEL)
+        fixture.selectionHandoff.put(conversationId = CONVERSATION_ID, choice = ModelChoice.Raw(ENDPOINT, MODEL))
         val vm = fixture.build(defaultDispatcher = testDispatcher, initialConversationId = CONVERSATION_ID)
         runCurrent()
         try {
@@ -128,7 +128,7 @@ class ChatViewModelCompareSetupQueueTest {
                 any(), any(), any(), any(),
             )
         } returns MutableSharedFlow()
-        fixture.selectionHandoff.put(conversationId = CONVERSATION_ID, endpoint = ENDPOINT, model = MODEL)
+        fixture.selectionHandoff.put(conversationId = CONVERSATION_ID, choice = ModelChoice.Raw(ENDPOINT, MODEL))
         val vm = fixture.build(defaultDispatcher = testDispatcher, initialConversationId = CONVERSATION_ID)
         runCurrent()
         try {

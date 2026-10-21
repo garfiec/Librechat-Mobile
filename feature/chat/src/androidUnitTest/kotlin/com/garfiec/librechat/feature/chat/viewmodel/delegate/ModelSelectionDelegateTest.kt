@@ -20,6 +20,7 @@ import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationMetaState
+import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
 import com.google.common.truth.Truth.assertThat
@@ -116,8 +117,7 @@ class ModelSelectionDelegateTest {
         conversation = ConversationMetaState(conversationId = conversationId),
         error = error,
         selection = ModelSelectionState(
-            selectedEndpoint = selectedEndpoint,
-            selectedModel = selectedModel,
+            choice = ModelChoice.Raw(selectedEndpoint, selectedModel),
             agents = agents,
         ),
     )
@@ -194,8 +194,7 @@ class ModelSelectionDelegateTest {
         )
         val delegate = newDelegate(handle)
         delegate.conversationModelLoaded = true
-        delegate.cachedLastUsedEndpoint = "anthropic"
-        delegate.cachedLastUsedModel = "claude-3"
+        delegate.cachedLastUsed = LastUsedSelection("anthropic", "claude-3", spec = null)
         availableModels.value = mapOf("openAI" to listOf("gpt-4o"), "anthropic" to listOf("claude-3"))
         // The selection's endpoint is gone from the config; the others are live.
         endpointConfigs.value = availableModels.value.keys.associateWith { EndpointConfig() }
@@ -218,8 +217,7 @@ class ModelSelectionDelegateTest {
         )
         val delegate = newDelegate(handle)
         delegate.conversationModelLoaded = true
-        delegate.cachedLastUsedEndpoint = "openAI"
-        delegate.cachedLastUsedModel = "gpt-4o"
+        delegate.cachedLastUsed = LastUsedSelection("openAI", "gpt-4o", spec = null)
         availableModels.value = linkedMapOf("openAI" to listOf("gpt-4o"), "xAI" to listOf("grok-4"))
         endpointConfigs.value = mapOf("openAI" to EndpointConfig(), "xAI" to EndpointConfig())
 
@@ -327,8 +325,7 @@ class ModelSelectionDelegateTest {
         val delegate = newDelegate(handle)
         delegate.conversationModelLoaded = true
         delegate.agentsLoaded.value = true
-        delegate.cachedLastUsedEndpoint = EndpointConstants.AGENTS
-        delegate.cachedLastUsedModel = "agent_1"
+        delegate.cachedLastUsed = LastUsedSelection(EndpointConstants.AGENTS, "agent_1", spec = null)
         availableModels.value = emptyMap()
         endpointConfigs.value = mapOf(EndpointConstants.AGENTS to EndpointConfig())
 
@@ -413,7 +410,7 @@ class ModelSelectionDelegateTest {
     @Test
     fun refilterFallbackDoesNotPersistLastUsed() = runTest {
         // Locks PR #108's removal of fallback persistence — refilter must never
-        // write last-used. Only an explicit onModelSelected may.
+        // write last-used. Only an explicit onChoiceSelected may.
         val scope = TestScope(StandardTestDispatcher(testScheduler))
         val handle = newHandle(
             scope,
@@ -458,8 +455,7 @@ class ModelSelectionDelegateTest {
         val handle = newHandle(scope, uiState(selectedEndpoint = "openAI", selectedModel = "ghost"))
         val delegate = newDelegate(handle)
         delegate.conversationModelLoaded = true // even so, new-chat path must not fallback
-        delegate.cachedLastUsedEndpoint = "anthropic"
-        delegate.cachedLastUsedModel = "claude-3"
+        delegate.cachedLastUsed = LastUsedSelection("anthropic", "claude-3", spec = null)
         availableModels.value = mapOf("openAI" to listOf("gpt-4o"), "anthropic" to listOf("claude-3"))
 
         delegate.refilterModels(isNewConversation = true)
@@ -873,7 +869,7 @@ class ModelSelectionDelegateTest {
         handle.update {
             copy(
                 conversation = conversation.copy(conversationId = "conv_new"),
-                selection = selection.copy(selectedEndpoint = "anthropic", selectedModel = "claude-3"),
+                selection = selection.copy(choice = ModelChoice.Raw("anthropic", "claude-3")),
             )
         }
         advanceUntilIdle()
@@ -985,7 +981,7 @@ class ModelSelectionDelegateTest {
     @Test
     fun seedExistingConversationCachesLastUsedForFallback() = runTest {
         // The seeder's collector runs for existing conversations too — only to keep
-        // cachedLastUsed* fresh for refilterModels' corrective fallback. It must not
+        // cachedLastUsed fresh for refilterModels' corrective fallback. It must not
         // touch the selection (loadConversationModel owns that), but must populate the
         // cache the old eager read used to fill for every conversation.
         val scope = TestScope(StandardTestDispatcher(testScheduler))
@@ -1004,25 +1000,25 @@ class ModelSelectionDelegateTest {
 
         assertThat(handle.state.selectedEndpoint).isEqualTo("anthropic")
         assertThat(handle.state.selectedModel).isEqualTo("claude-3")
-        assertThat(delegate.cachedLastUsedEndpoint).isEqualTo("openAI")
-        assertThat(delegate.cachedLastUsedModel).isEqualTo("gpt-4o")
+        assertThat(delegate.cachedLastUsed?.endpoint).isEqualTo("openAI")
+        assertThat(delegate.cachedLastUsed?.model).isEqualTo("gpt-4o")
     }
 
-    // ── Group D: onModelSelected (the one legitimate writer) ─────────────────
+    // ── Group D: onChoiceSelected (the one legitimate writer) ─────────────────
 
     @Test
-    fun onModelSelectedUpdatesStatePersistsAndSyncsCache() = runTest {
+    fun onChoiceSelectedUpdatesStatePersistsAndSyncsCache() = runTest {
         val scope = TestScope(StandardTestDispatcher(testScheduler))
         val handle = newHandle(scope)
         val delegate = newDelegate(handle)
 
-        delegate.onModelSelected("anthropic", "claude-3")
+        delegate.onChoiceSelected(ModelChoice.Raw("anthropic", "claude-3"))
         advanceUntilIdle()
 
         assertThat(handle.state.selectedEndpoint).isEqualTo("anthropic")
         assertThat(handle.state.selectedModel).isEqualTo("claude-3")
-        assertThat(delegate.cachedLastUsedEndpoint).isEqualTo("anthropic")
-        assertThat(delegate.cachedLastUsedModel).isEqualTo("claude-3")
+        assertThat(delegate.cachedLastUsed?.endpoint).isEqualTo("anthropic")
+        assertThat(delegate.cachedLastUsed?.model).isEqualTo("claude-3")
         coVerify(exactly = 1) { settingsDataStore.setLastUsedModel("anthropic", "claude-3") }
     }
 
@@ -1204,8 +1200,7 @@ class ModelSelectionDelegateTest {
         val delegate = newDelegate(handle)
         delegate.conversationModelLoaded = true
         delegate.agentsLoaded.value = true
-        delegate.cachedLastUsedEndpoint = EndpointConstants.AGENTS
-        delegate.cachedLastUsedModel = "agent_1"
+        delegate.cachedLastUsed = LastUsedSelection(EndpointConstants.AGENTS, "agent_1", spec = null)
         availableModels.value = mapOf("openAI" to listOf("gpt-4o"))
         // The selection's endpoint is gone from the config; the others are live.
         endpointConfigs.value = availableModels.value.keys.associateWith { EndpointConfig() }
@@ -1232,8 +1227,7 @@ class ModelSelectionDelegateTest {
         val delegate = newDelegate(handle)
         delegate.conversationModelLoaded = true
         delegate.agentsLoaded.value = true
-        delegate.cachedLastUsedEndpoint = EndpointConstants.AGENTS
-        delegate.cachedLastUsedModel = "agent_missing" // not in the loaded list
+        delegate.cachedLastUsed = LastUsedSelection(EndpointConstants.AGENTS, "agent_missing", spec = null) // not in the loaded list
         availableModels.value = mapOf("openAI" to listOf("gpt-4o"))
         // The selection's endpoint is gone from the config; the others are live.
         endpointConfigs.value = availableModels.value.keys.associateWith { EndpointConfig() }
@@ -1256,8 +1250,7 @@ class ModelSelectionDelegateTest {
         )
         val delegate = newDelegate(handle)
         delegate.conversationModelLoaded = true
-        delegate.cachedLastUsedEndpoint = EndpointConstants.AGENTS
-        delegate.cachedLastUsedModel = "agent_1"
+        delegate.cachedLastUsed = LastUsedSelection(EndpointConstants.AGENTS, "agent_1", spec = null)
         availableModels.value = mapOf("openAI" to listOf("gpt-4o"))
         // The selection's endpoint is gone from the config; the others are live.
         endpointConfigs.value = availableModels.value.keys.associateWith { EndpointConfig() }
@@ -1309,7 +1302,7 @@ class ModelSelectionDelegateTest {
         advanceUntilIdle()
         assertThat(handle.state.selectedAgentProvider).isEqualTo("anthropic")
 
-        handle.update { copy(selection = selection.copy(selectedModel = "agent_2")) }
+        handle.update { copy(selection = selection.copy(choice = ModelChoice.Raw(selection.selectedEndpoint, "agent_2"))) }
         advanceUntilIdle()
 
         // The previous agent's provider must not linger over the new selection: routing an
@@ -1330,9 +1323,9 @@ class ModelSelectionDelegateTest {
 
         delegate.observeSelectedAgentProvider()
         advanceUntilIdle()
-        handle.update { copy(selection = selection.copy(selectedModel = "agent_2")) }
+        handle.update { copy(selection = selection.copy(choice = ModelChoice.Raw(selection.selectedEndpoint, "agent_2"))) }
         advanceUntilIdle()
-        handle.update { copy(selection = selection.copy(selectedModel = "agent_1")) }
+        handle.update { copy(selection = selection.copy(choice = ModelChoice.Raw(selection.selectedEndpoint, "agent_1"))) }
         advanceUntilIdle()
 
         assertThat(handle.state.selectedAgentProvider).isEqualTo("anthropic")
@@ -1350,7 +1343,7 @@ class ModelSelectionDelegateTest {
         advanceUntilIdle()
 
         handle.update {
-            copy(selection = selection.copy(selectedEndpoint = "openAI", selectedModel = "gpt-4o"))
+            copy(selection = selection.copy(choice = ModelChoice.Raw("openAI", "gpt-4o")))
         }
         advanceUntilIdle()
 
@@ -1566,7 +1559,7 @@ class ModelSelectionDelegateTest {
         advanceUntilIdle()
 
         // The user picks a model on the landing (the DataStore write echoes back as last-used).
-        delegate.onModelSelected("openAI", "gpt-4.1")
+        delegate.onChoiceSelected(ModelChoice.Raw("openAI", "gpt-4.1"))
         lastUsedModel.value = "gpt-4.1"
         advanceUntilIdle()
         assertThat(handle.state.selectedEndpoint).isEqualTo("openAI")
@@ -1720,7 +1713,7 @@ class ModelSelectionDelegateTest {
         delegate.onSpecSelected(first.copy(name = "second"))
         assertThat(handle.state.selectedModel).isEqualTo("same")
         assertThat(handle.state.selectedSpec).isEqualTo("second")
-        delegate.onModelSelected("custom", "same")
+        delegate.onChoiceSelected(ModelChoice.Raw("custom", "same"))
         assertThat(handle.state.selectedSpec).isNull()
     }
 
@@ -1747,12 +1740,12 @@ class ModelSelectionDelegateTest {
         delegate.onSpecSelected(modelSpec("fast", "gpt-4.1"))
         advanceUntilIdle()
         coVerify(exactly = 1) { settingsDataStore.setLastUsedModel("openAI", "gpt-4.1", "fast") }
-        assertThat(delegate.cachedLastUsedSpec).isEqualTo("fast")
+        assertThat(delegate.cachedLastUsed?.spec).isEqualTo("fast")
 
-        delegate.onModelSelected("openAI", "gpt-4o")
+        delegate.onChoiceSelected(ModelChoice.Raw("openAI", "gpt-4o"))
         advanceUntilIdle()
         coVerify(exactly = 1) { settingsDataStore.setLastUsedModel("openAI", "gpt-4o", null) }
-        assertThat(delegate.cachedLastUsedSpec).isNull()
+        assertThat(delegate.cachedLastUsed?.spec).isNull()
     }
 
     @Test

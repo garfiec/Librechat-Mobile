@@ -90,8 +90,7 @@ class ChatViewModelMessageLoadFailureTest {
         coEvery { messageRepository.getMessages(any()) } returns Result.Error(message = "boom")
         selectionHandoff.put(
             conversationId = "conv-1",
-            endpoint = "openAI",
-            model = "gpt-4",
+            choice = ModelChoice.Raw("openAI", "gpt-4"),
             optimisticUserMessage = Message(
                 messageId = "user-msg-1",
                 conversationId = "conv-1",

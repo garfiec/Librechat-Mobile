@@ -118,6 +118,18 @@ carries over. That is web parity. A setting to prefer the user's own model over 
 is a possible follow-up (#552). It would be a mobile addition (web has none), so it belongs in
 Settings, not in the resolver.
 
+**The selection is one value, `ModelChoice`: `Raw(endpoint, model)` or `Spec(name, endpoint,
+model)`.** Write it whole, through `ModelSelectionDelegate.applySelection`; the preset load, the
+queued-edit composer swap and the seeder's spec-config update write it in the same emission as
+another field instead. Build a `Spec` from the server's config (`SpecSeed.toChoice`) or, for a
+stored value, `ModelChoice.restore`. A conversation or preset loaded before the spec config keeps
+its spec unchecked until the seeder holds it against the config, so the type does not prove a
+`Spec` is still offered on its pair. The chat selection, queued turns, composer snapshots and the
+new-chat handoff hold a `ModelChoice`; don't give them a separate spec field again. Compare's staged
+picks (`ComparisonState`'s second lane, `ComparisonPick`, `CompareSetupPick`) and `LastUsedSelection`
+(`:core:data`) still keep separate fields and convert at the boundary; the paused-run pin
+(`ResumeTurnPin`) records what was sent and stays as it is.
+
 **The spec name travels with the selection and is sent as `spec`.** Named specs are separate picker
 rows even when they share a model, and a raw pick clears the name. Nothing infers a spec from a
 model match, with one exception: under `enforce`, a Tier-0 entry point (an agent card, a model

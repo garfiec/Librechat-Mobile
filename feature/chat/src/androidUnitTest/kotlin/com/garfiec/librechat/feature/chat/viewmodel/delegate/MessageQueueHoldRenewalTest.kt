@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.data.endpoint.EndpointDispatch
 import com.garfiec.librechat.feature.chat.components.AttachedFile
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
+import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.QueueHandle
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
 import com.google.common.truth.Truth.assertThat
@@ -85,9 +86,7 @@ class MessageQueueHoldRenewalTest {
     private fun spec(id: String, vararg fileIds: String) = QueuedMessage(
         localId = id,
         text = id,
-        endpoint = "openAI",
-        model = "gpt-4",
-        agentId = null,
+        choice = ModelChoice.Raw("openAI", "gpt-4"),
         dispatch = EndpointDispatch(endpointType = null, key = null, modelDisplayLabel = null),
         attachments = fileIds.map { AttachedFile(uri = it, name = it, fileId = it) },
     )

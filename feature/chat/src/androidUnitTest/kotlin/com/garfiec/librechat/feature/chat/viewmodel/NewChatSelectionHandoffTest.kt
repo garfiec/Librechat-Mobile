@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
 import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.feature.chat.util.restore
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
@@ -9,11 +10,11 @@ class NewChatSelectionHandoffTest {
     @Test
     fun takeWithMatchingIdReturnsAndClears() {
         val handoff = NewChatSelectionHandoff()
-        handoff.put("conv_1", "openAI", "gpt-4o")
+        handoff.put("conv_1", ModelChoice.Raw("openAI", "gpt-4o"))
 
         val taken = handoff.take("conv_1")
         assertThat(taken).isEqualTo(
-            NewChatSelectionHandoff.Selection("conv_1", "openAI", "gpt-4o"),
+            NewChatSelectionHandoff.Selection("conv_1", ModelChoice.Raw("openAI", "gpt-4o")),
         )
         // Single-slot: a second take of the same id is empty (already consumed).
         assertThat(handoff.take("conv_1")).isNull()
@@ -22,12 +23,12 @@ class NewChatSelectionHandoffTest {
     @Test
     fun takeWithMismatchedIdReturnsNullAndKeepsEntry() {
         val handoff = NewChatSelectionHandoff()
-        handoff.put("conv_1", "agents", "agent_X")
+        handoff.put("conv_1", ModelChoice.Raw("agents", "agent_X"))
 
         assertThat(handoff.take("other")).isNull()
         // The staged entry survives a mismatched take and is still retrievable.
         assertThat(handoff.take("conv_1")).isEqualTo(
-            NewChatSelectionHandoff.Selection("conv_1", "agents", "agent_X"),
+            NewChatSelectionHandoff.Selection("conv_1", ModelChoice.Raw("agents", "agent_X")),
         )
     }
 
@@ -39,23 +40,23 @@ class NewChatSelectionHandoffTest {
     @Test
     fun putOverwritesPreviousSingleSlot() {
         val handoff = NewChatSelectionHandoff()
-        handoff.put("conv_1", "openAI", "gpt-4o")
-        handoff.put("conv_2", "anthropic", "claude-3")
+        handoff.put("conv_1", ModelChoice.Raw("openAI", "gpt-4o"))
+        handoff.put("conv_2", ModelChoice.Raw("anthropic", "claude-3"))
 
         // Only the latest staged transition is retained.
         assertThat(handoff.take("conv_1")).isNull()
         assertThat(handoff.take("conv_2")).isEqualTo(
-            NewChatSelectionHandoff.Selection("conv_2", "anthropic", "claude-3"),
+            NewChatSelectionHandoff.Selection("conv_2", ModelChoice.Raw("anthropic", "claude-3")),
         )
     }
 
     @Test
     fun nullModelIsCarriedThrough() {
         val handoff = NewChatSelectionHandoff()
-        handoff.put("conv_1", "agents", null)
+        handoff.put("conv_1", ModelChoice.Raw("agents", null))
 
         assertThat(handoff.take("conv_1")).isEqualTo(
-            NewChatSelectionHandoff.Selection("conv_1", "agents", null),
+            NewChatSelectionHandoff.Selection("conv_1", ModelChoice.Raw("agents", null)),
         )
     }
 
@@ -68,17 +69,17 @@ class NewChatSelectionHandoffTest {
             text = "hello",
             isCreatedByUser = true,
         )
-        handoff.put("conv_1", "openAI", "gpt-4o", optimistic)
+        handoff.put("conv_1", ModelChoice.Raw("openAI", "gpt-4o"), optimistic)
 
         assertThat(handoff.take("conv_1")).isEqualTo(
-            NewChatSelectionHandoff.Selection("conv_1", "openAI", "gpt-4o", optimistic),
+            NewChatSelectionHandoff.Selection("conv_1", ModelChoice.Raw("openAI", "gpt-4o"), optimistic),
         )
     }
 
     @Test
     fun namedSpecSurvivesNavigationHandoff() {
         val handoff = NewChatSelectionHandoff()
-        handoff.put("conversation", "custom", "shared-model", spec = "curated-spec")
-        assertThat(handoff.take("conversation")?.spec).isEqualTo("curated-spec")
+        handoff.put("conversation", ModelChoice.restore("custom", "shared-model", "curated-spec"))
+        assertThat(handoff.take("conversation")?.choice?.spec).isEqualTo("curated-spec")
     }
 }

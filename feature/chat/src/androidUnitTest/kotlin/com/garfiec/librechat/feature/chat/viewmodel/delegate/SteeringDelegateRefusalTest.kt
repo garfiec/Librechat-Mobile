@@ -9,6 +9,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationMetaState
+import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
 import com.garfiec.librechat.feature.chat.viewmodel.SteeringHandle
 import com.google.common.truth.Truth.assertThat
@@ -38,9 +39,7 @@ class SteeringDelegateRefusalTest {
     private fun spec(text: String) = QueuedMessage(
         localId = "spec-$text",
         text = text,
-        endpoint = "agents",
-        model = "agent_abc",
-        agentId = "agent_abc",
+        choice = ModelChoice.Raw("agents", "agent_abc"),
         dispatch = EndpointDispatch(endpointType = "agents", key = null, modelDisplayLabel = null),
     )
 

@@ -135,7 +135,7 @@ class ChatViewModelFailedTurnRestoreTest {
                 any(),
             )
         } returns stream
-        conversationId?.let { fixture.selectionHandoff.put(conversationId = it, endpoint = ENDPOINT, model = MODEL) }
+        conversationId?.let { fixture.selectionHandoff.put(conversationId = it, choice = ModelChoice.Raw(ENDPOINT, MODEL)) }
         val vm = fixture.build(
             defaultDispatcher = testDispatcher,
             initialConversationId = conversationId,

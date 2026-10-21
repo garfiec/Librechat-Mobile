@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.model.usage.TokenBudgetBreakdown
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ContextUsageSource
+import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
 import com.garfiec.librechat.feature.chat.viewmodel.StreamingHandle
 import com.google.common.truth.Truth.assertThat
@@ -38,7 +39,7 @@ class LiveReplyContextUsageTest {
     @Test
     fun `a live reading is stamped live and records the overhead under the event's agent`() = runTest {
         val flow = MutableStateFlow(
-            ChatUiState(selection = ModelSelectionState(selectedEndpoint = "agents", selectedModel = "agent_primary")),
+            ChatUiState(selection = ModelSelectionState(choice = ModelChoice.Raw("agents", "agent_primary"))),
         )
         val live = delegate(flow, backgroundScope)
 
@@ -54,7 +55,7 @@ class LiveReplyContextUsageTest {
     @Test
     fun `a reading without an agent keys by endpoint and model`() = runTest {
         val flow = MutableStateFlow(
-            ChatUiState(selection = ModelSelectionState(selectedEndpoint = "openAI", selectedModel = "gpt-4o")),
+            ChatUiState(selection = ModelSelectionState(choice = ModelChoice.Raw("openAI", "gpt-4o"))),
         )
 
         delegate(flow, backgroundScope).apply(StreamEvent.ContextUsageUpdate(reading(null, instructions = 900)))

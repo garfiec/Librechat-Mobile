@@ -5,6 +5,7 @@ import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.common.network.ConnectivityObserver
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.datastore.LastUsedSelection
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
@@ -22,12 +23,15 @@ import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.util.SpecSeed
+import com.garfiec.librechat.feature.chat.util.inferredFor
 import com.garfiec.librechat.feature.chat.util.offeredOn
 import com.garfiec.librechat.feature.chat.util.offeredOrUnchecked
-import com.garfiec.librechat.feature.chat.util.requiresSpec
 import com.garfiec.librechat.feature.chat.util.resolveDefaultModelSpec
+import com.garfiec.librechat.feature.chat.util.restore
+import com.garfiec.librechat.feature.chat.util.toChoice
 import com.garfiec.librechat.feature.chat.util.toSeed
-import com.garfiec.librechat.feature.chat.util.uniqueSpecFor
+import com.garfiec.librechat.feature.chat.util.withoutStale
+import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
 import kotlinx.coroutines.Job
@@ -89,13 +93,11 @@ class ModelSelectionDelegate(
         }
 
     /**
-     * Cached last-used endpoint/model from DataStore, kept in sync by
-     * [seedInitialSelection]. Used by [refilterModels]' existing-conversation
-     * fallback. Null until the first DataStore emission.
+     * Cached last-used selection from DataStore, kept in sync by [seedInitialSelection]. Used by
+     * [refilterModels]' existing-conversation fallback, which re-checks its spec. Null until the
+     * first DataStore emission.
      */
-    var cachedLastUsedEndpoint: String? = null
-    var cachedLastUsedModel: String? = null
-    var cachedLastUsedSpec: String? = null
+    var cachedLastUsed: LastUsedSelection? = null
 
     /**
      * True once a conversation-model LOAD has been attempted (success, 404, or new-chat
@@ -132,8 +134,8 @@ class ModelSelectionDelegate(
      */
     fun applyResolvedConversationModel(endpoint: String, model: String?, spec: String? = null) {
         val config = configRepository.startupConfig.value
-        val offered = spec.offeredOrUnchecked(endpoint, model, config?.modelSpecs, checkable = config != null)
-        applySelection(endpoint, model, reason = "conversationResolved", spec = offered)
+        val choice = spec.offeredOrUnchecked(endpoint, model, config?.modelSpecs, checkable = config != null)
+        applySelection(choice, reason = "conversationResolved")
         conversationModelLoaded = true
         conversationModelResolved = true
     }
@@ -198,12 +200,12 @@ class ModelSelectionDelegate(
     private var connectivityRetryJob: Job? = null
 
     /**
-     * The last-used (endpoint, model) pair this delegate last applied as the
-     * active selection. Lets [seedInitialSelection] re-apply a *changed* last-used
-     * even over an already-valid selection (the retained-landing resync) without
-     * re-applying an unchanged value on every unrelated emission.
+     * The last-used selection this delegate last applied as the active selection. Lets
+     * [seedInitialSelection] re-apply a *changed* last-used even over an already-valid selection
+     * (the retained-landing resync) without re-applying an unchanged value on every unrelated
+     * emission.
      */
-    private var lastAppliedLastUsed: LastUsed? = null
+    private var lastAppliedLastUsed: ModelChoice? = null
 
     /**
      * True between a Tier-0 explicit-agent application and the moment the populated
@@ -241,7 +243,7 @@ class ModelSelectionDelegate(
      * Providers already resolved this session, keyed by agent id — including agents whose fetch
      * came back with no provider at all, so switching back and forth doesn't re-hit the network
      * for an answer we already have. Confined to the handle's Main-dispatched scope, like
-     * [cachedLastUsedEndpoint].
+     * [cachedLastUsed].
      */
     private val agentProviders = mutableMapOf<String, String?>()
 
@@ -422,8 +424,9 @@ class ModelSelectionDelegate(
         // last-used model (an agents last-used must be in the loaded agents list —
         // a stale lastUsedModel that isn't an agent_id must not be restored as
         // the agents-endpoint selection), then fall back to the first model.
-        val lastEndpoint = cachedLastUsedEndpoint
-        val lastModel = cachedLastUsedModel
+        val lastUsed = cachedLastUsed
+        val lastEndpoint = lastUsed?.endpoint
+        val lastModel = lastUsed?.model
         if (lastEndpoint != null && lastModel != null) {
             val lastUsedRestorable = if (lastEndpoint == EndpointConstants.AGENTS) {
                 // Agents never appear in `filtered`, so validate the agent id against the
@@ -448,13 +451,8 @@ class ModelSelectionDelegate(
                         "endpoint" to lastEndpoint,
                     ),
                 ) { "refilterModels corrective fallback → last-used" }
-                handle.update {
-                    selection = selection.copy(
-                        selectedEndpoint = lastEndpoint,
-                        selectedModel = lastModel,
-                        selectedSpec = cachedLastUsedSpec.offeredOn(lastEndpoint, lastModel, handle.state.selection.modelSpecs),
-                    )
-                }
+                val spec = lastUsed?.spec.offeredOn(lastEndpoint, lastModel, handle.state.selection.modelSpecs)
+                applySelection(ModelChoice.restore(lastEndpoint, lastModel, spec), reason = "refilter-lastUsed")
                 return
             }
         }
@@ -469,13 +467,10 @@ class ModelSelectionDelegate(
                     "endpoint" to firstEndpoint.key,
                 ),
             ) { "refilterModels corrective fallback → first model" }
-            handle.update {
-                selection = selection.copy(
-                    selectedEndpoint = firstEndpoint.key,
-                    selectedModel = firstEndpoint.value.firstOrNull(),
-                    selectedSpec = null,
-                )
-            }
+            applySelection(
+                ModelChoice.Raw(firstEndpoint.key, firstEndpoint.value.firstOrNull()),
+                reason = "refilter-firstModel",
+            )
         }
     }
 
@@ -515,9 +510,7 @@ class ModelSelectionDelegate(
                     .distinctUntilChanged(),
             ) { lastUsed, rawModels, endpointCfgs, agents, specConfig ->
                 SeedInputs(
-                    lastEndpoint = lastUsed.endpoint,
-                    lastModel = lastUsed.model,
-                    lastSpec = lastUsed.spec,
+                    lastUsed = lastUsed,
                     rawModels = rawModels,
                     endpointConfigs = endpointCfgs,
                     agents = agents.agents,
@@ -534,9 +527,13 @@ class ModelSelectionDelegate(
                         tier0AwaitingSpecs = null
                         tier0SpecsArrived = true
                     }
+                    // One emission: the new specs never sit next to a spec they no longer offer.
                     handle.update {
-                        selection = selection.copy(modelSpecs = input.modelSpecs).withoutStaleSpec()
-                            .withSpecInferredFor(awaiting)
+                        selection = selection.copy(
+                            modelSpecs = input.modelSpecs,
+                            choice = selection.choice.withoutStale(input.modelSpecs)
+                                .inferredFor(awaiting, input.modelSpecs),
+                        )
                     }
                 }
                 // Keep the cached last-used fresh for refilterModels' existing-
@@ -544,9 +541,7 @@ class ModelSelectionDelegate(
                 // (new and existing) — the old eager one-shot read in ChatViewModel
                 // populated the cache for both, and dropping it would leave that
                 // fallback reading nulls for existing conversations.
-                cachedLastUsedEndpoint = input.lastEndpoint
-                cachedLastUsedModel = input.lastModel
-                cachedLastUsedSpec = input.lastSpec
+                cachedLastUsed = input.lastUsed
                 // Seeding applies only to the blank new-chat landing. Never override
                 // an existing/started conversation's model (loadConversationModel
                 // owns those).
@@ -588,13 +583,13 @@ class ModelSelectionDelegate(
      * Also yields the prioritized model spec ([specYielded]); otherwise the next emission would
      * apply the spec over the agent or model the user just chose.
      */
-    private fun applyPendingOverride(lastUsed: LastUsed?, modelSpecs: ModelSpecs?): Boolean {
+    private fun applyPendingOverride(lastUsed: ModelChoice?, modelSpecs: ModelSpecs?): Boolean {
         // An enforced server refuses a send without a spec, and these entry points name only the
         // raw pair. Adopt the spec when exactly one opens on it; otherwise the send preflight asks.
-        fun inferredSpec(endpoint: String, model: String): String? {
+        fun inferred(endpoint: String, model: String): ModelChoice {
             // A cold launch can get here before the config: infer once it arrives instead.
             if (modelSpecs == null) tier0AwaitingSpecs = endpoint to model
-            return if (modelSpecs.requiresSpec) modelSpecs.uniqueSpecFor(endpoint, model) else null
+            return ModelChoice.Raw(endpoint, model).inferredFor(endpoint to model, modelSpecs)
         }
         if (pendingAgentOverride != null || pendingModelOverride != null) specYielded = true
         pendingAgentOverride?.let { agentId ->
@@ -604,18 +599,13 @@ class ModelSelectionDelegate(
             // list arrives (see [holdAgentForPopulate]); without it the next (agentsLoaded=true,
             // agents=[]) emission would score the agent INVALID/PENDING and clobber it to a config model.
             holdAgentForPopulate = true
-            applySelection(
-                EndpointConstants.AGENTS,
-                agentId,
-                reason = "tier0-agentOverride",
-                spec = inferredSpec(EndpointConstants.AGENTS, agentId),
-            )
+            applySelection(inferred(EndpointConstants.AGENTS, agentId), reason = "tier0-agentOverride")
             return true
         }
         pendingModelOverride?.let { (endpoint, model) ->
             pendingModelOverride = null
             lastAppliedLastUsed = lastUsed
-            applySelection(endpoint, model, reason = "tier0-modelOverride", spec = inferredSpec(endpoint, model))
+            applySelection(inferred(endpoint, model), reason = "tier0-modelOverride")
             return true
         }
         return false
@@ -628,9 +618,11 @@ class ModelSelectionDelegate(
         val filtered = filterModelsByEndpoint(input.rawModels, input.endpointConfigs)
         val state = handle.state
 
-        val lastUsed = if (input.lastEndpoint != null && input.lastModel != null) {
-            val spec = input.lastSpec.offeredOn(input.lastEndpoint, input.lastModel, input.modelSpecs)
-            LastUsed(input.lastEndpoint, input.lastModel, spec)
+        val lastEndpoint = input.lastUsed.endpoint
+        val lastModel = input.lastUsed.model
+        val lastUsed = if (lastEndpoint != null && lastModel != null) {
+            val spec = input.lastUsed.spec.offeredOn(lastEndpoint, lastModel, input.modelSpecs)
+            ModelChoice.restore(lastEndpoint, lastModel, spec)
         } else {
             null
         }
@@ -651,7 +643,7 @@ class ModelSelectionDelegate(
         }
         fun applyLastUsed(): Boolean {
             if (lastUsed != null && lastUsedSelectability == Selectability.VALID) {
-                applySelection(lastUsed.endpoint, lastUsed.model, reason = "tier1-lastUsed", spec = lastUsed.spec)
+                applySelection(lastUsed, reason = "tier1-lastUsed")
                 lastAppliedLastUsed = lastUsed
                 return true
             }
@@ -743,7 +735,7 @@ class ModelSelectionDelegate(
             if (!input.agentsLoaded) return // WAIT for the agent list
             val firstAgent = input.agents.firstOrNull()
             if (firstAgent != null) {
-                applySelection(EndpointConstants.AGENTS, firstAgent.id, reason = "tier2-firstAgent")
+                applySelection(ModelChoice.Raw(EndpointConstants.AGENTS, firstAgent.id), reason = "tier2-firstAgent")
                 return
             }
             // Agents loaded and genuinely empty — fall through.
@@ -752,7 +744,7 @@ class ModelSelectionDelegate(
         // Tier 3: first available config model.
         if (filtered.isEmpty()) return // WAIT for models
         val firstEntry = filtered.entries.firstOrNull() ?: return
-        applySelection(firstEntry.key, firstEntry.value.firstOrNull(), reason = "tier3-firstModel")
+        applySelection(ModelChoice.Raw(firstEntry.key, firstEntry.value.firstOrNull()), reason = "tier3-firstModel")
     }
 
     /**
@@ -776,13 +768,13 @@ class ModelSelectionDelegate(
     private fun applyModelSpecDefault(
         input: SeedInputs,
         filtered: Map<String, List<String>>,
-        lastUsed: LastUsed?,
+        lastUsed: ModelChoice?,
     ): Boolean {
         val seed = input.specSeed?.takeIf { it.prioritized } ?: return false
         if (specYielded) return false
         if (specSelectability(seed, filtered, input) == Selectability.INVALID) return false
         lastAppliedLastUsed = lastUsed
-        applySelection(seed.endpoint, seed.model, reason = "tier0b-prioritizedSpec", spec = seed.spec)
+        applySelection(seed.toChoice(), reason = "tier0b-prioritizedSpec")
         return true
     }
 
@@ -794,7 +786,7 @@ class ModelSelectionDelegate(
         val seed = input.specSeed?.takeUnless { it.prioritized } ?: return false
         return when (specSelectability(seed, filtered, input)) {
             Selectability.VALID -> {
-                applySelection(seed.endpoint, seed.model, reason = "tier1b-softSpec", spec = seed.spec)
+                applySelection(seed.toChoice(), reason = "tier1b-softSpec")
                 true
             }
             Selectability.PENDING -> true
@@ -818,19 +810,18 @@ class ModelSelectionDelegate(
         return selectability(seed.endpoint, seed.model, filtered, input.endpointConfigs, input.agents, input.agentsLoaded)
     }
 
-    private fun applySelection(endpoint: String, model: String?, reason: String, spec: String? = null) {
+    /** The one writer of [ModelSelectionState.choice] here, bar the seeder's spec-config update. */
+    private fun applySelection(choice: ModelChoice, reason: String) {
         val previous = handle.state
-        val changed = previous.selectedEndpoint != endpoint || previous.selectedModel != model
-        handle.update {
-            selection = selection.copy(selectedEndpoint = endpoint, selectedModel = model, selectedSpec = spec)
-        }
+        val changed = previous.selectedEndpoint != choice.endpoint || previous.selectedModel != choice.model
+        handle.update { selection = selection.copy(choice = choice) }
         if (changed) {
             Diag.d(
                 tag = "ModelSel",
                 attrs = mapOf(
                     "reason" to reason,
-                    "endpoint" to endpoint,
-                    "model" to (model ?: "null"),
+                    "endpoint" to choice.endpoint,
+                    "model" to (choice.model ?: "null"),
                 ),
             ) { "applySelection" }
         }
@@ -898,9 +889,7 @@ class ModelSelectionDelegate(
     // Transport-only snapshots: no copy, destructuring or structural equality is used.
     // Avoid generating equality/hash code over the full config and agent graphs on Native.
     private class SeedInputs(
-        val lastEndpoint: String?,
-        val lastModel: String?,
-        val lastSpec: String?,
+        val lastUsed: LastUsedSelection,
         val rawModels: Map<String, List<String>>,
         val endpointConfigs: Map<String, EndpointConfig>,
         val agents: List<Agent>,
@@ -914,33 +903,29 @@ class ModelSelectionDelegate(
     // compare these by value. Neither holds the agent graph; SpecConfig holds only the spec list.
     private data class SpecConfig(val modelSpecs: ModelSpecs?, val modelSelect: Boolean)
 
-    /** A last-used selection; [spec] is set only while the server still offers that spec on it. */
-    private data class LastUsed(val endpoint: String, val model: String, val spec: String?)
-
     private class AgentsInput(
         val agents: List<Agent>,
         val conversationId: String?,
         val loaded: Boolean,
     )
 
-    /** [onModelSelected] with the spec's name, which is stored too so new chats can reopen on it. */
+    /** A spec pick. Its name is stored with the pair, so new chats can reopen on it. */
     fun onSpecSelected(spec: ModelSpec) {
         val seed = spec.toSeed() ?: return
-        onModelSelected(seed.endpoint, seed.model, seed.spec)
+        onChoiceSelected(seed.toChoice())
     }
 
-    /** A user pick. [spec] names the model spec it came from; null for a raw model. */
-    fun onModelSelected(endpoint: String, model: String, spec: String? = null) {
+    /** A user pick: a raw model or agent, or a spec staged elsewhere (Compare setup's lane A). Also saved as last-used. */
+    fun onChoiceSelected(choice: ModelChoice) {
+        val model = choice.model ?: return
         // A pick on the new-chat landing displaces the server's prioritized spec for this chat.
         if (seedsNewChat && handle.state.conversationId == null) specYielded = true
         tier0AwaitingSpecs = null
-        applySelection(endpoint, model, reason = if (spec != null) "explicitSpec" else "explicitModel", spec = spec)
-        // Keep cached values in sync so refilterModels uses the latest choice
-        cachedLastUsedEndpoint = endpoint
-        cachedLastUsedModel = model
-        cachedLastUsedSpec = spec
+        applySelection(choice, reason = if (choice is ModelChoice.Spec) "explicitSpec" else "explicitModel")
+        // Keep the cache in sync so refilterModels uses the latest choice
+        cachedLastUsed = LastUsedSelection(choice.endpoint, model, choice.spec)
         handle.scope.launch {
-            settingsDataStore.setLastUsedModel(endpoint, model, spec)
+            settingsDataStore.setLastUsedModel(choice.endpoint, model, choice.spec)
         }
     }
 
@@ -1120,25 +1105,6 @@ class ModelSelectionDelegate(
     fun updateModelParameters(parameters: ModelParameters) {
         handle.update { selection = selection.copy(modelParameters = parameters) }
     }
-}
-
-/** This selection without a spec its [ModelSelectionState.modelSpecs] no longer offers on its pair. */
-private fun ModelSelectionState.withoutStaleSpec(): ModelSelectionState {
-    val spec = selectedSpec ?: return this
-    val model = selectedModel
-    if (model != null && spec.offeredOn(selectedEndpoint, model, modelSpecs) != null) return this
-    return copy(selectedSpec = null)
-}
-
-/**
- * This selection with the spec [uniqueSpecFor] finds for [tier0], while it still holds that raw pair
- * and its specs are enforced; see [ModelSelectionDelegate.applyPendingOverride].
- */
-private fun ModelSelectionState.withSpecInferredFor(tier0: Pair<String, String>?): ModelSelectionState {
-    val (endpoint, model) = tier0 ?: return this
-    if (selectedSpec != null || selectedEndpoint != endpoint || selectedModel != model) return this
-    if (!modelSpecs.requiresSpec) return this
-    return copy(selectedSpec = modelSpecs.uniqueSpecFor(endpoint, model))
 }
 
 /**

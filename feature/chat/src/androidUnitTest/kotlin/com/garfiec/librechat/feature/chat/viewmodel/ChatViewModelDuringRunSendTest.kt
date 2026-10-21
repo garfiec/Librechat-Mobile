@@ -865,7 +865,7 @@ class ChatViewModelDuringRunSendTest {
     fun `quote capture is gated on server version and endpoint`() {
         val gatedOn = ChatUiState(
             gates = FeatureGatesState(backendVersion = "0.8.7"),
-            selection = ModelSelectionState(selectedEndpoint = "anthropic"),
+            selection = ModelSelectionState(choice = ModelChoice.Raw("anthropic", null)),
         )
         assertThat(gatedOn.quoteCaptureAvailable).isTrue()
 
@@ -880,7 +880,7 @@ class ChatViewModelDuringRunSendTest {
         // Assistants endpoints bypass the server-side merge (web quotesSupported).
         assertThat(
             gatedOn.copy(
-                selection = ModelSelectionState(selectedEndpoint = "assistants"),
+                selection = ModelSelectionState(choice = ModelChoice.Raw("assistants", null)),
             ).quoteCaptureAvailable,
         ).isFalse()
     }
@@ -922,7 +922,7 @@ class ChatViewModelDuringRunSendTest {
         every { settingsDataStore.duringRunAction } returns flowOf(preference)
         // Stages the (endpoint, model) `init` applies, so the conversation opens with a real
         // selection rather than waiting on the model pipeline.
-        selectionHandoff.put(conversationId = CONVERSATION_ID, endpoint = ENDPOINT, model = MODEL)
+        selectionHandoff.put(conversationId = CONVERSATION_ID, choice = ModelChoice.Raw(ENDPOINT, MODEL))
         val vm = newViewModel()
         runCurrent()
         try {

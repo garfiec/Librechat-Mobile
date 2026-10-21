@@ -23,6 +23,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.ChatRequestBuilder
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationMetaState
+import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
 import com.garfiec.librechat.feature.chat.viewmodel.PendingActionHandle
 import com.google.common.truth.Truth.assertThat
@@ -57,7 +58,7 @@ class PendingActionAutoAdvanceTest {
         val flow = MutableStateFlow(
             ChatUiState(
                 conversation = ConversationMetaState(conversationId = "conv-1"),
-                selection = ModelSelectionState(selectedEndpoint = "agents", selectedModel = "agent_abc"),
+                selection = ModelSelectionState(choice = ModelChoice.Raw("agents", "agent_abc")),
             ),
         )
         val delegate = PendingActionDelegate(

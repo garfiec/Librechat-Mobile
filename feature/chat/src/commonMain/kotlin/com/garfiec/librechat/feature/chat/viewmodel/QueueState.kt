@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
 import androidx.compose.runtime.Immutable
+import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.data.endpoint.EndpointDispatch
 import com.garfiec.librechat.core.model.request.EphemeralAgent
 import com.garfiec.librechat.core.ui.components.ModelParameters
@@ -74,10 +75,7 @@ data class QueuedMessage(
     val localId: String,
     val text: String,
     val attachments: List<AttachedFile> = emptyList(),
-    val endpoint: String,
-    val model: String?,
-    val modelSpec: String? = null,
-    val agentId: String?,
+    val choice: ModelChoice,
     val enabledTools: Set<String> = emptySet(),
     /** Selected ephemeral MCP servers — snapshotted so editing the item restores its tool state. */
     val mcpServerNames: Set<String> = emptySet(),
@@ -127,7 +125,14 @@ data class QueuedMessage(
     val parentMessageId: String? = null,
     /** The generation epoch observed when this turn became eligible. */
     val expectedPredecessorCreatedAt: Long? = null,
-)
+) {
+    val endpoint: String get() = choice.endpoint
+    val model: String? get() = choice.model
+    val modelSpec: String? get() = choice.spec
+
+    /** The agent this turn goes to: its model on the agents endpoint, so the two can't disagree. */
+    val agentId: String? get() = choice.model.takeIf { choice.endpoint == EndpointConstants.AGENTS }
+}
 
 /**
  * A server-owned queued turn as the client tracks it.
@@ -180,9 +185,7 @@ data class QueuedTurnServerState(
 fun QueuedMessage.toComposerSnapshot(): ComposerSnapshot = ComposerSnapshot(
     text = text,
     attachments = attachments,
-    endpoint = endpoint,
-    model = model,
-    modelSpec = modelSpec,
+    choice = choice,
     enabledTools = enabledTools,
     mcpServerNames = mcpServerNames,
     modelParameters = modelParameters,
