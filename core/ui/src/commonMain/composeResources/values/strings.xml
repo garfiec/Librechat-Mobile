@@ -284,4 +284,26 @@
     <string name="share_sheet_error_no_messages">This chat has no saved messages to share yet.</string>
     <string name="share_sheet_error_content_blocked">Your server blocked sharing this content.</string>
     <string name="share_sheet_error_generic">Something went wrong. Try again.</string>
+    <string name="acl_back">Back</string>
+    <string name="acl_public_anyone">Anyone with the link</string>
+    <string name="acl_public_signed_in">Anyone signed in to this server</string>
+    <string name="acl_public_off_hint">When this is off, only the people added below can open it.</string>
+    <string name="acl_people_title">People with access</string>
+    <string name="acl_people_empty">No one else has been added.</string>
+    <string name="acl_search_label">Add people or groups</string>
+    <string name="acl_search_no_matches">No matches</string>
+    <string name="acl_search_failed">Couldn't search. Try again.</string>
+    <string name="acl_remove">Remove %1$s</string>
+    <string name="acl_role_label">Role</string>
+    <string name="acl_role_viewer">Viewer</string>
+    <string name="acl_role_editor">Editor</string>
+    <string name="acl_role_owner">Owner</string>
+    <string name="acl_type_user">Person</string>
+    <string name="acl_type_group">Group</string>
+    <string name="acl_type_role">Role</string>
+    <string name="acl_error_forbidden">You don't have permission to change who has access.</string>
+    <string name="acl_error_not_found">This was deleted, or you no longer have access to it.</string>
+    <string name="acl_error_owner_protected">The owner's access can't be changed.</string>
+    <string name="acl_error_generic">Couldn't update access. Try again.</string>
+    <string name="acl_error_load">Couldn't load who has access.</string>
 </resources>

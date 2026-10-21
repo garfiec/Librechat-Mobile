@@ -262,4 +262,26 @@
     <string name="share_sheet_error_no_messages">このチャットには共有できる保存済みメッセージがまだありません。</string>
     <string name="share_sheet_error_content_blocked">サーバーがこのコンテンツの共有をブロックしました。</string>
     <string name="share_sheet_error_generic">問題が発生しました。もう一度お試しください。</string>
+    <string name="acl_back">戻る</string>
+    <string name="acl_public_anyone">リンクを知っている全員</string>
+    <string name="acl_public_signed_in">このサーバーにサインインしている全員</string>
+    <string name="acl_public_off_hint">オフにすると、下に追加したユーザーだけが開けます。</string>
+    <string name="acl_people_title">アクセスできるユーザー</string>
+    <string name="acl_people_empty">ほかに追加されたユーザーはいません。</string>
+    <string name="acl_search_label">ユーザーまたはグループを追加</string>
+    <string name="acl_search_no_matches">一致する結果はありません</string>
+    <string name="acl_search_failed">検索できませんでした。もう一度お試しください。</string>
+    <string name="acl_remove">%1$s を削除</string>
+    <string name="acl_role_label">ロール</string>
+    <string name="acl_role_viewer">閲覧者</string>
+    <string name="acl_role_editor">編集者</string>
+    <string name="acl_role_owner">オーナー</string>
+    <string name="acl_type_user">ユーザー</string>
+    <string name="acl_type_group">グループ</string>
+    <string name="acl_type_role">ロール</string>
+    <string name="acl_error_forbidden">アクセスできるユーザーを変更する権限がありません。</string>
+    <string name="acl_error_not_found">削除されたか、アクセス権がなくなりました。</string>
+    <string name="acl_error_owner_protected">オーナーのアクセス権は変更できません。</string>
+    <string name="acl_error_generic">アクセス権を更新できませんでした。もう一度お試しください。</string>
+    <string name="acl_error_load">アクセスできるユーザーを読み込めませんでした。</string>
 </resources>

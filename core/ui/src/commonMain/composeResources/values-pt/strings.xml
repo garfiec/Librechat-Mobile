@@ -270,4 +270,26 @@
     <string name="share_sheet_error_no_messages">Esta conversa ainda não tem mensagens salvas para compartilhar.</string>
     <string name="share_sheet_error_content_blocked">Seu servidor bloqueou o compartilhamento deste conteúdo.</string>
     <string name="share_sheet_error_generic">Algo deu errado. Tente novamente.</string>
+    <string name="acl_back">Voltar</string>
+    <string name="acl_public_anyone">Qualquer pessoa com o link</string>
+    <string name="acl_public_signed_in">Qualquer pessoa conectada a este servidor</string>
+    <string name="acl_public_off_hint">Quando desativado, só as pessoas adicionadas abaixo podem abri-lo.</string>
+    <string name="acl_people_title">Pessoas com acesso</string>
+    <string name="acl_people_empty">Ninguém mais foi adicionado.</string>
+    <string name="acl_search_label">Adicionar pessoas ou grupos</string>
+    <string name="acl_search_no_matches">Nenhum resultado</string>
+    <string name="acl_search_failed">Não foi possível pesquisar. Tente novamente.</string>
+    <string name="acl_remove">Remover %1$s</string>
+    <string name="acl_role_label">Função</string>
+    <string name="acl_role_viewer">Leitor</string>
+    <string name="acl_role_editor">Editor</string>
+    <string name="acl_role_owner">Proprietário</string>
+    <string name="acl_type_user">Pessoa</string>
+    <string name="acl_type_group">Grupo</string>
+    <string name="acl_type_role">Função</string>
+    <string name="acl_error_forbidden">Você não tem permissão para alterar quem tem acesso.</string>
+    <string name="acl_error_not_found">Isto foi excluído ou você não tem mais acesso.</string>
+    <string name="acl_error_owner_protected">O acesso do proprietário não pode ser alterado.</string>
+    <string name="acl_error_generic">Não foi possível atualizar o acesso. Tente novamente.</string>
+    <string name="acl_error_load">Não foi possível carregar quem tem acesso.</string>
 </resources>

@@ -270,4 +270,26 @@
     <string name="share_sheet_error_no_messages">Este chat todavía no tiene mensajes guardados para compartir.</string>
     <string name="share_sheet_error_content_blocked">Tu servidor bloqueó que se comparta este contenido.</string>
     <string name="share_sheet_error_generic">Algo salió mal. Inténtalo de nuevo.</string>
+    <string name="acl_back">Atrás</string>
+    <string name="acl_public_anyone">Cualquiera con el enlace</string>
+    <string name="acl_public_signed_in">Cualquiera que haya iniciado sesión en este servidor</string>
+    <string name="acl_public_off_hint">Si está desactivado, solo las personas añadidas abajo pueden abrirlo.</string>
+    <string name="acl_people_title">Personas con acceso</string>
+    <string name="acl_people_empty">No se ha añadido a nadie más.</string>
+    <string name="acl_search_label">Añadir personas o grupos</string>
+    <string name="acl_search_no_matches">Sin resultados</string>
+    <string name="acl_search_failed">No se pudo buscar. Inténtalo de nuevo.</string>
+    <string name="acl_remove">Quitar a %1$s</string>
+    <string name="acl_role_label">Rol</string>
+    <string name="acl_role_viewer">Lector</string>
+    <string name="acl_role_editor">Editor</string>
+    <string name="acl_role_owner">Propietario</string>
+    <string name="acl_type_user">Persona</string>
+    <string name="acl_type_group">Grupo</string>
+    <string name="acl_type_role">Rol</string>
+    <string name="acl_error_forbidden">No tienes permiso para cambiar quién tiene acceso.</string>
+    <string name="acl_error_not_found">Se eliminó o ya no tienes acceso.</string>
+    <string name="acl_error_owner_protected">El acceso del propietario no se puede cambiar.</string>
+    <string name="acl_error_generic">No se pudo actualizar el acceso. Inténtalo de nuevo.</string>
+    <string name="acl_error_load">No se pudo cargar quién tiene acceso.</string>
 </resources>

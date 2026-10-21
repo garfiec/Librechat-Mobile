@@ -282,4 +282,26 @@
     <string name="share_sheet_error_no_messages">لا تحتوي هذه الدردشة على رسائل محفوظة للمشاركة بعد.</string>
     <string name="share_sheet_error_content_blocked">حظر خادمك مشاركة هذا المحتوى.</string>
     <string name="share_sheet_error_generic">حدث خطأ ما. حاول مرة أخرى.</string>
+    <string name="acl_back">رجوع</string>
+    <string name="acl_public_anyone">أي شخص لديه الرابط</string>
+    <string name="acl_public_signed_in">أي شخص سجّل الدخول إلى هذا الخادم</string>
+    <string name="acl_public_off_hint">عند إيقاف هذا الخيار، يمكن فقط للأشخاص المضافين أدناه فتحه.</string>
+    <string name="acl_people_title">الأشخاص الذين لديهم حق الوصول</string>
+    <string name="acl_people_empty">لم تتم إضافة أي شخص آخر.</string>
+    <string name="acl_search_label">إضافة أشخاص أو مجموعات</string>
+    <string name="acl_search_no_matches">لا توجد نتائج مطابقة</string>
+    <string name="acl_search_failed">تعذّر البحث. حاول مرة أخرى.</string>
+    <string name="acl_remove">إزالة %1$s</string>
+    <string name="acl_role_label">الدور</string>
+    <string name="acl_role_viewer">مشاهد</string>
+    <string name="acl_role_editor">محرّر</string>
+    <string name="acl_role_owner">المالك</string>
+    <string name="acl_type_user">شخص</string>
+    <string name="acl_type_group">مجموعة</string>
+    <string name="acl_type_role">دور</string>
+    <string name="acl_error_forbidden">ليس لديك إذن بتغيير من لديه حق الوصول.</string>
+    <string name="acl_error_not_found">تم حذف هذا العنصر، أو لم يعد لديك حق الوصول إليه.</string>
+    <string name="acl_error_owner_protected">لا يمكن تغيير وصول المالك.</string>
+    <string name="acl_error_generic">تعذّر تحديث الوصول. حاول مرة أخرى.</string>
+    <string name="acl_error_load">تعذّر تحميل قائمة من لديهم حق الوصول.</string>
 </resources>

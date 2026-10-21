@@ -1,5 +1,13 @@
 package com.garfiec.librechat.core.ui.components.share
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,6 +25,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Share
@@ -56,6 +65,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.model.acl.AclState
 import com.garfiec.librechat.core.model.share.FilesOption
 import com.garfiec.librechat.core.model.share.ShareAudience
 import com.garfiec.librechat.core.model.share.ShareSheetBusy
@@ -70,8 +80,14 @@ import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
+import com.garfiec.librechat.core.ui.components.PlatformBackHandler
+import com.garfiec.librechat.core.ui.components.acl.AclSharingActions
+import com.garfiec.librechat.core.ui.components.acl.AclSharingSection
 import com.garfiec.librechat.core.ui.media.rememberShareText
 import com.garfiec.librechat.core.ui.resources.Res
+import com.garfiec.librechat.core.ui.resources.acl_back
+import com.garfiec.librechat.core.ui.resources.acl_public_anyone
+import com.garfiec.librechat.core.ui.resources.acl_public_signed_in
 import com.garfiec.librechat.core.ui.resources.cd_loading
 import com.garfiec.librechat.core.ui.resources.error_banner_retry
 import com.garfiec.librechat.core.ui.resources.share_sheet_audience_anyone
@@ -116,6 +132,9 @@ import org.jetbrains.compose.resources.stringResource
 private const val COPIED_FEEDBACK_MS = 2_000L
 
 private val QrSize = 192.dp
+
+/** Duration of the slide between the share page and the Manage access page. */
+private const val PAGE_SWAP_MS = 250
 private val QrShape = RoundedCornerShape(12.dp)
 
 /**
@@ -125,6 +144,10 @@ private val QrShape = RoundedCornerShape(12.dp)
  * Copy feedback and errors render inside the sheet, since a snackbar would sit behind its scrim.
  * [onCopy] writes the link to the clipboard (the host owns the clipboard); the sheet shows "Copied".
  * Share… opens the system share sheet with the link. Update and Delete ask first.
+ *
+ * The sheet has a second page, Manage access, shown while [access] is open on a link that offers
+ * it: [onManageAccess] asks the host to open it, [onCloseAccess] to go back. On Android back
+ * returns to the share page; iOS has the page's back arrow.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -139,20 +162,97 @@ fun ShareLinkSheet(
     onRetry: () -> Unit,
     onPreview: () -> Unit = {},
     onManageAccess: () -> Unit = {},
+    access: AclState = AclState.Closed,
+    accessActions: AclSharingActions = AclSharingActions.None,
+    onCloseAccess: () -> Unit = {},
 ) {
     if (state == ShareSheetState.Closed) return
+    val onAccessPage = access != AclState.Closed && ShareSheetControls.of(state).manageAccess
     AdaptiveModalBottomSheet(onDismissRequest = onDismiss, dragHandle = { LowProfileDragHandle() }) {
-        // The Manage access page switches in here once it exists; until then the sheet has one page.
-        ShareLinkSheetContent(
-            state = state,
-            onCreate = onCreate,
-            onUpdate = onUpdate,
-            onDelete = onDelete,
-            onIncludeFilesChange = onIncludeFilesChange,
-            onCopy = onCopy,
-            onRetry = onRetry,
-            onPreview = onPreview,
-            onManageAccess = onManageAccess,
+        // Inside the sheet: on Android its content is its own window, so an outer handler never
+        // sees back. Takes precedence over back-to-dismiss so the access page pops to the share page.
+        PlatformBackHandler(enabled = onAccessPage, onBack = onCloseAccess)
+        AnimatedContent(
+            targetState = onAccessPage,
+            transitionSpec = {
+                // Forward slides in from the end, back from the start, reading as depth.
+                val direction = if (targetState) 1 else -1
+                val fade = tween<Float>(PAGE_SWAP_MS)
+                (slideInHorizontally(tween(PAGE_SWAP_MS)) { width -> direction * width } + fadeIn(fade))
+                    .togetherWith(slideOutHorizontally(tween(PAGE_SWAP_MS)) { width -> -direction * width } + fadeOut(fade))
+                    .using(SizeTransform { _, _ -> tween(PAGE_SWAP_MS) })
+            },
+            label = "shareSheetPage",
+        ) { accessPage ->
+            if (accessPage) {
+                ManageAccessPage(
+                    audience = (state as? ShareSheetState.Linked)?.audience ?: ShareAudience.SIGNED_IN,
+                    access = access,
+                    actions = accessActions,
+                    onBack = onCloseAccess,
+                )
+            } else {
+                ShareLinkSheetContent(
+                    state = state,
+                    onCreate = onCreate,
+                    onUpdate = onUpdate,
+                    onDelete = onDelete,
+                    onIncludeFilesChange = onIncludeFilesChange,
+                    onCopy = onCopy,
+                    onRetry = onRetry,
+                    onPreview = onPreview,
+                    onManageAccess = onManageAccess,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The Manage access page: a back row, then who can open the link. The public switch is worded as
+ * the server's policy: anyone with the link, or anyone signed in to the server.
+ */
+@Composable
+internal fun ManageAccessPage(
+    audience: ShareAudience,
+    access: AclState,
+    actions: AclSharingActions,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(bottom = 16.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 24.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.acl_back))
+            }
+            Spacer(Modifier.width(4.dp))
+            Text(
+                text = stringResource(Res.string.share_sheet_manage_access),
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.semantics { heading() },
+            )
+        }
+        AclSharingSection(
+            state = access,
+            publicLabel = stringResource(
+                when (audience) {
+                    ShareAudience.ANYONE -> Res.string.acl_public_anyone
+                    ShareAudience.SIGNED_IN -> Res.string.acl_public_signed_in
+                },
+            ),
+            actions = actions,
+            modifier = Modifier.padding(horizontal = 24.dp),
         )
     }
 }
@@ -325,7 +425,7 @@ private fun LinkedBody(
         if (controls.preview) {
             SheetRow(Icons.AutoMirrored.Outlined.OpenInNew, stringResource(Res.string.share_sheet_preview), actions.onPreview)
         }
-        // Opens the Manage access page; hidden until that page exists.
+        // Opens the Manage access page: role SHARE plus the SHARE bit on this link's ACL.
         if (controls.manageAccess) {
             SheetRow(Icons.Outlined.Group, stringResource(Res.string.share_sheet_manage_access), actions.onManageAccess)
         }

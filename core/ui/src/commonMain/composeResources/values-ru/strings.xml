@@ -274,4 +274,26 @@
     <string name="share_sheet_error_no_messages">В этом чате пока нет сохранённых сообщений, которыми можно поделиться.</string>
     <string name="share_sheet_error_content_blocked">Ваш сервер заблокировал публикацию этого содержимого.</string>
     <string name="share_sheet_error_generic">Что-то пошло не так. Повторите попытку.</string>
+    <string name="acl_back">Назад</string>
+    <string name="acl_public_anyone">Все, у кого есть ссылка</string>
+    <string name="acl_public_signed_in">Все, кто вошёл на этот сервер</string>
+    <string name="acl_public_off_hint">Если выключено, открыть смогут только добавленные ниже пользователи.</string>
+    <string name="acl_people_title">Пользователи с доступом</string>
+    <string name="acl_people_empty">Больше никто не добавлен.</string>
+    <string name="acl_search_label">Добавить пользователей или группы</string>
+    <string name="acl_search_no_matches">Ничего не найдено</string>
+    <string name="acl_search_failed">Не удалось выполнить поиск. Повторите попытку.</string>
+    <string name="acl_remove">Удалить: %1$s</string>
+    <string name="acl_role_label">Роль</string>
+    <string name="acl_role_viewer">Читатель</string>
+    <string name="acl_role_editor">Редактор</string>
+    <string name="acl_role_owner">Владелец</string>
+    <string name="acl_type_user">Пользователь</string>
+    <string name="acl_type_group">Группа</string>
+    <string name="acl_type_role">Роль</string>
+    <string name="acl_error_forbidden">У вас нет прав менять, у кого есть доступ.</string>
+    <string name="acl_error_not_found">Объект удалён, или у вас больше нет к нему доступа.</string>
+    <string name="acl_error_owner_protected">Доступ владельца нельзя изменить.</string>
+    <string name="acl_error_generic">Не удалось изменить доступ. Повторите попытку.</string>
+    <string name="acl_error_load">Не удалось загрузить список пользователей с доступом.</string>
 </resources>

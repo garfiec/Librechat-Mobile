@@ -262,4 +262,26 @@
     <string name="share_sheet_error_no_messages">此聊天还没有可分享的已保存消息。</string>
     <string name="share_sheet_error_content_blocked">你的服务器阻止了分享此内容。</string>
     <string name="share_sheet_error_generic">出了点问题。请重试。</string>
+    <string name="acl_back">返回</string>
+    <string name="acl_public_anyone">任何持有链接的人</string>
+    <string name="acl_public_signed_in">任何已登录此服务器的人</string>
+    <string name="acl_public_off_hint">关闭后，只有下方添加的人可以打开。</string>
+    <string name="acl_people_title">有访问权限的人</string>
+    <string name="acl_people_empty">尚未添加其他人。</string>
+    <string name="acl_search_label">添加用户或群组</string>
+    <string name="acl_search_no_matches">没有匹配结果</string>
+    <string name="acl_search_failed">无法搜索，请重试。</string>
+    <string name="acl_remove">移除 %1$s</string>
+    <string name="acl_role_label">角色</string>
+    <string name="acl_role_viewer">查看者</string>
+    <string name="acl_role_editor">编辑者</string>
+    <string name="acl_role_owner">所有者</string>
+    <string name="acl_type_user">用户</string>
+    <string name="acl_type_group">群组</string>
+    <string name="acl_type_role">角色</string>
+    <string name="acl_error_forbidden">你没有权限更改谁可以访问。</string>
+    <string name="acl_error_not_found">此项已被删除，或你已无权访问。</string>
+    <string name="acl_error_owner_protected">无法更改所有者的访问权限。</string>
+    <string name="acl_error_generic">无法更新访问权限，请重试。</string>
+    <string name="acl_error_load">无法加载有访问权限的人。</string>
 </resources>

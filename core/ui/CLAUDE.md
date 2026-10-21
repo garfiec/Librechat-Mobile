@@ -21,7 +21,12 @@ Material 3 theme and shared Compose components used across all feature modules. 
 - `ShareLinkSheet` (`components/share/`) - The one share sheet for a conversation's link. It renders
   a `ShareSheetState` (`:core:model` `share/`); which controls a state shows is decided in
   `ShareSheetControls`, which is unit-tested. The host owns the clipboard write (`onCopy`); Share…
-  uses `rememberShareText()` (`media/ShareText.kt`).
+  uses `rememberShareText()` (`media/ShareText.kt`). Its Manage access page shows while the host
+  passes an open `AclState`.
+- `AclSharingSection` (`components/acl/`) - Who can open a resource: public switch, grants with the
+  owner locked, people search. Stateless over `AclState` (`:core:model` `acl/`), driven by
+  `:core:data` `AclController(AclPolicy)`. Shared links use it; the agent and skill editors still
+  carry their own copies until they migrate.
 - `AvatarImage` - User/agent/model avatar with Coil image loading and fallback.
 - `ConfirmationDialog` - Reusable confirm/cancel dialog.
 - `DiscardChangesDialog` - "Discard changes?" for leaving an editor with unsaved edits. Every

@@ -168,10 +168,10 @@ class AclController(
             search.value = AclSearch(query = query)
             return
         }
-        search.value = search.value.copy(query = query)
+        // Searching from the first keystroke, so the debounce never reads as "no matches".
+        search.value = search.value.copy(query = query, searching = true, failed = false)
         searchJob = scope.launch {
             delay(SEARCH_DEBOUNCE_MS)
-            search.update { it.copy(searching = true) }
             val result = permissionsRepository.searchPrincipals(query.trim())
             if (search.value.query != query) return@launch
             search.value = when (result) {

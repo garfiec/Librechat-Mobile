@@ -270,4 +270,26 @@
     <string name="share_sheet_error_no_messages">Cette discussion n'a pas encore de messages enregistrés à partager.</string>
     <string name="share_sheet_error_content_blocked">Votre serveur a bloqué le partage de ce contenu.</string>
     <string name="share_sheet_error_generic">Une erreur s'est produite. Réessayez.</string>
+    <string name="acl_back">Retour</string>
+    <string name="acl_public_anyone">Toute personne disposant du lien</string>
+    <string name="acl_public_signed_in">Toute personne connectée à ce serveur</string>
+    <string name="acl_public_off_hint">Désactivé, seules les personnes ajoutées ci-dessous peuvent l'ouvrir.</string>
+    <string name="acl_people_title">Personnes ayant accès</string>
+    <string name="acl_people_empty">Personne d'autre n'a été ajouté.</string>
+    <string name="acl_search_label">Ajouter des personnes ou des groupes</string>
+    <string name="acl_search_no_matches">Aucun résultat</string>
+    <string name="acl_search_failed">Recherche impossible. Réessayez.</string>
+    <string name="acl_remove">Retirer %1$s</string>
+    <string name="acl_role_label">Rôle</string>
+    <string name="acl_role_viewer">Lecteur</string>
+    <string name="acl_role_editor">Éditeur</string>
+    <string name="acl_role_owner">Propriétaire</string>
+    <string name="acl_type_user">Personne</string>
+    <string name="acl_type_group">Groupe</string>
+    <string name="acl_type_role">Rôle</string>
+    <string name="acl_error_forbidden">Vous n'avez pas l'autorisation de modifier qui a accès.</string>
+    <string name="acl_error_not_found">Cet élément a été supprimé, ou vous n'y avez plus accès.</string>
+    <string name="acl_error_owner_protected">L'accès du propriétaire ne peut pas être modifié.</string>
+    <string name="acl_error_generic">Impossible de mettre à jour l'accès. Réessayez.</string>
+    <string name="acl_error_load">Impossible de charger la liste des personnes ayant accès.</string>
 </resources>

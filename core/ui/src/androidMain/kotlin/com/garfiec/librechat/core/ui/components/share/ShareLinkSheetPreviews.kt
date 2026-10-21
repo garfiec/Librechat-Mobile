@@ -42,6 +42,15 @@ private fun LinkedMaterialPreview() = SheetPreview(UiStyle.MATERIAL, linked)
 @Composable
 private fun LinkedGlassPreview() = SheetPreview(UiStyle.LIQUID_GLASS, linked)
 
+/** With the Manage access row: the role may share links and holds SHARE on this one. */
+@PreviewNarrowScreens
+@Composable
+private fun LinkedManageAccessMaterialPreview() = SheetPreview(UiStyle.MATERIAL, linked.copy(canManageAccess = true))
+
+@PreviewNarrowScreens
+@Composable
+private fun LinkedManageAccessGlassPreview() = SheetPreview(UiStyle.LIQUID_GLASS, linked.copy(canManageAccess = true))
+
 @PreviewNarrowScreens
 @Composable
 private fun LinkedBusyMaterialPreview() = SheetPreview(UiStyle.MATERIAL, linkedBusyWithError())
