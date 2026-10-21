@@ -1731,6 +1731,20 @@
       },
       "why": "The server sends no progress while an image generates, so the card's percentage and pixel reveal are a client-side timer: 10s / 20s / 50s by quality plus up to 30% jitter, 200ms ticks, a near-linear curve to 80% of the run easing out over the last 20%, from 0.1 to a 0.9 cap. All of it lives inside the component's useEffect body, which the block extractor cannot isolate, so the whole file is watched; churn in the rest of the component (sizing, cancelled state, intent labels) reports DRIFT -- check those constants, not the file.",
       "failure_mode": "The mobile bar runs faster or slower than web's for the same quality, or stalls at a different point. Nothing errors."
+    },
+    {
+      "id": "agent-list-query-contract",
+      "upstream": {
+        "file": "api/server/controllers/agents/v1.js",
+        "symbol": "getListAgentsHandler",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/network/src/commonMain/kotlin/com/garfiec/librechat/core/network/api/AgentsApi.kt",
+        "symbol": "AgentsApi.getAgentsPaginated"
+      },
+      "why": "The query parameters `GET /api/agents` reads: `limit`, `cursor` (the previous page's `after`), `search`, `category`, `promoted` (matched as the strings '1' and '0'), `requiredPermission`. A parameter it does not read is dropped without an error.",
+      "failure_mode": "Upstream renames a parameter or changes the `promoted` values, and the app's filter or paging is silently ignored: load-more re-reads the first page or Top picks shows every agent. Nothing fails to decode."
     }
   ]
 }

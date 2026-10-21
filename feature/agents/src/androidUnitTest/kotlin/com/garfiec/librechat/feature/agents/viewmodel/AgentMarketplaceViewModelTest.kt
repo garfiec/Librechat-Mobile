@@ -11,6 +11,7 @@ import com.garfiec.librechat.core.model.PaginatedAgents
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.coVerifyOrder
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -59,14 +60,7 @@ class AgentMarketplaceViewModelTest {
         every { roleRepository.userPermissions } returns MutableStateFlow(null)
         coEvery { permissionGate.awaitRole() } returns null
         every { serverDataStore.getBaseUrl() } returns "https://chat.example.com"
-        coEvery {
-            agentRepository.getAgentsPaginated(
-                page = 1,
-                limit = any(),
-                search = any(),
-                category = any(),
-            )
-        } returns Result.Success(PaginatedAgents(agents = testAgents, hasMore = true, total = 10))
+        stubPage(null) returns page(testAgents, next = "c1")
         coEvery { agentRepository.getAgentCategories() } returns Result.Success(testCategories)
     }
 
@@ -74,6 +68,22 @@ class AgentMarketplaceViewModelTest {
     fun tearDown() {
         Dispatchers.resetMain()
     }
+
+    /** Stubs the page read by [cursor] (null = the first page), whatever the filter. */
+    private fun stubPage(cursor: String?) = coEvery {
+        agentRepository.getAgentsPaginated(
+            limit = any(),
+            cursor = cursor,
+            search = any(),
+            category = any(),
+            promoted = any(),
+            requiredPermission = any(),
+        )
+    }
+
+    /** One page; [next] is its `after`, and there is more exactly when there is one. */
+    private fun page(agents: List<Agent>, next: String? = null): Result<PaginatedAgents> =
+        Result.Success(PaginatedAgents(agents = agents, hasMore = next != null, nextCursor = next))
 
     private fun createViewModel() = AgentMarketplaceViewModel(
         agentRepository = agentRepository,
@@ -92,7 +102,7 @@ class AgentMarketplaceViewModelTest {
         assertThat(state.filteredAgents).hasSize(3)
         assertThat(state.isLoading).isFalse()
         assertThat(state.hasMore).isTrue()
-        assertThat(state.currentPage).isEqualTo(1)
+        assertThat(state.nextCursor).isEqualTo("c1")
     }
 
     @Test
@@ -116,9 +126,7 @@ class AgentMarketplaceViewModelTest {
 
     @Test
     fun `loadAgents error surfaces error message`() = runTest {
-        coEvery {
-            agentRepository.getAgentsPaginated(page = 1, limit = any(), search = any(), category = any())
-        } returns Result.Error(message = "Network error")
+        stubPage(null) returns Result.Error(message = "Network error")
 
         viewModel = createViewModel()
         advanceUntilIdle()
@@ -133,9 +141,7 @@ class AgentMarketplaceViewModelTest {
         val page2Agents = listOf(
             Agent(id = "agent-4", name = "Translator", description = "Translates text"),
         )
-        coEvery {
-            agentRepository.getAgentsPaginated(page = 2, limit = any(), search = any(), category = any())
-        } returns Result.Success(PaginatedAgents(agents = page2Agents, hasMore = false, total = 4))
+        stubPage("c1") returns page(page2Agents)
 
         viewModel = createViewModel()
         advanceUntilIdle()
@@ -145,17 +151,73 @@ class AgentMarketplaceViewModelTest {
 
         val state = viewModel.uiState.value
         assertThat(state.agents).hasSize(4)
-        assertThat(state.currentPage).isEqualTo(2)
+        assertThat(state.nextCursor).isNull()
         assertThat(state.hasMore).isFalse()
         assertThat(state.isLoadingMore).isFalse()
     }
 
     @Test
+    fun `loadMore reads by the previous page's after`() = runTest {
+        stubPage("c1") returns page(listOf(Agent(id = "agent-4")), next = "c2")
+        stubPage("c2") returns page(listOf(Agent(id = "agent-5")))
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.loadMore()
+        advanceUntilIdle()
+        viewModel.loadMore()
+        advanceUntilIdle()
+
+        coVerifyOrder {
+            agentRepository.getAgentsPaginated(20, null, null, null, false, null)
+            agentRepository.getAgentsPaginated(20, "c1", null, null, false, null)
+            agentRepository.getAgentsPaginated(20, "c2", null, null, false, null)
+        }
+        assertThat(viewModel.uiState.value.agents.map { it.id })
+            .containsExactly("agent-1", "agent-2", "agent-3", "agent-4", "agent-5").inOrder()
+        assertThat(viewModel.uiState.value.hasMore).isFalse()
+    }
+
+    @Test
+    fun `a filter change reads from the first page again`() = runTest {
+        stubPage("c1") returns page(listOf(Agent(id = "agent-4")), next = "c2")
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.loadMore()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.nextCursor).isEqualTo("c2")
+
+        viewModel.onCategorySelected("coding")
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) {
+            agentRepository.getAgentsPaginated(any(), cursor = null, any(), category = "coding", any(), any())
+        }
+        coVerify(exactly = 0) {
+            agentRepository.getAgentsPaginated(any(), cursor = "c2", any(), any(), any(), any())
+        }
+        assertThat(viewModel.uiState.value.nextCursor).isEqualTo("c1")
+    }
+
+    @Test
+    fun `loadMore without a cursor reads nothing`() = runTest {
+        // has_more with no `after` can only re-read the first page; the repository reports it as
+        // the end, but a page that says more without a cursor must still not be re-read.
+        stubPage(null) returns Result.Success(PaginatedAgents(testAgents, hasMore = true, nextCursor = null))
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.loadMore()
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { agentRepository.getAgentsPaginated(any(), any(), any(), any(), any(), any()) }
+    }
+
+    @Test
     fun `first page drops repeated agents`() = runTest {
         // The grid keys cards by id, so a repeat would crash it (#541).
-        coEvery {
-            agentRepository.getAgentsPaginated(page = 1, limit = any(), search = any(), category = any())
-        } returns Result.Success(PaginatedAgents(agents = testAgents + testAgents[0], hasMore = false, total = 3))
+        stubPage(null) returns page(testAgents + testAgents[0])
 
         viewModel = createViewModel()
         advanceUntilIdle()
@@ -166,10 +228,8 @@ class AgentMarketplaceViewModelTest {
 
     @Test
     fun `refresh drops repeated agents`() = runTest {
-        coEvery {
-            agentRepository.getAgentsPaginated(page = 1, limit = any(), search = any(), category = any())
-        } returns Result.Success(PaginatedAgents(agents = testAgents, hasMore = true, total = 10)) andThen
-            Result.Success(PaginatedAgents(agents = testAgents + testAgents[1], hasMore = true, total = 10))
+        stubPage(null) returns page(testAgents, next = "c1") andThen
+            page(testAgents + testAgents[1], next = "c1")
 
         viewModel = createViewModel()
         advanceUntilIdle()
@@ -182,11 +242,7 @@ class AgentMarketplaceViewModelTest {
 
     @Test
     fun `loadMore drops an agent repeated across the page boundary`() = runTest {
-        coEvery {
-            agentRepository.getAgentsPaginated(page = 2, limit = any(), search = any(), category = any())
-        } returns Result.Success(
-            PaginatedAgents(agents = listOf(testAgents[2], Agent(id = "agent-4")), hasMore = false, total = 4),
-        )
+        stubPage("c1") returns page(listOf(testAgents[2], Agent(id = "agent-4")))
 
         viewModel = createViewModel()
         advanceUntilIdle()
@@ -199,9 +255,7 @@ class AgentMarketplaceViewModelTest {
 
     @Test
     fun `loadMore is no-op when hasMore is false`() = runTest {
-        coEvery {
-            agentRepository.getAgentsPaginated(page = 1, limit = any(), search = any(), category = any())
-        } returns Result.Success(PaginatedAgents(agents = testAgents, hasMore = false, total = 3))
+        stubPage(null) returns page(testAgents)
 
         viewModel = createViewModel()
         advanceUntilIdle()
@@ -209,17 +263,13 @@ class AgentMarketplaceViewModelTest {
         viewModel.loadMore()
         advanceUntilIdle()
 
-        // Should not fetch page 2
-        coVerify(exactly = 0) {
-            agentRepository.getAgentsPaginated(page = 2, limit = any(), search = any(), category = any())
-        }
+        // Only the first page is read.
+        coVerify(exactly = 1) { agentRepository.getAgentsPaginated(any(), any(), any(), any(), any(), any()) }
     }
 
     @Test
     fun `loadMore error surfaces error message`() = runTest {
-        coEvery {
-            agentRepository.getAgentsPaginated(page = 2, limit = any(), search = any(), category = any())
-        } returns Result.Error(message = "Load more failed")
+        stubPage("c1") returns Result.Error(message = "Load more failed")
 
         viewModel = createViewModel()
         advanceUntilIdle()
@@ -268,8 +318,12 @@ class AgentMarketplaceViewModelTest {
     }
 
     @Test
-    fun `refresh resets to page 1`() = runTest {
+    fun `refresh reads from the first page again`() = runTest {
+        stubPage("c1") returns page(listOf(Agent(id = "agent-4")), next = "c2")
+
         viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.loadMore()
         advanceUntilIdle()
 
         viewModel.refresh()
@@ -277,15 +331,15 @@ class AgentMarketplaceViewModelTest {
 
         val state = viewModel.uiState.value
         assertThat(state.isRefreshing).isFalse()
-        assertThat(state.currentPage).isEqualTo(1)
+        coVerify(exactly = 2) { agentRepository.getAgentsPaginated(any(), cursor = null, any(), any(), any(), any()) }
+        assertThat(state.nextCursor).isEqualTo("c1")
+        assertThat(state.agents.map { it.id }).containsExactly("agent-1", "agent-2", "agent-3").inOrder()
     }
 
     @Test
     fun `refresh error surfaces error message`() = runTest {
         // First call succeeds (init), subsequent calls fail
-        coEvery {
-            agentRepository.getAgentsPaginated(page = 1, limit = any(), search = any(), category = any())
-        } returns Result.Success(PaginatedAgents(agents = testAgents, hasMore = true, total = 10)) andThen
+        stubPage(null) returns page(testAgents, next = "c1") andThen
             Result.Error(message = "Refresh failed")
 
         viewModel = createViewModel()
@@ -300,9 +354,7 @@ class AgentMarketplaceViewModelTest {
 
     @Test
     fun `dismissError clears error state`() = runTest {
-        coEvery {
-            agentRepository.getAgentsPaginated(page = 1, limit = any(), search = any(), category = any())
-        } returns Result.Error(message = "Error")
+        stubPage(null) returns Result.Error(message = "Error")
 
         viewModel = createViewModel()
         advanceUntilIdle()
@@ -317,9 +369,7 @@ class AgentMarketplaceViewModelTest {
     @Test
     fun `agent with null name shows as Unnamed Agent`() = runTest {
         val agentNoName = Agent(id = "agent-x", name = null)
-        coEvery {
-            agentRepository.getAgentsPaginated(page = 1, limit = any(), search = any(), category = any())
-        } returns Result.Success(PaginatedAgents(agents = listOf(agentNoName), hasMore = false, total = 1))
+        stubPage(null) returns page(listOf(agentNoName))
 
         viewModel = createViewModel()
         advanceUntilIdle()

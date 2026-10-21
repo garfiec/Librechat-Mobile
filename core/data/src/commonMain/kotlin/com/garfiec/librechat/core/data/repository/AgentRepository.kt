@@ -27,11 +27,18 @@ interface AgentRepository {
 
     // Agent CRUD
     suspend fun getAgents(category: String? = null): Result<List<Agent>>
+
+    /**
+     * One page of the agent list. [cursor] is the previous page's [PaginatedAgents.nextCursor]
+     * (null for the first page); [promoted] narrows to Top picks. See `AgentsApi.getAgentsPaginated`.
+     */
     suspend fun getAgentsPaginated(
-        page: Int,
         limit: Int,
+        cursor: String? = null,
         search: String? = null,
         category: String? = null,
+        promoted: Boolean = false,
+        requiredPermission: Int? = null,
     ): Result<PaginatedAgents>
     suspend fun getAgent(id: String): Result<Agent>
 

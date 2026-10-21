@@ -30,7 +30,7 @@ class AgentRepositoryEditVerdictTest {
 
     @Test
     fun `a paginated list read records the verdict its rows carry`() = runTest {
-        coEvery { agentsApi.getAgentsPaginated(any(), any(), any(), any()) } returns AgentListResponse(
+        coEvery { agentsApi.getAgentsPaginated(any(), any(), any(), any(), any(), any()) } returns AgentListResponse(
             data = listOf(
                 Agent(id = "a1", isEditable = true),
                 Agent(id = "a2", isEditable = false),
@@ -38,7 +38,7 @@ class AgentRepositoryEditVerdictTest {
         )
         val repository = repository()
 
-        repository.getAgentsPaginated(page = 1, limit = 10)
+        repository.getAgentsPaginated(limit = 10)
 
         assertThat(repository.listedEditVerdict("a1")).isTrue()
         assertThat(repository.listedEditVerdict("a2")).isFalse()

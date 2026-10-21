@@ -34,7 +34,8 @@ data class AgentMarketplaceUiState(
     val searchQuery: String = "",
     val categories: List<AgentCategory> = emptyList(),
     val hasMore: Boolean = true,
-    val currentPage: Int = 1,
+    /** The last page's `after`: the cursor [AgentMarketplaceViewModel.loadMore] reads the next page by. */
+    val nextCursor: String? = null,
     // Role-permission gates — default permissive.
     val agentsEnabled: Boolean = true,
     val agentsCreateEnabled: Boolean = true,
@@ -54,7 +55,7 @@ class AgentMarketplaceViewModel(
     private var searchJob: Job? = null
 
     companion object {
-        private const val PAGE_SIZE = 10
+        private const val PAGE_SIZE = 20
         private const val SEARCH_DEBOUNCE_MS = 500L
     }
 
@@ -103,12 +104,11 @@ class AgentMarketplaceViewModel(
             _uiState.value = _uiState.value.copy(
                 isLoading = true,
                 error = null,
-                currentPage = 1,
+                nextCursor = null,
                 hasMore = true,
             )
             val state = _uiState.value
             when (val result = agentRepository.getAgentsPaginated(
-                page = 1,
                 limit = PAGE_SIZE,
                 search = state.searchQuery.ifBlank { null },
                 category = state.selectedCategory,
@@ -120,7 +120,7 @@ class AgentMarketplaceViewModel(
                         filteredAgents = displayAgents,
                         isLoading = false,
                         hasMore = result.data.hasMore,
-                        currentPage = 1,
+                        nextCursor = result.data.nextCursor,
                     )
                 }
                 is Result.Error -> {
@@ -134,17 +134,20 @@ class AgentMarketplaceViewModel(
         }
     }
 
-    /** Fetches the next page and appends results. No-ops if already loading or no more pages. */
+    /**
+     * Fetches the page after the last one read and appends it. No-ops if already loading, or when
+     * there is no next page or no cursor to read it by.
+     */
     fun loadMore() {
         val state = _uiState.value
-        if (!state.hasMore || state.isLoadingMore || state.isLoading) return
+        val cursor = state.nextCursor
+        if (!state.hasMore || cursor == null || state.isLoadingMore || state.isLoading) return
 
         viewModelScope.launch {
-            val nextPage = state.currentPage + 1
             _uiState.value = state.copy(isLoadingMore = true)
             when (val result = agentRepository.getAgentsPaginated(
-                page = nextPage,
                 limit = PAGE_SIZE,
+                cursor = cursor,
                 search = state.searchQuery.ifBlank { null },
                 category = state.selectedCategory,
             )) {
@@ -159,7 +162,7 @@ class AgentMarketplaceViewModel(
                         filteredAgents = newAgents,
                         isLoadingMore = false,
                         hasMore = result.data.hasMore,
-                        currentPage = nextPage,
+                        nextCursor = result.data.nextCursor,
                     )
                 }
                 is Result.Error -> {
@@ -178,7 +181,6 @@ class AgentMarketplaceViewModel(
             _uiState.value = _uiState.value.copy(isRefreshing = true)
             val state = _uiState.value
             when (val result = agentRepository.getAgentsPaginated(
-                page = 1,
                 limit = PAGE_SIZE,
                 search = state.searchQuery.ifBlank { null },
                 category = state.selectedCategory,
@@ -190,7 +192,7 @@ class AgentMarketplaceViewModel(
                         filteredAgents = displayAgents,
                         isRefreshing = false,
                         hasMore = result.data.hasMore,
-                        currentPage = 1,
+                        nextCursor = result.data.nextCursor,
                     )
                 }
                 is Result.Error -> {

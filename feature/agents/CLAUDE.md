@@ -11,14 +11,16 @@
 - `onStartChat(agentId)` callback navigates to chat with the selected agent
 
 ## Marketplace ViewModel
-- `AgentMarketplaceViewModel` uses server-side pagination via `AgentRepository.getAgentsPaginated()`
-- Page size: 10 agents per page
+- `AgentMarketplaceViewModel` uses server-side cursor pagination via `AgentRepository.getAgentsPaginated()`
+- Page size: 20 agents per page (`limit`)
+- Paging is by cursor: each page's `after` (`PaginatedAgents.nextCursor`) is the next request's `cursor`. The
+  route ignores page numbers.
 - Categories fetched from `getAgentCategories()` API (server-driven, not client-derived)
-- `onCategorySelected()` toggles category filter and resets to page 1
-- `onSearchQueryChanged()` debounces 500ms, then resets to page 1 with server-side search
-- `loadMore()` appends next page; no-ops if already loading or no more pages
-- Pull-to-refresh resets to page 1
-- **Gotcha**: Search and category changes reset pagination — always load from page 1 when filters change
+- `onCategorySelected()` toggles category filter and reloads from the first page
+- `onSearchQueryChanged()` debounces 500ms, then reloads from the first page with server-side search
+- `loadMore()` appends the page after `nextCursor`; no-ops if already loading, no more pages, or no cursor
+- Pull-to-refresh reloads from the first page
+- **Gotcha**: Search and category changes reset the cursor — always load from the first page when filters change
 
 ## Agent Card Layout
 - Card: 136dp height, endpoint avatar + name (2-line clamp) + description (2-line clamp) + "By {author}"
