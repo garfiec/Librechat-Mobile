@@ -1733,6 +1733,34 @@
       "failure_mode": "The mobile bar runs faster or slower than web's for the same quality, or stalls at a different point. Nothing errors."
     },
     {
+      "id": "agent-category-sentinels",
+      "upstream": {
+        "file": "api/server/controllers/agents/v1.js",
+        "symbol": "getAgentCategories",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/agents/src/commonMain/kotlin/com/garfiec/librechat/feature/agents/viewmodel/AgentListFilter.kt",
+        "symbol": "AgentListFilter.PROMOTED / AgentListFilter.ALL"
+      },
+      "why": "The categories route appends two entries that are not categories: `promoted` (only when some agent is promoted) and `all`. The client recognises them by value and turns them into the list route's own filters instead of sending them as `category`.",
+      "failure_mode": "Upstream renames a sentinel or adds another, and the app sends it as a category. The list route filters on a category no agent has and answers with an empty page, so the chip shows no agents and nothing errors."
+    },
+    {
+      "id": "agent-grid-query-params",
+      "upstream": {
+        "file": "client/src/components/Agents/AgentGrid.tsx",
+        "symbol": "queryParams",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/agents/src/commonMain/kotlin/com/garfiec/librechat/feature/agents/viewmodel/AgentListFilter.kt",
+        "symbol": "AgentListFilter.of"
+      },
+      "why": "How the web grid turns the selected chip and search into list params: `promoted` -> `promoted=1`, `all` -> no filter, anything else -> `category`; while searching, `promoted` and `all` send neither so the search covers every agent.",
+      "failure_mode": "Upstream changes which filters a search keeps (or adds a chip), and the app keeps narrowing or widening results differently from the web. Every request succeeds; the lists just disagree."
+    },
+    {
       "id": "agent-list-query-contract",
       "upstream": {
         "file": "api/server/controllers/agents/v1.js",

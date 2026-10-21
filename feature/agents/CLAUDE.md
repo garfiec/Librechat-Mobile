@@ -16,6 +16,9 @@
 - Paging is by cursor: each page's `after` (`PaginatedAgents.nextCursor`) is the next request's `cursor`. The
   route ignores page numbers.
 - Categories fetched from `getAgentCategories()` API (server-driven, not client-derived)
+- **Gotcha**: the categories route appends `promoted` and `all`, which are not categories. `AgentListFilter.of`
+  maps them like the web grid: `promoted` → `promoted=1`, `all` → no filter, and while searching both send
+  neither. Never send them as `category` (registered in `scripts/mirrors.json`).
 - `onCategorySelected()` toggles category filter and reloads from the first page
 - `onSearchQueryChanged()` debounces 500ms, then reloads from the first page with server-side search
 - `loadMore()` appends the page after `nextCursor`; no-ops if already loading, no more pages, or no cursor

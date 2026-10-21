@@ -389,4 +389,96 @@ class AgentMarketplaceViewModelTest {
         assertThat(viewModel.uiState.value.error).isNull()
         assertThat(viewModel.uiState.value.categories).isEmpty()
     }
+
+    // --- The categories route's two sentinels (upstream AgentGrid.tsx queryParams) ---
+
+    @Test
+    fun `the promoted chip asks for promoted agents, not a promoted category`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onCategorySelected("promoted")
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) {
+            agentRepository.getAgentsPaginated(20, null, search = null, category = null, promoted = true, null)
+        }
+        coVerify(exactly = 0) { agentRepository.getAgentsPaginated(any(), any(), any(), "promoted", any(), any()) }
+    }
+
+    @Test
+    fun `the all chip sends no filter`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onCategorySelected("all")
+        advanceUntilIdle()
+
+        // The init load and the All load are the same unfiltered read.
+        coVerify(exactly = 2) {
+            agentRepository.getAgentsPaginated(20, null, search = null, category = null, promoted = false, null)
+        }
+        coVerify(exactly = 0) { agentRepository.getAgentsPaginated(any(), any(), any(), "all", any(), any()) }
+    }
+
+    @Test
+    fun `searching under the promoted chip searches every agent`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.onCategorySelected("promoted")
+        advanceUntilIdle()
+
+        viewModel.onSearchQueryChanged("math")
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) {
+            agentRepository.getAgentsPaginated(20, null, search = "math", category = null, promoted = false, null)
+        }
+    }
+
+    @Test
+    fun `searching under the all chip searches every agent`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.onCategorySelected("all")
+        advanceUntilIdle()
+
+        viewModel.onSearchQueryChanged("math")
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) {
+            agentRepository.getAgentsPaginated(20, null, search = "math", category = null, promoted = false, null)
+        }
+    }
+
+    @Test
+    fun `searching under a real category keeps the category`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.onCategorySelected("education")
+        advanceUntilIdle()
+
+        viewModel.onSearchQueryChanged("math")
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) {
+            agentRepository.getAgentsPaginated(20, null, search = "math", category = "education", promoted = false, null)
+        }
+    }
+
+    @Test
+    fun `load more under the promoted chip keeps the promoted filter`() = runTest {
+        stubPage("c1") returns page(listOf(Agent(id = "agent-4")))
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.onCategorySelected("promoted")
+        advanceUntilIdle()
+
+        viewModel.loadMore()
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) {
+            agentRepository.getAgentsPaginated(20, "c1", search = null, category = null, promoted = true, null)
+        }
+    }
 }

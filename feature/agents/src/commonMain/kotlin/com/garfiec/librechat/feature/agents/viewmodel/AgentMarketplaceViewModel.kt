@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.AgentCategory
+import com.garfiec.librechat.core.model.PaginatedAgents
 import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
@@ -108,11 +109,7 @@ class AgentMarketplaceViewModel(
                 hasMore = true,
             )
             val state = _uiState.value
-            when (val result = agentRepository.getAgentsPaginated(
-                limit = PAGE_SIZE,
-                search = state.searchQuery.ifBlank { null },
-                category = state.selectedCategory,
-            )) {
+            when (val result = readPage(state)) {
                 is Result.Success -> {
                     val displayAgents = result.data.agents.map { it.toCardDisplayData() }.distinctBy { it.id }
                     _uiState.value = _uiState.value.copy(
@@ -145,12 +142,7 @@ class AgentMarketplaceViewModel(
 
         viewModelScope.launch {
             _uiState.value = state.copy(isLoadingMore = true)
-            when (val result = agentRepository.getAgentsPaginated(
-                limit = PAGE_SIZE,
-                cursor = cursor,
-                search = state.searchQuery.ifBlank { null },
-                category = state.selectedCategory,
-            )) {
+            when (val result = readPage(state, cursor)) {
                 is Result.Success -> {
                     val currentAgents = _uiState.value.agents
                     // The grid keys cards by id: a page boundary that shifts under the cursor
@@ -180,11 +172,7 @@ class AgentMarketplaceViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isRefreshing = true)
             val state = _uiState.value
-            when (val result = agentRepository.getAgentsPaginated(
-                limit = PAGE_SIZE,
-                search = state.searchQuery.ifBlank { null },
-                category = state.selectedCategory,
-            )) {
+            when (val result = readPage(state)) {
                 is Result.Success -> {
                     val displayAgents = result.data.agents.map { it.toCardDisplayData() }.distinctBy { it.id }
                     _uiState.value = _uiState.value.copy(
@@ -233,6 +221,18 @@ class AgentMarketplaceViewModel(
             selectedCategory = if (_uiState.value.selectedCategory == category) null else category,
         )
         loadAgents()
+    }
+
+    /** Reads one page for [state]'s chip and search; [cursor] null reads the first page. */
+    private suspend fun readPage(state: AgentMarketplaceUiState, cursor: String? = null): Result<PaginatedAgents> {
+        val filter = AgentListFilter.of(selectedCategory = state.selectedCategory, searchQuery = state.searchQuery)
+        return agentRepository.getAgentsPaginated(
+            limit = PAGE_SIZE,
+            cursor = cursor,
+            search = filter.search,
+            category = filter.category,
+            promoted = filter.promoted,
+        )
     }
 
     fun dismissError() {
