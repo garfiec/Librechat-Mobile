@@ -85,6 +85,7 @@ import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.core.ui.components.PlatformBackHandler
 import com.garfiec.librechat.core.ui.components.acl.AclSharingActions
 import com.garfiec.librechat.core.ui.components.acl.AclSharingSection
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.core.ui.media.rememberShareText
 import com.garfiec.librechat.core.ui.resources.Res
 import com.garfiec.librechat.core.ui.resources.acl_back
@@ -171,7 +172,12 @@ fun ShareLinkSheet(
 ) {
     if (state == ShareSheetState.Closed) return
     val onAccessPage = access != AclState.Closed && ShareSheetControls.of(state).manageAccess
-    AdaptiveModalBottomSheet(onDismissRequest = onDismiss, dragHandle = { LowProfileDragHandle() }) {
+    AdaptiveModalBottomSheet(
+        onDismissRequest = onDismiss,
+        // The sheet is its own layer, so the app root's clearFocusOnTap never sees its taps.
+        modifier = Modifier.clearFocusOnTap(),
+        dragHandle = { LowProfileDragHandle() },
+    ) {
         // Inside the sheet: on Android its content is its own window, so an outer handler never
         // sees back. Takes precedence over back-to-dismiss so the access page pops to the share page.
         PlatformBackHandler(enabled = onAccessPage, onBack = onCloseAccess)

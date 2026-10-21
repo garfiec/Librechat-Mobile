@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -35,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -253,6 +255,7 @@ private fun EntryRow(entry: AclEntry, enabled: Boolean, onRevoke: () -> Unit) {
 @Composable
 private fun SearchBlock(state: AclState.Ready, enabled: Boolean, actions: AclSharingActions) {
     val search = state.search
+    val focusManager = LocalFocusManager.current
     Column(modifier = Modifier.fillMaxWidth()) {
         AdaptiveOutlinedTextField(
             value = search.query,
@@ -261,6 +264,8 @@ private fun SearchBlock(state: AclState.Ready, enabled: Boolean, actions: AclSha
             leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            // Search runs as you type; the key only closes the keyboard (iOS has no Back to do it).
+            keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
         )
         if (state.roles.size > 1) {
