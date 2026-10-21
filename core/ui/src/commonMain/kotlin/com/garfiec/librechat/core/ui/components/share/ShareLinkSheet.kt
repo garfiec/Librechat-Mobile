@@ -132,10 +132,10 @@ import org.jetbrains.compose.resources.stringResource
 private const val COPIED_FEEDBACK_MS = 2_000L
 
 private val QrSize = 192.dp
+private val QrShape = RoundedCornerShape(12.dp)
 
 /** Duration of the slide between the share page and the Manage access page. */
 private const val PAGE_SWAP_MS = 250
-private val QrShape = RoundedCornerShape(12.dp)
 
 /**
  * The one share sheet: every Share entry point and a tapped card on the Shared chats page open it.
