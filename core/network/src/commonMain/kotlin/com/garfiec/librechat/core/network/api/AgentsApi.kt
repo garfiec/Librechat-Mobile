@@ -75,16 +75,15 @@ class AgentsApi constructor(
     }
 
     /**
-     * Fetches the full agent data for editing via the /expanded endpoint.
+     * Fetches the full agent document from `GET /api/agents/:id/expanded`, which requires EDIT
+     * permission on the agent and returns every field, including instructions, tools, category,
+     * and the full model_parameters.
      *
-     * The standard GET /api/agents/:id endpoint returns only basic view fields
-     * (id, name, description, avatar, provider, model, projectIds, isCollaborative,
-     * isPublic, version, createdAt, updatedAt). It does NOT include instructions,
-     * tools, category, conversation_starters, model_parameters, or other
-     * configuration fields needed for editing.
-     *
-     * The /expanded endpoint (GET /api/agents/:id/expanded) requires EDIT permission
-     * and returns the complete agent document with all fields.
+     * [getAgent] uses `GET /api/agents/:id`, which requires only VIEW and returns id, name,
+     * description, conversation_starters, avatar, provider, model, a safe subset of
+     * model_parameters, isPublic, version, createdAt, updatedAt, support_contact and
+     * owner_contact (author only to the agent's author). It has no instructions, tools,
+     * category or is_promoted.
      */
     suspend fun getAgentForEditing(agentId: String): Agent {
         Logger.d("AgentsApi") { "getAgentForEditing($agentId) - using EXPANDED endpoint" }
