@@ -1821,11 +1821,25 @@
         "mode": "file"
       },
       "kotlin": {
-        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/share/ShareSheetState.kt",
-        "symbol": "FilesOption.NEW_LINK"
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/share/ShareLinkController.kt",
+        "symbol": "ShareLinkController.phaseFor / create / update (FilesOption.NEW_LINK in ShareSheetState.kt)"
       },
-      "why": "The share dialog's 'Share files' switch starts ON for a conversation with no link (and for a legacy link that stored no choice), and an existing link shows its stored snapshotFiles. The default sits in a useState and a useEffect inside the component, which the block extractor cannot isolate, so the whole file is watched; churn elsewhere in the dialog (QR, layout, target resolution) reports DRIFT -- check the snapshotFiles state, not the file. The Update rule (send the link's stored choice, never omit it) belongs to this same entry once the controller sends it.",
+      "why": "The share dialog's 'Share files' switch starts ON for a conversation with no link (and for a legacy link that stored no choice), and an existing link shows its stored snapshotFiles. The default sits in a useState and a useEffect inside the component, which the block extractor cannot isolate, so the whole file is watched; churn elsewhere in the dialog (QR, layout, target resolution) reports DRIFT -- check the snapshotFiles state, not the file. The controller seeds a new link from FilesOption.NEW_LINK and an existing one from the lookup's snapshotFiles ?: true, and sends the value on Create and on every Update (see share-update-snapshot-files-reset).",
       "failure_mode": "Web flips the default to off and the app keeps publishing every new link with the chat's images and files, or the reverse. Nothing errors."
+    },
+    {
+      "id": "share-url-format",
+      "upstream": {
+        "file": "client/src/utils/share.ts",
+        "symbol": "buildShareLinkUrl",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/repository/ShareRepositoryImpl.kt",
+        "symbol": "ShareRepositoryImpl.shareUrl"
+      },
+      "why": "A shared link's public URL is `<apiBaseUrl>/share/<shareId>`, built client-side; the server only returns the shareId. The app builds it from the active server's cleaned base URL in one place.",
+      "failure_mode": "Web moves the viewer route (or adds a prefix) and every link the app copies, shows as a QR code or hands to the system share sheet opens a 404. Nothing errors in the app."
     },
     {
       "id": "shared-links-sort-keys",
@@ -1855,6 +1869,61 @@
       "failure_mode": "Upstream lowers the cap and long searches fail with a 400 the list shows as a load error; raises it and the app cuts searches the server would have taken."
     },
     {
+      "id": "share-service-error-codes",
+      "upstream": {
+        "file": "api/server/routes/share.js",
+        "symbol": "SHARE_SERVICE_ERROR_STATUS",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/share/ShareFailure.kt",
+        "symbol": "ShareErrorCode / toSheetError"
+      },
+      "why": "The share routes answer {message, code} and the code decides what the sheet says and does: TARGET_MESSAGE_NOT_FOUND / NO_MESSAGES trigger the one re-resolved retry and their own messages, SHARE_EXISTS is answered with a lookup, SHARE_REVISION_MISMATCH is the viewer's 'link was updated', *_NOT_FOUND read as removed. The codes are strings on the wire with no schema.",
+      "failure_mode": "A renamed or new code falls through to the generic error: the saved-target retry stops firing, or a 409 that should be adopted shows 'Something went wrong'."
+    },
+    {
+      "id": "share-update-snapshot-files-reset",
+      "upstream": {
+        "file": "api/server/routes/share.js",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/share/ShareLinkController.kt",
+        "symbol": "ShareLinkController.update"
+      },
+      "why": "PATCH /api/share/:shareId re-derives snapshotFiles from the request on every update (`isFileSnapshotEnabled(config) && requested !== false`), so an update without snapshotFiles turns files back ON for a link that had them off. The controller therefore always sends the link's stored choice (from the lookup) or the user's new one. Lives inside an anonymous route handler, so the whole file is watched -- check the PATCH handler's snapshotFiles line.",
+      "failure_mode": "If upstream starts preserving the stored value on omission nothing breaks; if it changes the default or the field name, updates silently publish files the user turned off, or drop files they wanted."
+    },
+    {
+      "id": "share-content-filter-block",
+      "upstream": {
+        "file": "packages/api/src/middleware/contentFilter.ts",
+        "symbol": "contentFilterBlockResponse",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/share/ShareFailure.kt",
+        "symbol": "ShareErrorCode.CONTENT_FILTER_BLOCK"
+      },
+      "why": "A content-filter refusal on the share routes is a 400 with {error: 'content_filter_block', message, source, field} and no code. The sheet keys 'Your server blocked sharing this content' plus the server's sentence on that error id.",
+      "failure_mode": "A renamed error id makes a filter refusal read as a generic failure, hiding the server's explanation of what to remove."
+    },
+    {
+      "id": "share-content-filter-uninspectable",
+      "upstream": {
+        "file": "packages/api/src/protection/files.ts",
+        "symbol": "contentFilterUninspectableResponse",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/share/ShareFailure.kt",
+        "symbol": "ShareErrorCode.CONTENT_FILTER_UNINSPECTABLE"
+      },
+      "why": "The other content-filter body the share routes send (also ContentTraversalLimitError in protection/adapters/nested.ts uses the same id): {error: 'content_filter_uninspectable', ...}, 400, no code.",
+      "failure_mode": "Same as share-content-filter-block, for files the filter couldn't inspect."
+    },
+    {
       "id": "share-fork-index-revision",
       "upstream": {
         "file": "api/server/utils/import/fork.js",
@@ -1867,6 +1936,19 @@
       },
       "why": "Fork from a share: targetMessageIndex is the index of the active branch tip in the snapshot's messages and the server copies the direct path to it; shareRevision is the snapshot's updatedAt, a mismatch is 409 SHARE_REVISION_MISMATCH, and WITHOUT a revision the index is ignored and the whole share is copied. So the viewer must send both.",
       "failure_mode": "Upstream changes the index basis (e.g. to ids) or the revision rule, and Continue silently forks the wrong branch or the whole share."
+    },
+    {
+      "id": "share-target-branch-tail",
+      "upstream": {
+        "file": "client/src/components/Conversations/ConvoOptions/SharedLinkButton.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/share/TargetResolver.kt",
+        "symbol": "TargetResolver / ShareLinkController.publish"
+      },
+      "why": "From the open chat, web sends the active branch's latest message as targetMessageId (ShareButton.tsx resolveTargetMessageId, after confirming it is saved) and, on TARGET_MESSAGE_NOT_FOUND or NO_MESSAGES, re-resolves and retries exactly once (publishWithTailRetry here). Sharing any other conversation sends no target. The retry lives in a module-level arrow function the extractor can isolate, but the error-code helper beside it matters too, so the file is watched.",
+      "failure_mode": "Web changes which message it targets or drops the retry, and the app shares a different cut of the chat than web would, or keeps retrying where web gives up. Nothing errors."
     },
     {
       "id": "file-source-text",

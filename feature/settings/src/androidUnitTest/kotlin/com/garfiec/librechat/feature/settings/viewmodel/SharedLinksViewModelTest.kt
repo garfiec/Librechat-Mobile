@@ -84,7 +84,7 @@ class SharedLinksViewModelTest {
 
     @Test
     fun `update patches the row's shareId and keeps its title`() = runTest {
-        coEvery { shareRepository.updateShareLink("a") } returns
+        coEvery { shareRepository.updateShareLink("a", null, null) } returns
             Result.Success(SharedLink(conversationId = "c-a", shareId = "a2"))
         val viewModel = createViewModel()
         advanceUntilIdle()
@@ -99,7 +99,7 @@ class SharedLinksViewModelTest {
 
     @Test
     fun `a 403 on update explains that delete still works`() = runTest {
-        coEvery { shareRepository.updateShareLink("a") } returns
+        coEvery { shareRepository.updateShareLink("a", null, null) } returns
             Result.Error(exception = ApiException(statusCode = 403, message = "Forbidden"))
         val viewModel = createViewModel()
         advanceUntilIdle()

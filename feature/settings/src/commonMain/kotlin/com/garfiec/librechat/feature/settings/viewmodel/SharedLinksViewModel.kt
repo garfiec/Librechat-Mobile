@@ -140,7 +140,10 @@ class SharedLinksViewModel(
      */
     fun update(shareId: String) {
         viewModelScope.launch {
-            when (val result = shareRepository.updateShareLink(shareId)) {
+            // No stored file choice here (the list doesn't carry it), so this update still lets the
+            // server turn files back on. The Shared chats redesign moves Update into the share
+            // sheet, which sends the stored choice.
+            when (val result = shareRepository.updateShareLink(shareId, targetMessageId = null, snapshotFiles = null)) {
                 is Result.Success -> _uiState.update {
                     it.copy(
                         links = it.links.map { link ->
@@ -199,5 +202,6 @@ private fun SharedLink.toDisplayData() = SharedLinkDisplayData(
     shareId = shareId ?: "",
     title = title ?: "Untitled Conversation",
     createdAt = createdAt,
-    isPublic = isPublic,
+    // Unknown visibility shows as before until the redesign drops the label.
+    isPublic = isPublic ?: true,
 )
