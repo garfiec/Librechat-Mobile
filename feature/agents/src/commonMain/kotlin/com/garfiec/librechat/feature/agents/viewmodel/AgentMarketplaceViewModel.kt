@@ -113,6 +113,14 @@ class AgentMarketplaceViewModel(
     /** Set once the first read has started: until then, chip, search and resume wait for it. */
     private var initialLoadStarted = false
 
+    /**
+     * The grid asked for the next page while a reload of the same list (the quiet one on return, or
+     * a pull) was running. The grid asks only when its item count or its near-the-end state changes,
+     * and a reload that lands with the same agents changes neither, so the ask is kept and made
+     * when the reload lands instead of being lost. A new chip or search drops it.
+     */
+    private var loadMoreAfterReload = false
+
     private enum class LoadMode {
         /** A new chip or search, or Retry: placeholders or a dimmed list until it lands. */
         REPLACE,
@@ -243,15 +251,20 @@ class AgentMarketplaceViewModel(
     }
 
     /**
-     * Fetches the page after the last one read and appends it. No-ops while any read runs, when
-     * there is no next page or no cursor, or after a failed page until [retryLoadMore].
+     * Fetches the page after the last one read and appends it. No-ops while a new chip or search
+     * or another page is loading, when there is no next page or no cursor, or after a failed page
+     * until [retryLoadMore]. Asked during a quiet reload or a pull, it runs once that lands.
      */
     fun loadMore() {
         val state = _uiState.value
         val cursor = state.nextCursor
         val query = state.shownQuery
         if (!state.hasMore || cursor == null || query == null) return
-        if (state.isLoadingMore || state.isLoading || state.loadMoreFailed || loadJob?.isActive == true) return
+        if (state.isLoadingMore || state.isLoading || state.loadMoreFailed) return
+        if (loadJob?.isActive == true) {
+            loadMoreAfterReload = true
+            return
+        }
 
         val stamp = generation
         _uiState.update { it.copy(isLoadingMore = true) }
@@ -295,6 +308,8 @@ class AgentMarketplaceViewModel(
     private fun startLoad(mode: LoadMode) {
         loadJob?.cancel()
         loadMoreJob?.cancel()
+        // An ask for the next page of the list this read replaces is not one for the new list.
+        if (mode == LoadMode.REPLACE) loadMoreAfterReload = false
         val stamp = ++generation
         val query = currentQuery()
         requestedQuery = query
@@ -348,6 +363,12 @@ class AgentMarketplaceViewModel(
                     }
                 }
                 is Result.Loading -> Unit
+            }
+            if (loadMoreAfterReload) {
+                loadMoreAfterReload = false
+                // This job is still the active one; it has landed, so it no longer holds paging back.
+                loadJob = null
+                loadMore()
             }
         }
     }

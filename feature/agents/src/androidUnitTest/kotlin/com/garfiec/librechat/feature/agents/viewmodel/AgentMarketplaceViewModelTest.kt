@@ -8,6 +8,7 @@ import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.coVerifyOrder
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -376,6 +377,71 @@ class AgentMarketplaceViewModelTest : AgentMarketplaceViewModelTestBase() {
         assertThat(state.nextCursor).isEqualTo("c2")
         coVerify(exactly = 2) { agentRepository.getAgentsPaginated(any(), "c1", any(), any(), any(), any()) }
         coVerify(exactly = 0) { agentRepository.getAgentsPaginated(any(), "c2", any(), any(), any(), any()) }
+    }
+
+    /**
+     * The grid asks for the next page only when its item count or near-the-end state changes. A
+     * quiet reload that lands with the same agents changes neither, so an ask it held back must
+     * not be lost: the grid would end with no spinner and no Retry while more agents exist.
+     */
+    @Test
+    fun `a next page asked for during a quiet reload is read when the reload lands`() = runTest {
+        val first = (1..20).map { Agent(id = "a$it") }
+        val second = (21..40).map { Agent(id = "a$it") }
+        val third = (41..60).map { Agent(id = "a$it") }
+        stubPage(null) returns page(first, next = "c1")
+        stubPage("c1") returns page(second, next = "c2")
+        stubPage("c2") returns page(third)
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.loadMore()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.agents).hasSize(40)
+
+        val reloadGate = CompletableDeferred<Unit>()
+        stubPage(null) coAnswers {
+            reloadGate.await()
+            page(first, next = "c1")
+        }
+        viewModel.refreshOnReturn()
+        runCurrent()
+        // The user reaches the end while the reload walks the cursor: held back, not dropped.
+        viewModel.loadMore()
+        runCurrent()
+        coVerify(exactly = 0) { agentRepository.getAgentsPaginated(any(), "c2", any(), any(), any(), any()) }
+
+        reloadGate.complete(Unit)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.agents).hasSize(60)
+        assertThat(state.hasMore).isFalse()
+        assertThat(state.isLoadingMore).isFalse()
+        coVerify(exactly = 1) { agentRepository.getAgentsPaginated(any(), "c2", any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `a next page asked for during a reload is dropped by a new chip`() = runTest {
+        val reloadGate = CompletableDeferred<Unit>()
+        var firstPageReads = 0
+        stubPage(null) coAnswers {
+            if (firstPageReads++ > 0) reloadGate.await()
+            page(testAgents, next = "c1")
+        }
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.refreshOnReturn()
+        runCurrent()
+        viewModel.loadMore()
+        viewModel.onChipSelected(AgentChip.Category("coding"))
+        reloadGate.complete(Unit)
+        advanceUntilIdle()
+
+        // The new chip's first page is in; its next page waits for the grid to ask.
+        assertThat(viewModel.uiState.value.shownQuery).isEqualTo(AgentListQuery(AgentChip.Category("coding"), ""))
+        coVerify(exactly = 0) { agentRepository.getAgentsPaginated(any(), "c1", any(), any(), any(), any()) }
     }
 
     @Test
