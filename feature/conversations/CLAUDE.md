@@ -33,7 +33,7 @@
 | Delete | `DELETE /api/convos` | Confirmation dialog required |
 | Duplicate | `POST /api/convos/duplicate` | Navigates to new conversation |
 | Fork | `POST /api/convos/fork` | From message context menu in chat, not here |
-| Share | `POST /api/share` | Only if `sharedLinksEnabled` in server config |
+| Share | Opens the share sheet (`ShareLinkController`, `ShareLinkSheetHost`) | `sharedLinksEnabled` AND SHARED_LINKS CREATE; no target (shares the newest branch) |
 
 ## Export / Import
 - `ConversationExporter` supports `ExportFormat.JSON` and `ExportFormat.MARKDOWN`
@@ -43,4 +43,4 @@
 - File I/O uses SAF (Storage Access Framework)
 
 ## Events
-`ConversationListEvent` sealed interface for one-shot UI events: `ShareLinkCopied`, `NavigateToConversation`, `NavigateToNewChat` (emitted when the currently-open conversation is deleted, so the host moves off the now-gone thread), `ShowError`, `ExportReady`, `ImportSuccess`
+`ConversationListEvent` sealed interface for one-shot UI events: `NavigateToConversation`, `NavigateToNewChat` (emitted when the currently-open conversation is deleted, so the host moves off the now-gone thread), `ShowError`, `ExportReady`, `ImportSuccess`

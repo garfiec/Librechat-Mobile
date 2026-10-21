@@ -37,7 +37,6 @@
     <string name="start_new_chat">Начните новый чат, чтобы приступить</string>
     <string name="unknown_error">Произошла неизвестная ошибка</string>
     <string name="conversation_exported">Беседа экспортирована</string>
-    <string name="link_copied">Ссылка скопирована!</string>
     <string name="imported_title">Импортировано: %1$s</string>
     <string name="copy_of">Копия %1$s</string>
 

@@ -2,8 +2,9 @@ package com.garfiec.librechat.feature.conversations.viewmodel
 
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.ConversationRepository
-import com.garfiec.librechat.core.data.repository.ShareRepository
 import com.garfiec.librechat.core.data.repository.TagRepository
+import com.garfiec.librechat.core.data.share.ShareLinkController
+import com.garfiec.librechat.core.data.share.ShareLinkControllerFactory
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.SAVED_TAG
 import com.garfiec.librechat.feature.conversations.export.ConversationExporter
@@ -25,10 +26,16 @@ class ConversationListActionsDelegate(
     private val events: MutableSharedFlow<ConversationListEvent>,
     private val conversationRepository: ConversationRepository,
     private val tagRepository: TagRepository,
-    private val shareRepository: ShareRepository,
+    shareLinkControllerFactory: ShareLinkControllerFactory,
     private val conversationExporter: ConversationExporter,
     private val onMutated: suspend () -> Unit,
 ) {
+
+    /**
+     * The share sheet. Share from a list shares the conversation's newest branch: there is no
+     * branch on screen to target.
+     */
+    val shareLink: ShareLinkController = shareLinkControllerFactory.create(scope)
 
     fun toggleFavorite(conversation: Conversation) {
         val id = conversation.conversationId ?: return
@@ -79,17 +86,10 @@ class ConversationListActionsDelegate(
         }
     }
 
-    fun shareConversation(conversationId: String) {
-        scope.launch {
-            when (val result = shareRepository.getOrCreateShareLink(conversationId)) {
-                is Result.Success -> events.emit(ConversationListEvent.ShareLinkCopied(result.data))
-                is Result.Error -> events.emit(
-                    ConversationListEvent.ShowError(result.message ?: "Failed to create share link"),
-                )
-                is Result.Loading -> Unit
-            }
-        }
-    }
+    /** Opens the share sheet on [conversationId]. Nothing is created until the sheet's Create. */
+    fun shareConversation(conversationId: String) = shareLink.open(conversationId)
+
+    fun closeShareSheet() = shareLink.close()
 
     fun duplicateConversation(conversationId: String, title: String?) {
         scope.launch {

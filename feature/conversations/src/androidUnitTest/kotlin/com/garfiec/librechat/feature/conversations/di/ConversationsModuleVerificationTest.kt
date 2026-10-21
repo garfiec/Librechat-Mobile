@@ -15,9 +15,9 @@ import com.garfiec.librechat.core.data.repository.ProjectRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.SearchCapabilityRepository
 import com.garfiec.librechat.core.data.repository.SearchRepository
-import com.garfiec.librechat.core.data.repository.ShareRepository
 import com.garfiec.librechat.core.data.repository.TagRepository
 import com.garfiec.librechat.core.data.search.MessageSearchRepository
+import com.garfiec.librechat.core.data.share.ShareLinkControllerFactory
 import kotlinx.coroutines.CoroutineDispatcher
 import org.junit.Test
 import org.koin.test.verify.verify
@@ -34,7 +34,7 @@ class ConversationsModuleVerificationTest {
                 MessageRepository::class,
                 AgentRepository::class,
                 TagRepository::class,
-                ShareRepository::class,
+                ShareLinkControllerFactory::class,
                 SearchRepository::class,
                 ConfigRepository::class,
                 ProjectRepository::class,

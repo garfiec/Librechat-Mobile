@@ -37,7 +37,6 @@
     <string name="start_new_chat">Inicie uma nova conversa para começar</string>
     <string name="unknown_error">Ocorreu um erro desconhecido</string>
     <string name="conversation_exported">Conversa exportada</string>
-    <string name="link_copied">Link copiado!</string>
     <string name="imported_title">Importada: %1$s</string>
     <string name="copy_of">Cópia de %1$s</string>
 

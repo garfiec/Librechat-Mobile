@@ -49,12 +49,12 @@ import com.garfiec.librechat.feature.conversations.components.ConversationAction
 import com.garfiec.librechat.feature.conversations.components.ConversationItem
 import com.garfiec.librechat.feature.conversations.components.ConversationSearchBar
 import com.garfiec.librechat.feature.conversations.components.DateGroupHeader
+import com.garfiec.librechat.feature.conversations.components.ShareLinkSheetHost
 import com.garfiec.librechat.feature.conversations.components.TagFilterBar
 import com.garfiec.librechat.feature.conversations.components.TagPicker
 import com.garfiec.librechat.feature.conversations.export.ExportFormat
 import com.garfiec.librechat.feature.conversations.export.ExportFormatPicker
 import com.garfiec.librechat.feature.conversations.platform.FileSaver
-import com.garfiec.librechat.feature.conversations.platform.copyToClipboard
 import com.garfiec.librechat.feature.conversations.platform.showToast
 import com.garfiec.librechat.feature.conversations.resources.*
 import com.garfiec.librechat.feature.conversations.resources.Res
@@ -93,7 +93,6 @@ fun ConversationListScreen(
     val copyOfPrefix = stringResource(Res.string.copy_of)
     val newChatLabel = stringResource(Res.string.new_chat)
     val conversationExportedMsg = stringResource(Res.string.conversation_exported)
-    val linkCopiedMsg = stringResource(Res.string.link_copied)
     val importedTitleTemplate = stringResource(Res.string.imported_title)
 
     // Platform file saver composable
@@ -117,10 +116,6 @@ fun ConversationListScreen(
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
-                is ConversationListEvent.ShareLinkCopied -> {
-                    copyToClipboard(event.url, "Share Link")
-                    snackbarHostState.showSnackbar(linkCopiedMsg)
-                }
                 is ConversationListEvent.NavigateToConversation -> {
                     currentOnConversationClick(event.conversationId)
                 }
@@ -336,6 +331,7 @@ fun ConversationListScreen(
             onDismiss = { selectedConversation = null },
             isBookmarked = SAVED_TAG in (selectedConversation?.tags ?: emptyList()),
             bookmarksEnabled = uiState.bookmarksEnabled,
+            showShareAction = uiState.sharedLinksEnabled,
             onBookmarkToggle = {
                 selectedConversation?.let { convo ->
                     viewModel.toggleFavorite(convo)
@@ -385,6 +381,8 @@ fun ConversationListScreen(
             },
         )
     }
+
+    ShareLinkSheetHost(controller = viewModel.shareLink, onDismiss = viewModel::closeShareSheet)
 
     // Tag picker bottom sheet
     if (showTagPicker && tagPickerConversation != null) {

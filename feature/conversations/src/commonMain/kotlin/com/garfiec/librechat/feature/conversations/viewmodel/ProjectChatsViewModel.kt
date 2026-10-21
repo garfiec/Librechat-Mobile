@@ -13,14 +13,16 @@ import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.ProjectRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
-import com.garfiec.librechat.core.data.repository.ShareRepository
 import com.garfiec.librechat.core.data.repository.TagRepository
+import com.garfiec.librechat.core.data.share.ShareLinkController
+import com.garfiec.librechat.core.data.share.ShareLinkControllerFactory
 import com.garfiec.librechat.core.model.ChatProject
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.ConversationTag
 import com.garfiec.librechat.core.model.SAVED_TAG
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
+import com.garfiec.librechat.core.model.permissions.canCreateSharedLinks
 import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
 import com.garfiec.librechat.feature.conversations.components.ConversationDisplayData
 import com.garfiec.librechat.feature.conversations.export.ConversationExporter
@@ -35,6 +37,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /** Sort field for the project chat list (v0.8.7), matching the convos endpoint. */
@@ -55,6 +58,8 @@ data class ProjectChatsUiState(
     val sort: ProjectChatsSort = ProjectChatsSort.UPDATED,
     val tags: List<ConversationTag> = emptyList(),
     val bookmarksEnabled: Boolean = true,
+    /** Share shows on rows: the server has shared links on and the role may create them. */
+    val sharedLinksEnabled: Boolean = false,
     /** The project itself, for the header and Edit. Null while loading, and always for Unassigned. */
     val project: ChatProject? = null,
     /** The server no longer has this project (deleted elsewhere): the page has nothing to show. */
@@ -74,7 +79,7 @@ class ProjectChatsViewModel(
     private val projectId: String,
     private val conversationRepository: ConversationRepository,
     private val tagRepository: TagRepository,
-    private val shareRepository: ShareRepository,
+    shareLinkControllerFactory: ShareLinkControllerFactory,
     private val conversationExporter: ConversationExporter,
     private val roleRepository: RoleRepository,
     private val configRepository: ConfigRepository,
@@ -116,7 +121,7 @@ class ProjectChatsViewModel(
         events = _events,
         conversationRepository = conversationRepository,
         tagRepository = tagRepository,
-        shareRepository = shareRepository,
+        shareLinkControllerFactory = shareLinkControllerFactory,
         conversationExporter = conversationExporter,
         // Network-direct list: re-fetch after a mutation so the change is reflected.
         onMutated = { pager.reloadQuietly() },
@@ -207,10 +212,15 @@ class ProjectChatsViewModel(
 
     private fun observePermissions() {
         viewModelScope.launch {
-            roleRepository.userPermissions.collect { role ->
-                _uiState.value = _uiState.value.copy(
-                    bookmarksEnabled = role.hasAccessOrPermissive(PermissionType.BOOKMARKS, Permission.USE),
-                )
+            combine(roleRepository.userPermissions, configRepository.startupConfig) { role, config ->
+                role to config
+            }.collect { (role, config) ->
+                _uiState.update {
+                    it.copy(
+                        bookmarksEnabled = role.hasAccessOrPermissive(PermissionType.BOOKMARKS, Permission.USE),
+                        sharedLinksEnabled = role.canCreateSharedLinks(config?.sharedLinksEnabled ?: false),
+                    )
+                }
             }
         }
     }
@@ -255,7 +265,12 @@ class ProjectChatsViewModel(
 
     fun deleteConversation(id: String) = actions.deleteConversation(id)
 
+    /** The share sheet's controller: what the sheet shows, and its Create / Update / Delete. */
+    val shareLink: ShareLinkController get() = actions.shareLink
+
     fun shareConversation(conversationId: String) = actions.shareConversation(conversationId)
+
+    fun closeShareSheet() = actions.closeShareSheet()
 
     fun duplicateConversation(conversationId: String, title: String?) =
         actions.duplicateConversation(conversationId, title)

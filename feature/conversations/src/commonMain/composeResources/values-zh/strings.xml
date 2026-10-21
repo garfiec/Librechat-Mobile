@@ -37,7 +37,6 @@
     <string name="start_new_chat">开始新聊天</string>
     <string name="unknown_error">发生未知错误</string>
     <string name="conversation_exported">对话已导出</string>
-    <string name="link_copied">链接已复制！</string>
     <string name="imported_title">已导入：%1$s</string>
     <string name="copy_of">%1$s 的副本</string>
 

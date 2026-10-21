@@ -10,13 +10,15 @@ import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.SearchRepository
-import com.garfiec.librechat.core.data.repository.ShareRepository
 import com.garfiec.librechat.core.data.repository.TagRepository
+import com.garfiec.librechat.core.data.share.ShareLinkController
+import com.garfiec.librechat.core.data.share.ShareLinkControllerFactory
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.ConversationTag
 import com.garfiec.librechat.core.model.SAVED_TAG
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
+import com.garfiec.librechat.core.model.permissions.canCreateSharedLinks
 import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
 import com.garfiec.librechat.feature.conversations.components.ConversationDisplayData
 import com.garfiec.librechat.feature.conversations.export.ConversationExporter
@@ -51,10 +53,11 @@ data class ConversationListUiState(
     val isSearching: Boolean = false,
     // Role-permission gate — default permissive until role loads.
     val bookmarksEnabled: Boolean = true,
+    /** Share shows on rows: the server has shared links on and the role may create them. */
+    val sharedLinksEnabled: Boolean = false,
 )
 
 sealed interface ConversationListEvent {
-    data class ShareLinkCopied(val url: String) : ConversationListEvent
     data class NavigateToConversation(val conversationId: String) : ConversationListEvent
 
     /** The currently-open conversation was deleted: move off it to a fresh new chat. */
@@ -68,7 +71,7 @@ class ConversationListViewModel(
     private val conversationRepository: ConversationRepository,
     private val tagRepository: TagRepository,
     private val searchRepository: SearchRepository,
-    private val shareRepository: ShareRepository,
+    shareLinkControllerFactory: ShareLinkControllerFactory,
     private val conversationExporter: ConversationExporter,
     private val conversationImporter: ConversationImporter,
     private val roleRepository: RoleRepository,
@@ -99,7 +102,7 @@ class ConversationListViewModel(
         events = _events,
         conversationRepository = conversationRepository,
         tagRepository = tagRepository,
-        shareRepository = shareRepository,
+        shareLinkControllerFactory = shareLinkControllerFactory,
         conversationExporter = conversationExporter,
         // Room-backed list: observeConversations re-emits on mutation, so no manual refresh.
         onMutated = {},
@@ -115,13 +118,18 @@ class ConversationListViewModel(
 
     private fun observePermissions() {
         viewModelScope.launch {
-            roleRepository.userPermissions.collect { role ->
-                _uiState.value = _uiState.value.copy(
-                    bookmarksEnabled = role.hasAccessOrPermissive(
-                        PermissionType.BOOKMARKS,
-                        Permission.USE,
-                    ),
-                )
+            combine(roleRepository.userPermissions, configRepository.startupConfig) { role, config ->
+                role to config
+            }.collect { (role, config) ->
+                _uiState.update {
+                    it.copy(
+                        bookmarksEnabled = role.hasAccessOrPermissive(
+                            PermissionType.BOOKMARKS,
+                            Permission.USE,
+                        ),
+                        sharedLinksEnabled = role.canCreateSharedLinks(config?.sharedLinksEnabled ?: false),
+                    )
+                }
             }
         }
     }
@@ -345,7 +353,12 @@ class ConversationListViewModel(
         _uiState.value = _uiState.value.copy(error = null)
     }
 
+    /** The share sheet's controller: what the sheet shows, and its Create / Update / Delete. */
+    val shareLink: ShareLinkController get() = actions.shareLink
+
     fun shareConversation(conversationId: String) = actions.shareConversation(conversationId)
+
+    fun closeShareSheet() = actions.closeShareSheet()
 
     fun forkConversation(conversationId: String, messageId: String) {
         viewModelScope.launch {

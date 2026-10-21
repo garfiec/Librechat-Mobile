@@ -162,6 +162,7 @@ import com.garfiec.librechat.feature.conversations.components.ProjectEditorSheet
 import com.garfiec.librechat.feature.conversations.components.ProjectMenuButton
 import com.garfiec.librechat.feature.conversations.components.ProjectPicker
 import com.garfiec.librechat.feature.conversations.components.ProjectTile
+import com.garfiec.librechat.feature.conversations.components.ShareLinkSheetHost
 import com.garfiec.librechat.feature.conversations.components.TagPicker
 import com.garfiec.librechat.feature.conversations.export.ExportFormat
 import com.garfiec.librechat.feature.conversations.export.ExportFormatPicker
@@ -293,15 +294,16 @@ fun DrawerContent(
         if (!isOpen) {
             showAccountSheet = false
             removeAccountTarget = null
+            viewModel.closeShareSheet()
         }
     }
     LaunchedEffect(isOpen, libraryTab) {
         if (isOpen && libraryTab == DrawerTab.Projects) viewModel.reloadProjects()
     }
 
-    // Side-effects for the long-press action menu (share-link copy, export file-save, navigate to
-    // a duplicated conversation, error toasts). Lives in feature/conversations so it owns the
-    // clipboard/toast/file-save plumbing and its localized strings.
+    // Side-effects for the long-press action menu (export file-save, navigate to a duplicated
+    // conversation, error toasts). Lives in feature/conversations so it owns the toast/file-save
+    // plumbing and its localized strings.
     ConversationActionEffects(
         events = viewModel.events,
         onNavigateToConversation = onConversationClick,
@@ -398,6 +400,9 @@ fun DrawerContent(
         onExportFormat = { data, format -> viewModel.exportConversation(data.conversationId, data.title, format) },
         modifier = modifier,
     )
+
+    // Share opens the share sheet over the drawer; nothing is created or copied until asked.
+    ShareLinkSheetHost(controller = viewModel.shareLink, onDismiss = viewModel::closeShareSheet)
 
     if (showAccountSheet) {
         AccountSwitcherSheet(
@@ -813,8 +818,8 @@ fun DrawerContent(
                                 onLoadProjects()
                                 projectPickerTarget = data
                             },
-                            // Share is shown here when the server enables shared links; the
-                            // full-screen list intentionally omits it (passes showShareAction=false).
+                            // Shown when the server has shared links on and the role may create
+                            // them, as on the conversation list and a project's chats.
                             showShareAction = uiState.sharedLinksEnabled,
                             onBookmarkToggle = { onToggleFavorite(data) },
                             onRenameRequest = { renameTarget = data },

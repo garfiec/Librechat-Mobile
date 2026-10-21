@@ -37,7 +37,6 @@
     <string name="start_new_chat">ابدأ محادثة جديدة للبدء</string>
     <string name="unknown_error">حدث خطأ غير معروف</string>
     <string name="conversation_exported">تم تصدير المحادثة</string>
-    <string name="link_copied">تم نسخ الرابط!</string>
     <string name="imported_title">تم الاستيراد: %1$s</string>
     <string name="copy_of">نسخة من %1$s</string>
 

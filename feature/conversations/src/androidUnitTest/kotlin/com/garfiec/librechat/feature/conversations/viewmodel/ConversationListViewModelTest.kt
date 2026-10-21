@@ -4,14 +4,21 @@ import com.garfiec.librechat.core.common.extensions.RelativeTimeReference
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
+import com.garfiec.librechat.core.data.repository.PermissionsRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.SearchRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
 import com.garfiec.librechat.core.data.repository.TagRepository
+import com.garfiec.librechat.core.data.share.ShareLinkControllerFactory
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.ConversationTag
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.SAVED_TAG
+import com.garfiec.librechat.core.model.config.StartupConfig
+import com.garfiec.librechat.core.model.permissions.UserRolePermissions
+import com.garfiec.librechat.core.model.response.ShareLinkLookup
+import com.garfiec.librechat.core.model.share.ShareSheetError
+import com.garfiec.librechat.core.model.share.ShareSheetState
 import com.garfiec.librechat.feature.conversations.export.ConversationExporter
 import com.garfiec.librechat.feature.conversations.export.ConversationImporter
 import com.google.common.truth.Truth.assertThat
@@ -47,9 +54,22 @@ class ConversationListViewModelTest {
     private val conversationImporter = mockk<ConversationImporter>(relaxed = true)
     private val roleRepository = mockk<RoleRepository>(relaxed = true)
     private val endpointConfigsFlow = MutableStateFlow<Map<String, EndpointConfig>>(emptyMap())
+    private val startupConfigFlow = MutableStateFlow<StartupConfig?>(StartupConfig(sharedLinksEnabled = true))
+    private val userPermissionsFlow = MutableStateFlow<UserRolePermissions?>(null)
     private val configRepository = mockk<ConfigRepository>(relaxed = true) {
         every { endpointConfigs } returns endpointConfigsFlow
+        every { startupConfig } returns startupConfigFlow
+        every { detectedBackendVersion } returns MutableStateFlow("0.8.8")
     }
+
+    // The real share sheet controller over a mocked repository, so Share is checked at the sheet's
+    // state rather than at a call the composition might not make.
+    private val shareLinkControllerFactory = ShareLinkControllerFactory(
+        shareRepository = shareRepository,
+        configRepository = configRepository,
+        roleRepository = roleRepository,
+        permissionsRepository = mockk<PermissionsRepository>(relaxed = true),
+    )
 
     private lateinit var viewModel: ConversationListViewModel
 
@@ -84,7 +104,8 @@ class ConversationListViewModelTest {
         coEvery { conversationRepository.syncFavoritesFromServer() } returns Result.Success(Unit)
         every { tagRepository.observeTags() } returns flowOf(testTags)
         coEvery { tagRepository.refreshTags() } returns Result.Success(Unit)
-        every { roleRepository.userPermissions } returns MutableStateFlow(null)
+        every { roleRepository.userPermissions } returns userPermissionsFlow
+        every { shareRepository.shareUrl(any()) } answers { "https://example.com/share/${firstArg<String>()}" }
     }
 
     @After
@@ -96,7 +117,7 @@ class ConversationListViewModelTest {
         conversationRepository = conversationRepository,
         tagRepository = tagRepository,
         searchRepository = searchRepository,
-        shareRepository = shareRepository,
+        shareLinkControllerFactory = shareLinkControllerFactory,
         conversationExporter = conversationExporter,
         conversationImporter = conversationImporter,
         roleRepository = roleRepository,
@@ -309,9 +330,9 @@ class ConversationListViewModelTest {
     }
 
     @Test
-    fun `shareConversation emits ShareLinkCopied event on success`() = runTest {
-        coEvery { shareRepository.getOrCreateShareLink("convo-1") } returns
-            Result.Success("https://example.com/share/abc")
+    fun `shareConversation opens the sheet on the existing link and creates nothing`() = runTest {
+        coEvery { shareRepository.lookupShareLink("convo-1") } returns
+            Result.Success(ShareLinkLookup(success = true, shareId = "abc"))
 
         viewModel = createViewModel()
         advanceUntilIdle()
@@ -324,18 +345,33 @@ class ConversationListViewModelTest {
         viewModel.shareConversation("convo-1")
         advanceUntilIdle()
 
-        assertThat(events).hasSize(1)
-        assertThat(events[0]).isInstanceOf(ConversationListEvent.ShareLinkCopied::class.java)
-        assertThat((events[0] as ConversationListEvent.ShareLinkCopied).url)
-            .isEqualTo("https://example.com/share/abc")
+        val state = viewModel.shareLink.state.value as ShareSheetState.Linked
+        assertThat(state.url).isEqualTo("https://example.com/share/abc")
+        assertThat(events).isEmpty()
+        coVerify(exactly = 0) { shareRepository.createShareLink(any(), any(), any()) }
 
         job.cancel()
     }
 
     @Test
-    fun `shareConversation emits ShowError on failure`() = runTest {
-        coEvery { shareRepository.getOrCreateShareLink("convo-1") } returns
-            Result.Error(message = "Share failed")
+    fun `shareConversation shares without a target`() = runTest {
+        coEvery { shareRepository.lookupShareLink("convo-1") } returns
+            Result.Success(ShareLinkLookup(success = false))
+        coEvery { shareRepository.createShareLink("convo-1", any(), any()) } returns Result.Success("fresh")
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.shareConversation("convo-1")
+        advanceUntilIdle()
+        viewModel.shareLink.create()
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { shareRepository.createShareLink("convo-1", null, true) }
+    }
+
+    @Test
+    fun `a failed lookup shows in the sheet, not as an event`() = runTest {
+        coEvery { shareRepository.lookupShareLink("convo-1") } returns Result.Error(message = "Share failed")
 
         viewModel = createViewModel()
         advanceUntilIdle()
@@ -348,10 +384,46 @@ class ConversationListViewModelTest {
         viewModel.shareConversation("convo-1")
         advanceUntilIdle()
 
-        assertThat(events).hasSize(1)
-        assertThat(events[0]).isInstanceOf(ConversationListEvent.ShowError::class.java)
+        assertThat(viewModel.shareLink.state.value).isEqualTo(ShareSheetState.Failed(ShareSheetError.Generic))
+        assertThat(events).isEmpty()
 
         job.cancel()
+    }
+
+    @Test
+    fun `closeShareSheet closes the sheet`() = runTest {
+        coEvery { shareRepository.lookupShareLink("convo-1") } returns
+            Result.Success(ShareLinkLookup(success = false))
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.shareConversation("convo-1")
+        advanceUntilIdle()
+
+        viewModel.closeShareSheet()
+        advanceUntilIdle()
+
+        assertThat(viewModel.shareLink.state.value).isEqualTo(ShareSheetState.Closed)
+    }
+
+    @Test
+    fun `Share shows when shared links are on and the role may create them`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.sharedLinksEnabled).isTrue()
+
+        userPermissionsFlow.value = UserRolePermissions(
+            name = "USER",
+            permissions = mapOf("SHARED_LINKS" to mapOf("CREATE" to false)),
+        )
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.sharedLinksEnabled).isFalse()
+
+        userPermissionsFlow.value = null
+        startupConfigFlow.value = StartupConfig(sharedLinksEnabled = false)
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.sharedLinksEnabled).isFalse()
     }
 
     @Test

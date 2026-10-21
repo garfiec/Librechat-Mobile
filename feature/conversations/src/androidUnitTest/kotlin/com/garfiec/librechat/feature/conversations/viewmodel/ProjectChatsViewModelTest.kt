@@ -7,6 +7,8 @@ import com.garfiec.librechat.core.data.repository.ProjectRepository
 import com.garfiec.librechat.core.model.ChatProject
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.ConversationPage
+import com.garfiec.librechat.core.model.config.StartupConfig
+import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.google.common.truth.Truth.assertThat
 import io.mockk.MockKMatcherScope
 import io.mockk.coEvery
@@ -35,6 +37,8 @@ class ProjectChatsViewModelTest {
     private val conversationRepository = mockk<ConversationRepository>(relaxed = true)
     private val projectRepository = mockk<ProjectRepository>(relaxed = true)
     private val revision = MutableStateFlow(0L)
+    private val userPermissions = MutableStateFlow<UserRolePermissions?>(null)
+    private val startupConfig = MutableStateFlow<StartupConfig?>(StartupConfig(sharedLinksEnabled = true))
 
     private fun page(vararg ids: String, next: String? = null) =
         Result.Success(ConversationPage(ids.map { Conversation(conversationId = it) }, next))
@@ -46,10 +50,15 @@ class ProjectChatsViewModelTest {
         projectId = "p1",
         conversationRepository = conversationRepository,
         tagRepository = mockk(relaxed = true),
-        shareRepository = mockk(relaxed = true),
+        shareLinkControllerFactory = mockk(relaxed = true),
         conversationExporter = mockk(relaxed = true),
-        roleRepository = mockk(relaxed = true) { every { userPermissions } returns MutableStateFlow(null) },
-        configRepository = mockk(relaxed = true) { every { endpointConfigs } returns MutableStateFlow(emptyMap()) },
+        roleRepository = mockk(relaxed = true) {
+            every { userPermissions } returns this@ProjectChatsViewModelTest.userPermissions
+        },
+        configRepository = mockk(relaxed = true) {
+            every { endpointConfigs } returns MutableStateFlow(emptyMap())
+            every { startupConfig } returns this@ProjectChatsViewModelTest.startupConfig
+        },
         projectRepository = projectRepository,
         dayBoundaries = emptyFlow(),
     )
@@ -187,5 +196,24 @@ class ProjectChatsViewModelTest {
         advanceUntilIdle()
 
         assertThat(vm.uiState.value.project?.name).isEqualTo("Thesis")
+    }
+
+    @Test
+    fun `Share shows when shared links are on and the role may create them`() = runTest(testDispatcher) {
+        val vm = viewModel()
+        advanceUntilIdle()
+        assertThat(vm.uiState.value.sharedLinksEnabled).isTrue()
+
+        userPermissions.value = UserRolePermissions(
+            name = "USER",
+            permissions = mapOf("SHARED_LINKS" to mapOf("CREATE" to false)),
+        )
+        advanceUntilIdle()
+        assertThat(vm.uiState.value.sharedLinksEnabled).isFalse()
+
+        userPermissions.value = null
+        startupConfig.value = StartupConfig(sharedLinksEnabled = false)
+        advanceUntilIdle()
+        assertThat(vm.uiState.value.sharedLinksEnabled).isFalse()
     }
 }

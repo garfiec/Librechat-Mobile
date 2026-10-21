@@ -69,17 +69,16 @@ import com.garfiec.librechat.feature.conversations.components.ConversationItem
 import com.garfiec.librechat.feature.conversations.components.DateGroupHeader
 import com.garfiec.librechat.feature.conversations.components.ProjectEditorSheet
 import com.garfiec.librechat.feature.conversations.components.ProjectTile
+import com.garfiec.librechat.feature.conversations.components.ShareLinkSheetHost
 import com.garfiec.librechat.feature.conversations.components.TagPicker
 import com.garfiec.librechat.feature.conversations.export.ExportFormat
 import com.garfiec.librechat.feature.conversations.export.ExportFormatPicker
 import com.garfiec.librechat.feature.conversations.platform.FileSaver
-import com.garfiec.librechat.feature.conversations.platform.copyToClipboard
 import com.garfiec.librechat.feature.conversations.platform.showToast
 import com.garfiec.librechat.feature.conversations.resources.Res
 import com.garfiec.librechat.feature.conversations.resources.back
 import com.garfiec.librechat.feature.conversations.resources.conversation_exported
 import com.garfiec.librechat.feature.conversations.resources.copy_of
-import com.garfiec.librechat.feature.conversations.resources.link_copied
 import com.garfiec.librechat.feature.conversations.resources.new_chat
 import com.garfiec.librechat.feature.conversations.resources.project_edit
 import com.garfiec.librechat.feature.conversations.resources.project_empty_chats
@@ -139,7 +138,6 @@ fun ProjectChatsScreen(
     val copyOfPrefix = stringResource(Res.string.copy_of)
     val newChatLabel = stringResource(Res.string.new_chat)
     val conversationExportedMsg = stringResource(Res.string.conversation_exported)
-    val linkCopiedMsg = stringResource(Res.string.link_copied)
 
     FileSaver(
         triggerFileName = pendingExportFileName,
@@ -156,10 +154,6 @@ fun ProjectChatsScreen(
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
-                is ConversationListEvent.ShareLinkCopied -> {
-                    copyToClipboard(event.url, "Share Link")
-                    snackbarHostState.showSnackbar(linkCopiedMsg)
-                }
                 is ConversationListEvent.NavigateToConversation -> currentOnConversationClick(event.conversationId)
                 // Only the drawer deletes with active-conversation awareness, so this never fires here.
                 is ConversationListEvent.NavigateToNewChat -> Unit
@@ -331,6 +325,7 @@ fun ProjectChatsScreen(
             onDismiss = { selectedConversation = null },
             isBookmarked = SAVED_TAG in (selectedConversation?.tags ?: emptyList()),
             bookmarksEnabled = uiState.bookmarksEnabled,
+            showShareAction = uiState.sharedLinksEnabled,
             onBookmarkToggle = {
                 selectedConversation?.let { viewModel.toggleFavorite(it) }
                 selectedConversation = null
@@ -382,6 +377,8 @@ fun ProjectChatsScreen(
             },
         )
     }
+
+    ShareLinkSheetHost(controller = viewModel.shareLink, onDismiss = viewModel::closeShareSheet)
 
     if (showExportFormatPicker && exportConversation != null) {
         ExportFormatPicker(

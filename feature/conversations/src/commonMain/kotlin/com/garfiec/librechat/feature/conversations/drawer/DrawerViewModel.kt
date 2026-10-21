@@ -15,8 +15,9 @@ import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.ProjectRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
-import com.garfiec.librechat.core.data.repository.ShareRepository
 import com.garfiec.librechat.core.data.repository.TagRepository
+import com.garfiec.librechat.core.data.share.ShareLinkController
+import com.garfiec.librechat.core.data.share.ShareLinkControllerFactory
 import com.garfiec.librechat.core.model.ChatProject
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.ConversationTag
@@ -72,7 +73,7 @@ class DrawerViewModel(
     private val tagRepository: TagRepository,
     private val projectRepository: ProjectRepository,
     private val configRepository: ConfigRepository,
-    private val shareRepository: ShareRepository,
+    shareLinkControllerFactory: ShareLinkControllerFactory,
     private val conversationExporter: ConversationExporter,
     private val activeAccountProvider: ActiveAccountProvider,
     private val settingsDataStore: SettingsDataStore,
@@ -193,7 +194,7 @@ class DrawerViewModel(
         events = _events,
         conversationRepository = conversationRepository,
         tagRepository = tagRepository,
-        shareRepository = shareRepository,
+        shareLinkControllerFactory = shareLinkControllerFactory,
         conversationExporter = conversationExporter,
         onMutated = {},
     )
@@ -384,6 +385,8 @@ class DrawerViewModel(
         viewModelScope.launch {
             activeAccountProvider.accountTransitions().collect { transition ->
                 _activeJobIds.value = emptySet()
+                // A share sheet open on the outgoing account's chat must not act on the new one.
+                conversationActions.closeShareSheet()
                 // A load started for the outgoing account would otherwise land after this reset.
                 projectsLoadJob?.cancel()
                 lastProjectsReload = null
@@ -608,7 +611,12 @@ class DrawerViewModel(
         isActive = conversationListStateHolder.activeConversationId.value == id,
     )
 
+    /** The share sheet's controller: what the sheet shows, and its Create / Update / Delete. */
+    val shareLink: ShareLinkController get() = conversationActions.shareLink
+
     fun shareConversation(conversationId: String) = conversationActions.shareConversation(conversationId)
+
+    fun closeShareSheet() = conversationActions.closeShareSheet()
 
     fun duplicateConversation(conversationId: String, title: String?) =
         conversationActions.duplicateConversation(conversationId, title)

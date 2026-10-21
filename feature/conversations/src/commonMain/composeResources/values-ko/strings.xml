@@ -37,7 +37,6 @@
     <string name="start_new_chat">새 채팅을 시작하세요</string>
     <string name="unknown_error">알 수 없는 오류가 발생했습니다</string>
     <string name="conversation_exported">대화를 내보냈습니다</string>
-    <string name="link_copied">링크가 복사되었습니다!</string>
     <string name="imported_title">가져옴: %1$s</string>
     <string name="copy_of">%1$s의 사본</string>
 
