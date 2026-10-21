@@ -90,6 +90,7 @@ import com.garfiec.librechat.feature.chat.resources.shared_chat_not_found_descri
 import com.garfiec.librechat.feature.chat.resources.shared_chat_open_in_browser
 import com.garfiec.librechat.feature.chat.resources.shared_chat_rate_limited
 import com.garfiec.librechat.feature.chat.resources.shared_chat_rate_limited_description
+import com.garfiec.librechat.feature.chat.resources.shared_chat_refresh_failed
 import com.garfiec.librechat.feature.chat.resources.shared_chat_subtitle
 import com.garfiec.librechat.feature.chat.resources.shared_chat_title_fallback
 import com.garfiec.librechat.feature.chat.resources.shared_chat_user
@@ -162,6 +163,11 @@ fun SharedChatScreen(
                 SharedChatEvent.LinkUpdated -> getString(Res.string.shared_chat_link_updated)
                 SharedChatEvent.ContinueRateLimited -> getString(Res.string.shared_chat_continue_rate_limited)
                 SharedChatEvent.ContinueFailed -> getString(Res.string.shared_chat_continue_failed)
+                is SharedChatEvent.RefreshFailed -> if (event.rateLimited) {
+                    getString(Res.string.shared_chat_rate_limited)
+                } else {
+                    getString(Res.string.shared_chat_refresh_failed)
+                }
                 is SharedChatEvent.ContinueBlocked -> event.serverMessage
                     ?.let { getString(Res.string.shared_chat_continue_blocked_reason, it) }
                     ?: getString(Res.string.shared_chat_continue_blocked)

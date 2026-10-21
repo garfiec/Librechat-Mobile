@@ -262,8 +262,9 @@ class SharedChatViewModelTest {
     }
 
     @Test
-    fun `a refresh that can't get through keeps what is on screen`() = runTest(testDispatcher) {
+    fun `a refresh that can't get through keeps what is on screen and says so`() = runTest(testDispatcher) {
         val vm = viewModel()
+        val events = eventsOf(vm)
         advanceUntilIdle()
         coEvery { shareRepository.getSharedSnapshot("share-1") } returns
             Result.Error(message = "offline", kind = FailureKind.Network)
@@ -274,6 +275,33 @@ class SharedChatViewModelTest {
         assertThat(vm.uiState.value.error).isNull()
         assertThat(vm.uiState.value.snapshot).isEqualTo(snapshot)
         assertThat(vm.uiState.value.isRefreshing).isFalse()
+        assertThat(events).containsExactly(SharedChatEvent.RefreshFailed(rateLimited = false))
+    }
+
+    @Test
+    fun `a rate-limited refresh says so over the content`() = runTest(testDispatcher) {
+        val vm = viewModel()
+        val events = eventsOf(vm)
+        advanceUntilIdle()
+        coEvery { shareRepository.getSharedSnapshot("share-1") } returns apiError(429, null)
+
+        vm.reload()
+        advanceUntilIdle()
+
+        assertThat(vm.uiState.value.snapshot).isEqualTo(snapshot)
+        assertThat(events).containsExactly(SharedChatEvent.RefreshFailed(rateLimited = true))
+    }
+
+    @Test
+    fun `a first load that fails shows the error state, not a refresh notice`() = runTest(testDispatcher) {
+        coEvery { shareRepository.getSharedSnapshot("share-1") } returns
+            Result.Error(message = "offline", kind = FailureKind.Network)
+        val vm = viewModel()
+        val events = eventsOf(vm)
+        advanceUntilIdle()
+
+        assertThat(vm.uiState.value.error).isEqualTo(SharedChatError.NETWORK)
+        assertThat(events).isEmpty()
     }
 
     @Test

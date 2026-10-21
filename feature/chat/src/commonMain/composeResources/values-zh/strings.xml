@@ -772,6 +772,7 @@
     <string name="shared_chat_link_updated">此链接已更新，现在显示的是最新版本。</string>
     <string name="shared_chat_continue_rate_limited">继续聊天的请求过多，请稍后再试。</string>
     <string name="shared_chat_continue_failed">无法继续此聊天</string>
+    <string name="shared_chat_refresh_failed">无法刷新此共享的聊天</string>
     <string name="shared_chat_continue_blocked">你的服务器阻止了复制此聊天</string>
     <string name="shared_chat_continue_blocked_reason">你的服务器阻止了复制此聊天：%1$s</string>
     <string name="shared_chat_not_found">未找到共享链接</string>

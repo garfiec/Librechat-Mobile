@@ -824,6 +824,7 @@
     <string name="shared_chat_link_updated">This link was updated. The latest version is now showing.</string>
     <string name="shared_chat_continue_rate_limited">Too many requests to continue chats. Try again later.</string>
     <string name="shared_chat_continue_failed">Couldn’t continue this chat</string>
+    <string name="shared_chat_refresh_failed">Couldn’t refresh this shared chat</string>
     <string name="shared_chat_continue_blocked">Your server blocked copying this chat</string>
     <string name="shared_chat_continue_blocked_reason">Your server blocked copying this chat: %1$s</string>
     <string name="shared_chat_not_found">Shared link not found</string>

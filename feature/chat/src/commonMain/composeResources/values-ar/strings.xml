@@ -812,6 +812,7 @@
     <string name="shared_chat_link_updated">تم تحديث هذا الرابط. يتم الآن عرض أحدث إصدار.</string>
     <string name="shared_chat_continue_rate_limited">طلبات كثيرة جدًا لمتابعة المحادثات. حاول مرة أخرى لاحقًا.</string>
     <string name="shared_chat_continue_failed">تعذّرت متابعة هذه المحادثة</string>
+    <string name="shared_chat_refresh_failed">تعذّر تحديث هذه المحادثة المشتركة</string>
     <string name="shared_chat_continue_blocked">منع الخادم نسخ هذه المحادثة</string>
     <string name="shared_chat_continue_blocked_reason">منع الخادم نسخ هذه المحادثة: %1$s</string>
     <string name="shared_chat_not_found">لم يتم العثور على الرابط المشترك</string>

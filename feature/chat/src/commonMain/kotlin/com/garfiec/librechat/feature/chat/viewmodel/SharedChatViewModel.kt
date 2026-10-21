@@ -67,6 +67,9 @@ sealed interface SharedChatEvent {
 
     /** Continue failed for another reason. */
     data object ContinueFailed : SharedChatEvent
+
+    /** A refresh over content on screen didn't get through; [rateLimited] when the server said slow down. */
+    data class RefreshFailed(val rateLimited: Boolean) : SharedChatEvent
 }
 
 /** A text-source file opened as text: its [text] once read, or [failed]. */
@@ -199,10 +202,11 @@ class SharedChatViewModel(
 
     private fun fail(failure: ShareFailure) {
         val error = failure.toViewerError()
+        // A refresh that couldn't get through leaves what is on screen, says so, and the next pull
+        // tries again. A link that is gone, closed to this account or now filtered is not shown.
+        val keepsContent = _uiState.value.snapshot != null && error in TRANSIENT_ERRORS
         _uiState.update {
-            if (it.snapshot != null && error in TRANSIENT_ERRORS) {
-                // A refresh that couldn't get through leaves what is on screen; the next pull tries
-                // again. A link that is gone, closed to this account or now filtered is not shown.
+            if (keepsContent) {
                 it.copy(isRefreshing = false)
             } else {
                 it.copy(
@@ -215,6 +219,9 @@ class SharedChatViewModel(
                     blockedMessage = failure.serverMessage.takeIf { failure.isContentFilter },
                 )
             }
+        }
+        if (keepsContent) {
+            _events.trySend(SharedChatEvent.RefreshFailed(rateLimited = error == SharedChatError.RATE_LIMITED))
         }
     }
 
