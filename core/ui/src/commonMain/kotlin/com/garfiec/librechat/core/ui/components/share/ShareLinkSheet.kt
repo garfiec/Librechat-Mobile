@@ -46,6 +46,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
@@ -176,6 +177,9 @@ fun ShareLinkSheet(
     val onAccessPage = access != AclState.Closed && ShareSheetControls.of(state).manageAccess
     AdaptiveModalBottomSheet(
         onDismissRequest = onDismiss,
+        // Open in full, as the glass panel does: the Linked page is taller than half a phone, so a
+        // partial start would hide Preview, Manage access and Delete below the fold on Material.
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         // The sheet is its own layer, so the app root's clearFocusOnTap never sees its taps.
         modifier = Modifier.clearFocusOnTap(),
         dragHandle = { LowProfileDragHandle() },

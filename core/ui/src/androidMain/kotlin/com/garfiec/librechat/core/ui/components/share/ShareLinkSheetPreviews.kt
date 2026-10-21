@@ -68,11 +68,19 @@ private fun ReducedMaterialPreview() = SheetPreview(UiStyle.MATERIAL, reduced())
 @Composable
 private fun ReducedGlassPreview() = SheetPreview(UiStyle.LIQUID_GLASS, reduced())
 
+/** The real Material sheet, opened in full rather than at half height. */
+@PreviewNarrowScreens
+@Composable
+private fun FullSheetMaterialPreview() = FullSheetPreview(UiStyle.MATERIAL)
+
 /** The real sheet, portalled into the glass host: what the screen shows over a page. */
 @PreviewNarrowScreens
 @Composable
-private fun FullSheetGlassPreview() {
-    LibreChatTheme(darkTheme = true, uiStyle = UiStyle.LIQUID_GLASS) {
+private fun FullSheetGlassPreview() = FullSheetPreview(UiStyle.LIQUID_GLASS)
+
+@Composable
+private fun FullSheetPreview(style: UiStyle) {
+    LibreChatTheme(darkTheme = style == UiStyle.LIQUID_GLASS, uiStyle = style) {
         GlassSheetHost(Modifier.fillMaxWidth().height(SCREEN_HEIGHT.dp)) {
             Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
                 ShareLinkSheet(
