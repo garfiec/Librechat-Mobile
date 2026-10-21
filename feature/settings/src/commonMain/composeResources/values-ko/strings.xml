@@ -26,7 +26,7 @@
     <string name="cd_change_avatar">아바타 변경</string>
     <string name="cd_choose_image">이미지 선택</string>
     <string name="cd_copy_api_key">API 키 복사</string>
-    <string name="cd_copy_link">링크 복사</string>
+    <string name="shared_chats_copy_link">링크 복사</string>
     <string name="cd_create_api_key">API 키 생성</string>
     <string name="cd_current_avatar">현재 아바타</string>
     <string name="cd_delete">삭제</string>

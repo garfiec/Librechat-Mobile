@@ -53,7 +53,7 @@ import com.garfiec.librechat.core.ui.datetime.resolve
 import com.garfiec.librechat.feature.settings.model.SharedLinkDisplayData
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.resources.action_delete
-import com.garfiec.librechat.feature.settings.resources.cd_copy_link
+import com.garfiec.librechat.feature.settings.resources.shared_chats_copy_link
 import com.garfiec.librechat.feature.settings.resources.shared_chats_open_chat
 import com.garfiec.librechat.feature.settings.resources.shared_chats_options
 import com.garfiec.librechat.feature.settings.resources.shared_chats_shared_on
@@ -190,7 +190,7 @@ private fun SharedLinkMenuButton(
             SharedLinkMenuItem(
                 drag,
                 Icons.Default.ContentCopy,
-                stringResource(Res.string.cd_copy_link),
+                stringResource(Res.string.shared_chats_copy_link),
                 onClick = close(onCopyLink),
             )
             SharedLinkMenuItem(

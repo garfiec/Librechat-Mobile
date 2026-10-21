@@ -26,7 +26,7 @@
     <string name="cd_change_avatar">Changer l'avatar</string>
     <string name="cd_choose_image">Choisir une image</string>
     <string name="cd_copy_api_key">Copier la clé API</string>
-    <string name="cd_copy_link">Copier le lien</string>
+    <string name="shared_chats_copy_link">Copier le lien</string>
     <string name="cd_create_api_key">Créer une clé API</string>
     <string name="cd_current_avatar">Avatar actuel</string>
     <string name="cd_delete">Supprimer</string>

@@ -26,7 +26,7 @@
     <string name="cd_change_avatar">Change avatar</string>
     <string name="cd_choose_image">Choose image</string>
     <string name="cd_copy_api_key">Copy API key</string>
-    <string name="cd_copy_link">Copy link</string>
+    <string name="shared_chats_copy_link">Copy link</string>
     <string name="cd_create_api_key">Create API key</string>
     <string name="cd_current_avatar">Current avatar</string>
     <string name="cd_delete">Delete</string>

@@ -26,7 +26,7 @@
     <string name="cd_change_avatar">アバターを変更</string>
     <string name="cd_choose_image">画像を選択</string>
     <string name="cd_copy_api_key">APIキーをコピー</string>
-    <string name="cd_copy_link">リンクをコピー</string>
+    <string name="shared_chats_copy_link">リンクをコピー</string>
     <string name="cd_create_api_key">APIキーを作成</string>
     <string name="cd_current_avatar">現在のアバター</string>
     <string name="cd_delete">削除</string>

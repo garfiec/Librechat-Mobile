@@ -26,7 +26,7 @@
     <string name="cd_change_avatar">更换头像</string>
     <string name="cd_choose_image">选择图片</string>
     <string name="cd_copy_api_key">复制 API 密钥</string>
-    <string name="cd_copy_link">复制链接</string>
+    <string name="shared_chats_copy_link">复制链接</string>
     <string name="cd_create_api_key">创建 API 密钥</string>
     <string name="cd_current_avatar">当前头像</string>
     <string name="cd_delete">删除</string>

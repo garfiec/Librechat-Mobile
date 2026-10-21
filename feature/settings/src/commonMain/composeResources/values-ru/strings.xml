@@ -26,7 +26,7 @@
     <string name="cd_change_avatar">Изменить аватар</string>
     <string name="cd_choose_image">Выбрать изображение</string>
     <string name="cd_copy_api_key">Скопировать API-ключ</string>
-    <string name="cd_copy_link">Скопировать ссылку</string>
+    <string name="shared_chats_copy_link">Скопировать ссылку</string>
     <string name="cd_create_api_key">Создать API-ключ</string>
     <string name="cd_current_avatar">Текущий аватар</string>
     <string name="cd_delete">Удалить</string>
