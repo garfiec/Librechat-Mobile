@@ -209,9 +209,11 @@ internal fun AgentMarketplaceContent(
         floatingActionButton = {
             // The empty server's state carries its own New agent button; two would compete.
             if (uiState.showsNewAgentFab) {
+                val newAgentLabel = stringResource(Res.string.agents_new_agent)
                 AdaptiveExtendedFloatingActionButton(
-                    text = { Text(stringResource(Res.string.agents_new_agent)) },
-                    icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                    text = { Text(newAgentLabel) },
+                    // Collapsed, the text leaves the tree and the icon is all a screen reader finds.
+                    icon = { Icon(Icons.Default.Add, contentDescription = if (fabExpanded) null else newAgentLabel) },
                     onClick = actions.onCreateAgent,
                     expanded = fabExpanded,
                 )
