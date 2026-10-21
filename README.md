@@ -9,7 +9,7 @@ A third-party native mobile client for [LibreChat](https://www.librechat.ai/) (A
 ## Why use this instead of the web app?
 
 - **Smoother and faster** — a real native app instead of a website in a wrapper, so scrolling, typing, and watching responses stream in all feel snappier.
-- **Feels like a mobile app, not a shrunk-down website** — familiar gestures like swipe to switch accounts and swipe back, menus you can press, drag and release in one motion, comfortable tap targets, and a layout that adapts to tablets and foldables — including the iPhone Duo.
+- **Feels like a mobile app, not a shrunk-down website** — familiar gestures like swipe to switch accounts and swipe back, menus you can press, drag and release in one motion, comfortable tap targets, and a layout that adapts to tablets and foldables.
 - **Make it yours** — switch between Material and Liquid Glass styles on Android or iPhone, pick any accent color and watch the whole app recolor around it, or let it match your wallpaper.
 - **Plays nicely with your phone** — share text, images, and files into the app from anywhere *(Android)*, pin your favorite models or generated content to your home screen, open chat links straight into the right screen, and save or share images through your phone's normal menus.
 - **Works without a connection** — your chat list and any conversations you've opened are saved on your phone, so you can keep reading with spotty or no signal. Turn on background prefetch and recent chats are ready offline before you even open them.
