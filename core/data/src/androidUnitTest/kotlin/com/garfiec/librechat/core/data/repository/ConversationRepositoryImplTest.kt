@@ -40,6 +40,7 @@ class ConversationRepositoryImplTest {
     private val json = Json { ignoreUnknownKeys = true }
     private val account = AccountId("srv:user-1")
     private val activeAccountProvider = InMemoryActiveAccountProvider(AccountState.Resolved(account))
+    private val shareChanges = ShareChangeSignal()
 
     private lateinit var repository: ConversationRepositoryImpl
 
@@ -54,6 +55,7 @@ class ConversationRepositoryImplTest {
             roster = roster,
             json = json,
             dispatcher = UnconfinedTestDispatcher(),
+            shareChanges = shareChanges,
         )
     }
 
@@ -130,6 +132,29 @@ class ConversationRepositoryImplTest {
     }
 
     @Test
+    fun `a delete the server took bumps the share revision, since its shared links went with it`() = runTest {
+        coEvery { conversationsApi.deleteConversation("convo-1") } just Runs
+        coEvery { conversationsApi.deleteAllConversations() } just Runs
+
+        repository.delete("convo-1")
+        assertThat(shareChanges.revision.value).isEqualTo(1L)
+
+        repository.deleteAll()
+        assertThat(shareChanges.revision.value).isEqualTo(2L)
+    }
+
+    @Test
+    fun `a delete the server refused leaves the share revision alone`() = runTest {
+        coEvery { conversationsApi.deleteConversation("convo-1") } throws RuntimeException("offline")
+        coEvery { conversationsApi.deleteAllConversations() } throws RuntimeException("offline")
+
+        assertThat(repository.delete("convo-1")).isInstanceOf(Result.Error::class.java)
+        assertThat(repository.deleteAll()).isInstanceOf(Result.Error::class.java)
+
+        assertThat(shareChanges.revision.value).isEqualTo(0L)
+    }
+
+    @Test
     fun `deleteAll also clears the account's cached messages and prefetch watermarks`() = runTest {
         coEvery { conversationsApi.deleteAllConversations() } just Runs
 
@@ -156,6 +181,7 @@ class ConversationRepositoryImplTest {
             json = json,
             dispatcher = UnconfinedTestDispatcher(),
             searchIndexMaintenance = maintenance,
+            shareChanges = shareChanges,
         )
 
         indexed.deleteAll()

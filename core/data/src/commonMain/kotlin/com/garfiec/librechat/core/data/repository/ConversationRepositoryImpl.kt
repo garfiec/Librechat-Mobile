@@ -41,6 +41,9 @@ class ConversationRepositoryImpl(
     private val json: Json,
     private val dispatcher: CoroutineDispatcher,
     private val searchIndexMaintenance: SearchIndexMaintenance? = null,
+    // The server deletes a conversation's shared links with it, so the Shared chats page and the
+    // chat menu's "Link active" cue must hear about every delete, from any surface.
+    private val shareChanges: ShareChangeSignal,
 ) : ConversationRepository {
 
     // toModels() decodes each row's tags JSON and formats two timestamps, so the whole cached list
@@ -206,6 +209,7 @@ class ConversationRepositoryImpl(
         return safeApiCall {
             val accountId = activeAccountProvider.currentAccountId()?.value
             conversationsApi.deleteConversation(id)
+            shareChanges.bump()
             // The local delete must be account-scoped, so it can't run while unresolved. The server row
             // is already gone, so the stale local row lingers in the list until a resolved-account wipe;
             // log it. In practice a delete is a foreground action where the account is resolved.
@@ -282,6 +286,7 @@ class ConversationRepositoryImpl(
         val accountId = activeAccountProvider.currentAccountId()?.value
         return safeApiCall {
             conversationsApi.deleteAllConversations()
+            shareChanges.bump()
             if (accountId != null) {
                 // The same set AccountDataPurger clears, minus the account-level rows (drafts, tags)
                 // the server call never touched. Messages have no FK to their conversation, so a

@@ -6,8 +6,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 /**
- * Counts changes to the user's shared links: a link created, updated or deleted, or found gone.
- * One shared instance, so the Shared chats list reloads after a change made from any share sheet.
+ * Counts changes to the user's shared links: a link created, updated or deleted, or found gone,
+ * and a conversation deleted, since the server deletes that conversation's links with it. One
+ * shared instance, so the Shared chats list reloads after a change made from any surface.
  * Surfaced as [ShareRepository.revision].
  */
 class ShareChangeSignal {

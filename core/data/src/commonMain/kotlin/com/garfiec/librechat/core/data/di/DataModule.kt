@@ -488,6 +488,7 @@ val dataModule = module {
             json = get(),
             dispatcher = get(KoinQualifiers.Default),
             searchIndexMaintenance = get(),
+            shareChanges = get(),
         )
     }
 
