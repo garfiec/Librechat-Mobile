@@ -33,6 +33,8 @@ import platform.UIKit.NSDirectionalRectEdgeTrailing
 import platform.UIKit.NSFontAttributeName
 import platform.UIKit.NSLineBreakByTruncatingTail
 import platform.UIKit.UIAction
+import platform.UIKit.UIActivityIndicatorView
+import platform.UIKit.UIActivityIndicatorViewStyleMedium
 import platform.UIKit.UIAlertAction
 import platform.UIKit.UIAlertActionStyleCancel
 import platform.UIKit.UIAlertActionStyleDefault
@@ -115,7 +117,7 @@ internal actual fun NativeGlassTopBar(spec: AdaptiveTopBarSpec, modifier: Modifi
  * menu, so they are rebuilt only when this changes. Menu *contents* are left out on purpose — menus
  * are built from the latest spec each time they open.
  */
-private data class BarSnapshot(
+internal data class BarSnapshot(
     val navSymbol: String?,
     val navLabel: String?,
     val titleText: String?,
@@ -125,7 +127,7 @@ private data class BarSnapshot(
     val actions: List<ActionSnapshot>,
 )
 
-private data class ActionSnapshot(
+internal data class ActionSnapshot(
     val id: String,
     val kind: String,
     val symbol: String,
@@ -133,9 +135,10 @@ private data class ActionSnapshot(
     val checked: Boolean,
     val tint: BarTint,
     val enabled: Boolean,
+    val busy: Boolean = false,
 )
 
-private fun AdaptiveTopBarSpec.snapshot() = BarSnapshot(
+internal fun AdaptiveTopBarSpec.snapshot() = BarSnapshot(
     navSymbol = navigation?.icon?.sfSymbol,
     navLabel = navigation?.contentDescription,
     titleText = title.text,
@@ -146,6 +149,7 @@ private fun AdaptiveTopBarSpec.snapshot() = BarSnapshot(
         when (action) {
             is BarAction.Icon -> ActionSnapshot(
                 action.id, "icon", action.icon.sfSymbol, action.label, false, action.tint, action.enabled && !action.busy,
+                busy = action.busy,
             )
             is BarAction.Text -> ActionSnapshot(action.id, "text", "", action.label, false, BarTint.DEFAULT, action.enabled)
             is BarAction.Toggle -> ActionSnapshot(
@@ -314,6 +318,7 @@ private class NativeBarContainer(
     }
 
     private fun barButton(action: ActionSnapshot): UIBarButtonItem {
+        if (action.busy) return busyBarButton(action.label, bar.tintColor)
         val image = if (action.symbol.isEmpty()) null else UIImage.systemImageNamed(action.symbol)
         return when (action.kind) {
             "menu" -> UIBarButtonItem(
@@ -412,6 +417,19 @@ private class NativeBarContainer(
         while (true) top = top.presentedViewController ?: break
         top.presentViewController(alert, animated = true, completion = null)
     }
+}
+
+/**
+ * A busy icon action: a spinner where the icon was, as the Compose bars draw it. The indicator
+ * takes no touches, so the action can't fire again while it runs.
+ */
+internal fun busyBarButton(label: String, tint: UIColor?): UIBarButtonItem {
+    val indicator = UIActivityIndicatorView(activityIndicatorStyle = UIActivityIndicatorViewStyleMedium).apply {
+        tint?.let { color = it }
+        accessibilityLabel = label
+        startAnimating()
+    }
+    return UIBarButtonItem(customView = indicator).apply { accessibilityLabel = label }
 }
 
 private fun Color.toUIColor(): UIColor =
