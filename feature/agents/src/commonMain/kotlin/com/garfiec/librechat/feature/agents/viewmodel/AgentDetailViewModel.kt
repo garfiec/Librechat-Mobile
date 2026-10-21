@@ -40,8 +40,8 @@ data class AgentDetailUiState(
      */
     val isFullRecord: Boolean = false,
     val canEdit: Boolean = false,
-    /** AGENTS.CREATE: Duplicate makes a new agent. Permissive until the role says otherwise. */
-    val canDuplicate: Boolean = true,
+    /** The role's AGENTS.CREATE. Permissive until the role says otherwise. */
+    val canCreate: Boolean = true,
     /** Pinned to the chat model menu (`/api/user/settings/favorites`). */
     val isPinned: Boolean = false,
     /** The server's categories, for an admin's own category label. Empty until (unless) they load. */
@@ -51,7 +51,16 @@ data class AgentDetailUiState(
     val isDuplicating: Boolean = false,
     /** A Delete, Duplicate or pin that failed. Shown once as a snackbar; the page stays. */
     val actionError: AgentActionError? = null,
-)
+) {
+    /** The duplicate route needs AGENTS.CREATE and EDIT on the source (upstream routes/agents/v1.js). */
+    val canDuplicate: Boolean get() = canEdit && canCreate
+
+    /**
+     * The delete route needs AGENTS.CREATE and the agent's DELETE bit. Nothing reports DELETE on its
+     * own, so EDIT stands in for it; a 403 still lands in the action-error snackbar.
+     */
+    val canDelete: Boolean get() = canEdit && canCreate
+}
 
 /** Why the page could not load: the server's [message], or null for the page's own wording. */
 @Immutable
@@ -118,7 +127,7 @@ class AgentDetailViewModel(
         viewModelScope.launch {
             roleRepository.userPermissions.collect { role ->
                 _uiState.update {
-                    it.copy(canDuplicate = role.hasAccessOrPermissive(PermissionType.AGENTS, Permission.CREATE))
+                    it.copy(canCreate = role.hasAccessOrPermissive(PermissionType.AGENTS, Permission.CREATE))
                 }
             }
         }
@@ -257,6 +266,7 @@ class AgentDetailViewModel(
     }
 
     fun showDeleteConfirmation() {
+        if (!_uiState.value.canDelete) return
         _uiState.update { it.copy(showDeleteDialog = true) }
     }
 
@@ -265,7 +275,8 @@ class AgentDetailViewModel(
     }
 
     fun deleteAgent() {
-        if (_uiState.value.isDeleting) return
+        val state = _uiState.value
+        if (state.isDeleting || !state.canDelete) return
         viewModelScope.launch {
             _uiState.update { it.copy(isDeleting = true, showDeleteDialog = false, actionError = null) }
             when (val result = agentRepository.deleteAgent(agentId)) {

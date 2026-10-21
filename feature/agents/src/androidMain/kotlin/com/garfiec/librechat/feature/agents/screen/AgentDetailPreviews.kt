@@ -87,7 +87,7 @@ private val viewOnly = AgentDetailUiState(
         categoryValue = "general",
         contact = AgentContactDisplayData(name = "Platform", email = null),
     ),
-    canDuplicate = false,
+    canCreate = false,
 )
 
 private val loadFailed = AgentDetailUiState(loadError = AgentLoadError(message = null))

@@ -261,7 +261,7 @@ private fun agentBarActions(
         if (uiState.canDuplicate) {
             add(BarMenuItem(id = "duplicate", label = duplicate, icon = BarIcons.DuplicateFilled, onClick = actions.onDuplicate))
         }
-        if (uiState.canEdit) {
+        if (uiState.canDelete) {
             add(
                 BarMenuItem(
                     id = "delete",

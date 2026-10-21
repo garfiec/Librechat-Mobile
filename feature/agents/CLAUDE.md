@@ -80,7 +80,9 @@
   "Try asking" starter cards. Capped at 600dp wide, centred.
 - Categories are read once, only for an agent with a non-general category, so an admin's own label shows.
 - **Bar**: a star toggle (pin to the chat model menu), then ⋮ = Copy link, Edit (canEdit), Duplicate
-  (AGENTS.CREATE, `canDuplicate`), Delete (canEdit). While Duplicate or Delete runs, ⋮ is a spinner.
+  (`canDuplicate`), Delete (`canDelete`). Both are `canEdit && canCreate` (AGENTS.CREATE): the duplicate route
+  needs EDIT on the source, the delete route needs CREATE plus a DELETE bit nothing reports (EDIT stands in;
+  a 403 is an action error). The VM no-ops either when its gate is false. While one runs, ⋮ is a spinner.
 - **Pin**: writes the WHOLE favorites list through `FavoritesRepository`, like `FavoritesDelegate.toggleAgent`
   in feature/chat. **Gotcha**: never toggle on a list that wasn't read: the VM refreshes on open and, if that
   failed, refreshes again before the first write; a failed read is an error, not a write of `[thisAgent]`.

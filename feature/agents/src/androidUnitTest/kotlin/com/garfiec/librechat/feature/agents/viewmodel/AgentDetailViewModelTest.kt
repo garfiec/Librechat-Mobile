@@ -395,6 +395,60 @@ class AgentDetailViewModelTest {
         coVerify(exactly = 0) { agentRepository.duplicateAgent(any()) }
     }
 
+    /** The duplicate route needs EDIT on the source and the delete route needs CREATE: neither is offered. */
+    @Test
+    fun `a view-only agent offers neither duplicate nor delete even with AGENTS CREATE`() = runTest(testDispatcher) {
+        coEvery { agentRepository.getAgentForEditing("agent-1") } returns forbidden()
+        coEvery { agentRepository.getAgent("agent-1") } returns Result.Success(agent)
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.canCreate).isTrue()
+        assertThat(state.canEdit).isFalse()
+        assertThat(state.canDuplicate).isFalse()
+        assertThat(state.canDelete).isFalse()
+
+        viewModel.duplicateAgent()
+        viewModel.showDeleteConfirmation()
+        viewModel.deleteAgent()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.showDeleteDialog).isFalse()
+        coVerify(exactly = 0) { agentRepository.duplicateAgent(any()) }
+        coVerify(exactly = 0) { agentRepository.deleteAgent(any()) }
+    }
+
+    @Test
+    fun `an editable agent without AGENTS CREATE offers neither duplicate nor delete`() = runTest(testDispatcher) {
+        coEvery { agentRepository.getAgentForEditing("agent-1") } returns Result.Success(agent)
+        role.value = UserRolePermissions(name = "USER", permissions = mapOf("AGENTS" to mapOf("CREATE" to false)))
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.canEdit).isTrue()
+        assertThat(state.canDuplicate).isFalse()
+        assertThat(state.canDelete).isFalse()
+
+        viewModel.duplicateAgent()
+        viewModel.deleteAgent()
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { agentRepository.duplicateAgent(any()) }
+        coVerify(exactly = 0) { agentRepository.deleteAgent(any()) }
+    }
+
+    @Test
+    fun `an editable agent with AGENTS CREATE offers duplicate and delete`() = runTest(testDispatcher) {
+        coEvery { agentRepository.getAgentForEditing("agent-1") } returns Result.Success(agent)
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.canDuplicate).isTrue()
+        assertThat(viewModel.uiState.value.canDelete).isTrue()
+    }
+
     // --- Pin ---
 
     @Test
