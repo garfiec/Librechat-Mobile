@@ -1691,6 +1691,19 @@
       },
       "why": "Which MCP servers offer Edit and Delete: none without a dbId (YAML-defined) or with consumeOnly, otherwise the effective permission bits keyed by dbId. Deliberately looser than upstream where the bits are unknown.",
       "failure_mode": "Upstream adds a new read-only marker or changes which id the permissions map is keyed by, and the app offers Edit/Delete on servers the user can't change (each save refused) or hides them on servers they can. Nothing errors until a write is attempted."
+    },
+    {
+      "id": "image-gen-faux-progress",
+      "upstream": {
+        "file": "client/src/components/Chat/Messages/Content/Parts/OpenAIImageGen/OpenAIImageGen.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/ImageGenCard.kt",
+        "symbol": "imageGenFauxDurationMs / imageGenFauxProgress"
+      },
+      "why": "The server sends no progress while an image generates, so the card's percentage and pixel reveal are a client-side timer: 10s / 20s / 50s by quality plus up to 30% jitter, 200ms ticks, a near-linear curve to 80% of the run easing out over the last 20%, from 0.1 to a 0.9 cap. All of it lives inside the component's useEffect body, which the block extractor cannot isolate, so the whole file is watched; churn in the rest of the component (sizing, cancelled state, intent labels) reports DRIFT -- check those constants, not the file.",
+      "failure_mode": "The mobile bar runs faster or slower than web's for the same quality, or stalls at a different point. Nothing errors."
     }
   ]
 }
