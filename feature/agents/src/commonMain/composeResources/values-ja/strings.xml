@@ -43,8 +43,8 @@
     <string name="agents_new_agent">新しいエージェント</string>
     <string name="agent_unnamed">名前のないエージェント</string>
     <string name="agents_clear_search">検索をクリア</string>
-    <string name="agents_no_matches_in">%1$s に一致するものはありません</string>
-    <string name="agents_none_in">%1$s にエージェントはありません</string>
+    <string name="agents_no_matches_in">%1$sでは一致するエージェントが見つかりません</string>
+    <string name="agents_none_in">%1$sにエージェントはありません</string>
     <string name="agents_search_all">すべてのエージェントを検索</string>
     <string name="agents_show_all">すべてのエージェントを表示</string>
     <string name="agents_empty_title">エージェントはまだありません</string>

@@ -43,7 +43,7 @@
     <string name="agents_new_agent">새 에이전트</string>
     <string name="agent_unnamed">이름 없는 에이전트</string>
     <string name="agents_clear_search">검색어 지우기</string>
-    <string name="agents_no_matches_in">%1$s에 일치하는 항목 없음</string>
+    <string name="agents_no_matches_in">%1$s에서 일치하는 에이전트 없음</string>
     <string name="agents_none_in">%1$s에 에이전트 없음</string>
     <string name="agents_search_all">모든 에이전트 검색</string>
     <string name="agents_show_all">모든 에이전트 보기</string>
