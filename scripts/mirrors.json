@@ -1842,6 +1842,20 @@
       "failure_mode": "Web moves the viewer route (or adds a prefix) and every link the app copies, shows as a QR code or hands to the system share sheet opens a 404. Nothing errors in the app."
     },
     {
+      "id": "share-link-route",
+      "upstream": {
+        "file": "client/src/routes/index.tsx",
+        "symbol": "router",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/common/src/commonMain/kotlin/com/garfiec/librechat/core/common/identity/ShareLinkMatcher.kt",
+        "symbol": "ShareLinkMatcher.parse"
+      },
+      "why": "A tapped or shared-in link opens the in-app viewer only when it reads as `<server>/share/<shareId>`: the web client's `share/:shareId` route under the deployment's base path, one id segment. Anything else goes to the browser (taps) or the composer (share-to).",
+      "failure_mode": "Web moves or renames the viewer route and links to it stop opening in the app (they go to the browser instead), or the app opens a path web no longer treats as a share. Nothing errors."
+    },
+    {
       "id": "shared-links-sort-keys",
       "upstream": {
         "file": "api/server/routes/share.js",
