@@ -63,8 +63,9 @@ class AclPolicy(
  * access on request. [state] is what the `:core:ui` `AclSharingSection` renders.
  *
  * Gates follow the server, fail-closed: public access needs the role's [AclPolicy.permissionType]
- * SHARE_PUBLIC, and people search needs PEOPLE_PICKER VIEW_USERS or VIEW_GROUPS (the server answers
- * `search-principals` with a 403 otherwise). Who may open the editor at all is the host's call.
+ * SHARE_PUBLIC, and people search needs any of PEOPLE_PICKER VIEW_USERS, VIEW_GROUPS or VIEW_ROLES:
+ * the server searches only the types the role may see and answers `search-principals` with a 403
+ * when it may see none. Who may open the editor at all is the host's call.
  *
  * Writes send `public` only when public access is what changes: the server checks SHARE_PUBLIC
  * whenever `public` is true, so echoing it on a grant would refuse anyone without SHARE_PUBLIC on
@@ -161,7 +162,7 @@ class AclController(
         write(current, UpdateResourcePermissionsRequest(removed = listOf(principal)))
     }
 
-    /** Searches people and groups to add, debounced. Needs the people picker. */
+    /** Searches people, groups and roles to add, debounced. Needs the people picker. */
     fun onSearchQueryChange(query: String) {
         searchJob?.cancel()
         // The server answers 400 to a too-short query, so one is never sent.
@@ -250,7 +251,8 @@ class AclController(
     private fun gates(role: UserRolePermissions?) = Gates(
         canSharePublic = role.hasAccessStrictOrDenied(policy.permissionType, Permission.SHARE_PUBLIC),
         canSearch = role.hasAccessStrictOrDenied(PermissionType.PEOPLE_PICKER, Permission.VIEW_USERS) ||
-            role.hasAccessStrictOrDenied(PermissionType.PEOPLE_PICKER, Permission.VIEW_GROUPS),
+            role.hasAccessStrictOrDenied(PermissionType.PEOPLE_PICKER, Permission.VIEW_GROUPS) ||
+            role.hasAccessStrictOrDenied(PermissionType.PEOPLE_PICKER, Permission.VIEW_ROLES),
     )
 
     private fun render(phase: Phase, search: AclSearch, gates: Gates): AclState = when (phase) {

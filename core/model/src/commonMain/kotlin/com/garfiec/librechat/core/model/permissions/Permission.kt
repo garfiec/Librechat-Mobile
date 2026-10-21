@@ -12,4 +12,7 @@ enum class Permission(val serverKey: String) {
 
     /** PEOPLE_PICKER: may search groups to grant them access. */
     VIEW_GROUPS("VIEW_GROUPS"),
+
+    /** PEOPLE_PICKER: may search roles to grant them access. */
+    VIEW_ROLES("VIEW_ROLES"),
 }

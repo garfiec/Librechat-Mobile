@@ -2085,7 +2085,7 @@
         "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/acl/AclController.kt",
         "symbol": "AclController.gates (canSearch)"
       },
-      "why": "search-principals is behind checkPeoplePickerAccess: a non-admin may search only the principal types whose PEOPLE_PICKER permission (VIEW_USERS, VIEW_GROUPS, VIEW_ROLES) is strictly true, and gets a 403 when none is. The editor shows people search only with VIEW_USERS or VIEW_GROUPS and sends no type filter, so the server searches whatever the role allows.",
+      "why": "search-principals is behind checkPeoplePickerAccess: a non-admin may search only the principal types whose PEOPLE_PICKER permission (VIEW_USERS, VIEW_GROUPS, VIEW_ROLES) is strictly true, and gets a 403 when none is. The editor shows people search with any of the three and sends no type filter, so the server searches whatever the role allows.",
       "failure_mode": "Upstream renames the permissions or changes the mapping, and the search box disappears for people who may search, or shows and only ever fails."
     },
     {

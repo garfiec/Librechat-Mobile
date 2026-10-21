@@ -66,11 +66,12 @@ class AclControllerTest {
         sharePublic: Boolean = true,
         viewUsers: Boolean = true,
         viewGroups: Boolean = true,
+        viewRoles: Boolean = false,
     ) = UserRolePermissions(
         name = "USER",
         permissions = mapOf(
             "SHARED_LINKS" to mapOf("CREATE" to true, "SHARE" to true, "SHARE_PUBLIC" to sharePublic),
-            "PEOPLE_PICKER" to mapOf("VIEW_USERS" to viewUsers, "VIEW_GROUPS" to viewGroups),
+            "PEOPLE_PICKER" to mapOf("VIEW_USERS" to viewUsers, "VIEW_GROUPS" to viewGroups, "VIEW_ROLES" to viewRoles),
         ),
     )
 
@@ -178,6 +179,17 @@ class AclControllerTest {
     @Test
     fun `either people picker permission allows search`() = runTest {
         role.value = fullRole(viewUsers = false, viewGroups = true)
+        serve(owner)
+        val controller = controller()
+
+        controller.open("link1")
+
+        assertThat(controller.awaitReady().canSearch).isTrue()
+    }
+
+    @Test
+    fun `a role that may only search roles gets the search`() = runTest {
+        role.value = fullRole(viewUsers = false, viewGroups = false, viewRoles = true)
         serve(owner)
         val controller = controller()
 
