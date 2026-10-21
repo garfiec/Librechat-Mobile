@@ -286,8 +286,9 @@ class AgentDetailViewModel(
     fun deleteAgent() {
         val state = _uiState.value
         if (state.isDeleting || !state.canDelete) return
+        // Set before the launch, so a second tap is refused whatever the dispatcher.
+        _uiState.update { it.copy(isDeleting = true, showDeleteDialog = false, actionError = null) }
         viewModelScope.launch {
-            _uiState.update { it.copy(isDeleting = true, showDeleteDialog = false, actionError = null) }
             when (val result = agentRepository.deleteAgent(agentId)) {
                 is Result.Success -> {
                     _uiState.update { it.copy(isDeleting = false) }
@@ -304,8 +305,9 @@ class AgentDetailViewModel(
     fun duplicateAgent() {
         val state = _uiState.value
         if (state.isDuplicating || !state.canDuplicate) return
+        // Set before the launch, so a second tap is refused whatever the dispatcher.
+        _uiState.update { it.copy(isDuplicating = true, actionError = null) }
         viewModelScope.launch {
-            _uiState.update { it.copy(isDuplicating = true, actionError = null) }
             when (val result = agentRepository.duplicateAgent(agentId)) {
                 is Result.Success -> {
                     _uiState.update { it.copy(isDuplicating = false) }

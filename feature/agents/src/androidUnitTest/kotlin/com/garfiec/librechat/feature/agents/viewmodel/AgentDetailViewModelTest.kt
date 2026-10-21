@@ -17,6 +17,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -440,6 +441,59 @@ class AgentDetailViewModelTest {
         advanceUntilIdle()
 
         assertThat(events).containsExactly(AgentDetailEvent.Duplicated("agent-2"))
+    }
+
+    /** The ⋮ turns into a spinner while this flag is up (AgentDetailScreen); a second tap sends nothing. */
+    @Test
+    fun `duplicate is busy while the request runs and ignores a second tap`() = runTest(testDispatcher) {
+        val copy = CompletableDeferred<Result<Agent>>()
+        coEvery { agentRepository.getAgentForEditing("agent-1") } returns Result.Success(agent)
+        coEvery { agentRepository.duplicateAgent("agent-1") } coAnswers { copy.await() }
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        val events = mutableListOf<AgentDetailEvent>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.events.collect { events += it } }
+
+        viewModel.duplicateAgent()
+        viewModel.duplicateAgent()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.isDuplicating).isTrue()
+
+        viewModel.duplicateAgent()
+        advanceUntilIdle()
+        coVerify(exactly = 1) { agentRepository.duplicateAgent("agent-1") }
+        assertThat(events).isEmpty()
+
+        copy.complete(Result.Success(agent.copy(id = "agent-2")))
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.isDuplicating).isFalse()
+        assertThat(events).containsExactly(AgentDetailEvent.Duplicated("agent-2"))
+    }
+
+    @Test
+    fun `delete is busy while the request runs and ignores a second tap`() = runTest(testDispatcher) {
+        val deleted = CompletableDeferred<Result<Unit>>()
+        coEvery { agentRepository.getAgentForEditing("agent-1") } returns Result.Success(agent)
+        coEvery { agentRepository.deleteAgent("agent-1") } coAnswers { deleted.await() }
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        val events = mutableListOf<AgentDetailEvent>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.events.collect { events += it } }
+
+        viewModel.deleteAgent()
+        viewModel.deleteAgent()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.isDeleting).isTrue()
+
+        viewModel.deleteAgent()
+        advanceUntilIdle()
+        coVerify(exactly = 1) { agentRepository.deleteAgent("agent-1") }
+        assertThat(events).isEmpty()
+
+        deleted.complete(Result.Success(Unit))
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.isDeleting).isFalse()
+        assertThat(events).containsExactly(AgentDetailEvent.Deleted)
     }
 
     @Test
