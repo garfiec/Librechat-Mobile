@@ -114,6 +114,18 @@ class ShareApi constructor(
         }.body()
 
     /**
+     * GET /api/share/:shareId/files/:fileId — one file of a shared conversation, as a viewer may
+     * read it: only files the link snapshotted (404 otherwise, and when the link excludes files or
+     * the original is gone). A file whose source is `text` comes back as its extracted text,
+     * `text/plain`. The owner's `/api/files/download/...` route refuses a viewer; this one checks
+     * the share's own ACL.
+     */
+    suspend fun downloadSharedFile(shareId: String, fileId: String): ByteArray =
+        client.get {
+            url { path("api/share/$shareId/files/$fileId") }
+        }.body()
+
+    /**
      * Copies a shared conversation into the caller's own account so they can continue it
      * (v0.8.8 line, #13714).
      *

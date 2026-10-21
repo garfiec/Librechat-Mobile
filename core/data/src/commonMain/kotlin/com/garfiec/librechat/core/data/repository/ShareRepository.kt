@@ -78,6 +78,12 @@ interface ShareRepository {
     suspend fun getSharedSnapshot(shareId: String): Result<SharedConversationSnapshot>
 
     /**
+     * The bytes of one file in a shared conversation, through the share's own route (a viewer
+     * can't use the owner's download route). A `text`-source file comes back as its text.
+     */
+    suspend fun downloadSharedFile(shareId: String, fileId: String): Result<ByteArray>
+
+    /**
      * Copies a shared conversation into the caller's account so they can carry it on
      * (`POST /api/share/:shareId/fork`, v0.8.8 line).
      *

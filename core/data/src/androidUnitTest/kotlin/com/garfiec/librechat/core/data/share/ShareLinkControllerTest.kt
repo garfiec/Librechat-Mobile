@@ -500,6 +500,20 @@ class ShareLinkControllerTest {
     }
 
     @Test
+    fun `every live link offers Preview, a reduced one too`() = runTest {
+        coEvery { shareApi.getShareLink("convo") } returns live("newest", snapshotFiles = false)
+        val full = controller()
+        full.open("convo")
+        assertThat(full.awaitLinked().canPreview).isTrue()
+
+        val card = controller()
+        card.open("convo", focusShareId = "older")
+        val reduced = card.awaitLinked()
+        assertThat(reduced.reduced).isTrue()
+        assertThat(reduced.canPreview).isTrue()
+    }
+
+    @Test
     fun `a card for the newest link opens in full`() = runTest {
         coEvery { shareApi.getShareLink("convo") } returns live("s1", snapshotFiles = true)
         val controller = controller()

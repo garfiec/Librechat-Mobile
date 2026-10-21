@@ -127,6 +127,9 @@ class ShareRepositoryImpl(
     override suspend fun getSharedSnapshot(shareId: String): Result<SharedConversationSnapshot> =
         safeApiCall { shareApi.getSharedSnapshot(shareId) }
 
+    override suspend fun downloadSharedFile(shareId: String, fileId: String): Result<ByteArray> =
+        safeApiCall { shareApi.downloadSharedFile(shareId, fileId) }
+
     override suspend fun forkSharedConversation(
         shareId: String,
         targetMessageIndex: Int?,

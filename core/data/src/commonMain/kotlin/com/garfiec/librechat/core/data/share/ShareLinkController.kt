@@ -363,8 +363,8 @@ class ShareLinkController internal constructor(
                 gates.canShareLinks &&
                 shareBit?.resourceId == phase.resourceId &&
                 shareBit.granted,
-            // Preview is wired by the viewer's stage.
-            canPreview = false,
+            // Any live link, reduced included: the owner can always read their own link.
+            canPreview = true,
             reduced = phase.reduced,
             busy = phase.busy,
             error = phase.error,

@@ -422,6 +422,8 @@ class SharedLinksViewModelTest {
 
         override suspend fun getSharedSnapshot(shareId: String): Result<SharedConversationSnapshot> = error("unused")
 
+        override suspend fun downloadSharedFile(shareId: String, fileId: String): Result<ByteArray> = error("unused")
+
         override suspend fun forkSharedConversation(
             shareId: String,
             targetMessageIndex: Int?,
