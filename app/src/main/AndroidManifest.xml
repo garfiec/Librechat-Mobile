@@ -50,6 +50,24 @@
                 <data android:scheme="librechat" />
             </intent-filter>
 
+            <!-- "Open with" for shared-chat links on any server: unverified (no autoVerify; a
+                 self-hosted server can't vouch for the app), so it only offers the app. A host is
+                 required, or Android ignores the paths and the filter claims every web link.
+                 PatternMatcher's glob doesn't backtrack, so ".*/share/.*" would miss subpath
+                 deployments: one pattern per depth, the server at the root or up to two segments
+                 down. MainActivity.handleOpenedLink takes it from there. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:scheme="http" />
+                <data android:host="*" />
+                <data android:pathPattern="/share/.*" />
+                <data android:pathPattern="/.*/share/.*" />
+                <data android:pathPattern="/.*/.*/share/.*" />
+            </intent-filter>
+
             <!-- Receive shared text -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
