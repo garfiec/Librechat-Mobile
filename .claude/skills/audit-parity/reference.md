@@ -1,11 +1,11 @@
-# audit-feature: the method
+# audit-parity: the method
 
-Every agent in the `audit-feature` workflow reads this file first. Change a rule here and it
+Every agent in the `audit-parity` workflow reads this file first. Change a rule here and it
 changes everywhere.
 
 ## What we are looking for
 
-One feature, audited deeply, against two sources of truth:
+Each area of the app (or one feature, when the user names one) is audited against two sources of truth:
 
 1. **The server at the pinned commit.** Its routes, controllers, services, validators and models
    define what each call accepts, what it returns and every way it can fail.
