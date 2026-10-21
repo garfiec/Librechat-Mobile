@@ -5,7 +5,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.data.share.ShareLinkController
+import com.garfiec.librechat.core.model.share.ShareSheetState
 import com.garfiec.librechat.core.ui.components.acl.AclSharingActions
+import com.garfiec.librechat.core.ui.components.share.LocalOpenSharedChat
 import com.garfiec.librechat.core.ui.components.share.ShareLinkSheet
 import com.garfiec.librechat.core.ui.resources.share_sheet_title
 import com.garfiec.librechat.feature.chat.util.rememberClipboardWriter
@@ -21,6 +23,7 @@ import com.garfiec.librechat.core.ui.resources.Res as CoreRes
 internal fun ShareLinkSheetHost(controller: ShareLinkController, onDismiss: () -> Unit) {
     val state by controller.state.collectAsStateWithLifecycle()
     val access by controller.access.state.collectAsStateWithLifecycle()
+    val openSharedChat = LocalOpenSharedChat.current
     val clipboard = rememberClipboardWriter()
     val clipLabel = stringResource(CoreRes.string.share_sheet_title)
     val accessActions = remember(controller) {
@@ -43,6 +46,15 @@ internal fun ShareLinkSheetHost(controller: ShareLinkController, onDismiss: () -
         onIncludeFilesChange = controller::setIncludeFiles,
         onCopy = { url -> clipboard.copy(url, clipLabel) },
         onRetry = controller::retry,
+        // The viewer is pushed over this screen; the sheet would otherwise stay up over it.
+        onPreview = openSharedChat?.let { open ->
+            {
+                (state as? ShareSheetState.Linked)?.shareId?.let { shareId ->
+                    onDismiss()
+                    open(shareId)
+                }
+            }
+        },
         onManageAccess = controller::openAccess,
         access = access,
         accessActions = accessActions,

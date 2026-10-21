@@ -62,6 +62,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.EmptyState
 import com.garfiec.librechat.core.ui.components.UpToTwoColumns
+import com.garfiec.librechat.core.ui.components.share.LocalOpenSharedChat
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
@@ -120,6 +121,7 @@ fun SharedLinksScreen(
     viewModel: SharedLinksViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val openSharedChat = LocalOpenSharedChat.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val clipboard = rememberClipboardWriter()
@@ -198,8 +200,7 @@ fun SharedLinksScreen(
                             onOpenChat = { onOpenConversation(link.conversationId) },
                             onCopyLink = { onCopyLink(link) },
                             onDelete = { deleteTarget = link },
-                            // "View shared version" arrives with the shared chat viewer.
-                            onViewSharedVersion = null,
+                            onViewSharedVersion = openSharedChat?.let { open -> { open(link.shareId) } },
                         )
                     },
                 )

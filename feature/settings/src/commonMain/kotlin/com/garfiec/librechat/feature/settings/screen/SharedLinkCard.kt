@@ -68,8 +68,8 @@ internal val SharedLinkCardShape = RoundedCornerShape(16.dp)
  * on it; ⋮ holds Open chat, Copy link and Delete. The URL isn't shown (the sheet has it), and
  * neither is a public/private label: nothing on the wire says which a link is.
  *
- * @param onViewSharedVersion opens the link in the in-app viewer; null hides the item until the viewer
- *   exists.
+ * @param onViewSharedVersion opens the link in the in-app viewer; null hides the item (no viewer, as in
+ *   previews).
  */
 @Composable
 internal fun SharedLinkCard(

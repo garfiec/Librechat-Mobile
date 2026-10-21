@@ -32,6 +32,7 @@ private val linked = ShareSheetState.Linked(
     updateKeepsUrl = true,
     filesOption = FilesOption(includeFiles = true),
     audience = ShareAudience.SIGNED_IN,
+    canPreview = true,
 )
 
 @PreviewNarrowScreens
@@ -83,6 +84,7 @@ private fun FullSheetGlassPreview() {
                     onIncludeFilesChange = {},
                     onCopy = {},
                     onRetry = {},
+                    onPreview = {},
                 )
             }
         }
@@ -115,6 +117,7 @@ internal fun SheetPreview(style: UiStyle, state: ShareSheetState) {
                         onIncludeFilesChange = {},
                         onCopy = {},
                         onRetry = {},
+                        onPreview = {},
                     )
                 }
             }

@@ -161,7 +161,7 @@ fun ShareLinkSheet(
     onIncludeFilesChange: (Boolean) -> Unit,
     onCopy: (url: String) -> Unit,
     onRetry: () -> Unit,
-    onPreview: () -> Unit = {},
+    onPreview: (() -> Unit)? = null,
     onManageAccess: () -> Unit = {},
     access: AclState = AclState.Closed,
     accessActions: AclSharingActions = AclSharingActions.None,
@@ -271,7 +271,7 @@ fun ShareLinkSheetContent(
     onCopy: (url: String) -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
-    onPreview: () -> Unit = {},
+    onPreview: (() -> Unit)? = null,
     onManageAccess: () -> Unit = {},
 ) {
     val controls = ShareSheetControls.of(state)
@@ -309,7 +309,7 @@ private class LinkedActions(
     val onDelete: () -> Unit,
     val onIncludeFilesChange: (Boolean) -> Unit,
     val onCopy: (String) -> Unit,
-    val onPreview: () -> Unit,
+    val onPreview: (() -> Unit)?,
     val onManageAccess: () -> Unit,
 )
 
@@ -424,9 +424,10 @@ private fun LinkedBody(
                 onChange = actions.onIncludeFilesChange,
             )
         }
-        // Opens the shared-chat viewer on the owner's own link; hidden until the viewer exists.
-        if (controls.preview) {
-            SheetRow(Icons.AutoMirrored.Outlined.OpenInNew, stringResource(Res.string.share_sheet_preview), actions.onPreview)
+        // Opens the shared-chat viewer on the owner's own link; hidden where the host has no viewer.
+        val onPreview = actions.onPreview
+        if (controls.preview && onPreview != null) {
+            SheetRow(Icons.AutoMirrored.Outlined.OpenInNew, stringResource(Res.string.share_sheet_preview), onPreview)
         }
         // Opens the Manage access page: role SHARE plus the SHARE bit on this link's ACL.
         if (controls.manageAccess) {
