@@ -126,7 +126,7 @@ class AgentRepositoryImpl(
 
     override suspend fun duplicateAgent(id: String): Result<Agent> {
         return safeApiCall {
-            val agent = agentsApi.duplicateAgent(id)
+            val agent = agentsApi.duplicateAgent(id).agent
             invalidateCache()
             agent
         }

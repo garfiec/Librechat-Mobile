@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.model.request.CreateAgentRequest
 import com.garfiec.librechat.core.model.request.RevertAgentRequest
 import com.garfiec.librechat.core.model.request.UpdateAgentRequest
 import com.garfiec.librechat.core.model.response.AgentListResponse
+import com.garfiec.librechat.core.model.response.DuplicateAgentResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
@@ -110,7 +111,7 @@ class AgentsApi constructor(
         }
     }
 
-    suspend fun duplicateAgent(agentId: String): Agent =
+    suspend fun duplicateAgent(agentId: String): DuplicateAgentResponse =
         client.post {
             url { path("api/agents/$agentId/duplicate") }
         }.body()
