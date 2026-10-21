@@ -64,8 +64,7 @@ fun UserRolePermissions?.hasAccessStrictOrDenied(type: PermissionType, permissio
  * SHARED_LINKS/CREATE permission. Permissive on unknown (via [hasAccessOrPermissive]) so older
  * backends that don't emit the permission keep showing Share; the server still enforces with 403.
  * Mirrors upstream ConvoOptions' `sharedLinksEnabled && canCreateSharedLinks`. Single source of
- * truth for every Share entry point: the chat overflow menu, the drawer long-press menu, the
- * conversation list and a project's chats, and the share sheet's Create / Update.
+ * truth for every Share entry point, including the share sheet's Create / Update.
  */
 fun UserRolePermissions?.canCreateSharedLinks(sharedLinksEnabled: Boolean): Boolean =
     sharedLinksEnabled && hasAccessOrPermissive(PermissionType.SHARED_LINKS, Permission.CREATE)

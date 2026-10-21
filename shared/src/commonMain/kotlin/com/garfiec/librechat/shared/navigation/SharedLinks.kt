@@ -41,8 +41,9 @@ sealed interface SharedLinkRoute {
 /**
  * Where [url] goes, given the roster [entries], the [activeId] account and the accounts that still
  * hold a session ([liveIds]). The active account is tried first; other signed-in accounts by
- * recency. An account whose session has expired is never offered (the browser gets the link), and
- * nothing is offered while signed out: the viewer reads a link as a signed-in user.
+ * recency. An account whose session has expired is never offered (the browser gets the link).
+ * Callers must not route while signed out (see [SharedLinkStateHolder.route]): with no active
+ * account this would still offer a switch.
  */
 internal fun sharedLinkRoute(
     url: String,

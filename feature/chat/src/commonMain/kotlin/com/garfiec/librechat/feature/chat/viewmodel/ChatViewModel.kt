@@ -321,7 +321,6 @@ class ChatViewModel(
     val attachedFiles: StateFlow<List<AttachedFile>> get() = fileDelegate.attachedFiles
     val pdfPasswordPrompts: StateFlow<List<PdfPasswordPrompt>> get() = fileDelegate.pdfPasswordPrompts
 
-    /** The share sheet's controller: what the sheet shows, and its Create / Update / Delete. */
     val shareLink: ShareLinkController get() = conversationActionsDelegate.shareLink
 
     private data class TraceGateInputs(

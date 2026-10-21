@@ -21,13 +21,7 @@ import io.ktor.http.path
 class ShareApi constructor(
     private val client: HttpClient,
 ) {
-    /**
-     * GET /api/share — one page of the caller's links.
-     *
-     * [sortBy] is `createdAt` | `title` and [sortDirection] `asc` | `desc`; the route falls back
-     * to newest first on anything else. A [cursor] is only valid for the sort that produced it
-     * (400 otherwise), and [search] is trimmed and capped at 256 characters (400 past it).
-     */
+    /** GET /api/share — one page of the caller's links. A [search] past 256 characters is a 400. */
     suspend fun getSharedLinks(
         cursor: String? = null,
         sortBy: String? = null,
@@ -86,9 +80,8 @@ class ShareApi constructor(
      * stays ungated, so a role that may no longer re-publish may still revoke. A role with
      * `SHARED_LINKS.USE` but not `CREATE` gets 403 here where it previously succeeded.
      *
-     * The route re-derives the link's file choice from the body on every call, and an absent
-     * `snapshotFiles` means "include files": send the link's stored choice in [request] or an
-     * update quietly turns files back on. A link that is gone answers 404 with no body.
+     * [request] must carry the link's stored file choice (see [UpdateShareRequest]). A link that
+     * is gone answers 404 with no body.
      */
     suspend fun updateShareLink(shareId: String, request: UpdateShareRequest): SharedLink =
         client.patch {

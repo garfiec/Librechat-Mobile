@@ -44,13 +44,11 @@ enum class SharedChatError {
     /** The server refused this account (401/403): the link is not shared with it. */
     NO_ACCESS,
 
-    /** Past the server's share-view rate limit (429). */
     RATE_LIMITED,
 
     /** The server's content filter now refuses the shared content; see [SharedChatUiState.blockedMessage]. */
     BLOCKED,
 
-    /** No answer from the server. */
     NETWORK,
     GENERIC,
 }
@@ -63,13 +61,11 @@ sealed interface SharedChatEvent {
     /** The owner updated the link since it loaded; the viewer reloaded it, and Continue can be tried again. */
     data object LinkUpdated : SharedChatEvent
 
-    /** Continue hit the fork rate limit. */
     data object ContinueRateLimited : SharedChatEvent
 
     /** The server's content filter refused to copy the chat; [serverMessage] says why, when it did. */
     data class ContinueBlocked(val serverMessage: String?) : SharedChatEvent
 
-    /** Continue failed for another reason. */
     data object ContinueFailed : SharedChatEvent
 
     /** This server has no Continue (its fork route is missing); the button is gone. */
@@ -104,8 +100,8 @@ data class SharedChatUiState(
     /** Continue is in flight. Also the double-fork guard: a second tap does nothing until it lands. */
     val isContinuing: Boolean = false,
     /**
-     * The server can fork a shared link (`POST /api/share/:shareId/fork`, from 0.8.8-rc1). False
-     * once that is known not to be so; shown while the version can't be placed.
+     * The server can fork a shared link. False once that is known not to be so; shown while the
+     * version can't be placed.
      */
     val canContinue: Boolean = true,
     val baseUrl: String = "",
@@ -265,7 +261,6 @@ class SharedChatViewModel(
         }
     }
 
-    /** Shows sibling [siblingIndex] at [parentKey], as the chat screen's branch arrows do. */
     fun switchBranch(parentKey: String, siblingIndex: Int) {
         _uiState.update { state ->
             val snapshot = state.snapshot ?: return@update state
@@ -278,9 +273,8 @@ class SharedChatViewModel(
     }
 
     /**
-     * Copies the branch on screen into the user's account. Sends the index of the branch's tip in
-     * the snapshot and the snapshot's `updatedAt`, without which the server ignores the index and
-     * copies everything. A second tap while one is in flight does nothing.
+     * Forks the branch on screen into the user's account. The snapshot's `updatedAt` must go with
+     * the tip index, or the server ignores the index and copies everything.
      */
     fun continueChat() {
         val state = _uiState.value
@@ -326,9 +320,8 @@ class SharedChatViewModel(
             failure.isContentFilter -> _events.send(SharedChatEvent.ContinueBlocked(failure.serverMessage))
             failure.status == HTTP_NOT_FOUND -> {
                 // Either the link went away under the viewer, which reloading shows, or the server
-                // predates the fork route. Only a server whose version can't be placed gets here
-                // without a route (a confirmed older one hides Continue), and there a link that
-                // still loads means the route is what's missing.
+                // has no fork route. Only an unplaced server gets here without one, and there a link
+                // that still loads means the route is what's missing.
                 val placed = BackendVersion.featureSupport(configRepository.detectedBackend.value, FORK_MIN_VERSION)
                 val linkStillLoads = fetch(startLoad(quiet = true))
                 if (linkStillLoads && placed == FeatureSupport.UNKNOWN) {
@@ -379,10 +372,6 @@ class SharedChatViewModel(
         return (shareRepository.downloadSharedFile(shareId, fileId) as? Result.Success)?.data
     }
 
-    /**
-     * Opens a `text`-source file as text. The server stores no bytes for one and serves its
-     * extracted text, which is what a viewer can read of it.
-     */
     fun openTextFile(fileId: String, filename: String) {
         textFileJob?.cancel()
         _uiState.update { it.copy(textFile = SharedTextFile(filename)) }
@@ -428,7 +417,6 @@ class SharedChatViewModel(
     }
 }
 
-/** The ids of every `text`-source file and attachment in [messages]. */
 internal fun textSourceFileIds(messages: List<Message>): Set<String> = buildSet {
     for (message in messages) {
         message.files?.forEach { file -> if (file.source == FILE_SOURCE_TEXT) file.fileId?.let(::add) }
@@ -437,10 +425,9 @@ internal fun textSourceFileIds(messages: List<Message>): Set<String> = buildSet 
 }
 
 /**
- * The index, in the snapshot's [messages], of the message at the tip of the branch on screen: what
- * a fork names, since a viewer never sees stable message ids. Null when the path is empty or its
- * tip isn't in the list (it always is; the server then copies the whole share). Mirrors web's
- * `selectActiveBranchTail` + `findIndex` (scripts/mirrors.json `share-viewer-active-tail`).
+ * The index in [messages] of the branch tip on screen, which a fork names because a viewer never
+ * sees stable message ids. Null leaves the server copying the whole share. Registered in
+ * scripts/mirrors.json as `share-viewer-active-tail`.
  */
 internal fun activeTailIndex(messages: List<Message>, displayMessages: List<MessageNode>): Int? {
     val tail = displayMessages.lastOrNull()?.message?.messageId ?: return null

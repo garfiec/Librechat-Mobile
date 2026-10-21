@@ -235,7 +235,7 @@
     <string name="saver_open_failed">Impossible d’ouvrir le fichier choisi en écriture</string>
     <string name="saver_share_sheet_failed">Impossible d’afficher la feuille de partage</string>
 
-    <!-- Share sheet: one sheet for every Share entry point -->
+    <!-- Share sheet -->
     <string name="share_sheet_title">Partager la discussion</string>
     <string name="share_sheet_snapshot_note">Le lien montre cette discussion telle qu'elle était lorsque vous l'avez partagée ou mise à jour pour la dernière fois. Mettez-le à jour pour inclure les messages plus récents.</string>
     <string name="share_sheet_reduced_note">Gérez les paramètres de ce lien depuis le web.</string>

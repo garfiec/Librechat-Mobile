@@ -14,6 +14,5 @@ data class ConversationActionsState(
     val showForkOptionsForMessageId: String? = null,
     val isForkInProgress: Boolean = false,
     val forkedConversationId: String? = null,
-    /** The open chat has a live share link, so the ⋮ Share item reads "Share · Link active". */
     val shareLinkActive: Boolean = false,
 )

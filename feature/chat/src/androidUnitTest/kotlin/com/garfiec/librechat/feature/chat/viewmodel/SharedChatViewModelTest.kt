@@ -43,12 +43,6 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 
-/**
- * The viewer shows the active branch of a shared snapshot, and Continue forks exactly that branch:
- * the index of its tip in the snapshot plus the snapshot's revision. Failures read as the server
- * means them: 409 reloads and says the link changed, 429 says slow down, 404/401/403 and the
- * content filter each get their own state.
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 class SharedChatViewModelTest {
 

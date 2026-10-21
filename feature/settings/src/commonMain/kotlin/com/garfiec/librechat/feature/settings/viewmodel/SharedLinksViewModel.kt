@@ -30,9 +30,8 @@ import kotlinx.coroutines.launch
 @Immutable
 data class SharedLinksUiState(
     val links: List<SharedLinkDisplayData> = emptyList(),
-    /** A first page is loading for a new list (open, sort, search, Retry). Starts true: the page opens loading. */
+    /** A first page is loading for a new list. Starts true: the page opens loading. */
     val isLoading: Boolean = true,
-    /** Pull to refresh is running. */
     val isRefreshing: Boolean = false,
     val isLoadingMore: Boolean = false,
     val hasNextPage: Boolean = false,
@@ -42,18 +41,12 @@ data class SharedLinksUiState(
     val loadMoreFailed: Boolean = false,
     /** Lives only as long as this ViewModel: there is no saved sort preference yet. */
     val sort: SharedLinksSort = SharedLinksSort.NEWEST,
-    /** The server's search is on, so the page offers a search box. */
     val searchEnabled: Boolean = false,
     val searchQuery: String = "",
     /** The trimmed search the shown list answers. Trails [searchQuery] until its results land. */
     val shownQuery: String = "",
 )
 
-/**
- * Whether the list should ask for its next page, given the last visible item and the item count.
- * Read from the CURRENT state each time: a scroll collector that captured the first composition's
- * values never loaded past the first page.
- */
 internal fun SharedLinksUiState.shouldLoadMore(lastVisibleIndex: Int, totalItems: Int): Boolean =
     hasNextPage &&
         links.isNotEmpty() &&
@@ -65,14 +58,10 @@ internal fun SharedLinksUiState.shouldLoadMore(lastVisibleIndex: Int, totalItems
 
 private const val LOAD_MORE_THRESHOLD = 3
 
-/**
- * A new sort, search or Retry is loading while the old rows still show. The page puts its cue next
- * to the controls, where the change was made, not after the last card, often below the fold.
- */
+/** A new sort, search or Retry is loading while the old rows still show. */
 internal val SharedLinksUiState.isReloading: Boolean
     get() = isLoading && links.isNotEmpty()
 
-/** One-off notices; the screen words them. */
 enum class SharedLinksMessage { REFRESH_FAILED, DELETE_FAILED }
 
 /**
@@ -95,7 +84,6 @@ class SharedLinksViewModel(
     private val _messages = Channel<SharedLinksMessage>(Channel.BUFFERED)
     val messages: Flow<SharedLinksMessage> = _messages.receiveAsFlow()
 
-    /** The share sheet a card opens. */
     val shareLink: ShareLinkController = shareLinkControllerFactory.create(viewModelScope)
 
     /** Bumped by every first page; a page that lands under an older value belongs to a replaced list. */
@@ -131,16 +119,13 @@ class SharedLinksViewModel(
         }
     }
 
-    /** Pull to refresh; ignored while one is already running. */
     fun refresh() {
         if (_uiState.value.isRefreshing) return
         load(Kind.REFRESH)
     }
 
-    /** The error state's Retry. */
     fun retry() = load(Kind.LOAD)
 
-    /** Back on the page, e.g. from a chat opened from a card. Skips while a first page is loading. */
     fun refreshOnReturn() {
         if (firstPageJob?.isActive != true) reloadQuietly()
     }

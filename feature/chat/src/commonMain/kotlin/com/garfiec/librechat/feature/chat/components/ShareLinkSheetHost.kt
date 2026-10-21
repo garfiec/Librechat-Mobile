@@ -14,11 +14,7 @@ import com.garfiec.librechat.feature.chat.util.rememberClipboardWriter
 import org.jetbrains.compose.resources.stringResource
 import com.garfiec.librechat.core.ui.resources.Res as CoreRes
 
-/**
- * The share sheet over [controller]: renders its state and sends the sheet's taps back. Shows
- * nothing while the controller is closed. [onDismiss] closes it (the host also refreshes what it
- * shows about the link).
- */
+/** The share sheet over [controller]. Shows nothing while the controller is closed. */
 @Composable
 internal fun ShareLinkSheetHost(controller: ShareLinkController, onDismiss: () -> Unit) {
     val state by controller.state.collectAsStateWithLifecycle()

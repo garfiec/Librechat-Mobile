@@ -227,7 +227,7 @@
     <string name="saver_open_failed">无法打开所选文件进行写入</string>
     <string name="saver_share_sheet_failed">无法显示分享面板</string>
 
-    <!-- Share sheet: one sheet for every Share entry point -->
+    <!-- Share sheet -->
     <string name="share_sheet_title">分享聊天</string>
     <string name="share_sheet_snapshot_note">链接显示的是你分享或上次更新时的聊天内容。更新链接以包含较新的消息。</string>
     <string name="share_sheet_reduced_note">请在网页版中管理此链接的设置。</string>

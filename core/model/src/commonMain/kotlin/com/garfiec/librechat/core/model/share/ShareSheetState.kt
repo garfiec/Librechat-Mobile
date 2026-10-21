@@ -7,10 +7,9 @@ package com.garfiec.librechat.core.model.share
  */
 sealed interface ShareSheetState {
 
-    /** No sheet. */
     data object Closed : ShareSheetState
 
-    /** Looking up whether the conversation already has a link. Opening the sheet never creates one. */
+    /** Opening the sheet never creates a link. */
     data object Loading : ShareSheetState
 
     /**
@@ -58,7 +57,6 @@ sealed interface ShareSheetState {
         val error: ShareSheetError? = null,
     ) : ShareSheetState
 
-    /** The lookup failed; the sheet offers Retry. */
     data class Failed(val error: ShareSheetError) : ShareSheetState
 }
 

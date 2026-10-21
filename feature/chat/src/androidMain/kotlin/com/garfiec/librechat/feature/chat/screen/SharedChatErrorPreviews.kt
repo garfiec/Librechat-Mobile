@@ -5,8 +5,6 @@ import com.garfiec.librechat.core.model.ui.UiStyle
 import com.garfiec.librechat.core.ui.preview.PreviewNarrowScreens
 import com.garfiec.librechat.feature.chat.viewmodel.SharedChatError
 
-// The shared chat viewer's error states; the loaded and loading states are in SharedChatPreviews.kt.
-
 @PreviewNarrowScreens
 @Composable
 private fun NotFoundMaterialPreview() = SharedChatViewerPreview(UiStyle.MATERIAL, failedSharedChat(SharedChatError.NOT_FOUND))

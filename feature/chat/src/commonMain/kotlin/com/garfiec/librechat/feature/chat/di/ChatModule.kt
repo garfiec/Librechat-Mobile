@@ -63,7 +63,6 @@ val chatModule = module {
             defaultDispatcher = get(KoinQualifiers.Default),
         )
     }
-    // The link's shareId arrives from the SharedChat route via parametersOf.
     viewModel { params ->
         SharedChatViewModel(
             shareId = params.get(),

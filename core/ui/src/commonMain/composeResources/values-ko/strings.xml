@@ -227,7 +227,7 @@
     <string name="saver_open_failed">선택한 파일을 쓰기용으로 열지 못했습니다</string>
     <string name="saver_share_sheet_failed">공유 시트를 표시하지 못했습니다</string>
 
-    <!-- Share sheet: one sheet for every Share entry point -->
+    <!-- Share sheet -->
     <string name="share_sheet_title">채팅 공유</string>
     <string name="share_sheet_snapshot_note">링크에는 공유하거나 마지막으로 업데이트했을 때의 채팅이 표시됩니다. 새 메시지를 포함하려면 업데이트하세요.</string>
     <string name="share_sheet_reduced_note">이 링크의 설정은 웹에서 관리하세요.</string>

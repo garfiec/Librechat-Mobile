@@ -43,7 +43,6 @@ internal data class ChatOverflowGates(
     val sharedLinksEnabled: Boolean,
     /** A compact suggestion is due. A Boolean, not the percent, so the sections aren't rebuilt per tick. */
     val compactNudgeVisible: Boolean = false,
-    /** The chat's first turn is still streaming: nothing is saved to share yet, so Share hides. */
     val firstTurnStreaming: Boolean = false,
 )
 

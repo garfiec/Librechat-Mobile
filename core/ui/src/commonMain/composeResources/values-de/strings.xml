@@ -231,7 +231,7 @@
     <string name="saver_open_failed">Die gewählte Datei konnte nicht zum Schreiben geöffnet werden</string>
     <string name="saver_share_sheet_failed">Teilen-Menü konnte nicht geöffnet werden</string>
 
-    <!-- Share sheet: one sheet for every Share entry point -->
+    <!-- Share sheet -->
     <string name="share_sheet_title">Chat teilen</string>
     <string name="share_sheet_snapshot_note">Der Link zeigt diesen Chat so, wie er beim Teilen oder letzten Aktualisieren war. Aktualisiere ihn, um neuere Nachrichten aufzunehmen.</string>
     <string name="share_sheet_reduced_note">Die Einstellungen dieses Links verwaltest du im Web.</string>

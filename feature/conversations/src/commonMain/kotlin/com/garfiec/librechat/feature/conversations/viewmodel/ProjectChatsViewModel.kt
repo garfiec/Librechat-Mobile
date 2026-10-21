@@ -265,7 +265,6 @@ class ProjectChatsViewModel(
 
     fun deleteConversation(id: String) = actions.deleteConversation(id)
 
-    /** The share sheet's controller: what the sheet shows, and its Create / Update / Delete. */
     val shareLink: ShareLinkController get() = actions.shareLink
 
     fun shareConversation(conversationId: String) = actions.shareConversation(conversationId)

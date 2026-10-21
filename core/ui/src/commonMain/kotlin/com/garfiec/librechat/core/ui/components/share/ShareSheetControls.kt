@@ -19,9 +19,7 @@ internal data class ShareSheetControls(
     val cannotCreateReason: Boolean = false,
     /** The URL with Copy, Share… and the QR code. */
     val url: String? = null,
-    /** "The link shows this chat as it was when you shared or last updated it…". */
     val snapshotNote: Boolean = false,
-    /** "Manage this link's settings on the web." */
     val reducedNote: Boolean = false,
     /** The Include files switch and its value; null hides it. */
     val files: FilesOption? = null,
@@ -39,7 +37,6 @@ internal data class ShareSheetControls(
     val busy: ShareSheetBusy? = null,
     val error: ShareSheetError? = null,
 ) {
-    /** Actions accept taps only while nothing is in flight. */
     val enabled: Boolean get() = busy == null
 
     companion object {

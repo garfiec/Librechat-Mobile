@@ -134,19 +134,16 @@ import io.github.alexzhirkevich.qrose.rememberQrCodePainter
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 
-/** How long "Copied" replaces the copy icon after a tap. */
 private const val COPIED_FEEDBACK_MS = 2_000L
 private const val DISABLED_ROW_ALPHA = 0.38f
 
 private val QrSize = 192.dp
 private val QrShape = RoundedCornerShape(12.dp)
 
-/** Duration of the slide between the share page and the Manage access page. */
 private const val PAGE_SWAP_MS = 250
 
 /**
- * The one share sheet: every Share entry point and a tapped card on the Shared chats page open it.
- * It renders [state] and reports taps; the host's controller does the lookup and the writes.
+ * The share sheet. It renders [state] and reports taps; the host's controller does the lookup and the writes.
  *
  * Copy feedback and errors render inside the sheet, since a snackbar would sit behind its scrim.
  * [onCopy] writes the link to the clipboard (the host owns the clipboard); the sheet shows "Copied".
@@ -190,7 +187,6 @@ fun ShareLinkSheet(
         AnimatedContent(
             targetState = onAccessPage,
             transitionSpec = {
-                // Forward slides in from the end, back from the start, reading as depth.
                 val direction = if (targetState) 1 else -1
                 val fade = tween<Float>(PAGE_SWAP_MS)
                 (slideInHorizontally(tween(PAGE_SWAP_MS)) { width -> direction * width } + fadeIn(fade))
@@ -238,7 +234,6 @@ internal fun ManageAccessPage(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            // The search field: keep it above the keyboard.
             .imePadding()
             .verticalScroll(rememberScrollState())
             .padding(bottom = 16.dp),
@@ -262,7 +257,6 @@ internal fun ManageAccessPage(
         }
         AclSharingSection(
             state = access,
-            // A live link's audience is who a public grant reaches: anyone, or signed-in people.
             publicLabel = stringResource(
                 if (audience == ShareAudience.ANYONE) Res.string.acl_public_anyone else Res.string.acl_public_signed_in,
             ),

@@ -21,11 +21,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
-/**
- * A create that the server refuses as a duplicate (409) hands back the live link: the conflict is
- * read as "it exists after all". Updates always carry the file choice, a delete of a link that is
- * already gone succeeds, and every change bumps the revision.
- */
 class ShareRepositoryImplTest {
 
     private val shareApi = mockk<ShareApi>()

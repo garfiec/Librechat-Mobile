@@ -10,13 +10,10 @@ import com.garfiec.librechat.core.model.Principal
  */
 sealed interface AclState {
 
-    /** No editor open. */
     data object Closed : AclState
 
-    /** Reading the resource's grants. */
     data object Loading : AclState
 
-    /** The grants couldn't be read; the editor offers Retry. */
     data class Failed(val error: AclError) : AclState
 
     /**
@@ -29,7 +26,6 @@ sealed interface AclState {
      *   false hides the search.
      * @param roles the roles a new grant may take, never the owner's. A picker shows only when
      *   there is a choice.
-     * @param grantRoleId the role a new grant takes.
      * @param busy a change is in flight; every control holds until it lands.
      * @param error why the last change failed, shown until the next one.
      */

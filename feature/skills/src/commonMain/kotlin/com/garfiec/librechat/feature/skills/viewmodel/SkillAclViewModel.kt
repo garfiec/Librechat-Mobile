@@ -181,9 +181,8 @@ class SkillAclViewModel(
         _uiState.value = _uiState.value.copy(error = null)
     }
 
-    // Known gap (follow-up: move onto :core:data AclController, which re-reads after a PUT): the PUT
-    // answers `{message, results}`, not the GET shape, so the state read from it below is incomplete
-    // until the next load().
+    // The PUT answers `{message, results}`, not the GET shape, so the state read from it below is
+    // incomplete until the next load().
     private suspend fun applyUpdate(
         skillId: String,
         body: UpdateResourcePermissionsRequest,

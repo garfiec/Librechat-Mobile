@@ -27,10 +27,7 @@ import com.garfiec.librechat.feature.chat.resources.shared_chat_file_failed
 import com.garfiec.librechat.feature.chat.viewmodel.SharedTextFile
 import org.jetbrains.compose.resources.stringResource
 
-/**
- * A shared chat's `text`-source file, read as text: its name, then its text in a scrolling,
- * selectable block. A spinner while it loads; a line saying it couldn't be opened if it failed.
- */
+/** A shared chat's `text`-source file, read as text. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun SharedTextFileSheet(file: SharedTextFile, onDismiss: () -> Unit) {
@@ -39,7 +36,6 @@ internal fun SharedTextFileSheet(file: SharedTextFile, onDismiss: () -> Unit) {
     }
 }
 
-/** The sheet's body, without the sheet: what [SharedTextFileSheet] shows, and what previews render. */
 @Composable
 internal fun SharedTextFileContent(file: SharedTextFile, modifier: Modifier = Modifier) {
     Column(modifier = modifier.fillMaxWidth().padding(bottom = 16.dp)) {

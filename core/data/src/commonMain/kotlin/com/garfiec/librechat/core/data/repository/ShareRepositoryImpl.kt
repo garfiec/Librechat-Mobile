@@ -60,7 +60,6 @@ class ShareRepositoryImpl(
     ): Result<String> =
         safeApiCall { createOrAdopt(conversationId, targetMessageId, snapshotFiles) }.bumpOnSuccess()
 
-    /** Creates a link, or hands back the live one when the server says one already exists. */
     private suspend fun createOrAdopt(
         conversationId: String,
         targetMessageId: String?,
@@ -71,8 +70,6 @@ class ShareRepositoryImpl(
                 ?: throw IllegalStateException("Server returned no shareId")
         } catch (e: ApiException) {
             if (e.statusCode != HTTP_CONFLICT) throw e
-            // A link appeared between the lookup and the create (another device, or the
-            // lookup failed): the server's refusal is the answer, so hand that link back.
             shareApi.getShareLink(conversationId).liveShareId() ?: throw e
         }
 

@@ -247,7 +247,7 @@
     <string name="saver_open_failed">تعذّر فتح الملف المحدد للكتابة</string>
     <string name="saver_share_sheet_failed">تعذّر عرض ورقة المشاركة</string>
 
-    <!-- Share sheet: one sheet for every Share entry point -->
+    <!-- Share sheet -->
     <string name="share_sheet_title">مشاركة الدردشة</string>
     <string name="share_sheet_snapshot_note">يعرض الرابط هذه الدردشة كما كانت عند مشاركتها أو آخر تحديث لها. حدّث الرابط لتضمين الرسائل الأحدث.</string>
     <string name="share_sheet_reduced_note">أدِر إعدادات هذا الرابط من الويب.</string>

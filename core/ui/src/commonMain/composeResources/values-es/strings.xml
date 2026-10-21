@@ -235,7 +235,7 @@
     <string name="saver_open_failed">No se pudo abrir el archivo seleccionado para escribir</string>
     <string name="saver_share_sheet_failed">No se pudo mostrar la hoja para compartir</string>
 
-    <!-- Share sheet: one sheet for every Share entry point -->
+    <!-- Share sheet -->
     <string name="share_sheet_title">Compartir chat</string>
     <string name="share_sheet_snapshot_note">El enlace muestra este chat tal como estaba cuando lo compartiste o lo actualizaste por última vez. Actualízalo para incluir mensajes más recientes.</string>
     <string name="share_sheet_reduced_note">Gestiona la configuración de este enlace desde la web.</string>

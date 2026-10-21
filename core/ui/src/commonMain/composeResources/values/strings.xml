@@ -249,7 +249,7 @@
     <string name="saver_open_failed">Could not open the selected file for writing</string>
     <string name="saver_share_sheet_failed">Could not present share sheet</string>
 
-    <!-- Share sheet: one sheet for every Share entry point -->
+    <!-- Share sheet -->
     <string name="share_sheet_title">Share chat</string>
     <string name="share_sheet_snapshot_note">The link shows this chat as it was when you shared or last updated it. Update to include newer messages.</string>
     <string name="share_sheet_reduced_note">Manage this link's settings on the web.</string>

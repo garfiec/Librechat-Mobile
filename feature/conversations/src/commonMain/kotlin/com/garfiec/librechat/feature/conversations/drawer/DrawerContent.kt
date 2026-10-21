@@ -401,7 +401,6 @@ fun DrawerContent(
         modifier = modifier,
     )
 
-    // Share opens the share sheet over the drawer; nothing is created or copied until asked.
     ShareLinkSheetHost(controller = viewModel.shareLink, onDismiss = viewModel::closeShareSheet)
 
     if (showAccountSheet) {
@@ -818,8 +817,6 @@ fun DrawerContent(
                                 onLoadProjects()
                                 projectPickerTarget = data
                             },
-                            // Shown when the server has shared links on and the role may create
-                            // them, as on the conversation list and a project's chats.
                             showShareAction = uiState.sharedLinksEnabled,
                             onBookmarkToggle = { onToggleFavorite(data) },
                             onRenameRequest = { renameTarget = data },

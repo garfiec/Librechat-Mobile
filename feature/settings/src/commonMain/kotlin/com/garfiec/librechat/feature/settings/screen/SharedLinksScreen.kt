@@ -111,7 +111,7 @@ private const val PLACEHOLDER_COUNT = 4
 
 /**
  * Settings → Data → Shared chats: every link the user has shared, as cards. A card opens the share
- * sheet on its link; its ⋮ opens the chat, copies the link or deletes it.
+ * sheet on its link; its ⋮ opens the chat or its shared version, copies the link or deletes it.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -138,8 +138,7 @@ fun SharedLinksScreen(
     }
 
     val gridState = rememberLazyGridState()
-    // Reads the current state on every layout pass. Capturing the first composition's values is
-    // why scrolling once never loaded past the first page.
+    // Read the current state on every pass: a captured first-composition state stops paging after page one.
     val currentState by rememberUpdatedState(uiState)
     val shouldLoadMore by remember {
         derivedStateOf {
@@ -244,7 +243,7 @@ internal fun LazyGridScope.sharedLinksItems(
     card: @Composable LazyGridItemScope.(SharedLinkDisplayData) -> Unit,
 ) {
     val isFirstLoad = uiState.isLoading && uiState.links.isEmpty()
-    // From the search the shown list answers, not the typed one, which runs ahead of the results.
+    // Either query counts: the typed one runs ahead of the results, and the shown one trails a just-cleared box.
     val isSearching = uiState.shownQuery.isNotEmpty() || uiState.searchQuery.isNotEmpty()
     val hasNoLinks = uiState.links.isEmpty() && !uiState.isLoading && !uiState.loadFailed && !isSearching
 

@@ -26,10 +26,6 @@ import com.garfiec.librechat.core.ui.glass.GlassSheetHost
 import com.garfiec.librechat.core.ui.preview.PreviewNarrowScreens
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
 
-// The share sheet's Manage access page at narrow widths and large fonts: the grants with the
-// owner locked, a search with hits, a search with none, a refused change, loading and a failed
-// read. Material renders light and Liquid Glass dark.
-
 private val owner = Principal(
     type = PrincipalType.USER,
     id = "me",

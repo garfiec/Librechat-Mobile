@@ -65,7 +65,7 @@ internal val SharedLinkCardShape = RoundedCornerShape(16.dp)
 
 /**
  * One shared link: the chat's tile and title, and when it was shared. A tap opens the share sheet
- * on it; ⋮ holds Open chat, Copy link and Delete. The URL isn't shown (the sheet has it), and
+ * on it; ⋮ holds Open chat, View shared version, Copy link and Delete. The URL isn't shown (the sheet has it), and
  * neither is a public/private label: nothing on the wire says which a link is.
  *
  * @param onViewSharedVersion opens the link in the in-app viewer; null hides the item (no viewer, as in

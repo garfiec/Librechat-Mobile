@@ -235,7 +235,7 @@
     <string name="saver_open_failed">Não foi possível abrir o arquivo selecionado para gravação</string>
     <string name="saver_share_sheet_failed">Não foi possível abrir a planilha de compartilhamento</string>
 
-    <!-- Share sheet: one sheet for every Share entry point -->
+    <!-- Share sheet -->
     <string name="share_sheet_title">Compartilhar conversa</string>
     <string name="share_sheet_snapshot_note">O link mostra esta conversa como estava quando você a compartilhou ou atualizou pela última vez. Atualize para incluir mensagens mais recentes.</string>
     <string name="share_sheet_reduced_note">Gerencie as configurações deste link pela web.</string>

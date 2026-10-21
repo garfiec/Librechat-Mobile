@@ -13,7 +13,6 @@ fun interface TargetResolver {
     suspend fun resolve(): ShareTarget
 }
 
-/** What [TargetResolver] found. */
 sealed interface ShareTarget {
     /** The branch tail, confirmed saved on the server. */
     data class Saved(val messageId: String) : ShareTarget
@@ -21,6 +20,5 @@ sealed interface ShareTarget {
     /** The branch tail exists on screen but the server doesn't have it yet (still streaming or saving). */
     data object NotSaved : ShareTarget
 
-    /** The chat has no messages to share. */
     data object NoMessages : ShareTarget
 }

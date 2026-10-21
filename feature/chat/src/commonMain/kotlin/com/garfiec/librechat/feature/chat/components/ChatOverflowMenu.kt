@@ -194,7 +194,6 @@ private fun CompareItem(isComparisonEnabled: Boolean, enabled: Boolean, onClick:
     )
 }
 
-/** The Share item's label, which says so when the open chat already has a live link. */
 @Composable
 internal fun shareItemLabel(linkActive: Boolean): String =
     stringResource(if (linkActive) Res.string.action_share_link_active else Res.string.action_share)

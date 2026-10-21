@@ -69,8 +69,8 @@ class AclPolicy(
  *
  * Writes send `public` only when public access is what changes: the server checks SHARE_PUBLIC
  * whenever `public` is true, so echoing it on a grant would refuse anyone without SHARE_PUBLIC on
- * a link that is already public (the web client's rule too). After a write the grants are read
- * again, since the PUT answers with only what it granted.
+ * a link that is already public. After a write the grants are read again, since the PUT answers
+ * with only what it granted.
  *
  * Results that land after the editor closed or moved to another resource are dropped.
  */
@@ -92,7 +92,6 @@ class AclController(
         render(phase, search, gates(role))
     }.stateIn(scope, SharingStarted.Eagerly, AclState.Closed)
 
-    /** Opens the editor on [resourceId] and reads its grants. */
     fun open(resourceId: String) {
         this.resourceId = resourceId
         val gen = ++generation
@@ -101,7 +100,6 @@ class AclController(
         scope.launch { load(gen, resourceId) }
     }
 
-    /** Reads the grants again after a failed read. */
     fun retry() {
         val id = resourceId ?: return
         if (phase.value !is Phase.Failed) return
@@ -117,7 +115,6 @@ class AclController(
         phase.value = Phase.Closed
     }
 
-    /** Picks the role the next grant takes. Ignored for a role the resource doesn't offer. */
     fun setGrantRole(accessRoleId: String) {
         phase.update { current ->
             if (current is Phase.Ready && current.roles.any { it.accessRoleId == accessRoleId }) {
@@ -128,7 +125,6 @@ class AclController(
         }
     }
 
-    /** Turns public access on (with the default role) or off. Needs SHARE_PUBLIC. */
     fun setPublic(enabled: Boolean) {
         val current = phase.value as? Phase.Ready ?: return
         if (current.busy || !currentGates().canSharePublic || enabled == current.isPublic) return
@@ -141,7 +137,6 @@ class AclController(
         write(current, body)
     }
 
-    /** Gives [principal] (a search result) the selected role. */
     fun grant(principal: Principal) {
         val current = phase.value as? Phase.Ready ?: return
         if (current.busy) return
@@ -154,7 +149,6 @@ class AclController(
         )
     }
 
-    /** Takes [principal]'s access away. The owner's grant is locked. */
     fun revoke(principal: Principal) {
         val current = phase.value as? Phase.Ready ?: return
         if (current.busy || isOwner(principal)) return
@@ -162,7 +156,6 @@ class AclController(
         write(current, UpdateResourcePermissionsRequest(removed = listOf(principal)))
     }
 
-    /** Searches people, groups and roles to add, debounced. Needs the people picker. */
     fun onSearchQueryChange(query: String) {
         searchJob?.cancel()
         // The server answers 400 to a too-short query, so one is never sent.
@@ -262,7 +255,6 @@ class AclController(
         is Phase.Ready -> {
             val granted = phase.principals.mapTo(HashSet()) { it.key }
             AclState.Ready(
-                // The owner first, then everyone else in the server's order.
                 entries = phase.principals
                     .map { AclEntry(principal = it, locked = isOwner(it)) }
                     .sortedByDescending { it.locked },
@@ -344,7 +336,6 @@ private val errorJson = Json {
     isLenient = true
 }
 
-/** How the access editor words this failure. */
 internal fun Result.Error.toAclError(): AclError {
     val api = exception as? ApiException
     val bodyMessage = api?.body?.let { text ->

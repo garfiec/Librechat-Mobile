@@ -239,7 +239,7 @@
     <string name="saver_open_failed">Не удалось открыть выбранный файл для записи</string>
     <string name="saver_share_sheet_failed">Не удалось открыть меню «Поделиться»</string>
 
-    <!-- Share sheet: one sheet for every Share entry point -->
+    <!-- Share sheet -->
     <string name="share_sheet_title">Поделиться чатом</string>
     <string name="share_sheet_snapshot_note">По ссылке виден чат таким, каким он был, когда вы поделились им или последний раз обновили ссылку. Обновите её, чтобы добавить новые сообщения.</string>
     <string name="share_sheet_reduced_note">Настройки этой ссылки можно изменить в веб-версии.</string>

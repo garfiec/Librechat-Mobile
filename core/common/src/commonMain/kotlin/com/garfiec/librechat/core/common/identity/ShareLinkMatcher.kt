@@ -1,13 +1,11 @@
 package com.garfiec.librechat.core.common.identity
 
-/** A shared-chat link taken apart: the deployment it lives on and the link's id. */
 data class ParsedShareLink(
     /** The deployment the link lives on, subpath included: `https://host/librechat`. */
     val serverUrl: String,
     val shareId: String,
 )
 
-/** An account the app holds, as far as matching a link to it goes. */
 data class ShareLinkAccount(val accountId: String, val serverUrl: String)
 
 /** A link the in-app viewer can open: [shareId] on [accountId]'s server. */

@@ -30,9 +30,8 @@ enum class ShareErrorCode(val wire: String) {
 }
 
 /**
- * A share route's failure, read off the response: its HTTP [status] (null when nothing came
- * back), its [code] when the body named one, and [serverMessage], the server's own wording when
- * it passed the display screen (see [com.garfiec.librechat.core.common.result.toSafeError]).
+ * [status] is null when nothing came back. [serverMessage] is set only when the server's wording
+ * passed the display screen (see [com.garfiec.librechat.core.common.result.toSafeError]).
  */
 data class ShareFailure(
     val status: Int?,
@@ -53,7 +52,6 @@ private val errorJson = Json {
     isLenient = true
 }
 
-/** Reads this error as a [ShareFailure]. */
 fun Result.Error.toShareFailure(): ShareFailure {
     val api = exception as? ApiException
     val body = api?.body?.let { text ->
@@ -72,7 +70,6 @@ fun Result.Error.toShareFailure(): ShareFailure {
     )
 }
 
-/** How the share sheet words this failure. */
 fun ShareFailure.toSheetError(): ShareSheetError = when {
     code == ShareErrorCode.TARGET_MESSAGE_NOT_FOUND -> ShareSheetError.TargetNotSaved
     code == ShareErrorCode.NO_MESSAGES -> ShareSheetError.NoMessages

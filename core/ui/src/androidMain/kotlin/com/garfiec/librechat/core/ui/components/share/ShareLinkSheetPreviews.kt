@@ -21,9 +21,7 @@ import com.garfiec.librechat.core.ui.glass.GlassSheetHost
 import com.garfiec.librechat.core.ui.preview.PreviewNarrowScreens
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
 
-// The share sheet with a link, at the narrow widths and large fonts where it runs out of room.
-// Material renders light and Liquid Glass dark, so both themes are covered too. The states
-// without a link are in ShareLinkSheetStatePreviews.
+// The share sheet with a link; the states without one are in ShareLinkSheetStatePreviews.
 
 private val linked = ShareSheetState.Linked(
     url = "https://chat.example-company-intranet.com/share/6f1c2b9e-4d7a-4a55-9c1e-0b8f3d2a7e61",

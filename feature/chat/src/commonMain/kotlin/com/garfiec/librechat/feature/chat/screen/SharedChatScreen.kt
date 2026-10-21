@@ -125,7 +125,6 @@ internal data class SharedChatDisplay(
     val siteIcons: SiteIconsState = SiteIconsState.OFF,
 )
 
-/** What the viewer screen asks of its host. */
 internal class SharedChatActions(
     val onBack: () -> Unit,
     val onRetry: () -> Unit,
@@ -137,8 +136,7 @@ internal class SharedChatActions(
 
 /**
  * The in-app viewer for a shared link: the chat as it was shared, read-only, with Continue to copy
- * the branch on screen into the user's own chats. Opened from a `/share/` link tapped in the app,
- * Android share-to, the share sheet's Preview and the Shared chats page.
+ * the branch on screen into the user's own chats.
  *
  * @param onOpenConversation Continue made [conversationId]; the host replaces the viewer with it.
  */
@@ -243,9 +241,8 @@ fun SharedChatScreen(
 }
 
 /**
- * Routes the viewer's file taps through the share: a `text`-source file opens as text (the server
- * keeps no bytes for one), anything else in the file-actions sheet, whose downloads come through
- * the share's own route ([SharedChatViewModel.downloadAttachment]).
+ * A `text`-source file opens as text (the server keeps no bytes for one). Other files' downloads
+ * must go through the share's route ([SharedChatViewModel.downloadAttachment]).
  */
 @Composable
 private fun ProvideSharedFileOpeners(
@@ -295,7 +292,6 @@ private fun ProvideSharedFileOpeners(
     )
 }
 
-/** The viewer's page without its ViewModel: what the screen draws, and what previews render. */
 @Composable
 internal fun SharedChatScaffold(
     state: SharedChatUiState,
@@ -442,7 +438,6 @@ private fun ContinueButton(busy: Boolean, onClick: () -> Unit, modifier: Modifie
                 Icon(Icons.Outlined.AddComment, contentDescription = null)
             }
         },
-        // A second tap while the copy is under way does nothing (the ViewModel guards it too).
         onClick = { if (!busy) onClick() },
     )
 }
@@ -503,7 +498,6 @@ private fun rememberCopyMessage(state: SharedChatUiState): (String) -> Unit {
     }
 }
 
-/** The reader's chat display settings, read as the chat screen reads them. */
 @Composable
 private fun rememberSharedChatDisplay(): SharedChatDisplay {
     val settings = koinInject<SettingsDataStore>()
@@ -539,7 +533,6 @@ private fun rememberSharedChatDisplay(): SharedChatDisplay {
     )
 }
 
-/** The website-icons prompt's answer, stored as the chat screen stores it. */
 @Composable
 private fun rememberSiteIconsChoice(): (Boolean) -> Unit {
     val preferences = koinInject<PreferenceStore>()

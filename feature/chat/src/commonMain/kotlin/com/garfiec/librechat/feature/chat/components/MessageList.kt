@@ -102,10 +102,7 @@ fun MessageList(
      */
     canResubmit: Boolean = true,
     /**
-     * A transcript nobody can act on (the shared-chat viewer): no edit, regenerate, continue, fork,
-     * feedback or read aloud on any message, whatever callbacks are passed. Copy and branch
-     * switching stay. Explicit rather than inferred from no-op callbacks, which would draw buttons
-     * that do nothing.
+     * Hides every message action except Copy and branch switching, whatever callbacks are passed.
      */
     readOnly: Boolean = false,
     onReadAloud: (messageId: String) -> Unit = {},

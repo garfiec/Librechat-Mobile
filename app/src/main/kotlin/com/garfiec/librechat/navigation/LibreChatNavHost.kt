@@ -92,8 +92,6 @@ fun LibreChatNavHost(
             currentOnDeepLinkConsume()
         }
 
-        // A shared-in `/share/` link: the viewer when a signed-in account is on its server (after a
-        // switch the user agrees to, for another account), the composer otherwise, as any shared text.
         val currentOnSharedLinkConsume by rememberUpdatedState(onSharedLinkConsume)
         LaunchedEffect(sharedLinkText) {
             val text = sharedLinkText ?: return@LaunchedEffect

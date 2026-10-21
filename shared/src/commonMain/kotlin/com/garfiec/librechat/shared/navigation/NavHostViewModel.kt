@@ -344,16 +344,14 @@ class NavHostViewModel(
         ioDispatcher = Dispatchers.IO,
     )
 
-    /** A shared link on another account's server, waiting for the user to switch or decline. */
     val sharedLinkOffer: StateFlow<SharedLinkRoute.OfferSwitch?> = sharedLinks.offer
 
-    /** Links the app gives up on and hands to the browser: a switch the account refused. */
+    /** Shared links handed to the browser after an account refused the switch. */
     val browserLinks: Flow<String> = sharedLinks.browserLinks
 
     /** See [SharedLinkStateHolder.route]. */
     suspend fun routeSharedLink(url: String): SharedLinkRoute = sharedLinks.route(url)
 
-    /** Asks the user whether to switch accounts for [offer]. */
     fun offerSharedLinkSwitch(offer: SharedLinkRoute.OfferSwitch) = sharedLinks.offerSwitch(offer)
 
     fun dismissSharedLinkOffer() = sharedLinks.dismissOffer()

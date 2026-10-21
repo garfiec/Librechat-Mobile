@@ -9,8 +9,6 @@ import com.garfiec.librechat.core.model.share.ShareSheetState
 import com.garfiec.librechat.core.model.ui.UiStyle
 import com.garfiec.librechat.core.ui.preview.PreviewNarrowScreens
 
-// The share sheet before there is a link: create, creating, not allowed, looking up, lookup failed.
-
 private val noLink = ShareSheetState.NoLink(
     canCreate = true,
     filesOption = FilesOption.NEW_LINK,

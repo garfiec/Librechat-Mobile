@@ -227,7 +227,7 @@
     <string name="saver_open_failed">選択したファイルを書き込み用に開けませんでした</string>
     <string name="saver_share_sheet_failed">共有シートを表示できませんでした</string>
 
-    <!-- Share sheet: one sheet for every Share entry point -->
+    <!-- Share sheet -->
     <string name="share_sheet_title">チャットを共有</string>
     <string name="share_sheet_snapshot_note">リンクには、共有したとき、または最後に更新したときのチャットが表示されます。新しいメッセージを含めるには更新してください。</string>
     <string name="share_sheet_reduced_note">このリンクの設定はウェブ版で管理してください。</string>

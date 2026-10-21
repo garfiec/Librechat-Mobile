@@ -15,16 +15,10 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
- * Where a `/share/` link opened in the app goes, and the account switch it may wait on. Held by
- * [NavHostViewModel]; split out so the switch hand-off can be tested without the shell's other
- * dependencies.
+ * Where a `/share/` link opened in the app goes, and the account switch it may wait on.
  *
- * @param isLoggedIn whether the app is signed in right now; nothing is offered while signed out.
- * @param rosterEntries the signed-in accounts the app holds.
- * @param hasSession whether an account still holds a session (read through the encrypted store,
- *   so it runs on [ioDispatcher]).
- * @param switchAccount switches to an account; false when the account refuses (its session ended).
- * @param onSwitchRefused re-reads which accounts hold a session, after a refused switch.
+ * @param hasSession reads the encrypted store, so it runs on [ioDispatcher].
+ * @param switchAccount false when the account refuses (its session ended).
  */
 internal class SharedLinkStateHolder(
     private val scope: CoroutineScope,
@@ -52,11 +46,6 @@ internal class SharedLinkStateHolder(
     /** Links the app gives up on and hands to the browser: a switch the account refused. */
     val browserLinks: Flow<String> = _browserLinks.receiveAsFlow()
 
-    /**
-     * Where a `/share/` [url] goes: the viewer on the active account, an offer to switch to the
-     * signed-in account whose server it is on, or [SharedLinkRoute.NotOurs]. Nothing is offered
-     * while signed out.
-     */
     suspend fun route(url: String): SharedLinkRoute {
         if (!isLoggedIn()) return SharedLinkRoute.NotOurs
         // A link shared into a cold start can arrive before the active account resolves; without it
@@ -70,7 +59,6 @@ internal class SharedLinkStateHolder(
         return sharedLinkRoute(url, entries, activeId, liveIds)
     }
 
-    /** Asks the user whether to switch accounts for [offer]. */
     fun offerSwitch(offer: SharedLinkRoute.OfferSwitch) {
         _offer.value = offer
     }

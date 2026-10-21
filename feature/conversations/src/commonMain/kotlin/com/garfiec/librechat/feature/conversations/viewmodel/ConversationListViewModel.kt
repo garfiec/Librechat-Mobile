@@ -353,7 +353,6 @@ class ConversationListViewModel(
         _uiState.value = _uiState.value.copy(error = null)
     }
 
-    /** The share sheet's controller: what the sheet shows, and its Create / Update / Delete. */
     val shareLink: ShareLinkController get() = actions.shareLink
 
     fun shareConversation(conversationId: String) = actions.shareConversation(conversationId)

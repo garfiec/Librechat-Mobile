@@ -20,9 +20,7 @@ import kotlinx.coroutines.launch
  * Conversation-level actions of the open chat: rename, delete, archive, duplicate, fork and Share.
  *
  * Share opens the share sheet ([shareLink]); it never creates or copies a link on its own. The
- * sheet shares up to the tail of the branch on screen ([resolveShareTarget]). The ⋮ Share item
- * says when the chat already has a live link: looked up when a chat opens, again after every
- * change to the user's links, and again when the sheet closes.
+ * sheet shares up to the tail of the branch on screen ([resolveShareTarget]).
  */
 class ConversationActionsDelegate(
     private val handle: ConversationActionsHandle,
@@ -215,14 +213,12 @@ class ConversationActionsDelegate(
 }
 
 /**
- * The message a link from the open chat shares up to: the tail of the branch on screen, as the
- * web share dialog does (scripts/mirrors.json `share-target-branch-tail`).
+ * The message a link from the open chat shares up to: the tail of the branch on screen
+ * (scripts/mirrors.json `share-target-branch-tail`).
  *
- * Web confirms the tail is saved with `GET /api/messages/:conversationId/:messageId` first. The app
- * has no such call, so it reads the screen instead: while a reply is streaming, or a just-sent
- * message is still waiting for the server's copy, the tail isn't saved. A tail that slips past
- * this is rejected by the server (`TARGET_MESSAGE_NOT_FOUND`), and the controller re-resolves and
- * retries once before saying so.
+ * While a reply is streaming, or a just-sent message is still waiting for the server's copy, the
+ * tail isn't saved. A tail that slips past this is rejected by the server
+ * (`TARGET_MESSAGE_NOT_FOUND`), and the controller re-resolves and retries once before saying so.
  */
 internal fun resolveShareTarget(state: ChatUiState): ShareTarget {
     val tail = state.displayMessages.lastOrNull()?.message ?: return ShareTarget.NoMessages

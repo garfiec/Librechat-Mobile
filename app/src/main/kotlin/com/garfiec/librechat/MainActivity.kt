@@ -273,10 +273,8 @@ class MainActivity : ComponentActivity() {
 
         val fileUris = if (sharedUri != null) listOf(sharedUri) else emptyList()
 
-        // Text that is exactly one shared-chat link may open the in-app viewer; the nav host decides,
-        // since only it can tell whether a signed-in account is on that server, and sends anything
-        // it can't open to the composer as before. Share-to only: the app has no ACTION_VIEW filter
-        // for web links.
+        // Text that is exactly one shared-chat link goes to the nav host: only it can tell whether a
+        // signed-in account is on that server, and it sends anything it can't open to the composer.
         if (sharedText != null && fileUris.isEmpty() && ShareLinkMatcher.parse(sharedText) != null) {
             Logger.d { "Share intent received: a shared-chat link" }
             sharedLinkText = sharedText

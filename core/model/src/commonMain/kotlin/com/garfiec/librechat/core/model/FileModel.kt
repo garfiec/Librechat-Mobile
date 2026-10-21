@@ -127,7 +127,7 @@ data class Attachment(
     /** MCP UI resources, present only when [type] == `ui_resources`. Carried, not yet rendered —
      *  see [UiResources]. */
     @SerialName("ui_resources") val uiResources: UiResources? = null,
-    /** Where the file is stored; [FILE_SOURCE_TEXT] marks a text-only file. Null when unsent. */
+    /** Where the file is stored; [FILE_SOURCE_TEXT] marks a text-only file. Null when the server omits it. */
     val source: String? = null,
 )
 

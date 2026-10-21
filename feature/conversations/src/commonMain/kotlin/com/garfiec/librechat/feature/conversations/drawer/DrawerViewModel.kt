@@ -611,7 +611,6 @@ class DrawerViewModel(
         isActive = conversationListStateHolder.activeConversationId.value == id,
     )
 
-    /** The share sheet's controller: what the sheet shows, and its Create / Update / Delete. */
     val shareLink: ShareLinkController get() = conversationActions.shareLink
 
     fun shareConversation(conversationId: String) = conversationActions.shareConversation(conversationId)

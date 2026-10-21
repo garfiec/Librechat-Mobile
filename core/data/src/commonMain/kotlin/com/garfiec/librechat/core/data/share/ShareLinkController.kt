@@ -34,7 +34,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/** Makes a [ShareLinkController] bound to its host's scope (a ViewModel's `viewModelScope`). */
 class ShareLinkControllerFactory(
     private val shareRepository: ShareRepository,
     private val configRepository: ConfigRepository,
@@ -58,7 +57,7 @@ class ShareLinkControllerFactory(
  * `snapshotFiles` as "include files", so an update without it would turn files back on for a link
  * that had them off (scripts/mirrors.json `share-files-default-on`).
  *
- * Manage access (the sheet's second page) is offered as on web: the role's SHARED_LINKS SHARE
+ * Manage access (the sheet's second page) is offered on the role's SHARED_LINKS SHARE
  * (fail-closed) AND the SHARE bit on this link's ACL (`/effective` on the lookup's `_id`). A
  * reduced link has no `_id`, so it never offers it. [access] drives that page.
  *
@@ -139,7 +138,6 @@ class ShareLinkController internal constructor(
         scope.launch { load(gen, next) }
     }
 
-    /** Looks the link up again after a failed lookup. */
     fun retry() {
         val current = session ?: return
         if (phase.value !is Phase.Failed) return
@@ -155,7 +153,6 @@ class ShareLinkController internal constructor(
         phase.value = Phase.Closed
     }
 
-    /** Opens the Manage access page on the open link, when the sheet offers it. */
     fun openAccess() {
         val linked = state.value as? ShareSheetState.Linked ?: return
         val resourceId = linkResourceId ?: return
@@ -163,12 +160,11 @@ class ShareLinkController internal constructor(
         access.open(resourceId)
     }
 
-    /** Back from the Manage access page to the share page. */
     fun closeAccess() {
         access.close()
     }
 
-    /** Flips the files switch. Nothing is sent until Create or Update. */
+    /** Nothing is sent until Create or Update. */
     fun setIncludeFiles(include: Boolean) {
         phase.value = when (val current = phase.value) {
             is Phase.NoLink -> if (current.busy == null) current.copy(includeFiles = include) else current
@@ -297,8 +293,7 @@ class ShareLinkController internal constructor(
 
     /**
      * Runs [call] with the resolved target, and once more with a re-resolved one when the target
-     * wasn't saved yet or the chat had nothing to share — the web share dialog's single retry.
-     * Without a resolver there is nothing to re-resolve, so there is no retry.
+     * wasn't saved yet or the chat had nothing to share. Without a resolver there is no retry.
      */
     private suspend fun <T> publish(
         target: TargetResolver?,
@@ -390,7 +385,7 @@ class ShareLinkController internal constructor(
 
     private data class LinkShareBit(val resourceId: String, val granted: Boolean)
 
-    /** SHARED_LINKS SHARE, fail-closed as on web (`useHasAccess`) and the server's `checkShareAccess`. */
+    /** SHARED_LINKS SHARE, fail-closed as the server's `checkShareAccess` is. */
     private fun UserRolePermissions?.canShareLinks(): Boolean =
         hasAccessStrictOrDenied(PermissionType.SHARED_LINKS, Permission.SHARE)
 
@@ -413,9 +408,7 @@ class ShareLinkController internal constructor(
      * Who a link created now can be opened by. The create route gives the link its public viewer
      * grant only when the role's SHARED_LINKS.SHARE_PUBLIC is strictly true, and without that grant
      * nobody but the owner and the people they add gets in, whatever `publicSharedLinksEnabled`
-     * says (scripts/mirrors.json `share-public-grant-rule`). Fail-closed on an unknown role, as
-     * the Manage access switch is. The rule holds from 0.8.7-rc1, the first release with per-link
-     * ACLs; a server confirmed older than that keeps the flag-only wording.
+     * says (scripts/mirrors.json `share-public-grant-rule`). Fail-closed on an unknown role.
      */
     private fun newLinkAudience(
         publicAudience: ShareAudience,

@@ -31,10 +31,6 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
-/**
- * Share from the open chat: the sheet opens on the chat and shares up to the branch tail on
- * screen, Share hides while the first turn streams, and the ⋮ item says when a live link exists.
- */
 class ConversationActionsDelegateShareTest {
 
     private val revision = MutableStateFlow(0L)
