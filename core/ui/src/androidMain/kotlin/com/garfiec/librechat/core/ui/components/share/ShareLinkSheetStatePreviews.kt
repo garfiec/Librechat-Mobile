@@ -25,6 +25,17 @@ private fun NoLinkMaterialPreview() = SheetPreview(UiStyle.MATERIAL, noLink)
 @Composable
 private fun NoLinkGlassPreview() = SheetPreview(UiStyle.LIQUID_GLASS, noLink)
 
+/** A role without SHARED_LINKS.SHARE_PUBLIC: the new link gets no public grant. */
+@PreviewNarrowScreens
+@Composable
+private fun NoLinkPeopleAddedMaterialPreview() =
+    SheetPreview(UiStyle.MATERIAL, noLink.copy(audience = ShareAudience.PEOPLE_ADDED))
+
+@PreviewNarrowScreens
+@Composable
+private fun NoLinkPeopleAddedGlassPreview() =
+    SheetPreview(UiStyle.LIQUID_GLASS, noLink.copy(audience = ShareAudience.PEOPLE_ADDED))
+
 @PreviewNarrowScreens
 @Composable
 private fun NoLinkCreatingMaterialPreview() = SheetPreview(UiStyle.MATERIAL, creating())

@@ -107,10 +107,18 @@ class ShareLinkControllerTest {
         )
     }
 
+    private fun allowSharePublic(sharePublic: Boolean = true) {
+        role.value = UserRolePermissions(
+            name = "USER",
+            permissions = mapOf("SHARED_LINKS" to mapOf("CREATE" to true, "SHARE_PUBLIC" to sharePublic)),
+        )
+    }
+
     // ── open and gates ─────────────────────────────────────────────────────
 
     @Test
     fun `opening never creates, and a chat without a link offers Create with files on`() = runTest {
+        allowSharePublic()
         coEvery { shareApi.getShareLink("convo") } returns none
         val controller = controller()
 
@@ -125,6 +133,7 @@ class ShareLinkControllerTest {
 
     @Test
     fun `the files switch hides when the server doesn't snapshot files`() = runTest {
+        allowSharePublic()
         config.value = StartupConfig(sharedLinksEnabled = true, sharedLinksSnapshotFilesEnabled = null)
         coEvery { shareApi.getShareLink("convo") } returns none
         val controller = controller()
@@ -134,6 +143,43 @@ class ShareLinkControllerTest {
 
         assertThat(state.filesOption).isNull()
         assertThat(state.audience).isEqualTo(ShareAudience.SIGNED_IN)
+    }
+
+    @Test
+    fun `without SHARE_PUBLIC a new link is only for the owner and people they add`() = runTest {
+        allowSharePublic(false)
+        coEvery { shareApi.getShareLink("convo") } returns live("s1") andThen none
+        coEvery { shareApi.deleteShareLink("s1") } just runs
+        val controller = controller()
+
+        controller.open("convo")
+        // A live link's audience labels the Manage access switch: who a public grant reaches.
+        assertThat(controller.awaitLinked().audience).isEqualTo(ShareAudience.ANYONE)
+        controller.delete()
+
+        // The env flag says anyone, but the create route grants no public access to this role.
+        assertThat(controller.awaitNoLink().audience).isEqualTo(ShareAudience.PEOPLE_ADDED)
+    }
+
+    @Test
+    fun `an unknown role fails closed on who a new link reaches`() = runTest {
+        coEvery { shareApi.getShareLink("convo") } returns none
+        val controller = controller()
+
+        controller.open("convo")
+
+        assertThat(controller.awaitNoLink().audience).isEqualTo(ShareAudience.PEOPLE_ADDED)
+    }
+
+    @Test
+    fun `a server older than link ACLs keeps the flag-only wording`() = runTest {
+        version.value = "0.8.7"
+        coEvery { shareApi.getShareLink("convo") } returns none
+        val controller = controller()
+
+        controller.open("convo")
+
+        assertThat(controller.awaitNoLink().audience).isEqualTo(ShareAudience.ANYONE)
     }
 
     @Test
@@ -377,6 +423,44 @@ class ShareLinkControllerTest {
         controller.await { it is ShareSheetState.Linked && it.busy == null && changes.revision.value == 1L }
 
         coVerify(exactly = 1) { shareApi.updateShareLink("s1", UpdateShareRequest("tail", false)) }
+    }
+
+    @Test
+    fun `a pre-rc1 Update that mints a new id follows the new link, not the card's`() = runTest {
+        version.value = "0.8.7"
+        coEvery { shareApi.getShareLink("convo") } returns live("s1") andThen live("s1b")
+        coEvery { shareApi.updateShareLink("s1", any()) } returns link("s1b")
+        val controller = controller()
+
+        controller.open("convo", focusShareId = "s1")
+        assertThat(controller.awaitLinked().shareId).isEqualTo("s1")
+        controller.update()
+        val state = controller.await {
+            it is ShareSheetState.Linked && it.busy == null && it.shareId == "s1b"
+        } as ShareSheetState.Linked
+
+        // Still following the card's s1 would open the sheet reduced on a dead URL.
+        assertThat(state.reduced).isFalse()
+        assertThat(state.canUpdate).isTrue()
+        assertThat(state.url).isEqualTo("https://chat.example.com/share/s1b")
+    }
+
+    @Test
+    fun `a new id from Update is shown even when the follow-up lookup fails`() = runTest {
+        version.value = "0.8.7"
+        coEvery { shareApi.getShareLink("convo") } returns live("s1") andThenThrows IOException("offline")
+        coEvery { shareApi.updateShareLink("s1", any()) } returns link("s1b")
+        val controller = controller()
+
+        controller.open("convo", focusShareId = "s1")
+        controller.awaitLinked()
+        controller.update()
+        val state = controller.await {
+            it is ShareSheetState.Linked && it.busy == null && it.shareId == "s1b"
+        } as ShareSheetState.Linked
+
+        assertThat(state.reduced).isFalse()
+        assertThat(state.url).isEqualTo("https://chat.example.com/share/s1b")
     }
 
     @Test

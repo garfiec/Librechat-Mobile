@@ -12,7 +12,7 @@ import com.garfiec.librechat.core.model.share.ShareSheetState
  */
 internal data class ShareSheetControls(
     val progress: Boolean = false,
-    /** The server-policy line ("anyone with the link" / "signed-in people"); a new link only. */
+    /** Who a new link reaches: anyone, signed-in people, or only the owner and people they add. */
     val audience: ShareAudience? = null,
     val create: Boolean = false,
     val createEnabled: Boolean = false,

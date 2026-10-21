@@ -35,6 +35,7 @@ import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.PersonOutline
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.QrCode2
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -92,6 +93,7 @@ import com.garfiec.librechat.core.ui.resources.acl_public_signed_in
 import com.garfiec.librechat.core.ui.resources.cd_loading
 import com.garfiec.librechat.core.ui.resources.error_banner_retry
 import com.garfiec.librechat.core.ui.resources.share_sheet_audience_anyone
+import com.garfiec.librechat.core.ui.resources.share_sheet_audience_people_added
 import com.garfiec.librechat.core.ui.resources.share_sheet_audience_signed_in
 import com.garfiec.librechat.core.ui.resources.share_sheet_cancel
 import com.garfiec.librechat.core.ui.resources.share_sheet_cannot_create
@@ -248,11 +250,9 @@ internal fun ManageAccessPage(
         }
         AclSharingSection(
             state = access,
+            // A live link's audience is who a public grant reaches: anyone, or signed-in people.
             publicLabel = stringResource(
-                when (audience) {
-                    ShareAudience.ANYONE -> Res.string.acl_public_anyone
-                    ShareAudience.SIGNED_IN -> Res.string.acl_public_signed_in
-                },
+                if (audience == ShareAudience.ANYONE) Res.string.acl_public_anyone else Res.string.acl_public_signed_in,
             ),
             actions = actions,
             modifier = Modifier.padding(horizontal = 24.dp),
@@ -538,6 +538,7 @@ private fun AudienceLine(audience: ShareAudience) {
     val (icon, text) = when (audience) {
         ShareAudience.ANYONE -> Icons.Outlined.Public to Res.string.share_sheet_audience_anyone
         ShareAudience.SIGNED_IN -> Icons.Outlined.Lock to Res.string.share_sheet_audience_signed_in
+        ShareAudience.PEOPLE_ADDED -> Icons.Outlined.PersonOutline to Res.string.share_sheet_audience_people_added
     }
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp),

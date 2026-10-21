@@ -2035,6 +2035,33 @@
       "failure_mode": "Upstream starts reading an absent public as false (every grant would turn public access off) or changes the revoke test, and public access flips without the user touching the switch."
     },
     {
+      "id": "share-public-grant-rule",
+      "upstream": {
+        "file": "api/server/routes/share.js",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/share/ShareLinkController.kt",
+        "symbol": "ShareLinkController.newLinkAudience"
+      },
+      "why": "POST /api/share/:conversationId reads grantPublic = role.permissions.SHARED_LINKS.SHARE_PUBLIC === true and passes it to grantCreationPermissions, which adds the PUBLIC viewer grant only when it is true. Without that grant only the owner and explicit ACL principals can open the link; with it, anyone (ALLOW_SHARED_LINKS_PUBLIC, publicSharedLinksEnabled) or any signed-in user. The sheet's who-can-open note for a new link follows that rule, fail-closed on an unknown role.",
+      "failure_mode": "Upstream changes who gets the creation-time public grant (another permission bit, a default, a config switch), and the sheet promises access the server never grants, or hides access it does. Nothing errors; a colleague just gets a 403."
+    },
+    {
+      "id": "share-public-grant-creation",
+      "upstream": {
+        "file": "packages/api/src/shared-links/service.ts",
+        "symbol": "grantCreationPermissions",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/share/ShareLinkController.kt",
+        "symbol": "ShareLinkController.newLinkAudience"
+      },
+      "why": "grantCreationPermissions grants OWNER to the creator and SHARED_LINK_VIEWER to PUBLIC only when grantPublic is true; see share-public-grant-rule for where grantPublic comes from.",
+      "failure_mode": "Upstream grants the public viewer role unconditionally or to another principal, and the sheet's 'Only you and the people you add' note becomes wrong."
+    },
+    {
       "id": "acl-share-policy-gates",
       "upstream": {
         "file": "packages/api/src/middleware/share.ts",

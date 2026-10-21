@@ -253,6 +253,7 @@
     <string name="share_sheet_create">Crear enlace</string>
     <string name="share_sheet_audience_anyone">Este servidor permite que cualquiera con el enlace vea el chat.</string>
     <string name="share_sheet_audience_signed_in">Este servidor solo permite ver el chat a quienes hayan iniciado sesión en él.</string>
+    <string name="share_sheet_audience_people_added">Este enlace solo lo pueden abrir tú y las personas que añadas.</string>
     <string name="share_sheet_cannot_create">Tu cuenta no puede crear enlaces compartidos en este servidor.</string>
     <string name="share_sheet_preview">Vista previa</string>
     <string name="share_sheet_manage_access">Gestionar acceso</string>

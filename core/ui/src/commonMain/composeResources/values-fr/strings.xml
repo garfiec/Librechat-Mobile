@@ -253,6 +253,7 @@
     <string name="share_sheet_create">Créer un lien</string>
     <string name="share_sheet_audience_anyone">Ce serveur permet à toute personne disposant du lien de voir la discussion.</string>
     <string name="share_sheet_audience_signed_in">Ce serveur ne permet qu'aux personnes connectées à ce serveur de voir la discussion.</string>
+    <string name="share_sheet_audience_people_added">Ce lien ne peut être ouvert que par vous et les personnes que vous ajoutez.</string>
     <string name="share_sheet_cannot_create">Votre compte ne peut pas créer de liens partagés sur ce serveur.</string>
     <string name="share_sheet_preview">Aperçu</string>
     <string name="share_sheet_manage_access">Gérer l'accès</string>

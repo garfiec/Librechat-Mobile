@@ -34,6 +34,12 @@ class ShareSheetControlsTest {
     }
 
     @Test
+    fun noLinkShowsAnOwnerOnlyAudienceAsIs() {
+        val controls = ShareSheetControls.of(noLink.copy(audience = ShareAudience.PEOPLE_ADDED))
+        assertEquals(ShareAudience.PEOPLE_ADDED, controls.audience)
+    }
+
+    @Test
     fun loadingShowsOnlyProgress() {
         val controls = ShareSheetControls.of(ShareSheetState.Loading)
         assertEquals(ShareSheetControls(progress = true), controls)

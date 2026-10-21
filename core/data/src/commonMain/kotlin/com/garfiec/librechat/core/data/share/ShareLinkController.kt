@@ -347,7 +347,7 @@ class ShareLinkController internal constructor(
         is Phase.NoLink -> ShareSheetState.NoLink(
             canCreate = gates.canCreate,
             filesOption = if (gates.filesEnabled) FilesOption(phase.includeFiles) else null,
-            audience = gates.audience,
+            audience = gates.newLinkAudience,
             busy = phase.busy,
             error = phase.error,
         )
@@ -357,7 +357,7 @@ class ShareLinkController internal constructor(
             canUpdate = gates.canCreate && !phase.reduced,
             updateKeepsUrl = gates.updateKeepsUrl,
             filesOption = if (gates.filesEnabled && !phase.reduced) FilesOption(phase.includeFiles) else null,
-            audience = gates.audience,
+            audience = gates.publicAudience,
             canManageAccess = !phase.reduced &&
                 phase.resourceId != null &&
                 gates.canShareLinks &&
@@ -380,7 +380,10 @@ class ShareLinkController internal constructor(
     private data class Gates(
         val canCreate: Boolean,
         val filesEnabled: Boolean,
-        val audience: ShareAudience,
+        /** Who a link created now can be opened by. */
+        val newLinkAudience: ShareAudience,
+        /** Who a link's public grant reaches. */
+        val publicAudience: ShareAudience,
         val updateKeepsUrl: Boolean,
         val canShareLinks: Boolean,
     )
@@ -391,15 +394,41 @@ class ShareLinkController internal constructor(
     private fun UserRolePermissions?.canShareLinks(): Boolean =
         hasAccessStrictOrDenied(PermissionType.SHARED_LINKS, Permission.SHARE)
 
-    private fun gates(config: StartupConfig?, role: UserRolePermissions?, version: String?) = Gates(
-        canCreate = role.canCreateSharedLinks(config?.sharedLinksEnabled ?: false),
-        filesEnabled = config?.sharedLinksSnapshotFilesEnabled == true,
-        audience = if (config?.publicSharedLinksEnabled == true) ShareAudience.ANYONE else ShareAudience.SIGNED_IN,
-        // Fail-safe false: only a CONFIRMED rc1+ server keeps the shareId across a re-publish, so
-        // an unresolved version warns instead of promising it.
-        updateKeepsUrl = version != null && BackendVersion.isCompatibleOrNewer(version, "0.8.8-rc1"),
-        canShareLinks = role.canShareLinks(),
-    )
+    private fun gates(config: StartupConfig?, role: UserRolePermissions?, version: String?): Gates {
+        val publicAudience =
+            if (config?.publicSharedLinksEnabled == true) ShareAudience.ANYONE else ShareAudience.SIGNED_IN
+        return Gates(
+            canCreate = role.canCreateSharedLinks(config?.sharedLinksEnabled ?: false),
+            filesEnabled = config?.sharedLinksSnapshotFilesEnabled == true,
+            newLinkAudience = newLinkAudience(publicAudience, role, version),
+            publicAudience = publicAudience,
+            // Fail-safe false: only a CONFIRMED rc1+ server keeps the shareId across a re-publish, so
+            // an unresolved version warns instead of promising it.
+            updateKeepsUrl = version != null && BackendVersion.isCompatibleOrNewer(version, V0_8_8_RC1),
+            canShareLinks = role.canShareLinks(),
+        )
+    }
+
+    /**
+     * Who a link created now can be opened by. The create route gives the link its public viewer
+     * grant only when the role's SHARED_LINKS.SHARE_PUBLIC is strictly true, and without that grant
+     * nobody but the owner and the people they add gets in, whatever `publicSharedLinksEnabled`
+     * says (scripts/mirrors.json `share-public-grant-rule`). Fail-closed on an unknown role, as
+     * the Manage access switch is. A server confirmed older than the link ACLs keeps the
+     * flag-only wording; whether those versions grant by role is not verified.
+     */
+    private fun newLinkAudience(
+        publicAudience: ShareAudience,
+        role: UserRolePermissions?,
+        version: String?,
+    ): ShareAudience {
+        val beforeAcl = version != null && !BackendVersion.isCompatibleOrNewer(version, V0_8_8_RC1)
+        return when {
+            beforeAcl -> publicAudience
+            role.hasAccessStrictOrDenied(PermissionType.SHARED_LINKS, Permission.SHARE_PUBLIC) -> publicAudience
+            else -> ShareAudience.PEOPLE_ADDED
+        }
+    }
 
     private sealed interface Phase {
         data object Closed : Phase
@@ -443,3 +472,6 @@ class ShareLinkController internal constructor(
         is Result.Loading -> this
     }
 }
+
+/** The first release with in-place link updates and per-link ACLs (read: everything newer than 0.8.7). */
+private const val V0_8_8_RC1 = "0.8.8-rc1"

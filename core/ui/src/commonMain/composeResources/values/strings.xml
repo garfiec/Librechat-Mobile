@@ -267,6 +267,7 @@
     <string name="share_sheet_create">Create link</string>
     <string name="share_sheet_audience_anyone">This server lets anyone with the link view the chat.</string>
     <string name="share_sheet_audience_signed_in">This server lets only people signed in to it view the chat.</string>
+    <string name="share_sheet_audience_people_added">Only you and the people you add can open this link.</string>
     <string name="share_sheet_cannot_create">Your account can't create shared links on this server.</string>
     <string name="share_sheet_preview">Preview</string>
     <string name="share_sheet_manage_access">Manage access</string>

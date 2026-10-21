@@ -245,6 +245,7 @@
     <string name="share_sheet_create">创建链接</string>
     <string name="share_sheet_audience_anyone">此服务器允许任何持有链接的人查看此聊天。</string>
     <string name="share_sheet_audience_signed_in">此服务器仅允许已登录该服务器的用户查看此聊天。</string>
+    <string name="share_sheet_audience_people_added">只有你和你添加的人可以打开此链接。</string>
     <string name="share_sheet_cannot_create">你的账号无法在此服务器上创建分享链接。</string>
     <string name="share_sheet_preview">预览</string>
     <string name="share_sheet_manage_access">管理访问权限</string>

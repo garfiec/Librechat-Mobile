@@ -257,6 +257,7 @@
     <string name="share_sheet_create">Создать ссылку</string>
     <string name="share_sheet_audience_anyone">На этом сервере чат может открыть любой, у кого есть ссылка.</string>
     <string name="share_sheet_audience_signed_in">На этом сервере чат могут открыть только пользователи, вошедшие на сервер.</string>
+    <string name="share_sheet_audience_people_added">Открыть эту ссылку можете только вы и люди, которых вы добавите.</string>
     <string name="share_sheet_cannot_create">Ваша учётная запись не может создавать общие ссылки на этом сервере.</string>
     <string name="share_sheet_preview">Предпросмотр</string>
     <string name="share_sheet_manage_access">Управление доступом</string>

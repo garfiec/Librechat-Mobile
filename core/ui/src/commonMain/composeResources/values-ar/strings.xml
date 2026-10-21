@@ -265,6 +265,7 @@
     <string name="share_sheet_create">إنشاء رابط</string>
     <string name="share_sheet_audience_anyone">يسمح هذا الخادم لأي شخص لديه الرابط بعرض الدردشة.</string>
     <string name="share_sheet_audience_signed_in">يسمح هذا الخادم بعرض الدردشة فقط لمن سجّلوا الدخول إليه.</string>
+    <string name="share_sheet_audience_people_added">لا يمكن فتح هذا الرابط إلا لك وللأشخاص الذين تضيفهم.</string>
     <string name="share_sheet_cannot_create">لا يمكن لحسابك إنشاء روابط مشتركة على هذا الخادم.</string>
     <string name="share_sheet_preview">معاينة</string>
     <string name="share_sheet_manage_access">إدارة الوصول</string>

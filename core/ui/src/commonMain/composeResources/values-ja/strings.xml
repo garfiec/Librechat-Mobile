@@ -245,6 +245,7 @@
     <string name="share_sheet_create">リンクを作成</string>
     <string name="share_sheet_audience_anyone">このサーバーでは、リンクを知っている人なら誰でもチャットを閲覧できます。</string>
     <string name="share_sheet_audience_signed_in">このサーバーでは、サーバーにサインインしている人だけがチャットを閲覧できます。</string>
+    <string name="share_sheet_audience_people_added">このリンクを開けるのは、あなたとあなたが追加したユーザーだけです。</string>
     <string name="share_sheet_cannot_create">このサーバーでは、あなたのアカウントは共有リンクを作成できません。</string>
     <string name="share_sheet_preview">プレビュー</string>
     <string name="share_sheet_manage_access">アクセス管理</string>

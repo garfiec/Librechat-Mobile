@@ -253,6 +253,7 @@
     <string name="share_sheet_create">Criar link</string>
     <string name="share_sheet_audience_anyone">Este servidor permite que qualquer pessoa com o link veja a conversa.</string>
     <string name="share_sheet_audience_signed_in">Este servidor só permite que pessoas conectadas a ele vejam a conversa.</string>
+    <string name="share_sheet_audience_people_added">Somente você e as pessoas que você adicionar podem abrir este link.</string>
     <string name="share_sheet_cannot_create">Sua conta não pode criar links compartilhados neste servidor.</string>
     <string name="share_sheet_preview">Pré-visualizar</string>
     <string name="share_sheet_manage_access">Gerenciar acesso</string>

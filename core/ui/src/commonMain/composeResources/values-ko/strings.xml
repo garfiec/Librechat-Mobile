@@ -245,6 +245,7 @@
     <string name="share_sheet_create">링크 만들기</string>
     <string name="share_sheet_audience_anyone">이 서버에서는 링크가 있는 누구나 채팅을 볼 수 있습니다.</string>
     <string name="share_sheet_audience_signed_in">이 서버에서는 서버에 로그인한 사람만 채팅을 볼 수 있습니다.</string>
+    <string name="share_sheet_audience_people_added">이 링크는 나와 내가 추가한 사람만 열 수 있습니다.</string>
     <string name="share_sheet_cannot_create">이 서버에서는 내 계정으로 공유 링크를 만들 수 없습니다.</string>
     <string name="share_sheet_preview">미리보기</string>
     <string name="share_sheet_manage_access">액세스 관리</string>
