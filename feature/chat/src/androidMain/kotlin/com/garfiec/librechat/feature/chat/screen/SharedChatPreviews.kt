@@ -57,96 +57,34 @@ private val loaded = SharedChatUiState(
 
 @PreviewNarrowScreens
 @Composable
-private fun LoadedMaterialPreview() = ViewerPreview(UiStyle.MATERIAL, loaded)
+private fun LoadedMaterialPreview() = SharedChatViewerPreview(UiStyle.MATERIAL, loaded)
 
 @PreviewNarrowScreens
 @Composable
-private fun LoadedGlassPreview() = ViewerPreview(UiStyle.LIQUID_GLASS, loaded)
+private fun LoadedGlassPreview() = SharedChatViewerPreview(UiStyle.LIQUID_GLASS, loaded)
 
 @PreviewNarrowScreens
 @Composable
-private fun ContinuingMaterialPreview() = ViewerPreview(UiStyle.MATERIAL, loaded.copy(isContinuing = true))
+private fun ContinuingMaterialPreview() = SharedChatViewerPreview(UiStyle.MATERIAL, loaded.copy(isContinuing = true))
 
 @PreviewNarrowScreens
 @Composable
-private fun ContinuingGlassPreview() = ViewerPreview(UiStyle.LIQUID_GLASS, loaded.copy(isContinuing = true))
+private fun ContinuingGlassPreview() = SharedChatViewerPreview(UiStyle.LIQUID_GLASS, loaded.copy(isContinuing = true))
 
 @PreviewNarrowScreens
 @Composable
-private fun LoadingMaterialPreview() = ViewerPreview(UiStyle.MATERIAL, SharedChatUiState())
+private fun LoadingMaterialPreview() = SharedChatViewerPreview(UiStyle.MATERIAL, SharedChatUiState())
 
 @PreviewNarrowScreens
 @Composable
-private fun LoadingGlassPreview() = ViewerPreview(UiStyle.LIQUID_GLASS, SharedChatUiState())
+private fun LoadingGlassPreview() = SharedChatViewerPreview(UiStyle.LIQUID_GLASS, SharedChatUiState())
 
-@PreviewNarrowScreens
-@Composable
-private fun NotFoundMaterialPreview() = ViewerPreview(UiStyle.MATERIAL, failed(SharedChatError.NOT_FOUND))
-
-@PreviewNarrowScreens
-@Composable
-private fun NotFoundGlassPreview() = ViewerPreview(UiStyle.LIQUID_GLASS, failed(SharedChatError.NOT_FOUND))
-
-@PreviewNarrowScreens
-@Composable
-private fun NoAccessMaterialPreview() = ViewerPreview(UiStyle.MATERIAL, failed(SharedChatError.NO_ACCESS))
-
-@PreviewNarrowScreens
-@Composable
-private fun NoAccessGlassPreview() = ViewerPreview(UiStyle.LIQUID_GLASS, failed(SharedChatError.NO_ACCESS))
-
-@PreviewNarrowScreens
-@Composable
-private fun RateLimitedMaterialPreview() = ViewerPreview(UiStyle.MATERIAL, failed(SharedChatError.RATE_LIMITED))
-
-@PreviewNarrowScreens
-@Composable
-private fun RateLimitedGlassPreview() = ViewerPreview(UiStyle.LIQUID_GLASS, failed(SharedChatError.RATE_LIMITED))
-
-@PreviewNarrowScreens
-@Composable
-private fun BlockedMaterialPreview() = ViewerPreview(
-    UiStyle.MATERIAL,
-    failed(SharedChatError.BLOCKED).copy(blockedMessage = "Message 4 matched the policy \"no internal hostnames\"."),
-)
-
-@PreviewNarrowScreens
-@Composable
-private fun BlockedGlassPreview() = ViewerPreview(
-    UiStyle.LIQUID_GLASS,
-    failed(SharedChatError.BLOCKED).copy(blockedMessage = "Message 4 matched the policy \"no internal hostnames\"."),
-)
-
-/** A filter's own explanation can run to several sentences: it keeps a gutter and scrolls. */
-private val blockedLong = failed(SharedChatError.BLOCKED).copy(
-    blockedMessage = "Sharing was blocked by your organisation's content policy. Message 4 contains an internal " +
-        "hostname and message 9 an access token, and both rules apply to shared links as well as exports. " +
-        "Remove or redact those messages, then ask the owner to update the link. If you believe this is a " +
-        "mistake, contact your administrator and quote reference 7f3c-2291.",
-)
-
-@PreviewNarrowScreens
-@Composable
-private fun BlockedLongMaterialPreview() = ViewerPreview(UiStyle.MATERIAL, blockedLong)
-
-@PreviewNarrowScreens
-@Composable
-private fun BlockedLongGlassPreview() = ViewerPreview(UiStyle.LIQUID_GLASS, blockedLong)
-
-@PreviewNarrowScreens
-@Composable
-private fun LoadFailedMaterialPreview() = ViewerPreview(UiStyle.MATERIAL, failed(SharedChatError.NETWORK))
-
-@PreviewNarrowScreens
-@Composable
-private fun LoadFailedGlassPreview() = ViewerPreview(UiStyle.LIQUID_GLASS, failed(SharedChatError.NETWORK))
-
-private fun failed(error: SharedChatError) = SharedChatUiState(isLoading = false, error = error)
+internal fun failedSharedChat(error: SharedChatError) = SharedChatUiState(isLoading = false, error = error)
 
 internal const val SHARED_CHAT_PREVIEW_HEIGHT = 720
 
 @Composable
-private fun ViewerPreview(style: UiStyle, state: SharedChatUiState) {
+internal fun SharedChatViewerPreview(style: UiStyle, state: SharedChatUiState) {
     LibreChatTheme(darkTheme = style == UiStyle.LIQUID_GLASS, uiStyle = style) {
         Box(Modifier.fillMaxWidth().height(SHARED_CHAT_PREVIEW_HEIGHT.dp)) {
             SharedChatScaffold(
