@@ -95,6 +95,7 @@ internal class ChatViewModelTestFixture {
 
     val selectionHandoff = NewChatSelectionHandoff()
     val siteIconPromptSession = SiteIconPromptSession()
+    val promptInsertionHandoff = PromptInsertionHandoff()
 
     /** Driven by hand where a test needs a prompt mutation to reach a retained ViewModel. */
     val promptRevision = MutableStateFlow(0L)
@@ -184,7 +185,7 @@ internal class ChatViewModelTestFixture {
         defaultDispatcher = defaultDispatcher,
         selectionHandoff = selectionHandoff,
         serverFileSelectionHandoff = serverFileSelectionHandoff,
-        promptInsertionHandoff = PromptInsertionHandoff(),
+        promptInsertionHandoff = promptInsertionHandoff,
         siteIconPromptSession = siteIconPromptSession,
         preferenceStore = preferenceStore,
         activeAccountProvider = activeAccountProvider,
