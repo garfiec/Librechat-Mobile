@@ -226,4 +226,40 @@
     <string name="saver_write_failed">无法写入导出文件</string>
     <string name="saver_open_failed">无法打开所选文件进行写入</string>
     <string name="saver_share_sheet_failed">无法显示分享面板</string>
+
+    <!-- Share sheet: one sheet for every Share entry point -->
+    <string name="share_sheet_title">分享聊天</string>
+    <string name="share_sheet_snapshot_note">链接显示的是你分享或上次更新时的聊天内容。更新链接以包含较新的消息。</string>
+    <string name="share_sheet_reduced_note">请在网页版中管理此链接的设置。</string>
+    <string name="share_sheet_copy">复制链接</string>
+    <string name="share_sheet_copied">已复制</string>
+    <string name="share_sheet_share">分享…</string>
+    <string name="share_sheet_show_qr">显示二维码</string>
+    <string name="share_sheet_hide_qr">隐藏二维码</string>
+    <string name="share_sheet_qr_description">此聊天链接的二维码</string>
+    <string name="share_sheet_include_files">包含文件</string>
+    <string name="share_sheet_include_files_description">仅在开启时，查看者才能看到此聊天中的图片和文件。</string>
+    <string name="share_sheet_include_files_on_update">更新链接后生效。</string>
+    <string name="share_sheet_update">更新链接</string>
+    <string name="share_sheet_delete">删除链接</string>
+    <string name="share_sheet_create">创建链接</string>
+    <string name="share_sheet_audience_anyone">此服务器允许任何持有链接的人查看此聊天。</string>
+    <string name="share_sheet_audience_signed_in">此服务器仅允许已登录该服务器的用户查看此聊天。</string>
+    <string name="share_sheet_cannot_create">你的账号无法在此服务器上创建分享链接。</string>
+    <string name="share_sheet_preview">预览</string>
+    <string name="share_sheet_manage_access">管理访问权限</string>
+    <string name="share_sheet_confirm_update_title">更新链接？</string>
+    <string name="share_sheet_confirm_update_keeps_url">这将以聊天的当前内容重新发布。链接保持不变，已有该链接的人将看到更新后的内容。</string>
+    <string name="share_sheet_confirm_update_new_url">这将以聊天的当前内容重新发布。此服务器会生成新链接，持有旧链接的人将无法再访问。</string>
+    <string name="share_sheet_confirm_delete_title">删除链接？</string>
+    <string name="share_sheet_confirm_delete_message">持有该链接的人将无法再打开它。</string>
+    <string name="share_sheet_cancel">取消</string>
+    <string name="share_sheet_error_network">无法连接到服务器。请检查网络连接后重试。</string>
+    <string name="share_sheet_error_forbidden">你没有执行此操作的权限。</string>
+    <string name="share_sheet_error_not_found">此链接已不存在。</string>
+    <string name="share_sheet_error_rate_limited">共享链接请求过多。请稍后再试。</string>
+    <string name="share_sheet_error_target_not_saved">最新消息尚未保存完成。请稍后再试。</string>
+    <string name="share_sheet_error_no_messages">此聊天还没有可分享的已保存消息。</string>
+    <string name="share_sheet_error_content_blocked">你的服务器阻止了分享此内容。</string>
+    <string name="share_sheet_error_generic">出了点问题。请重试。</string>
 </resources>

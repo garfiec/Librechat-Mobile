@@ -248,4 +248,40 @@
     <string name="saver_write_failed">Could not write export file</string>
     <string name="saver_open_failed">Could not open the selected file for writing</string>
     <string name="saver_share_sheet_failed">Could not present share sheet</string>
+
+    <!-- Share sheet: one sheet for every Share entry point -->
+    <string name="share_sheet_title">Share chat</string>
+    <string name="share_sheet_snapshot_note">The link shows this chat as it was when you shared or last updated it. Update to include newer messages.</string>
+    <string name="share_sheet_reduced_note">Manage this link's settings on the web.</string>
+    <string name="share_sheet_copy">Copy link</string>
+    <string name="share_sheet_copied">Copied</string>
+    <string name="share_sheet_share">Share…</string>
+    <string name="share_sheet_show_qr">Show QR code</string>
+    <string name="share_sheet_hide_qr">Hide QR code</string>
+    <string name="share_sheet_qr_description">QR code for this chat's link</string>
+    <string name="share_sheet_include_files">Include files</string>
+    <string name="share_sheet_include_files_description">Images and files in this chat are visible to viewers only when this is on.</string>
+    <string name="share_sheet_include_files_on_update">Takes effect when you update the link.</string>
+    <string name="share_sheet_update">Update link</string>
+    <string name="share_sheet_delete">Delete link</string>
+    <string name="share_sheet_create">Create link</string>
+    <string name="share_sheet_audience_anyone">This server lets anyone with the link view the chat.</string>
+    <string name="share_sheet_audience_signed_in">This server lets only people signed in to it view the chat.</string>
+    <string name="share_sheet_cannot_create">Your account can't create shared links on this server.</string>
+    <string name="share_sheet_preview">Preview</string>
+    <string name="share_sheet_manage_access">Manage access</string>
+    <string name="share_sheet_confirm_update_title">Update link?</string>
+    <string name="share_sheet_confirm_update_keeps_url">This republishes the chat as it is now. The link stays the same, so anyone who already has it will see the updated content.</string>
+    <string name="share_sheet_confirm_update_new_url">This republishes the chat as it is now. This server issues a new link, so anyone who already has the old one will lose access.</string>
+    <string name="share_sheet_confirm_delete_title">Delete link?</string>
+    <string name="share_sheet_confirm_delete_message">Anyone with the link will no longer be able to open it.</string>
+    <string name="share_sheet_cancel">Cancel</string>
+    <string name="share_sheet_error_network">Couldn't reach the server. Check your connection and try again.</string>
+    <string name="share_sheet_error_forbidden">You don't have permission to do that.</string>
+    <string name="share_sheet_error_not_found">This link no longer exists.</string>
+    <string name="share_sheet_error_rate_limited">Too many shared link requests. Wait a moment and try again.</string>
+    <string name="share_sheet_error_target_not_saved">The latest message hasn't finished saving. Try again in a moment.</string>
+    <string name="share_sheet_error_no_messages">This chat has no saved messages to share yet.</string>
+    <string name="share_sheet_error_content_blocked">Your server blocked sharing this content.</string>
+    <string name="share_sheet_error_generic">Something went wrong. Try again.</string>
 </resources>

@@ -246,4 +246,40 @@
     <string name="saver_write_failed">تعذّرت كتابة ملف التصدير</string>
     <string name="saver_open_failed">تعذّر فتح الملف المحدد للكتابة</string>
     <string name="saver_share_sheet_failed">تعذّر عرض ورقة المشاركة</string>
+
+    <!-- Share sheet: one sheet for every Share entry point -->
+    <string name="share_sheet_title">مشاركة الدردشة</string>
+    <string name="share_sheet_snapshot_note">يعرض الرابط هذه الدردشة كما كانت عند مشاركتها أو آخر تحديث لها. حدّث الرابط لتضمين الرسائل الأحدث.</string>
+    <string name="share_sheet_reduced_note">أدِر إعدادات هذا الرابط من الويب.</string>
+    <string name="share_sheet_copy">نسخ الرابط</string>
+    <string name="share_sheet_copied">تم النسخ</string>
+    <string name="share_sheet_share">مشاركة…</string>
+    <string name="share_sheet_show_qr">إظهار رمز QR</string>
+    <string name="share_sheet_hide_qr">إخفاء رمز QR</string>
+    <string name="share_sheet_qr_description">رمز QR لرابط هذه الدردشة</string>
+    <string name="share_sheet_include_files">تضمين الملفات</string>
+    <string name="share_sheet_include_files_description">لا تظهر الصور والملفات في هذه الدردشة للمشاهدين إلا عند تفعيل هذا الخيار.</string>
+    <string name="share_sheet_include_files_on_update">يسري عند تحديث الرابط.</string>
+    <string name="share_sheet_update">تحديث الرابط</string>
+    <string name="share_sheet_delete">حذف الرابط</string>
+    <string name="share_sheet_create">إنشاء رابط</string>
+    <string name="share_sheet_audience_anyone">يسمح هذا الخادم لأي شخص لديه الرابط بعرض الدردشة.</string>
+    <string name="share_sheet_audience_signed_in">يسمح هذا الخادم بعرض الدردشة فقط لمن سجّلوا الدخول إليه.</string>
+    <string name="share_sheet_cannot_create">لا يمكن لحسابك إنشاء روابط مشتركة على هذا الخادم.</string>
+    <string name="share_sheet_preview">معاينة</string>
+    <string name="share_sheet_manage_access">إدارة الوصول</string>
+    <string name="share_sheet_confirm_update_title">تحديث الرابط؟</string>
+    <string name="share_sheet_confirm_update_keeps_url">سيُعاد نشر الدردشة كما هي الآن. سيبقى الرابط كما هو، لذا سيرى كل من لديه الرابط المحتوى المحدّث.</string>
+    <string name="share_sheet_confirm_update_new_url">سيُعاد نشر الدردشة كما هي الآن. يُصدر هذا الخادم رابطًا جديدًا، لذا سيفقد كل من لديه الرابط القديم إمكانية الوصول.</string>
+    <string name="share_sheet_confirm_delete_title">حذف الرابط؟</string>
+    <string name="share_sheet_confirm_delete_message">لن يتمكن أي شخص لديه الرابط من فتحه بعد الآن.</string>
+    <string name="share_sheet_cancel">إلغاء</string>
+    <string name="share_sheet_error_network">تعذّر الوصول إلى الخادم. تحقّق من اتصالك وحاول مرة أخرى.</string>
+    <string name="share_sheet_error_forbidden">ليس لديك إذن للقيام بذلك.</string>
+    <string name="share_sheet_error_not_found">لم يعد هذا الرابط موجودًا.</string>
+    <string name="share_sheet_error_rate_limited">طلبات روابط مشاركة كثيرة جدًا. انتظر قليلًا وحاول مرة أخرى.</string>
+    <string name="share_sheet_error_target_not_saved">لم يكتمل حفظ آخر رسالة بعد. حاول مرة أخرى بعد لحظات.</string>
+    <string name="share_sheet_error_no_messages">لا تحتوي هذه الدردشة على رسائل محفوظة للمشاركة بعد.</string>
+    <string name="share_sheet_error_content_blocked">حظر خادمك مشاركة هذا المحتوى.</string>
+    <string name="share_sheet_error_generic">حدث خطأ ما. حاول مرة أخرى.</string>
 </resources>

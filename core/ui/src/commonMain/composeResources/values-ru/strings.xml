@@ -238,4 +238,40 @@
     <string name="saver_write_failed">Не удалось записать файл экспорта</string>
     <string name="saver_open_failed">Не удалось открыть выбранный файл для записи</string>
     <string name="saver_share_sheet_failed">Не удалось открыть меню «Поделиться»</string>
+
+    <!-- Share sheet: one sheet for every Share entry point -->
+    <string name="share_sheet_title">Поделиться чатом</string>
+    <string name="share_sheet_snapshot_note">По ссылке виден чат таким, каким он был, когда вы поделились им или последний раз обновили ссылку. Обновите её, чтобы добавить новые сообщения.</string>
+    <string name="share_sheet_reduced_note">Настройки этой ссылки можно изменить в веб-версии.</string>
+    <string name="share_sheet_copy">Скопировать ссылку</string>
+    <string name="share_sheet_copied">Скопировано</string>
+    <string name="share_sheet_share">Поделиться…</string>
+    <string name="share_sheet_show_qr">Показать QR-код</string>
+    <string name="share_sheet_hide_qr">Скрыть QR-код</string>
+    <string name="share_sheet_qr_description">QR-код ссылки на этот чат</string>
+    <string name="share_sheet_include_files">Включить файлы</string>
+    <string name="share_sheet_include_files_description">Изображения и файлы из этого чата видны зрителям, только если этот параметр включён.</string>
+    <string name="share_sheet_include_files_on_update">Применится, когда вы обновите ссылку.</string>
+    <string name="share_sheet_update">Обновить ссылку</string>
+    <string name="share_sheet_delete">Удалить ссылку</string>
+    <string name="share_sheet_create">Создать ссылку</string>
+    <string name="share_sheet_audience_anyone">На этом сервере чат может открыть любой, у кого есть ссылка.</string>
+    <string name="share_sheet_audience_signed_in">На этом сервере чат могут открыть только пользователи, вошедшие на сервер.</string>
+    <string name="share_sheet_cannot_create">Ваша учётная запись не может создавать общие ссылки на этом сервере.</string>
+    <string name="share_sheet_preview">Предпросмотр</string>
+    <string name="share_sheet_manage_access">Управление доступом</string>
+    <string name="share_sheet_confirm_update_title">Обновить ссылку?</string>
+    <string name="share_sheet_confirm_update_keeps_url">Чат будет опубликован заново в текущем состоянии. Ссылка не изменится, поэтому все, у кого она уже есть, увидят обновлённое содержимое.</string>
+    <string name="share_sheet_confirm_update_new_url">Чат будет опубликован заново в текущем состоянии. Этот сервер выдаёт новую ссылку, поэтому все, у кого есть старая, потеряют доступ.</string>
+    <string name="share_sheet_confirm_delete_title">Удалить ссылку?</string>
+    <string name="share_sheet_confirm_delete_message">Никто из тех, у кого есть ссылка, больше не сможет её открыть.</string>
+    <string name="share_sheet_cancel">Отмена</string>
+    <string name="share_sheet_error_network">Не удалось связаться с сервером. Проверьте подключение и повторите попытку.</string>
+    <string name="share_sheet_error_forbidden">У вас нет прав на это действие.</string>
+    <string name="share_sheet_error_not_found">Эта ссылка больше не существует.</string>
+    <string name="share_sheet_error_rate_limited">Слишком много запросов на создание общих ссылок. Подождите немного и попробуйте снова.</string>
+    <string name="share_sheet_error_target_not_saved">Последнее сообщение ещё сохраняется. Повторите попытку через минуту.</string>
+    <string name="share_sheet_error_no_messages">В этом чате пока нет сохранённых сообщений, которыми можно поделиться.</string>
+    <string name="share_sheet_error_content_blocked">Ваш сервер заблокировал публикацию этого содержимого.</string>
+    <string name="share_sheet_error_generic">Что-то пошло не так. Повторите попытку.</string>
 </resources>

@@ -226,4 +226,40 @@
     <string name="saver_write_failed">エクスポートファイルを書き込めませんでした</string>
     <string name="saver_open_failed">選択したファイルを書き込み用に開けませんでした</string>
     <string name="saver_share_sheet_failed">共有シートを表示できませんでした</string>
+
+    <!-- Share sheet: one sheet for every Share entry point -->
+    <string name="share_sheet_title">チャットを共有</string>
+    <string name="share_sheet_snapshot_note">リンクには、共有したとき、または最後に更新したときのチャットが表示されます。新しいメッセージを含めるには更新してください。</string>
+    <string name="share_sheet_reduced_note">このリンクの設定はウェブ版で管理してください。</string>
+    <string name="share_sheet_copy">リンクをコピー</string>
+    <string name="share_sheet_copied">コピーしました</string>
+    <string name="share_sheet_share">共有…</string>
+    <string name="share_sheet_show_qr">QRコードを表示</string>
+    <string name="share_sheet_hide_qr">QRコードを非表示</string>
+    <string name="share_sheet_qr_description">このチャットのリンクのQRコード</string>
+    <string name="share_sheet_include_files">ファイルを含める</string>
+    <string name="share_sheet_include_files_description">オンにした場合のみ、このチャットの画像とファイルが閲覧者に表示されます。</string>
+    <string name="share_sheet_include_files_on_update">リンクを更新したときに反映されます。</string>
+    <string name="share_sheet_update">リンクを更新</string>
+    <string name="share_sheet_delete">リンクを削除</string>
+    <string name="share_sheet_create">リンクを作成</string>
+    <string name="share_sheet_audience_anyone">このサーバーでは、リンクを知っている人なら誰でもチャットを閲覧できます。</string>
+    <string name="share_sheet_audience_signed_in">このサーバーでは、サーバーにサインインしている人だけがチャットを閲覧できます。</string>
+    <string name="share_sheet_cannot_create">このサーバーでは、あなたのアカウントは共有リンクを作成できません。</string>
+    <string name="share_sheet_preview">プレビュー</string>
+    <string name="share_sheet_manage_access">アクセス管理</string>
+    <string name="share_sheet_confirm_update_title">リンクを更新しますか？</string>
+    <string name="share_sheet_confirm_update_keeps_url">現在のチャットの内容で再公開します。リンクは変わらないため、すでにリンクを持っている人には更新後の内容が表示されます。</string>
+    <string name="share_sheet_confirm_update_new_url">現在のチャットの内容で再公開します。このサーバーは新しいリンクを発行するため、古いリンクを持っている人はアクセスできなくなります。</string>
+    <string name="share_sheet_confirm_delete_title">リンクを削除しますか？</string>
+    <string name="share_sheet_confirm_delete_message">リンクを持っている人は開けなくなります。</string>
+    <string name="share_sheet_cancel">キャンセル</string>
+    <string name="share_sheet_error_network">サーバーに接続できませんでした。接続を確認して、もう一度お試しください。</string>
+    <string name="share_sheet_error_forbidden">この操作を行う権限がありません。</string>
+    <string name="share_sheet_error_not_found">このリンクはもう存在しません。</string>
+    <string name="share_sheet_error_rate_limited">共有リンクのリクエストが多すぎます。しばらく待ってからもう一度お試しください。</string>
+    <string name="share_sheet_error_target_not_saved">最新のメッセージがまだ保存中です。少し待ってからもう一度お試しください。</string>
+    <string name="share_sheet_error_no_messages">このチャットには共有できる保存済みメッセージがまだありません。</string>
+    <string name="share_sheet_error_content_blocked">サーバーがこのコンテンツの共有をブロックしました。</string>
+    <string name="share_sheet_error_generic">問題が発生しました。もう一度お試しください。</string>
 </resources>

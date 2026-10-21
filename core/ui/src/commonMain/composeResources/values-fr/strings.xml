@@ -234,4 +234,40 @@
     <string name="saver_write_failed">Impossible d’écrire le fichier d’export</string>
     <string name="saver_open_failed">Impossible d’ouvrir le fichier choisi en écriture</string>
     <string name="saver_share_sheet_failed">Impossible d’afficher la feuille de partage</string>
+
+    <!-- Share sheet: one sheet for every Share entry point -->
+    <string name="share_sheet_title">Partager la discussion</string>
+    <string name="share_sheet_snapshot_note">Le lien montre cette discussion telle qu'elle était lorsque vous l'avez partagée ou mise à jour pour la dernière fois. Mettez-le à jour pour inclure les messages plus récents.</string>
+    <string name="share_sheet_reduced_note">Gérez les paramètres de ce lien depuis le web.</string>
+    <string name="share_sheet_copy">Copier le lien</string>
+    <string name="share_sheet_copied">Copié</string>
+    <string name="share_sheet_share">Partager…</string>
+    <string name="share_sheet_show_qr">Afficher le QR code</string>
+    <string name="share_sheet_hide_qr">Masquer le QR code</string>
+    <string name="share_sheet_qr_description">QR code du lien de cette discussion</string>
+    <string name="share_sheet_include_files">Inclure les fichiers</string>
+    <string name="share_sheet_include_files_description">Les images et fichiers de cette discussion ne sont visibles par les lecteurs que si cette option est activée.</string>
+    <string name="share_sheet_include_files_on_update">S'applique lorsque vous mettez le lien à jour.</string>
+    <string name="share_sheet_update">Mettre à jour le lien</string>
+    <string name="share_sheet_delete">Supprimer le lien</string>
+    <string name="share_sheet_create">Créer un lien</string>
+    <string name="share_sheet_audience_anyone">Ce serveur permet à toute personne disposant du lien de voir la discussion.</string>
+    <string name="share_sheet_audience_signed_in">Ce serveur ne permet qu'aux personnes connectées à ce serveur de voir la discussion.</string>
+    <string name="share_sheet_cannot_create">Votre compte ne peut pas créer de liens partagés sur ce serveur.</string>
+    <string name="share_sheet_preview">Aperçu</string>
+    <string name="share_sheet_manage_access">Gérer l'accès</string>
+    <string name="share_sheet_confirm_update_title">Mettre à jour le lien ?</string>
+    <string name="share_sheet_confirm_update_keeps_url">Ceci republie la discussion dans son état actuel. Le lien reste le même : toute personne qui l'a déjà verra le contenu mis à jour.</string>
+    <string name="share_sheet_confirm_update_new_url">Ceci republie la discussion dans son état actuel. Ce serveur génère un nouveau lien : toute personne qui a l'ancien perdra l'accès.</string>
+    <string name="share_sheet_confirm_delete_title">Supprimer le lien ?</string>
+    <string name="share_sheet_confirm_delete_message">Les personnes disposant du lien ne pourront plus l'ouvrir.</string>
+    <string name="share_sheet_cancel">Annuler</string>
+    <string name="share_sheet_error_network">Impossible de joindre le serveur. Vérifiez votre connexion et réessayez.</string>
+    <string name="share_sheet_error_forbidden">Vous n'avez pas l'autorisation de faire cela.</string>
+    <string name="share_sheet_error_not_found">Ce lien n'existe plus.</string>
+    <string name="share_sheet_error_rate_limited">Trop de demandes de liens partagés. Patientez un instant et réessayez.</string>
+    <string name="share_sheet_error_target_not_saved">Le dernier message n'a pas fini d'être enregistré. Réessayez dans un instant.</string>
+    <string name="share_sheet_error_no_messages">Cette discussion n'a pas encore de messages enregistrés à partager.</string>
+    <string name="share_sheet_error_content_blocked">Votre serveur a bloqué le partage de ce contenu.</string>
+    <string name="share_sheet_error_generic">Une erreur s'est produite. Réessayez.</string>
 </resources>

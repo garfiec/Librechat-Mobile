@@ -234,4 +234,40 @@
     <string name="saver_write_failed">No se pudo escribir el archivo de exportación</string>
     <string name="saver_open_failed">No se pudo abrir el archivo seleccionado para escribir</string>
     <string name="saver_share_sheet_failed">No se pudo mostrar la hoja para compartir</string>
+
+    <!-- Share sheet: one sheet for every Share entry point -->
+    <string name="share_sheet_title">Compartir chat</string>
+    <string name="share_sheet_snapshot_note">El enlace muestra este chat tal como estaba cuando lo compartiste o lo actualizaste por última vez. Actualízalo para incluir mensajes más recientes.</string>
+    <string name="share_sheet_reduced_note">Gestiona la configuración de este enlace desde la web.</string>
+    <string name="share_sheet_copy">Copiar enlace</string>
+    <string name="share_sheet_copied">Copiado</string>
+    <string name="share_sheet_share">Compartir…</string>
+    <string name="share_sheet_show_qr">Mostrar código QR</string>
+    <string name="share_sheet_hide_qr">Ocultar código QR</string>
+    <string name="share_sheet_qr_description">Código QR del enlace de este chat</string>
+    <string name="share_sheet_include_files">Incluir archivos</string>
+    <string name="share_sheet_include_files_description">Las imágenes y los archivos de este chat solo son visibles para quien lo vea si esto está activado.</string>
+    <string name="share_sheet_include_files_on_update">Se aplica cuando actualizas el enlace.</string>
+    <string name="share_sheet_update">Actualizar enlace</string>
+    <string name="share_sheet_delete">Eliminar enlace</string>
+    <string name="share_sheet_create">Crear enlace</string>
+    <string name="share_sheet_audience_anyone">Este servidor permite que cualquiera con el enlace vea el chat.</string>
+    <string name="share_sheet_audience_signed_in">Este servidor solo permite ver el chat a quienes hayan iniciado sesión en él.</string>
+    <string name="share_sheet_cannot_create">Tu cuenta no puede crear enlaces compartidos en este servidor.</string>
+    <string name="share_sheet_preview">Vista previa</string>
+    <string name="share_sheet_manage_access">Gestionar acceso</string>
+    <string name="share_sheet_confirm_update_title">¿Actualizar enlace?</string>
+    <string name="share_sheet_confirm_update_keeps_url">Esto vuelve a publicar el chat tal como está ahora. El enlace no cambia, así que quien ya lo tenga verá el contenido actualizado.</string>
+    <string name="share_sheet_confirm_update_new_url">Esto vuelve a publicar el chat tal como está ahora. Este servidor genera un enlace nuevo, así que quien tenga el anterior perderá el acceso.</string>
+    <string name="share_sheet_confirm_delete_title">¿Eliminar enlace?</string>
+    <string name="share_sheet_confirm_delete_message">Nadie con el enlace podrá volver a abrirlo.</string>
+    <string name="share_sheet_cancel">Cancelar</string>
+    <string name="share_sheet_error_network">No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.</string>
+    <string name="share_sheet_error_forbidden">No tienes permiso para hacer eso.</string>
+    <string name="share_sheet_error_not_found">Este enlace ya no existe.</string>
+    <string name="share_sheet_error_rate_limited">Demasiadas solicitudes de enlaces compartidos. Espera un momento e inténtalo de nuevo.</string>
+    <string name="share_sheet_error_target_not_saved">El último mensaje aún no se ha terminado de guardar. Inténtalo de nuevo en un momento.</string>
+    <string name="share_sheet_error_no_messages">Este chat todavía no tiene mensajes guardados para compartir.</string>
+    <string name="share_sheet_error_content_blocked">Tu servidor bloqueó que se comparta este contenido.</string>
+    <string name="share_sheet_error_generic">Algo salió mal. Inténtalo de nuevo.</string>
 </resources>
