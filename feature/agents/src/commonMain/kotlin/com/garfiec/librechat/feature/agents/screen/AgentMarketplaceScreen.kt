@@ -85,10 +85,13 @@ import com.garfiec.librechat.feature.agents.components.displayLabel
 import com.garfiec.librechat.feature.agents.resources.*
 import com.garfiec.librechat.feature.agents.resources.Res
 import com.garfiec.librechat.feature.agents.viewmodel.AgentChip
-import com.garfiec.librechat.feature.agents.viewmodel.AgentListQuery
+import com.garfiec.librechat.feature.agents.viewmodel.AgentListState
+import com.garfiec.librechat.feature.agents.viewmodel.AgentListWayOut
 import com.garfiec.librechat.feature.agents.viewmodel.AgentMarketplaceUiState
 import com.garfiec.librechat.feature.agents.viewmodel.AgentMarketplaceViewModel
 import com.garfiec.librechat.feature.agents.viewmodel.failureText
+import com.garfiec.librechat.feature.agents.viewmodel.listState
+import com.garfiec.librechat.feature.agents.viewmodel.showsNewAgentFab
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -190,7 +193,6 @@ internal fun AgentMarketplaceContent(
             .collect { (_, nearEnd) -> if (nearEnd) currentActions.onLoadMore() }
     }
 
-    val showsServerEmpty = uiState.isServerEmpty
     AdaptiveScaffold(
         // The search is typed here, so the grid and its empty state end where the keyboard begins.
         modifier = modifier.imePadding(),
@@ -206,7 +208,7 @@ internal fun AgentMarketplaceContent(
         },
         floatingActionButton = {
             // The empty server's state carries its own New agent button; two would compete.
-            if (uiState.canBrowse && uiState.agentsCreateEnabled && !showsServerEmpty) {
+            if (uiState.showsNewAgentFab) {
                 AdaptiveExtendedFloatingActionButton(
                     text = { Text(stringResource(Res.string.agents_new_agent)) },
                     icon = { Icon(Icons.Default.Add, contentDescription = null) },
@@ -237,11 +239,6 @@ internal fun AgentMarketplaceContent(
     }
 }
 
-/** The server has no agents this user can see: All, no search, nothing back. */
-private val AgentMarketplaceUiState.isServerEmpty: Boolean
-    get() = !isLoading && !isRefreshing && loadError == null && agents.isEmpty() &&
-        shownQuery == AgentListQuery(AgentChip.All, "")
-
 @Composable
 internal fun AgentGrid(
     uiState: AgentMarketplaceUiState,
@@ -252,9 +249,7 @@ internal fun AgentGrid(
     val categoriesByValue = remember(uiState.categories) { uiState.categories.associateBy { it.value } }
     // The card's text scales with the font, so its minimum width does too.
     val minCardWidth = AgentCardMinWidth * LocalDensity.current.fontScale
-    // A pull on the error page has nothing to show either; placeholders, not a flash of "No agents yet".
-    val isFirstLoad = (uiState.isLoading || uiState.isRefreshing) && uiState.agents.isEmpty()
-    val showsServerEmpty = uiState.isServerEmpty
+    val listState = uiState.listState()
     LazyVerticalGrid(
         columns = remember(minCardWidth) { UpToTwoColumns(minCardWidth) },
         state = gridState,
@@ -263,7 +258,7 @@ internal fun AgentGrid(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = modifier.fillMaxSize(),
     ) {
-        if (!showsServerEmpty) {
+        if (listState != AgentListState.ServerEmpty) {
             fullWidthItem(key = "search") {
                 AgentSearchField(query = uiState.searchQuery, onQueryChange = actions.onSearchQueryChange)
             }
@@ -277,31 +272,30 @@ internal fun AgentGrid(
             }
         }
 
-        when {
-            isFirstLoad -> items(PLACEHOLDER_COUNT, key = { "placeholder_$it" }, contentType = { "placeholder" }) {
+        when (listState) {
+            AgentListState.Placeholders -> items(PLACEHOLDER_COUNT, key = { "placeholder_$it" }, contentType = { "placeholder" }) {
                 AgentCardPlaceholder()
             }
 
-            uiState.loadError != null && uiState.agents.isEmpty() -> fullWidthItem(key = "error") {
+            is AgentListState.Error -> fullWidthItem(key = "error") {
                 EmptyState(
                     title = stringResource(Res.string.agents_load_failed),
-                    description = uiState.loadError.serverMessage,
+                    description = listState.serverMessage,
                     icon = Icons.Default.CloudOff,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 48.dp),
                     action = { AdaptiveButton(onClick = actions.onRetry) { Text(stringResource(Res.string.agents_retry)) } },
                 )
             }
 
-            uiState.agents.isEmpty() -> fullWidthItem(key = "empty") {
-                AgentListEmptyState(
-                    shown = uiState.shownQuery,
-                    canCreate = uiState.agentsCreateEnabled,
-                    categoriesByValue = categoriesByValue,
-                    actions = actions,
-                )
+            AgentListState.ServerEmpty -> fullWidthItem(key = "empty") {
+                ServerEmptyState(canCreate = uiState.agentsCreateEnabled, onCreateAgent = actions.onCreateAgent)
             }
 
-            else -> items(uiState.agents, key = { it.id }, contentType = { "agent" }) { agent ->
+            is AgentListState.NoMatches -> fullWidthItem(key = "no_matches") {
+                NoMatchesState(state = listState, categoriesByValue = categoriesByValue, actions = actions)
+            }
+
+            AgentListState.Agents -> items(uiState.agents, key = { it.id }, contentType = { "agent" }) { agent ->
                 AgentCard(
                     agent = agent,
                     categoryLabel = agentCategoryLabel(agent.categoryValue, categoriesByValue),
@@ -392,57 +386,54 @@ private fun AgentChip.label(categoriesByValue: Map<String, AgentCategory>): Stri
     is AgentChip.Category -> categoriesByValue[value]?.displayLabel() ?: categoryValueLabel(value)
 }
 
-/**
- * Nothing to list. An empty server says so and offers New agent; a chip or search that found
- * nothing names what it looked in and offers a way out to every agent.
- */
+private fun emptyStatePadding(): Modifier = Modifier.padding(horizontal = 16.dp, vertical = 48.dp)
+
+/** The server has no agents this user can see: says so, and offers New agent to roles that may create. */
 @Composable
-private fun AgentListEmptyState(
-    shown: AgentListQuery?,
-    canCreate: Boolean,
+private fun ServerEmptyState(canCreate: Boolean, onCreateAgent: () -> Unit) {
+    EmptyState(
+        title = stringResource(Res.string.agents_empty_title),
+        description = stringResource(
+            if (canCreate) Res.string.agents_empty_description_create else Res.string.check_back_later,
+        ),
+        icon = Icons.Default.SmartToy,
+        modifier = emptyStatePadding(),
+        action = if (canCreate) {
+            { NewAgentButton(onClick = onCreateAgent) }
+        } else {
+            null
+        },
+    )
+}
+
+/** A chip or search that found nothing: names what it looked in and offers [AgentListState.NoMatches.wayOut]. */
+@Composable
+private fun NoMatchesState(
+    state: AgentListState.NoMatches,
     categoriesByValue: Map<String, AgentCategory>,
     actions: AgentMarketplaceActions,
 ) {
-    val chip = shown?.chip ?: AgentChip.All
-    val searching = !shown?.search.isNullOrEmpty()
-    // While searching, Top picks searches everything, like All.
-    val narrowed = chip != AgentChip.All && !(searching && chip == AgentChip.TopPicks)
-    val modifier = Modifier.padding(horizontal = 16.dp, vertical = 48.dp)
-    when {
-        !narrowed && !searching -> EmptyState(
-            title = stringResource(Res.string.agents_empty_title),
-            description = stringResource(
-                if (canCreate) Res.string.agents_empty_description_create else Res.string.check_back_later,
-            ),
-            icon = Icons.Default.SmartToy,
-            modifier = modifier,
-            action = if (canCreate) {
-                { NewAgentButton(onClick = actions.onCreateAgent) }
-            } else {
-                null
-            },
-        )
-
-        !narrowed -> EmptyState(
+    when (state.wayOut) {
+        AgentListWayOut.ClearSearch -> EmptyState(
             title = stringResource(Res.string.no_agents_found),
             description = stringResource(Res.string.try_different_search),
             icon = Icons.Default.Search,
-            modifier = modifier,
+            modifier = emptyStatePadding(),
             action = { WayOutButton(stringResource(Res.string.agents_clear_search), actions.onShowAll) },
         )
 
-        searching -> EmptyState(
-            title = stringResource(Res.string.agents_no_matches_in, chip.label(categoriesByValue)),
+        AgentListWayOut.SearchAll -> EmptyState(
+            title = stringResource(Res.string.agents_no_matches_in, state.chip.label(categoriesByValue)),
             description = stringResource(Res.string.try_different_search),
             icon = Icons.Default.Search,
-            modifier = modifier,
+            modifier = emptyStatePadding(),
             action = { WayOutButton(stringResource(Res.string.agents_search_all), actions.onSearchAll) },
         )
 
-        else -> EmptyState(
-            title = stringResource(Res.string.agents_none_in, chip.label(categoriesByValue)),
+        AgentListWayOut.ShowAll -> EmptyState(
+            title = stringResource(Res.string.agents_none_in, state.chip.label(categoriesByValue)),
             icon = Icons.Default.SmartToy,
-            modifier = modifier,
+            modifier = emptyStatePadding(),
             action = { WayOutButton(stringResource(Res.string.agents_show_all), actions.onShowAll) },
         )
     }
