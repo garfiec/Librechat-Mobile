@@ -1813,6 +1813,19 @@
       },
       "why": "How the web decides a description is HTML at all. The rule lives in Description.tsx: `isHtmlDescription` matches `^<\\s*\\/?\\s*([a-z][a-z0-9]*)\\b` on the trimmed text and checks the tag against `descriptionHtmlTags` (CONFIG_HTML_RICH_TEXT_TAGS plus CONFIG_HTML_MEDIA_TAGS, so `img` counts). This client ports it as `isAgentDescriptionHtml` (decisions C7): only a description that starts with such a tag is HTML, so `List<String>` or a tag mid-sentence stays plain. Other upstream revisions use `description.trim().startsWith('<')` instead. The whole file is watched so a change to the regex or the tag set is seen.",
       "failure_mode": "Upstream changes its detection, and a description the web shows as text renders as HTML here (placeholders vanish) or the reverse (markup shows raw). Nothing fails to decode."
+    },
+    {
+      "id": "share-files-default-on",
+      "upstream": {
+        "file": "client/src/components/Conversations/ConvoOptions/ShareButton.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/share/ShareSheetState.kt",
+        "symbol": "FilesOption.NEW_LINK"
+      },
+      "why": "The share dialog's 'Share files' switch starts ON for a conversation with no link (and for a legacy link that stored no choice), and an existing link shows its stored snapshotFiles. The default sits in a useState and a useEffect inside the component, which the block extractor cannot isolate, so the whole file is watched; churn elsewhere in the dialog (QR, layout, target resolution) reports DRIFT -- check the snapshotFiles state, not the file. The Update rule (send the link's stored choice, never omit it) belongs to this same entry once the controller sends it.",
+      "failure_mode": "Web flips the default to off and the app keeps publishing every new link with the chat's images and files, or the reverse. Nothing errors."
     }
   ]
 }
