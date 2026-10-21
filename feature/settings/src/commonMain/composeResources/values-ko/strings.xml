@@ -33,7 +33,6 @@
     <string name="cd_delete_api_key">API 키 삭제</string>
     <string name="cd_delete_memory">메모리 삭제</string>
     <string name="cd_delete_preset">프리셋 삭제</string>
-    <string name="cd_delete_shared_link">공유 링크 삭제</string>
     <string name="cd_edit_memory">메모리 편집</string>
     <string name="memory_redacted_key">숨겨진 항목</string>
     <string name="memory_redacted_value">이 서버의 콘텐츠 정책에 따라 저장된 내용이 숨겨져 있습니다. 삭제는 계속 할 수 있습니다.</string>
@@ -148,7 +147,6 @@
     <string name="title_mcp_servers">MCP 서버</string>
     <string name="title_presets">프리셋</string>
     <string name="title_settings">설정</string>
-    <string name="title_shared_links">공유 링크</string>
 
     <!-- Tabbed settings tabs -->
     <string name="tab_general">일반</string>
@@ -399,7 +397,6 @@
     <string name="archived_all_count">대화 %1$d개를 보관했습니다</string>
     <string name="archived_conversations">보관된 대화</string>
     <string name="export_all_data">모든 데이터 내보내기</string>
-    <string name="shared_links">공유 링크</string>
     <string name="clear_cache_with_size">캐시 지우기 (%1$s)</string>
     <string name="clear_cache">캐시 지우기</string>
     <string name="revoke_all_api_keys">모든 API 키 해제</string>
@@ -543,19 +540,10 @@
     <string name="dialog_delete_preset_message">"%1$s"을(를) 삭제하시겠습니까?</string>
 
     <!-- Shared links -->
-    <string name="no_shared_links">공유 링크 없음</string>
-    <string name="no_shared_links_desc">대화를 공유하면 여기에 표시됩니다</string>
     <string name="mcp_oauth_secret_reentry_required">OAuth 엔드포인트가 변경되어 저장된 시크릿을 더 이상 사용할 수 없습니다. 다시 입력하세요.</string>
     <string name="mcp_api_key_reentry_required">연결 설정이 변경되어 저장된 API 키를 더 이상 사용할 수 없습니다. 다시 입력하세요.</string>
-    <string name="cd_update_shared_link">공유 링크 업데이트</string>
-    <string name="dialog_title_update_shared_link">공유 링크 업데이트</string>
-    <string name="dialog_update_shared_link_message">"%1$s"을(를) 현재 대화 내용으로 다시 게시합니다. 링크는 그대로이므로 이미 링크를 가진 사람은 업데이트된 내용을 보게 됩니다.</string>
-    <string name="dialog_update_shared_link_message_new_url">"%1$s"을(를) 현재 대화 내용으로 다시 게시합니다. 이 서버는 새 링크를 발급하므로 이전 링크를 가진 사람은 더 이상 접근할 수 없습니다.</string>
-    <string name="action_update_shared_link">업데이트</string>
     <string name="dialog_title_delete_shared_link">공유 링크 삭제</string>
     <string name="dialog_delete_shared_link_message">"%1$s"의 공유 링크를 제거합니다. 링크를 가진 사람은 더 이상 접근할 수 없습니다.</string>
-    <string name="visibility_public">공개</string>
-    <string name="visibility_private">비공개</string>
     <string name="error_failed_to_load_memories">메모리를 불러오지 못했습니다</string>
 
     <!-- Provider API Keys -->
@@ -773,4 +761,26 @@
     <string name="mcp_editor_load_failed">이 서버를 불러올 수 없습니다.</string>
     <string name="mcp_trust_label">이 서버를 신뢰합니다</string>
     <string name="mcp_trust_sublabel">보낸 내용을 읽고 연결된 앱에서 사용자를 대신해 작업할 수 있습니다. 신뢰할 수 있는 서버만 추가하세요.</string>
+    <string name="shared_chats_title">공유한 채팅</string>
+    <string name="shared_chats_summary">공유한 채팅의 링크</string>
+    <string name="shared_chats_untitled">제목 없는 채팅</string>
+    <string name="shared_chats_shared_on">%1$s 공유됨</string>
+    <string name="shared_chats_options">%1$s 옵션</string>
+    <string name="shared_chats_open_chat">채팅 열기</string>
+    <string name="shared_chats_view_shared">공유된 버전 보기</string>
+    <string name="shared_chats_link_copied">링크가 복사되었습니다</string>
+    <string name="shared_chats_search">공유한 채팅 검색</string>
+    <string name="shared_chats_clear_search">검색어 지우기</string>
+    <string name="shared_chats_sort_label">정렬</string>
+    <string name="shared_chats_sort_newest">최신순</string>
+    <string name="shared_chats_sort_oldest">오래된순</string>
+    <string name="shared_chats_sort_title">제목순</string>
+    <string name="shared_chats_empty">아직 공유한 채팅이 없습니다</string>
+    <string name="shared_chats_empty_description">채팅을 열고 메뉴에서 공유를 선택하면 링크가 만들어집니다. 만든 링크는 여기에 표시됩니다.</string>
+    <string name="shared_chats_load_failed">공유한 채팅을 불러오지 못했습니다</string>
+    <string name="shared_chats_load_failed_description">연결을 확인하고 다시 시도하세요.</string>
+    <string name="shared_chats_load_more_failed">더 불러오지 못했습니다</string>
+    <string name="shared_chats_no_match">"%1$s"와(과) 일치하는 링크가 없습니다</string>
+    <string name="shared_chats_refresh_failed">공유한 채팅을 새로고침하지 못했습니다</string>
+    <string name="shared_chats_delete_failed">링크를 삭제하지 못했습니다</string>
 </resources>

@@ -23,10 +23,12 @@ import com.garfiec.librechat.core.data.repository.MemoryRepository
 import com.garfiec.librechat.core.data.repository.PermissionsRepository
 import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
+import com.garfiec.librechat.core.data.repository.SearchCapabilityRepository
 import com.garfiec.librechat.core.data.repository.ServerRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
 import com.garfiec.librechat.core.data.repository.SpeechRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
+import com.garfiec.librechat.core.data.share.ShareLinkControllerFactory
 import com.garfiec.librechat.core.data.update.AppInstallSource
 import com.garfiec.librechat.core.data.update.AppUpdateRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
@@ -61,6 +63,8 @@ class SettingsModuleVerificationTest {
                 SpeechRepository::class,
                 BalanceRepository::class,
                 ShareRepository::class,
+                ShareLinkControllerFactory::class,
+                SearchCapabilityRepository::class,
                 KeyRepository::class,
                 ApiKeyRepository::class,
                 PresetRepository::class,

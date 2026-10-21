@@ -33,7 +33,6 @@
     <string name="cd_delete_api_key">Удалить API-ключ</string>
     <string name="cd_delete_memory">Удалить запись памяти</string>
     <string name="cd_delete_preset">Удалить пресет</string>
-    <string name="cd_delete_shared_link">Удалить общую ссылку</string>
     <string name="cd_edit_memory">Изменить запись памяти</string>
     <string name="memory_redacted_key">Скрытая запись</string>
     <string name="memory_redacted_value">Политика содержимого этого сервера скрывает сохранённые здесь данные. Удалить запись всё равно можно.</string>
@@ -148,7 +147,6 @@
     <string name="title_mcp_servers">Серверы MCP</string>
     <string name="title_presets">Пресеты</string>
     <string name="title_settings">Настройки</string>
-    <string name="title_shared_links">Общие ссылки</string>
 
     <!-- Tabbed settings tabs -->
     <string name="tab_general">Общие</string>
@@ -417,7 +415,6 @@
     <string name="archived_all_count">Архивировано бесед: %1$d</string>
     <string name="archived_conversations">Архивированные беседы</string>
     <string name="export_all_data">Экспортировать все данные</string>
-    <string name="shared_links">Общие ссылки</string>
     <string name="clear_cache_with_size">Очистить кэш (%1$s)</string>
     <string name="clear_cache">Очистить кэш</string>
     <string name="revoke_all_api_keys">Отозвать все API-ключи</string>
@@ -561,19 +558,10 @@
     <string name="dialog_delete_preset_message">Вы уверены, что хотите удалить "%1$s"?</string>
 
     <!-- Shared links -->
-    <string name="no_shared_links">Нет общих ссылок</string>
-    <string name="no_shared_links_desc">Поделитесь беседой, чтобы увидеть её здесь</string>
     <string name="mcp_oauth_secret_reentry_required">Конечные точки OAuth изменились, поэтому сохранённый секрет больше не действует. Введите его снова.</string>
     <string name="mcp_api_key_reentry_required">Настройки подключения изменились, поэтому сохранённый API-ключ больше не действует. Введите его снова.</string>
-    <string name="cd_update_shared_link">Обновить общую ссылку</string>
-    <string name="dialog_title_update_shared_link">Обновить общую ссылку</string>
-    <string name="dialog_update_shared_link_message">"%1$s" будет опубликована заново с текущим состоянием беседы. Ссылка не изменится, поэтому все, у кого она уже есть, увидят обновлённое содержимое.</string>
-    <string name="dialog_update_shared_link_message_new_url">"%1$s" будет опубликована заново с текущим состоянием беседы. Этот сервер выдаёт новую ссылку, поэтому все, у кого есть старая, потеряют доступ.</string>
-    <string name="action_update_shared_link">Обновить</string>
     <string name="dialog_title_delete_shared_link">Удалить общую ссылку</string>
     <string name="dialog_delete_shared_link_message">Это удалит общую ссылку для "%1$s". Никто из тех, у кого есть ссылка, больше не сможет получить к ней доступ.</string>
-    <string name="visibility_public">Публичная</string>
-    <string name="visibility_private">Приватная</string>
     <string name="error_failed_to_load_memories">Не удалось загрузить записи памяти</string>
 
     <!-- Provider API Keys -->
@@ -800,4 +788,26 @@
     <string name="mcp_editor_load_failed">Не удалось загрузить этот сервер.</string>
     <string name="mcp_trust_label">Я доверяю этому серверу</string>
     <string name="mcp_trust_sublabel">Он может читать то, что вы ему отправляете, и действовать от вашего имени в подключённом приложении. Добавляйте только серверы, которым доверяете.</string>
+    <string name="shared_chats_title">Общие чаты</string>
+    <string name="shared_chats_summary">Ссылки на чаты, которыми вы поделились</string>
+    <string name="shared_chats_untitled">Чат без названия</string>
+    <string name="shared_chats_shared_on">Опубликовано %1$s</string>
+    <string name="shared_chats_options">Действия для «%1$s»</string>
+    <string name="shared_chats_open_chat">Открыть чат</string>
+    <string name="shared_chats_view_shared">Посмотреть общую версию</string>
+    <string name="shared_chats_link_copied">Ссылка скопирована</string>
+    <string name="shared_chats_search">Поиск по общим чатам</string>
+    <string name="shared_chats_clear_search">Очистить поиск</string>
+    <string name="shared_chats_sort_label">Сортировка</string>
+    <string name="shared_chats_sort_newest">Сначала новые</string>
+    <string name="shared_chats_sort_oldest">Сначала старые</string>
+    <string name="shared_chats_sort_title">Название А–Я</string>
+    <string name="shared_chats_empty">Общих чатов пока нет</string>
+    <string name="shared_chats_empty_description">Откройте чат и выберите «Поделиться» в его меню, чтобы создать ссылку. Ваши ссылки появятся здесь.</string>
+    <string name="shared_chats_load_failed">Не удалось загрузить общие чаты</string>
+    <string name="shared_chats_load_failed_description">Проверьте подключение и повторите попытку.</string>
+    <string name="shared_chats_load_more_failed">Не удалось загрузить ещё</string>
+    <string name="shared_chats_no_match">Нет ссылок по запросу «%1$s»</string>
+    <string name="shared_chats_refresh_failed">Не удалось обновить общие чаты</string>
+    <string name="shared_chats_delete_failed">Не удалось удалить ссылку</string>
 </resources>

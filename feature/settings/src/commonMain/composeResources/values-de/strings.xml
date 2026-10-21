@@ -33,7 +33,6 @@
     <string name="cd_delete_api_key">API-Schlüssel löschen</string>
     <string name="cd_delete_memory">Erinnerung löschen</string>
     <string name="cd_delete_preset">Vorlage löschen</string>
-    <string name="cd_delete_shared_link">Geteilten Link löschen</string>
     <string name="cd_edit_memory">Erinnerung bearbeiten</string>
     <string name="memory_redacted_key">Verborgener Eintrag</string>
     <string name="memory_redacted_value">Die Inhaltsrichtlinie dieses Servers verbirgt, was hier gespeichert ist. Du kannst den Eintrag trotzdem löschen.</string>
@@ -148,7 +147,6 @@
     <string name="title_mcp_servers">MCP-Server</string>
     <string name="title_presets">Vorlagen</string>
     <string name="title_settings">Einstellungen</string>
-    <string name="title_shared_links">Geteilte Links</string>
 
     <!-- Tabbed settings tabs -->
     <string name="tab_general">Allgemein</string>
@@ -405,7 +403,6 @@
     <string name="archived_all_count">%1$d Unterhaltungen archiviert</string>
     <string name="archived_conversations">Archivierte Unterhaltungen</string>
     <string name="export_all_data">Alle Daten exportieren</string>
-    <string name="shared_links">Geteilte Links</string>
     <string name="clear_cache_with_size">Cache leeren (%1$s)</string>
     <string name="clear_cache">Cache leeren</string>
     <string name="revoke_all_api_keys">Alle API-Schlüssel widerrufen</string>
@@ -549,19 +546,10 @@
     <string name="dialog_delete_preset_message">Möchtest du "%1$s" wirklich löschen?</string>
 
     <!-- Shared links -->
-    <string name="no_shared_links">Keine geteilten Links</string>
-    <string name="no_shared_links_desc">Teile eine Unterhaltung, um sie hier zu sehen</string>
     <string name="mcp_oauth_secret_reentry_required">Die OAuth-Endpunkte haben sich geändert, daher gilt das gespeicherte Secret nicht mehr. Gib es erneut ein.</string>
     <string name="mcp_api_key_reentry_required">Die Verbindungseinstellungen haben sich geändert, daher gilt der gespeicherte API-Schlüssel nicht mehr. Gib ihn erneut ein.</string>
-    <string name="cd_update_shared_link">Geteilten Link aktualisieren</string>
-    <string name="dialog_title_update_shared_link">Geteilten Link aktualisieren</string>
-    <string name="dialog_update_shared_link_message">Dadurch wird "%1$s" mit dem aktuellen Stand der Unterhaltung neu veröffentlicht. Der Link bleibt gleich, sodass alle, die ihn bereits haben, den aktualisierten Inhalt sehen.</string>
-    <string name="dialog_update_shared_link_message_new_url">Dadurch wird "%1$s" mit dem aktuellen Stand der Unterhaltung neu veröffentlicht. Dieser Server vergibt einen neuen Link, sodass alle mit dem alten Link den Zugriff verlieren.</string>
-    <string name="action_update_shared_link">Aktualisieren</string>
     <string name="dialog_title_delete_shared_link">Geteilten Link löschen</string>
     <string name="dialog_delete_shared_link_message">Dies entfernt den geteilten Link für "%1$s". Niemand mit dem Link kann mehr darauf zugreifen.</string>
-    <string name="visibility_public">Öffentlich</string>
-    <string name="visibility_private">Privat</string>
     <string name="error_failed_to_load_memories">Erinnerungen konnten nicht geladen werden</string>
 
     <!-- Provider API Keys -->
@@ -782,4 +770,26 @@
     <string name="mcp_editor_load_failed">Dieser Server konnte nicht geladen werden.</string>
     <string name="mcp_trust_label">Ich vertraue diesem Server</string>
     <string name="mcp_trust_sublabel">Er kann lesen, was du ihm sendest, und in der verbundenen App für dich handeln. Füge nur Server hinzu, denen du vertraust.</string>
+    <string name="shared_chats_title">Geteilte Chats</string>
+    <string name="shared_chats_summary">Links zu Chats, die du geteilt hast</string>
+    <string name="shared_chats_untitled">Unbenannter Chat</string>
+    <string name="shared_chats_shared_on">Geteilt %1$s</string>
+    <string name="shared_chats_options">Optionen für %1$s</string>
+    <string name="shared_chats_open_chat">Chat öffnen</string>
+    <string name="shared_chats_view_shared">Geteilte Version ansehen</string>
+    <string name="shared_chats_link_copied">Link kopiert</string>
+    <string name="shared_chats_search">Geteilte Chats durchsuchen</string>
+    <string name="shared_chats_clear_search">Suche löschen</string>
+    <string name="shared_chats_sort_label">Sortieren</string>
+    <string name="shared_chats_sort_newest">Neueste</string>
+    <string name="shared_chats_sort_oldest">Älteste</string>
+    <string name="shared_chats_sort_title">Titel A–Z</string>
+    <string name="shared_chats_empty">Noch keine geteilten Chats</string>
+    <string name="shared_chats_empty_description">Öffne einen Chat und wähle im Menü „Teilen“, um einen Link zu erstellen. Deine Links erscheinen hier.</string>
+    <string name="shared_chats_load_failed">Geteilte Chats konnten nicht geladen werden</string>
+    <string name="shared_chats_load_failed_description">Prüfe deine Verbindung und versuche es erneut.</string>
+    <string name="shared_chats_load_more_failed">Weitere konnten nicht geladen werden</string>
+    <string name="shared_chats_no_match">Keine Links passen zu „%1$s“</string>
+    <string name="shared_chats_refresh_failed">Geteilte Chats konnten nicht aktualisiert werden</string>
+    <string name="shared_chats_delete_failed">Link konnte nicht gelöscht werden</string>
 </resources>

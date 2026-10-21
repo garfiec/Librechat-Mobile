@@ -33,7 +33,6 @@
     <string name="cd_delete_api_key">Delete API key</string>
     <string name="cd_delete_memory">Delete memory</string>
     <string name="cd_delete_preset">Delete preset</string>
-    <string name="cd_delete_shared_link">Delete shared link</string>
     <string name="cd_edit_memory">Edit memory</string>
     <string name="memory_redacted_key">Hidden entry</string>
     <string name="memory_redacted_value">This server's content policy hides what's stored here. You can still delete it.</string>
@@ -151,7 +150,6 @@
     <string name="title_mcp_servers">MCP Servers</string>
     <string name="title_presets">Presets</string>
     <string name="title_settings">Settings</string>
-    <string name="title_shared_links">Shared Links</string>
 
     <!-- Tabbed settings tabs -->
     <string name="tab_general">General</string>
@@ -414,7 +412,6 @@
     <string name="archived_all_count">Archived %1$d conversations</string>
     <string name="archived_conversations">Archived Conversations</string>
     <string name="export_all_data">Export All Data</string>
-    <string name="shared_links">Shared Links</string>
     <string name="clear_cache_with_size">Clear Cache (%1$s)</string>
     <string name="clear_cache">Clear Cache</string>
     <string name="revoke_all_api_keys">Revoke All API Keys</string>
@@ -558,19 +555,10 @@
     <string name="dialog_delete_preset_message">Are you sure you want to delete "%1$s"?</string>
 
     <!-- Shared links -->
-    <string name="no_shared_links">No shared links</string>
-    <string name="no_shared_links_desc">Share a conversation to see it here</string>
     <string name="mcp_oauth_secret_reentry_required">The OAuth endpoints changed, so the saved secret no longer applies. Enter it again.</string>
     <string name="mcp_api_key_reentry_required">The connection settings changed, so the saved API key no longer applies. Enter it again.</string>
-    <string name="cd_update_shared_link">Update shared link</string>
-    <string name="dialog_title_update_shared_link">Update Shared Link</string>
-    <string name="dialog_update_shared_link_message">This republishes "%1$s" with the conversation as it is now. The link stays the same, so anyone who already has it will see the updated content.</string>
-    <string name="dialog_update_shared_link_message_new_url">This republishes "%1$s" with the conversation as it is now. This server issues a new link, so anyone who already has the old one will lose access.</string>
-    <string name="action_update_shared_link">Update</string>
     <string name="dialog_title_delete_shared_link">Delete Shared Link</string>
     <string name="dialog_delete_shared_link_message">This will remove the shared link for "%1$s". Anyone with the link will no longer be able to access it.</string>
-    <string name="visibility_public">Public</string>
-    <string name="visibility_private">Private</string>
     <string name="error_failed_to_load_memories">Failed to load memories</string>
 
     <!-- Provider API Keys -->
@@ -788,4 +776,26 @@
     <string name="mcp_editor_load_failed">Couldn't load this server.</string>
     <string name="mcp_trust_label">I trust this server</string>
     <string name="mcp_trust_sublabel">It can read what you send it and act for you in the app it connects to. Only add servers you trust.</string>
+    <string name="shared_chats_title">Shared chats</string>
+    <string name="shared_chats_summary">Links to chats you've shared</string>
+    <string name="shared_chats_untitled">Untitled chat</string>
+    <string name="shared_chats_shared_on">Shared %1$s</string>
+    <string name="shared_chats_options">Options for %1$s</string>
+    <string name="shared_chats_open_chat">Open chat</string>
+    <string name="shared_chats_view_shared">View shared version</string>
+    <string name="shared_chats_link_copied">Link copied</string>
+    <string name="shared_chats_search">Search shared chats</string>
+    <string name="shared_chats_clear_search">Clear search</string>
+    <string name="shared_chats_sort_label">Sort</string>
+    <string name="shared_chats_sort_newest">Newest</string>
+    <string name="shared_chats_sort_oldest">Oldest</string>
+    <string name="shared_chats_sort_title">Title A–Z</string>
+    <string name="shared_chats_empty">No shared chats yet</string>
+    <string name="shared_chats_empty_description">Open a chat and choose Share from its menu to create a link. Your links show up here.</string>
+    <string name="shared_chats_load_failed">Couldn't load your shared chats</string>
+    <string name="shared_chats_load_failed_description">Check your connection and try again.</string>
+    <string name="shared_chats_load_more_failed">Couldn't load more</string>
+    <string name="shared_chats_no_match">No links match "%1$s"</string>
+    <string name="shared_chats_refresh_failed">Couldn't refresh your shared chats</string>
+    <string name="shared_chats_delete_failed">Couldn't delete the link</string>
 </resources>

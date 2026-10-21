@@ -33,7 +33,6 @@
     <string name="cd_delete_api_key">APIキーを削除</string>
     <string name="cd_delete_memory">メモリを削除</string>
     <string name="cd_delete_preset">プリセットを削除</string>
-    <string name="cd_delete_shared_link">共有リンクを削除</string>
     <string name="cd_edit_memory">メモリを編集</string>
     <string name="memory_redacted_key">非表示の項目</string>
     <string name="memory_redacted_value">このサーバーのコンテンツポリシーにより、保存内容は非表示になっています。削除は引き続き可能です。</string>
@@ -148,7 +147,6 @@
     <string name="title_mcp_servers">MCPサーバー</string>
     <string name="title_presets">プリセット</string>
     <string name="title_settings">設定</string>
-    <string name="title_shared_links">共有リンク</string>
 
     <!-- Tabbed settings tabs -->
     <string name="tab_general">一般</string>
@@ -399,7 +397,6 @@
     <string name="archived_all_count">%1$d 件の会話をアーカイブしました</string>
     <string name="archived_conversations">アーカイブ済みの会話</string>
     <string name="export_all_data">すべてのデータをエクスポート</string>
-    <string name="shared_links">共有リンク</string>
     <string name="clear_cache_with_size">キャッシュをクリア (%1$s)</string>
     <string name="clear_cache">キャッシュをクリア</string>
     <string name="revoke_all_api_keys">すべてのAPIキーを取り消す</string>
@@ -543,19 +540,10 @@
     <string name="dialog_delete_preset_message">「%1$s」を削除してもよろしいですか？</string>
 
     <!-- Shared links -->
-    <string name="no_shared_links">共有リンクがありません</string>
-    <string name="no_shared_links_desc">会話を共有すると、ここに表示されます</string>
     <string name="mcp_oauth_secret_reentry_required">OAuthエンドポイントが変更されたため、保存済みのシークレットは使用できなくなりました。もう一度入力してください。</string>
     <string name="mcp_api_key_reentry_required">接続設定が変更されたため、保存済みのAPIキーは使用できなくなりました。もう一度入力してください。</string>
-    <string name="cd_update_shared_link">共有リンクを更新</string>
-    <string name="dialog_title_update_shared_link">共有リンクを更新</string>
-    <string name="dialog_update_shared_link_message">「%1$s」を現在の会話の内容で再公開します。リンクは変わらないため、すでにリンクを持っている人には更新後の内容が表示されます。</string>
-    <string name="dialog_update_shared_link_message_new_url">「%1$s」を現在の会話の内容で再公開します。このサーバーは新しいリンクを発行するため、古いリンクを持っている人はアクセスできなくなります。</string>
-    <string name="action_update_shared_link">更新</string>
     <string name="dialog_title_delete_shared_link">共有リンクを削除</string>
     <string name="dialog_delete_shared_link_message">「%1$s」の共有リンクを削除します。リンクを持つ人はアクセスできなくなります。</string>
-    <string name="visibility_public">公開</string>
-    <string name="visibility_private">非公開</string>
     <string name="error_failed_to_load_memories">メモリの読み込みに失敗しました</string>
 
     <!-- Provider API Keys -->
@@ -773,4 +761,26 @@
     <string name="mcp_editor_load_failed">このサーバーを読み込めませんでした。</string>
     <string name="mcp_trust_label">このサーバーを信頼する</string>
     <string name="mcp_trust_sublabel">送信した内容を読み取り、接続先のアプリであなたの代わりに操作できます。信頼できるサーバーだけを追加してください。</string>
+    <string name="shared_chats_title">共有したチャット</string>
+    <string name="shared_chats_summary">共有したチャットへのリンク</string>
+    <string name="shared_chats_untitled">無題のチャット</string>
+    <string name="shared_chats_shared_on">%1$sに共有</string>
+    <string name="shared_chats_options">%1$sのオプション</string>
+    <string name="shared_chats_open_chat">チャットを開く</string>
+    <string name="shared_chats_view_shared">共有版を表示</string>
+    <string name="shared_chats_link_copied">リンクをコピーしました</string>
+    <string name="shared_chats_search">共有したチャットを検索</string>
+    <string name="shared_chats_clear_search">検索をクリア</string>
+    <string name="shared_chats_sort_label">並べ替え</string>
+    <string name="shared_chats_sort_newest">新しい順</string>
+    <string name="shared_chats_sort_oldest">古い順</string>
+    <string name="shared_chats_sort_title">タイトル順</string>
+    <string name="shared_chats_empty">共有したチャットはまだありません</string>
+    <string name="shared_chats_empty_description">チャットを開き、メニューから「共有」を選ぶとリンクを作成できます。作成したリンクはここに表示されます。</string>
+    <string name="shared_chats_load_failed">共有したチャットを読み込めませんでした</string>
+    <string name="shared_chats_load_failed_description">接続を確認して、もう一度お試しください。</string>
+    <string name="shared_chats_load_more_failed">続きを読み込めませんでした</string>
+    <string name="shared_chats_no_match">「%1$s」に一致するリンクはありません</string>
+    <string name="shared_chats_refresh_failed">共有したチャットを更新できませんでした</string>
+    <string name="shared_chats_delete_failed">リンクを削除できませんでした</string>
 </resources>

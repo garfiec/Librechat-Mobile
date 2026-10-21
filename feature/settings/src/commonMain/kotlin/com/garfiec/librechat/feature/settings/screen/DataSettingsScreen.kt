@@ -211,9 +211,17 @@ fun DataSettingsContent(
                         onClearLogs = viewModel::clearLogs,
                     )
                 }
+                // A summary row without a count: the list pages and never says how many links there are.
+                row(key = "shared_chats_row") {
+                    SelectorRow(
+                        title = stringResource(Res.string.shared_chats_title),
+                        value = stringResource(Res.string.shared_chats_summary),
+                        onClick = onNavigateToSharedLinks,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    )
+                }
                 row(key = "data_extra_actions") {
                     DataExtraActions(
-                        onSharedLinksClick = onNavigateToSharedLinks,
                         onArtifactShortcutsClick = onNavigateToArtifactShortcuts,
                         onClearCacheClick = { showClearCacheDialog = true },
                         isCacheClearing = uiState.isCacheClearing,
@@ -331,7 +339,6 @@ fun DataSettingsContent(
 
 @Composable
 internal fun DataExtraActions(
-    onSharedLinksClick: () -> Unit,
     onArtifactShortcutsClick: () -> Unit,
     onClearCacheClick: () -> Unit,
     isCacheClearing: Boolean,
@@ -346,25 +353,6 @@ internal fun DataExtraActions(
                 .padding(horizontal = 16.dp, vertical = 4.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // Shared Links
-            AdaptiveOutlinedButton(
-                onClick = onSharedLinksClick,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(stringResource(Res.string.shared_links), modifier = Modifier.weight(1f))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
-            }
-
             // Home-screen artifact shortcuts
             AdaptiveOutlinedButton(
                 onClick = onArtifactShortcutsClick,

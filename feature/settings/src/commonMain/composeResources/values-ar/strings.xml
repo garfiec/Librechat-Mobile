@@ -33,7 +33,6 @@
     <string name="cd_delete_api_key">حذف مفتاح API</string>
     <string name="cd_delete_memory">حذف الذاكرة</string>
     <string name="cd_delete_preset">حذف الإعداد المسبق</string>
-    <string name="cd_delete_shared_link">حذف الرابط المشترك</string>
     <string name="cd_edit_memory">تعديل الذاكرة</string>
     <string name="memory_redacted_key">إدخال مخفي</string>
     <string name="memory_redacted_value">تُخفي سياسة المحتوى في هذا الخادم ما هو مخزّن هنا. لا يزال بإمكانك حذفه.</string>
@@ -148,7 +147,6 @@
     <string name="title_mcp_servers">خوادم MCP</string>
     <string name="title_presets">الإعدادات المسبقة</string>
     <string name="title_settings">الإعدادات</string>
-    <string name="title_shared_links">الروابط المشتركة</string>
 
     <!-- Tabbed settings tabs -->
     <string name="tab_general">عام</string>
@@ -429,7 +427,6 @@
     <string name="archived_all_count">تمت أرشفة %1$d محادثة</string>
     <string name="archived_conversations">المحادثات المؤرشفة</string>
     <string name="export_all_data">تصدير جميع البيانات</string>
-    <string name="shared_links">الروابط المشتركة</string>
     <string name="clear_cache_with_size">مسح ذاكرة التخزين المؤقت (%1$s)</string>
     <string name="clear_cache">مسح ذاكرة التخزين المؤقت</string>
     <string name="revoke_all_api_keys">إبطال جميع مفاتيح API</string>
@@ -573,19 +570,10 @@
     <string name="dialog_delete_preset_message">هل أنت متأكد أنك تريد حذف "%1$s"؟</string>
 
     <!-- Shared links -->
-    <string name="no_shared_links">لا توجد روابط مشتركة</string>
-    <string name="no_shared_links_desc">شارك محادثة لرؤيتها هنا</string>
     <string name="mcp_oauth_secret_reentry_required">تغيّرت نقاط نهاية OAuth، لذا لم يعد السر المحفوظ صالحًا. أدخله مجددًا.</string>
     <string name="mcp_api_key_reentry_required">تغيّرت إعدادات الاتصال، لذا لم يعد مفتاح API المحفوظ صالحًا. أدخله مجددًا.</string>
-    <string name="cd_update_shared_link">تحديث الرابط المشترك</string>
-    <string name="dialog_title_update_shared_link">تحديث الرابط المشترك</string>
-    <string name="dialog_update_shared_link_message">سيُعاد نشر "%1$s" بالمحادثة كما هي الآن. سيبقى الرابط كما هو، لذا سيرى كل من لديه الرابط المحتوى المحدّث.</string>
-    <string name="dialog_update_shared_link_message_new_url">سيُعاد نشر "%1$s" بالمحادثة كما هي الآن. يُصدر هذا الخادم رابطًا جديدًا، لذا سيفقد كل من لديه الرابط القديم إمكانية الوصول.</string>
-    <string name="action_update_shared_link">تحديث</string>
     <string name="dialog_title_delete_shared_link">حذف الرابط المشترك</string>
     <string name="dialog_delete_shared_link_message">سيؤدي هذا إلى إزالة الرابط المشترك لـ "%1$s". لن يتمكن أي شخص لديه الرابط من الوصول إليه بعد الآن.</string>
-    <string name="visibility_public">عام</string>
-    <string name="visibility_private">خاص</string>
     <string name="error_failed_to_load_memories">فشل تحميل الذكريات</string>
 
     <!-- Provider API Keys -->
@@ -818,4 +806,26 @@
     <string name="mcp_editor_load_failed">تعذّر تحميل هذا الخادم.</string>
     <string name="mcp_trust_label">أثق بهذا الخادم</string>
     <string name="mcp_trust_sublabel">يمكنه قراءة ما ترسله إليه والتصرف نيابةً عنك في التطبيق الذي يتصل به. لا تُضف إلا الخوادم التي تثق بها.</string>
+    <string name="shared_chats_title">المحادثات المشتركة</string>
+    <string name="shared_chats_summary">روابط المحادثات التي شاركتها</string>
+    <string name="shared_chats_untitled">محادثة بلا عنوان</string>
+    <string name="shared_chats_shared_on">تمت المشاركة %1$s</string>
+    <string name="shared_chats_options">خيارات %1$s</string>
+    <string name="shared_chats_open_chat">فتح المحادثة</string>
+    <string name="shared_chats_view_shared">عرض النسخة المشتركة</string>
+    <string name="shared_chats_link_copied">تم نسخ الرابط</string>
+    <string name="shared_chats_search">البحث في المحادثات المشتركة</string>
+    <string name="shared_chats_clear_search">مسح البحث</string>
+    <string name="shared_chats_sort_label">ترتيب</string>
+    <string name="shared_chats_sort_newest">الأحدث</string>
+    <string name="shared_chats_sort_oldest">الأقدم</string>
+    <string name="shared_chats_sort_title">العنوان أ–ي</string>
+    <string name="shared_chats_empty">لا توجد محادثات مشتركة بعد</string>
+    <string name="shared_chats_empty_description">افتح محادثة واختر "مشاركة" من قائمتها لإنشاء رابط. ستظهر روابطك هنا.</string>
+    <string name="shared_chats_load_failed">تعذّر تحميل محادثاتك المشتركة</string>
+    <string name="shared_chats_load_failed_description">تحقق من اتصالك وحاول مرة أخرى.</string>
+    <string name="shared_chats_load_more_failed">تعذّر تحميل المزيد</string>
+    <string name="shared_chats_no_match">لا توجد روابط تطابق "%1$s"</string>
+    <string name="shared_chats_refresh_failed">تعذّر تحديث محادثاتك المشتركة</string>
+    <string name="shared_chats_delete_failed">تعذّر حذف الرابط</string>
 </resources>

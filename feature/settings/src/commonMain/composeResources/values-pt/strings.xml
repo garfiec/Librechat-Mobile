@@ -33,7 +33,6 @@
     <string name="cd_delete_api_key">Excluir chave de API</string>
     <string name="cd_delete_memory">Excluir memória</string>
     <string name="cd_delete_preset">Excluir predefinição</string>
-    <string name="cd_delete_shared_link">Excluir link compartilhado</string>
     <string name="cd_edit_memory">Editar memória</string>
     <string name="memory_redacted_key">Entrada oculta</string>
     <string name="memory_redacted_value">A política de conteúdo deste servidor oculta o que está armazenado aqui. Você ainda pode excluí-la.</string>
@@ -148,7 +147,6 @@
     <string name="title_mcp_servers">Servidores MCP</string>
     <string name="title_presets">Predefinições</string>
     <string name="title_settings">Configurações</string>
-    <string name="title_shared_links">Links compartilhados</string>
 
     <!-- Tabbed settings tabs -->
     <string name="tab_general">Geral</string>
@@ -405,7 +403,6 @@
     <string name="archived_all_count">%1$d conversas arquivadas</string>
     <string name="archived_conversations">Conversas arquivadas</string>
     <string name="export_all_data">Exportar todos os dados</string>
-    <string name="shared_links">Links compartilhados</string>
     <string name="clear_cache_with_size">Limpar cache (%1$s)</string>
     <string name="clear_cache">Limpar cache</string>
     <string name="revoke_all_api_keys">Revogar todas as chaves de API</string>
@@ -549,19 +546,10 @@
     <string name="dialog_delete_preset_message">Tem certeza de que deseja excluir "%1$s"?</string>
 
     <!-- Shared links -->
-    <string name="no_shared_links">Nenhum link compartilhado</string>
-    <string name="no_shared_links_desc">Compartilhe uma conversa para vê-la aqui</string>
     <string name="mcp_oauth_secret_reentry_required">Os endpoints OAuth mudaram, então o segredo salvo não se aplica mais. Digite-o novamente.</string>
     <string name="mcp_api_key_reentry_required">As configurações de conexão mudaram, então a chave de API salva não se aplica mais. Digite-a novamente.</string>
-    <string name="cd_update_shared_link">Atualizar link compartilhado</string>
-    <string name="dialog_title_update_shared_link">Atualizar link compartilhado</string>
-    <string name="dialog_update_shared_link_message">Isso republica "%1$s" com a conversa como está agora. O link continua o mesmo, então quem já o tem verá o conteúdo atualizado.</string>
-    <string name="dialog_update_shared_link_message_new_url">Isso republica "%1$s" com a conversa como está agora. Este servidor gera um novo link, então quem tiver o antigo perderá o acesso.</string>
-    <string name="action_update_shared_link">Atualizar</string>
     <string name="dialog_title_delete_shared_link">Excluir link compartilhado</string>
     <string name="dialog_delete_shared_link_message">Isso removerá o link compartilhado de "%1$s". Quem tiver o link não conseguirá mais acessá-lo.</string>
-    <string name="visibility_public">Público</string>
-    <string name="visibility_private">Privado</string>
     <string name="error_failed_to_load_memories">Falha ao carregar as memórias</string>
 
     <!-- Provider API Keys -->
@@ -782,4 +770,26 @@
     <string name="mcp_editor_load_failed">Não foi possível carregar este servidor.</string>
     <string name="mcp_trust_label">Confio neste servidor</string>
     <string name="mcp_trust_sublabel">Ele pode ler o que você envia e agir por você no app a que se conecta. Adicione apenas servidores confiáveis.</string>
+    <string name="shared_chats_title">Conversas compartilhadas</string>
+    <string name="shared_chats_summary">Links para conversas que você compartilhou</string>
+    <string name="shared_chats_untitled">Conversa sem título</string>
+    <string name="shared_chats_shared_on">Compartilhada %1$s</string>
+    <string name="shared_chats_options">Opções de %1$s</string>
+    <string name="shared_chats_open_chat">Abrir conversa</string>
+    <string name="shared_chats_view_shared">Ver versão compartilhada</string>
+    <string name="shared_chats_link_copied">Link copiado</string>
+    <string name="shared_chats_search">Pesquisar conversas compartilhadas</string>
+    <string name="shared_chats_clear_search">Limpar pesquisa</string>
+    <string name="shared_chats_sort_label">Ordenar</string>
+    <string name="shared_chats_sort_newest">Mais recentes</string>
+    <string name="shared_chats_sort_oldest">Mais antigas</string>
+    <string name="shared_chats_sort_title">Título A–Z</string>
+    <string name="shared_chats_empty">Nenhuma conversa compartilhada ainda</string>
+    <string name="shared_chats_empty_description">Abra uma conversa e escolha Compartilhar no menu dela para criar um link. Seus links aparecem aqui.</string>
+    <string name="shared_chats_load_failed">Não foi possível carregar suas conversas compartilhadas</string>
+    <string name="shared_chats_load_failed_description">Verifique sua conexão e tente novamente.</string>
+    <string name="shared_chats_load_more_failed">Não foi possível carregar mais</string>
+    <string name="shared_chats_no_match">Nenhum link corresponde a "%1$s"</string>
+    <string name="shared_chats_refresh_failed">Não foi possível atualizar suas conversas compartilhadas</string>
+    <string name="shared_chats_delete_failed">Não foi possível excluir o link</string>
 </resources>

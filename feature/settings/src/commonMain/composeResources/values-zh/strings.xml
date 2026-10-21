@@ -33,7 +33,6 @@
     <string name="cd_delete_api_key">删除 API 密钥</string>
     <string name="cd_delete_memory">删除记忆</string>
     <string name="cd_delete_preset">删除预设</string>
-    <string name="cd_delete_shared_link">删除分享链接</string>
     <string name="cd_edit_memory">编辑记忆</string>
     <string name="memory_redacted_key">已隐藏的条目</string>
     <string name="memory_redacted_value">此服务器的内容策略隐藏了此处存储的内容。你仍可以将其删除。</string>
@@ -148,7 +147,6 @@
     <string name="title_mcp_servers">MCP 服务器</string>
     <string name="title_presets">预设</string>
     <string name="title_settings">设置</string>
-    <string name="title_shared_links">分享链接</string>
 
     <!-- Tabbed settings tabs -->
     <string name="tab_general">通用</string>
@@ -399,7 +397,6 @@
     <string name="archived_all_count">已归档 %1$d 个对话</string>
     <string name="archived_conversations">已归档对话</string>
     <string name="export_all_data">导出全部数据</string>
-    <string name="shared_links">分享链接</string>
     <string name="clear_cache_with_size">清除缓存 (%1$s)</string>
     <string name="clear_cache">清除缓存</string>
     <string name="revoke_all_api_keys">吊销所有 API 密钥</string>
@@ -543,19 +540,10 @@
     <string name="dialog_delete_preset_message">确定要删除 "%1$s" 吗？</string>
 
     <!-- Shared links -->
-    <string name="no_shared_links">没有分享链接</string>
-    <string name="no_shared_links_desc">分享一个对话即可在此查看</string>
     <string name="mcp_oauth_secret_reentry_required">OAuth 端点已更改，已保存的密钥不再适用。请重新输入。</string>
     <string name="mcp_api_key_reentry_required">连接设置已更改，已保存的 API 密钥不再适用。请重新输入。</string>
-    <string name="cd_update_shared_link">更新分享链接</string>
-    <string name="dialog_title_update_shared_link">更新分享链接</string>
-    <string name="dialog_update_shared_link_message">这将以对话的当前内容重新发布 "%1$s"。链接保持不变，已有该链接的人将看到更新后的内容。</string>
-    <string name="dialog_update_shared_link_message_new_url">这将以对话的当前内容重新发布 "%1$s"。此服务器会生成新链接，持有旧链接的人将无法再访问。</string>
-    <string name="action_update_shared_link">更新</string>
     <string name="dialog_title_delete_shared_link">删除分享链接</string>
     <string name="dialog_delete_shared_link_message">这将移除 "%1$s" 的分享链接。拥有该链接的人将无法再访问它。</string>
-    <string name="visibility_public">公开</string>
-    <string name="visibility_private">私有</string>
     <string name="error_failed_to_load_memories">加载记忆失败</string>
 
     <!-- Provider API Keys -->
@@ -773,4 +761,26 @@
     <string name="mcp_editor_load_failed">无法加载此服务器。</string>
     <string name="mcp_trust_label">我信任此服务器</string>
     <string name="mcp_trust_sublabel">它可以读取你发送的内容，并代表你在其连接的应用中执行操作。请只添加你信任的服务器。</string>
+    <string name="shared_chats_title">已分享的对话</string>
+    <string name="shared_chats_summary">你分享过的对话链接</string>
+    <string name="shared_chats_untitled">未命名对话</string>
+    <string name="shared_chats_shared_on">分享于 %1$s</string>
+    <string name="shared_chats_options">%1$s 的选项</string>
+    <string name="shared_chats_open_chat">打开对话</string>
+    <string name="shared_chats_view_shared">查看分享版本</string>
+    <string name="shared_chats_link_copied">链接已复制</string>
+    <string name="shared_chats_search">搜索已分享的对话</string>
+    <string name="shared_chats_clear_search">清除搜索</string>
+    <string name="shared_chats_sort_label">排序</string>
+    <string name="shared_chats_sort_newest">最新</string>
+    <string name="shared_chats_sort_oldest">最早</string>
+    <string name="shared_chats_sort_title">标题 A–Z</string>
+    <string name="shared_chats_empty">还没有分享过对话</string>
+    <string name="shared_chats_empty_description">打开一个对话，从其菜单中选择“分享”即可创建链接。你的链接会显示在这里。</string>
+    <string name="shared_chats_load_failed">无法加载已分享的对话</string>
+    <string name="shared_chats_load_failed_description">请检查网络连接后重试。</string>
+    <string name="shared_chats_load_more_failed">无法加载更多</string>
+    <string name="shared_chats_no_match">没有与“%1$s”匹配的链接</string>
+    <string name="shared_chats_refresh_failed">无法刷新已分享的对话</string>
+    <string name="shared_chats_delete_failed">无法删除链接</string>
 </resources>

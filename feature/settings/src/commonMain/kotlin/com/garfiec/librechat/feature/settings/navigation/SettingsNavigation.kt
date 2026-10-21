@@ -51,6 +51,8 @@ fun EntryProviderScope<NavKey>.settingsEntries(
     onBack: () -> Unit,
     onLogout: () -> Unit,
     onNavigateToArchive: () -> Unit = {},
+    /** Opens a conversation in the chat: a Shared chats card's "Open chat". */
+    onOpenConversation: (conversationId: String) -> Unit = {},
 ) {
     // Hoisted: navigation to ProviderKeys() (no pending endpoint) is identical in Tabbed
     // and Account — share the resolver so callers don't construct it twice.
@@ -115,7 +117,7 @@ fun EntryProviderScope<NavKey>.settingsEntries(
         )
     }
     entry<SharedLinks> {
-        SharedLinksScreen(onNavigateBack = onBack)
+        SharedLinksScreen(onNavigateBack = onBack, onOpenConversation = onOpenConversation)
     }
     entry<PresetManager> {
         PresetManagerScreen(

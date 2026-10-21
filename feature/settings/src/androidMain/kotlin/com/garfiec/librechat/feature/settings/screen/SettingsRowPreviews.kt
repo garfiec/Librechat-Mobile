@@ -171,7 +171,6 @@ private fun DataButtonsHost() {
             onClearLogs = {},
         )
         DataExtraActions(
-            onSharedLinksClick = {},
             onArtifactShortcutsClick = {},
             onClearCacheClick = {},
             isCacheClearing = false,
