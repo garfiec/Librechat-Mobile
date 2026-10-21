@@ -65,6 +65,13 @@ internal fun SharedLinksUiState.shouldLoadMore(lastVisibleIndex: Int, totalItems
 
 private const val LOAD_MORE_THRESHOLD = 3
 
+/**
+ * A new sort, search or Retry is loading while the old rows still show. The page puts its cue next
+ * to the controls, where the change was made, not after the last card, often below the fold.
+ */
+internal val SharedLinksUiState.isReloading: Boolean
+    get() = isLoading && links.isNotEmpty()
+
 /** One-off notices; the screen words them. */
 enum class SharedLinksMessage { REFRESH_FAILED, DELETE_FAILED }
 

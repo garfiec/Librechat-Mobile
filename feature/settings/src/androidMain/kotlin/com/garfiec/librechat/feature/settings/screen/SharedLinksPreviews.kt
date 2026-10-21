@@ -57,6 +57,17 @@ private fun SharedLinksPageGlassPreview() = SharedLinksPageHost(
     style = UiStyle.LIQUID_GLASS,
 )
 
+/** A sort change loading over the old rows: the cue sits by the sort chip. */
+private val reloading = SharedLinksUiState(links = sampleLinks, isLoading = true, searchEnabled = true)
+
+@PreviewNarrowScreens
+@Composable
+private fun SharedLinksReloadingMaterialPreview() = SharedLinksPageHost(reloading)
+
+@PreviewNarrowScreens
+@Composable
+private fun SharedLinksReloadingGlassPreview() = SharedLinksPageHost(reloading, style = UiStyle.LIQUID_GLASS)
+
 @PreviewNarrowScreens
 @Composable
 private fun SharedLinksPlaceholdersMaterialPreview() = SharedLinksPageHost(SharedLinksUiState(searchEnabled = true))

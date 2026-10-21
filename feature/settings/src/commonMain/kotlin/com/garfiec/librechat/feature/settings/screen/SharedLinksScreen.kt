@@ -97,6 +97,7 @@ import com.garfiec.librechat.feature.settings.util.rememberClipboardWriter
 import com.garfiec.librechat.feature.settings.viewmodel.SharedLinksMessage
 import com.garfiec.librechat.feature.settings.viewmodel.SharedLinksUiState
 import com.garfiec.librechat.feature.settings.viewmodel.SharedLinksViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.isReloading
 import com.garfiec.librechat.feature.settings.viewmodel.shouldLoadMore
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
@@ -257,7 +258,9 @@ internal fun LazyGridScope.sharedLinksItems(
                 )
             }
         }
-        fullWidthItem(key = "sort") { SharedLinksSortRow(sort = uiState.sort, onSortChange = onSortChange) }
+        fullWidthItem(key = "sort") {
+            SharedLinksSortRow(sort = uiState.sort, loading = uiState.isReloading, onSortChange = onSortChange)
+        }
     }
 
     when {
@@ -279,7 +282,7 @@ internal fun LazyGridScope.sharedLinksItems(
     }
 
     when {
-        uiState.isLoadingMore || (uiState.isLoading && uiState.links.isNotEmpty()) -> fullWidthItem(key = "loading_more") {
+        uiState.isLoadingMore -> fullWidthItem(key = "loading_more") {
             Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
                 AdaptiveCircularProgressIndicator(modifier = Modifier.size(24.dp))
             }
@@ -322,9 +325,13 @@ private val SharedLinksSort.label: StringResource
     }
 
 @Composable
-private fun SharedLinksSortRow(sort: SharedLinksSort, onSortChange: (SharedLinksSort) -> Unit) {
+private fun SharedLinksSortRow(sort: SharedLinksSort, loading: Boolean, onSortChange: (SharedLinksSort) -> Unit) {
     var menuOpen by remember { mutableStateOf(false) }
-    Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
         Box(modifier = Modifier.weight(1f, fill = false)) {
             AdaptiveFilterChip(
                 selected = true,
@@ -357,6 +364,8 @@ private fun SharedLinksSortRow(sort: SharedLinksSort, onSortChange: (SharedLinks
                 }
             }
         }
+        // The rows below still answer the old sort or search until the new first page lands.
+        if (loading) AdaptiveCircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
     }
 }
 

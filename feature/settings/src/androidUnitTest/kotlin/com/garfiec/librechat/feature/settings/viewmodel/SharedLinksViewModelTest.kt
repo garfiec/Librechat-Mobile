@@ -184,6 +184,29 @@ class SharedLinksViewModelTest {
     }
 
     @Test
+    fun `a sort change over loaded rows reloads near the controls, not as a next page`() = runTest {
+        repository.page(null) { page("a", "b", next = "n1") }
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.isReloading).isFalse()
+
+        val sortPage = CompletableDeferred<Result<SharedLinksResponse>>()
+        repository.page(null) { sortPage.await() }
+        viewModel.setSort(SharedLinksSort.OLDEST)
+        runCurrent()
+
+        val reloading = viewModel.uiState.value
+        assertThat(reloading.isReloading).isTrue()
+        assertThat(reloading.isLoadingMore).isFalse()
+        assertThat(ids(viewModel)).containsExactly("a", "b").inOrder()
+
+        sortPage.complete(page("b", "a"))
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.isReloading).isFalse()
+    }
+
+    @Test
     fun `search waits out the debounce, is capped, and starts from the first page`() = runTest {
         searchEnabled.value = true
         repository.pageBy(null) { _, search -> if (search.isEmpty()) page("a", next = "n1") else page("hit") }
