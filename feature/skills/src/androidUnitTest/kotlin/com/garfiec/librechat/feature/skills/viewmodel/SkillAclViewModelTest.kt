@@ -126,7 +126,7 @@ class SkillAclViewModelTest {
     }
 
     @Test
-    fun `setPublic propagates the public flag through applyUpdate`()= runTest(testDispatcher) {
+    fun `setPublic propagates the public flag through applyUpdate`() = runTest(testDispatcher) {
         coEvery { permissionsRepository.getResourceRoles(ResourceType.SKILL) } returns Result.Success(emptyList())
         coEvery { permissionsRepository.getResourcePermissions(ResourceType.SKILL, "sk-1") } returns
             Result.Success(ResourcePermissions())
