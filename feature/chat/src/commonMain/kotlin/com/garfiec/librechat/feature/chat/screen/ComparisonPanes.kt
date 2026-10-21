@@ -59,6 +59,8 @@ internal fun ComparisonPanes(
     primaryLaneLabel: String,
     /** Pane A's scroll position, shared with the single list it replaces (see ChatContent). */
     primaryListState: LazyListState,
+    /** Pane B's scroll position, hoisted beside pane A's so it survives the wide/narrow switch. */
+    secondaryListState: LazyListState,
     modifier: Modifier = Modifier,
 ) {
     val comparisonState = uiState.comparisonState
@@ -226,6 +228,7 @@ internal fun ComparisonPanes(
                 bottomContentPadding = listBottomPadding,
                 userAvatarUrl = uiState.userAvatarUrl,
                 userName = uiState.userName,
+                listState = secondaryListState,
                 modifier = Modifier.fillMaxSize(),
             )
         }

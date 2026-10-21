@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
@@ -12,7 +13,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
@@ -53,24 +58,37 @@ fun SecondaryMessageList(
     /** The user's own name and avatar, so pane B labels their messages as pane A does. */
     userAvatarUrl: String? = null,
     userName: String? = null,
+    /** Hoisted by Compare so the pane keeps its place across layout switches. */
+    listState: LazyListState = rememberLazyListState(),
 ) {
-    val listState = rememberLazyListState()
+    val follower = rememberTailFollowerState()
+    val isNearBottom = rememberIsNearBottom(listState)
     // This pane hosts no AskUserQuestionPanel, so an unanswered ask has no affordance to resolve it.
     val renderedToolCalls = remember(activeToolCalls) { activeToolCalls.withoutAnyUnansweredQuestions() }
     // Parsed once per list; `contentType` runs on every measure pass.
     val wakeups = remember(displayMessages) { wakeupsByMessageId(displayMessages) }
-    val totalItemCount = displayMessages.size +
-        (if (isStreaming) 1 else 0) +
-        (if (isStreaming) renderedToolCalls.size else 0)
 
     ClearExpansionStatesAfterReply(isStreaming, ExpansionPane.SECONDARY)
 
-    // Auto-scroll to bottom during streaming
-    LaunchedEffect(streamingContent.length, totalItemCount) {
-        if (totalItemCount > 0) {
-            listState.scrollToItem(totalItemCount - 1, scrollOffset = Int.MAX_VALUE)
+    // Opens at the latest message once, like the primary pane. Saveable so a restored position
+    // (the pane leaving and re-entering composition) isn't overridden.
+    var hasScrolledToBottom by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(displayMessages.isNotEmpty()) {
+        if (!hasScrolledToBottom && displayMessages.isNotEmpty()) {
+            // From the data, not layoutInfo: this can run before the list's first layout.
+            val untouched = listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
+            if (untouched) listState.scrollToItem(displayMessages.lastIndex, scrollOffset = Int.MAX_VALUE)
+            hasScrolledToBottom = true
         }
     }
+
+    // The same follower as the primary pane, so a finger on this pane holds its tail too.
+    TailFollowEffects(
+        listState = listState,
+        state = follower,
+        isNearBottom = isNearBottom,
+        isStreaming = isStreaming,
+    )
 
     Box(modifier = modifier.fillMaxSize()) {
         if (error != null) {
@@ -89,13 +107,18 @@ fun SecondaryMessageList(
                 streamingAttachments.withPreviews(previewOverrides)
             }
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .tailFollowerTouch(follower),
                 state = listState,
-                contentPadding = PaddingValues(top = 8.dp, bottom = bottomContentPadding),
+                // The same reading gap as the primary pane, so the two tails rest at one height.
+                contentPadding = PaddingValues(top = 8.dp, bottom = bottomContentPadding + MESSAGE_LIST_BOTTOM_GAP),
             ) {
                 items(
                     items = displayMessages,
-                    key = { node -> "secondary_${node.message.messageId}" },
+                    // Keyed by conversation slot, as in MessageList, so the streaming reply (keyed to
+                    // the same slot below) and its finalized message stay one in-place item.
+                    key = { node -> "secondary_${node.treeParentKey}" },
                     // A wake-up renders as a system row, not a bubble; its own type keeps slot reuse
                     // from crossing the two layouts.
                     contentType = { node ->
@@ -152,7 +175,9 @@ fun SecondaryMessageList(
                         ExpansionPane.SECONDARY,
                         displayMessages.lastOrNull()?.message?.messageId,
                     )
-                    item(key = "secondary_streaming_message") {
+                    val streamingSlotKey = displayMessages.lastOrNull()?.message?.messageId
+                        ?: "streaming_message"
+                    item(key = "secondary_$streamingSlotKey") {
                         ProvideMarkdownMedia(liveAttachments, baseUrl) {
                             StreamingMessageBubble(
                                 streamingContent = streamingContent,

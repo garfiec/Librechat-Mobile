@@ -6,7 +6,6 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.gestures.animateScrollBy
-import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -36,14 +35,11 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
@@ -65,10 +61,8 @@ import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
 import com.garfiec.librechat.feature.chat.viewmodel.JumpFlash
 import com.garfiec.librechat.feature.chat.viewmodel.SearchFocusRequest
 import com.garfiec.librechat.feature.chat.viewmodel.SearchMatch
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import org.jetbrains.compose.resources.stringResource
@@ -168,10 +162,7 @@ fun MessageList(
     listState: LazyListState = rememberLazyListState(),
 ) {
     val coroutineScope = rememberCoroutineScope()
-    // Stands the follower down while a finger rests on the list. Deliberately NOT a scroll-away
-    // signal on its own — see the detector below.
-    var isTouching by remember { mutableStateOf(false) }
-    val nearBottomThresholdPx = with(LocalDensity.current) { NEAR_BOTTOM_BUFFER.toPx() }
+    val follower = rememberTailFollowerState()
     // Height (px) of the floating top bar occluding the list's top edge. The search fine-tune adds
     // this so a focused match settles below the bar rather than flush against (or under) it. Zero
     // for callers without an overlaid bar (e.g. comparison panes), leaving their behavior unchanged.
@@ -194,70 +185,12 @@ fun MessageList(
     val streamingToolCallCount = if (isStreaming) renderedToolCalls.size else 0
     val totalItemCount = displayMessages.size + streamingToolCallCount + if (isStreaming) 1 else 0
 
-    // Track whether user has deliberately scrolled away from the bottom.
-    // Reset when user scrolls back to bottom (via FAB or manual scroll).
-    var userScrolledUp by remember { mutableStateOf(false) }
-
-    // True only while an auto-scroll of ours is running. Load-bearing: isScrollInProgress cannot
-    // tell our scroll from the user's, so without this the scroll-away detector below scores the
-    // follower's own mid-growth scroll as intent and latches, silently killing the follow.
-    var programmaticScroll by remember { mutableStateOf(false) }
-
     // True while the focus sits on something inside the list — an inline message edit.
     // The keyboard handler below stands down for those; foundation brings a focused node into
     // view on its own, and unlike this file it knows which node that is.
     var listHasFocus by remember { mutableStateOf(false) }
 
-    // Read through updated state, not the captured parameter: the follower below runs for a whole
-    // run inside one LaunchedEffect, so a plain capture would keep reporting whatever was true on
-    // the frame the run started — which is always "no pause".
-    val isAwaitingHumanReview by rememberUpdatedState(pendingAction != null)
-
-    // Keyed on the threshold, which is derived from LocalDensity: a keyless remember holds the
-    // first composition's pixel value while the layout numbers it is compared against stay live,
-    // so the buffer is measured in stale units after a density or font-scale change.
-    val isNearBottom by remember(nearBottomThresholdPx) {
-        derivedStateOf {
-            val info = listState.layoutInfo
-            val lastItem = info.visibleItemsInfo.lastOrNull()
-            val itemCount = info.totalItemsCount
-            if (lastItem == null || itemCount == 0) {
-                true
-            } else {
-                // Measured from the follower's OWN rest target, not from viewportEndOffset: that
-                // baseline sits a whole bottom reserve below where the list can actually rest
-                // (composer height plus the reading gap — 184dp at the floor, more once queued
-                // ghost rows stack). Measure from it and the effective slack becomes
-                // [NEAR_BOTTOM_BUFFER] PLUS that reserve, so the pin re-grabs the list after a
-                // scroll-up of a quarter screen.
-                val restOffset = info.viewportEndOffset - info.afterContentPadding
-                lastItem.index >= itemCount - 2 &&
-                    (lastItem.offset + lastItem.size - restOffset) < nearBottomThresholdPx
-            }
-        }
-    }
-
-    // Detect user scroll-away: when the user drags or flings away from the bottom, set the flag.
-    // When they return to the bottom (manually or via FAB), clear it.
-    //
-    // Intent is a SCROLL, not a touch — do not add [isTouching] back to this term. A bare
-    // pointer-down moves nothing, but the follower stands down for as long as a finger is on the
-    // list, so the tail runs away on its own at streaming speed under a resting finger; that drift
-    // would score as scroll-away, and a long-press to select text would end the follow for the
-    // rest of the run. A drag holds the scroll session for its whole duration, mid-drag pauses
-    // included, so gesture latching loses nothing without the touch term.
-    LaunchedEffect(Unit) {
-        snapshotFlow {
-            (listState.isScrollInProgress && !programmaticScroll) to isNearBottom
-        }
-            .collect { (userIsScrolling, nearBottom) ->
-                if (userIsScrolling && !nearBottom) {
-                    userScrolledUp = true
-                } else if (!userIsScrolling && nearBottom) {
-                    userScrolledUp = false
-                }
-            }
-    }
+    val isNearBottom = rememberIsNearBottom(listState)
 
     val showScrollToBottom by remember {
         derivedStateOf {
@@ -283,8 +216,8 @@ fun MessageList(
     //    frame from live layout. It is deliberately NOT driven off
     //    streamingContent. It yields to the user on a finger-down
     //    (isTouching), once the scroll-away latch is set, or while the
-    //    run is paused for human review; see the loop itself for the
-    //    invariants it rests on.
+    //    run is paused for human review; see the loop itself
+    //    (TailFollower.kt) for the invariants it rests on.
     //
     // 4. POST-STREAMING — When streaming ends, a 300ms delay lets the
     //    Room observer replace the streaming bubble with the real AI
@@ -409,117 +342,33 @@ fun MessageList(
     // on a run that will never produce another token.
     LaunchedEffect(pendingAction?.actionId) {
         if (pendingAction?.actionId != null) {
-            userScrolledUp = false
+            follower.userScrolledUp = false
             val total = listState.layoutInfo.totalItemsCount
             // Flagged like the follower's own scrolls: this one animates from above the tail, so
             // every frame of it reads to the scroll-away detector as a user dragging away from
             // the bottom — the one thing that would latch the follower off for the rest of the run.
             if (total > 0) {
-                programmaticScroll = true
+                follower.programmaticScroll = true
                 try {
                     listState.animateScrollToItem(total - 1, scrollOffset = Int.MAX_VALUE)
                 } finally {
-                    programmaticScroll = false
+                    follower.programmaticScroll = false
                 }
             }
         }
     }
 
-    var wasStreaming by remember { mutableStateOf(false) }
     ClearExpansionStatesAfterReply(isStreaming, ExpansionPane.PRIMARY)
 
-    LaunchedEffect(isStreaming) {
-        if (isStreaming) {
-            wasStreaming = true
-            // Reset scroll-away flag — user just sent a message, start at bottom
-            userScrolledUp = false
-            // Jump to bottom immediately (user just sent a message)
-            val total = listState.layoutInfo.totalItemsCount
-            if (total > 0) {
-                listState.scrollToItem(total - 1, scrollOffset = Int.MAX_VALUE)
-            }
-            // Rule 3: streaming follow (see block comment above). ONE continuous follower for the
-            // whole run, driven per frame — not a scroll per text flush, which at the buffer's
-            // STREAMING_UI_UPDATE_INTERVAL_MS means ~20 instant scrollToItem jumps a second.
-            try {
-                while (isActive) {
-                    withFrameNanos { }
-                    // A finger down, or a deliberate scroll away, hands control back to the user.
-                    // isScrollInProgress is NOT consulted: our own scroll below sets it, so gating
-                    // on it would stop the follower on its own first frame.
-                    //
-                    // A pause for human review hands it back too. The run stays open across the
-                    // pause, so isStreaming alone keeps this loop pinning the tail every frame
-                    // while the one thing it exists to follow — output — has stopped. The pause
-                    // marker is brought into view once by its own effect above; after that the
-                    // list is the user's, to read the reply they are being asked about, and a
-                    // follower still running would undo every scroll the instant their finger lifts.
-                    if (isTouching || userScrolledUp || isAwaitingHumanReview) {
-                        programmaticScroll = false
-                        continue
-                    }
-
-                    val info = listState.layoutInfo
-                    val itemCount = info.totalItemsCount
-                    val lastItem = info.visibleItemsInfo.lastOrNull()
-                    if (itemCount == 0 || lastItem == null) {
-                        programmaticScroll = false
-                        continue
-                    }
-
-                    // Held for as long as the follower is driving, not toggled per frame:
-                    // isScrollInProgress stays true for a moment after a scroll call returns, and a
-                    // per-frame false exposes that tail to the detector as a user scroll.
-                    programmaticScroll = true
-                    try {
-                        if (lastItem.index < itemCount - 1) {
-                            // The tail is off screen — a card was appended below the viewport (a
-                            // tool call, an office preview, a review pause), so there is no
-                            // on-screen distance to ease along; jump instead. Once per appended
-                            // item, not per flush.
-                            listState.scrollToItem(itemCount - 1, scrollOffset = Int.MAX_VALUE)
-                        } else {
-                            // Rest the tail against the bottom reserve, NOT viewportEndOffset: that
-                            // is the layout size minus *before*-content-padding, so it sits below
-                            // where the list can actually rest and inflates every step by the whole
-                            // reserve — the ease then never decelerates, it runs full speed into
-                            // the scroll clamp.
-                            val restOffset = info.viewportEndOffset - info.afterContentPadding
-                            val distance = (lastItem.offset + lastItem.size - restOffset).toFloat()
-                            if (distance > FOLLOW_SETTLE_PX) {
-                                val step = (distance * FOLLOW_FRACTION)
-                                    .coerceIn(FOLLOW_MIN_STEP_PX, distance)
-                                listState.scrollBy(step)
-                            }
-                        }
-                    } catch (e: CancellationException) {
-                        // A user gesture takes the scroll mutex at UserInput priority, cancelling
-                        // ours. That must not escape: this loop IS the follower, so letting it
-                        // through ends auto-scroll for the whole run with no way to re-arm it. Only
-                        // a cancellation of the effect itself may propagate.
-                        programmaticScroll = false
-                        if (!isActive) throw e
-                    }
-                }
-            } finally {
-                programmaticScroll = false
-            }
-        } else if (wasStreaming) {
-            // Streaming just ended. The final messages are now in displayMessages
-            // synchronously (finalizeChatDisplay swaps the streaming bubble for the real
-            // AI message in the same state update that clears isStreaming), so we only need
-            // a brief layout-settle before scrolling to show the complete response.
-            // Only auto-scroll if user hasn't scrolled away.
-            wasStreaming = false
-            if (!userScrolledUp) {
-                delay(50)
-                val total = listState.layoutInfo.totalItemsCount
-                if (total > 0) {
-                    listState.scrollToItem(total - 1, scrollOffset = Int.MAX_VALUE)
-                }
-            }
-        }
-    }
+    TailFollowEffects(
+        listState = listState,
+        state = follower,
+        isNearBottom = isNearBottom,
+        isStreaming = isStreaming,
+        // A run paused for human review holds the follower: the marker is brought into view
+        // once by its own effect above, and after that the list is the user's.
+        holdFollow = pendingAction != null,
+    )
 
     // ── Keyboard scroll ────────────────────────────────────────────
     // When the soft keyboard (IME) opens, the Scaffold's imePadding()
@@ -602,15 +451,7 @@ fun MessageList(
                 .glassBackdropSource(LocalGlassBackdrop.current.takeIf { recordsGlassBackdrop })
                 .onFocusChanged { listHasFocus = it.hasFocus }
                 .onGloballyPositioned { listCoordinates = it }
-                .pointerInput(Unit) {
-                    awaitPointerEventScope {
-                        while (true) {
-                            // Observe on Initial pass so we don't interfere with scrolling
-                            val event = awaitPointerEvent(PointerEventPass.Initial)
-                            isTouching = event.changes.any { it.pressed }
-                        }
-                    }
-                },
+                .tailFollowerTouch(follower),
             state = listState,
             // The bottom reserve is the measured bar height PLUS a reading gap. The gap must stay
             // here rather than in the follower's target: a follower-only gap is reclaimed by the
@@ -890,7 +731,7 @@ fun MessageList(
         ) {
             AdaptiveFloatingActionButton(
                 onClick = {
-                    userScrolledUp = false
+                    follower.userScrolledUp = false
                     coroutineScope.launch {
                         if (totalItemCount > 0) {
                             listState.animateScrollToItem(totalItemCount - 1, scrollOffset = Int.MAX_VALUE)
@@ -921,28 +762,6 @@ private const val SEARCH_FOCUS_SETTLE_MS = 250L
 
 /** A settled match this close to the anchor line (px) is left where it is. */
 private const val SEARCH_FOCUS_SETTLE_TOLERANCE_PX = 48f
-
-// ── Streaming follow tuning ───────────────────────────────────────────
-// Fraction of the remaining distance-to-bottom consumed per frame. Recomputed from live layout
-// every frame, so this is an exponential ease: 0.15 is a time constant near 100ms at 60fps.
-private const val FOLLOW_FRACTION = 0.15f
-
-/** Floor on the per-frame step, so the last sub-pixel gap closes instead of easing forever. */
-private const val FOLLOW_MIN_STEP_PX = 0.5f
-
-/** Distance below which the list counts as settled at the bottom and the follower idles. */
-private const val FOLLOW_SETTLE_PX = 0.5f
-
-/**
- * Slack below the list's resting position within which the follower keeps its pin. A gesture that
- * leaves it hands the list to the user for the rest of the run; settling back inside it re-arms the
- * follow. Larger and a deliberate scroll-up gets yanked back to the tail; smaller and a slight
- * gesture near the tail ends the follow when the user meant to stay pinned.
- */
-private val NEAR_BOTTOM_BUFFER = 80.dp
-
-/** Reading gap held below the last line, on top of the caller-measured bar reserve. */
-private val MESSAGE_LIST_BOTTOM_GAP = 24.dp
 
 private val SearchFocusScrollSpec = spring<Float>(
     dampingRatio = Spring.DampingRatioNoBouncy,

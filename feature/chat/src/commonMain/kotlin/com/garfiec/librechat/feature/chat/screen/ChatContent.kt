@@ -96,6 +96,9 @@ internal fun ColumnScope.ChatContent(
     // composed: MessageList's scroll machinery holds the instance it first saw, so swapping it there
     // would leave the reply unfollowed. LANDING and LOADING show no list, so nothing holds the old one.
     val primaryListState = rememberSaveable(uiState.screenState, saver = LazyListState.Saver) { LazyListState() }
+    // Pane B's, hoisted for the same reasons: the narrow pager disposes the off-screen pane and the
+    // wide/narrow switch rebuilds both, so a pane-local state lost the reader's place on every one.
+    val secondaryListState = rememberSaveable(uiState.screenState, saver = LazyListState.Saver) { LazyListState() }
     val comparisonPanes: @Composable () -> Unit = {
         ComparisonPanes(
             uiState = uiState,
@@ -118,6 +121,7 @@ internal fun ColumnScope.ChatContent(
             compareSetupActions = compareSetupActions,
             primaryLaneLabel = primaryLaneLabel,
             primaryListState = primaryListState,
+            secondaryListState = secondaryListState,
             modifier = topInsetModifier,
         )
     }
