@@ -815,4 +815,25 @@
     <string name="prompt_preview_placeholder">Enter variable values to see preview</string>
     <string name="cd_sync_scroll_on">Panes scroll together. Unlink</string>
     <string name="cd_sync_scroll_off">Panes scroll separately. Link</string>
+    <!-- Shared chat viewer -->
+    <string name="shared_chat_title_fallback">Shared chat</string>
+    <string name="shared_chat_subtitle">Shared chat · %1$s</string>
+    <string name="shared_chat_continue">Continue this chat</string>
+    <string name="shared_chat_open_in_browser">Open in browser</string>
+    <string name="shared_chat_langfuse">View session in Langfuse</string>
+    <string name="shared_chat_link_updated">This link was updated. The latest version is now showing.</string>
+    <string name="shared_chat_continue_rate_limited">Too many requests to continue chats. Try again later.</string>
+    <string name="shared_chat_continue_failed">Couldn’t continue this chat</string>
+    <string name="shared_chat_continue_blocked">Your server blocked copying this chat</string>
+    <string name="shared_chat_continue_blocked_reason">Your server blocked copying this chat: %1$s</string>
+    <string name="shared_chat_not_found">Shared link not found</string>
+    <string name="shared_chat_not_found_description">It may have been deleted, or the link may be wrong.</string>
+    <string name="shared_chat_no_access">You can’t open this shared chat</string>
+    <string name="shared_chat_no_access_description">It isn’t shared with this account.</string>
+    <string name="shared_chat_rate_limited">Too many shared link requests</string>
+    <string name="shared_chat_rate_limited_description">Try again in a moment.</string>
+    <string name="shared_chat_blocked">Your server blocked this shared chat</string>
+    <string name="shared_chat_load_failed">Couldn’t load this shared chat</string>
+    <string name="shared_chat_user">User</string>
+    <string name="shared_chat_file_failed">Couldn’t open this file</string>
 </resources>

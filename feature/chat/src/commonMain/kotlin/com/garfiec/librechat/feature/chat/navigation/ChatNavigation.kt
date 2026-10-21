@@ -28,6 +28,7 @@ import com.garfiec.librechat.feature.chat.screen.ArtifactShortcutViewerScreen
 import com.garfiec.librechat.feature.chat.screen.ChatScreen
 import com.garfiec.librechat.feature.chat.screen.ConversationMediaScreen
 import com.garfiec.librechat.feature.chat.screen.NewChatScreen
+import com.garfiec.librechat.feature.chat.screen.SharedChatScreen
 import com.garfiec.librechat.feature.chat.viewmodel.ProjectLandingViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.PromptInsertionHandoff
 import com.garfiec.librechat.feature.chat.viewmodel.chatHandoffKey
@@ -111,6 +112,12 @@ val NewChat.handoffKey: String? get() = chatHandoffKey(conversationId = null, ch
  */
 @Serializable data class ArtifactShortcutViewer(val snapshotId: String) : ChatRoute
 
+/**
+ * The in-app viewer for one of the ACTIVE account's shared links, by [shareId]. A link on another
+ * signed-in account's server is pushed only after the switch to that account has reset the stack.
+ */
+@Serializable data class SharedChat(val shareId: String) : ChatRoute
+
 fun EntryProviderScope<NavKey>.chatEntries(
     onNavigate: (NavKey) -> Unit,
     onBack: () -> Unit,
@@ -189,6 +196,7 @@ fun EntryProviderScope<NavKey>.chatEntries(
             )
         }
     }
+    sharedChatEntry(onNavigate = onNavigate, onBack = onBack, onRemove = onRemove)
     entry<ArtifactFullscreen> { key ->
         // Provider present so the fullscreen viewer's toolbar can pin the artifact too.
         ProvideAddArtifactToHomeScreen {
@@ -232,6 +240,29 @@ fun EntryProviderScope<NavKey>.chatEntries(
 }
 
 /**
+ * The shared-chat viewer. Continue's copy takes its place, so Back from the copy returns to where the
+ * link was opened.
+ */
+private fun EntryProviderScope<NavKey>.sharedChatEntry(
+    onNavigate: (NavKey) -> Unit,
+    onBack: () -> Unit,
+    onRemove: (NavKey) -> Unit,
+) {
+    entry<SharedChat> { key ->
+        ProvideOpenArtifact(onNavigate) {
+            SharedChatScreen(
+                shareId = key.shareId,
+                onNavigateBack = onBack,
+                onOpenConversation = { conversationId ->
+                    onRemove(key)
+                    onNavigate(Chat(conversationId))
+                },
+            )
+        }
+    }
+}
+
+/**
  * Owns the screen-level artifact presentation and provides [LocalOpenArtifact] so artifacts
  * tapped deep in the message list just fire an event. Honoring the display-mode pref it either
  * pushes the [ArtifactFullscreen] route (payload staged in [ArtifactViewerHandoff]; real nav
@@ -239,7 +270,7 @@ fun EntryProviderScope<NavKey>.chatEntries(
  * not inline in the list, so it survives the tapped item scrolling off-screen.
  */
 @Composable
-private fun ProvideOpenArtifact(
+internal fun ProvideOpenArtifact(
     onNavigate: (NavKey) -> Unit,
     content: @Composable () -> Unit,
 ) {
@@ -302,5 +333,6 @@ val chatSerializersModule = SerializersModule {
         subclass(ConversationMedia::class, ConversationMedia.serializer())
         subclass(ArtifactFullscreen::class, ArtifactFullscreen.serializer())
         subclass(ArtifactShortcutViewer::class, ArtifactShortcutViewer.serializer())
+        subclass(SharedChat::class, SharedChat.serializer())
     }
 }

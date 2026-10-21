@@ -763,4 +763,25 @@
     <string name="prompt_preview_placeholder">输入变量值以查看预览</string>
     <string name="cd_sync_scroll_on">窗格同步滚动。取消关联</string>
     <string name="cd_sync_scroll_off">窗格各自滚动。关联</string>
+    <!-- Shared chat viewer -->
+    <string name="shared_chat_title_fallback">共享的聊天</string>
+    <string name="shared_chat_subtitle">共享的聊天 · %1$s</string>
+    <string name="shared_chat_continue">继续此聊天</string>
+    <string name="shared_chat_open_in_browser">在浏览器中打开</string>
+    <string name="shared_chat_langfuse">在 Langfuse 中查看会话</string>
+    <string name="shared_chat_link_updated">此链接已更新，现在显示的是最新版本。</string>
+    <string name="shared_chat_continue_rate_limited">继续聊天的请求过多，请稍后再试。</string>
+    <string name="shared_chat_continue_failed">无法继续此聊天</string>
+    <string name="shared_chat_continue_blocked">你的服务器阻止了复制此聊天</string>
+    <string name="shared_chat_continue_blocked_reason">你的服务器阻止了复制此聊天：%1$s</string>
+    <string name="shared_chat_not_found">未找到共享链接</string>
+    <string name="shared_chat_not_found_description">它可能已被删除，或链接有误。</string>
+    <string name="shared_chat_no_access">你无法打开此共享聊天</string>
+    <string name="shared_chat_no_access_description">它未与此账号共享。</string>
+    <string name="shared_chat_rate_limited">共享链接请求过多</string>
+    <string name="shared_chat_rate_limited_description">请稍后再试。</string>
+    <string name="shared_chat_blocked">你的服务器屏蔽了此共享聊天</string>
+    <string name="shared_chat_load_failed">无法加载此共享聊天</string>
+    <string name="shared_chat_user">用户</string>
+    <string name="shared_chat_file_failed">无法打开此文件</string>
 </resources>

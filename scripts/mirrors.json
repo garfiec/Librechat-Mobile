@@ -1952,6 +1952,20 @@
       "failure_mode": "Upstream changes the index basis (e.g. to ids) or the revision rule, and Continue silently forks the wrong branch or the whole share."
     },
     {
+      "id": "share-viewer-active-tail",
+      "upstream": {
+        "file": "client/src/utils/messages.ts",
+        "symbol": "selectActiveBranchTail",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/SharedChatViewModel.kt",
+        "symbol": "activeTailIndex / SharedChatViewModel.continueChat"
+      },
+      "why": "Continue from a shared link forks the branch on screen: web walks the shared tree from the root, taking the chosen sibling at each level and the newest by default, and sends the index of the tip it reaches in the snapshot's messages (ShareView.tsx getActiveTargetIndex). The viewer takes the last node of buildActiveMessagePath, whose default is also the newest sibling, and looks up its index the same way.",
+      "failure_mode": "Web changes which sibling a branch defaults to, or what the tip is, and Continue in the app copies a different branch from the one web would for the same screen. Nothing errors."
+    },
+    {
       "id": "share-target-branch-tail",
       "upstream": {
         "file": "client/src/components/Conversations/ConvoOptions/SharedLinkButton.tsx",

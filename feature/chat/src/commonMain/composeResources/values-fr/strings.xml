@@ -778,4 +778,25 @@
     <string name="prompt_preview_placeholder">Saisissez les valeurs des variables pour voir l’aperçu</string>
     <string name="cd_sync_scroll_on">Les volets défilent ensemble. Dissocier</string>
     <string name="cd_sync_scroll_off">Les volets défilent séparément. Associer</string>
+    <!-- Shared chat viewer -->
+    <string name="shared_chat_title_fallback">Chat partagé</string>
+    <string name="shared_chat_subtitle">Chat partagé · %1$s</string>
+    <string name="shared_chat_continue">Continuer ce chat</string>
+    <string name="shared_chat_open_in_browser">Ouvrir dans le navigateur</string>
+    <string name="shared_chat_langfuse">Voir la session dans Langfuse</string>
+    <string name="shared_chat_link_updated">Ce lien a été mis à jour. La dernière version est maintenant affichée.</string>
+    <string name="shared_chat_continue_rate_limited">Trop de demandes pour continuer des chats. Réessayez plus tard.</string>
+    <string name="shared_chat_continue_failed">Impossible de continuer ce chat</string>
+    <string name="shared_chat_continue_blocked">Votre serveur a bloqué la copie de ce chat</string>
+    <string name="shared_chat_continue_blocked_reason">Votre serveur a bloqué la copie de ce chat : %1$s</string>
+    <string name="shared_chat_not_found">Lien partagé introuvable</string>
+    <string name="shared_chat_not_found_description">Il a peut-être été supprimé, ou le lien est incorrect.</string>
+    <string name="shared_chat_no_access">Vous ne pouvez pas ouvrir ce chat partagé</string>
+    <string name="shared_chat_no_access_description">Il n’est pas partagé avec ce compte.</string>
+    <string name="shared_chat_rate_limited">Trop de demandes de liens partagés</string>
+    <string name="shared_chat_rate_limited_description">Réessayez dans un instant.</string>
+    <string name="shared_chat_blocked">Votre serveur a bloqué ce chat partagé</string>
+    <string name="shared_chat_load_failed">Impossible de charger ce chat partagé</string>
+    <string name="shared_chat_user">Utilisateur</string>
+    <string name="shared_chat_file_failed">Impossible d’ouvrir ce fichier</string>
 </resources>

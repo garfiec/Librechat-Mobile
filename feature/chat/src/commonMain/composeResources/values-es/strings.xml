@@ -778,4 +778,25 @@
     <string name="prompt_preview_placeholder">Introduce valores para las variables y verás la vista previa</string>
     <string name="cd_sync_scroll_on">Los paneles se desplazan juntos. Desvincular</string>
     <string name="cd_sync_scroll_off">Los paneles se desplazan por separado. Vincular</string>
+    <!-- Shared chat viewer -->
+    <string name="shared_chat_title_fallback">Chat compartido</string>
+    <string name="shared_chat_subtitle">Chat compartido · %1$s</string>
+    <string name="shared_chat_continue">Continuar este chat</string>
+    <string name="shared_chat_open_in_browser">Abrir en el navegador</string>
+    <string name="shared_chat_langfuse">Ver sesión en Langfuse</string>
+    <string name="shared_chat_link_updated">Este enlace se actualizó. Ahora se muestra la versión más reciente.</string>
+    <string name="shared_chat_continue_rate_limited">Demasiadas solicitudes para continuar chats. Inténtalo más tarde.</string>
+    <string name="shared_chat_continue_failed">No se pudo continuar este chat</string>
+    <string name="shared_chat_continue_blocked">Tu servidor bloqueó la copia de este chat</string>
+    <string name="shared_chat_continue_blocked_reason">Tu servidor bloqueó la copia de este chat: %1$s</string>
+    <string name="shared_chat_not_found">No se encontró el enlace compartido</string>
+    <string name="shared_chat_not_found_description">Puede que se haya eliminado o que el enlace sea incorrecto.</string>
+    <string name="shared_chat_no_access">No puedes abrir este chat compartido</string>
+    <string name="shared_chat_no_access_description">No está compartido con esta cuenta.</string>
+    <string name="shared_chat_rate_limited">Demasiadas solicitudes de enlaces compartidos</string>
+    <string name="shared_chat_rate_limited_description">Inténtalo de nuevo en un momento.</string>
+    <string name="shared_chat_blocked">Tu servidor bloqueó este chat compartido</string>
+    <string name="shared_chat_load_failed">No se pudo cargar este chat compartido</string>
+    <string name="shared_chat_user">Usuario</string>
+    <string name="shared_chat_file_failed">No se pudo abrir este archivo</string>
 </resources>

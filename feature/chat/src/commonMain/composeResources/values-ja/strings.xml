@@ -763,4 +763,25 @@
     <string name="prompt_preview_placeholder">変数の値を入力するとプレビューが表示されます</string>
     <string name="cd_sync_scroll_on">ペインは連動してスクロールします。連動を解除</string>
     <string name="cd_sync_scroll_off">ペインは個別にスクロールします。連動させる</string>
+    <!-- Shared chat viewer -->
+    <string name="shared_chat_title_fallback">共有チャット</string>
+    <string name="shared_chat_subtitle">共有チャット · %1$s</string>
+    <string name="shared_chat_continue">このチャットを続ける</string>
+    <string name="shared_chat_open_in_browser">ブラウザで開く</string>
+    <string name="shared_chat_langfuse">Langfuse でセッションを表示</string>
+    <string name="shared_chat_link_updated">このリンクは更新されました。最新版を表示しています。</string>
+    <string name="shared_chat_continue_rate_limited">チャットを続けるリクエストが多すぎます。しばらくしてからもう一度お試しください。</string>
+    <string name="shared_chat_continue_failed">このチャットを続けられませんでした</string>
+    <string name="shared_chat_continue_blocked">サーバーがこのチャットのコピーをブロックしました</string>
+    <string name="shared_chat_continue_blocked_reason">サーバーがこのチャットのコピーをブロックしました: %1$s</string>
+    <string name="shared_chat_not_found">共有リンクが見つかりません</string>
+    <string name="shared_chat_not_found_description">削除されたか、リンクが間違っている可能性があります。</string>
+    <string name="shared_chat_no_access">この共有チャットを開けません</string>
+    <string name="shared_chat_no_access_description">このアカウントには共有されていません。</string>
+    <string name="shared_chat_rate_limited">共有リンクへのリクエストが多すぎます</string>
+    <string name="shared_chat_rate_limited_description">少し待ってからもう一度お試しください。</string>
+    <string name="shared_chat_blocked">サーバーがこの共有チャットをブロックしました</string>
+    <string name="shared_chat_load_failed">この共有チャットを読み込めませんでした</string>
+    <string name="shared_chat_user">ユーザー</string>
+    <string name="shared_chat_file_failed">このファイルを開けませんでした</string>
 </resources>

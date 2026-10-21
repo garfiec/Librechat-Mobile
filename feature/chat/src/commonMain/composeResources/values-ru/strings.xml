@@ -787,4 +787,25 @@
     <string name="prompt_preview_placeholder">Введите значения переменных, чтобы увидеть предпросмотр</string>
     <string name="cd_sync_scroll_on">Панели прокручиваются вместе. Отвязать</string>
     <string name="cd_sync_scroll_off">Панели прокручиваются по отдельности. Связать</string>
+    <!-- Shared chat viewer -->
+    <string name="shared_chat_title_fallback">Общий чат</string>
+    <string name="shared_chat_subtitle">Общий чат · %1$s</string>
+    <string name="shared_chat_continue">Продолжить этот чат</string>
+    <string name="shared_chat_open_in_browser">Открыть в браузере</string>
+    <string name="shared_chat_langfuse">Открыть сеанс в Langfuse</string>
+    <string name="shared_chat_link_updated">Ссылка обновлена. Показана последняя версия.</string>
+    <string name="shared_chat_continue_rate_limited">Слишком много запросов на продолжение чатов. Повторите попытку позже.</string>
+    <string name="shared_chat_continue_failed">Не удалось продолжить этот чат</string>
+    <string name="shared_chat_continue_blocked">Ваш сервер запретил копирование этого чата</string>
+    <string name="shared_chat_continue_blocked_reason">Ваш сервер запретил копирование этого чата: %1$s</string>
+    <string name="shared_chat_not_found">Общая ссылка не найдена</string>
+    <string name="shared_chat_not_found_description">Возможно, её удалили или ссылка неверна.</string>
+    <string name="shared_chat_no_access">Вы не можете открыть этот общий чат</string>
+    <string name="shared_chat_no_access_description">Доступ к нему не открыт для этого аккаунта.</string>
+    <string name="shared_chat_rate_limited">Слишком много запросов к общим ссылкам</string>
+    <string name="shared_chat_rate_limited_description">Повторите попытку через минуту.</string>
+    <string name="shared_chat_blocked">Ваш сервер заблокировал этот общий чат</string>
+    <string name="shared_chat_load_failed">Не удалось загрузить этот общий чат</string>
+    <string name="shared_chat_user">Пользователь</string>
+    <string name="shared_chat_file_failed">Не удалось открыть этот файл</string>
 </resources>

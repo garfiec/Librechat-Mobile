@@ -11,6 +11,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.NewChatSelectionHandoff
 import com.garfiec.librechat.feature.chat.viewmodel.ProjectLandingViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.PromptInsertionHandoff
 import com.garfiec.librechat.feature.chat.viewmodel.ServerFileSelectionHandoff
+import com.garfiec.librechat.feature.chat.viewmodel.SharedChatViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.SiteIconPromptSession
 import com.garfiec.librechat.feature.chat.viewmodel.SubagentThreadsViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.TraceViewerViewModel
@@ -60,6 +61,16 @@ val chatModule = module {
             userRepository = get(),
             serverDataStore = get(),
             defaultDispatcher = get(KoinQualifiers.Default),
+        )
+    }
+    // The link's shareId arrives from the SharedChat route via parametersOf.
+    viewModel { params ->
+        SharedChatViewModel(
+            shareId = params.get(),
+            shareRepository = get(),
+            conversationRepository = get(),
+            activeAccountProvider = get(),
+            serverUrlProvider = get(),
         )
     }
 }

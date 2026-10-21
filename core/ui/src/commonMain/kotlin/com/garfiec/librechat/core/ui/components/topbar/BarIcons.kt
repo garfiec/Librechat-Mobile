@@ -5,6 +5,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.filled.ViewList
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Check
@@ -87,6 +88,7 @@ object BarIcons {
     val Source = BarIcon(Icons.Default.Code, "chevron.left.forwardslash.chevron.right")
     val Rendered = BarIcon(Icons.AutoMirrored.Filled.Notes, "text.alignleft")
     val Link = BarIcon(Icons.Default.Link, "link")
+    val OpenInBrowser = BarIcon(Icons.AutoMirrored.Outlined.OpenInNew, "safari")
 
     // A pin toggle: the outline while off, the filled star while on.
     val Star = BarIcon(Icons.Default.StarBorder, "star")
@@ -101,6 +103,7 @@ object BarIcons {
         Back, Menu, Close, More, Search, Visible, Hidden, Media, LoadPreset, SavePreset, Prompts,
         Compare, Trace, ContextUsage, Compact, Share, Edit, Duplicate, Archive, Delete,
         EditFilled, DuplicateFilled, DeleteFilled, ShareFilled, History, Sort, NewFolder, Tools, Import,
-        SelectAll, GridView, ListView, Filter, Source, Rendered, Link, Star, StarFilled, Confirm, Attach, ClearAll,
+        SelectAll, GridView, ListView, Filter, Source, Rendered, Link, Star, StarFilled, OpenInBrowser,
+        Confirm, Attach, ClearAll,
     )
 }

@@ -60,6 +60,7 @@ fun MessageFiles(
     alignImagesEnd: Boolean = false,
 ) {
     if (files.isEmpty()) return
+    val openFile = LocalOpenMessageFile.current
 
     val imageFiles = remember(files) {
         files.filter { it.type?.startsWith("image/") == true }
@@ -80,6 +81,7 @@ fun MessageFiles(
                         filename = file.filename ?: file.filepath?.substringAfterLast('/') ?: stringResource(Res.string.file_fallback),
                         type = file.type,
                         bytes = file.bytes,
+                        onClick = openFile?.let { open -> { open(file) } },
                     )
                 }
             }

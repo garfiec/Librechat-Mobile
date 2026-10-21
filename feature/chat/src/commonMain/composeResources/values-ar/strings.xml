@@ -803,4 +803,25 @@
     <string name="prompt_preview_placeholder">أدخل قيم المتغيرات لرؤية المعاينة</string>
     <string name="cd_sync_scroll_on">تتمرّر اللوحتان معًا. إلغاء الربط</string>
     <string name="cd_sync_scroll_off">تتمرّر اللوحتان كلٌّ على حدة. ربط</string>
+    <!-- Shared chat viewer -->
+    <string name="shared_chat_title_fallback">محادثة مشتركة</string>
+    <string name="shared_chat_subtitle">محادثة مشتركة · %1$s</string>
+    <string name="shared_chat_continue">متابعة هذه المحادثة</string>
+    <string name="shared_chat_open_in_browser">فتح في المتصفح</string>
+    <string name="shared_chat_langfuse">عرض الجلسة في Langfuse</string>
+    <string name="shared_chat_link_updated">تم تحديث هذا الرابط. يتم الآن عرض أحدث إصدار.</string>
+    <string name="shared_chat_continue_rate_limited">طلبات كثيرة جدًا لمتابعة المحادثات. حاول مرة أخرى لاحقًا.</string>
+    <string name="shared_chat_continue_failed">تعذّرت متابعة هذه المحادثة</string>
+    <string name="shared_chat_continue_blocked">منع الخادم نسخ هذه المحادثة</string>
+    <string name="shared_chat_continue_blocked_reason">منع الخادم نسخ هذه المحادثة: %1$s</string>
+    <string name="shared_chat_not_found">لم يتم العثور على الرابط المشترك</string>
+    <string name="shared_chat_not_found_description">ربما تم حذفه، أو أن الرابط غير صحيح.</string>
+    <string name="shared_chat_no_access">لا يمكنك فتح هذه المحادثة المشتركة</string>
+    <string name="shared_chat_no_access_description">لم تتم مشاركتها مع هذا الحساب.</string>
+    <string name="shared_chat_rate_limited">طلبات كثيرة جدًا للروابط المشتركة</string>
+    <string name="shared_chat_rate_limited_description">حاول مرة أخرى بعد قليل.</string>
+    <string name="shared_chat_blocked">حظر الخادم هذه المحادثة المشتركة</string>
+    <string name="shared_chat_load_failed">تعذّر تحميل هذه المحادثة المشتركة</string>
+    <string name="shared_chat_user">المستخدم</string>
+    <string name="shared_chat_file_failed">تعذّر فتح هذا الملف</string>
 </resources>
