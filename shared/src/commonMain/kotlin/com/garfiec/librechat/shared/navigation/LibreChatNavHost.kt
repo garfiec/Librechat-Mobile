@@ -762,6 +762,9 @@ fun MainNavDisplay(
                     // back to last-used / first-agent / first-model.
                     navigator.navigateToTopLevel(NewChat(agentId))
                 },
+                // Gap: the starter should land unsent in the new chat's composer (through
+                // PromptInsertionHandoff). Until that is wired, a starter opens the chat without it.
+                onStartChatWithPrompt = { agentId, _ -> navigator.navigateToTopLevel(NewChat(agentId)) },
             )
             skillsEntries(
                 onNavigate = { navigator.navigate(it) },

@@ -60,12 +60,8 @@
     <string name="delete_agent">Supprimer l'agent</string>
     <string name="delete_agent_confirm">Voulez-vous vraiment supprimer "%1$s" ? Cette action est irréversible.</string>
     <string name="delete_this_agent">cet agent</string>
-    <string name="by_author">par %1$s</string>
-    <string name="label_description">Description</string>
-    <string name="no_description">Aucune description</string>
     <string name="label_category">Catégorie</string>
     <string name="label_model">Modèle</string>
-    <string name="default_value">Par défaut</string>
     <string name="label_tools">Outils</string>
     <string name="label_conversation_starters">Amorces de conversation</string>
 
@@ -335,4 +331,20 @@
     <string name="agent_category_roleplay">Jeu de rôle</string>
     <string name="visibility_team">Équipe</string>
     <string name="agent_contact_line">Contact : %1$s</string>
+    <string name="agent_pin">Épingler au menu des modèles</string>
+    <string name="agent_unpin">Retirer du menu des modèles</string>
+    <string name="agent_copy_link">Copier le lien</string>
+    <string name="agent_link_copied">Lien copié</string>
+    <string name="agent_updated">Mis à jour %1$s</string>
+    <string name="agent_public">Public</string>
+    <string name="agent_try_asking">Essayez de demander</string>
+    <string name="agent_load_failed">Impossible de charger cet agent</string>
+    <string name="agent_delete_failed">Impossible de supprimer cet agent</string>
+    <string name="agent_duplicate_failed">Impossible de dupliquer cet agent</string>
+    <string name="agent_pin_failed">Impossible de mettre à jour vos épingles</string>
+    <string name="agent_contact_send_email">Envoyer un e-mail</string>
+    <plurals name="agent_pin_limit">
+        <item quantity="one">Vous pouvez épingler jusqu'à %1$d favori.</item>
+        <item quantity="other">Vous pouvez épingler jusqu'à %1$d favoris.</item>
+    </plurals>
 </resources>

@@ -60,12 +60,8 @@
     <string name="delete_agent">Delete Agent</string>
     <string name="delete_agent_confirm">Are you sure you want to delete "%1$s"? This cannot be undone.</string>
     <string name="delete_this_agent">this agent</string>
-    <string name="by_author">by %1$s</string>
-    <string name="label_description">Description</string>
-    <string name="no_description">No description</string>
     <string name="label_category">Category</string>
     <string name="label_model">Model</string>
-    <string name="default_value">Default</string>
     <string name="label_tools">Tools</string>
     <string name="label_conversation_starters">Conversation Starters</string>
 
@@ -339,4 +335,20 @@
     <string name="agent_category_roleplay">Roleplay</string>
     <string name="visibility_team">Team</string>
     <string name="agent_contact_line">Contact: %1$s</string>
+    <string name="agent_pin">Pin to model menu</string>
+    <string name="agent_unpin">Unpin from model menu</string>
+    <string name="agent_copy_link">Copy link</string>
+    <string name="agent_link_copied">Link copied</string>
+    <string name="agent_updated">Updated %1$s</string>
+    <string name="agent_public">Public</string>
+    <string name="agent_try_asking">Try asking</string>
+    <string name="agent_load_failed">Couldn't load this agent</string>
+    <string name="agent_delete_failed">Couldn't delete this agent</string>
+    <string name="agent_duplicate_failed">Couldn't duplicate this agent</string>
+    <string name="agent_pin_failed">Couldn't update your pins</string>
+    <string name="agent_contact_send_email">Send email</string>
+    <plurals name="agent_pin_limit">
+        <item quantity="one">You can pin up to %1$d favorite.</item>
+        <item quantity="other">You can pin up to %1$d favorites.</item>
+    </plurals>
 </resources>

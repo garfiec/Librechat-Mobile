@@ -60,12 +60,8 @@
     <string name="delete_agent">에이전트 삭제</string>
     <string name="delete_agent_confirm">"%1$s"을(를) 삭제하시겠습니까? 되돌릴 수 없습니다.</string>
     <string name="delete_this_agent">이 에이전트</string>
-    <string name="by_author">작성자: %1$s</string>
-    <string name="label_description">설명</string>
-    <string name="no_description">설명 없음</string>
     <string name="label_category">카테고리</string>
     <string name="label_model">모델</string>
-    <string name="default_value">기본값</string>
     <string name="label_tools">도구</string>
     <string name="label_conversation_starters">대화 스타터</string>
 
@@ -335,4 +331,19 @@
     <string name="agent_category_roleplay">롤플레이</string>
     <string name="visibility_team">팀</string>
     <string name="agent_contact_line">연락처: %1$s</string>
+    <string name="agent_pin">모델 메뉴에 고정</string>
+    <string name="agent_unpin">모델 메뉴에서 고정 해제</string>
+    <string name="agent_copy_link">링크 복사</string>
+    <string name="agent_link_copied">링크를 복사했습니다</string>
+    <string name="agent_updated">업데이트: %1$s</string>
+    <string name="agent_public">공개</string>
+    <string name="agent_try_asking">이렇게 물어보세요</string>
+    <string name="agent_load_failed">이 에이전트를 불러오지 못했습니다</string>
+    <string name="agent_delete_failed">이 에이전트를 삭제하지 못했습니다</string>
+    <string name="agent_duplicate_failed">이 에이전트를 복제하지 못했습니다</string>
+    <string name="agent_pin_failed">고정 항목을 업데이트하지 못했습니다</string>
+    <string name="agent_contact_send_email">이메일 보내기</string>
+    <plurals name="agent_pin_limit">
+        <item quantity="other">즐겨찾기는 최대 %1$d개까지 고정할 수 있습니다.</item>
+    </plurals>
 </resources>

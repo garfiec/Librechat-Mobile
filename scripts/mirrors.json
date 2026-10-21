@@ -1773,6 +1773,20 @@
       },
       "why": "The query parameters `GET /api/agents` reads: `limit`, `cursor` (the previous page's `after`), `search`, `category`, `promoted` (matched as the strings '1' and '0'), `requiredPermission`. A parameter it does not read is dropped without an error.",
       "failure_mode": "Upstream renames a parameter or changes the `promoted` values, and the app's filter or paging is silently ignored: load-more re-reads the first page or Top picks shows every agent. Nothing fails to decode."
+    },
+    {
+      "id": "agent-chat-link",
+      "upstream": {
+        "file": "client/src/utils/resources.ts",
+        "symbol": "RESOURCE_CONFIGS",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/agents/src/commonMain/kotlin/com/garfiec/librechat/feature/agents/viewmodel/AgentDisplayMappers.kt",
+        "symbol": "agentChatLink"
+      },
+      "why": "The link the agent page's Copy link puts on the clipboard: the web's own agent URL, `<origin>/c/new?agent_id=<id>` (the AGENT entry's getResourceUrl). It is pasted into the web, so it must name a route the web client opens.",
+      "failure_mode": "Upstream moves the new-chat route or renames the agent query parameter, and a copied link opens the web on a 404 or on a new chat without the agent. Nothing in the app fails."
     }
   ]
 }

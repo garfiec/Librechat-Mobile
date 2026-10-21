@@ -26,6 +26,7 @@ fun EntryProviderScope<NavKey>.agentsEntries(
     onReplace: (NavKey) -> Unit,
     onPopWhile: ((NavKey) -> Boolean) -> Unit,
     onStartChat: (String) -> Unit,
+    onStartChatWithPrompt: (agentId: String, prompt: String) -> Unit,
 ) {
     entry<AgentMarketplace> {
         AgentMarketplaceScreen(
@@ -38,8 +39,11 @@ fun EntryProviderScope<NavKey>.agentsEntries(
         AgentDetailScreen(
             onBack = onBack,
             onStartChat = onStartChat,
+            onStartChatWithPrompt = onStartChatWithPrompt,
             onEdit = { agentId -> onNavigate(AgentEditorEdit(agentId = agentId)) },
-            onDuplicate = { agentId -> onNavigate(AgentDetail(agentId = agentId)) },
+            // The copy's page takes this one's place, as Duplicate in the editor does: back from
+            // the copy returns to where the original was opened from, not to the original.
+            onDuplicate = { agentId -> onReplace(AgentDetail(agentId = agentId)) },
             agentId = key.agentId,
         )
     }

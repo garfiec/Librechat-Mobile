@@ -60,12 +60,8 @@
     <string name="delete_agent">Eliminar agente</string>
     <string name="delete_agent_confirm">¿Seguro que quieres eliminar "%1$s"? Esta acción no se puede deshacer.</string>
     <string name="delete_this_agent">este agente</string>
-    <string name="by_author">por %1$s</string>
-    <string name="label_description">Descripción</string>
-    <string name="no_description">Sin descripción</string>
     <string name="label_category">Categoría</string>
     <string name="label_model">Modelo</string>
-    <string name="default_value">Predeterminado</string>
     <string name="label_tools">Herramientas</string>
     <string name="label_conversation_starters">Iniciadores de conversación</string>
 
@@ -335,4 +331,20 @@
     <string name="agent_category_roleplay">Juego de rol</string>
     <string name="visibility_team">Equipo</string>
     <string name="agent_contact_line">Contacto: %1$s</string>
+    <string name="agent_pin">Fijar en el menú de modelos</string>
+    <string name="agent_unpin">Quitar del menú de modelos</string>
+    <string name="agent_copy_link">Copiar enlace</string>
+    <string name="agent_link_copied">Enlace copiado</string>
+    <string name="agent_updated">Actualizado %1$s</string>
+    <string name="agent_public">Público</string>
+    <string name="agent_try_asking">Prueba a preguntar</string>
+    <string name="agent_load_failed">No se pudo cargar este agente</string>
+    <string name="agent_delete_failed">No se pudo eliminar este agente</string>
+    <string name="agent_duplicate_failed">No se pudo duplicar este agente</string>
+    <string name="agent_pin_failed">No se pudieron actualizar tus fijados</string>
+    <string name="agent_contact_send_email">Enviar correo</string>
+    <plurals name="agent_pin_limit">
+        <item quantity="one">Puedes fijar hasta %1$d favorito.</item>
+        <item quantity="other">Puedes fijar hasta %1$d favoritos.</item>
+    </plurals>
 </resources>

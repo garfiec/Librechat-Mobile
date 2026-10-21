@@ -2,13 +2,16 @@
 
 ## Screens
 - **AgentMarketplaceScreen** -- the agent index: search, a chip row, one column of cards on phones (two at >= 600dp)
-- **AgentDetailScreen** -- full agent info with "Start Chat" action
+- **AgentDetailScreen** -- the agent page: header, Start chat, description, model/tools, starters; Pin and ⋮ in the bar
 
 ## Navigation
 - Sealed interface: `AgentsRoute : NavKey` with typed route classes
 - Routes: `AgentMarketplace` (index), `AgentDetail(agentId: String)` (detail), `AgentEditorCreate`, `AgentEditorEdit(agentId: String)` (all `@Serializable`)
 - Feature entries registered via `EntryProviderScope<NavKey>.agentsEntries()`
 - `onStartChat(agentId)` callback navigates to chat with the selected agent
+- `onStartChatWithPrompt(agentId, prompt)`: a conversation starter was tapped. The nav host owns what it does
+  (feature/agents never depends on feature/chat); today it opens the new chat without the prompt.
+- Duplicate from the page `onReplace`s it with the copy's page, as Duplicate in the editor does
 
 ## Who can reach the index
 - AGENTS.USE **and** MARKETPLACE.USE (web parity). Without either, the drawer and tablet sidebar hide the
@@ -61,10 +64,32 @@
   Show all agents / Clear search go back to everything).
 
 ## Agent Detail
-- `AgentDetailViewModel` loads single agent by ID
-- Shows: large avatar, name, description, capabilities/tools list
-- Actions: Pin/Unpin, Copy link, "Start Chat" button
-- "Start Chat" flow: sets `endpoint: "agents"` + `agent_id`, creates conversation template, navigates to new chat
+- `AgentDetailScreen` (VM + nav glue) over a stateless `AgentDetailContent(uiState, actions)`; previews in
+  `AgentDetailPreviews.kt`.
+- **Load**: the edit-gated `/expanded` read first, then the view-only read (see the comments in
+  `fetchAgent`). `isFullRecord` is true only when `/expanded` answered; Model and Tools render only then,
+  because the view-only read doesn't carry the agent's real ones. A skipped probe (the list said "not
+  editable") is not a full record either.
+- **Header**: `InitialTile` (64dp), name (heading; `agent_unnamed` when null), contact line (support contact,
+  else owner; a `Role.Button` that opens `mailto:` when there is an email), Top pick mark, category label via
+  `agentCategoryLabel()` (shared with the cards; "general" has none). No "by <author>" byline.
+- **Body**: Start chat, the description (`htmlDescriptionToAnnotatedString`: b/strong, i/em, http(s)/mailto
+  links, br, p, lists; other tags dropped, text without tags untouched), one facts line ("Updated <relative
+  time>" through the date-format setting, "Public" when `isPublic`), Model, Tools (plain labels, not chips),
+  "Try asking" starter cards. Capped at 600dp wide, centred.
+- Categories are read once, only for an agent with a non-general category, so an admin's own label shows.
+- **Bar**: a star toggle (pin to the chat model menu), then ⋮ = Copy link, Edit (canEdit), Duplicate
+  (AGENTS.CREATE, `canDuplicate`), Delete (canEdit). While Duplicate or Delete runs, ⋮ is a spinner.
+- **Pin**: writes the WHOLE favorites list through `FavoritesRepository`, like `FavoritesDelegate.toggleAgent`
+  in feature/chat. **Gotcha**: never toggle on a list that wasn't read: the VM refreshes on open and, if that
+  failed, refreshes again before the first write; a failed read is an error, not a write of `[thisAgent]`.
+  `isPinned` follows the repository's flow, so a pin made in the chat picker shows here. Over
+  `FavoritesLimits.MAX_FAVORITES` is a `PinLimit` error, nothing sent.
+- **Copy link**: `agentChatLink()` = `<server URL>/c/new?agent_id=<id>`, the web's own agent URL (mirror
+  `agent-chat-link`). The clipboard is this module's own `ClipboardWriter` (same seam as chat/settings).
+  A snackbar confirms.
+- **Errors**: a page that never loaded is `loadError` (ErrorBanner + Retry). A failed Delete, Duplicate or pin
+  is `actionError`, shown once as a snackbar; the page stays. No English in the VM: the screen words both.
 
 ## Data Layer
 - `AgentRepository` in `:core:data` wraps `AgentsApi` from `:core:network`

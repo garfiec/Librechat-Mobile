@@ -60,12 +60,8 @@
     <string name="delete_agent">Agent löschen</string>
     <string name="delete_agent_confirm">Möchtest du "%1$s" wirklich löschen? Dies kann nicht rückgängig gemacht werden.</string>
     <string name="delete_this_agent">diesen Agenten</string>
-    <string name="by_author">von %1$s</string>
-    <string name="label_description">Beschreibung</string>
-    <string name="no_description">Keine Beschreibung</string>
     <string name="label_category">Kategorie</string>
     <string name="label_model">Modell</string>
-    <string name="default_value">Standard</string>
     <string name="label_tools">Tools</string>
     <string name="label_conversation_starters">Gesprächseinstiege</string>
 
@@ -335,4 +331,20 @@
     <string name="agent_category_roleplay">Rollenspiel</string>
     <string name="visibility_team">Team</string>
     <string name="agent_contact_line">Kontakt: %1$s</string>
+    <string name="agent_pin">Im Modellmenü anheften</string>
+    <string name="agent_unpin">Aus dem Modellmenü lösen</string>
+    <string name="agent_copy_link">Link kopieren</string>
+    <string name="agent_link_copied">Link kopiert</string>
+    <string name="agent_updated">Aktualisiert %1$s</string>
+    <string name="agent_public">Öffentlich</string>
+    <string name="agent_try_asking">Frag zum Beispiel</string>
+    <string name="agent_load_failed">Dieser Agent konnte nicht geladen werden</string>
+    <string name="agent_delete_failed">Dieser Agent konnte nicht gelöscht werden</string>
+    <string name="agent_duplicate_failed">Dieser Agent konnte nicht dupliziert werden</string>
+    <string name="agent_pin_failed">Deine Anheftungen konnten nicht aktualisiert werden</string>
+    <string name="agent_contact_send_email">E-Mail senden</string>
+    <plurals name="agent_pin_limit">
+        <item quantity="one">Du kannst bis zu %1$d Favoriten anheften.</item>
+        <item quantity="other">Du kannst bis zu %1$d Favoriten anheften.</item>
+    </plurals>
 </resources>

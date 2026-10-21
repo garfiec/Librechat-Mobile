@@ -60,12 +60,8 @@
     <string name="delete_agent">Удалить агента</string>
     <string name="delete_agent_confirm">Вы уверены, что хотите удалить "%1$s"? Это нельзя отменить.</string>
     <string name="delete_this_agent">этого агента</string>
-    <string name="by_author">автор: %1$s</string>
-    <string name="label_description">Описание</string>
-    <string name="no_description">Без описания</string>
     <string name="label_category">Категория</string>
     <string name="label_model">Модель</string>
-    <string name="default_value">По умолчанию</string>
     <string name="label_tools">Инструменты</string>
     <string name="label_conversation_starters">Начальные фразы</string>
 
@@ -335,4 +331,22 @@
     <string name="agent_category_roleplay">Ролевые игры</string>
     <string name="visibility_team">Команда</string>
     <string name="agent_contact_line">Контакт: %1$s</string>
+    <string name="agent_pin">Закрепить в меню моделей</string>
+    <string name="agent_unpin">Открепить из меню моделей</string>
+    <string name="agent_copy_link">Копировать ссылку</string>
+    <string name="agent_link_copied">Ссылка скопирована</string>
+    <string name="agent_updated">Обновлено: %1$s</string>
+    <string name="agent_public">Публичный</string>
+    <string name="agent_try_asking">Попробуйте спросить</string>
+    <string name="agent_load_failed">Не удалось загрузить этого агента</string>
+    <string name="agent_delete_failed">Не удалось удалить этого агента</string>
+    <string name="agent_duplicate_failed">Не удалось дублировать этого агента</string>
+    <string name="agent_pin_failed">Не удалось обновить закреплённые</string>
+    <string name="agent_contact_send_email">Написать письмо</string>
+    <plurals name="agent_pin_limit">
+        <item quantity="one">Можно закрепить не более %1$d избранного.</item>
+        <item quantity="few">Можно закрепить не более %1$d избранных.</item>
+        <item quantity="many">Можно закрепить не более %1$d избранных.</item>
+        <item quantity="other">Можно закрепить не более %1$d избранного.</item>
+    </plurals>
 </resources>

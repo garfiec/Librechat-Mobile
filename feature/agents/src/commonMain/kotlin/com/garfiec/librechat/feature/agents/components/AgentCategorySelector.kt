@@ -56,6 +56,17 @@ internal fun AgentCategory.displayLabel(): String {
 internal fun categoryValueLabel(value: String): String =
     CATEGORY_LABELS[value]?.let { stringResource(it) } ?: value.replaceFirstChar { it.uppercase() }
 
+/** Category value the server gives every agent nobody categorised; a label for it says nothing. */
+private const val GENERAL_CATEGORY = "general"
+
+/**
+ * How a card or the agent page labels an agent's category [value]: the server's category when it is
+ * in [categoriesByValue], else the value's own label. Null for none, or for "general".
+ */
+@Composable
+internal fun agentCategoryLabel(value: String?, categoriesByValue: Map<String, AgentCategory>): String? =
+    value?.takeIf { it != GENERAL_CATEGORY }?.let { categoriesByValue[it]?.displayLabel() ?: categoryValueLabel(it) }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AgentCategorySelector(

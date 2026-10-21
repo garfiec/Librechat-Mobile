@@ -77,6 +77,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarIcons
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.feature.agents.AgentCardDisplayData
+import com.garfiec.librechat.feature.agents.components.agentCategoryLabel
 import com.garfiec.librechat.feature.agents.components.categoryValueLabel
 import com.garfiec.librechat.feature.agents.components.displayLabel
 import com.garfiec.librechat.feature.agents.resources.*
@@ -98,9 +99,6 @@ private val FAB_CLEARANCE = 96.dp
 
 /** The list under a chip or search that is still loading: visible, but plainly not the answer yet. */
 private const val STALE_LIST_ALPHA = 0.48f
-
-/** Category value the server gives every agent nobody categorised; a label for it says nothing. */
-private const val GENERAL_CATEGORY = "general"
 
 @Composable
 fun AgentMarketplaceScreen(
@@ -303,9 +301,7 @@ internal fun AgentGrid(
             else -> items(uiState.agents, key = { it.id }, contentType = { "agent" }) { agent ->
                 AgentCard(
                     agent = agent,
-                    categoryLabel = agent.categoryValue
-                        ?.takeIf { it != GENERAL_CATEGORY }
-                        ?.let { categoriesByValue[it]?.displayLabel() ?: categoryValueLabel(it) },
+                    categoryLabel = agentCategoryLabel(agent.categoryValue, categoriesByValue),
                     onClick = { actions.onAgentClick(agent.id) },
                     // A new chip or search is loading: the old answer stays readable but steps back.
                     modifier = Modifier.alpha(if (uiState.isLoading) STALE_LIST_ALPHA else 1f),

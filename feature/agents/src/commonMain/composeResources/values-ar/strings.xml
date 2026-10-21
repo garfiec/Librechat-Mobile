@@ -60,12 +60,8 @@
     <string name="delete_agent">حذف الوكيل</string>
     <string name="delete_agent_confirm">هل أنت متأكد أنك تريد حذف "%1$s"؟ لا يمكن التراجع عن ذلك.</string>
     <string name="delete_this_agent">هذا الوكيل</string>
-    <string name="by_author">بواسطة %1$s</string>
-    <string name="label_description">الوصف</string>
-    <string name="no_description">لا يوجد وصف</string>
     <string name="label_category">الفئة</string>
     <string name="label_model">النموذج</string>
-    <string name="default_value">افتراضي</string>
     <string name="label_tools">الأدوات</string>
     <string name="label_conversation_starters">محفّزات المحادثة</string>
 
@@ -335,4 +331,24 @@
     <string name="agent_category_roleplay">لعب الأدوار</string>
     <string name="visibility_team">الفريق</string>
     <string name="agent_contact_line">جهة الاتصال: %1$s</string>
+    <string name="agent_pin">تثبيت في قائمة النماذج</string>
+    <string name="agent_unpin">إلغاء التثبيت من قائمة النماذج</string>
+    <string name="agent_copy_link">نسخ الرابط</string>
+    <string name="agent_link_copied">تم نسخ الرابط</string>
+    <string name="agent_updated">تم التحديث %1$s</string>
+    <string name="agent_public">عام</string>
+    <string name="agent_try_asking">جرّب أن تسأل</string>
+    <string name="agent_load_failed">تعذّر تحميل هذا الوكيل</string>
+    <string name="agent_delete_failed">تعذّر حذف هذا الوكيل</string>
+    <string name="agent_duplicate_failed">تعذّر تكرار هذا الوكيل</string>
+    <string name="agent_pin_failed">تعذّر تحديث العناصر المثبتة</string>
+    <string name="agent_contact_send_email">إرسال بريد إلكتروني</string>
+    <plurals name="agent_pin_limit">
+        <item quantity="zero">يمكنك تثبيت ما يصل إلى %1$d من المفضلة.</item>
+        <item quantity="one">يمكنك تثبيت عنصر مفضل واحد فقط.</item>
+        <item quantity="two">يمكنك تثبيت عنصرين مفضلين فقط.</item>
+        <item quantity="few">يمكنك تثبيت ما يصل إلى %1$d عناصر مفضلة.</item>
+        <item quantity="many">يمكنك تثبيت ما يصل إلى %1$d عنصرًا مفضلًا.</item>
+        <item quantity="other">يمكنك تثبيت ما يصل إلى %1$d عنصر مفضل.</item>
+    </plurals>
 </resources>

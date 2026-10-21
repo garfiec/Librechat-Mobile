@@ -25,6 +25,8 @@ val agentsModule = module {
         AgentDetailViewModel(
             agentRepository = get(),
             serverDataStore = get(),
+            favoritesRepository = get(),
+            roleRepository = get(),
             initialAgentId = params.getOrNull(),
         )
     }

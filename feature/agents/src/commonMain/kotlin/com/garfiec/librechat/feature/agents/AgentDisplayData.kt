@@ -18,18 +18,25 @@ data class AgentCardDisplayData(
     val contactName: String? = null,
 )
 
+/** The agent page. Holds only what the server sent; `AgentDetailUiState.isFullRecord` says how much that was. */
 @Immutable
 data class AgentDetailDisplayData(
     val id: String,
-    val name: String,
+    /** Null for an unnamed agent; the page says so in the user's language. */
+    val name: String?,
+    /** As written: plain text, or HTML the page renders. Null when blank. */
     val description: String?,
     val avatarUrl: String?,
-    val author: String?,
-    val authorName: String?,
     val model: String?,
-    val category: String?,
-    val tools: List<String>?,
-    val conversationStarters: List<String>,
+    /** The agent's category value, labelled at render time. */
+    val categoryValue: String?,
+    /** The server's `is_promoted`: a Top pick. */
+    val isPromoted: Boolean = false,
+    val isPublic: Boolean = false,
+    /** ISO timestamp of the last change. */
+    val updatedAt: String? = null,
+    val tools: List<String> = emptyList(),
+    val conversationStarters: List<String> = emptyList(),
     /**
      * Who to reach about this agent — its declared support contact, or the owner's contact when
      * it declares none (v0.8.8). Null when neither exists.
