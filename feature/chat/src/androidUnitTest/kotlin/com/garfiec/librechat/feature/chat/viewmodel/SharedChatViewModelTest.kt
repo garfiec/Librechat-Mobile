@@ -158,6 +158,26 @@ class SharedChatViewModelTest {
     }
 
     @Test
+    fun `Continue saves the copy under the account it was made on, even after a switch mid-call`() =
+        runTest(testDispatcher) {
+            val answer = CompletableDeferred<Result<ForkConversationResponse>>()
+            coEvery { shareRepository.forkSharedConversation(any(), any(), any()) } coAnswers { answer.await() }
+            val vm = viewModel()
+            advanceUntilIdle()
+
+            vm.continueChat()
+            advanceUntilIdle()
+            accounts.set(AccountId("acct-2"))
+            answer.complete(forked("new-convo"))
+            advanceUntilIdle()
+
+            coVerify(exactly = 1) {
+                conversationRepository.saveConversation(Conversation(conversationId = "new-convo"), AccountId("acct-1"))
+            }
+            coVerify(exactly = 0) { conversationRepository.saveConversation(any(), AccountId("acct-2")) }
+        }
+
+    @Test
     fun `a revision mismatch reloads the link, resets the branch and says it changed`() = runTest(testDispatcher) {
         coEvery { shareRepository.forkSharedConversation(any(), any(), any()) } returns
             apiError(409, """{"message":"Shared link was updated","code":"SHARE_REVISION_MISMATCH"}""")
