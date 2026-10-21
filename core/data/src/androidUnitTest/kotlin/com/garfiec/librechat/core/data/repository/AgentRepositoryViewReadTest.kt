@@ -41,26 +41,46 @@ class AgentRepositoryViewReadTest {
         coVerify(exactly = 1) { agentsApi.getAgent("a1") }
     }
 
+    // What decoding a VIEW body yields: the model's "general" default and not promoted.
+    private fun viewBody(id: String) = Agent(id = id, model = "gpt-5")
+
+    private suspend fun AgentRepositoryImpl.viewed(id: String) = (getAgentForViewing(id) as Result.Success).data
+
     @Test
-    fun `a paginated list read records each row's category and Top pick`() = runTest {
+    fun `the view read takes category and Top pick from the last paginated list row`() = runTest {
         coEvery { agentsApi.getAgentsPaginated(any(), any(), any(), any(), any(), any()) } returns AgentListResponse(
-            data = listOf(Agent(id = "a1", category = "hr", isPromoted = true), Agent(id = "a2", category = "general")),
+            data = listOf(Agent(id = "a1", category = "hr", isPromoted = true)),
         )
+        coEvery { agentsApi.getAgent("a1") } returns viewBody("a1")
         val repository = repository()
         repository.getAgentsPaginated(limit = 20)
 
-        assertThat(repository.listedLabels("a1")).isEqualTo(ListedAgentLabels(category = "hr", isPromoted = true))
-        assertThat(repository.listedLabels("a2")).isEqualTo(ListedAgentLabels(category = "general", isPromoted = false))
-        assertThat(repository.listedLabels("never-listed")).isNull()
+        val viewed = repository.viewed("a1")
+
+        assertThat(viewed.category).isEqualTo("hr")
+        assertThat(viewed.isPromoted).isTrue()
+        assertThat(viewed.model).isEqualTo("gpt-5")
     }
 
     @Test
     fun `the unpaginated list read records them too`() = runTest {
         coEvery { agentsApi.getAgents(null) } returns AgentListResponse(data = listOf(Agent(id = "a1", category = "rd")))
+        coEvery { agentsApi.getAgent("a1") } returns viewBody("a1")
         val repository = repository()
         repository.getAgents()
 
-        assertThat(repository.listedLabels("a1")?.category).isEqualTo("rd")
+        assertThat(repository.viewed("a1").category).isEqualTo("rd")
+    }
+
+    /** The decoded "general" default is not the agent's category; an unlisted agent has none. */
+    @Test
+    fun `an agent never listed has no category and is not a Top pick`() = runTest {
+        coEvery { agentsApi.getAgent("a1") } returns viewBody("a1").copy(category = "general", isPromoted = true)
+
+        val viewed = repository().viewed("a1")
+
+        assertThat(viewed.category).isNull()
+        assertThat(viewed.isPromoted).isFalse()
     }
 
     @Test
@@ -68,12 +88,13 @@ class AgentRepositoryViewReadTest {
         coEvery { agentsApi.getAgentsPaginated(any(), any(), any(), any(), any(), any()) } returns AgentListResponse(
             data = listOf(Agent(id = "a1", category = "hr")),
         )
+        coEvery { agentsApi.getAgent("a1") } returns viewBody("a1")
         val provider = InMemoryActiveAccountProvider(AccountState.Resolved(AccountId("srv:userA")))
         val repository = repository(provider)
         repository.getAgentsPaginated(limit = 20)
 
         provider.set(AccountId("srv:userB"))
 
-        assertThat(repository.listedLabels("a1")).isNull()
+        assertThat(repository.viewed("a1").category).isNull()
     }
 }

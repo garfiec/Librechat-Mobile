@@ -7,7 +7,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /** The labels an agent LIST row carries that the single-agent VIEW read does not. */
-data class ListedAgentLabels(
+internal data class ListedAgentLabels(
     val category: String?,
     val isPromoted: Boolean,
 )

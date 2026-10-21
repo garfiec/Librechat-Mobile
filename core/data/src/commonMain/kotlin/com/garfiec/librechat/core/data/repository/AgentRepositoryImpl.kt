@@ -31,7 +31,7 @@ class AgentRepositoryImpl(
     // [listedEditVerdict]).
     private val editVerdicts = AgentEditVerdicts(activeAccountProvider)
 
-    // The category and Top pick mark the list rows carry and the VIEW read lacks (see [listedLabels]).
+    // The category and Top pick mark the list rows carry and the VIEW read lacks (see [getAgentForViewing]).
     private val listedLabels = AgentListedLabels(activeAccountProvider)
 
     private val _revision = MutableStateFlow(0L)
@@ -79,8 +79,6 @@ class AgentRepositoryImpl(
 
     override suspend fun listedEditVerdict(id: String): Boolean? = editVerdicts.get(id)
 
-    override suspend fun listedLabels(id: String): ListedAgentLabels? = listedLabels.get(id)
-
     private suspend fun recordListed(agents: List<Agent>) {
         editVerdicts.record(agents)
         listedLabels.record(agents)
@@ -97,7 +95,12 @@ class AgentRepositoryImpl(
     override suspend fun getAgentForViewing(id: String): Result<Agent> {
         // No cache read: the warm one holds list-projection agents, which lack model, provider,
         // isPublic and the contacts' detail.
-        return safeApiCall { agentsApi.getAgent(id) }
+        return safeApiCall {
+            val agent = agentsApi.getAgent(id)
+            // Decoding the VIEW body fills in "general"/false; those are not the agent's.
+            val listed = listedLabels.get(id)
+            agent.copy(category = listed?.category, isPromoted = listed?.isPromoted == true)
+        }
     }
 
     override suspend fun getAgentProvider(id: String): Result<String?> {

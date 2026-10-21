@@ -72,7 +72,7 @@
 - **Load**: the edit-gated `/expanded` read first, then the VIEW read `getAgentForViewing` (see the comments
   in `fetchAgent`). **Gotcha**: never `getAgent` here: its warm cache serves the list projection, which has
   no model, `isPublic` or contacts' detail. VIEW has no `category`/`is_promoted` (decoding fills in
-  "general"/false); they come from the tapped list row (`listedLabels`), else are left out. Model shows for
+  "general"/false); they come from the tapped list row (`getAgentForViewing` fills them in), else are left out. Model shows for
   every viewer. `isFullRecord` is true only when `/expanded` answered, and Tools render only then (list rows
   carry a cut-down `tools`, VIEW none). A skipped probe (the list said "not editable") is not a full record.
 - **Header**: `InitialTile` (64dp), name (heading; `agent_unnamed` when null), contact line (support contact,

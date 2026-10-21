@@ -5,7 +5,6 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.FavoritesRepository
-import com.garfiec.librechat.core.data.repository.ListedAgentLabels
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.AgentCategory
@@ -51,8 +50,6 @@ class AgentDetailViewModelTest {
         // Stubbed explicitly because a relaxed mock answers `false` for a nullable Boolean, which
         // this screen reads as the list denying edit — the opposite of "no list answer".
         coEvery { agentRepository.listedEditVerdict(any()) } returns null
-        // Likewise: a relaxed mock would answer a mocked labels object, not "never listed".
-        coEvery { agentRepository.listedLabels(any()) } returns null
         every { agentRepository.revision } returns revision
         every { serverDataStore.getBaseUrl() } returns "https://chat.example.com"
         every { favoritesRepository.favorites } returns favorites
@@ -308,32 +305,18 @@ class AgentDetailViewModelTest {
         coVerify(exactly = 0) { agentRepository.getAgent(any()) }
     }
 
-    /** VIEW has no category or is_promoted; the tapped list row's labels stand in. */
+    /** The VIEW read's category and Top pick are the listed row's (the repository fills them in). */
     @Test
-    fun `the view read takes its category and Top pick from the listed row`() = runTest(testDispatcher) {
+    fun `the view read's listed category and Top pick reach the page`() = runTest(testDispatcher) {
         coEvery { agentRepository.getAgentForEditing("agent-1") } returns forbidden()
-        // What decoding a VIEW body yields: the model's "general" default, never the agent's own.
-        coEvery { agentRepository.getAgentForViewing("agent-1") } returns Result.Success(agent.copy(category = "general"))
-        coEvery { agentRepository.listedLabels("agent-1") } returns ListedAgentLabels(category = "hr", isPromoted = true)
+        coEvery { agentRepository.getAgentForViewing("agent-1") } returns
+            Result.Success(agent.copy(category = "hr", isPromoted = true))
 
         val viewModel = createViewModel()
         advanceUntilIdle()
 
         assertThat(viewModel.uiState.value.agent?.categoryValue).isEqualTo("hr")
         assertThat(viewModel.uiState.value.agent?.isPromoted).isTrue()
-    }
-
-    @Test
-    fun `a view read with no listed row shows no category or Top pick`() = runTest(testDispatcher) {
-        coEvery { agentRepository.getAgentForEditing("agent-1") } returns forbidden()
-        coEvery { agentRepository.getAgentForViewing("agent-1") } returns
-            Result.Success(agent.copy(category = "general", isPromoted = true))
-
-        val viewModel = createViewModel()
-        advanceUntilIdle()
-
-        assertThat(viewModel.uiState.value.agent?.categoryValue).isNull()
-        assertThat(viewModel.uiState.value.agent?.isPromoted).isFalse()
     }
 
     @Test

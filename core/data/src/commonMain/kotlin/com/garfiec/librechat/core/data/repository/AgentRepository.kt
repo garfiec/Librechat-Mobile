@@ -13,6 +13,7 @@ import com.garfiec.librechat.core.model.request.UpdateAgentRequest
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.json.JsonElement
 
+@Suppress("TooManyFunctions") // debt: 20 functions
 interface AgentRepository {
 
     /**
@@ -56,17 +57,13 @@ interface AgentRepository {
     suspend fun listedEditVerdict(id: String): Boolean?
 
     /**
-     * The category and Top pick mark a LIST row last carried for [id], or null when this account
-     * has listed no such agent. [getAgentForViewing] answers without either field.
-     */
-    suspend fun listedLabels(id: String): ListedAgentLabels?
-
-    /**
      * The agent from `GET /api/agents/:id` (VIEW permission), never from the list cache.
      *
      * Unlike [getAgent], whose warm cache serves the list projection, this carries the agent's own
-     * `model`, `provider`, `isPublic`, `updatedAt` and contacts. It has no `category` or
-     * `is_promoted` (the decoded defaults stand in; read [listedLabels]) and no `tools`.
+     * `model`, `provider`, `isPublic`, `updatedAt` and contacts. The route sends no `category` or
+     * `is_promoted`, so those are the ones the last LIST row for [id] carried: null category and
+     * not promoted when this account has listed no such agent, never the decoded defaults. It has
+     * no `tools` either.
      */
     suspend fun getAgentForViewing(id: String): Result<Agent>
 
