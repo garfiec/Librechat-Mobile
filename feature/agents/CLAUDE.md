@@ -80,8 +80,8 @@
   `agentCategoryLabel()` (shared with the cards; "general" has none). No "by <author>" byline.
 - **HTML descriptions** (decisions C7, mirror `agent-description-html`): a description is HTML only when its
   FIRST tag is on `AGENT_DESCRIPTION_TAGS` (a, strong, b, em, i, br, code, span, p, div, ul, ol, li);
-  `List<String>` or `<name>` keeps it plain text, shown as written (upstream `isHtmlDescription`; releases
-  before v0.8.8 used `startsWith('<')`). Other tags are dropped with their text kept. Links: http(s), mailto,
+  `List<String>` or `<name>` keeps it plain text, shown as written (upstream `isHtmlDescription` at the pinned v0.8.8;
+  other revisions use `startsWith('<')`). Other tags are dropped with their text kept. Links: http(s), mailto,
   tel, or relative (resolved against the server URL, `AgentDetailDisplayData.linkBaseUrl`); anything else is text.
 - **Body**: Start chat, the description (`htmlDescriptionToAnnotatedString`), one facts line ("Updated <relative
   time>" through the date-format setting, "Public" when `isPublic`), Model, Tools (plain labels, not chips),

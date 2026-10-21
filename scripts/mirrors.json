@@ -1812,7 +1812,7 @@
         "file": "feature/agents/src/commonMain/kotlin/com/garfiec/librechat/feature/agents/util/AgentDescriptionMarkup.kt",
         "symbol": "isAgentDescriptionHtml"
       },
-      "why": "How the web decides a description is HTML at all: the pinned upstream's chat landing calls `isHtmlDescription(description)`, which this client ports as the first-tag-allowlisted rule (decisions C7), so a plain description mentioning `List<String>` stays plain. Older upstream used `description.trim().startsWith('<')`. Watched so a change to the web's rule is seen.",
+      "why": "How the web decides a description is HTML at all: the pinned upstream's chat landing calls `isHtmlDescription(description)`, which this client ports as the first-tag-allowlisted rule (decisions C7), so a plain description mentioning `List<String>` stays plain. Other upstream revisions use `description.trim().startsWith('<')` instead. Watched so a change to the web's rule is seen.",
       "failure_mode": "Upstream changes its detection, and a description the web shows as text renders as HTML here (placeholders vanish) or the reverse (markup shows raw). Nothing fails to decode."
     }
   ]
