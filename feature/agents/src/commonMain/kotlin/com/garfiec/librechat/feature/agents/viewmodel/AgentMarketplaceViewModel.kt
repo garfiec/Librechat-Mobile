@@ -319,7 +319,13 @@ class AgentMarketplaceViewModel(
                 isRefreshing = mode == LoadMode.REFRESH,
                 isLoadingMore = false,
                 loadMoreFailed = false,
-                loadError = if (mode == LoadMode.QUIET) it.loadError else null,
+                // A pull on the error page keeps the error until it lands, so the list area knows
+                // what the pull is over (AgentListState): placeholders there, the answer elsewhere.
+                loadError = if (mode == LoadMode.QUIET || (mode == LoadMode.REFRESH && it.agents.isEmpty())) {
+                    it.loadError
+                } else {
+                    null
+                },
             )
         }
         // A quiet reload walks the cursor until it covers what was loaded; anything else reads one page.

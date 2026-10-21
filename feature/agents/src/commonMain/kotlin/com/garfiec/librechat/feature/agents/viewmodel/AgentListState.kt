@@ -39,8 +39,10 @@ internal fun AgentMarketplaceUiState.listState(): AgentListState {
     val shown = shownQuery
     return when {
         agents.isNotEmpty() -> AgentListState.Agents
-        // A pull on the error page has nothing to show either; placeholders, not a flash of "No agents yet".
-        isLoading || isRefreshing -> AgentListState.Placeholders
+        isLoading -> AgentListState.Placeholders
+        // A pull on the error page: placeholders while it reads. A pull over an empty or no-matches
+        // answer keeps that answer under the pull spinner, rather than flashing the search, chips and FAB.
+        isRefreshing && (loadError != null || shown == null) -> AgentListState.Placeholders
         loadError != null -> AgentListState.Error(loadError.serverMessage)
         // Nothing has answered yet (the read waits on the role); no state to claim about the server.
         shown == null -> AgentListState.Placeholders

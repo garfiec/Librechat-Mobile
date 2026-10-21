@@ -330,6 +330,49 @@ class AgentMarketplaceViewModelTest : AgentMarketplaceViewModelTestBase() {
     }
 
     @Test
+    fun `a pull on the error page shows placeholders until it lands`() = runTest {
+        val pull = CompletableDeferred<Result<PaginatedAgents>>()
+        var reads = 0
+        stubPage(null) coAnswers { if (++reads == 1) serverError("Database unavailable") else pull.await() }
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.listState()).isEqualTo(AgentListState.Error("Database unavailable"))
+
+        viewModel.refresh()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.isRefreshing).isTrue()
+        assertThat(viewModel.uiState.value.listState()).isEqualTo(AgentListState.Placeholders)
+
+        pull.complete(page(testAgents))
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.loadError).isNull()
+        assertThat(viewModel.uiState.value.listState()).isEqualTo(AgentListState.Agents)
+    }
+
+    @Test
+    fun `a pull over the empty server keeps the empty server and no FAB`() = runTest {
+        val pull = CompletableDeferred<Result<PaginatedAgents>>()
+        var reads = 0
+        stubPage(null) coAnswers { if (++reads == 1) page(emptyList()) else pull.await() }
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.listState()).isEqualTo(AgentListState.ServerEmpty)
+
+        viewModel.refresh()
+        advanceUntilIdle()
+        val pulling = viewModel.uiState.value
+        assertThat(pulling.isRefreshing).isTrue()
+        assertThat(pulling.listState()).isEqualTo(AgentListState.ServerEmpty)
+        assertThat(pulling.showsNewAgentFab).isFalse()
+
+        pull.complete(page(emptyList()))
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.listState()).isEqualTo(AgentListState.ServerEmpty)
+    }
+
+    @Test
     fun `the quiet reload on return keeps as many agents as were loaded, without the spinner`() = runTest {
         stubPage("c1") returns page(listOf(Agent(id = "agent-4")), next = "c2")
         stubPage("c2") returns page(listOf(Agent(id = "agent-5")))

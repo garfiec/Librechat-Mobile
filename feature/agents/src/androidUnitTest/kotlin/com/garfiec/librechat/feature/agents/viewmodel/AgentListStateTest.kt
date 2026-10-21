@@ -89,9 +89,29 @@ class AgentListStateTest {
     @Test
     fun `a first load, or a pull on the error page, shows placeholders`() {
         assertThat(AgentMarketplaceUiState().listState()).isEqualTo(AgentListState.Placeholders)
-        val pulling = answered(AgentChip.All).copy(isRefreshing = true)
+        val pulling = answered(AgentChip.All).copy(isRefreshing = true, loadError = AgentListError(serverMessage = null))
         assertThat(pulling.listState()).isEqualTo(AgentListState.Placeholders)
         assertThat(pulling.showsNewAgentFab).isTrue()
+    }
+
+    @Test
+    fun `a pull over the empty server keeps the empty server, with no FAB`() {
+        val pulling = answered(AgentChip.All).copy(isRefreshing = true)
+        assertThat(pulling.listState()).isEqualTo(AgentListState.ServerEmpty)
+        assertThat(pulling.showsNewAgentFab).isFalse()
+    }
+
+    @Test
+    fun `a pull over no matches keeps the no-matches state`() {
+        val finance = AgentChip.Category("finance")
+        assertThat(answered(finance).copy(isRefreshing = true).listState())
+            .isEqualTo(AgentListState.NoMatches(finance, AgentListWayOut.ShowAll))
+    }
+
+    @Test
+    fun `a pull before anything answered shows placeholders`() {
+        assertThat(AgentMarketplaceUiState(isLoading = false, isRefreshing = true).listState())
+            .isEqualTo(AgentListState.Placeholders)
     }
 
     @Test
