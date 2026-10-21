@@ -407,6 +407,7 @@ internal fun parseImageGenResult(
         imageUrls = imageUrls,
         prompt = prompt,
         isGenerating = outputStr.isNullOrBlank() && imageUrls.isEmpty(),
+        toolCallId = toolCallId,
     )
 }
 
@@ -433,6 +434,7 @@ internal fun parseStreamingImageGenResult(
         prompt = prompt,
         isGenerating = imageUrls.isEmpty(),
         quality = quality,
+        toolCallId = toolCall.id,
     )
 }
 
