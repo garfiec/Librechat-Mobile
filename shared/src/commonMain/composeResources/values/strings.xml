@@ -21,4 +21,8 @@
     <string name="session_banned_message_named">Your server has temporarily restricted %1$s, for example after too many requests or a policy violation. Until the restriction lifts, you can’t send messages, use agents or upload files, and you may be signed out. If it doesn’t lift, contact your server admin.</string>
     <string name="session_renewal_blocked_message">Couldn’t renew your session — the server refused the refresh request.</string>
     <string name="session_renewal_sign_in_again">Sign in again</string>
+    <string name="shared_link_switch_title">Switch account?</string>
+    <string name="shared_link_switch_message">This shared chat is on %1$s, where you’re signed in as %2$s. Switch to that account to open it here.</string>
+    <string name="shared_link_switch_confirm">Switch</string>
+    <string name="shared_link_open_in_browser">Open in browser</string>
 </resources>

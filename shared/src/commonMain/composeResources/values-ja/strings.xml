@@ -19,4 +19,8 @@
     <string name="session_banned_message_named">リクエストが多すぎる、またはポリシー違反などの理由で、サーバーが %1$s を一時的に制限しました。制限が解除されるまで、メッセージの送信、エージェントの利用、ファイルのアップロードはできず、サインアウトされる場合があります。解除されない場合は、サーバー管理者にお問い合わせください。</string>
     <string name="session_renewal_blocked_message">セッションを更新できませんでした。サーバーが更新リクエストを拒否しました。</string>
     <string name="session_renewal_sign_in_again">再度サインイン</string>
+    <string name="shared_link_switch_title">アカウントを切り替えますか？</string>
+    <string name="shared_link_switch_message">この共有チャットは %1$s にあり、%2$s としてサインインしています。ここで開くには、そのアカウントに切り替えてください。</string>
+    <string name="shared_link_switch_confirm">切り替える</string>
+    <string name="shared_link_open_in_browser">ブラウザで開く</string>
 </resources>

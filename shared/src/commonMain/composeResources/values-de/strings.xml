@@ -19,4 +19,8 @@
     <string name="session_banned_message_named">Dein Server hat %1$s vorübergehend eingeschränkt, etwa nach zu vielen Anfragen oder einem Richtlinienverstoß. Bis die Einschränkung aufgehoben ist, kannst du keine Nachrichten senden, keine Agenten nutzen und keine Dateien hochladen, und du wirst möglicherweise abgemeldet. Falls sie bestehen bleibt, wende dich an deinen Server-Admin.</string>
     <string name="session_renewal_blocked_message">Deine Sitzung konnte nicht erneuert werden – der Server hat die Aktualisierungsanfrage abgelehnt.</string>
     <string name="session_renewal_sign_in_again">Erneut anmelden</string>
+    <string name="shared_link_switch_title">Konto wechseln?</string>
+    <string name="shared_link_switch_message">Dieser geteilte Chat liegt auf %1$s, wo du als %2$s angemeldet bist. Wechsle zu diesem Konto, um ihn hier zu öffnen.</string>
+    <string name="shared_link_switch_confirm">Wechseln</string>
+    <string name="shared_link_open_in_browser">Im Browser öffnen</string>
 </resources>

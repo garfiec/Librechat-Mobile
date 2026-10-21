@@ -15,6 +15,7 @@ import com.garfiec.librechat.feature.auth.navigation.ServerUrl
 import com.garfiec.librechat.feature.auth.navigation.isAddAccountFlowRoute
 import com.garfiec.librechat.feature.chat.navigation.Chat
 import com.garfiec.librechat.feature.chat.navigation.NewChat
+import com.garfiec.librechat.feature.chat.navigation.SharedChat
 import com.garfiec.librechat.feature.chat.navigation.isPlainLanding
 import com.garfiec.librechat.feature.conversations.navigation.Search
 import com.garfiec.librechat.feature.settings.navigation.ProviderKeys
@@ -137,6 +138,15 @@ class Navigator(val backStack: NavBackStack<NavKey>) {
                 targetInReasoning = inReasoning,
             ),
         )
+    }
+
+    /**
+     * Opens the shared-chat viewer on [shareId], over the current screen. A second tap on the same
+     * link adds nothing.
+     */
+    fun navigateToSharedChat(shareId: String) {
+        val route = SharedChat(shareId)
+        if (backStack.lastOrNull() != route) backStack.add(route)
     }
 
     /**

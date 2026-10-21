@@ -19,4 +19,8 @@
     <string name="session_banned_message_named">Votre serveur a temporairement restreint %1$s, par exemple après trop de requêtes ou une violation de ses règles. Tant que la restriction n’est pas levée, vous ne pouvez ni envoyer de messages, ni utiliser d’agents, ni envoyer de fichiers, et vous risquez d’être déconnecté. Si elle persiste, contactez l’administrateur du serveur.</string>
     <string name="session_renewal_blocked_message">Impossible de renouveler votre session : le serveur a refusé la demande d’actualisation.</string>
     <string name="session_renewal_sign_in_again">Se reconnecter</string>
+    <string name="shared_link_switch_title">Changer de compte ?</string>
+    <string name="shared_link_switch_message">Ce chat partagé se trouve sur %1$s, où vous êtes connecté en tant que %2$s. Passez à ce compte pour l’ouvrir ici.</string>
+    <string name="shared_link_switch_confirm">Changer</string>
+    <string name="shared_link_open_in_browser">Ouvrir dans le navigateur</string>
 </resources>

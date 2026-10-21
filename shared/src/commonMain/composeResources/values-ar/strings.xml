@@ -19,4 +19,8 @@
     <string name="session_banned_message_named">قيّد الخادم الحساب %1$s مؤقتًا، مثلًا بسبب كثرة الطلبات أو مخالفة إحدى السياسات. حتى يُرفع القيد، لا يمكنك إرسال الرسائل أو استخدام الوكلاء أو رفع الملفات، وقد يُسجَّل خروجك. إن لم يُرفع، تواصل مع مسؤول الخادم.</string>
     <string name="session_renewal_blocked_message">تعذّر تجديد الجلسة: رفض الخادم طلب التحديث.</string>
     <string name="session_renewal_sign_in_again">تسجيل الدخول مرة أخرى</string>
+    <string name="shared_link_switch_title">تبديل الحساب؟</string>
+    <string name="shared_link_switch_message">هذه المحادثة المشتركة موجودة على %1$s، حيث سجّلت الدخول باسم %2$s. بدّل إلى ذلك الحساب لفتحها هنا.</string>
+    <string name="shared_link_switch_confirm">تبديل</string>
+    <string name="shared_link_open_in_browser">فتح في المتصفح</string>
 </resources>

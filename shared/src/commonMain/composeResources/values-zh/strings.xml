@@ -19,4 +19,8 @@
     <string name="session_banned_message_named">服务器已暂时限制 %1$s，例如因请求过多或违反政策。在限制解除前，你无法发送消息、使用智能体或上传文件，并且可能会被退出登录。如果限制一直未解除，请联系服务器管理员。</string>
     <string name="session_renewal_blocked_message">无法续期会话：服务器拒绝了刷新请求。</string>
     <string name="session_renewal_sign_in_again">重新登录</string>
+    <string name="shared_link_switch_title">切换账号？</string>
+    <string name="shared_link_switch_message">此共享聊天位于 %1$s，你在该服务器上以 %2$s 身份登录。切换到该账号即可在此打开。</string>
+    <string name="shared_link_switch_confirm">切换</string>
+    <string name="shared_link_open_in_browser">在浏览器中打开</string>
 </resources>

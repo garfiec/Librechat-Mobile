@@ -19,4 +19,8 @@
     <string name="session_banned_message_named">요청이 너무 많거나 정책을 위반하는 등의 이유로 서버가 %1$s 계정을 일시적으로 제한했습니다. 제한이 풀릴 때까지 메시지 전송, 에이전트 사용, 파일 업로드를 할 수 없으며 로그아웃될 수 있습니다. 풀리지 않으면 서버 관리자에게 문의하세요.</string>
     <string name="session_renewal_blocked_message">세션을 갱신할 수 없습니다. 서버가 갱신 요청을 거부했습니다.</string>
     <string name="session_renewal_sign_in_again">다시 로그인</string>
+    <string name="shared_link_switch_title">계정을 전환할까요?</string>
+    <string name="shared_link_switch_message">이 공유된 채팅은 %1$s에 있으며, 해당 서버에 %2$s(으)로 로그인되어 있습니다. 여기에서 열려면 그 계정으로 전환하세요.</string>
+    <string name="shared_link_switch_confirm">전환</string>
+    <string name="shared_link_open_in_browser">브라우저에서 열기</string>
 </resources>

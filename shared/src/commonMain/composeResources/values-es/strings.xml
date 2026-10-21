@@ -19,4 +19,8 @@
     <string name="session_banned_message_named">Tu servidor ha restringido temporalmente %1$s, por ejemplo tras demasiadas solicitudes o una infracción de sus normas. Hasta que se levante la restricción, no podrás enviar mensajes, usar agentes ni subir archivos, y es posible que se cierre tu sesión. Si no se levanta, contacta con el administrador del servidor.</string>
     <string name="session_renewal_blocked_message">No se pudo renovar tu sesión: el servidor rechazó la solicitud de actualización.</string>
     <string name="session_renewal_sign_in_again">Iniciar sesión de nuevo</string>
+    <string name="shared_link_switch_title">¿Cambiar de cuenta?</string>
+    <string name="shared_link_switch_message">Este chat compartido está en %1$s, donde has iniciado sesión como %2$s. Cambia a esa cuenta para abrirlo aquí.</string>
+    <string name="shared_link_switch_confirm">Cambiar</string>
+    <string name="shared_link_open_in_browser">Abrir en el navegador</string>
 </resources>

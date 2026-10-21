@@ -52,6 +52,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 /**
  * An unannounced sign-out, or a ban. [accountLabel] is blank when the account can't be named;
@@ -330,6 +331,72 @@ class NavHostViewModel(
                 }
             }
         }
+    }
+
+    /**
+     * The shared link waiting on an account switch: its account, and the `shareId` the viewer opens
+     * once the switch has reset the back stack. Taken by [takePendingSharedChat] in that reset.
+     */
+    private var pendingSharedChat: Pair<String, String>? = null
+
+    /** A shared link on another account's server, waiting for the user to switch or decline. */
+    private val _sharedLinkOffer = MutableStateFlow<SharedLinkRoute.OfferSwitch?>(null)
+    val sharedLinkOffer: StateFlow<SharedLinkRoute.OfferSwitch?> = _sharedLinkOffer.asStateFlow()
+
+    // Links the app gives up on and hands to the browser: a switch the account refused.
+    private val _browserLinks = Channel<String>(Channel.BUFFERED)
+    val browserLinks: Flow<String> = _browserLinks.receiveAsFlow()
+
+    /**
+     * Where a `/share/` [url] opened inside the app goes: the viewer on the active account, an
+     * offer to switch to the signed-in account whose server it is on, or [SharedLinkRoute.NotOurs].
+     * Nothing is offered while signed out.
+     */
+    suspend fun routeSharedLink(url: String): SharedLinkRoute {
+        if (!isLoggedIn.value) return SharedLinkRoute.NotOurs
+        val entries = accountRoster.snapshot().entries
+        // hasSession reads each account's slot through the encrypted store.
+        val liveIds = withContext(Dispatchers.IO) {
+            entries.filter { accountSwitcher.hasSession(it.accountId) }.mapTo(mutableSetOf()) { it.accountId }
+        }
+        return sharedLinkRoute(url, entries, activeAccountId(), liveIds)
+    }
+
+    /** Asks the user whether to switch accounts for [offer]. */
+    fun offerSharedLinkSwitch(offer: SharedLinkRoute.OfferSwitch) {
+        _sharedLinkOffer.value = offer
+    }
+
+    fun dismissSharedLinkOffer() {
+        _sharedLinkOffer.value = null
+    }
+
+    /**
+     * The user chose to switch for the offered link. The viewer opens after the switch's back-stack
+     * reset ([takePendingSharedChat]); an account that refuses the switch (its session ended since
+     * the offer) sends the link to the browser instead.
+     */
+    fun acceptSharedLinkSwitch() {
+        val offer = _sharedLinkOffer.value ?: return
+        _sharedLinkOffer.value = null
+        pendingSharedChat = offer.accountId to offer.shareId
+        viewModelScope.launch {
+            if (!accountSwitcher.switch(offer.accountId)) {
+                pendingSharedChat = null
+                sessionRevision.update { it + 1 }
+                _browserLinks.send(offer.url)
+            }
+        }
+    }
+
+    /**
+     * The `shareId` to open now that [accountId] is active, or null. Read once: a flip to any other
+     * account drops it.
+     */
+    fun takePendingSharedChat(accountId: String): String? {
+        val pending = pendingSharedChat ?: return null
+        pendingSharedChat = null
+        return pending.second.takeIf { pending.first == accountId }
     }
 
     /** Switch the active account (no-op for the already-active one). Post-switch refresh and the
