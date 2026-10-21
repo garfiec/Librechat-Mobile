@@ -13,8 +13,22 @@ Each area of the app (or one feature, when the user names one) is audited agains
    to be used: which calls come before which, which gates and settings it honours, and how it
    recovers.
 
-The findings are **bugs and gaps inside a feature we already ship**. A feature we don't have at
-all is a `missing-feature` finding: name it in one line, don't investigate it.
+The findings are **bugs and gaps in what we already ship**. A feature we don't have at all is a
+`missing-feature` finding: give the title and the reference's `path:line` in `theirs`, keep
+`trigger` and `evidence` to a line, and don't investigate further. Missing features are listed,
+not verified.
+
+**Scope is a starting point, not a fence.** Follow calls wherever they lead. Report a defect that
+belongs to another area only when it is central to yours; that area's own audit will find the
+rest.
+
+**Known issues.** `known.md` lists filed issues, recorded bugs, backend-less web features and
+deliberate divergences.
+- A defect that is already **filed**: still report it, with `duplicate_of: "#N"`. The audit
+  needs the count, and the issue may be incomplete.
+- A **closed** issue whose defect still reproduces in the code: report it with
+  `duplicate_of: "#N (closed, regression)"`.
+- **Deliberate divergences** and **backend-less features**: don't report them (see below).
 
 There is **no cap** on findings. Report everything that survives your own check. A finder who
 stops at five has hidden the sixth.
@@ -39,7 +53,7 @@ right `kind`.
 
 ### Contract (kind `contract-bug`)
 
-Trace every call our feature makes into the server handler, then check:
+Trace every call the area makes into the server handler, then check:
 - **Every status code** the handler and its middleware can send, and what our code does with
   each one. Example: the app waited for a 403 before asking for the 2FA code; the server sends
   400 (#577).
@@ -57,13 +71,13 @@ Trace every call our feature makes into the server handler, then check:
 
 ### Behaviour parity (kind `behaviour-gap`)
 
-Read the reference client's flow for the same feature, from the component down through the hook
+Read the reference client's flow for the same feature or screen, from the component down through the hook
 to the data-service call, and compare:
 - **Ordering**: what does it look up before it writes? (the web looks up an existing share
   before creating one.)
 - **Gates and flows**: terms acceptance, email verification, re-auth, confirmations (#581).
 - **Settings it honours**: a setting we show that has no effect is a bug (#586).
-- **Parsing**: inline markers, special tokens, formats the server emits for this feature
+- **Parsing**: inline markers, special tokens, formats the server emits for this area
   (citation markers `turn0search0`, #583).
 - **Recovery**: what it does on failure, retry, refetch, optimistic rollback.
 - **Platform parity inside our app**: Android does it, iOS doesn't, or the reverse (#580, #587).
@@ -121,7 +135,8 @@ You are trying to **break** it. Default to `REFUTED` when the evidence is not so
 `PLAUSIBLE` when it hinges on runtime data you can't see.
 - Open every cited line yourself. Does it say what the finding says?
 - Trace the path end to end, including callers and the other platform's source set.
-- For server claims, read the handler and middleware at the pin yourself.
+- For server claims, read the handler and middleware at the pin yourself. A third-party reference
+  client (`--ref <path>`) is read from its own working tree.
 - Correct line numbers, severity, trigger and kind where they're wrong.
 
 ## Issue format
