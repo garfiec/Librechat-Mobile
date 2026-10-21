@@ -135,9 +135,8 @@ class ShareRepositoryImpl(
         targetMessageIndex: Int?,
         shareRevision: String?,
     ): Result<ForkConversationResponse> {
-        // Deliberately not version-gated: a pre-0.8.8 server 404s, which safeApiCall already
-        // turns into the error the caller has to handle anyway, and the call only ever happens
-        // because a user pressed a button — there is nothing to fail closed on ahead of time.
+        // Not gated here: the viewer hides Continue on a server confirmed older than the route
+        // (0.8.8-rc1) and reads a 404 from an unplaced one (SharedChatViewModel.canContinue).
         return safeApiCall {
             shareApi.forkSharedConversation(shareId, targetMessageIndex, shareRevision)
         }

@@ -80,6 +80,7 @@ import com.garfiec.librechat.feature.chat.resources.shared_chat_continue_blocked
 import com.garfiec.librechat.feature.chat.resources.shared_chat_continue_blocked_reason
 import com.garfiec.librechat.feature.chat.resources.shared_chat_continue_failed
 import com.garfiec.librechat.feature.chat.resources.shared_chat_continue_rate_limited
+import com.garfiec.librechat.feature.chat.resources.shared_chat_continue_unsupported
 import com.garfiec.librechat.feature.chat.resources.shared_chat_langfuse
 import com.garfiec.librechat.feature.chat.resources.shared_chat_link_updated
 import com.garfiec.librechat.feature.chat.resources.shared_chat_load_failed
@@ -163,6 +164,7 @@ fun SharedChatScreen(
                 SharedChatEvent.LinkUpdated -> getString(Res.string.shared_chat_link_updated)
                 SharedChatEvent.ContinueRateLimited -> getString(Res.string.shared_chat_continue_rate_limited)
                 SharedChatEvent.ContinueFailed -> getString(Res.string.shared_chat_continue_failed)
+                SharedChatEvent.ContinueUnsupported -> getString(Res.string.shared_chat_continue_unsupported)
                 is SharedChatEvent.RefreshFailed -> if (event.rateLimited) {
                     getString(Res.string.shared_chat_rate_limited)
                 } else {
@@ -331,7 +333,9 @@ internal fun SharedChatScaffold(
         },
         snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            if (snapshot != null) ContinueButton(busy = state.isContinuing, onClick = actions.onContinue)
+            if (snapshot != null && state.canContinue) {
+                ContinueButton(busy = state.isContinuing, onClick = actions.onContinue)
+            }
         },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {

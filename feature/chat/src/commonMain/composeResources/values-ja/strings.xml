@@ -772,6 +772,7 @@
     <string name="shared_chat_link_updated">このリンクは更新されました。最新版を表示しています。</string>
     <string name="shared_chat_continue_rate_limited">チャットを続けるリクエストが多すぎます。しばらくしてからもう一度お試しください。</string>
     <string name="shared_chat_continue_failed">このチャットを続けられませんでした</string>
+    <string name="shared_chat_continue_unsupported">このサーバーでは共有チャットを続けられません</string>
     <string name="shared_chat_refresh_failed">この共有チャットを更新できませんでした</string>
     <string name="shared_chat_continue_blocked">サーバーがこのチャットのコピーをブロックしました</string>
     <string name="shared_chat_continue_blocked_reason">サーバーがこのチャットのコピーをブロックしました: %1$s</string>

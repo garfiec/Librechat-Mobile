@@ -1,10 +1,13 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
+import com.garfiec.librechat.core.common.BackendBuildClass
+import com.garfiec.librechat.core.common.DetectedBackend
 import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.FailureKind
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
 import com.garfiec.librechat.core.model.Attachment
@@ -24,6 +27,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -52,6 +56,10 @@ class SharedChatViewModelTest {
     private val serverUrl = object : ServerUrlProvider {
         override fun getBaseUrl() = "https://chat.example.com"
     }
+    private val backend = MutableStateFlow<DetectedBackend?>(DetectedBackend("0.8.8", BackendBuildClass.OFFICIAL))
+    private val configRepository = mockk<ConfigRepository>(relaxed = true) {
+        every { detectedBackend } returns backend
+    }
 
     // u1 has two replies, a1 and a2 (the newer, shown by default); a1 was continued with u2.
     private val u1 = message("u1", NO_PARENT, user = true)
@@ -78,7 +86,7 @@ class SharedChatViewModelTest {
     }
 
     private fun viewModel() =
-        SharedChatViewModel("share-1", shareRepository, conversationRepository, accounts, serverUrl)
+        SharedChatViewModel("share-1", shareRepository, conversationRepository, accounts, serverUrl, configRepository)
 
     private fun TestScope.eventsOf(vm: SharedChatViewModel): List<SharedChatEvent> {
         val events = mutableListOf<SharedChatEvent>()
@@ -199,6 +207,70 @@ class SharedChatViewModelTest {
         advanceUntilIdle()
 
         assertThat(events).containsExactly(SharedChatEvent.ContinueBlocked("Remove the API key from message 3."))
+    }
+
+    @Test
+    fun `a server confirmed older than the fork route offers no Continue`() = runTest(testDispatcher) {
+        backend.value = DetectedBackend("0.8.7", BackendBuildClass.OFFICIAL)
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        assertThat(vm.uiState.value.canContinue).isFalse()
+        vm.continueChat()
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { shareRepository.forkSharedConversation(any(), any(), any()) }
+    }
+
+    @Test
+    fun `a 404 from fork on an unplaced server whose link still loads means no fork route`() = runTest(testDispatcher) {
+        backend.value = null
+        coEvery { shareRepository.forkSharedConversation(any(), any(), any()) } returns apiError(404, null)
+        val vm = viewModel()
+        val events = eventsOf(vm)
+        advanceUntilIdle()
+        assertThat(vm.uiState.value.canContinue).isTrue()
+
+        vm.continueChat()
+        advanceUntilIdle()
+
+        assertThat(events).containsExactly(SharedChatEvent.ContinueUnsupported)
+        assertThat(vm.uiState.value.canContinue).isFalse()
+        assertThat(vm.uiState.value.snapshot).isNotNull()
+    }
+
+    @Test
+    fun `a 404 from fork on a server with the route reloads and says Continue failed`() = runTest(testDispatcher) {
+        coEvery { shareRepository.forkSharedConversation(any(), any(), any()) } returns apiError(404, null)
+        val vm = viewModel()
+        val events = eventsOf(vm)
+        advanceUntilIdle()
+
+        vm.continueChat()
+        advanceUntilIdle()
+
+        assertThat(events).containsExactly(SharedChatEvent.ContinueFailed)
+        assertThat(vm.uiState.value.canContinue).isTrue()
+        coVerify(exactly = 2) { shareRepository.getSharedSnapshot("share-1") }
+    }
+
+    @Test
+    fun `a 404 from fork when the link itself is gone shows not found`() = runTest(testDispatcher) {
+        backend.value = null
+        coEvery { shareRepository.getSharedSnapshot("share-1") } returnsMany listOf(
+            Result.Success(snapshot),
+            apiError(404, null),
+        )
+        coEvery { shareRepository.forkSharedConversation(any(), any(), any()) } returns apiError(404, null)
+        val vm = viewModel()
+        val events = eventsOf(vm)
+        advanceUntilIdle()
+
+        vm.continueChat()
+        advanceUntilIdle()
+
+        assertThat(events).containsExactly(SharedChatEvent.ContinueFailed)
+        assertThat(vm.uiState.value.error).isEqualTo(SharedChatError.NOT_FOUND)
     }
 
     @Test

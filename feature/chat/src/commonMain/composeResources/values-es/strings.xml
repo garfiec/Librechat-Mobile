@@ -787,6 +787,7 @@
     <string name="shared_chat_link_updated">Este enlace se actualizó. Ahora se muestra la versión más reciente.</string>
     <string name="shared_chat_continue_rate_limited">Demasiadas solicitudes para continuar chats. Inténtalo más tarde.</string>
     <string name="shared_chat_continue_failed">No se pudo continuar este chat</string>
+    <string name="shared_chat_continue_unsupported">Este servidor no permite continuar chats compartidos</string>
     <string name="shared_chat_refresh_failed">No se pudo actualizar este chat compartido</string>
     <string name="shared_chat_continue_blocked">Tu servidor bloqueó la copia de este chat</string>
     <string name="shared_chat_continue_blocked_reason">Tu servidor bloqueó la copia de este chat: %1$s</string>

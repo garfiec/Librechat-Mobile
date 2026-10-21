@@ -796,6 +796,7 @@
     <string name="shared_chat_link_updated">Ссылка обновлена. Показана последняя версия.</string>
     <string name="shared_chat_continue_rate_limited">Слишком много запросов на продолжение чатов. Повторите попытку позже.</string>
     <string name="shared_chat_continue_failed">Не удалось продолжить этот чат</string>
+    <string name="shared_chat_continue_unsupported">Этот сервер не поддерживает продолжение общих чатов</string>
     <string name="shared_chat_refresh_failed">Не удалось обновить этот общий чат</string>
     <string name="shared_chat_continue_blocked">Ваш сервер запретил копирование этого чата</string>
     <string name="shared_chat_continue_blocked_reason">Ваш сервер запретил копирование этого чата: %1$s</string>

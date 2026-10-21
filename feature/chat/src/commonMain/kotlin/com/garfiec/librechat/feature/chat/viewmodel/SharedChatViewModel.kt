@@ -2,10 +2,13 @@ package com.garfiec.librechat.feature.chat.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.garfiec.librechat.core.common.BackendVersion
+import com.garfiec.librechat.core.common.FeatureSupport
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.common.result.FailureKind
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
 import com.garfiec.librechat.core.data.share.ShareErrorCode
@@ -68,6 +71,9 @@ sealed interface SharedChatEvent {
     /** Continue failed for another reason. */
     data object ContinueFailed : SharedChatEvent
 
+    /** This server has no Continue (its fork route is missing); the button is gone. */
+    data object ContinueUnsupported : SharedChatEvent
+
     /** A refresh over content on screen didn't get through; [rateLimited] when the server said slow down. */
     data class RefreshFailed(val rateLimited: Boolean) : SharedChatEvent
 }
@@ -96,6 +102,11 @@ data class SharedChatUiState(
     val blockedMessage: String? = null,
     /** Continue is in flight. Also the double-fork guard: a second tap does nothing until it lands. */
     val isContinuing: Boolean = false,
+    /**
+     * The server can fork a shared link (`POST /api/share/:shareId/fork`, from 0.8.8-rc1). False
+     * once that is known not to be so; shown while the version can't be placed.
+     */
+    val canContinue: Boolean = true,
     val baseUrl: String = "",
     /** The link's public URL on the active server, for "Open in browser". */
     val shareUrl: String = "",
@@ -131,6 +142,7 @@ class SharedChatViewModel(
     private val conversationRepository: ConversationRepository,
     private val activeAccountProvider: ActiveAccountProvider,
     private val serverUrlProvider: ServerUrlProvider,
+    private val configRepository: ConfigRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -145,8 +157,17 @@ class SharedChatViewModel(
     private var loadGeneration = 0L
     private var textFileJob: Job? = null
 
+    /** The fork route answered 404 while the link itself still loads: the server has no fork route. */
+    private var forkRouteMissing = false
+
     init {
         load(quiet = false)
+        viewModelScope.launch {
+            configRepository.detectedBackend.collect { backend ->
+                val support = BackendVersion.featureSupport(backend, FORK_MIN_VERSION)
+                _uiState.update { it.copy(canContinue = support != FeatureSupport.ABSENT && !forkRouteMissing) }
+            }
+        }
     }
 
     /** Loads the link again: Retry from an error, or pull to refresh over content. */
@@ -155,19 +176,28 @@ class SharedChatViewModel(
     }
 
     private fun load(quiet: Boolean) {
+        val generation = startLoad(quiet)
+        viewModelScope.launch { fetch(generation) }
+    }
+
+    private fun startLoad(quiet: Boolean): Long {
         val generation = ++loadGeneration
         _uiState.update {
             if (quiet) it.copy(isRefreshing = true) else it.copy(isLoading = true, error = null, blockedMessage = null)
         }
-        viewModelScope.launch {
-            val result = shareRepository.getSharedSnapshot(shareId)
-            if (generation != loadGeneration) return@launch
-            when (result) {
-                is Result.Success -> show(result.data)
-                is Result.Error -> fail(result.toShareFailure())
-                Result.Loading -> Unit
-            }
+        return generation
+    }
+
+    /** Fetches the link for load [generation]; true when it loaded and is on screen. */
+    private suspend fun fetch(generation: Long): Boolean {
+        val result = shareRepository.getSharedSnapshot(shareId)
+        if (generation != loadGeneration) return false
+        when (result) {
+            is Result.Success -> show(result.data)
+            is Result.Error -> fail(result.toShareFailure())
+            Result.Loading -> Unit
         }
+        return result is Result.Success && _uiState.value.snapshot != null
     }
 
     private fun show(snapshot: SharedConversationSnapshot) {
@@ -245,7 +275,7 @@ class SharedChatViewModel(
     fun continueChat() {
         val state = _uiState.value
         val snapshot = state.snapshot ?: return
-        if (state.isContinuing) return
+        if (state.isContinuing || !state.canContinue) return
         val targetIndex = activeTailIndex(snapshot.messages, state.displayMessages)
         // Captured now: the fork belongs to the account it was made on, even if a switch lands mid-call.
         val account = activeAccountProvider.currentAccountId()
@@ -285,9 +315,19 @@ class SharedChatViewModel(
             failure.status == HTTP_TOO_MANY_REQUESTS -> _events.send(SharedChatEvent.ContinueRateLimited)
             failure.isContentFilter -> _events.send(SharedChatEvent.ContinueBlocked(failure.serverMessage))
             failure.status == HTTP_NOT_FOUND -> {
-                // The link went away under the viewer: reloading shows that.
-                load(quiet = true)
-                _events.send(SharedChatEvent.ContinueFailed)
+                // Either the link went away under the viewer, which reloading shows, or the server
+                // predates the fork route. Only a server whose version can't be placed gets here
+                // without a route (a confirmed older one hides Continue), and there a link that
+                // still loads means the route is what's missing.
+                val placed = BackendVersion.featureSupport(configRepository.detectedBackend.value, FORK_MIN_VERSION)
+                val linkStillLoads = fetch(startLoad(quiet = true))
+                if (linkStillLoads && placed == FeatureSupport.UNKNOWN) {
+                    forkRouteMissing = true
+                    _uiState.update { it.copy(canContinue = false) }
+                    _events.send(SharedChatEvent.ContinueUnsupported)
+                } else {
+                    _events.send(SharedChatEvent.ContinueFailed)
+                }
             }
             else -> _events.send(SharedChatEvent.ContinueFailed)
         }
@@ -356,6 +396,9 @@ class SharedChatViewModel(
     }
 
     private companion object {
+        /** The first release with `POST /api/share/:shareId/fork`; 0.8.7 answers it with a bare 404. */
+        const val FORK_MIN_VERSION = "0.8.8-rc1"
+
         const val HTTP_UNAUTHORIZED = 401
         const val HTTP_FORBIDDEN = 403
         const val HTTP_NOT_FOUND = 404

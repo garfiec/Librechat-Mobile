@@ -71,6 +71,7 @@ val chatModule = module {
             conversationRepository = get(),
             activeAccountProvider = get(),
             serverUrlProvider = get(),
+            configRepository = get(),
         )
     }
 }
