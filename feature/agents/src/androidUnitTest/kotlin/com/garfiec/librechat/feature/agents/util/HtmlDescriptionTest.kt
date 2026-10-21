@@ -75,7 +75,8 @@ class HtmlDescriptionTest {
 
     @Test
     fun `unordered and ordered lists get markers`() {
-        val bullets = htmlDescriptionToAnnotatedString("<span>Can:</span><ul><li>Search</li><li>Summarise</li></ul>Done")
+        val list = "<span>Can:</span><ul><li>Search</li><li>Summarise</li></ul>Done"
+        val bullets = htmlDescriptionToAnnotatedString(list)
         assertThat(bullets.text).isEqualTo("Can:\n• Search\n• Summarise\nDone")
 
         val numbered = htmlDescriptionToAnnotatedString("<ol><li>Ask</li><li> Wait </li></ol>")
@@ -119,7 +120,8 @@ class HtmlDescriptionTest {
 
     @Test
     fun `a leading img makes it HTML and the image is dropped`() {
-        val result = htmlDescriptionToAnnotatedString("<img src=\"/images/logo.png\" alt=\"Logo\"> Helps with <b>billing</b>")
+        val html = "<img src=\"/images/logo.png\" alt=\"Logo\"> Helps with <b>billing</b>"
+        val result = htmlDescriptionToAnnotatedString(html)
         assertThat(result.text).isEqualTo("Helps with billing")
         assertThat(result.spanStyles.filter { it.item.fontWeight == FontWeight.Bold }).hasSize(1)
     }
