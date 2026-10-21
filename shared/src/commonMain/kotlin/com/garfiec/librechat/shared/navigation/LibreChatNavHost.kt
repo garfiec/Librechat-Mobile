@@ -542,68 +542,78 @@ fun PhoneLayout(
             val sidebar: @Composable () -> Unit = {
                 // targetValue, not isOpen: start polling as the drawer begins to open, not after it settles.
                 val drawerOpen by remember { derivedStateOf { drawerState.targetValue == DrawerValue.Open } }
-                SidebarScaffold(
-                    isOpen = drawerOpen,
-                    onNewChat = {
+                // The share sheet's Preview opens the viewer from here: shut the drawer first, as every
+                // other way out of it does, or it stays open over the viewer.
+                val openSharedChat = remember(navigator, drawerState, scope) {
+                    { shareId: String ->
                         scope.launch { drawerState.close() }
-                        // A project's landing is not the plain one, so New chat still leaves it.
-                        if ((navigator.currentRoute as? NewChat)?.isPlainLanding != true) {
+                        navigator.navigateToSharedChat(shareId)
+                    }
+                }
+                CompositionLocalProvider(LocalOpenSharedChat provides openSharedChat) {
+                    SidebarScaffold(
+                        isOpen = drawerOpen,
+                        onNewChat = {
+                            scope.launch { drawerState.close() }
+                            // A project's landing is not the plain one, so New chat still leaves it.
+                            if ((navigator.currentRoute as? NewChat)?.isPlainLanding != true) {
+                                navigator.navigateToTopLevel(NewChat())
+                            }
+                        },
+                        onConversationClick = { conversationId ->
+                            scope.launch { drawerState.close() }
+                            navigator.navigateToChat(conversationId)
+                        },
+                        // Leave the drawer open (no drawerState.close()) so the user can keep browsing,
+                        // unlike onNewChat above.
+                        onActiveConversationDelete = {
                             navigator.navigateToTopLevel(NewChat())
-                        }
-                    },
-                    onConversationClick = { conversationId ->
-                        scope.launch { drawerState.close() }
-                        navigator.navigateToChat(conversationId)
-                    },
-                    // Leave the drawer open (no drawerState.close()) so the user can keep browsing,
-                    // unlike onNewChat above.
-                    onActiveConversationDelete = {
-                        navigator.navigateToTopLevel(NewChat())
-                    },
-                    onSettingsClick = {
-                        scope.launch { drawerState.close() }
-                        navigator.navigate(SettingsTabbed)
-                    },
-                    onAgentsClick = {
-                        scope.launch { drawerState.close() }
-                        navigator.navigate(AgentMarketplace)
-                    },
-                    onFilesClick = {
-                        scope.launch { drawerState.close() }
-                        navigator.navigate(Files)
-                    },
-                    onSkillsClick = {
-                        scope.launch { drawerState.close() }
-                        navigator.navigate(SkillsList)
-                    },
-                    onSchedulesClick = {
-                        scope.launch { drawerState.close() }
-                        navigator.navigate(SchedulesList)
-                    },
-                    onOpenProjectsIndex = {
-                        scope.launch { drawerState.close() }
-                        navigator.navigate(Projects)
-                    },
-                    onNewChatInProject = { projectId, projectName ->
-                        scope.launch { drawerState.close() }
-                        navigator.navigateToNewChatInProject(projectId, projectName)
-                    },
-                    onOpenSearch = { query ->
-                        scope.launch { drawerState.close() }
-                        navigator.navigateToSearch(query)
-                    },
-                    onMessageClick = { conversationId, messageId, query, inReasoning ->
-                        scope.launch { drawerState.close() }
-                        navigator.navigateToMessage(conversationId, messageId, query, inReasoning)
-                    },
-                    onSwitchAccount = { accountId ->
-                        navHostViewModel.switchAccount(accountId)
-                    },
-                    onAddAccount = {
-                        scope.launch { drawerState.close() }
-                        navigator.navigate(AddAccountServerUrl)
-                    },
-                )
+                        },
+                        onSettingsClick = {
+                            scope.launch { drawerState.close() }
+                            navigator.navigate(SettingsTabbed)
+                        },
+                        onAgentsClick = {
+                            scope.launch { drawerState.close() }
+                            navigator.navigate(AgentMarketplace)
+                        },
+                        onFilesClick = {
+                            scope.launch { drawerState.close() }
+                            navigator.navigate(Files)
+                        },
+                        onSkillsClick = {
+                            scope.launch { drawerState.close() }
+                            navigator.navigate(SkillsList)
+                        },
+                        onSchedulesClick = {
+                            scope.launch { drawerState.close() }
+                            navigator.navigate(SchedulesList)
+                        },
+                        onOpenProjectsIndex = {
+                            scope.launch { drawerState.close() }
+                            navigator.navigate(Projects)
+                        },
+                        onNewChatInProject = { projectId, projectName ->
+                            scope.launch { drawerState.close() }
+                            navigator.navigateToNewChatInProject(projectId, projectName)
+                        },
+                        onOpenSearch = { query ->
+                            scope.launch { drawerState.close() }
+                            navigator.navigateToSearch(query)
+                        },
+                        onMessageClick = { conversationId, messageId, query, inReasoning ->
+                            scope.launch { drawerState.close() }
+                            navigator.navigateToMessage(conversationId, messageId, query, inReasoning)
+                        },
+                        onSwitchAccount = { accountId ->
+                            navHostViewModel.switchAccount(accountId)
+                        },
+                        onAddAccount = {
+                            scope.launch { drawerState.close() }
+                            navigator.navigate(AddAccountServerUrl)
+                        },
+                    )
+                }
             }
             if (glass == null) {
                 MaterialDrawerSheet(drawerState = drawerState, content = sidebar)

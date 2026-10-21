@@ -163,8 +163,12 @@ fun SharedChatScreen(
                     ?: getString(Res.string.shared_chat_continue_blocked)
             }
             if (message != null) {
-                snackbarHostState.currentSnackbarData?.dismiss()
-                snackbarHostState.showSnackbar(message)
+                // Shown in its own coroutine: showSnackbar suspends until it hides, and the next
+                // event (a retried Continue landing) must not wait behind it.
+                coroutineScope.launch {
+                    snackbarHostState.currentSnackbarData?.dismiss()
+                    snackbarHostState.showSnackbar(message)
+                }
             }
         }
     }
