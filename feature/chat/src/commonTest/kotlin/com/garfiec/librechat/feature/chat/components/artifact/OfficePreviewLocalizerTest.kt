@@ -143,7 +143,7 @@ $bootstrap
     }
 
     @Test
-    fun `a meta refresh is dropped, other metas are kept`() {
+    fun `a meta refresh is dropped and other metas are kept`() {
         val out = localizeOfficePreviewHtml(
             "<html><head><meta charset=\"utf-8\"><meta http-equiv=\"Refresh\" content=\"0;url=https://x.test\"></head></html>",
         )
