@@ -77,6 +77,12 @@ data class FileReference(
     val source: String? = null,
 )
 
+/**
+ * The `source` of a file that exists only as extracted text (upstream `FileSources.text`). It has
+ * no stored bytes; a shared link serves its text as `text/plain`.
+ */
+const val FILE_SOURCE_TEXT = "text"
+
 @Serializable
 data class Attachment(
     @SerialName("file_id") val fileId: String? = null,
@@ -121,6 +127,8 @@ data class Attachment(
     /** MCP UI resources, present only when [type] == `ui_resources`. Carried, not yet rendered —
      *  see [UiResources]. */
     @SerialName("ui_resources") val uiResources: UiResources? = null,
+    /** Where the file is stored; [FILE_SOURCE_TEXT] marks a text-only file. Null when unsent. */
+    val source: String? = null,
 )
 
 /**

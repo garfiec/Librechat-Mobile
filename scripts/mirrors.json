@@ -1826,6 +1826,61 @@
       },
       "why": "The share dialog's 'Share files' switch starts ON for a conversation with no link (and for a legacy link that stored no choice), and an existing link shows its stored snapshotFiles. The default sits in a useState and a useEffect inside the component, which the block extractor cannot isolate, so the whole file is watched; churn elsewhere in the dialog (QR, layout, target resolution) reports DRIFT -- check the snapshotFiles state, not the file. The Update rule (send the link's stored choice, never omit it) belongs to this same entry once the controller sends it.",
       "failure_mode": "Web flips the default to off and the app keeps publishing every new link with the chat's images and files, or the reverse. Nothing errors."
+    },
+    {
+      "id": "shared-links-sort-keys",
+      "upstream": {
+        "file": "api/server/routes/share.js",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/share/SharedLinksQuery.kt",
+        "symbol": "SharedLinksSort"
+      },
+      "why": "GET /api/share accepts sortBy createdAt|title and sortDirection asc|desc, inline in the list handler, and silently falls back to createdAt desc on anything else; a cursor is only valid for the sort that made it (400 otherwise). The handler is an anonymous route callback the block extractor cannot isolate, so the whole route file is watched; the same file carries the error-code table and the PATCH snapshotFiles rule, so DRIFT here may belong to either of those entries -- check the GET '/' handler.",
+      "failure_mode": "A renamed sort key makes the app's Oldest / Title order silently come back newest-first, or a cursor rule change makes load-more 400."
+    },
+    {
+      "id": "shared-links-search-cap",
+      "upstream": {
+        "file": "packages/api/src/shared-links/http.ts",
+        "symbol": "MAX_SHARED_LINK_SEARCH_LENGTH",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/share/SharedLinksQuery.kt",
+        "symbol": "MAX_SHARED_LINK_SEARCH_LENGTH"
+      },
+      "why": "The shared-links list 400s a trimmed search longer than this. The repository trims and cuts the query to it before sending.",
+      "failure_mode": "Upstream lowers the cap and long searches fail with a 400 the list shows as a load error; raises it and the app cuts searches the server would have taken."
+    },
+    {
+      "id": "share-fork-index-revision",
+      "upstream": {
+        "file": "api/server/utils/import/fork.js",
+        "symbol": "forkSharedConversation",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/request/ForkSharedConversationRequest.kt",
+        "symbol": "ForkSharedConversationRequest"
+      },
+      "why": "Fork from a share: targetMessageIndex is the index of the active branch tip in the snapshot's messages and the server copies the direct path to it; shareRevision is the snapshot's updatedAt, a mismatch is 409 SHARE_REVISION_MISMATCH, and WITHOUT a revision the index is ignored and the whole share is copied. So the viewer must send both.",
+      "failure_mode": "Upstream changes the index basis (e.g. to ids) or the revision rule, and Continue silently forks the wrong branch or the whole share."
+    },
+    {
+      "id": "file-source-text",
+      "upstream": {
+        "file": "packages/data-provider/src/types/files.ts",
+        "symbol": "FileSources",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/FileModel.kt",
+        "symbol": "FILE_SOURCE_TEXT"
+      },
+      "why": "A file whose source is 'text' has no stored bytes; the shared-link file route serves its extracted text as text/plain. The viewer opens such files as text.",
+      "failure_mode": "The value is renamed and text-only files in a shared chat try to open as binary downloads that fail."
     }
   ]
 }

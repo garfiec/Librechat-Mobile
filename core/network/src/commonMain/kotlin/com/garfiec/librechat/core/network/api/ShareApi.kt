@@ -3,8 +3,10 @@ package com.garfiec.librechat.core.network.api
 import com.garfiec.librechat.core.model.SharedLink
 import com.garfiec.librechat.core.model.request.CreateShareRequest
 import com.garfiec.librechat.core.model.request.ForkSharedConversationRequest
+import com.garfiec.librechat.core.model.request.UpdateShareRequest
 import com.garfiec.librechat.core.model.response.ForkConversationResponse
 import com.garfiec.librechat.core.model.response.ShareLinkLookup
+import com.garfiec.librechat.core.model.response.SharedConversationSnapshot
 import com.garfiec.librechat.core.model.response.SharedLinksResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -19,11 +21,27 @@ import io.ktor.http.path
 class ShareApi constructor(
     private val client: HttpClient,
 ) {
-    suspend fun getSharedLinks(cursor: String? = null, isPublic: Boolean? = null): SharedLinksResponse =
+    /**
+     * GET /api/share — one page of the caller's links.
+     *
+     * [sortBy] is `createdAt` | `title` and [sortDirection] `asc` | `desc`; the route falls back
+     * to newest first on anything else. A [cursor] is only valid for the sort that produced it
+     * (400 otherwise), and [search] is trimmed and capped at 256 characters (400 past it).
+     */
+    suspend fun getSharedLinks(
+        cursor: String? = null,
+        sortBy: String? = null,
+        sortDirection: String? = null,
+        search: String? = null,
+        isPublic: Boolean? = null,
+    ): SharedLinksResponse =
         client.get {
             url { path("api/share") }
             parameter("cursor", cursor)
             parameter("pageSize", 25)
+            parameter("sortBy", sortBy)
+            parameter("sortDirection", sortDirection)
+            parameter("search", search)
             // Older backends (< 0.8.7) filter the route on `isPublic`, defaulting to false when
             // absent — so the param must be sent explicitly there. Ktor omits null parameters.
             parameter("isPublic", isPublic)
@@ -31,21 +49,29 @@ class ShareApi constructor(
 
     /**
      * The caller's live share link for a conversation, if any. Present on every supported backend
-     * (0.8.4 onward); the web client reads it before offering to create one.
+     * (0.8.4 onward); the web client reads it before offering to create one. Its `_id` is the
+     * link's ACL resource id, which the list does not carry.
      */
     suspend fun getShareLink(conversationId: String): ShareLinkLookup =
         client.get {
             url { path("api/share/link/$conversationId") }
         }.body()
 
-    /** Mints a new link. 409 `SHARE_EXISTS` while a live one exists; see [getShareLink]. */
+    /**
+     * Mints a new link. 409 `SHARE_EXISTS` while a live one exists; see [getShareLink].
+     *
+     * [snapshotFiles] null is omitted, which the route reads as "include files". 400
+     * `TARGET_MESSAGE_NOT_FOUND` when [targetMessageId] isn't saved yet, `NO_MESSAGES` when there
+     * is nothing to share, and a content-filter 400 when the server's filter refuses the chat.
+     */
     suspend fun createShareLink(
         conversationId: String,
         targetMessageId: String? = null,
+        snapshotFiles: Boolean? = null,
     ): SharedLink =
         client.post {
             url { path("api/share/$conversationId") }
-            setBody(CreateShareRequest(targetMessageId = targetMessageId))
+            setBody(CreateShareRequest(targetMessageId = targetMessageId, snapshotFiles = snapshotFiles))
         }.body()
 
     /**
@@ -60,19 +86,32 @@ class ShareApi constructor(
      * stays ungated, so a role that may no longer re-publish may still revoke. A role with
      * `SHARED_LINKS.USE` but not `CREATE` gets 403 here where it previously succeeded.
      *
-     * Sends no body deliberately. The route would also accept `targetMessageId` (non-empty
-     * string) and `snapshotFiles` (boolean), each 400 on a wrong type.
+     * The route re-derives the link's file choice from the body on every call, and an absent
+     * `snapshotFiles` means "include files": send the link's stored choice in [request] or an
+     * update quietly turns files back on. A link that is gone answers 404 with no body.
      */
-    suspend fun updateShareLink(shareId: String): SharedLink =
+    suspend fun updateShareLink(shareId: String, request: UpdateShareRequest): SharedLink =
         client.patch {
             url { path("api/share/$shareId") }
+            setBody(request)
         }.body()
 
+    /** Revokes a link. 404 when it is already gone. Never permission-gated. */
     suspend fun deleteShareLink(shareId: String) {
         client.delete {
             url { path("api/share/$shareId") }
         }
     }
+
+    /**
+     * GET /api/share/:shareId — the shared conversation as a viewer sees it. 404 with no body
+     * when the link is gone, 429 past the share-view rate limit, and a content-filter 400 when
+     * the server's filter now refuses the content.
+     */
+    suspend fun getSharedSnapshot(shareId: String): SharedConversationSnapshot =
+        client.get {
+            url { path("api/share/$shareId") }
+        }.body()
 
     /**
      * Copies a shared conversation into the caller's own account so they can continue it
@@ -81,18 +120,21 @@ class ShareApi constructor(
      * Not the same route as `POST /api/convos/fork`, and not reachable through it: that one
      * forks a conversation the caller already owns, this one forks from a share link under the
      * share's own ACL (`canAccessSharedLink`), which is how a recipient who owns nothing gets a
-     * copy. It requires a signed-in caller and is rate-limited per IP and per user.
+     * copy. It requires a signed-in caller and is rate-limited per IP and per user (429).
      *
-     * [targetMessageIndex] cuts the copy off after that many messages; omitted, the whole
-     * conversation is copied. The response is the same `{conversation, messages}` pair the
-     * owner-side fork returns.
+     * [targetMessageIndex] is the index, in the snapshot's `messages`, of the tip of the branch
+     * to copy; the server copies the direct path to it. [shareRevision] is the snapshot's
+     * `updatedAt`: the server refuses a link updated since with 409 `SHARE_REVISION_MISMATCH`,
+     * and IGNORES the index without one, copying the whole share. The response is the same
+     * `{conversation, messages}` pair the owner-side fork returns.
      */
     suspend fun forkSharedConversation(
         shareId: String,
         targetMessageIndex: Int? = null,
+        shareRevision: String? = null,
     ): ForkConversationResponse =
         client.post {
             url { path("api/share/$shareId/fork") }
-            setBody(ForkSharedConversationRequest(targetMessageIndex))
+            setBody(ForkSharedConversationRequest(targetMessageIndex, shareRevision))
         }.body()
 }

@@ -4,6 +4,7 @@ import com.garfiec.librechat.core.model.AccessRole
 import com.garfiec.librechat.core.model.Principal
 import com.garfiec.librechat.core.model.ResourcePermissions
 import com.garfiec.librechat.core.model.UpdateResourcePermissionsRequest
+import com.garfiec.librechat.core.model.response.EffectivePermissionsResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
@@ -16,7 +17,7 @@ import io.ktor.http.path
  * Granular ACL permission endpoints, mirroring upstream
  * `api/server/routes/accessPermissions.js`. The base path is `/api/permissions`
  * and the resource type drives routing (`agent`, `promptGroup`, `mcpServer`,
- * `remoteAgent`).
+ * `remoteAgent`, `sharedLink`).
  */
 class PermissionsApi(
     private val client: HttpClient,
@@ -54,6 +55,18 @@ class PermissionsApi(
     suspend fun getResourceRoles(resourceType: String): List<AccessRole> =
         client.get {
             url { path("api/permissions/$resourceType/roles") }
+        }.body()
+
+    /**
+     * GET /api/permissions/{resourceType}/{resourceId}/effective — the caller's `PermissionBits`
+     * on one resource (e.g. a shared link's lookup `_id`). Zero grants nothing.
+     */
+    suspend fun getEffectivePermissions(
+        resourceType: String,
+        resourceId: String,
+    ): EffectivePermissionsResponse =
+        client.get {
+            url { path("api/permissions/$resourceType/$resourceId/effective") }
         }.body()
 
     /**

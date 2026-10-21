@@ -77,7 +77,7 @@ data class StartupConfig(
     val langfuseConnectionAccess: JsonElement? = null,
     // --- v0.8.7 detection (parse-surface only) ---
     /** Whether shared links may include snapshot file copies. Mirrors `interface.sharedLinks.snapshotFiles`
-     *  at startup level. Mobile has no public-share viewer / snapshot fetch, so detection-only. */
+     *  at startup level. Only `true` shows the share sheet's "Include files" switch, as on web. */
     val sharedLinksSnapshotFilesEnabled: Boolean? = null,
     // --- 0.8.8 line detection (parse-surface only) ---
     /**
