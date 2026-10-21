@@ -10,7 +10,8 @@ import kotlinx.serialization.json.Json
 /**
  * The failure ids the `/api/share` routes send: the share service's `code`s (v0.8.8
  * `SHARE_SERVICE_ERROR_STATUS`) and the content filter's `error`s. Mirrored by hand; see
- * `scripts/mirrors.json` `share-service-error-codes` and `share-content-filter-errors`.
+ * `scripts/mirrors.json` `share-service-error-codes`, `share-content-filter-block` and
+ * `share-content-filter-uninspectable`.
  */
 enum class ShareErrorCode(val wire: String) {
     INVALID_PARAMS("INVALID_PARAMS"),
