@@ -133,6 +133,7 @@ internal fun ChatFloatingTopBar(
         contextBarPlacement = uiState.contextBarPlacement,
         compactNudgeVisible = uiState.compactNudge != null,
         sharedLinksEnabled = uiState.sharedLinksEnabled,
+        firstTurnStreaming = uiState.isFirstTurnStreaming,
     )
     val overflowSections = remember(overflowGates) { chatOverflowSections(overflowGates) }
     val onOverflowItem: (ChatOverflowItem) -> Unit = { item ->
@@ -410,6 +411,7 @@ private fun MaterialChatTopBar(
                     isComparisonEnabled = uiState.comparisonState.isEnabled || uiState.comparisonState.isSettingUp,
                     canToggleComparison = uiState.canToggleComparison,
                     contextGauge = uiState.contextGaugeDetails,
+                    shareLinkActive = uiState.shareLinkActive,
                     onItem = onItem,
                     dragSelection = overflowDrag.takeIf { !isLiquidGlass },
                 )

@@ -35,6 +35,7 @@ import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
 import com.garfiec.librechat.core.data.repository.TraceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
+import com.garfiec.librechat.core.data.share.ShareLinkControllerFactory
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnOutcome
 import com.garfiec.librechat.core.model.usage.ContextDetailPreset
@@ -80,7 +81,12 @@ internal class ChatViewModelTestFixture {
     val presetRepository = mockk<PresetRepository>(relaxed = true)
     val promptRepository = mockk<PromptRepository>(relaxed = true)
     val queuedTurnRepository = mockk<QueuedTurnRepository>(relaxed = true)
-    val shareRepository = mockk<ShareRepository>(relaxed = true)
+
+    // A real revision flow: the link-active lookup collects it, and a relaxed StateFlow can't be collected.
+    val shareRepository = mockk<ShareRepository>(relaxed = true).also {
+        every { it.revision } returns MutableStateFlow(0L)
+    }
+    val shareLinkControllerFactory = mockk<ShareLinkControllerFactory>(relaxed = true)
     val traceRepository = mockk<TraceRepository>(relaxed = true)
     val mcpRepository = mockk<McpRepository>(relaxed = true)
     val userRepository = mockk<UserRepository>(relaxed = true)
@@ -172,6 +178,7 @@ internal class ChatViewModelTestFixture {
         promptRepository = promptRepository,
         queuedTurnRepository = queuedTurnRepository,
         shareRepository = shareRepository,
+        shareLinkControllerFactory = shareLinkControllerFactory,
         traceRepository = traceRepository,
         mcpRepository = mcpRepository,
         userRepository = userRepository,

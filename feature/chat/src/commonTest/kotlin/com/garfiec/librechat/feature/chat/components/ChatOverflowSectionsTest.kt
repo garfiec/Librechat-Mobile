@@ -41,11 +41,12 @@ class ChatOverflowSectionsTest {
         contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OVERFLOW_MENU,
         sharedLinksEnabled: Boolean = true,
         compactNudgeVisible: Boolean = false,
+        firstTurnStreaming: Boolean = false,
     ) = chatOverflowSections(
         ChatOverflowGates(
             conversationId, hasShowAllMedia, presetsEnabled, hasPromptsLibrary, promptsEnabled, multiConvoEnabled,
             traceViewerAvailable, contextUsage, contextUsageEnabled, contextBarPlacement, sharedLinksEnabled,
-            compactNudgeVisible,
+            compactNudgeVisible, firstTurnStreaming,
         ),
     )
 
@@ -100,6 +101,12 @@ class ChatOverflowSectionsTest {
             sections(presetsEnabled = false, promptsEnabled = false, sharedLinksEnabled = false, multiConvoEnabled = false)
         assertEquals(listOf(SEARCH, SHOW_ALL_MEDIA, TRACE, CONTEXT_USAGE), result[0])
         assertEquals(listOf(RENAME, DUPLICATE, ARCHIVE), result[1])
+    }
+
+    @Test
+    fun shareHidesWhileTheFirstTurnIsStreaming() {
+        assertEquals(listOf(RENAME, DUPLICATE, ARCHIVE), sections(firstTurnStreaming = true)[1])
+        assertEquals(listOf(SHARE, RENAME, DUPLICATE, ARCHIVE), sections(firstTurnStreaming = false)[1])
     }
 
     @Test

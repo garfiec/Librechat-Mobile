@@ -170,6 +170,8 @@ class ConversationActionsWrites internal constructor(state: ChatUiState) {
 }
 
 class ConversationActionsHandle(root: ChatStateHandle) : DelegateHandle(root) {
+    /** Read-only observation of the full state (the link-active lookup follows the conversation). */
+    val stateFlow: StateFlow<ChatUiState> get() = root.stateFlow
     fun update(block: ConversationActionsWrites.() -> Unit) =
         root.update { ConversationActionsWrites(this).apply(block).applyTo(this) }
 }

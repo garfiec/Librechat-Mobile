@@ -294,7 +294,6 @@ fun ChatScreen(
     ChatScreenOutcomes(
         uiState = uiState,
         viewModel = viewModel,
-        snackbarHostState = snackbarHostState,
         onConversationStart = onConversationStart,
         onNavigateToConversation = onNavigateToConversation,
     )

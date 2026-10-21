@@ -10,6 +10,7 @@
     <string name="action_insert">삽입</string>
     <string name="action_open">열기</string>
     <string name="action_share">공유</string>
+    <string name="action_share_link_active">공유 · 링크 활성</string>
     <string name="action_search">검색</string>
     <string name="action_archive">보관</string>
     <string name="action_duplicate">복제</string>
@@ -659,7 +660,6 @@
     <string name="notice_delete_failed">대화를 삭제하지 못했습니다</string>
     <string name="notice_archive_failed">대화를 보관하지 못했습니다</string>
     <string name="notice_duplicate_failed">대화를 복제하지 못했습니다</string>
-    <string name="notice_share_link_failed">공유 링크를 만들지 못했습니다</string>
     <string name="notice_preset_save_failed">프리셋을 저장하지 못했습니다</string>
     <string name="notice_preset_delete_failed">프리셋을 삭제하지 못했습니다</string>
     <string name="notice_preset_update_failed">프리셋을 업데이트하지 못했습니다</string>
@@ -742,7 +742,6 @@
     <string name="sibling_position">응답 %1$d/%2$d</string>
     <string name="cd_assistant_responding">어시스턴트 응답 중: %1$s</string>
     <string name="tool_call_fallback">도구 호출</string>
-    <string name="share_link_copied">공유 링크를 클립보드에 복사했습니다</string>
     <string name="prompt_filter_title">필터 및 정렬</string>
     <string name="prompt_sort_recent">최근</string>
     <string name="prompt_sort_popular">인기</string>

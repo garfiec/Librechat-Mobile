@@ -10,6 +10,7 @@
     <string name="action_insert">插入</string>
     <string name="action_open">打开</string>
     <string name="action_share">分享</string>
+    <string name="action_share_link_active">分享 · 链接有效</string>
     <string name="action_search">搜索</string>
     <string name="action_archive">归档</string>
     <string name="action_duplicate">复制副本</string>
@@ -659,7 +660,6 @@
     <string name="notice_delete_failed">无法删除对话</string>
     <string name="notice_archive_failed">无法归档对话</string>
     <string name="notice_duplicate_failed">无法复制对话</string>
-    <string name="notice_share_link_failed">无法创建分享链接</string>
     <string name="notice_preset_save_failed">无法保存预设</string>
     <string name="notice_preset_delete_failed">无法删除预设</string>
     <string name="notice_preset_update_failed">无法更新预设</string>
@@ -742,7 +742,6 @@
     <string name="sibling_position">第 %1$d 个回复，共 %2$d 个</string>
     <string name="cd_assistant_responding">助手正在回复：%1$s</string>
     <string name="tool_call_fallback">工具调用</string>
-    <string name="share_link_copied">分享链接已复制到剪贴板</string>
     <string name="prompt_filter_title">筛选和排序</string>
     <string name="prompt_sort_recent">最近</string>
     <string name="prompt_sort_popular">热门</string>

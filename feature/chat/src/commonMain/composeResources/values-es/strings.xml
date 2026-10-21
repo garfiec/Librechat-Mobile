@@ -10,6 +10,7 @@
     <string name="action_insert">Insertar</string>
     <string name="action_open">Abrir</string>
     <string name="action_share">Compartir</string>
+    <string name="action_share_link_active">Compartir · Enlace activo</string>
     <string name="action_search">Buscar</string>
     <string name="action_archive">Archivar</string>
     <string name="action_duplicate">Duplicar</string>
@@ -659,7 +660,6 @@
     <string name="notice_delete_failed">No se pudo eliminar la conversación</string>
     <string name="notice_archive_failed">No se pudo archivar la conversación</string>
     <string name="notice_duplicate_failed">No se pudo duplicar la conversación</string>
-    <string name="notice_share_link_failed">No se pudo crear el enlace para compartir</string>
     <string name="notice_preset_save_failed">No se pudo guardar el preajuste</string>
     <string name="notice_preset_delete_failed">No se pudo eliminar el preajuste</string>
     <string name="notice_preset_update_failed">No se pudo actualizar el preajuste</string>
@@ -757,7 +757,6 @@
     <string name="sibling_position">Respuesta %1$d de %2$d</string>
     <string name="cd_assistant_responding">El asistente está respondiendo: %1$s</string>
     <string name="tool_call_fallback">Llamada a herramienta</string>
-    <string name="share_link_copied">Enlace para compartir copiado al portapapeles</string>
     <string name="prompt_filter_title">Filtrar y ordenar</string>
     <string name="prompt_sort_recent">Recientes</string>
     <string name="prompt_sort_popular">Populares</string>

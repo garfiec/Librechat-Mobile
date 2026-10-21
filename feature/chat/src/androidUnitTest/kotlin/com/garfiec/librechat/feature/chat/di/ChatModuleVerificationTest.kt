@@ -30,6 +30,7 @@ import com.garfiec.librechat.core.data.repository.SpeechRepository
 import com.garfiec.librechat.core.data.repository.SubagentRepository
 import com.garfiec.librechat.core.data.repository.TraceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
+import com.garfiec.librechat.core.data.share.ShareLinkControllerFactory
 import com.garfiec.librechat.core.data.update.AppUpdateRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.feature.chat.prompts.PromptsViewModel
@@ -74,6 +75,7 @@ class ChatModuleVerificationTest {
                 RoleRepository::class,
                 PermissionGate::class,
                 ShareRepository::class,
+                ShareLinkControllerFactory::class,
                 SubagentRepository::class,
                 TraceRepository::class,
                 SpeechRepository::class,

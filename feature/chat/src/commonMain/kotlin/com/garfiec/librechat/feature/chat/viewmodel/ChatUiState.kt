@@ -101,6 +101,13 @@ data class ChatUiState(
     val showForkOptionsForMessageId: String? get() = actions.showForkOptionsForMessageId
     val isForkInProgress: Boolean get() = actions.isForkInProgress
     val forkedConversationId: String? get() = actions.forkedConversationId
+    val shareLinkActive: Boolean get() = actions.shareLinkActive
+
+    /**
+     * The chat's first turn is still streaming (at most the opening message is in the tree): its
+     * reply isn't saved yet, so Share is hidden until the turn ends.
+     */
+    val isFirstTurnStreaming: Boolean get() = content.isStreaming && content.messages.size <= 1
     val editingMessageId: String? get() = editing.editingMessageId
     val editingText: String get() = editing.editingText
     val selectedSpec: String? get() = selection.selectedSpec

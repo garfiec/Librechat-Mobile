@@ -10,6 +10,7 @@
     <string name="action_insert">Вставить</string>
     <string name="action_open">Открыть</string>
     <string name="action_share">Поделиться</string>
+    <string name="action_share_link_active">Поделиться · Ссылка активна</string>
     <string name="action_search">Поиск</string>
     <string name="action_archive">В архив</string>
     <string name="action_duplicate">Дублировать</string>
@@ -659,7 +660,6 @@
     <string name="notice_delete_failed">Не удалось удалить беседу</string>
     <string name="notice_archive_failed">Не удалось архивировать беседу</string>
     <string name="notice_duplicate_failed">Не удалось создать копию беседы</string>
-    <string name="notice_share_link_failed">Не удалось создать ссылку для общего доступа</string>
     <string name="notice_preset_save_failed">Не удалось сохранить пресет</string>
     <string name="notice_preset_delete_failed">Не удалось удалить пресет</string>
     <string name="notice_preset_update_failed">Не удалось обновить пресет</string>
@@ -766,7 +766,6 @@
     <string name="sibling_position">Ответ %1$d из %2$d</string>
     <string name="cd_assistant_responding">Ассистент отвечает: %1$s</string>
     <string name="tool_call_fallback">Вызов инструмента</string>
-    <string name="share_link_copied">Ссылка скопирована в буфер обмена</string>
     <string name="prompt_filter_title">Фильтр и сортировка</string>
     <string name="prompt_sort_recent">Недавние</string>
     <string name="prompt_sort_popular">Популярные</string>

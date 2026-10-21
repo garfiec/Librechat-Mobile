@@ -35,6 +35,8 @@ import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
 import com.garfiec.librechat.core.data.repository.TraceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
+import com.garfiec.librechat.core.data.share.ShareLinkController
+import com.garfiec.librechat.core.data.share.ShareLinkControllerFactory
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.logging.Diag
 import com.garfiec.librechat.core.model.Attachment
@@ -150,6 +152,7 @@ class ChatViewModel(
     private val promptRepository: PromptRepository,
     queuedTurnRepository: QueuedTurnRepository,
     shareRepository: ShareRepository,
+    shareLinkControllerFactory: ShareLinkControllerFactory,
     private val traceRepository: TraceRepository,
     mcpRepository: McpRepository,
     userRepository: UserRepository,
@@ -222,7 +225,12 @@ class ChatViewModel(
     val sendHeldForCompareSetup: Flow<Unit> = _sendHeldForCompareSetup.receiveAsFlow()
     val jumpBranchSwitched: Flow<BranchSwitch> = jumpDelegate.branchSwitched
     private val conversationActionsDelegate =
-        ConversationActionsDelegate(ConversationActionsHandle(stateHandle), conversationRepository, shareRepository)
+        ConversationActionsDelegate(
+            handle = ConversationActionsHandle(stateHandle),
+            conversationRepository = conversationRepository,
+            shareRepository = shareRepository,
+            shareLink = shareLinkControllerFactory.create(viewModelScope),
+        )
     private val presetPromptDelegate =
         PresetPromptDelegate(PresetPromptHandle(stateHandle), presetRepository, promptRepository)
     private val favoritesDelegate = FavoritesDelegate(FavoritesHandle(stateHandle), favoritesRepository)
@@ -312,7 +320,9 @@ class ChatViewModel(
     // --- Delegate-owned flows exposed to the UI ---
     val attachedFiles: StateFlow<List<AttachedFile>> get() = fileDelegate.attachedFiles
     val pdfPasswordPrompts: StateFlow<List<PdfPasswordPrompt>> get() = fileDelegate.pdfPasswordPrompts
-    val shareLinkUrl: StateFlow<String?> get() = conversationActionsDelegate.shareLinkUrl
+
+    /** The share sheet's controller: what the sheet shows, and its Create / Update / Delete. */
+    val shareLink: ShareLinkController get() = conversationActionsDelegate.shareLink
 
     private data class TraceGateInputs(
         val conversationId: String?,
@@ -1293,6 +1303,8 @@ class ChatViewModel(
         conversationLoadDelegate.stopObserving()
         // The conversation changes here: nothing learned about the previous one's previews applies.
         attachmentPreviewDelegate.reset()
+        // A share sheet belongs to the conversation that just left this landing.
+        conversationActionsDelegate.shareLink.close()
         // The landing now stands for the next new chat, which opens on the server's spec again.
         modelDelegate.rearmModelSpecDefault()
         // The reset below ends any Compare setup without Cancel or Start, so nothing would release
@@ -1486,7 +1498,7 @@ class ChatViewModel(
     fun duplicateConversation() = conversationActionsDelegate.duplicateConversation()
     fun onDuplicatedConversationHandled() = conversationActionsDelegate.onDuplicatedConversationHandled()
     fun shareConversation() = conversationActionsDelegate.shareConversation()
-    fun onShareLinkHandled() = conversationActionsDelegate.onShareLinkHandled()
+    fun closeShareSheet() = conversationActionsDelegate.closeShareSheet()
     fun showForkOptions(messageId: String) = conversationActionsDelegate.showForkOptions(messageId)
     fun dismissForkOptions() = conversationActionsDelegate.dismissForkOptions()
     fun forkFromMessage(messageId: String, option: String, splitAtTarget: Boolean = false) =

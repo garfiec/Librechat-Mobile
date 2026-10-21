@@ -19,7 +19,6 @@ enum class ChatNotice(val wire: String) {
     DELETE_FAILED("delete_failed"),
     ARCHIVE_FAILED("archive_failed"),
     DUPLICATE_FAILED("duplicate_failed"),
-    SHARE_LINK_FAILED("share_link_failed"),
     PRESET_SAVE_FAILED("preset_save_failed"),
     PRESET_DELETE_FAILED("preset_delete_failed"),
     PRESET_UPDATE_FAILED("preset_update_failed"),

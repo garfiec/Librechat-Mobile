@@ -20,7 +20,6 @@ import com.garfiec.librechat.feature.chat.resources.action_archive
 import com.garfiec.librechat.feature.chat.resources.action_duplicate
 import com.garfiec.librechat.feature.chat.resources.action_rename
 import com.garfiec.librechat.feature.chat.resources.action_search
-import com.garfiec.librechat.feature.chat.resources.action_share
 import com.garfiec.librechat.feature.chat.resources.action_show_all_media
 import com.garfiec.librechat.feature.chat.resources.cancel
 import com.garfiec.librechat.feature.chat.resources.cd_more_options
@@ -166,7 +165,7 @@ private fun overflowMenuItem(item: ChatOverflowItem, uiState: ChatUiState, onCli
             },
         )
         ChatOverflowItem.COMPACT -> entry(stringResource(Res.string.compact_nudge_menu), BarIcons.Compact)
-        ChatOverflowItem.SHARE -> entry(stringResource(Res.string.action_share), BarIcons.Share)
+        ChatOverflowItem.SHARE -> entry(shareItemLabel(uiState.shareLinkActive), BarIcons.Share)
         ChatOverflowItem.RENAME -> entry(stringResource(Res.string.action_rename), BarIcons.Edit)
         ChatOverflowItem.DUPLICATE -> entry(stringResource(Res.string.action_duplicate), BarIcons.Duplicate)
         ChatOverflowItem.ARCHIVE -> entry(stringResource(Res.string.action_archive), BarIcons.Archive)

@@ -10,6 +10,7 @@
     <string name="action_insert">Einfügen</string>
     <string name="action_open">Öffnen</string>
     <string name="action_share">Teilen</string>
+    <string name="action_share_link_active">Teilen · Link aktiv</string>
     <string name="action_search">Suchen</string>
     <string name="action_archive">Archivieren</string>
     <string name="action_duplicate">Duplizieren</string>
@@ -659,7 +660,6 @@
     <string name="notice_delete_failed">Unterhaltung konnte nicht gelöscht werden</string>
     <string name="notice_archive_failed">Unterhaltung konnte nicht archiviert werden</string>
     <string name="notice_duplicate_failed">Unterhaltung konnte nicht dupliziert werden</string>
-    <string name="notice_share_link_failed">Freigabelink konnte nicht erstellt werden</string>
     <string name="notice_preset_save_failed">Voreinstellung konnte nicht gespeichert werden</string>
     <string name="notice_preset_delete_failed">Voreinstellung konnte nicht gelöscht werden</string>
     <string name="notice_preset_update_failed">Voreinstellung konnte nicht aktualisiert werden</string>
@@ -750,7 +750,6 @@
     <string name="sibling_position">Antwort %1$d von %2$d</string>
     <string name="cd_assistant_responding">Assistent antwortet: %1$s</string>
     <string name="tool_call_fallback">Tool-Aufruf</string>
-    <string name="share_link_copied">Freigabelink in die Zwischenablage kopiert</string>
     <string name="prompt_filter_title">Filtern &amp; sortieren</string>
     <string name="prompt_sort_recent">Neueste</string>
     <string name="prompt_sort_popular">Beliebt</string>

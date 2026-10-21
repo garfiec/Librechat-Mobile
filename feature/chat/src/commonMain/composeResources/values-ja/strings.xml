@@ -10,6 +10,7 @@
     <string name="action_insert">挿入</string>
     <string name="action_open">開く</string>
     <string name="action_share">共有</string>
+    <string name="action_share_link_active">共有 · リンク有効</string>
     <string name="action_search">検索</string>
     <string name="action_archive">アーカイブ</string>
     <string name="action_duplicate">複製</string>
@@ -659,7 +660,6 @@
     <string name="notice_delete_failed">会話を削除できませんでした</string>
     <string name="notice_archive_failed">会話をアーカイブできませんでした</string>
     <string name="notice_duplicate_failed">会話を複製できませんでした</string>
-    <string name="notice_share_link_failed">共有リンクを作成できませんでした</string>
     <string name="notice_preset_save_failed">プリセットを保存できませんでした</string>
     <string name="notice_preset_delete_failed">プリセットを削除できませんでした</string>
     <string name="notice_preset_update_failed">プリセットを更新できませんでした</string>
@@ -742,7 +742,6 @@
     <string name="sibling_position">回答 %1$d / %2$d</string>
     <string name="cd_assistant_responding">アシスタントが応答中：%1$s</string>
     <string name="tool_call_fallback">ツール呼び出し</string>
-    <string name="share_link_copied">共有リンクをクリップボードにコピーしました</string>
     <string name="prompt_filter_title">絞り込みと並べ替え</string>
     <string name="prompt_sort_recent">新しい順</string>
     <string name="prompt_sort_popular">人気順</string>

@@ -42,6 +42,7 @@ import com.garfiec.librechat.feature.chat.resources.action_duplicate
 import com.garfiec.librechat.feature.chat.resources.action_rename
 import com.garfiec.librechat.feature.chat.resources.action_search
 import com.garfiec.librechat.feature.chat.resources.action_share
+import com.garfiec.librechat.feature.chat.resources.action_share_link_active
 import com.garfiec.librechat.feature.chat.resources.action_show_all_media
 import com.garfiec.librechat.feature.chat.resources.cd_comparison_enabled
 import com.garfiec.librechat.feature.chat.resources.compact_nudge_menu
@@ -68,6 +69,8 @@ internal fun ChatOverflowMenu(
     isComparisonEnabled: Boolean,
     contextGauge: ContextGaugeDetails?,
     onItem: (ChatOverflowItem) -> Unit,
+    /** The open chat has a live share link: Share reads "Share · Link active". */
+    shareLinkActive: Boolean = false,
     dragSelection: MenuDragSelection? = null,
     /** False greys out Compare Models (a comparison can't be turned off mid-reply). */
     canToggleComparison: Boolean = true,
@@ -123,7 +126,7 @@ internal fun ChatOverflowMenu(
                     ChatOverflowItem.COMPACT ->
                         OverflowItem(stringResource(Res.string.compact_nudge_menu), Icons.Outlined.Compress, select, dragTarget)
                     ChatOverflowItem.SHARE ->
-                        OverflowItem(stringResource(Res.string.action_share), Icons.Outlined.Share, select, dragTarget)
+                        OverflowItem(shareItemLabel(shareLinkActive), Icons.Outlined.Share, select, dragTarget)
                     ChatOverflowItem.RENAME ->
                         OverflowItem(stringResource(Res.string.action_rename), Icons.Outlined.Edit, select, dragTarget)
                     ChatOverflowItem.DUPLICATE ->
@@ -190,3 +193,8 @@ private fun CompareItem(isComparisonEnabled: Boolean, enabled: Boolean, onClick:
         leadingIcon = { Icon(Icons.Outlined.Compare, contentDescription = null, modifier = Modifier.dragSelectRowIcon()) },
     )
 }
+
+/** The Share item's label, which says so when the open chat already has a live link. */
+@Composable
+internal fun shareItemLabel(linkActive: Boolean): String =
+    stringResource(if (linkActive) Res.string.action_share_link_active else Res.string.action_share)

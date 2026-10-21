@@ -10,6 +10,7 @@
     <string name="action_insert">Insérer</string>
     <string name="action_open">Ouvrir</string>
     <string name="action_share">Partager</string>
+    <string name="action_share_link_active">Partager · Lien actif</string>
     <string name="action_search">Rechercher</string>
     <string name="action_archive">Archiver</string>
     <string name="action_duplicate">Dupliquer</string>
@@ -659,7 +660,6 @@
     <string name="notice_delete_failed">Impossible de supprimer la conversation</string>
     <string name="notice_archive_failed">Impossible d'archiver la conversation</string>
     <string name="notice_duplicate_failed">Impossible de dupliquer la conversation</string>
-    <string name="notice_share_link_failed">Impossible de créer le lien de partage</string>
     <string name="notice_preset_save_failed">Impossible d'enregistrer le préréglage</string>
     <string name="notice_preset_delete_failed">Impossible de supprimer le préréglage</string>
     <string name="notice_preset_update_failed">Impossible de mettre à jour le préréglage</string>
@@ -757,7 +757,6 @@
     <string name="sibling_position">Réponse %1$d sur %2$d</string>
     <string name="cd_assistant_responding">L’assistant répond : %1$s</string>
     <string name="tool_call_fallback">Appel d’outil</string>
-    <string name="share_link_copied">Lien de partage copié dans le presse-papiers</string>
     <string name="prompt_filter_title">Filtrer et trier</string>
     <string name="prompt_sort_recent">Récents</string>
     <string name="prompt_sort_popular">Populaires</string>
