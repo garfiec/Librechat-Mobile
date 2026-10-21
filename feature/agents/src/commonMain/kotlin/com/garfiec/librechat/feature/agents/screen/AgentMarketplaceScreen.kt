@@ -182,12 +182,11 @@ internal fun AgentMarketplaceContent(
             lastVisible >= layoutInfo.totalItemsCount - 3
         }
     }
+    // Keyed on the laid-out item count too, so a page that lands with the end still in view asks for
+    // the next one; read after layout, so it never judges a new page by the old count.
     LaunchedEffect(gridState) {
-        snapshotFlow { shouldLoadMore }.collect { if (it) currentActions.onLoadMore() }
-    }
-    // A page that lands while the end is already in view keeps the next one coming.
-    LaunchedEffect(uiState.agents.size) {
-        if (shouldLoadMore) currentActions.onLoadMore()
+        snapshotFlow { gridState.layoutInfo.totalItemsCount to shouldLoadMore }
+            .collect { (_, nearEnd) -> if (nearEnd) currentActions.onLoadMore() }
     }
 
     val showsServerEmpty = uiState.isServerEmpty
@@ -239,7 +238,7 @@ internal fun AgentMarketplaceContent(
 
 /** The server has no agents this user can see: All, no search, nothing back. */
 private val AgentMarketplaceUiState.isServerEmpty: Boolean
-    get() = !isLoading && loadError == null && agents.isEmpty() &&
+    get() = !isLoading && !isRefreshing && loadError == null && agents.isEmpty() &&
         shownQuery == AgentListQuery(AgentChip.All, "")
 
 @Composable
@@ -252,7 +251,8 @@ internal fun AgentGrid(
     val categoriesByValue = remember(uiState.categories) { uiState.categories.associateBy { it.value } }
     // The card's text scales with the font, so its minimum width does too.
     val minCardWidth = AgentCardMinWidth * LocalDensity.current.fontScale
-    val isFirstLoad = uiState.isLoading && uiState.agents.isEmpty()
+    // A pull on the error page has nothing to show either; placeholders, not a flash of "No agents yet".
+    val isFirstLoad = (uiState.isLoading || uiState.isRefreshing) && uiState.agents.isEmpty()
     val showsServerEmpty = uiState.isServerEmpty
     LazyVerticalGrid(
         columns = remember(minCardWidth) { UpToTwoColumns(minCardWidth) },
