@@ -19,11 +19,14 @@ import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.Archive
@@ -83,6 +86,11 @@ object BarIcons {
     val Filter = BarIcon(Icons.Default.FilterList, "line.3.horizontal.decrease.circle")
     val Source = BarIcon(Icons.Default.Code, "chevron.left.forwardslash.chevron.right")
     val Rendered = BarIcon(Icons.AutoMirrored.Filled.Notes, "text.alignleft")
+    val Link = BarIcon(Icons.Default.Link, "link")
+
+    // A pin toggle: the outline while off, the filled star while on.
+    val Star = BarIcon(Icons.Default.StarBorder, "star")
+    val StarFilled = BarIcon(Icons.Default.Star, "star.fill")
 
     // Compact forms of text actions (see BarAction.Text.compactIcon).
     val Confirm = BarIcon(Icons.Default.Check, "checkmark")
@@ -93,6 +101,6 @@ object BarIcons {
         Back, Menu, Close, More, Search, Visible, Hidden, Media, LoadPreset, SavePreset, Prompts,
         Compare, Trace, ContextUsage, Compact, Share, Edit, Duplicate, Archive, Delete,
         EditFilled, DuplicateFilled, DeleteFilled, ShareFilled, History, Sort, NewFolder, Tools, Import,
-        SelectAll, GridView, ListView, Filter, Source, Rendered, Confirm, Attach, ClearAll,
+        SelectAll, GridView, ListView, Filter, Source, Rendered, Link, Star, StarFilled, Confirm, Attach, ClearAll,
     )
 }
