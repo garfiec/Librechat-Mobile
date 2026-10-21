@@ -791,7 +791,7 @@
     <string name="shared_chats_title">Общие чаты</string>
     <string name="shared_chats_summary">Ссылки на чаты, которыми вы поделились</string>
     <string name="shared_chats_untitled">Чат без названия</string>
-    <string name="shared_chats_shared_on">Опубликовано %1$s</string>
+    <string name="shared_chats_shared_on">Опубликовано · %1$s</string>
     <string name="shared_chats_options">Действия для «%1$s»</string>
     <string name="shared_chats_open_chat">Открыть чат</string>
     <string name="shared_chats_view_shared">Посмотреть общую версию</string>

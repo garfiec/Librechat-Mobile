@@ -764,7 +764,7 @@
     <string name="shared_chats_title">已分享的对话</string>
     <string name="shared_chats_summary">你分享过的对话链接</string>
     <string name="shared_chats_untitled">未命名对话</string>
-    <string name="shared_chats_shared_on">分享于 %1$s</string>
+    <string name="shared_chats_shared_on">已分享 · %1$s</string>
     <string name="shared_chats_options">%1$s 的选项</string>
     <string name="shared_chats_open_chat">打开对话</string>
     <string name="shared_chats_view_shared">查看分享版本</string>

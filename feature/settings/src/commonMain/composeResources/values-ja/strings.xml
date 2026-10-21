@@ -764,7 +764,7 @@
     <string name="shared_chats_title">共有したチャット</string>
     <string name="shared_chats_summary">共有したチャットへのリンク</string>
     <string name="shared_chats_untitled">無題のチャット</string>
-    <string name="shared_chats_shared_on">%1$sに共有</string>
+    <string name="shared_chats_shared_on">共有 · %1$s</string>
     <string name="shared_chats_options">%1$sのオプション</string>
     <string name="shared_chats_open_chat">チャットを開く</string>
     <string name="shared_chats_view_shared">共有版を表示</string>

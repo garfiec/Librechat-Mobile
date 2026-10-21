@@ -764,7 +764,7 @@
     <string name="shared_chats_title">공유한 채팅</string>
     <string name="shared_chats_summary">공유한 채팅의 링크</string>
     <string name="shared_chats_untitled">제목 없는 채팅</string>
-    <string name="shared_chats_shared_on">%1$s 공유됨</string>
+    <string name="shared_chats_shared_on">공유됨 · %1$s</string>
     <string name="shared_chats_options">%1$s 옵션</string>
     <string name="shared_chats_open_chat">채팅 열기</string>
     <string name="shared_chats_view_shared">공유된 버전 보기</string>

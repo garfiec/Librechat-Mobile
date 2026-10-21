@@ -773,7 +773,7 @@
     <string name="shared_chats_title">Discussions partagées</string>
     <string name="shared_chats_summary">Liens vers les discussions que vous avez partagées</string>
     <string name="shared_chats_untitled">Discussion sans titre</string>
-    <string name="shared_chats_shared_on">Partagée %1$s</string>
+    <string name="shared_chats_shared_on">Partagée · %1$s</string>
     <string name="shared_chats_options">Options pour %1$s</string>
     <string name="shared_chats_open_chat">Ouvrir la discussion</string>
     <string name="shared_chats_view_shared">Voir la version partagée</string>

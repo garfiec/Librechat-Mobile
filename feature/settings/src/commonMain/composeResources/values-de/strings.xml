@@ -773,7 +773,7 @@
     <string name="shared_chats_title">Geteilte Chats</string>
     <string name="shared_chats_summary">Links zu Chats, die du geteilt hast</string>
     <string name="shared_chats_untitled">Unbenannter Chat</string>
-    <string name="shared_chats_shared_on">Geteilt %1$s</string>
+    <string name="shared_chats_shared_on">Geteilt · %1$s</string>
     <string name="shared_chats_options">Optionen für %1$s</string>
     <string name="shared_chats_open_chat">Chat öffnen</string>
     <string name="shared_chats_view_shared">Geteilte Version ansehen</string>

@@ -779,7 +779,7 @@
     <string name="shared_chats_title">Shared chats</string>
     <string name="shared_chats_summary">Links to chats you've shared</string>
     <string name="shared_chats_untitled">Untitled chat</string>
-    <string name="shared_chats_shared_on">Shared %1$s</string>
+    <string name="shared_chats_shared_on">Shared · %1$s</string>
     <string name="shared_chats_options">Options for %1$s</string>
     <string name="shared_chats_open_chat">Open chat</string>
     <string name="shared_chats_view_shared">View shared version</string>

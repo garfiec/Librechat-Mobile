@@ -809,7 +809,7 @@
     <string name="shared_chats_title">المحادثات المشتركة</string>
     <string name="shared_chats_summary">روابط المحادثات التي شاركتها</string>
     <string name="shared_chats_untitled">محادثة بلا عنوان</string>
-    <string name="shared_chats_shared_on">تمت المشاركة %1$s</string>
+    <string name="shared_chats_shared_on">تمت المشاركة · %1$s</string>
     <string name="shared_chats_options">خيارات %1$s</string>
     <string name="shared_chats_open_chat">فتح المحادثة</string>
     <string name="shared_chats_view_shared">عرض النسخة المشتركة</string>
