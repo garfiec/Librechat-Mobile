@@ -64,8 +64,10 @@ fun EntryProviderScope<NavKey>.agentsEntries(
         val deletedDetail = AgentDetail(agentId = key.agentId)
         AgentEditorScreen(
             onBack = onBack,
-            // The editor is opened from the agent's detail page, which is still underneath.
-            onSave = { onBack() },
+            // The editor is opened from the agent's detail page, which is still underneath. A save
+            // can land after the user has left through the drawer or sidebar, so it removes this
+            // entry only, never whatever is on top by then.
+            onSave = { onRemove(key) },
             onDuplicate = { agentId -> onReplace(key, AgentDetail(agentId = agentId)) },
             onDelete = { onPopWhile { it == key || it == deletedDetail } },
             agentId = key.agentId,
