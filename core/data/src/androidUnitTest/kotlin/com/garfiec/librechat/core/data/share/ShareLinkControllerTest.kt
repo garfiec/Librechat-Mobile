@@ -342,6 +342,35 @@ class ShareLinkControllerTest : ShareLinkControllerTestBase() {
     }
 
     @Test
+    fun `an Update that succeeds after a failed one clears the old error, even when the lookup fails`() = runTest {
+        coEvery { shareApi.getShareLink("convo") } returns live("s1") andThenThrows IOException("offline")
+        val second = CompletableDeferred<Unit>()
+        var calls = 0
+        coEvery { shareApi.updateShareLink("s1", any()) } coAnswers {
+            calls++
+            if (calls == 1) throw IOException("offline")
+            second.await()
+            link("s1")
+        }
+        val controller = controller()
+
+        controller.open("convo")
+        controller.awaitLinked()
+        controller.update()
+        val failed = controller.await { it is ShareSheetState.Linked && it.error != null } as ShareSheetState.Linked
+        assertThat(failed.error).isEqualTo(ShareSheetError.Network)
+
+        controller.update()
+        controller.await { it is ShareSheetState.Linked && it.busy != null }
+        second.complete(Unit)
+        val state = controller.awaitLinked()
+
+        assertThat(state.error).isNull()
+        assertThat(state.shareId).isEqualTo("s1")
+        coVerify(exactly = 2) { shareApi.getShareLink("convo") }
+    }
+
+    @Test
     fun `updating a link that is gone treats it as removed`() = runTest {
         coEvery { shareApi.getShareLink("convo") } returns live("s1")
         coEvery { shareApi.updateShareLink("s1", any()) } throws ApiException(404, "Not Found")

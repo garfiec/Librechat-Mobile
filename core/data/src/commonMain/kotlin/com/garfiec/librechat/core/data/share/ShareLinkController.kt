@@ -217,7 +217,7 @@ class ShareLinkController internal constructor(
                     // A pre-rc1 server minted a new id; the sheet follows the link, not the card.
                     val followed = active.copy(focusShareId = null)
                     session = followed
-                    settle(gen, followed, current.copy(shareId = outcome.value, busy = null))
+                    settle(gen, followed, current.copy(shareId = outcome.value, busy = null, error = null))
                 }
                 is Published.Failed ->
                     if (outcome.error == ShareSheetError.NotFound) {
