@@ -37,7 +37,7 @@
 - File preview on tap (non-image files)
 
 ### File Type Filtering
-- `FilesScreen` renders an inline `ScrollableTabRow` (All, Images, Documents, Audio, Video)
+- `FilesScreen` renders an inline `AdaptiveTabRow` (All, Images, Documents, Audio, Video)
 - Filters by MIME type prefix in `FilesViewModel` (`FileTypeFilter`)
 
 ### Upload Progress

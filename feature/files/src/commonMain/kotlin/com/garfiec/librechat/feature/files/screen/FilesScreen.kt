@@ -34,9 +34,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -65,6 +63,8 @@ import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveFloatingActionButton
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
+import com.garfiec.librechat.core.ui.components.AdaptiveTabRow
+import com.garfiec.librechat.core.ui.components.AdaptiveTabRowKind
 import com.garfiec.librechat.core.ui.components.EmptyState
 import com.garfiec.librechat.core.ui.components.ErrorBanner
 import com.garfiec.librechat.core.ui.components.FileTypeTile
@@ -580,19 +580,13 @@ internal fun FileTypeFilterTabs(
     modifier: Modifier = Modifier,
 ) {
     val filters = FileTypeFilter.entries
-    ScrollableTabRow(
-        selectedTabIndex = filters.indexOf(selected),
-        edgePadding = 16.dp,
+    AdaptiveTabRow(
+        titles = filters.map { stringResource(it.label) },
+        selectedIndex = filters.indexOf(selected),
+        onSelect = { onSelect(filters[it]) },
         modifier = modifier,
-    ) {
-        filters.forEach { filter ->
-            Tab(
-                selected = filter == selected,
-                onClick = { onSelect(filter) },
-                text = { Text(stringResource(filter.label)) },
-            )
-        }
-    }
+        kind = AdaptiveTabRowKind.SECONDARY,
+    )
 }
 
 @Composable
