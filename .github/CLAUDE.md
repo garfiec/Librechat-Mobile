@@ -69,6 +69,8 @@ File: `.github/workflows/ci.yml`
   suite, which *runs* on a local emulator (`connectedDebugAndroidTest`), never in CI. Scoped to the
   one module deliberately: a repo-wide `assembleDebugAndroidTest` would also compile `:app`'s stale
   `androidTest` sources.
+- `scripts/verify-speech-services.py --manifest-only` — both flavors' merged manifests declare the
+  speech `<queries>` intents (#601). The device half of that script runs locally only.
 - Uploads the `fossDebug` APK as an artifact (90-day retention) and posts its download link to the PR
 
 #### `ios` (Build iOS App)

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- RecognitionService checks its own RECORD_AUDIO before delivering results on API 31+. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- It also checks the caller's RECORD_AUDIO, which fails as "caller without permission" unless
+         it can see the caller: the system binds the recognizer, so no implicit visibility is granted.
+         Whisper+ declares this for the same reason. -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+
+    <application android:label="Speech fixture">
+        <!-- Declared the way Whisper+ declares its recognizer. -->
+        <service
+            android:name=".FixtureRecognitionService"
+            android:exported="true"
+            android:permission="android.permission.RECORD_AUDIO">
+            <intent-filter>
+                <action android:name="android.speech.RecognitionService" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <meta-data
+                android:name="android.speech"
+                android:resource="@xml/recognition_service" />
+        </service>
+
+        <service
+            android:name=".FixtureTtsService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.TTS_SERVICE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </service>
+
+        <activity
+            android:name=".FixtureRecognizeActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

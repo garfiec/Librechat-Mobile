@@ -661,6 +661,16 @@ When an office preview misbehaves, start here:
 - `AudioContent` decodes base64 audio and plays it via ExoPlayer on Android, AVAudioPlayer on iOS
 - **Gotcha**: Both players must release resources on dispose — use `DisposableEffect`
 
+## Speech providers: package visibility (#601)
+Dictation and read-aloud use whatever recognizer and TTS engine the user has set, which is only
+reachable if `src/androidMain/AndroidManifest.xml` declares its `<queries>` intent
+(`RecognitionService`, `TTS_SERVICE`, `RECOGNIZE_SPEECH`). Google's recognizer and TTS engine are
+force-queryable, so on a phone with Google a missing entry changes nothing. On a ROM without Google
+(GrapheneOS with Whisper+), the recognizer is invisible and the mic says "not available". A Pixel
+can't test this. `scripts/verify-speech-services.py` can: it boots a no-GMS AOSP emulator, installs
+`:testing:speech-fixture` as the default recognizer and TTS engine, and runs the `audio/` speech
+instrumented tests. Those tests skip anywhere else.
+
 ## Feedback: rating + reason tag + comment
 - **Both** thumbs open `FeedbackTagSheet` — the route validates against an object schema whose
   `tag` is REQUIRED, so a bare rating is rejected 400 and there is no one-tap path. Tapping the

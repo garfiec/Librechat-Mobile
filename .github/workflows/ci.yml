@@ -122,6 +122,11 @@ jobs:
       - name: Compile chat instrumented tests
         run: ./gradlew :feature:chat:assembleDebugAndroidTest
 
+      # The device half of this check runs locally on a no-GMS emulator; the manifest half is
+      # cheap enough for every PR.
+      - name: Check speech <queries> in the merged manifests
+        run: python3 -I scripts/verify-speech-services.py --manifest-only
+
       - name: Upload debug APK
         id: upload_apk
         if: always() && hashFiles('app/build/outputs/apk/foss/debug/app-foss-debug.apk') != ''

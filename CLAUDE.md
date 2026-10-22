@@ -28,6 +28,7 @@ feature/conversations/→ Paginated list, CRUD, tags, search, export/import
 feature/settings/     → Account, appearance, about, danger zone
 feature/agents/       → Agent marketplace with search and categories
 feature/files/        → File upload, management, image viewer
+testing/speech-fixture/ → Stand-in speech provider APK for scripts/verify-speech-services.py (never ships)
 ```
 
 Each module has its own `CLAUDE.md` with specific guidance.
