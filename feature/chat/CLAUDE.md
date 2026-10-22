@@ -112,11 +112,28 @@ Which spec applies, and whether it is prioritized, is `util/SpecSeed.kt`, a port
   new chat's spec; mobile writes last-used only on a pick.
 - **Soft default**: applies only when last-used can't, so a user's own selection wins.
 
-**Known mobile gap: a raw model pick is ignored under prioritize.** Last-used is still saved on
-every pick, but under a prioritized spec a raw model never seeds a new chat; only a spec pick
-carries over. That is web parity. A setting to prefer the user's own model over the server's spec
-is a possible follow-up (#552). It would be a mobile addition (web has none), so it belongs in
-Settings, not in the resolver.
+- **Start new chats on** (Settings › Chat, `AppPreferences.PreferLastUsedModel`, mobile-only,
+  #552): "Server's choice" (the default, web parity) or "My last-used model". The latter demotes a
+  prioritized spec to a soft default (`util/NewChatStart.kt`, `demotedForLastUsed`), so last-used
+  wins and the spec applies only when last-used can't. It still yields to the server's locks:
+  `modelSelect: false`, and `enforce` with a raw last-used pair (a last-used spec still counts).
+  Keep the override there, never in `SpecSeed.kt`, which mirrors upstream. Switching it while the
+  landing is open re-seeds the landing.
+
+| Server config | "Server's choice": new chats open on | "My last-used model": new chats open on | Role of last-used |
+|---|---|---|---|
+| No `modelSpecs` | Last-used, then first agent, then first model | Same | Decides new chats |
+| `prioritize: true` (or field omitted) | The `default` spec, or the first spec if none is marked | Last-used if usable, otherwise that spec | Default: saved, used only when the spec can't apply. Setting: wins |
+| …and the user's last pick was a spec | That spec, unless a spec is marked `default` (web: `LAST_CONVO_SETUP.spec`) | That spec | Last spec reopens |
+| `prioritize: false` + `softDefault` spec | Last-used if usable, otherwise the soft spec | Same | Wins over the soft spec |
+| `prioritize: false`, no soft default | Same as no specs | Same | Same as no specs |
+| `interface.modelSelect: false` | The `default`/soft/first spec, always | Same: the setting is ignored | Not used while the spec applies |
+| `enforce: true` | As above; a raw pick can't be sent | Last-used only if it's a spec; a raw one falls back to the server's spec | Raw last-used ignored |
+
+In both modes: a spec that can't apply (missing agent, no agent access, a model the endpoint doesn't
+offer, config not loaded yet) falls back to the normal order; a start-chat link overrides for that
+one chat; a pick on the new-chat screen lasts until that chat starts; existing conversations reopen
+on their own model.
 
 **The selection is one value, `ModelChoice`: `Raw(endpoint, model)` or `Spec(name, endpoint,
 model)`.** Write it whole, through `ModelSelectionDelegate.applySelection`; the preset load, the

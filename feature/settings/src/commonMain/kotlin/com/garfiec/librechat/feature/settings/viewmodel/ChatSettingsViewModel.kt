@@ -96,6 +96,10 @@ class ChatSettingsViewModel(
         prefsController.setShowImageDescriptions(show)
     }
 
+    fun setPreferLastUsedModel(prefer: Boolean) {
+        prefsController.setPreferLastUsedModel(prefer)
+    }
+
     fun setShowSiteIcons(show: Boolean) {
         prefsController.setShowSiteIcons(show)
     }

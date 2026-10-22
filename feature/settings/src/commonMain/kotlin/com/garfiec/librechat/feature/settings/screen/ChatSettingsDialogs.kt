@@ -49,6 +49,7 @@ internal enum class ChatSettingDialog {
     DURING_RUN_ACTION,
     UPLOAD_ROUTING,
     STARRED_MODELS,
+    NEW_CHAT_START,
     CHAT_HEADER,
     ARTIFACT_VIEWER,
     RENDER_INLINE,
@@ -95,6 +96,10 @@ internal fun uploadRoutingModeLabel(mode: UploadRoutingMode): String = when (mod
     UploadRoutingMode.AUTO -> stringResource(Res.string.upload_routing_auto)
     UploadRoutingMode.MANUAL -> stringResource(Res.string.upload_routing_manual)
 }
+
+@Composable
+internal fun newChatStartLabel(preferLastUsed: Boolean): String =
+    stringResource(if (preferLastUsed) Res.string.new_chat_start_last_used else Res.string.new_chat_start_server)
 
 @Composable
 internal fun starredModelsDisplayLabel(display: StarredModelsDisplay): String = when (display) {

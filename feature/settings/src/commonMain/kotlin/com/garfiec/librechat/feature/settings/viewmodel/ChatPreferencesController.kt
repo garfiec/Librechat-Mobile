@@ -64,6 +64,7 @@ private data class AdditionalPreferences(
     val duringRunAction: DuringRunAction = DuringRunAction.STEER,
     val uploadRoutingMode: UploadRoutingMode = UploadRoutingMode.AUTO,
     val showSiteIcons: Boolean = false,
+    val preferLastUsedModel: Boolean = false,
 )
 
 /**
@@ -184,6 +185,8 @@ class ChatPreferencesController(
     }.combine(preferenceStore.observe(AppPreferences.SiteIcons)) { additional, siteIcons ->
         // Never chosen reads as off: the chat screen asks before anything loads.
         additional.copy(showSiteIcons = siteIcons ?: false)
+    }.combine(preferenceStore.observe(AppPreferences.PreferLastUsedModel)) { additional, preferLastUsed ->
+        additional.copy(preferLastUsedModel = preferLastUsed)
     }.stateIn(
         scope,
         SharingStarted.Eagerly,
@@ -230,6 +233,7 @@ class ChatPreferencesController(
             duringRunAction = additional.duringRunAction,
             uploadRoutingMode = additional.uploadRoutingMode,
             showSiteIcons = additional.showSiteIcons,
+            preferLastUsedModel = additional.preferLastUsedModel,
         )
     }.stateIn(scope, SharingStarted.Eagerly, ChatSettingsUiState())
 
@@ -277,6 +281,10 @@ class ChatPreferencesController(
 
     fun setShowSiteIcons(show: Boolean) {
         scope.launch { preferenceStore.set(AppPreferences.SiteIcons, show) }
+    }
+
+    fun setPreferLastUsedModel(prefer: Boolean) {
+        scope.launch { preferenceStore.set(AppPreferences.PreferLastUsedModel, prefer) }
     }
 
     fun setDismissKeyboardOnSend(enabled: Boolean) {

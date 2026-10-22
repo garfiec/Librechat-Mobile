@@ -53,6 +53,13 @@ object AppPreferences {
      */
     val CompareSyncScroll = boolPreference("compare_sync_scroll", default = always(true))
 
+    /**
+     * Whether a new chat opens on the user's last-used model rather than the server's prioritized
+     * model spec. Off by default, as on web. On, a prioritized spec opens a new chat only when
+     * last-used can't, the way a soft-default spec does. Mobile-only.
+     */
+    val PreferLastUsedModel = boolPreference("prefer_last_used_model", default = always(false))
+
     val all: List<PreferenceSpec<*, *>> =
         listOf(
             SiteIcons,
@@ -62,5 +69,6 @@ object AppPreferences {
             PrefetchDepthSetting,
             AdvancedSearch,
             CompareSyncScroll,
+            PreferLastUsedModel,
         )
 }

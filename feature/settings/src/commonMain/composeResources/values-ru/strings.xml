@@ -300,6 +300,10 @@
     <string name="starred_models_off">Выключено</string>
     <string name="starred_models_grouped">Сворачиваемая группа вверху</string>
     <string name="starred_models_top">Вверху, без группировки</string>
+    <string name="new_chat_start_title">Начинать новые чаты с</string>
+    <string name="new_chat_start_desc">Если сервер выбирает модель для новых чатов, выберите, использовать её или последнюю использованную вами модель. Не действует, если сервер скрывает выбор модели или требует одну из своих моделей.</string>
+    <string name="new_chat_start_server">Выбор сервера</string>
+    <string name="new_chat_start_last_used">Последняя использованная модель</string>
     <string name="chat_header_title">Заголовок чата</string>
     <string name="chat_header_summary_format">%1$s · %2$s</string>
     <string name="chat_header_content_label">Содержимое</string>

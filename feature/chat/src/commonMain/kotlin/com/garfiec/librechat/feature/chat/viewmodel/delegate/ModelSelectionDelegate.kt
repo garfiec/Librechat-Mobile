@@ -23,6 +23,7 @@ import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.util.SpecSeed
+import com.garfiec.librechat.feature.chat.util.demotedForLastUsed
 import com.garfiec.librechat.feature.chat.util.inferredFor
 import com.garfiec.librechat.feature.chat.util.offeredOn
 import com.garfiec.librechat.feature.chat.util.offeredOrUnchecked
@@ -41,6 +42,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -63,6 +65,8 @@ class ModelSelectionDelegate(
     private val settingsDataStore: SettingsDataStore,
     private val permissionGate: PermissionGate,
     private val connectivityObserver: ConnectivityObserver,
+    /** The "Start new chats on: My last-used model" setting; see [demotedForLastUsed]. */
+    private val preferLastUsedModel: Flow<Boolean> = flowOf(false),
     initialAgentId: String? = null,
     initialEndpoint: String? = null,
     initialModel: String? = null,
@@ -206,6 +210,9 @@ class ModelSelectionDelegate(
      * emission.
      */
     private var lastAppliedLastUsed: ModelChoice? = null
+
+    /** The "Start new chats on" setting as of the last seed; null before the first. */
+    private var appliedPreferLastUsed: Boolean? = null
 
     /**
      * True between a Tier-0 explicit-agent application and the moment the populated
@@ -490,7 +497,8 @@ class ModelSelectionDelegate(
      *   0. an explicit agent or model from the start-chat navigation (one-shot)
      *   0b. the server's prioritized model spec (`modelSpecs.prioritize`, or `interface.modelSelect`
      *       off), or the spec the user last picked, until something on this landing displaces it —
-     *       see [applyModelSpecDefault]
+     *       see [applyModelSpecDefault]. With "Start new chats on: My last-used model" it drops to
+     *       1b instead, unless the server leaves no choice ([demotedForLastUsed])
      *   1. last-used (endpoint + model, and its spec name while the server still offers it), if
      *      present and valid
      *   1b. the server's soft-default model spec
@@ -505,9 +513,9 @@ class ModelSelectionDelegate(
                 configRepository.availableModels,
                 configRepository.endpointConfigs,
                 agentsInput(),
-                configRepository.startupConfig
-                    .map { SpecConfig(it?.modelSpecs, it?.interfaceConfig?.modelSelect ?: true) }
-                    .distinctUntilChanged(),
+                combine(configRepository.startupConfig, preferLastUsedModel) { config, preferLastUsed ->
+                    SpecConfig(config?.modelSpecs, config?.interfaceConfig?.modelSelect ?: true, preferLastUsed)
+                }.distinctUntilChanged(),
             ) { lastUsed, rawModels, endpointCfgs, agents, specConfig ->
                 SeedInputs(
                     lastUsed = lastUsed,
@@ -518,6 +526,8 @@ class ModelSelectionDelegate(
                     conversationId = agents.conversationId,
                     specSeed = resolveDefaultModelSpec(specConfig.modelSpecs, specConfig.modelSelect, lastUsed.spec),
                     modelSpecs = specConfig.modelSpecs,
+                    modelSelect = specConfig.modelSelect,
+                    preferLastUsed = specConfig.preferLastUsed,
                 )
             }.collect { input ->
                 var tier0SpecsArrived = false
@@ -632,13 +642,25 @@ class ModelSelectionDelegate(
         // its stored one against. Re-pin it: the spec now resolving is not a new pick, and the
         // re-sync below would otherwise replace the shortcut with last-used.
         if (repinLastUsed) lastAppliedLastUsed = lastUsed
+        // Switching the setting on while this landing sits on the spec should hand it to last-used,
+        // which the re-sync below does only for a last-used it hasn't applied yet.
+        if (input.preferLastUsed != appliedPreferLastUsed) {
+            if (appliedPreferLastUsed != null) lastAppliedLastUsed = null
+            appliedPreferLastUsed = input.preferLastUsed
+        }
+        val specSeed = input.specSeed.demotedForLastUsed(
+            preferLastUsed = input.preferLastUsed,
+            modelSelect = input.modelSelect,
+            lastUsed = lastUsed,
+            specs = input.modelSpecs,
+        )
 
         // Tier 0: an explicit agent or concrete model passed from the start-chat navigation wins
         // over everything (last-used / first-agent / first-model). One-shot — see [applyPendingOverride].
         if (applyPendingOverride(lastUsed, input.modelSpecs)) return
 
         // Tier 0b: the server's prioritized model spec, ahead of last-used.
-        if (applyModelSpecDefault(input, filtered, lastUsed)) return
+        if (applyModelSpecDefault(specSeed, input, filtered, lastUsed)) return
 
         val lastUsedSelectability = lastUsed?.let {
             selectability(it.endpoint, it.model, filtered, input.endpointConfigs, input.agents, input.agentsLoaded)
@@ -730,7 +752,7 @@ class ModelSelectionDelegate(
         }
 
         // Tier 1b: the server's soft-default model spec, which yields to a usable last-used.
-        if (applySoftModelSpec(input, filtered)) return
+        if (applySoftModelSpec(specSeed, input, filtered)) return
 
         // Tier 2: first agent, when the active endpoint is agents.
         if (state.selectedEndpoint == EndpointConstants.AGENTS) {
@@ -759,7 +781,8 @@ class ModelSelectionDelegate(
      * Standing rather than one-shot: it beats last-used on every emission until [specYielded], so a
      * raw model picked inside some other conversation (which rewrites last-used) doesn't move the
      * landing off the spec. A raw pick therefore lasts for the chat it was made in; a spec pick
-     * carries over (web parity; see feature/chat/CLAUDE.md).
+     * carries over (web parity; see feature/chat/CLAUDE.md). The "Start new chats on: My last-used
+     * model" setting demotes the spec to Tier 1b before it gets here ([demotedForLastUsed]).
      *
      * Never persists last-used, and pins [lastAppliedLastUsed] so yielding later doesn't fire a
      * spurious re-sync. A spec agent missing from the loaded list (deleted, not shared, or an
@@ -768,11 +791,12 @@ class ModelSelectionDelegate(
      * config arrives.
      */
     private fun applyModelSpecDefault(
+        specSeed: SpecSeed?,
         input: SeedInputs,
         filtered: Map<String, List<String>>,
         lastUsed: ModelChoice?,
     ): Boolean {
-        val seed = input.specSeed?.takeIf { it.prioritized } ?: return false
+        val seed = specSeed?.takeIf { it.prioritized } ?: return false
         if (specYielded) return false
         if (specSelectability(seed, filtered, input) == Selectability.INVALID) return false
         lastAppliedLastUsed = lastUsed
@@ -784,8 +808,8 @@ class ModelSelectionDelegate(
      * Tier 1b: a soft-default model spec, reached only when last-used can't apply. Returns true
      * when [applySeed] should stop — the spec applied, or it is waiting on the agent list.
      */
-    private fun applySoftModelSpec(input: SeedInputs, filtered: Map<String, List<String>>): Boolean {
-        val seed = input.specSeed?.takeUnless { it.prioritized } ?: return false
+    private fun applySoftModelSpec(specSeed: SpecSeed?, input: SeedInputs, filtered: Map<String, List<String>>): Boolean {
+        val seed = specSeed?.takeUnless { it.prioritized } ?: return false
         return when (specSelectability(seed, filtered, input)) {
             Selectability.VALID -> {
                 applySelection(seed.toChoice(), reason = "tier1b-softSpec")
@@ -899,11 +923,13 @@ class ModelSelectionDelegate(
         val conversationId: String?,
         val specSeed: SpecSeed?,
         val modelSpecs: ModelSpecs?,
+        val modelSelect: Boolean,
+        val preferLastUsed: Boolean,
     )
 
     // Data classes, unlike the snapshots above: `distinctUntilChanged` and the last-used re-sync
     // compare these by value. Neither holds the agent graph; SpecConfig holds only the spec list.
-    private data class SpecConfig(val modelSpecs: ModelSpecs?, val modelSelect: Boolean)
+    private data class SpecConfig(val modelSpecs: ModelSpecs?, val modelSelect: Boolean, val preferLastUsed: Boolean)
 
     private class AgentsInput(
         val agents: List<Agent>,

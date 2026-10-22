@@ -38,6 +38,7 @@ class ChatSettingsViewModelTest {
     private val preferenceStore = mockk<PreferenceStore>(relaxed = true)
     private val uploadRoutingModeFlow = MutableStateFlow(UploadRoutingMode.AUTO)
     private val siteIconsChoiceFlow = MutableStateFlow<Boolean?>(null)
+    private val preferLastUsedFlow = MutableStateFlow(false)
     private val speechRepository = mockk<SpeechRepository>(relaxed = true)
 
     private lateinit var viewModel: ChatSettingsViewModel
@@ -69,6 +70,8 @@ class ChatSettingsViewModelTest {
         // The preferences state is one combine chain, so a source that never emits stalls all of it —
         // an unstubbed flow here shows up as an unrelated setting silently keeping its default.
         every { preferenceStore.observe(AppPreferences.SiteIcons) } returns siteIconsChoiceFlow
+        every { preferenceStore.observe(AppPreferences.PreferLastUsedModel) } returns preferLastUsedFlow
+        coEvery { preferenceStore.set(AppPreferences.PreferLastUsedModel, any()) } answers { preferLastUsedFlow.value = secondArg() }
         every { preferenceStore.initial(AppPreferences.SiteIcons) } returns null
         coEvery { preferenceStore.set(AppPreferences.SiteIcons, any()) } answers { siteIconsChoiceFlow.value = secondArg() }
         every { settingsDataStore.latexRenderer } returns MutableStateFlow(LatexRenderer.KATEX)
@@ -102,6 +105,19 @@ class ChatSettingsViewModelTest {
 
         coVerify { preferenceStore.set(AppPreferences.SiteIcons, true) }
         assertThat(viewModel.uiState.value.showSiteIcons).isTrue()
+    }
+
+    @Test
+    fun `new chats start on the server's choice until the user prefers last-used`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.preferLastUsedModel).isFalse()
+
+        viewModel.setPreferLastUsedModel(true)
+        advanceUntilIdle()
+
+        coVerify { preferenceStore.set(AppPreferences.PreferLastUsedModel, true) }
+        assertThat(viewModel.uiState.value.preferLastUsedModel).isTrue()
     }
 
     @Test

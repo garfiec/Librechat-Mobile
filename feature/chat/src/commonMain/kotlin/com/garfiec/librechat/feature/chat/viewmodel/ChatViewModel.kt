@@ -234,6 +234,7 @@ class ChatViewModel(
         settingsDataStore = settingsDataStore,
         permissionGate = permissionGate,
         connectivityObserver = connectivityObserver,
+        preferLastUsedModel = preferenceStore.observe(AppPreferences.PreferLastUsedModel),
         initialAgentId = initialAgentId,
         initialEndpoint = initialEndpoint,
         initialModel = initialModel,

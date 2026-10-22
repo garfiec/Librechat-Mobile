@@ -65,6 +65,8 @@ data class ChatSettingsUiState(
     val latexRenderer: LatexRenderer = LatexRenderer.KATEX,
     // Mobile-only: how pinned models/agents surface in the model-selection sheet
     val starredModelsDisplay: StarredModelsDisplay = StarredModelsDisplay.GROUPED,
+    // Mobile-only: open new chats on the last-used model instead of the server's prioritized spec
+    val preferLastUsedModel: Boolean = false,
     // Mobile-only: what the chat floating top bar shows + how its bubble is aligned
     val chatHeaderContent: ChatHeaderContent = ChatHeaderContent.TITLE,
     val chatHeaderAlignment: ChatHeaderAlignment = ChatHeaderAlignment.LEFT,

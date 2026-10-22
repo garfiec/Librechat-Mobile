@@ -47,6 +47,7 @@ internal fun ChatSettingsSection(
     chatLayoutSummary: String,
     latexRenderer: LatexRenderer,
     starredModelsDisplay: StarredModelsDisplay,
+    preferLastUsedModel: Boolean,
     chatHeaderContent: ChatHeaderContent,
     chatHeaderAlignment: ChatHeaderAlignment,
     onAutoScrollChange: (Boolean) -> Unit,
@@ -162,6 +163,12 @@ internal fun ChatSettingsSection(
                     title = stringResource(Res.string.starred_models_title),
                     value = starredModelsDisplayLabel(starredModelsDisplay),
                     onClick = { onOpenDialog(ChatSettingDialog.STARRED_MODELS) },
+                )
+
+                SelectorRow(
+                    title = stringResource(Res.string.new_chat_start_title),
+                    value = newChatStartLabel(preferLastUsedModel),
+                    onClick = { onOpenDialog(ChatSettingDialog.NEW_CHAT_START) },
                 )
             }
         }

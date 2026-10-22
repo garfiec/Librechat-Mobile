@@ -282,6 +282,10 @@
     <string name="starred_models_off">关闭</string>
     <string name="starred_models_grouped">顶部可折叠分组</string>
     <string name="starred_models_top">置于顶部，不分组</string>
+    <string name="new_chat_start_title">新对话起始模型</string>
+    <string name="new_chat_start_desc">当服务器为新对话指定模型时，选择使用该模型还是你上次使用的模型。如果服务器隐藏了模型选择器或要求使用其模型，此设置无效。</string>
+    <string name="new_chat_start_server">服务器指定</string>
+    <string name="new_chat_start_last_used">上次使用的模型</string>
     <string name="chat_header_title">聊天标题栏</string>
     <string name="chat_header_summary_format">%1$s · %2$s</string>
     <string name="chat_header_content_label">内容</string>

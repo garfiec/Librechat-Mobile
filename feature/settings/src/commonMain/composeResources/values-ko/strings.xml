@@ -282,6 +282,10 @@
     <string name="starred_models_off">끔</string>
     <string name="starred_models_grouped">상단에 접을 수 있는 그룹</string>
     <string name="starred_models_top">상단에 표시, 그룹화 없음</string>
+    <string name="new_chat_start_title">새 채팅 시작 모델</string>
+    <string name="new_chat_start_desc">서버가 새 채팅용 모델을 지정한 경우 그 모델을 쓸지, 마지막으로 사용한 모델을 쓸지 선택합니다. 서버가 모델 선택기를 숨기거나 서버 모델 사용을 요구하면 무시됩니다.</string>
+    <string name="new_chat_start_server">서버 지정</string>
+    <string name="new_chat_start_last_used">마지막으로 사용한 모델</string>
     <string name="chat_header_title">채팅 헤더</string>
     <string name="chat_header_summary_format">%1$s · %2$s</string>
     <string name="chat_header_content_label">내용</string>
