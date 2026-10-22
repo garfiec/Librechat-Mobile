@@ -51,9 +51,9 @@ import kotlin.math.sign
 // the animation Pixel Settings shows between its pages.
 //
 // While dragging, the leaving page shrinks to a centred rounded card, and the previous page, offset
-// to the left whichever edge the swipe starts from, shrinks further behind a scrim. Both follow the
-// finger vertically. On release the card fades out where it is while the previous page grows back
-// to full screen and the scrim clears.
+// to the left whichever edge the swipe starts from, shrinks further behind a scrim that lifts as
+// the drag deepens. Both follow the finger vertically. On release the card fades out where it is
+// while the previous page grows back to full screen and the rest of the scrim clears.
 //
 // The drag follows the gesture's own progress, read from the dispatcher, not NavDisplay's seek of
 // its transition: that seek can sit at zero for a whole gesture, leaving the pages still while the
@@ -76,10 +76,14 @@ private const val BACK_DRAG_SCALE = 0.8f
 private val BoundsMargin = 8.dp
 private val EnteringOffset = 96.dp
 private val CardCornerRadius = 32.dp
-private const val SCRIM_ALPHA_DARK = 0.8f
+private const val SCRIM_ALPHA_DARK = 0.9f
 
 // The system uses 0.2 in light theme, which barely shows over a white page.
-private const val SCRIM_ALPHA_LIGHT = 0.45f
+private const val SCRIM_ALPHA_LIGHT = 0.6f
+
+// The scrim starts at full strength when the gesture begins and lifts to this share of it at a
+// full drag; the commit clears the rest.
+private const val SCRIM_REVEALED_SHARE = 0.65f
 
 private const val FRONT_FADE_SHARE = 0.2f
 private const val MIN_SPAN = 1e-3f
@@ -206,8 +210,9 @@ private fun PredictiveBackCard(
             // so the scrim can fade out with the whole commit.
             if (latch.role == Role.Back) {
                 val pose = latch.pose(finger, settle.value, committed)
+                val reveal = lerp(1f, SCRIM_REVEALED_SHARE, GestureEasing.transform(pose))
                 // Linear across the whole commit: on the commit curve, half of it would go in the first frames.
-                val dim = scrimAlpha * GestureEasing.transform(pose) * (1f - commitProgress(committed, commit))
+                val dim = scrimAlpha * reveal * (1f - commitProgress(committed, commit))
                 if (dim > 0f) drawRect(Color.Black.copy(alpha = dim))
             }
         },
