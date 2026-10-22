@@ -298,7 +298,7 @@
     <string name="starred_models_grouped">Collapsible group at top</string>
     <string name="starred_models_top">At top, no grouping</string>
     <string name="new_chat_start_title">Start new chats on</string>
-    <string name="new_chat_start_desc">When your server picks a model for new chats, choose whether to use it or the model you used last. Ignored when the server hides the model picker or requires one of its models.</string>
+    <string name="new_chat_start_desc">When your server picks a model for new chats, choose whether to use it or the model you used last. Ignored when the server hides the model picker. If the server requires one of its own models, your last model counts only if it was one of those.</string>
     <string name="new_chat_start_server">Server's choice</string>
     <string name="new_chat_start_last_used">My last-used model</string>
     <string name="chat_header_title">Chat header</string>

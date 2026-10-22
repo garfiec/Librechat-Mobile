@@ -29,6 +29,7 @@ import com.garfiec.librechat.feature.chat.util.offeredOn
 import com.garfiec.librechat.feature.chat.util.offeredOrUnchecked
 import com.garfiec.librechat.feature.chat.util.resolveDefaultModelSpec
 import com.garfiec.librechat.feature.chat.util.restore
+import com.garfiec.librechat.feature.chat.util.showsRawEndpoint
 import com.garfiec.librechat.feature.chat.util.toChoice
 import com.garfiec.librechat.feature.chat.util.toSeed
 import com.garfiec.librechat.feature.chat.util.withoutStale
@@ -42,7 +43,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -57,6 +57,7 @@ private const val AGENTS_LOAD_ERROR = "Could not load available agents"
  */
 private const val AGENT_PROVIDER_RESOLVE_TIMEOUT_MS = 3_000L
 
+@Suppress("TooManyFunctions") // debt: 31 functions
 class ModelSelectionDelegate(
     private val handle: ModelSelectionHandle,
     private val configRepository: ConfigRepository,
@@ -66,7 +67,7 @@ class ModelSelectionDelegate(
     private val permissionGate: PermissionGate,
     private val connectivityObserver: ConnectivityObserver,
     /** The "Start new chats on: My last-used model" setting; see [demotedForLastUsed]. */
-    private val preferLastUsedModel: Flow<Boolean> = flowOf(false),
+    private val preferLastUsedModel: Flow<Boolean>,
     initialAgentId: String? = null,
     initialEndpoint: String? = null,
     initialModel: String? = null,
@@ -524,7 +525,7 @@ class ModelSelectionDelegate(
                     agents = agents.agents,
                     agentsLoaded = agents.loaded,
                     conversationId = agents.conversationId,
-                    specSeed = resolveDefaultModelSpec(specConfig.modelSpecs, specConfig.modelSelect, lastUsed.spec),
+                    serverSpecSeed = resolveDefaultModelSpec(specConfig.modelSpecs, specConfig.modelSelect, lastUsed.spec),
                     modelSpecs = specConfig.modelSpecs,
                     modelSelect = specConfig.modelSelect,
                     preferLastUsed = specConfig.preferLastUsed,
@@ -632,9 +633,12 @@ class ModelSelectionDelegate(
 
         val lastEndpoint = input.lastUsed.endpoint
         val lastModel = input.lastUsed.model
+        // A raw pair on an endpoint the picker no longer lists (`addedEndpoints` changed since it was
+        // saved) can't be picked again, so it never seeds and never outranks the server's spec.
         val lastUsed = if (lastEndpoint != null && lastModel != null) {
             val spec = input.lastUsed.spec.offeredOn(lastEndpoint, lastModel, input.modelSpecs)
             ModelChoice.restore(lastEndpoint, lastModel, spec)
+                .takeIf { spec != null || input.modelSpecs.showsRawEndpoint(lastEndpoint) }
         } else {
             null
         }
@@ -642,18 +646,21 @@ class ModelSelectionDelegate(
         // its stored one against. Re-pin it: the spec now resolving is not a new pick, and the
         // re-sync below would otherwise replace the shortcut with last-used.
         if (repinLastUsed) lastAppliedLastUsed = lastUsed
-        // Switching the setting on while this landing sits on the spec should hand it to last-used,
-        // which the re-sync below does only for a last-used it hasn't applied yet.
-        if (input.preferLastUsed != appliedPreferLastUsed) {
-            if (appliedPreferLastUsed != null) lastAppliedLastUsed = null
-            appliedPreferLastUsed = input.preferLastUsed
-        }
-        val specSeed = input.specSeed.demotedForLastUsed(
+        val specSeed = input.serverSpecSeed.demotedForLastUsed(
             preferLastUsed = input.preferLastUsed,
             modelSelect = input.modelSelect,
             lastUsed = lastUsed,
             specs = input.modelSpecs,
         )
+        // Switching the setting on while this landing sits on the spec should hand it to last-used,
+        // which the re-sync below does only for a last-used it hasn't applied yet. Only when the
+        // setting just demoted the spec and nothing on this landing displaced it: a pick or a
+        // start-chat override must survive the switch. Switching off needs nothing, Tier 0b re-applies.
+        if (input.preferLastUsed != appliedPreferLastUsed) {
+            val demotedNow = input.serverSpecSeed?.prioritized == true && specSeed?.prioritized == false
+            if (appliedPreferLastUsed != null && demotedNow && !specYielded) lastAppliedLastUsed = null
+            appliedPreferLastUsed = input.preferLastUsed
+        }
 
         // Tier 0: an explicit agent or concrete model passed from the start-chat navigation wins
         // over everything (last-used / first-agent / first-model). One-shot — see [applyPendingOverride].
@@ -921,7 +928,8 @@ class ModelSelectionDelegate(
         val agents: List<Agent>,
         val agentsLoaded: Boolean,
         val conversationId: String?,
-        val specSeed: SpecSeed?,
+        /** The server's answer, before [demotedForLastUsed]; the tiers read the demoted one. */
+        val serverSpecSeed: SpecSeed?,
         val modelSpecs: ModelSpecs?,
         val modelSelect: Boolean,
         val preferLastUsed: Boolean,
@@ -957,13 +965,22 @@ class ModelSelectionDelegate(
         }
     }
 
+    /** A preset loaded on the new-chat landing displaces the server's prioritized spec, as a pick does. */
+    fun onPresetLoaded() {
+        if (seedsNewChat && handle.state.conversationId == null) specYielded = true
+    }
+
     /**
      * Re-arms the server's prioritized model spec after the landing hands its chat off, so the
      * next new chat opens on the spec again whatever was picked for the last one. The handoff's
      * state reset flips `conversationId` back to null, which re-runs the seeder.
+     *
+     * Also unpins [lastAppliedLastUsed], so a start-chat override (which pinned it without writing
+     * last-used) lasts for its one chat: the next new chat re-syncs to last-used.
      */
     fun rearmModelSpecDefault() {
         specYielded = false
+        lastAppliedLastUsed = null
     }
 
     /**

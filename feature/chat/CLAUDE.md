@@ -123,17 +123,19 @@ Which spec applies, and whether it is prioritized, is `util/SpecSeed.kt`, a port
 | Server config | "Server's choice": new chats open on | "My last-used model": new chats open on | Role of last-used |
 |---|---|---|---|
 | No `modelSpecs` | Last-used, then first agent, then first model | Same | Decides new chats |
-| `prioritize: true` (or field omitted) | The `default` spec, or the first spec if none is marked | Last-used if usable, otherwise that spec | Default: saved, used only when the spec can't apply. Setting: wins |
+| `prioritize: true` (or field omitted) | The `default` spec, or the first spec if none is marked `default` or `softDefault` (a `softDefault` stays soft: row 4) | Last-used if usable, otherwise that spec | Default: saved, used only when the spec can't apply. Setting: wins |
 | …and the user's last pick was a spec | That spec, unless a spec is marked `default` (web: `LAST_CONVO_SETUP.spec`) | That spec | Last spec reopens |
 | `prioritize: false` + `softDefault` spec | Last-used if usable, otherwise the soft spec | Same | Wins over the soft spec |
 | `prioritize: false`, no soft default | Same as no specs | Same | Same as no specs |
-| `interface.modelSelect: false` | The `default`/soft/first spec, always | Same: the setting is ignored | Not used while the spec applies |
+| `interface.modelSelect: false` | The `default`/soft/first spec, always (a stored last spec still reopens when none is marked `default`) | Same: the setting is ignored | Not used while the spec applies |
 | `enforce: true` | As above; a raw pick can't be sent | Last-used only if it's a spec; a raw one falls back to the server's spec | Raw last-used ignored |
 
 In both modes: a spec that can't apply (missing agent, no agent access, a model the endpoint doesn't
 offer, config not loaded yet) falls back to the normal order; a start-chat link overrides for that
-one chat; a pick on the new-chat screen lasts until that chat starts; existing conversations reopen
-on their own model.
+one chat (`rearmModelSpecDefault` unpins last-used, so the next new chat re-syncs to it); a pick or a
+loaded preset on the new-chat screen lasts until that chat starts; a raw last-used on an endpoint
+`addedEndpoints` no longer lists is treated as unusable, so it neither seeds nor beats a spec;
+existing conversations reopen on their own model.
 
 **The selection is one value, `ModelChoice`: `Raw(endpoint, model)` or `Spec(name, endpoint,
 model)`.** Write it whole, through `ModelSelectionDelegate.applySelection`; the preset load, the

@@ -289,7 +289,7 @@
     <string name="starred_models_grouped">Groupe repliable en haut</string>
     <string name="starred_models_top">En haut, sans regroupement</string>
     <string name="new_chat_start_title">Démarrer les nouvelles discussions avec</string>
-    <string name="new_chat_start_desc">Lorsque votre serveur choisit un modèle pour les nouvelles discussions, choisissez de l'utiliser ou d'utiliser votre dernier modèle. Ignoré si le serveur masque le sélecteur de modèle ou impose l'un de ses modèles.</string>
+    <string name="new_chat_start_desc">Lorsque votre serveur choisit un modèle pour les nouvelles discussions, choisissez de l'utiliser ou d'utiliser votre dernier modèle. Ignoré si le serveur masque le sélecteur de modèle. Si le serveur impose l'un de ses propres modèles, votre dernier modèle ne compte que s'il en faisait partie.</string>
     <string name="new_chat_start_server">Choix du serveur</string>
     <string name="new_chat_start_last_used">Mon dernier modèle utilisé</string>
     <string name="chat_header_title">En-tête de discussion</string>

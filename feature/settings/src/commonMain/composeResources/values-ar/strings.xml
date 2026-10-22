@@ -313,7 +313,7 @@
     <string name="starred_models_grouped">مجموعة قابلة للطي في الأعلى</string>
     <string name="starred_models_top">في الأعلى بدون تجميع</string>
     <string name="new_chat_start_title">بدء المحادثات الجديدة باستخدام</string>
-    <string name="new_chat_start_desc">عندما يحدد الخادم نموذجًا للمحادثات الجديدة، اختر استخدامه أو استخدام آخر نموذج استخدمته. يتم تجاهل ذلك إذا أخفى الخادم أداة اختيار النموذج أو اشترط استخدام أحد نماذجه.</string>
+    <string name="new_chat_start_desc">عندما يحدد الخادم نموذجًا للمحادثات الجديدة، اختر استخدامه أو استخدام آخر نموذج استخدمته. يتم تجاهل ذلك إذا أخفى الخادم أداة اختيار النموذج. إذا اشترط الخادم استخدام أحد نماذجه، فلا يُحتسب آخر نموذج استخدمته إلا إذا كان واحدًا منها.</string>
     <string name="new_chat_start_server">اختيار الخادم</string>
     <string name="new_chat_start_last_used">آخر نموذج استخدمته</string>
     <string name="chat_header_title">ترويسة المحادثة</string>

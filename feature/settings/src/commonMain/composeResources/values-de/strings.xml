@@ -289,7 +289,7 @@
     <string name="starred_models_grouped">Einklappbare Gruppe oben</string>
     <string name="starred_models_top">Oben, ohne Gruppierung</string>
     <string name="new_chat_start_title">Neue Chats starten mit</string>
-    <string name="new_chat_start_desc">Wenn dein Server ein Modell für neue Chats festlegt, wähle, ob es oder dein zuletzt genutztes Modell verwendet wird. Wird ignoriert, wenn der Server die Modellauswahl ausblendet oder eines seiner Modelle verlangt.</string>
+    <string name="new_chat_start_desc">Wenn dein Server ein Modell für neue Chats festlegt, wähle, ob es oder dein zuletzt genutztes Modell verwendet wird. Wird ignoriert, wenn der Server die Modellauswahl ausblendet. Verlangt der Server eines seiner eigenen Modelle, zählt dein letztes Modell nur, wenn es eines davon war.</string>
     <string name="new_chat_start_server">Vorgabe des Servers</string>
     <string name="new_chat_start_last_used">Zuletzt genutztes Modell</string>
     <string name="chat_header_title">Chat-Kopfzeile</string>

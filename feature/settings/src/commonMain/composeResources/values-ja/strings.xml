@@ -283,7 +283,7 @@
     <string name="starred_models_grouped">上部に折りたたみ可能なグループ</string>
     <string name="starred_models_top">上部に表示、グループ化なし</string>
     <string name="new_chat_start_title">新しいチャットの開始モデル</string>
-    <string name="new_chat_start_desc">サーバーが新しいチャット用のモデルを指定している場合に、それを使うか前回使ったモデルを使うかを選びます。サーバーがモデル選択を非表示にしている場合や、サーバーのモデルの使用を必須にしている場合は無視されます。</string>
+    <string name="new_chat_start_desc">サーバーが新しいチャット用のモデルを指定している場合に、それを使うか前回使ったモデルを使うかを選びます。サーバーがモデル選択を非表示にしている場合は無視されます。サーバーが独自のモデルの使用を必須にしている場合、前回のモデルはそのいずれかだったときのみ使われます。</string>
     <string name="new_chat_start_server">サーバーの指定</string>
     <string name="new_chat_start_last_used">前回使ったモデル</string>
     <string name="chat_header_title">チャットヘッダー</string>

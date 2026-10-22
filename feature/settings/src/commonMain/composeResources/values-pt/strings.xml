@@ -289,7 +289,7 @@
     <string name="starred_models_grouped">Grupo recolhível no topo</string>
     <string name="starred_models_top">No topo, sem agrupamento</string>
     <string name="new_chat_start_title">Iniciar novos chats com</string>
-    <string name="new_chat_start_desc">Quando o servidor escolhe um modelo para novos chats, escolha se quer usá-lo ou o último modelo que você usou. Ignorado quando o servidor oculta o seletor de modelos ou exige um dos seus modelos.</string>
+    <string name="new_chat_start_desc">Quando o servidor escolhe um modelo para novos chats, escolha se quer usá-lo ou o último modelo que você usou. Ignorado quando o servidor oculta o seletor de modelos. Se o servidor exigir um dos seus próprios modelos, seu último modelo só conta se for um deles.</string>
     <string name="new_chat_start_server">Escolha do servidor</string>
     <string name="new_chat_start_last_used">Meu último modelo usado</string>
     <string name="chat_header_title">Cabeçalho da conversa</string>

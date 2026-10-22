@@ -169,8 +169,9 @@ class PresetPromptDelegate(
         }
     }
 
-    fun loadPreset(displayData: PresetDisplayData) {
-        val preset = cachedPresets.find { it.presetId == displayData.presetId } ?: return
+    /** Returns whether a preset was loaded. */
+    fun loadPreset(displayData: PresetDisplayData): Boolean {
+        val preset = cachedPresets.find { it.presetId == displayData.presetId } ?: return false
         handle.update {
             val specs = selection.modelSpecs
             // A preset that names a spec but neither endpoint nor model opens on the spec's pair, not
@@ -191,6 +192,7 @@ class PresetPromptDelegate(
                 modelParameters = ModelParameters.DEFAULT.mergedFromPreset(preset),
             )
         }
+        return true
     }
 
     fun deletePreset(presetId: String) {
