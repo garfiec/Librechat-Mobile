@@ -57,7 +57,6 @@ private const val AGENTS_LOAD_ERROR = "Could not load available agents"
  */
 private const val AGENT_PROVIDER_RESOLVE_TIMEOUT_MS = 3_000L
 
-@Suppress("TooManyFunctions") // debt: 31 functions
 class ModelSelectionDelegate(
     private val handle: ModelSelectionHandle,
     private val configRepository: ConfigRepository,
@@ -231,12 +230,27 @@ class ModelSelectionDelegate(
     private var seedsNewChat = false
 
     /**
-     * True once something on this landing has displaced the server's prioritized model spec: a
-     * pick in the model selector, or a Tier-0 start-chat override. Cleared by
-     * [rearmModelSpecDefault] when the landing hands its chat off, so the next new chat opens on
-     * the spec again.
+     * True once something other than the seeder chose this landing's selection: a pick in the
+     * model selector, a loaded preset, or a Tier-0 start-chat override. Such a choice displaces
+     * the server's prioritized model spec and isn't replaced by last-used while it loads. Cleared
+     * by [rearmModelSpecDefault] when the landing hands its chat off, so the next new chat opens
+     * on the spec again.
      */
     private var specYielded = false
+
+    /**
+     * The landing's selection as the seeder last left it. Any other value at the next emission was
+     * written by someone else, which sets [specYielded]; detecting it here covers every writer
+     * (picks, presets, the composer swap) without each having to report itself.
+     */
+    private var seederChoice: ModelChoice? = null
+
+    /**
+     * Set by [rearmModelSpecDefault]: the selection the handoff carried over belongs to the chat
+     * that just started, so the seeder picks again rather than keeping it because it is still
+     * valid. Cleared once the seeder or anyone else writes the selection.
+     */
+    private var reseedCarried = false
 
     /**
      * Whether the last successful [loadAgents] returned any agents. Set before [agentsLoaded]
@@ -508,6 +522,7 @@ class ModelSelectionDelegate(
      */
     fun seedInitialSelection(isNewConversation: Boolean) {
         seedsNewChat = isNewConversation
+        seederChoice = handle.state.selection.choice
         handle.scope.launch {
             combine(
                 settingsDataStore.lastUsedSelection,
@@ -531,6 +546,11 @@ class ModelSelectionDelegate(
                     preferLastUsed = specConfig.preferLastUsed,
                 )
             }.collect { input ->
+                val onLanding = isNewConversation && input.conversationId == null
+                if (onLanding && handle.state.selection.choice != seederChoice) {
+                    specYielded = true
+                    reseedCarried = false
+                }
                 var tier0SpecsArrived = false
                 if (handle.state.selection.modelSpecs != input.modelSpecs) {
                     val awaiting = tier0AwaitingSpecs?.takeIf { input.modelSpecs != null }
@@ -556,8 +576,9 @@ class ModelSelectionDelegate(
                 // Seeding applies only to the blank new-chat landing. Never override
                 // an existing/started conversation's model (loadConversationModel
                 // owns those).
-                if (!isNewConversation || input.conversationId != null) return@collect
+                if (!onLanding) return@collect
                 applySeed(input, repinLastUsed = tier0SpecsArrived)
+                seederChoice = handle.state.selection.choice
             }
         }
     }
@@ -670,7 +691,7 @@ class ModelSelectionDelegate(
         if (applyModelSpecDefault(specSeed, input, filtered, lastUsed)) return
 
         val lastUsedSelectability = lastUsed?.let {
-            selectability(it.endpoint, it.model, filtered, input.endpointConfigs, input.agents, input.agentsLoaded)
+            selectability(it.endpoint, it.model, filtered, input)
         }
         fun applyLastUsed(): Boolean {
             if (lastUsed != null && lastUsedSelectability == Selectability.VALID) {
@@ -696,17 +717,11 @@ class ModelSelectionDelegate(
             holdAgentForPopulate = false
         }
 
-        val currentSelectability = selectability(
-            state.selectedEndpoint,
-            state.selectedModel,
-            filtered,
-            input.endpointConfigs,
-            input.agents,
-            input.agentsLoaded,
-        )
+        val currentSelectability = selectability(state.selectedEndpoint, state.selectedModel, filtered, input)
         when (currentSelectability) {
-            // Already usable — leave it (the re-sync above handled last-used changes).
-            Selectability.VALID -> return
+            // Already usable — leave it (the re-sync above handled last-used changes), unless it is
+            // the previous chat's selection, carried over by the handoff.
+            Selectability.VALID -> if (!reseedCarried) return
             // The input needed to judge the current selection hasn't arrived yet.
             Selectability.PENDING -> {
                 // An explicitly-chosen agent (Tier-0) in the transient empty-agents
@@ -722,6 +737,13 @@ class ModelSelectionDelegate(
                 ) {
                     return
                 }
+                // A choice the seeder didn't make waits for its input rather than giving way to
+                // last-used, unless it is an agent on an account the fetch found no agents for.
+                val agentsNoneFound = state.selectedEndpoint == EndpointConstants.AGENTS &&
+                    input.agentsLoaded &&
+                    input.agents.isEmpty() &&
+                    !agentsFetchedNonEmpty
+                if (specYielded && !agentsNoneFound) return
                 // Otherwise: don't reseed through the lower tiers (that would clobber a
                 // legitimately-loading choice), but DO let a known-good last-used take over
                 // rather than waiting on an input that may never resolve. If last-used can't
@@ -840,13 +862,14 @@ class ModelSelectionDelegate(
         if (seed.endpoint == EndpointConstants.AGENTS && input.agentsLoaded && input.agents.isEmpty()) {
             return if (agentsFetchedNonEmpty) Selectability.PENDING else Selectability.INVALID
         }
-        return selectability(seed.endpoint, seed.model, filtered, input.endpointConfigs, input.agents, input.agentsLoaded)
+        return selectability(seed.endpoint, seed.model, filtered, input)
     }
 
     /** The one writer of [ModelSelectionState.choice] here, bar the seeder's spec-config update. */
     private fun applySelection(choice: ModelChoice, reason: String) {
         val previous = handle.state
         val changed = previous.selectedEndpoint != choice.endpoint || previous.selectedModel != choice.model
+        reseedCarried = false
         handle.update { selection = selection.copy(choice = choice) }
         if (changed) {
             Diag.d(
@@ -886,14 +909,13 @@ class ModelSelectionDelegate(
         endpoint: String?,
         model: String?,
         filtered: Map<String, List<String>>,
-        endpointConfigs: Map<String, EndpointConfig>,
-        agents: List<Agent>,
-        agentsLoaded: Boolean,
+        input: SeedInputs,
     ): Selectability {
         if (endpoint == null || model == null) return Selectability.INVALID
+        val agents = input.agents
         if (endpoint == EndpointConstants.AGENTS) {
             return when {
-                !agentsLoaded -> Selectability.PENDING
+                !input.agentsLoaded -> Selectability.PENDING
                 // An empty-but-loaded agents list is the transient pre-populate window
                 // (loadAgents flips agentsLoaded=true before publishing the list): it can
                 // neither confirm nor refute a specific agent id, so PENDING (hold), not
@@ -909,10 +931,12 @@ class ModelSelectionDelegate(
             modelsForEndpoint != null && model in modelsForEndpoint -> Selectability.VALID
             modelsForEndpoint != null -> Selectability.INVALID // models loaded, model gone
             // modelsForEndpoint == null: distinguish "this endpoint's models haven't
-            // loaded yet" (PENDING) from "this endpoint is no longer configured"
-            // (INVALID). Once configs have loaded, an endpoint absent from them was
-            // removed server-side — don't WAIT on it forever.
-            endpointConfigs.isNotEmpty() && endpoint !in endpointConfigs -> Selectability.INVALID
+            // loaded yet" (PENDING) from an endpoint that has none (INVALID). The model list
+            // arrives whole, so once it has, an endpoint missing from it (or listing no models,
+            // e.g. a revoked key) has nothing to offer. Once configs have loaded, an endpoint
+            // absent from them was removed server-side. Don't WAIT on either forever.
+            input.rawModels.isNotEmpty() -> Selectability.INVALID
+            input.endpointConfigs.isNotEmpty() && endpoint !in input.endpointConfigs -> Selectability.INVALID
             else -> Selectability.PENDING
         }
     }
@@ -954,8 +978,6 @@ class ModelSelectionDelegate(
     /** A user pick: a raw model or agent, or a spec staged elsewhere (Compare setup's lane A). Also saved as last-used. */
     fun onChoiceSelected(choice: ModelChoice) {
         val model = choice.model ?: return
-        // A pick on the new-chat landing displaces the server's prioritized spec for this chat.
-        if (seedsNewChat && handle.state.conversationId == null) specYielded = true
         tier0AwaitingSpecs = null
         applySelection(choice, reason = if (choice is ModelChoice.Spec) "explicitSpec" else "explicitModel")
         // Keep the cache in sync so refilterModels uses the latest choice
@@ -965,22 +987,21 @@ class ModelSelectionDelegate(
         }
     }
 
-    /** A preset loaded on the new-chat landing displaces the server's prioritized spec, as a pick does. */
-    fun onPresetLoaded() {
-        if (seedsNewChat && handle.state.conversationId == null) specYielded = true
-    }
-
     /**
      * Re-arms the server's prioritized model spec after the landing hands its chat off, so the
      * next new chat opens on the spec again whatever was picked for the last one. The handoff's
      * state reset flips `conversationId` back to null, which re-runs the seeder.
      *
-     * Also unpins [lastAppliedLastUsed], so a start-chat override (which pinned it without writing
-     * last-used) lasts for its one chat: the next new chat re-syncs to last-used.
+     * The selection the handoff carries over is the started chat's, so it is adopted as the
+     * seeder's own ([seederChoice]) and seeded over ([reseedCarried]), and [lastAppliedLastUsed]
+     * is unpinned: a start-chat override or a pick lasts for its one chat, and the next new chat
+     * goes back through the tiers.
      */
     fun rearmModelSpecDefault() {
         specYielded = false
         lastAppliedLastUsed = null
+        seederChoice = handle.state.selection.choice
+        reseedCarried = true
     }
 
     /**

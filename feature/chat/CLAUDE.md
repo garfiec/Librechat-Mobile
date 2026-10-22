@@ -131,11 +131,19 @@ Which spec applies, and whether it is prioritized, is `util/SpecSeed.kt`, a port
 | `enforce: true` | As above; a raw pick can't be sent | Last-used only if it's a spec; a raw one falls back to the server's spec | Raw last-used ignored |
 
 In both modes: a spec that can't apply (missing agent, no agent access, a model the endpoint doesn't
-offer, config not loaded yet) falls back to the normal order; a start-chat link overrides for that
-one chat (`rearmModelSpecDefault` unpins last-used, so the next new chat re-syncs to it); a pick or a
-loaded preset on the new-chat screen lasts until that chat starts; a raw last-used on an endpoint
-`addedEndpoints` no longer lists is treated as unusable, so it neither seeds nor beats a spec;
-existing conversations reopen on their own model.
+offer, config not loaded yet) falls back to the normal order; existing conversations reopen on
+their own model. On the new-chat screen:
+- Anything the seeder didn't write to the selection (a pick, a loaded preset, the composer swap, a
+  start-chat link) is the user's: the seeder notices it by comparing against the choice it last left
+  (`seederChoice`), so no writer has to report itself. It displaces the spec and, while its models
+  load, isn't replaced by last-used. It lasts until that chat starts.
+- After the handoff, `rearmModelSpecDefault` adopts the carried-over selection as the seeder's and
+  seeds over it (`reseedCarried`), so a start-chat link lasts one chat: the next new chat goes back
+  through the tiers.
+- A raw last-used on an endpoint `addedEndpoints` no longer lists is unusable: it neither seeds nor
+  beats a spec.
+- Once the model list has loaded (it arrives whole), an endpoint missing from it or listing no
+  models is unusable rather than pending, so nothing waits on it forever.
 
 **The selection is one value, `ModelChoice`: `Raw(endpoint, model)` or `Spec(name, endpoint,
 model)`.** Write it whole, through `ModelSelectionDelegate.applySelection`; the preset load, the

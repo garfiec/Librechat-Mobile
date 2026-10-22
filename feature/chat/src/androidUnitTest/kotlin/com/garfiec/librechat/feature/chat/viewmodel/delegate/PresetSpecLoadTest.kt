@@ -97,4 +97,17 @@ class PresetSpecLoadTest {
 
         assertThat(selection.choice).isEqualTo(ModelChoice.Raw(EndpointConstants.AGENTS, null))
     }
+
+    @Test
+    fun `a preset carrying only parameters keeps the selected spec`() = runTest {
+        val spec = ModelChoice.Spec("fast", "openAI", "gpt-4.1")
+
+        val selection = loadPreset(
+            Preset(presetId = "p1"),
+            ModelSpecs(list = listOf(fast), enforce = true),
+            state = ModelSelectionState(choice = spec),
+        )
+
+        assertThat(selection.choice).isEqualTo(spec)
+    }
 }
