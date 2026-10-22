@@ -126,7 +126,8 @@ internal fun ChatFloatingTopBar(
         presetsEnabled = uiState.presetsEnabled,
         hasPromptsLibrary = onOpenPromptsLibrary != null,
         promptsEnabled = uiState.promptsEnabled,
-        multiConvoEnabled = uiState.multiConvoEnabled,
+        // Compare is two pickers; with none to offer it has nothing to set up.
+        multiConvoEnabled = uiState.multiConvoEnabled && uiState.modelPickerShown,
         traceViewerAvailable = uiState.traceViewerAvailable,
         contextUsage = uiState.contextUsage,
         contextUsageEnabled = uiState.contextUsageEnabled,
@@ -352,7 +353,7 @@ private fun MaterialChatTopBar(
                         FloatingBarLabelChip(
                             text = label.displayModel ?: stringResource(Res.string.select_model),
                             fillWidth = fillWidth,
-                            onClick = actions.onOpenModelSheet,
+                            onClick = actions.onOpenModelSheet.takeIf { uiState.modelPickerShown },
                         )
                     }
 

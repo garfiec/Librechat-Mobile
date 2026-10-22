@@ -1263,7 +1263,7 @@
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/SpecSeed.kt",
         "symbol": "showsRawEndpoint"
       },
-      "why": "Which raw endpoints the model picker lists next to the named specs: only those in `modelSpecs.addedEndpoints` when it is set. Mobile also hides every raw row under `enforce` with no `addedEndpoints`, where web lists them and every pick fails.",
+      "why": "Which raw endpoints the model picker lists next to the named specs: none with `interface.modelSelect` off, else only those in `modelSpecs.addedEndpoints` when it is set. Mobile also hides every raw row under `enforce` with no `addedEndpoints`, where web lists them and every pick fails.",
       "failure_mode": "Upstream changes the filter and the picker offers endpoints web hides (an admin's spec-only deployment shows raw models) or hides ones web offers."
     },
     {

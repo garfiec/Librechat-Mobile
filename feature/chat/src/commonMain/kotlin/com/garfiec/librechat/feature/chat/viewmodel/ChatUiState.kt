@@ -211,6 +211,12 @@ data class ChatUiState(
     val bookmarksEnabled: Boolean get() = gates.bookmarksEnabled
     val presetsEnabled: Boolean get() = gates.presetsEnabled
     val modelSelectEnabled: Boolean get() = gates.modelSelectEnabled
+
+    /**
+     * Whether any model picker is offered. Web hides its selector only with `interface.modelSelect`
+     * off and no specs (`ModelSelector.tsx`); with specs it lists just those ([modelSelectEnabled]).
+     */
+    val modelPickerShown: Boolean get() = modelSelectEnabled || !modelSpecs?.list.isNullOrEmpty()
     val parametersEnabled: Boolean get() = gates.parametersEnabled
     val pinnedTools: List<String> get() = gates.pinnedTools
     val contextUsageEnabled: Boolean get() = gates.contextUsageEnabled
@@ -520,7 +526,7 @@ data class ChatUiState(
      */
     val chatInputGates: ChatInputGates
         get() = ChatInputGates(
-            modelSelectEnabled = modelSelectEnabled,
+            modelPickerShown = modelPickerShown,
             parametersEnabled = parametersEnabled,
             showEphemeralTools = showEphemeralTools,
             fileUploadEnabled = fileUploadEnabled,

@@ -173,8 +173,8 @@ fun ChatToolsSheetContent(
             )
         }
 
-        // Model selector row — hidden when the server disables `interface.modelSelect`.
-        if (gates.modelSelectEnabled) {
+        // Model selector row: hidden when the server offers no picker (see ChatUiState.modelPickerShown).
+        if (gates.modelPickerShown) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

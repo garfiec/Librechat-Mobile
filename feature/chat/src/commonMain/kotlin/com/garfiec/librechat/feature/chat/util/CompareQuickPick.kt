@@ -43,6 +43,8 @@ fun compareQuickPicks(
     favoriteModelKeys: Set<String>,
     favoriteAgentIds: Set<String>,
     agentCaption: String,
+    /** `interface.modelSelect`; off leaves only the specs. */
+    modelSelect: Boolean,
     favoriteSpecNames: Set<String> = emptySet(),
     endpointKeyStates: Map<String, KeyState> = emptyMap(),
     specs: List<ModelSpec> = emptyList(),
@@ -51,9 +53,11 @@ fun compareQuickPicks(
 ): List<CompareQuickPick> {
     val rawSendable = !modelSpecs.requiresSpec
     val models = filterModelsByEndpoint(availableModels, endpointConfigs)
-        .filterKeys { rawSendable && modelSpecs.showsRawEndpoint(it) && !endpointKeyStates[it].blocksSelection() }
+        .filterKeys {
+            rawSendable && modelSpecs.showsRawEndpoint(it, modelSelect) && !endpointKeyStates[it].blocksSelection()
+        }
     val agentsById = agents.distinctBy { it.id }
-        .takeIf { rawSendable && modelSpecs.showsRawEndpoint(EndpointConstants.AGENTS) }
+        .takeIf { rawSendable && modelSpecs.showsRawEndpoint(EndpointConstants.AGENTS, modelSelect) }
         .orEmpty()
         .associateBy { it.id }
     fun sourceOf(endpoint: String) = endpointConfigs[endpoint]?.modelDisplayLabel ?: endpoint

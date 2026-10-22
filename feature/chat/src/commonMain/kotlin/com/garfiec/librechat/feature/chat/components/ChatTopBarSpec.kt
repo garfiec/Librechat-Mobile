@@ -95,7 +95,7 @@ internal fun rememberChatTopBarSpec(
                 text = label.displayModel ?: stringResource(Res.string.select_model),
                 style = BarTitleStyle.CHIP,
                 alignment = alignment,
-                onClick = actions.onOpenModelSheet,
+                onClick = actions.onOpenModelSheet.takeIf { uiState.modelPickerShown },
             )
         }
 

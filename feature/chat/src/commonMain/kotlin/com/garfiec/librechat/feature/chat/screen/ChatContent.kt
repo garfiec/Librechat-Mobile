@@ -138,7 +138,7 @@ internal fun ColumnScope.ChatContent(
                 LandingContent(
                     selectedModel = specLabel ?: uiState.selectedModel,
                     selectedAgentName = agentName?.let { specLabel ?: it },
-                    onSelectModel = viewModel::openModelSheet,
+                    onSelectModel = viewModel::openModelSheet.takeIf { uiState.modelPickerShown },
                     // A temporary chat is never filed (SendDispatchDelegate), so it claims no project.
                     projectName = projectName?.takeIf { !uiState.isTemporaryChat },
                     modifier = topInsetModifier.then(pullUpModifier),

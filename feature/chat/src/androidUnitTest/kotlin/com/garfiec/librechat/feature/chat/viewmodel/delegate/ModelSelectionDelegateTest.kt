@@ -2359,6 +2359,56 @@ class ModelSelectionDelegateTest {
     }
 
     @Test
+    fun startChatLinkYieldsToTheSpecWithModelSelectOff() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val handle = newHandle(scope)
+        val delegate = newDelegate(handle, initialEndpoint = "openAI", initialModel = "gpt-4.1")
+        rawLastUsed()
+        startupConfig.value = specConfig(modelSpec("marked", "gpt-4o"), prioritize = null, modelSelect = false)
+
+        delegate.seedInitialSelection(isNewConversation = true)
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedSpec).isEqualTo("marked")
+    }
+
+    @Test
+    fun startChatLinkBeforeTheConfigHandsBackToTheSpecWithModelSelectOff() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val handle = newHandle(scope)
+        val delegate = newDelegate(handle, initialEndpoint = "openAI", initialModel = "gpt-4.1")
+        rawLastUsed()
+
+        delegate.seedInitialSelection(isNewConversation = true)
+        advanceUntilIdle()
+        assertThat(handle.state.selectedModel).isEqualTo("gpt-4.1")
+
+        startupConfig.value = specConfig(modelSpec("marked", "gpt-4o"), prioritize = null, modelSelect = false)
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedSpec).isEqualTo("marked")
+    }
+
+    @Test
+    fun rawLastUsedStillBacksAnUnusableSpecWithModelSelectOff() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val handle = newHandle(scope, uiState(selectedEndpoint = "openAI"))
+        val delegate = newDelegate(handle)
+        rawLastUsed()
+        lastUsedModel.value = "gpt-4.1"
+        // The only spec can't apply (its agent is gone): web falls back to the last setup, not the
+        // first model.
+        agentsReturn("agent_other")
+        startupConfig.value = specConfig(agentSpec("agent_gone", isDefault = true), modelSelect = false)
+
+        delegate.seedInitialSelection(isNewConversation = true)
+        delegate.loadAgents(isNewConversation = true)
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedModel).isEqualTo("gpt-4.1")
+    }
+
+    @Test
     fun presetLoadedWhileItsModelsLoadIsNotReplacedByLastUsed() = runTest {
         val scope = TestScope(StandardTestDispatcher(testScheduler))
         val handle = newHandle(scope)

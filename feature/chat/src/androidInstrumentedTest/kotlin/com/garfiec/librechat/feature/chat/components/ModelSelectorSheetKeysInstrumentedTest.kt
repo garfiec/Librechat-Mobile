@@ -41,6 +41,7 @@ class ModelSelectorSheetKeysInstrumentedTest {
                     selectedEndpoint = EndpointConstants.AGENTS,
                     selectedModel = null,
                     onModelSelect = { _, _ -> },
+                    modelSelect = true,
                     onSetApiKey = {},
                     favoriteModelKeys = favoriteModelKeys,
                 )

@@ -110,6 +110,8 @@ fun ModelSelectorSheet(
     selectedEndpoint: String?,
     selectedModel: String?,
     onModelSelect: (endpoint: String, model: String) -> Unit,
+    /** `interface.modelSelect`; off lists only the server's specs, as web does. */
+    modelSelect: Boolean,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     modelSpecs: ModelSpecs? = null,
@@ -161,6 +163,7 @@ fun ModelSelectorSheet(
             selectedEndpoint = selectedEndpoint,
             selectedModel = selectedModel,
             onModelSelect = onModelSelect,
+            modelSelect = modelSelect,
             modelSpecs = modelSpecs,
             selectedSpec = selectedSpec,
             onSpecSelect = onSpecSelect,
@@ -196,6 +199,8 @@ fun ModelSelectorSheetContent(
     selectedEndpoint: String?,
     selectedModel: String?,
     onModelSelect: (endpoint: String, model: String) -> Unit,
+    /** `interface.modelSelect`; off lists only the server's specs, as web does. */
+    modelSelect: Boolean,
     /**
      * Invoked with the endpoint name when the user taps the "Set API Key" CTA on
      * a greyed group. Implementations should navigate to Settings → Provider API Keys.
@@ -241,9 +246,9 @@ fun ModelSelectorSheetContent(
     val isSearching = searchQuery.isNotBlank()
 
     // Filter to only show models for endpoints the user's server has enabled
-    val filteredByEndpoint = remember(availableModels, endpointConfigs, modelSpecs) {
+    val filteredByEndpoint = remember(availableModels, endpointConfigs, modelSpecs, modelSelect) {
         filterModelsByEndpoint(availableModels, endpointConfigs).filterKeys { endpoint ->
-            modelSpecs.showsRawEndpoint(endpoint)
+            modelSpecs.showsRawEndpoint(endpoint, modelSelect)
         }
     }
     // Raw rows the server would reject still show, greyed, where web lists them.
@@ -261,8 +266,10 @@ fun ModelSelectorSheetContent(
 
     // Filter agents by search query (fuzzy matching), sorted by score when searching.
     // When not searching, pinned agents (v0.8.5+) sort to the top of the list.
-    val filteredAgents = remember(agents, searchQuery, favoriteAgentIds, modelSpecs) {
-        val agents = agents.distinctBy { it.id }.takeIf { modelSpecs.showsRawEndpoint(EndpointConstants.AGENTS) }.orEmpty()
+    val filteredAgents = remember(agents, searchQuery, favoriteAgentIds, modelSpecs, modelSelect) {
+        val agents = agents.distinctBy { it.id }
+            .takeIf { modelSpecs.showsRawEndpoint(EndpointConstants.AGENTS, modelSelect) }
+            .orEmpty()
         val base = if (!isSearching) {
             agents
         } else {
@@ -281,8 +288,8 @@ fun ModelSelectorSheetContent(
     val showStarred = !isSearching && starredDisplay != StarredModelsDisplay.OFF
     // favoriteAgentIds / favoriteModelKeys are LinkedHashSets from FavoritesDelegate.publish,
     // so iterating them preserves the server-side pin order.
-    val agentsById = remember(agents, modelSpecs) {
-        agents.takeIf { modelSpecs.showsRawEndpoint(EndpointConstants.AGENTS) }.orEmpty().associateBy { it.id }
+    val agentsById = remember(agents, modelSpecs, modelSelect) {
+        agents.takeIf { modelSpecs.showsRawEndpoint(EndpointConstants.AGENTS, modelSelect) }.orEmpty().associateBy { it.id }
     }
     val starredAgents = remember(agentsById, favoriteAgentIds, showStarred) {
         if (!showStarred) emptyList() else favoriteAgentIds.mapNotNull { agentsById[it] }

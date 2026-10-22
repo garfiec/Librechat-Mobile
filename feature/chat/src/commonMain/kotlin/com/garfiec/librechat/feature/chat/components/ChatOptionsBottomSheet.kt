@@ -108,6 +108,8 @@ data class ModelSelectorPageParams(
     val selectedEndpoint: String?,
     val selectedModel: String?,
     val onModelSelect: (endpoint: String, model: String) -> Unit,
+    /** `interface.modelSelect`; off lists only the server's specs. */
+    val modelSelect: Boolean,
     val agentsLoaded: Boolean = false,
     val modelSpecs: ModelSpecs? = null,
     val selectedSpec: String? = null,
@@ -273,6 +275,7 @@ fun ChatOptionsBottomSheet(
                         agents = selector.agents,
                         selectedEndpoint = selector.selectedEndpoint,
                         selectedModel = selector.selectedModel,
+                        modelSelect = selector.modelSelect,
                         selectedSpec = selector.selectedSpec,
                         modelSpecs = selector.modelSpecs,
                         agentsLoaded = selector.agentsLoaded,

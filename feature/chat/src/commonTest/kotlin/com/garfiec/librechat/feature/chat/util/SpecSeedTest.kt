@@ -137,12 +137,19 @@ class SpecSeedTest {
 
     @Test
     fun added_endpoints_limit_raw_rows_and_bare_enforce_hides_them_all() {
-        assertEquals(false, ModelSpecs(addedEndpoints = listOf("agents")).showsRawEndpoint("custom"))
-        assertEquals(true, ModelSpecs(addedEndpoints = listOf("agents")).showsRawEndpoint("agents"))
-        assertEquals(true, ModelSpecs(enforce = true, addedEndpoints = listOf("agents")).showsRawEndpoint("agents"))
-        assertEquals(false, ModelSpecs(enforce = true).showsRawEndpoint("custom"))
-        assertEquals(true, ModelSpecs().showsRawEndpoint("custom"))
-        assertEquals(true, (null as ModelSpecs?).showsRawEndpoint("custom"))
+        assertEquals(false, ModelSpecs(addedEndpoints = listOf("agents")).showsRawEndpoint("custom", modelSelect = true))
+        assertEquals(true, ModelSpecs(addedEndpoints = listOf("agents")).showsRawEndpoint("agents", modelSelect = true))
+        assertEquals(true, ModelSpecs(enforce = true, addedEndpoints = listOf("agents")).showsRawEndpoint("agents", modelSelect = true))
+        assertEquals(false, ModelSpecs(enforce = true).showsRawEndpoint("custom", modelSelect = true))
+        assertEquals(true, ModelSpecs().showsRawEndpoint("custom", modelSelect = true))
+        assertEquals(true, (null as ModelSpecs?).showsRawEndpoint("custom", modelSelect = true))
+    }
+
+    @Test
+    fun model_select_off_hides_every_raw_row() {
+        assertEquals(false, ModelSpecs().showsRawEndpoint("custom", modelSelect = false))
+        assertEquals(false, ModelSpecs(addedEndpoints = listOf("agents")).showsRawEndpoint("agents", modelSelect = false))
+        assertEquals(false, (null as ModelSpecs?).showsRawEndpoint("custom", modelSelect = false))
     }
 
     @Test

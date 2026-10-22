@@ -654,12 +654,14 @@ class ModelSelectionDelegate(
 
         val lastEndpoint = input.lastUsed.endpoint
         val lastModel = input.lastUsed.model
-        // A raw pair on an endpoint the picker no longer lists (`addedEndpoints` changed since it was
-        // saved) can't be picked again, so it never seeds and never outranks the server's spec.
+        // A raw pair on an endpoint `addedEndpoints` no longer lists can't be picked again, so it
+        // never seeds and never outranks the server's spec. With `interface.modelSelect` off the
+        // spec already wins (Tier 0b); where none applies, web falls back to the last setup, so
+        // last-used still does here.
         val lastUsed = if (lastEndpoint != null && lastModel != null) {
             val spec = input.lastUsed.spec.offeredOn(lastEndpoint, lastModel, input.modelSpecs)
             ModelChoice.restore(lastEndpoint, lastModel, spec)
-                .takeIf { spec != null || input.modelSpecs.showsRawEndpoint(lastEndpoint) }
+                .takeIf { spec != null || input.modelSpecs.showsRawEndpoint(lastEndpoint, modelSelect = true) }
         } else {
             null
         }
@@ -681,6 +683,15 @@ class ModelSelectionDelegate(
             val demotedNow = input.serverSpecSeed?.prioritized == true && specSeed?.prioritized == false
             if (appliedPreferLastUsed != null && demotedNow && !specYielded) lastAppliedLastUsed = null
             appliedPreferLastUsed = input.preferLastUsed
+        }
+
+        // With `interface.modelSelect` off the server's spec beats a start-chat link too, as web's
+        // `useNewConvo` applies it over the link's template. A link applied before the config
+        // loaded ([repinLastUsed]) hands the landing back to the spec once it has.
+        if (!input.modelSelect && input.serverSpecSeed != null) {
+            pendingAgentOverride = null
+            pendingModelOverride = null
+            if (repinLastUsed) specYielded = false
         }
 
         // Tier 0: an explicit agent or concrete model passed from the start-chat navigation wins

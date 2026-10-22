@@ -47,7 +47,8 @@ fun LandingContent(
     selectedModel: String?,
     modifier: Modifier = Modifier,
     selectedAgentName: String? = null,
-    onSelectModel: () -> Unit = {},
+    /** Null when the server offers no picker: the label is then plain text. */
+    onSelectModel: (() -> Unit)? = null,
     /**
      * The project the new chat will be filed into. A label, not a control: the way out is a plain
      * New chat.
@@ -58,7 +59,13 @@ fun LandingContent(
     val selectModelLabel = stringResource(Res.string.cd_select_model)
     val selectableModifier = Modifier
         .clip(RoundedCornerShape(8.dp))
-        .clickable(onClickLabel = selectModelLabel, role = Role.Button, onClick = onSelectModel)
+        .then(
+            if (onSelectModel != null) {
+                Modifier.clickable(onClickLabel = selectModelLabel, role = Role.Button, onClick = onSelectModel)
+            } else {
+                Modifier
+            },
+        )
         .padding(horizontal = 12.dp, vertical = 8.dp)
 
     val scroll = rememberScrollState()

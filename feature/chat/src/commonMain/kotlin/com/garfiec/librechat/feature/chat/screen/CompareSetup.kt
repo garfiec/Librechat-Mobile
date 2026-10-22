@@ -195,6 +195,7 @@ internal fun CompareSetupPicker(
         selectedEndpoint = if (editingA) aEndpoint else pickEndpoint,
         selectedModel = if (editingA) aModel else pickModel,
         onModelSelect = { endpoint, model -> pick.set(endpoint, model) },
+        modelSelect = uiState.modelSelectEnabled,
         modelSpecs = uiState.modelSpecs,
         selectedSpec = if (editingA) labels.primarySpec else pick.spec,
         onSpecSelect = pick::setSpec,

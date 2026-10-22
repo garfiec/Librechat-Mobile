@@ -127,7 +127,7 @@ Which spec applies, and whether it is prioritized, is `util/SpecSeed.kt`, a port
 | …and the user's last pick was a spec | That spec, unless a spec is marked `default` (web: `LAST_CONVO_SETUP.spec`) | That spec | Last spec reopens |
 | `prioritize: false` + `softDefault` spec | Last-used if usable, otherwise the soft spec | Same | Wins over the soft spec |
 | `prioritize: false`, no soft default | Same as no specs | Same | Same as no specs |
-| `interface.modelSelect: false` | The `default`/soft/first spec, always (a stored last spec still reopens when none is marked `default`) | Same: the setting is ignored | Not used while the spec applies |
+| `interface.modelSelect: false` | The `default`/soft/first spec, always (a stored last spec still reopens when none is marked `default`), even from a start-chat link | Same: the setting is ignored | Used only when no spec applies |
 | `enforce: true` | As above; a raw pick can't be sent | Last-used only if it's a spec; a raw one falls back to the server's spec | Raw last-used ignored |
 
 In both modes: a spec that can't apply (missing agent, no agent access, a model the endpoint doesn't
@@ -144,6 +144,19 @@ their own model. On the new-chat screen:
   beats a spec.
 - Once the model list has loaded (it arrives whole), an endpoint missing from it or listing no
   models is unusable rather than pending, so nothing waits on it forever.
+
+**`interface.modelSelect: false` hides the picker, as on web.** Mind the server's default: with
+`modelSpecs` configured and `modelSelect` left out, upstream sets it to whether `addedEndpoints` is
+non-empty (`data-schemas/src/app/interface.ts`), so the common spec-only config arrives as `false`.
+Then:
+- The picker lists only the specs (`showsRawEndpoint` takes `modelSelect`, as web's `useEndpoints`
+  returns no endpoints), and Compare's quick picks too.
+- With no specs either there is no picker (`ChatUiState.modelPickerShown`, web's `ModelSelector`
+  returning null): the model chip and the new-chat label are plain text, the tools-sheet row and
+  Compare are hidden, and the send preflight shows its reason without opening a sheet.
+- A start-chat link (agent card, model shortcut, iOS quick action) opens on the spec, as web's
+  `useNewConvo` applies the spec over the link's template. A link applied before the config loaded
+  hands the landing back to the spec once it has.
 
 **The selection is one value, `ModelChoice`: `Raw(endpoint, model)` or `Spec(name, endpoint,
 model)`.** Write it whole, through `ModelSelectionDelegate.applySelection`; the preset load, the

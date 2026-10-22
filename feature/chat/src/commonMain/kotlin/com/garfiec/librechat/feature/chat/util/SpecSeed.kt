@@ -73,11 +73,12 @@ internal fun ModelSpec.toSeed(prioritized: Boolean = false): SpecSeed? {
 
 /**
  * Whether the picker lists [endpoint]'s raw models and agents next to the named specs. Mirrors
- * the `addedEndpoints` filter in upstream's `useEndpoints`. Under `enforce` with no
- * `addedEndpoints`, nothing raw is listed: web lists everything there, and every pick fails.
+ * upstream's `useEndpoints` filter: nothing raw with `interface.modelSelect` off ([modelSelect]),
+ * else only `addedEndpoints` when set. Under `enforce` with no `addedEndpoints`, nothing raw is
+ * listed: web lists everything there, and every pick fails.
  */
-internal fun ModelSpecs?.showsRawEndpoint(endpoint: String): Boolean =
-    this == null || (addedEndpoints.isEmpty() && !enforce) || endpoint in addedEndpoints
+internal fun ModelSpecs?.showsRawEndpoint(endpoint: String, modelSelect: Boolean): Boolean =
+    modelSelect && (this == null || (addedEndpoints.isEmpty() && !enforce) || endpoint in addedEndpoints)
 
 /**
  * Whether the server rejects any send that names no spec (`buildEndpointOption.js`). It has no
